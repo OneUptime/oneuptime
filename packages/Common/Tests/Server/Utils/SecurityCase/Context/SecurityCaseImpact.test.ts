@@ -5,16 +5,22 @@ import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../../../Models/DatabaseModels/StatusPageResource";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
+import CloudResourceOwnerTeamService from "../../../../../Server/Services/CloudResourceOwnerTeamService";
+import CloudResourceOwnerUserService from "../../../../../Server/Services/CloudResourceOwnerUserService";
 import DataSecurityIdentityService from "../../../../../Server/Services/DataSecurityIdentityService";
 import HostOwnerTeamService from "../../../../../Server/Services/HostOwnerTeamService";
 import HostOwnerUserService from "../../../../../Server/Services/HostOwnerUserService";
 import HostService from "../../../../../Server/Services/HostService";
 import InventoryItemService from "../../../../../Server/Services/InventoryItemService";
+import MonitorOwnerTeamService from "../../../../../Server/Services/MonitorOwnerTeamService";
+import MonitorOwnerUserService from "../../../../../Server/Services/MonitorOwnerUserService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import NetworkDeviceService from "../../../../../Server/Services/NetworkDeviceService";
 import NetworkFlowService from "../../../../../Server/Services/NetworkFlowService";
 import SecurityCaseService from "../../../../../Server/Services/SecurityCaseService";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
+import ServerlessFunctionOwnerTeamService from "../../../../../Server/Services/ServerlessFunctionOwnerTeamService";
+import ServerlessFunctionOwnerUserService from "../../../../../Server/Services/ServerlessFunctionOwnerUserService";
 import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
 import StatusPageResourceService from "../../../../../Server/Services/StatusPageResourceService";
@@ -394,6 +400,132 @@ describe("SecurityCaseImpact.build", () => {
     expect(json.statusPages).toEqual([
       { id: STATUS_PAGE_ID, name: "Acme Status", monitorIds: [MONITOR_ID] },
     ]);
+  });
+
+  test("a monitor the case names is a monitor whose status pages count, and its owners are its own", async () => {
+    const NAMED_MONITOR_ID: string = "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd";
+    const MONITOR_TEAM_ID: string = "dcdcdcdc-dcdc-4cdc-8cdc-dcdcdcdcdcdc";
+
+    jest.spyOn(SecurityConnections, "forCase").mockResolvedValue(
+      connections({
+        resources: [
+          connectedResource(
+            SecurityConnectionKind.Monitor,
+            NAMED_MONITOR_ID,
+            "Checkout site",
+            { monitors: null, recentChanges: null },
+          ),
+        ],
+      }),
+    );
+    const monitorsRead: jest.SpyInstance = jest
+      .spyOn(MonitorService, "findBy")
+      .mockResolvedValue([]);
+    const shown: StatusPageResource = new StatusPageResource();
+    shown.statusPageId = new ObjectID(STATUS_PAGE_ID);
+    shown.monitorId = new ObjectID(NAMED_MONITOR_ID);
+    const page: StatusPage = new StatusPage();
+    page.name = "Acme Status";
+    shown.statusPage = page;
+    const pagesRead: jest.SpyInstance = jest
+      .spyOn(StatusPageResourceService, "findBy")
+      .mockResolvedValue([shown]);
+    const owners: jest.SpyInstance = jest
+      .spyOn(MonitorOwnerTeamService, "findBy")
+      .mockResolvedValue([
+        {
+          monitorId: new ObjectID(NAMED_MONITOR_ID),
+          team: { _id: MONITOR_TEAM_ID, name: "Web" },
+        },
+      ] as never);
+    jest.spyOn(MonitorOwnerUserService, "findBy").mockResolvedValue([]);
+    const changes: jest.SpyInstance = jest
+      .spyOn(ChangeEventService, "findBy")
+      .mockResolvedValue([]);
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(json.statusPages).toEqual([
+      {
+        id: STATUS_PAGE_ID,
+        name: "Acme Status",
+        monitorIds: [NAMED_MONITOR_ID],
+      },
+    ]);
+    // The monitor itself: no read for the monitors watching it.
+    expect(monitorsRead).not.toHaveBeenCalled();
+    expect(
+      JSON.stringify(
+        (pagesRead.mock.calls[0]![0] as { query: JSONObject }).query[
+          "monitorId"
+        ],
+      ),
+    ).toContain(NAMED_MONITOR_ID);
+    expect(recordOf(json, SecurityConnectionKind.Monitor).owners).toEqual({
+      teams: [{ id: MONITOR_TEAM_ID, name: "Web" }],
+      users: [],
+    });
+    expect(
+      (owners.mock.calls[0]![0] as { props: DatabaseCommonInteractionProps })
+        .props,
+    ).toBe(CALLER);
+    // A monitor records no change of its own to look for.
+    expect(changes).not.toHaveBeenCalled();
+  });
+
+  test("a cloud resource's and a serverless function's owners, from their own owner tables", async () => {
+    const CLOUD_ID: string = "efefefef-efef-4fef-8fef-efefefefefef";
+    const FUNCTION_ID: string = "fefefefe-fefe-4efe-8efe-fefefefefefe";
+
+    jest.spyOn(SecurityConnections, "forCase").mockResolvedValue(
+      connections({
+        resources: [
+          connectedResource(
+            SecurityConnectionKind.CloudResource,
+            CLOUD_ID,
+            "checkout-alb",
+          ),
+          connectedResource(
+            SecurityConnectionKind.ServerlessFunction,
+            FUNCTION_ID,
+            "checkout-handler",
+            { activeIncidents: null, activeAlerts: null, monitors: null },
+          ),
+        ],
+      }),
+    );
+    const cloudTeams: jest.SpyInstance = jest
+      .spyOn(CloudResourceOwnerTeamService, "findBy")
+      .mockResolvedValue([
+        {
+          cloudResourceId: new ObjectID(CLOUD_ID),
+          team: { _id: TEAM_ID, name: "Platform" },
+        },
+      ] as never);
+    jest.spyOn(CloudResourceOwnerUserService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(ServerlessFunctionOwnerTeamService, "findBy")
+      .mockResolvedValue([]);
+    jest.spyOn(ServerlessFunctionOwnerUserService, "findBy").mockResolvedValue([
+      {
+        serverlessFunctionId: new ObjectID(FUNCTION_ID),
+        user: { _id: USER_ID, name: "Kim Morgan", email: "kim@acme.example" },
+      },
+    ] as never);
+
+    const json: SecurityCaseImpactJson = await impact();
+
+    expect(recordOf(json, SecurityConnectionKind.CloudResource).owners).toEqual(
+      { teams: [{ id: TEAM_ID, name: "Platform" }], users: [] },
+    );
+    expect(
+      recordOf(json, SecurityConnectionKind.ServerlessFunction).owners,
+    ).toEqual({ teams: [], users: [{ id: USER_ID, name: "Kim Morgan" }] });
+    expect(
+      (cloudTeams.mock.calls[0]![0] as { query: JSONObject }).query[
+        "projectId"
+      ],
+    ).toBe(PROJECT_ID);
   });
 
   test("says what last changed on each record before the first detection, with its version", async () => {

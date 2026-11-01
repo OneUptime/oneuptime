@@ -364,6 +364,342 @@ describe("Connected Signals", () => {
     expect(record).not.toHaveTextContent("incidents:");
   });
 
+  test("a monitor: its status beside its name, the address it checks in its own words, its logs and metrics", async () => {
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          {
+            kind: SecurityConnectionKind.Monitor,
+            id: MONITOR_ID,
+            name: "Checkout site",
+            certainty: SecurityConnectionCertainty.Exact,
+            status: { name: "Degraded", color: "#f59e0b" },
+            matches: [
+              {
+                entityType: SecurityEntityType.Url,
+                entityValue: "https://shop.acme.example/admin",
+                certainty: SecurityConnectionCertainty.Exact,
+                reason: SecurityConnectionReason.MonitorTarget,
+                matchedValue: "shop.acme.example",
+              },
+            ],
+            activeIncidents: { count: 0, items: [] },
+            activeAlerts: { count: 0, items: [] },
+            monitors: null,
+            recentChanges: null,
+          },
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const record: HTMLElement = await screen.findByTestId(IDS.record);
+
+    expect(record).toHaveAttribute("data-kind", SecurityConnectionKind.Monitor);
+    expect(href(within(record).getByTestId(IDS.recordName))).toBe(
+      `${BASE}/monitors/${MONITOR_ID}`,
+    );
+    expect(record).toHaveTextContent("Monitor");
+    expect(within(record).getByTestId(IDS.monitorStatus)).toHaveTextContent(
+      "Degraded",
+    );
+    // A URL on the address it checks: the URL, then the address.
+    expect(within(record).getByTestId(IDS.recordReason)).toHaveTextContent(
+      "Named https://shop.acme.example/admin, on shop.acme.example, the address it checks.",
+    );
+    expect(
+      within(within(record).getByTestId(IDS.signalLinks))
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return `${(link.textContent || "").trim()} ${
+            new globalThis.URL(href(link), "https://oneuptime.example").pathname
+          }`;
+        }),
+    ).toEqual([
+      `Logs ${BASE}/monitors/${MONITOR_ID}/logs`,
+      `Metrics ${BASE}/monitors/${MONITOR_ID}/metrics`,
+    ]);
+    // Nothing open on it says so; a monitor watches nothing itself.
+    expect(within(record).getByTestId(IDS.nothingActive)).toBeInTheDocument();
+    expect(within(record).queryByTestId(IDS.monitors)).toBeNull();
+  });
+
+  test("a monitor checking the very host it names reads as the address it checks; one that may check it, in a monitor's words", async () => {
+    const monitor: (
+      id: string,
+      match: SecurityConnectedResourceJson["matches"][number],
+    ) => SecurityConnectedResourceJson = (
+      id: string,
+      match: SecurityConnectedResourceJson["matches"][number],
+    ): SecurityConnectedResourceJson => {
+      return {
+        kind: SecurityConnectionKind.Monitor,
+        id,
+        name: `Monitor ${id.slice(-1)}`,
+        certainty: match.certainty,
+        matches: [match],
+        activeIncidents: null,
+        activeAlerts: null,
+        monitors: null,
+        recentChanges: null,
+      };
+    };
+
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          monitor("40000000-0000-4000-8000-000000000011", {
+            entityType: SecurityEntityType.IpAddress,
+            entityValue: "203.0.113.7",
+            certainty: SecurityConnectionCertainty.Exact,
+            reason: SecurityConnectionReason.MonitorTarget,
+            matchedValue: "203.0.113.7",
+          }),
+          monitor("40000000-0000-4000-8000-000000000012", {
+            entityType: SecurityEntityType.Host,
+            entityValue: "web-1",
+            certainty: SecurityConnectionCertainty.Possible,
+            reason: SecurityConnectionReason.ShortHostName,
+            matchedValue: "web-1.acme.internal",
+          }),
+          monitor("40000000-0000-4000-8000-000000000013", {
+            entityType: SecurityEntityType.IpAddress,
+            entityValue: "10.0.3.17",
+            certainty: SecurityConnectionCertainty.Possible,
+            reason: SecurityConnectionReason.PrivateAddress,
+            matchedValue: "10.0.3.17",
+          }),
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+    await screen.findAllByTestId(IDS.record);
+
+    expect(
+      screen.getAllByTestId(IDS.recordReason).map((reason: HTMLElement) => {
+        return (reason.textContent || "").trim();
+      }),
+    ).toEqual([
+      "Named 203.0.113.7, the address it checks.",
+      "Named web-1, a short or full form of web-1.acme.internal, which it checks. Another machine may share it.",
+      "Named by 10.0.3.17, a private address it checks. Another network can give it to another machine.",
+    ]);
+  });
+
+  test("a member: the on-call schedules they are on, on call now first, and the teams they are in, each opening its page", async () => {
+    const USER_ID: string = "50000000-0000-4000-8000-000000000001";
+    const PRIMARY: string = "50000000-0000-4000-8000-000000000011";
+    const SECONDARY: string = "50000000-0000-4000-8000-000000000012";
+    const TEAM_ID: string = "50000000-0000-4000-8000-000000000021";
+
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          {
+            kind: SecurityConnectionKind.User,
+            id: USER_ID,
+            name: "Kim Morgan",
+            certainty: SecurityConnectionCertainty.Exact,
+            matches: [
+              {
+                entityType: SecurityEntityType.User,
+                entityValue: "kim@acme.example",
+                certainty: SecurityConnectionCertainty.Exact,
+                reason: SecurityConnectionReason.Email,
+                matchedValue: "kim@acme.example",
+              },
+            ],
+            activeIncidents: null,
+            activeAlerts: null,
+            monitors: null,
+            recentChanges: null,
+            onCallSchedules: {
+              count: 4,
+              items: [
+                { id: PRIMARY, name: "Platform primary", isOnCallNow: true },
+                {
+                  id: SECONDARY,
+                  name: "Platform secondary",
+                  isOnCallNow: false,
+                },
+              ],
+            },
+            teams: { count: 1, items: [{ id: TEAM_ID, title: "SRE" }] },
+          },
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const record: HTMLElement = await screen.findByTestId(IDS.record);
+    const schedules: HTMLElement = within(record).getByTestId(IDS.schedules);
+
+    expect(within(schedules).getByTestId(IDS.factLabel)).toHaveTextContent(
+      "On 4 on-call schedules",
+    );
+    expect(factItems(schedules)).toEqual([
+      "Platform primary",
+      "Platform secondary",
+    ]);
+    expect(schedules).toHaveTextContent("+2 more");
+    expect(
+      href(within(schedules).getByRole("link", { name: "Platform primary" })),
+    ).toBe(`${BASE}/on-call-duty/schedules/${PRIMARY}`);
+    // Only the one they are on call for now says so.
+    expect(within(schedules).getAllByTestId(IDS.onCallNow)).toHaveLength(1);
+    expect(
+      within(
+        within(schedules).getAllByTestId(IDS.factItem)[0] as HTMLElement,
+      ).getByTestId(IDS.onCallNow),
+    ).toHaveTextContent("On call now");
+
+    const teams: HTMLElement = within(record).getByTestId(IDS.teams);
+
+    expect(within(teams).getByTestId(IDS.factLabel)).toHaveTextContent(
+      "In 1 team",
+    );
+    expect(href(within(teams).getByRole("link", { name: "SRE" }))).toBe(
+      `${BASE}/teams/${TEAM_ID}`,
+    );
+    // A person has no incidents or alerts of their own: no quiet line either.
+    expect(within(record).queryByTestId(IDS.nothingActive)).toBeNull();
+  });
+
+  test("a member on no schedule and in no team, or whose schedules the role cannot read, shows neither row", async () => {
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          {
+            kind: SecurityConnectionKind.User,
+            id: "50000000-0000-4000-8000-000000000001",
+            name: "Kim Morgan",
+            certainty: SecurityConnectionCertainty.Exact,
+            matches: [],
+            activeIncidents: null,
+            activeAlerts: null,
+            monitors: null,
+            recentChanges: null,
+            onCallSchedules: null,
+            teams: { count: 0, items: [] },
+          },
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const record: HTMLElement = await screen.findByTestId(IDS.record);
+
+    expect(within(record).queryByTestId(IDS.schedules)).toBeNull();
+    expect(within(record).queryByTestId(IDS.teams)).toBeNull();
+    expect(within(record).queryByTestId(IDS.facts)).toBeNull();
+  });
+
+  test("a cloud resource and a serverless function: each its page, and its logs, traces and metrics on it and the window", async () => {
+    const CLOUD_ID: string = "60000000-0000-4000-8000-000000000001";
+    const FUNCTION_ID: string = "60000000-0000-4000-8000-000000000002";
+    const record: (
+      kind: SecurityConnectionKind,
+      id: string,
+      name: string,
+    ) => SecurityConnectedResourceJson = (
+      kind: SecurityConnectionKind,
+      id: string,
+      name: string,
+    ): SecurityConnectedResourceJson => {
+      return {
+        kind,
+        id,
+        name,
+        certainty: SecurityConnectionCertainty.Exact,
+        matches: [
+          {
+            entityType: SecurityEntityType.Other,
+            entityValue: name,
+            certainty: SecurityConnectionCertainty.Exact,
+            reason: SecurityConnectionReason.LogSource,
+            matchedValue: name,
+          },
+        ],
+        activeIncidents: null,
+        activeAlerts: null,
+        monitors: null,
+        recentChanges: [],
+      };
+    };
+
+    getConnectionsMock.mockResolvedValue(
+      answer({
+        resources: [
+          record(
+            SecurityConnectionKind.CloudResource,
+            CLOUD_ID,
+            "checkout-alb",
+          ),
+          record(
+            SecurityConnectionKind.ServerlessFunction,
+            FUNCTION_ID,
+            "checkout-handler",
+          ),
+        ],
+      }) as never,
+    );
+
+    await drawConnectedSignals();
+
+    const [cloud, handler] = (await screen.findAllByTestId(IDS.record)) as [
+      HTMLElement,
+      HTMLElement,
+    ];
+
+    expect(href(within(cloud).getByTestId(IDS.recordName))).toBe(
+      `${BASE}/cloud/${CLOUD_ID}`,
+    );
+    expect(cloud).toHaveTextContent("Cloud Resource");
+    expect(href(within(handler).getByTestId(IDS.recordName))).toBe(
+      `${BASE}/serverless/${FUNCTION_ID}`,
+    );
+    expect(handler).toHaveTextContent("Serverless Function");
+
+    for (const [element, facet, id, metrics] of [
+      [cloud, "cloudResourceId", CLOUD_ID, `${BASE}/cloud/${CLOUD_ID}/metrics`],
+      [
+        handler,
+        "serverlessFunctionId",
+        FUNCTION_ID,
+        `${BASE}/serverless/${FUNCTION_ID}/metrics`,
+      ],
+    ] as Array<[HTMLElement, string, string, string]>) {
+      const links: HTMLElement = within(element).getByTestId(IDS.signalLinks);
+
+      expect(
+        within(links)
+          .getAllByRole("link")
+          .map((link: HTMLElement): string => {
+            return (link.textContent || "").trim();
+          }),
+      ).toEqual(["Logs", "Traces", "Metrics"]);
+
+      const logs: globalThis.URL = new globalThis.URL(
+        href(within(links).getByText("Logs")),
+        "https://oneuptime.example",
+      );
+
+      expect(JSON.parse(logs.searchParams.get("filters") || "[]")).toEqual([
+        [facet, [id]],
+      ]);
+      expect(
+        new globalThis.URL(
+          href(within(links).getByText("Metrics")),
+          "https://oneuptime.example",
+        ).pathname,
+      ).toBe(metrics);
+    }
+  });
+
   test("every fact's items sit in a list of their own, its label a dt laid out beside them by the record's own width", async () => {
     getConnectionsMock.mockResolvedValue(
       answer({
@@ -765,6 +1101,7 @@ describe("a record's Security card", () => {
       isInUse: true,
       windowDays: 7,
       values: ["web-1"],
+      isSearchedByLogs: false,
       entity: { type: SecurityEntityType.Host, value: "web-1" },
       eventCount: 42,
       findingCount: 3,
@@ -857,6 +1194,7 @@ describe("a record's Security card", () => {
         kind: SecurityConnectionKind.Service,
         id: SERVICE_ID,
         values: [],
+        isSearchedByLogs: true,
         entity: null,
         eventCount: 0,
         findingCount: 0,
@@ -869,6 +1207,112 @@ describe("a record's Security card", () => {
 
     expect(await screen.findByTestId(IDS.resourceSecurity)).toHaveTextContent(
       "No security event was read from its logs in the last 7 days.",
+    );
+  });
+
+  test("a monitor's card is about what it checks, quiet or not", async () => {
+    getResourceSecurityMock.mockResolvedValue(
+      security({
+        kind: SecurityConnectionKind.Monitor,
+        id: MONITOR_ID,
+        values: ["shop.acme.example"],
+        entity: { type: SecurityEntityType.Host, value: "shop.acme.example" },
+        eventCount: 0,
+        findingCount: 0,
+        openCases: { count: 0, items: [] },
+        risk: null,
+        lastSeen: null,
+      }) as never,
+    );
+
+    await drawCard(SecurityConnectionKind.Monitor, MONITOR_ID);
+
+    expect(await screen.findByTestId(IDS.resourceSecurity)).toHaveTextContent(
+      "No security event named what it checks in the last 7 days.",
+    );
+
+    cleanup();
+    getResourceSecurityMock.mockResolvedValue(
+      security({
+        kind: SecurityConnectionKind.Monitor,
+        id: MONITOR_ID,
+        values: ["shop.acme.example"],
+        entity: { type: SecurityEntityType.Host, value: "shop.acme.example" },
+      }) as never,
+    );
+
+    await drawCard(SecurityConnectionKind.Monitor, MONITOR_ID);
+
+    const card: HTMLElement = await screen.findByTestId(IDS.resourceSecurity);
+
+    expect(card).toHaveTextContent(
+      "What Security Events found about what it checks in the last 7 days.",
+    );
+    // The events: those naming the hosts it checks.
+    expect(
+      decodeURIComponent(
+        new globalThis.URL(
+          href(within(card).getByTestId(IDS.resourceSecurityOpen)),
+          "https://oneuptime.example",
+        ).searchParams.get("search") || "",
+      ),
+    ).toBe("observable:shop.acme.example");
+  });
+
+  test("a serverless function's card, and a cloud resource searched by its logs, are about its logs", async () => {
+    const FUNCTION_ID: string = "60000000-0000-4000-8000-000000000002";
+
+    for (const kind of [
+      SecurityConnectionKind.ServerlessFunction,
+      SecurityConnectionKind.CloudResource,
+    ]) {
+      cleanup();
+      getResourceSecurityMock.mockResolvedValue(
+        security({
+          kind,
+          id: FUNCTION_ID,
+          values: [],
+          isSearchedByLogs: true,
+          entity: null,
+          openCases: null,
+          risk: null,
+        }) as never,
+      );
+
+      await drawCard(kind, FUNCTION_ID);
+
+      const card: HTMLElement = await screen.findByTestId(IDS.resourceSecurity);
+
+      expect(card).toHaveTextContent(
+        "What Security Events found in its logs in the last 7 days.",
+      );
+      expect(
+        decodeURIComponent(
+          new globalThis.URL(
+            href(within(card).getByTestId(IDS.resourceSecurityOpen)),
+            "https://oneuptime.example",
+          ).searchParams.get("search") || "",
+        ),
+      ).toBe(`@oneuptime.log.resource.id:${FUNCTION_ID}`);
+    }
+  });
+
+  test("a cloud resource searched by its names reads as any record does", async () => {
+    getResourceSecurityMock.mockResolvedValue(
+      security({
+        kind: SecurityConnectionKind.CloudResource,
+        values: ["arn:aws:s3:::acme-prod-data"],
+        entity: {
+          type: SecurityEntityType.Other,
+          value: "arn:aws:s3:::acme-prod-data",
+        },
+      }) as never,
+    );
+
+    await drawCard(SecurityConnectionKind.CloudResource);
+
+    expect(await screen.findByTestId(IDS.resourceSecurity)).toHaveTextContent(
+      "What Security Events found about it in the last 7 days.",
     );
   });
 

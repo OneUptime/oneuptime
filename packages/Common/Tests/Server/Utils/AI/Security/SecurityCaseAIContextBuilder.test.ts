@@ -1,7 +1,9 @@
 import SecurityCaseAIContextBuilder, {
+  CONNECTION_KIND_NOUNS,
   SecurityCaseTriageContext,
   SecurityCaseTriageData,
   TriageLinkedHost,
+  describeConnectionReason,
   foldWhiteSpace,
   hostReportsAddress,
   securityValue,
@@ -24,6 +26,7 @@ import KubernetesClusterService from "../../../../../Server/Services/KubernetesC
 import NetworkDeviceService from "../../../../../Server/Services/NetworkDeviceService";
 import PodmanHostService from "../../../../../Server/Services/PodmanHostService";
 import {
+  SecurityConnectedResourceJson,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
   SecurityConnectionReason,
@@ -442,6 +445,162 @@ describe("SecurityCaseAIContextBuilder.buildContext", () => {
     expect(text).toContain(
       "It names more of the project's records than are listed here.",
     );
+  });
+
+  test("a monitor with its status, a cloud resource, a serverless function, and a member's on-call schedules and teams", () => {
+    const monitorId: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    const cloudId: string = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
+    const functionId: string = "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee";
+    const userId: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+    const match: (
+      entityType: SecurityEntityType,
+      entityValue: string,
+      reason: SecurityConnectionReason,
+      matchedValue: string,
+    ) => SecurityConnectedResourceJson["matches"][number] = (
+      entityType: SecurityEntityType,
+      entityValue: string,
+      reason: SecurityConnectionReason,
+      matchedValue: string,
+    ): SecurityConnectedResourceJson["matches"][number] => {
+      return {
+        entityType,
+        entityValue,
+        certainty: SecurityConnectionCertainty.Exact,
+        reason,
+        matchedValue,
+      };
+    };
+    const connections: SecurityConnectionsJson = {
+      windowStart: "2026-10-14T10:28:00.000Z",
+      windowEnd: "2026-10-14T11:35:00.000Z",
+      resources: [
+        {
+          kind: SecurityConnectionKind.Monitor,
+          id: monitorId,
+          name: "Checkout site",
+          certainty: SecurityConnectionCertainty.Exact,
+          matches: [
+            match(
+              SecurityEntityType.Url,
+              "https://shop.acme.example/admin",
+              SecurityConnectionReason.MonitorTarget,
+              "shop.acme.example",
+            ),
+          ],
+          status: { name: "Degraded", color: "#f59e0b" },
+          activeIncidents: {
+            count: 1,
+            items: [
+              { id: "i1", title: "Checkout returns 502s", number: "#42" },
+            ],
+          },
+          activeAlerts: { count: 0, items: [] },
+          monitors: null,
+          recentChanges: null,
+        },
+        {
+          kind: SecurityConnectionKind.CloudResource,
+          id: cloudId,
+          name: "acme-prod-data",
+          certainty: SecurityConnectionCertainty.Exact,
+          matches: [
+            match(
+              SecurityEntityType.Other,
+              "arn:aws:s3:::acme-prod-data",
+              SecurityConnectionReason.ResourceId,
+              "arn:aws:s3:::acme-prod-data",
+            ),
+          ],
+          activeIncidents: { count: 0, items: [] },
+          activeAlerts: { count: 0, items: [] },
+          monitors: { count: 0, items: [] },
+          recentChanges: [],
+        },
+        {
+          kind: SecurityConnectionKind.ServerlessFunction,
+          id: functionId,
+          name: "checkout-handler",
+          certainty: SecurityConnectionCertainty.Exact,
+          matches: [
+            match(
+              SecurityEntityType.Other,
+              "checkout-handler",
+              SecurityConnectionReason.LogSource,
+              "checkout-handler",
+            ),
+          ],
+          activeIncidents: null,
+          activeAlerts: null,
+          monitors: null,
+          recentChanges: [],
+        },
+        {
+          kind: SecurityConnectionKind.User,
+          id: userId,
+          name: "Kim Morgan",
+          certainty: SecurityConnectionCertainty.Exact,
+          matches: [
+            match(
+              SecurityEntityType.User,
+              "k.morgan@acme.example",
+              SecurityConnectionReason.Email,
+              "k.morgan@acme.example",
+            ),
+          ],
+          activeIncidents: null,
+          activeAlerts: null,
+          monitors: null,
+          recentChanges: null,
+          onCallSchedules: {
+            count: 2,
+            items: [
+              { id: "s1", name: "Platform primary", isOnCallNow: true },
+              { id: "s2", name: "Database escalations", isOnCallNow: false },
+            ],
+          },
+          teams: { count: 1, items: [{ id: "t1", title: "SRE" }] },
+        },
+      ],
+      hasMoreResources: false,
+      unmatched: [],
+      unreadableKinds: [],
+      failedKinds: [],
+    };
+
+    const text: string = build(
+      makeTriage({ connections, linkedHosts: [] }),
+    ).contextSummary;
+
+    expect(text).toContain(
+      `"https://shop.acme.example/admin" is this project's monitor "Checkout site" (monitorId "${monitorId}"): it checks this host or address. Its status now: "Degraded". 1 incident open on it: #42 "Checkout returns 502s".`,
+    );
+    expect(text).toContain(
+      `"arn:aws:s3:::acme-prod-data" is this project's cloud resource "acme-prod-data" (resourceType "CloudResource", resourceId "${cloudId}"): it is the cloud resource of this ID.`,
+    );
+    expect(text).toContain(
+      `The case's events were read from the logs of this project's serverless function "checkout-handler" (resourceType "ServerlessFunction", resourceId "${functionId}")`,
+    );
+    expect(text).toContain(
+      // Names a project wrote are quoted, as every outside value is.
+      `On 2 on-call schedules: "Platform primary" (on call now); "Database escalations". In 1 team: "SRE".`,
+    );
+  });
+
+  test("the words for the new kinds and reasons", () => {
+    expect(CONNECTION_KIND_NOUNS[SecurityConnectionKind.Monitor]).toBe(
+      "monitor",
+    );
+    expect(CONNECTION_KIND_NOUNS[SecurityConnectionKind.CloudResource]).toBe(
+      "cloud resource",
+    );
+    expect(
+      CONNECTION_KIND_NOUNS[SecurityConnectionKind.ServerlessFunction],
+    ).toBe("serverless function");
+
+    for (const reason of Object.values(SecurityConnectionReason)) {
+      expect(describeConnectionReason(reason)).not.toBe("it has this value");
+    }
   });
 
   test("a record's facts and names are outside text: quoted and looked over", () => {
