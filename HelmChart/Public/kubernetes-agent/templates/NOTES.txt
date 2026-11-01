@@ -91,7 +91,8 @@ The agent is now collecting:
 {{- if eq (include "kubernetes-agent.hostMetricsEnabled" .) "true" }}
   - Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average)
 {{- end }}
-{{- if .Values.auditLogs.enabled }}
+{{- /* On openshift-restricted nothing reads the file: the preset says so below. */}}
+{{- if and .Values.auditLogs.enabled (ne (include "kubernetes-agent.openshiftRestricted" .) "true") }}
   - Kubernetes API server audit logs (self-managed clusters)
 {{- end }}
 {{- if .Values.csi.enabled }}
@@ -120,12 +121,24 @@ whatever ebpf.enabled and profiling.enabled say: both need a privileged pod
 {{- if eq .Values.preset "eks-fargate" }}
 on every node, and EKS Fargate runs neither privileged pods nor DaemonSets.
 To trace your services, send traces from them with an OpenTelemetry SDK.
+{{- else if eq .Values.preset "openshift-restricted" }}
+on every node, and OpenShift's restricted-v2 SCC refuses privileged pods. To
+trace your services, send traces from them with an OpenTelemetry SDK.
 {{- else }}
 on every node, and GKE Autopilot refuses privileged pods. To trace your
 services, send traces from them with an OpenTelemetry SDK.
 {{- end }}
 {{- end }}
-{{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+{{- if eq (include "kubernetes-agent.openshiftRestricted" .) "true" }}
+Every pod runs under restricted-v2 and this chart created no SCC, so nothing
+reads the nodes: no per-node OS metrics and no audit logs, and pod logs come
+through the Kubernetes API (the log tailer) instead of from the nodes. Node,
+pod and container metrics still arrive, from each node's kubelet.
+To collect the rest, switch to the openshift preset, which creates the SCCs
+its node pods need (creating them takes cluster-admin rights):
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set preset=openshift
+{{- end }}
+{{- if eq (include "kubernetes-agent.openshiftSccs" .) "true" }}
 {{- $fullname := include "kubernetes-agent.fullname" . }}
 {{- $ebpf := eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
 {{- $profiling := eq (include "kubernetes-agent.profilingEnabled" .) "true" }}

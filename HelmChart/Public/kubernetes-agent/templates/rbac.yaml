@@ -12,10 +12,11 @@ metadata:
   {{- end }}
 {{- end }}
 {{- /*
-On the openshift preset the node pods run as service accounts of their own,
-the only ones that may use the SCCs templates/openshift-scc.yaml creates
-(kubernetes-agent.nodeServiceAccounts). They read the cluster as the main one
-does: the ClusterRoleBinding below binds them to the same ClusterRole.
+Where the chart creates SCCs (the openshift preset), the node pods run as
+service accounts of their own, the only ones that may use the SCCs
+templates/openshift-scc.yaml creates (kubernetes-agent.nodeServiceAccounts).
+They read the cluster as the main one does: the ClusterRoleBinding below binds
+them to the same ClusterRole.
 */}}
 {{- if eq (include "kubernetes-agent.nodeServiceAccounts" .) "true" }}
 {{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}

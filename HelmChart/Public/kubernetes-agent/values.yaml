@@ -42,12 +42,23 @@ chartDefaultsVersion: "0.7.3"
 #                   for the eBPF and profiler pods (privileged), each used
 #                   only by those pods' own service account, and lets
 #                   OpenShift assign every other pod's user and group IDs.
+#                   The recommended preset on OpenShift.
+#
+#   openshift-restricted
+#                 — OpenShift, for an admin who will not add an SCC. Every
+#                   pod runs under restricted-v2 alone, like gke-autopilot:
+#                   logs are collected via the Kubernetes API from a
+#                   Deployment, the node collector reads only the kubelet,
+#                   so there are no host metrics, and the eBPF
+#                   instrumentation and the profiler are left out, whatever
+#                   ebpf.enabled and profiling.enabled say. Move to
+#                   `openshift` to get them back.
 #
 # If unset, "standard" is assumed. Individual values (logs.mode, etc.) can
 # still be overridden explicitly — they always win over preset defaults.
-# The one exception is the privileged pods: on gke-autopilot and
-# eks-fargate, ebpf.enabled and profiling.enabled cannot turn eBPF or the
-# profiler back on, because those platforms cannot run them.
+# The one exception is the privileged pods: on gke-autopilot, eks-fargate and
+# openshift-restricted, ebpf.enabled and profiling.enabled cannot turn eBPF or
+# the profiler back on, because those platforms cannot run them.
 preset: ""
 
 # Required: Your OneUptime instance connection details
@@ -425,6 +436,9 @@ controlPlane:
     # kubeadm binds it to 127.0.0.1. Give it a --bind-address the agent's pod
     # can reach, then list the nodes, e.g. https://10.0.0.10:10259/metrics.
     endpoints: []
+    # Set to false, on the OpenShift presets, to check each replica's
+    # certificate against OpenShift's service CA (service-ca.crt beside the
+    # service account's token), as the Service's name.
     insecureSkipVerify: true
   controllerManager:
     # Empty by default, for the same reason: port 10257, e.g.
@@ -451,8 +465,8 @@ controlPlane:
 logs:
   enabled: true
   # Leave empty to let the `preset` choose: "standard" -> daemonset,
-  # "gke-autopilot" / "eks-fargate" -> api. Override explicitly if you know
-  # what you want: "daemonset" | "api" | "disabled".
+  # "gke-autopilot" / "eks-fargate" / "openshift-restricted" -> api. Override
+  # explicitly if you know what you want: "daemonset" | "api" | "disabled".
   mode: ""
   # Hybrid mode for clusters with Windows node pools. The DaemonSet collector
   # only runs on Linux nodes (its images are linux-only), so in daemonset log
@@ -903,6 +917,7 @@ cost:
 #   - The DaemonSet runs in privileged mode so it can load eBPF programs.
 #     GKE Autopilot and EKS Fargate refuse privileged pods, so the
 #     gke-autopilot and eks-fargate presets leave it out whatever this says.
+#     So does openshift-restricted, which runs under restricted-v2 alone.
 #     If another cluster's Pod Security Standard rejects privileged pods,
 #     set `ebpf.enabled: false`.
 ebpf:
@@ -1599,8 +1614,9 @@ ebpf:
 #   - Linux kernel 5.10+ (newer than the 5.8 OBI needs).
 #   - Privileged pod with hostPID — same constraints as the eBPF
 #     auto-instrumentation DaemonSet, so it lights up on the same
-#     clusters, and the gke-autopilot and eks-fargate presets leave it
-#     out the same way, whatever this says.
+#     clusters, and the gke-autopilot, eks-fargate and
+#     openshift-restricted presets leave it out the same way, whatever
+#     this says.
 #   - Nodes whose hostPID is the kernel's root PID namespace, as any
 #     VM or bare-metal node's is. The profiler looks a sample's process
 #     up by its root-namespace PID in the node's /proc, with no

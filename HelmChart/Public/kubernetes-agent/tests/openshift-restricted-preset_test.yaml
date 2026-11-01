@@ -1,0 +1,509 @@
+# The openshift-restricted preset: OpenShift, for an admin who will not add an
+# SCC.
+#
+# kubernetes-agent.openshift used to mean two things at once: the cluster is
+# OpenShift, and the chart creates SCCs. They are apart now. Here it is
+# OpenShift: user and group IDs are OpenShift's to assign, the distribution is
+# stamped, and the openshift detector and k8sobjects/openshift run, with their
+# RBAC. It creates no SCC: no node service accounts, no root, no spc_t. So
+# every pod has to run under restricted-v2 alone, which works like gke-autopilot
+# does: logs through the API, no hostmetrics, no eBPF or profiler, and the node
+# collector stays for the kubelet's metrics.
+#
+# Tests/Ops/KubernetesAgentOpenShiftAdmission.test.js holds every pod of the
+# whole render to restricted-v2, with every option on.
+suite: the openshift-restricted preset runs every pod under restricted-v2 and stays OpenShift
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/openshift-scc.yaml
+  - templates/rbac.yaml
+  - templates/daemonset.yaml
+  - templates/daemonset-ebpf.yaml
+  - templates/daemonset-profiling.yaml
+  - templates/deployment.yaml
+  - templates/deployment-logs-api.yaml
+  - templates/ai-agent.yaml
+  - templates/kube-state-metrics.yaml
+  - templates/deployment-cost-agent.yaml
+  - templates/prometheus-cost.yaml
+  - templates/opencost.yaml
+  - templates/configmap-deployment.yaml
+  - templates/configmap-daemonset.yaml
+  - templates/configmap-ebpf.yaml
+  - templates/configmap-profiling.yaml
+  - templates/service.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+  preset: openshift-restricted
+tests:
+  # --- No SCC ------------------------------------------------------------------
+  - it: creates no SCC, Role or RoleBinding
+    template: templates/openshift-scc.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: creates none however much you turn on
+    template: templates/openshift-scc.yaml
+    set:
+      ebpf.enabled: true
+      profiling.enabled: true
+      hostMetrics.enabled: true
+      auditLogs.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: creates no service account for the node pods, and binds only the main one
+    template: templates/rbac.yaml
+    asserts:
+      # The main service account, the ClusterRole and its binding.
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent
+              namespace: oneuptime
+        documentSelector:
+          path: kind
+          value: ClusterRoleBinding
+
+  - it: runs the node collector as the main service account
+    template: templates/daemonset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent
+
+  # --- The node collector, under restricted-v2 -----------------------------------
+  - it: still runs the node collector, for the kubelet's metrics
+    template: templates/daemonset.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: DaemonSet
+
+  - it: runs it non-root with the RuntimeDefault seccomp profile, with no user ID, SELinux options or spc_t of its own
+    template: templates/daemonset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+
+  - it: lets it escalate nothing and drops every capability
+    template: templates/daemonset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+  - it: gives it no host namespaces and no host port
+    template: templates/daemonset.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.hostNetwork
+      - notExists:
+          path: spec.template.spec.hostPID
+      - notExists:
+          path: spec.template.spec.hostIPC
+      - notExists:
+          path: spec.template.spec.containers[0].ports
+
+  - it: mounts nothing of the node, with every option that would
+    template: templates/daemonset.yaml
+    set:
+      hostMetrics.enabled: true
+      auditLogs.enabled: true
+      logs.windowsPods.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: config
+              configMap:
+                name: oneuptime-agent-kubernetes-agent-daemonset
+      - equal:
+          path: spec.template.spec.containers[0].volumeMounts
+          value:
+            - name: config
+              mountPath: /etc/otel
+              readOnly: true
+
+  - it: mounts nothing of the node when logs.mode asks for the DaemonSet either
+    template: templates/daemonset.yaml
+    set:
+      logs.mode: daemonset
+    asserts:
+      - lengthEqual:
+          path: spec.template.spec.volumes
+          count: 1
+
+  - it: keeps the node collector when logs are off, for the same metrics
+    template: templates/daemonset.yaml
+    set:
+      logs.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 1
+
+  - it: reads the kubelet and cAdvisor over the network
+    template: templates/configmap-daemonset.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  kubeletstats:\n    collection_interval: 30s\n    auth_type: serviceAccount\n    endpoint: "https://\$\{env:NODE_IP\}:10250"$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  prometheus/cadvisor:$'
+
+  # --- The cluster collector ----------------------------------------------------
+  - it: states restricted-v2's terms for the cluster collector too
+    template: templates/deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+  - it: states them for the debug sidecars
+    set:
+      debug.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+        template: templates/deployment.yaml
+      - equal:
+          path: spec.template.spec.containers[1].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+        template: templates/daemonset.yaml
+
+  - it: keeps the debug sidecar's security context when you set one
+    template: templates/deployment.yaml
+    set:
+      debug.enabled: true
+      debug.securityContext:
+        capabilities:
+          add: ["NET_RAW"]
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].securityContext
+          value:
+            capabilities:
+              add: ["NET_RAW"]
+
+  # --- Logs through the API --------------------------------------------------------
+  - it: reads pod logs through the API, with the log tailer
+    template: templates/deployment-logs-api.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.template.spec.containers[0].name
+          value: log-tailer
+
+  - it: tails every pod, not only those on Windows nodes
+    template: templates/deployment-logs-api.yaml
+    set:
+      logs.windowsPods.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NODE_OS_INCLUDE
+            value: windows
+
+  - it: lets it read pod logs
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - pods/log
+            verbs: ["get", "list"]
+
+  - it: tails no log files on the nodes
+    template: templates/configmap-daemonset.yaml
+    set:
+      auditLogs.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^(  filelog[a-z/-]*:|        - filelog[a-z/-]*|    logs(/[a-z-]+)?:)$'
+
+  # --- No hostmetrics, eBPF or profiler -----------------------------------------
+  - it: has no hostmetrics receiver, whatever hostMetrics.enabled says
+    template: templates/configmap-daemonset.yaml
+    set:
+      hostMetrics.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^(  hostmetrics:|        - hostmetrics)$'
+
+  - it: leaves the eBPF instrumentation out, whatever ebpf.enabled says
+    set:
+      ebpf.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/daemonset-ebpf.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/configmap-ebpf.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/service.yaml
+
+  - it: leaves the profiler out, whatever profiling.enabled says
+    set:
+      profiling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+        template: templates/daemonset-profiling.yaml
+      - hasDocuments:
+          count: 0
+        template: templates/configmap-profiling.yaml
+
+  - it: takes OTLP from nothing, as nothing sends it
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  otlp:$'
+
+  # --- Still OpenShift ------------------------------------------------------------
+  - it: stamps the distribution and runs the openshift detector in every cluster collector pipeline
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      - key: oneuptime\.kubernetes\.distribution\n        value: openshift\n        action: insert$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  resourcedetection/openshift:\n    detectors: \[openshift\]\n    override: false$'
+      # metrics and logs: no eBPF, so no traces pipeline.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?s)^(?:.*?\n        - resource\n        - resourcedetection/openshift\n){2}'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - resource\n        - (?:[^r]|r[^e])'
+
+  - it: stamps the distribution and runs the detector on the node collector
+    template: templates/configmap-daemonset.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      - key: oneuptime\.kubernetes\.distribution\n        value: openshift\n        action: upsert$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - resource\n        - resourcedetection/openshift\n'
+
+  - it: lets the detector read the cluster's Infrastructure object
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["config.openshift.io"]
+            resources:
+              - infrastructures/status
+            resourceNames:
+              - cluster
+            verbs: ["get"]
+
+  - it: still pulls OpenShift's own objects, from their own receiver, and replaces a Route's TLS key
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sobjects/openshift:\n    error_mode: ignore\n    objects:\n      - name: clusteroperators$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/openshift$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      processors:\n        - memory_limiter\n        # First, so no other processor holds a Route''s key\.\n        - transform/openshift-route-tls\n        - k8sattributes$'
+
+  - it: names a pod's DeploymentConfig on both collectors, as the openshift preset does
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '- tag_name: k8s\.pod\.label\.deploymentconfig\n\s+key: deploymentconfig\n\s+from: pod\n'
+        template: templates/configmap-deployment.yaml
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '- tag_name: k8s\.pod\.label\.deploymentconfig\n\s+key: deploymentconfig\n\s+from: pod\n'
+        template: templates/configmap-daemonset.yaml
+
+  - it: lets the agent read those objects
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["route.openshift.io"]
+            resources:
+              - routes
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["config.openshift.io"]
+            resources:
+              - clusteroperators
+              - clusterversions
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["apps.openshift.io"]
+            resources:
+              - deploymentconfigs
+            verbs: ["get", "list", "watch"]
+
+  # --- User and group IDs ---------------------------------------------------------
+  - it: pins no user or group ID on any pod
+    set:
+      kubeStateMetrics.enabled: true
+      cost.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/ai-agent.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/kube-state-metrics.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/deployment-logs-api.yaml
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/deployment-cost-agent.yaml
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/prometheus-cost.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/opencost.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  # --- The openshift preset is what it was ----------------------------------------
+  - it: keeps the openshift preset's SCCs, service accounts and spc_t
+    set:
+      preset: openshift
+    asserts:
+      - hasDocuments:
+          count: 6
+        template: templates/openshift-scc.yaml
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent-node-collector
+        template: templates/daemonset.yaml
+      - equal:
+          path: spec.template.spec.securityContext.seLinuxOptions.type
+          value: spc_t
+        template: templates/daemonset.yaml
+      # And it states nothing new on the cluster collector.
+      - notExists:
+          path: spec.template.spec.securityContext
+        template: templates/deployment.yaml
+      - notExists:
+          path: spec.template.spec.containers[0].securityContext
+        template: templates/deployment.yaml
+
+  - it: states nothing new on any other preset
+    set:
+      preset: standard
+      debug.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.securityContext
+        template: templates/deployment.yaml
+      - notExists:
+          path: spec.template.spec.containers[0].securityContext
+        template: templates/deployment.yaml
+      - notExists:
+          path: spec.template.spec.containers[1].securityContext
+        template: templates/deployment.yaml
