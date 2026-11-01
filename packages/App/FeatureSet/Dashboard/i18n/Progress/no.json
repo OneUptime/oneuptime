@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39706,
-    "untranslated": 12882
+    "untranslated": 12847
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -68,6 +68,7 @@
     "Israel (+972)",
     "Japan (+81)",
     "LXC 201 · pve3",
+    "Log4Shell",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -92,6 +93,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Path traversal",
     "Pause",
     "Peer",
     "Person",
@@ -126,6 +128,7 @@
     "Singapore (+65)",
     "Slug",
     "Span",
+    "Span: {{id}}",
     "Spans",
     "Stack",
     "Stack trace",

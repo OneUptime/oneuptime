@@ -262,7 +262,7 @@ La barra laterale conta gli eventi della finestra per **Origine**, **Gravità**,
 
 ### Cosa è successo dopo
 
-Un evento letto da una riga di log scritta all'interno di una richiesta tracciata viene seguito dentro quella richiesta. Il suo pannello dice fin dove è arrivata la richiesta (**Rifiutato**, **Reached App**, **Errored** o **Reached Database**), chi l'ha inviata, e rimanda alla sua traccia, alla sua eccezione, al replay della sessione e alla riga di log stessa. Anche una riga di log, una traccia e un'eccezione che fanno parte di un attacco lo dicono nelle proprie pagine.
+Un evento letto da una riga di log scritta all'interno di una richiesta tracciata viene seguito dentro quella richiesta. Il suo pannello dice fin dove è arrivata la richiesta (**Rifiutato**, **App raggiunta**, **In errore** o **Database raggiunto**), chi l'ha inviata, e rimanda alla sua traccia, alla sua eccezione, al replay della sessione e alla riga di log stessa. Anche una riga di log, una traccia e un'eccezione che fanno parte di un attacco lo dicono nelle proprie pagine.
 
 ### Campaigns
 

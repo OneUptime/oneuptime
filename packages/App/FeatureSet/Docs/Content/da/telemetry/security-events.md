@@ -262,7 +262,7 @@ Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **R
 
 ### Hvad der skete bagefter
 
-En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Reached App**, **Errored** eller **Reached Database**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
+En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Nåede appen**, **Fejlede** eller **Nåede databasen**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
 
 ### Campaigns
 

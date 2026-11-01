@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39706,
-    "untranslated": 12862
+    "untranslated": 12827
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -43,6 +43,7 @@
     "DeploymentConfigs",
     "Desktop",
     "Docker Compose",
+    "Docs",
     "Edge",
     "Embedding",
     "Endpoint",
@@ -74,6 +75,7 @@
     "Link",
     "Links",
     "Local",
+    "Log4Shell",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -97,6 +99,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Path traversal",
     "Playbook",
     "Playbooks",
     "Playlist",
@@ -130,6 +133,7 @@
     "Site",
     "Slug",
     "Span",
+    "Span: {{id}}",
     "Spans",
     "Stack",
     "Stack trace",

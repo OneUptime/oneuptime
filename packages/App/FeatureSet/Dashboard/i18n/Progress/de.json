@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39706,
-    "untranslated": 3879
+    "untranslated": 3843
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -187,6 +187,7 @@
     "Enterprise Edition",
     "Episode",
     "Eritrea",
+    "Export",
     "Failover",
     "Fatal",
     "Favicon",
@@ -279,6 +280,7 @@
     "Links",
     "Live",
     "Load Balancer",
+    "Log4Shell",
     "Logo",
     "Loopback",
     "MCP",
@@ -465,6 +467,7 @@
     "Source Map",
     "Source Maps",
     "Span",
+    "Span: {{id}}",
     "Spans",
     "Spec",
     "Sri Lanka",
@@ -513,6 +516,7 @@
     "Trace",
     "Trace Explorer",
     "Trace {{traceId}}",
+    "Trace: {{id}}",
     "Traceroute",
     "Traces",
     "Transport",

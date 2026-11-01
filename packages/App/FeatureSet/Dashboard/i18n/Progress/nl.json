@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39706,
-    "untranslated": 12945
+    "untranslated": 12909
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -74,11 +74,13 @@
     "Diagram",
     "Direct",
     "Docker Compose",
+    "Docs",
     "Down · In",
     "Edge",
     "Embedding",
     "Endpoint",
     "Endpoints",
+    "Export",
     "Failover",
     "Feed",
     "Filter",
@@ -126,6 +128,7 @@
     "Labels",
     "Live",
     "Locks",
+    "Log4Shell",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -159,6 +162,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Path traversal",
     "Peer",
     "Platform",
     "Platforms",
@@ -210,6 +214,7 @@
     "Singapore (+65)",
     "Slug",
     "Span",
+    "Span: {{id}}",
     "Spans",
     "Stack",
     "Stack trace",
@@ -230,6 +235,7 @@
     "Top P",
     "Trace",
     "Trace {{traceId}}",
+    "Trace: {{id}}",
     "Traces",
     "Transceivers",
     "Trigger",

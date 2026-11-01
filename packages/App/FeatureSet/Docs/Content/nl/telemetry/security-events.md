@@ -262,7 +262,7 @@ De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Requ
 
 ### Wat er daarna gebeurde
 
-Een gebeurtenis uit een logregel die binnen een getracet verzoek is geschreven, wordt in dat verzoek gevolgd. Het paneel zegt hoe ver het verzoek kwam (**Afgewezen**, **Reached App**, **Errored** of **Reached Database**), wie het stuurde, en linkt naar de trace, de uitzondering, de sessieherhaling en de logregel zelf. Een logregel, een trace en een uitzondering die deel zijn van een aanval zeggen dat ook op hun eigen pagina's.
+Een gebeurtenis uit een logregel die binnen een getracet verzoek is geschreven, wordt in dat verzoek gevolgd. Het paneel zegt hoe ver het verzoek kwam (**Afgewezen**, **App bereikt**, **Fout** of **Database bereikt**), wie het stuurde, en linkt naar de trace, de uitzondering, de sessieherhaling en de logregel zelf. Een logregel, een trace en een uitzondering die deel zijn van een aanval zeggen dat ook op hun eigen pagina's.
 
 ### Campaigns
 

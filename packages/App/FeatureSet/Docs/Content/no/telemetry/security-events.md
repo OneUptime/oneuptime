@@ -262,7 +262,7 @@ Sidepanelet teller vinduets hendelser etter **Kilde**, **Alvorlighetsgrad**, **R
 
 ### Hva som skjedde etterpå
 
-En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel, følges inn i den forespørselen. Panelet viser hvor langt forespørselen kom (**Avvist**, **Reached App**, **Errored** eller **Reached Database**), hvem som sendte den, og lenker til sporingen, unntaket, øktavspillingen og selve logglinjen. En logglinje, en sporing og et unntak som er del av et angrep, sier det også på sine egne sider.
+En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel, følges inn i den forespørselen. Panelet viser hvor langt forespørselen kom (**Avvist**, **Nådde appen**, **Feilet** eller **Nådde databasen**), hvem som sendte den, og lenker til sporingen, unntaket, øktavspillingen og selve logglinjen. En logglinje, en sporing og et unntak som er del av et angrep, sier det også på sine egne sider.
 
 ### Campaigns
 

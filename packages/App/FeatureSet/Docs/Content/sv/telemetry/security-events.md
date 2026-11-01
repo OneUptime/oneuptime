@@ -262,7 +262,7 @@ Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad*
 
 ### Vad som hände sedan
 
-En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Reached App**, **Errored** eller **Reached Database**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
+En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Nådde appen**, **Fel** eller **Nådde databasen**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
 
 ### Campaigns
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39706,
-    "untranslated": 7385
+    "untranslated": 7349
   },
   "sameAsEnglish": [
     " incidents",
@@ -183,6 +183,7 @@
     "Exception",
     "Exceptions",
     "Exclusion",
+    "Export",
     "Expression",
     "Fatal",
     "Favicon",
@@ -269,6 +270,7 @@
     "Liberia",
     "Liechtenstein",
     "Local",
+    "Log4Shell",
     "Logo",
     "Longitude",
     "Loopback",
@@ -348,6 +350,7 @@
     "PV",
     "PVC",
     "Page",
+    "Page {{current}}",
     "Page {{page}}",
     "Parent",
     "Passthrough",

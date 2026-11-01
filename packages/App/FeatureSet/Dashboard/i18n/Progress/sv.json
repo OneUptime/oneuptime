@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39706,
-    "untranslated": 12881
+    "untranslated": 12845
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -43,6 +43,7 @@
     "Edge",
     "Embedding",
     "Endpoint",
+    "Export",
     "Failover",
     "Feed",
     "Filter",
@@ -77,6 +78,7 @@
     "Japan (+81)",
     "LXC 201 · pve3",
     "Live",
+    "Log4Shell",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
@@ -101,6 +103,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Path traversal",
     "Peer",
     "Person",
     "Plan",
@@ -137,6 +140,7 @@
     "Singapore (+65)",
     "Slug",
     "Span",
+    "Span: {{id}}",
     "Spans",
     "Stack",
     "Stack trace",

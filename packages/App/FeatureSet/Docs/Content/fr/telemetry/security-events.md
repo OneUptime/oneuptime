@@ -262,7 +262,7 @@ La barre latérale compte les événements de la fenêtre par **Source**, **Grav
 
 ### Ce qui s'est passé ensuite
 
-Un événement lu dans une ligne de journal écrite au sein d'une requête tracée est suivi jusque dans cette requête. Son panneau indique jusqu'où la requête est allée (**Rejeté**, **Reached App**, **Errored** ou **Reached Database**), qui l'a envoyée, et renvoie vers sa trace, son exception, son replay de session et la ligne de journal elle-même. Une ligne de journal, une trace et une exception qui font partie d'une attaque le signalent aussi sur leurs propres pages.
+Un événement lu dans une ligne de journal écrite au sein d'une requête tracée est suivi jusque dans cette requête. Son panneau indique jusqu'où la requête est allée (**Rejeté**, **Application atteinte**, **En erreur** ou **Base de données atteinte**), qui l'a envoyée, et renvoie vers sa trace, son exception, son replay de session et la ligne de journal elle-même. Une ligne de journal, une trace et une exception qui font partie d'une attaque le signalent aussi sur leurs propres pages.
 
 ### Campaigns
 

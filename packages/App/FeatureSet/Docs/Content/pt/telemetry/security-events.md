@@ -262,7 +262,7 @@ A barra lateral conta os eventos da janela por **Origem**, **Gravidade**, **Requ
 
 ### O que aconteceu depois
 
-Um evento lido de uma linha de log escrita dentro de uma requisição rastreada é acompanhado até essa requisição. O painel dele mostra até onde a requisição chegou (**Rejeitado**, **Reached App**, **Errored** ou **Reached Database**), quem a enviou, e leva ao trace, à exceção, ao replay da sessão e à própria linha de log. Uma linha de log, um trace e uma exceção que fazem parte de um ataque também dizem isso nas próprias páginas.
+Um evento lido de uma linha de log escrita dentro de uma requisição rastreada é acompanhado até essa requisição. O painel dele mostra até onde a requisição chegou (**Rejeitado**, **Chegou ao app**, **Com erro** ou **Chegou ao banco de dados**), quem a enviou, e leva ao trace, à exceção, ao replay da sessão e à própria linha de log. Uma linha de log, um trace e uma exceção que fazem parte de um ataque também dizem isso nas próprias páginas.
 
 ### Campaigns
 

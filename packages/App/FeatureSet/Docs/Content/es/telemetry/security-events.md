@@ -262,7 +262,7 @@ La barra lateral cuenta los eventos de la ventana por **Origen**, **Gravedad**, 
 
 ### Qué pasó después
 
-Un evento leído de una línea de log escrita dentro de una solicitud trazada se sigue hasta esa solicitud. Su panel dice hasta dónde llegó la solicitud (**Rechazado**, **Reached App**, **Errored** o **Reached Database**), quién la envió, y enlaza a su traza, su excepción, su repetición de sesión y la propia línea de log. Una línea de log, una traza y una excepción que forman parte de un ataque también lo indican en sus propias páginas.
+Un evento leído de una línea de log escrita dentro de una solicitud trazada se sigue hasta esa solicitud. Su panel dice hasta dónde llegó la solicitud (**Rechazado**, **Llegó a la app**, **Con error** o **Llegó a la base de datos**), quién la envió, y enlaza a su traza, su excepción, su repetición de sesión y la propia línea de log. Una línea de log, una traza y una excepción que forman parte de un ataque también lo indican en sus propias páginas.
 
 ### Campaigns
 
