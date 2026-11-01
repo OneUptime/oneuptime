@@ -212,8 +212,6 @@ describe("the 'Preview' link in the dark theme", () => {
         // The link colour, and its hover.
         "text-indigo-600",
         "hover:text-indigo-700",
-        // The grey it turns with nothing to preview.
-        "text-gray-400",
         // The keyboard focus ring.
         "focus-visible:ring-indigo-500",
       ]),
@@ -236,6 +234,20 @@ describe("the 'Preview' link in the dark theme", () => {
       '"cursor-pointer text-indigo-600 hover:text-indigo-700 hover:underline"',
     );
     expect(CODE).toContain("underline-offset-2");
+  });
+
+  /*
+   * With nothing to preview it is locked as every button is - its own
+   * indigo, faded, with the not-allowed cursor and no hover - rather than a
+   * grey of its own (text-gray-400), which the dark theme drew as a light
+   * slate brighter than the live link.
+   */
+  test("with nothing to preview it takes the shared locked look, not a grey of its own", () => {
+    expect(CODE).toContain("getHandDrawnLookClassName({");
+    expect(CODE).toContain("className: ENABLED_CLASS_NAME,");
+    expect(CODE).toContain("isLocked: isDisabled,");
+    expect(COLOR_TOKENS).not.toContain("text-gray-400");
+    expect(CODE).not.toContain("cursor-not-allowed");
   });
 
   test("it draws no surface of its own to re-colour: no background, border or shadow", () => {

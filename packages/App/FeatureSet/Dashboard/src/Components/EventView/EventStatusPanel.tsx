@@ -17,7 +17,6 @@ import { getEventStateMenuStates } from "./EventStateMenu";
 import EventStateTrack from "./EventStateTrack";
 import {
   EVENT_HEADER_BUTTONS_CLASS_NAME,
-  EVENT_HEADER_BUTTON_CLASS_NAME,
   EVENT_HEADER_CLASS_NAME,
   EVENT_HEADER_FACT_CLASS_NAME,
   EVENT_HEADER_FACT_LABEL_CLASS_NAME,
@@ -25,18 +24,17 @@ import {
   EVENT_HEADER_FACT_VALUE_CLASS_NAME,
   EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME,
   EVENT_HEADER_MENU_WRAPPER_CLASS_NAME,
-  EVENT_HEADER_MORE_TRIGGER_CLASS_NAME,
-  EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
   EVENT_HEADER_NOTICE_CLASS_NAMES,
   EVENT_HEADER_NUMBER_CLASS_NAME,
-  EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME,
   EVENT_HEADER_TEST_IDS,
   EVENT_HEADER_TOP_SECTION_CLASS_NAME,
   EventHeaderActionWidthInput,
   EventHeaderNoticeTone,
   EventHeaderTopRowClassNames,
   getEventHeaderActionsBesideWidth,
+  getEventHeaderButtonClassName,
   getEventHeaderFactsClassName,
+  getEventHeaderMoreTriggerClassName,
   getEventHeaderTopRowClassNames,
 } from "./EventHeaderLayout";
 
@@ -280,11 +278,10 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
 
           props.onActionClick(action.stateId);
         }}
-        className={`${EVENT_HEADER_BUTTON_CLASS_NAME} ${
-          isPrimary
-            ? EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME
-            : EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME
-        }${lockReason ? " pointer-events-none w-full" : ""}`}
+        className={`${getEventHeaderButtonClassName({
+          isPrimary: isPrimary,
+          isLocked: isDisabled,
+        })}${lockReason ? " pointer-events-none w-full" : ""}`}
       >
         {action.icon && (
           <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
@@ -345,7 +342,10 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
                 />
               </span>
             }
-            triggerClassName={`${EVENT_HEADER_BUTTON_CLASS_NAME} ${EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME} w-full cursor-pointer`}
+            triggerClassName={`${getEventHeaderButtonClassName({
+              isPrimary: false,
+              isLocked: false,
+            })} w-full cursor-pointer`}
           >
             {action.menuItems.map((item: EventPanelMenuItem) => {
               return (
@@ -373,7 +373,10 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
           href={action.href}
           target="_blank"
           rel="noopener noreferrer"
-          className={`${EVENT_HEADER_BUTTON_CLASS_NAME} ${EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME}`}
+          className={getEventHeaderButtonClassName({
+            isPrimary: false,
+            isLocked: false,
+          })}
         >
           {action.icon && (
             <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
@@ -421,9 +424,10 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
 
           action.onClick();
         }}
-        className={`${EVENT_HEADER_BUTTON_CLASS_NAME} ${EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME}${
-          hasReachableTooltip ? " pointer-events-none w-full" : ""
-        }`}
+        className={`${getEventHeaderButtonClassName({
+          isPrimary: false,
+          isLocked: isDisabled,
+        })}${hasReachableTooltip ? " pointer-events-none w-full" : ""}`}
       >
         {action.icon && (
           <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
@@ -455,7 +459,9 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
       elementToBeShownInsteadOfButton={
         <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
       }
-      triggerClassName={EVENT_HEADER_MORE_TRIGGER_CLASS_NAME}
+      triggerClassName={getEventHeaderMoreTriggerClassName(
+        Boolean(props.isDisabled),
+      )}
       isDisabled={props.isDisabled}
       /*
        * Drawn over the page, not inside the header: the header is a size

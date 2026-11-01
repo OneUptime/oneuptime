@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -120,7 +121,12 @@ const ProjectHealthCard: FunctionComponent<ComponentProps> = (
       aria-label={refreshLabel}
       title={refreshLabel}
       data-testid="home-health-refresh"
-      className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-white hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-default"
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+        {
+          isBusy: props.isLoading || props.isRefreshing,
+          hoverClassName: "hover:bg-white hover:text-gray-900",
+        },
+      )}`}
     >
       <Icon
         icon={IconProp.Refresh}

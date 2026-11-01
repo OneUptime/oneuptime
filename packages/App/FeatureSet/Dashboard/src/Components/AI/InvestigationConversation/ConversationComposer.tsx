@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import PermissionModePicker from "../../AIChat/PermissionModePicker";
 import { describePermissionMode } from "./InvestigationConversationData";
 import AIChatPermissionMode from "Common/Types/AI/AIChatPermissionMode";
@@ -157,7 +158,12 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                   props.onStop?.();
                 }}
-                className={`${BUTTON_CLASS_NAME} bg-gray-900 text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60`}
+                className={`${BUTTON_CLASS_NAME} bg-gray-900 text-white ${getHandDrawnButtonStateClassName(
+                  {
+                    isBusy: props.isStopping,
+                    hoverClassName: "hover:bg-gray-800",
+                  },
+                )}`}
               >
                 {props.isStopping ? (
                   <span className={SPINNER_CLASS_NAME} />
@@ -171,11 +177,18 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
                 title={translator.translateText("Send (Enter)")}
                 disabled={!isSendable}
                 onClick={trySend}
-                className={`${BUTTON_CLASS_NAME} ${
-                  isSendable
-                    ? "bg-indigo-600 text-white shadow-sm hover:bg-indigo-500"
-                    : "cursor-not-allowed bg-gray-100 text-gray-400"
-                }`}
+                /*
+                 * Send keeps its indigo, faded while there is nothing to send
+                 * (as every locked button looks), and as it is while the AI
+                 * works - busy, with its spinner.
+                 */
+                className={`${BUTTON_CLASS_NAME} bg-indigo-600 text-white shadow-sm ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: !isSendable,
+                    isBusy: props.isWorking,
+                    hoverClassName: "hover:bg-indigo-500",
+                  },
+                )}`}
               >
                 {props.isWorking ? (
                   <span className={SPINNER_CLASS_NAME} />

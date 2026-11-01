@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "../Button/ButtonStates";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
@@ -15,8 +16,8 @@ import { DraggableProvidedDragHandleProps } from "react-beautiful-dnd";
  * which row it moves.
  *
  * While reordering is off - a filter or search is narrowing the list, or a
- * move is still being saved - the grip stays where it is, greyed out, and
- * says why instead of silently doing nothing.
+ * move is still being saved - the grip stays where it is, locked as every
+ * control looks, and says why instead of silently doing nothing.
  */
 export interface ComponentProps {
   dragHandleProps?: DraggableProvidedDragHandleProps | null | undefined;
@@ -60,11 +61,13 @@ const DragHandle: FunctionComponent<ComponentProps> = (
       aria-label={label}
       aria-disabled={props.isDisabled ? true : undefined}
       title={props.isDisabled ? disabledReason || hint : hint}
-      className={`inline-flex h-7 w-6 flex-none items-center justify-center rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-        props.isDisabled
-          ? "cursor-not-allowed text-gray-300"
-          : "cursor-grab text-gray-400 hover:text-gray-700 active:cursor-grabbing"
-      } ${props.className || ""}`}
+      className={`inline-flex h-7 w-6 flex-none items-center justify-center rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnLookClassName(
+        {
+          className:
+            "cursor-grab text-gray-400 hover:text-gray-700 active:cursor-grabbing",
+          isLocked: props.isDisabled,
+        },
+      )} ${props.className || ""}`}
     >
       <Icon icon={IconProp.GripVertical} className="h-5 w-5" />
     </div>

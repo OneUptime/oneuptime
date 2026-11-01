@@ -4,6 +4,7 @@
 "use client";
 
 import React from "react";
+import { getHandDrawnLookClassName } from "../../../Button/ButtonStates";
 import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import {
   CartesianGrid,
@@ -190,9 +191,12 @@ const ScrollButton: ({
       className={cx(
         // base
         "group inline-flex size-5 items-center truncate rounded transition",
-        disabled
-          ? "cursor-not-allowed text-gray-400"
-          : "cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+        // At the end of the legend: locked, as every button looks.
+        getHandDrawnLookClassName({
+          className:
+            "cursor-pointer text-gray-700 hover:bg-gray-100 hover:text-gray-900",
+          isLocked: disabled,
+        }),
       )}
       disabled={disabled}
       onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {

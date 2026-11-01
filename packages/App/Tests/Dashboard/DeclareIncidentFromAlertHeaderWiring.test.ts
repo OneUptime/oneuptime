@@ -527,9 +527,9 @@ describe("EventStatusPanel secondary actions", () => {
       "onClick={()=>{if(isDisabled){return;}action.onClick();}}",
     );
     expect(button).toContain(
-      "${EVENT_HEADER_BUTTON_CLASS_NAME}${EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME}",
+      "getEventHeaderButtonClassName({isPrimary:false,isLocked:isDisabled,})",
     );
-    expect(button).not.toContain("EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME");
+    expect(button).not.toContain("isPrimary:true");
     // Locked only by itself or the panel, never by who may change the state.
     expect(button).not.toContain("stateChangeLockReason");
     expect(button).not.toContain("onActionClick");

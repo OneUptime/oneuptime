@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import TimezoneSelectButton from "../OnCallScheduleLayer/TimezoneSelectButton";
 import {
   ALL_TEAMS,
@@ -42,8 +43,17 @@ export interface NavigationBarProps {
   isRefreshing: boolean;
 }
 
-const navButtonClassName: string =
-  "inline-flex h-8 w-8 items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
+// Previous and Next; one at the end of what can be shown looks locked.
+const getNavButtonClassName: (isLocked: boolean) => string = (
+  isLocked: boolean,
+): string => {
+  return `inline-flex h-8 w-8 items-center justify-center text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+    {
+      isLocked: isLocked,
+      hoverClassName: "hover:bg-gray-50 hover:text-gray-900",
+    },
+  )}`;
+};
 
 export const NavigationBar: FunctionComponent<NavigationBarProps> = (
   props: NavigationBarProps,
@@ -75,7 +85,7 @@ export const NavigationBar: FunctionComponent<NavigationBarProps> = (
             title={previousLabel}
             disabled={!props.canGoBack}
             onClick={props.onPrevious}
-            className={navButtonClassName}
+            className={getNavButtonClassName(!props.canGoBack)}
           >
             <Icon icon={IconProp.ChevronLeft} className="h-4 w-4" />
           </button>
@@ -86,7 +96,7 @@ export const NavigationBar: FunctionComponent<NavigationBarProps> = (
             title={nextLabel}
             disabled={!props.canGoForward}
             onClick={props.onNext}
-            className={navButtonClassName}
+            className={getNavButtonClassName(!props.canGoForward)}
           >
             <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
           </button>

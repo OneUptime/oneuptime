@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CURSOR_CLASS_NAME } from "../Button/ButtonStates";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { Yellow } from "../../../Types/BrandColors";
 import { translationKey, Translator } from "../../Utils/TranslateTemplate";
@@ -220,7 +221,9 @@ const ChoiceRows: <TValue extends string>(
                 htmlFor={inputId}
                 aria-hidden="true"
                 className={`${CHOICE_ROW_VISUAL_CLASS_NAME} ${
-                  isDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                  isDisabled
+                    ? BUTTON_DISABLED_CURSOR_CLASS_NAME
+                    : "cursor-pointer"
                 }`}
                 data-testid={
                   option.dataTestId ? `${option.dataTestId}-visual` : undefined
@@ -235,7 +238,9 @@ const ChoiceRows: <TValue extends string>(
               <label
                 htmlFor={inputId}
                 className={`block text-sm font-medium leading-6 text-gray-900 ${
-                  isDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                  isDisabled
+                    ? BUTTON_DISABLED_CURSOR_CLASS_NAME
+                    : "cursor-pointer"
                 }`}
               >
                 {translator.translateText(option.title)}

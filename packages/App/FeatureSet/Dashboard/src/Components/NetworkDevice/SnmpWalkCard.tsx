@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import SnmpWalkResults from "./SnmpWalkResults";
 import {
   SNMP_WALK_HISTORY_LIMIT,
@@ -882,11 +883,14 @@ const SnmpWalkCard: FunctionComponent<ComponentProps> = (
                   aria-pressed={isSelected}
                   title={point.oid}
                   data-testid={`snmp-walk-start-point-${point.oid}`}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50 ${
-                    isSelected
-                      ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnLookClassName(
+                    {
+                      className: isSelected
+                        ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+                        : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50",
+                      isLocked: Boolean(running),
+                    },
+                  )}`}
                   onClick={() => {
                     setStartOid(point.oid);
                   }}
