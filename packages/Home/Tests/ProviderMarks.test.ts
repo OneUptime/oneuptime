@@ -146,7 +146,7 @@ describe("every guide and every comparison has a mark the site can draw", () => 
   test.each(
     OPEN_TELEMETRY_GUIDES.filter((entry: OpenTelemetryGuideEntry) => {
       return Boolean(entry.logo);
-    }).map((entry: OpenTelemetryGuideEntry) => {
+    }).map((entry: OpenTelemetryGuideEntry): [string, ProviderLogo] => {
       return [entry.slug, entry.logo!];
     }),
   )("the %s guide's mark", (_slug: string, logo: ProviderLogo) => {
