@@ -43,10 +43,43 @@ const SERVICE_ID: ObjectID = ObjectID.generate();
 const SERVICE_NAME: string = "occurrence-time-test-service";
 
 /*
- * Two hours before the test runs: far enough from "now" that a payload
- * stamped with the worker's clock could never pass for it.
+ * The millisecond a float read of `${ms}000000` lands on: what the ingest
+ * did with an OTLP time before it read the digits themselves (parseFloat,
+ * then fromUnixNano of that number).
  */
-const OCCURRED_AT_MS: number = Date.now() - 2 * 60 * 60 * 1000;
+function floatReadMs(ms: number): number {
+  return new Date(Number.parseFloat(`${ms}000000`) / 1000000).getTime();
+}
+
+/*
+ * The latest millisecond at or before `atOrBefore` that a float read lands
+ * a millisecond early on. `${ms}000000` is about 1.8e18, where doubles are
+ * 256 ns apart, so parseFloat moves it by up to 128 ns; on one millisecond
+ * in eight (ms = 2 mod 8 at today's epoch) the float is 128 ns low and
+ * its millisecond reads one early. A time picked at random hit one of those
+ * on one run in eight, the only runs this suite failed on, and they are
+ * the times an exact read has to get right - so every run uses one. One
+ * comes every 8 ms: the search takes at most seven steps.
+ */
+function latestMillisecondAFloatReadsEarly(atOrBefore: number): number {
+  for (let ms: number = atOrBefore; ms > atOrBefore - 1000; ms--) {
+    if (floatReadMs(ms) === ms - 1) {
+      return ms;
+    }
+  }
+
+  throw new Error(
+    `No millisecond in the second before ${atOrBefore} that a float read gets wrong`,
+  );
+}
+
+/*
+ * About two hours before the test runs: far enough from "now" that a
+ * payload stamped with the worker's clock could never pass for it.
+ */
+const OCCURRED_AT_MS: number = latestMillisecondAFloatReadsEarly(
+  Date.now() - 2 * 60 * 60 * 1000,
+);
 const OCCURRED_AT_NANO: string = `${OCCURRED_AT_MS}000000`;
 
 const EXCEPTION_MESSAGE: string = "Something broke";
@@ -235,6 +268,11 @@ describe("an exception occurrence's own time reaches its group", () => {
   afterEach(async () => {
     await TelemetryFanInWriter.flushAll();
     jest.restoreAllMocks();
+  });
+
+  test("the occurrence's time is one a float read gets a millisecond early", () => {
+    expect(floatReadMs(OCCURRED_AT_MS)).toBe(OCCURRED_AT_MS - 1);
+    expect(OCCURRED_AT_MS).toBeLessThanOrEqual(Date.now() - 2 * 60 * 60 * 1000);
   });
 
   test("trace path: the span event's time, not the worker's clock", async () => {

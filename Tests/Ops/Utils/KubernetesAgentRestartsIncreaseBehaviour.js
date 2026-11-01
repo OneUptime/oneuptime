@@ -22,6 +22,9 @@
  *       <dir>/empty.json.
  *   count <exported metrics.json>
  *       prints how many k8s.container.restarts.increase points came out.
+ *   complete <exported metrics.json>
+ *       prints yes once the export holds every point the check reads, no
+ *       before.
  *   expected-count
  *       prints how many the check expects.
  *   check <exported metrics.json> <label>
@@ -32,6 +35,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
+const { processorNamesFor } = require("./CumulativeToDeltaProcessor");
 
 const PIPELINE = "metrics/restarts-increase";
 // The pipeline the increases join, which sends them.
@@ -497,13 +501,19 @@ function readRenderedDeployment(renderedFile) {
   };
 }
 
-// The metrics pipeline's processors this runs, in k8sattributes' stead its stand-in.
-function liftedMetricsProcessors() {
-  return METRICS_PIPELINE_PROCESSORS.filter((name) => {
-    return name !== "memory_limiter" && name !== "batch";
-  }).map((name) => {
-    return name === K8S_ATTRIBUTES ? K8S_ATTRIBUTES_STAND_IN : name;
-  });
+/*
+ * The metrics pipeline's processors this runs, in k8sattributes' stead its
+ * stand-in, named as the collector `image` knows them (as the chart's pinned
+ * collector does, with no image).
+ */
+function liftedMetricsProcessors(image) {
+  return processorNamesFor(METRICS_PIPELINE_PROCESSORS, image)
+    .filter((name) => {
+      return name !== "memory_limiter" && name !== "batch";
+    })
+    .map((name) => {
+      return name === K8S_ATTRIBUTES ? K8S_ATTRIBUTES_STAND_IN : name;
+    });
 }
 
 /*
@@ -511,14 +521,22 @@ function liftedMetricsProcessors() {
  * collector config, after checking that they are wired as the chart says:
  * the restarts pipeline from k8s_cluster through its processors into the
  * connector, the metrics pipeline from k8s_cluster and the connector
- * through k8sattributes to the exporter.
+ * through k8sattributes to the exporter. Named as the collector `image`
+ * knows them (cumulativetodelta before 0.157.0, which a --reuse-values
+ * upgrade runs), so a chart that rendered the other name for that image
+ * fails here; with no image, as the chart's pinned collector names them.
  */
-function behaviourConfig(collector) {
+function behaviourConfig(collector, image) {
+  const liftedProcessors = processorNamesFor(LIFTED_PROCESSORS, image);
+  const metricsPipelineProcessors = processorNamesFor(
+    METRICS_PIPELINE_PROCESSORS,
+    image,
+  );
   const pipeline = collector.service.pipelines[PIPELINE];
   if (!pipeline) {
     fail(`the cluster collector has no ${PIPELINE} pipeline`);
   }
-  const expected = ["memory_limiter", ...LIFTED_PROCESSORS];
+  const expected = ["memory_limiter", ...liftedProcessors];
   if (pipeline.processors.join(",") !== expected.join(",")) {
     fail(`${PIPELINE} runs ${pipeline.processors.join(", ")}`);
   }
@@ -542,7 +560,7 @@ function behaviourConfig(collector) {
       `the ${METRICS_PIPELINE} pipeline receives from ${metrics.receivers.join(", ")}`,
     );
   }
-  if (metrics.processors.join(",") !== METRICS_PIPELINE_PROCESSORS.join(",")) {
+  if (metrics.processors.join(",") !== metricsPipelineProcessors.join(",")) {
     fail(`${METRICS_PIPELINE} runs ${metrics.processors.join(", ")}`);
   }
   if (metrics.exporters.join(",") !== "otlphttp") {
@@ -555,9 +573,9 @@ function behaviourConfig(collector) {
     }
   }
 
-  const metricsProcessors = liftedMetricsProcessors();
+  const metricsProcessors = liftedMetricsProcessors(image);
   const processors = {};
-  for (const name of LIFTED_PROCESSORS) {
+  for (const name of liftedProcessors) {
     processors[name] = collector.processors[name];
   }
   for (const name of metricsProcessors) {
@@ -578,7 +596,7 @@ function behaviourConfig(collector) {
       pipelines: {
         [PIPELINE]: {
           receivers: ["otlp"],
-          processors: LIFTED_PROCESSORS,
+          processors: liftedProcessors,
           exporters: [CONNECTOR],
         },
         [METRICS_PIPELINE]: {
@@ -595,7 +613,7 @@ function writeConfig(renderedFile, dir) {
   const { collector, image } = readRenderedDeployment(renderedFile);
   fs.writeFileSync(
     path.join(dir, "config.yaml"),
-    yaml.dump(behaviourConfig(collector)),
+    yaml.dump(behaviourConfig(collector, image)),
   );
   fs.writeFileSync(path.join(dir, "image"), image);
   for (let index = 0; index < SAMPLE_SECONDS.length; index++) {
@@ -922,6 +940,35 @@ function count(exported) {
   }).length;
 }
 
+/*
+ * Whether the export holds every point the check reads: each increase, and
+ * every container's restart count and readiness and the pod phase at every
+ * sample. The increases alone are not enough to wait for. They come back
+ * through the connector in an export call of their own, ahead of the raw
+ * points of the same sample, so the last sample's raw points can still be
+ * unwritten when the increases are all in: the pinned run failed that way
+ * three times running on 2026-11-01, each "has no k8s.container.restarts
+ * beside it" at the last sample, and passed once the raw points were in.
+ */
+function holdsEveryPoint(points) {
+  const counted = (metric) => {
+    return points.filter((point) => {
+      return point.metric === metric;
+    }).length;
+  };
+  return (
+    counted(INCREASE_METRIC) >= EXPECTED_INCREASES.length &&
+    counted(RESTARTS_METRIC) >= CONTAINERS.length * SAMPLE_SECONDS.length &&
+    counted(READY_METRIC) >= CONTAINERS.length * SAMPLE_SECONDS.length &&
+    counted(PHASE_METRIC) >= SAMPLE_SECONDS.length
+  );
+}
+
+// The same, for the file the collector's file exporter writes.
+function isComplete(exported) {
+  return holdsEveryPoint(readExported(exported));
+}
+
 module.exports = {
   PIPELINE,
   METRICS_PIPELINE,
@@ -955,6 +1002,8 @@ module.exports = {
   liftedMetricsProcessors,
   behaviourConfig,
   problemsWith,
+  holdsEveryPoint,
+  isComplete,
 };
 
 if (require.main === module) {
@@ -963,6 +1012,8 @@ if (require.main === module) {
     writeConfig(args[0], args[1]);
   } else if (command === "count") {
     console.log(count(args[0]));
+  } else if (command === "complete") {
+    console.log(isComplete(args[0]) ? "yes" : "no");
   } else if (command === "expected-count") {
     console.log(EXPECTED_INCREASES.length);
   } else if (command === "check") {

@@ -299,8 +299,8 @@ histogram.record(metric.value, {
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 мс | **Критический** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500 мс | **Критический** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0,25 | **Критический** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 мс | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 мс | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 мс | **Предупреждение** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 мс | **Предупреждение** |
 
 Эти мониторы читают только имена `web_vital.*`. Если ваше приложение отправляет показатель под другим именем, измените метрику созданного монитора. Чтобы получать оповещения по одному маршруту, добавьте в монитор фильтр `app.route`. Можно также собрать собственный монитор по любой из этих метрик: см. [Мониторинг метрик](/docs/monitor/metrics-monitor).
 

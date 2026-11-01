@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 3033
+    "keys": 39461,
+    "untranslated": 3017
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -477,6 +477,7 @@
     "sensor-001",
     "sk-...",
     "span {{spanId}}",
+    "spans",
     "statefulsets",
     "storefront-web",
     "subscriber@company.com",

@@ -102,11 +102,11 @@ flowchart TB
 | Шаблон | Серьёзность | Что отслеживает | Срабатывает, когда | Восстанавливается, когда |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Критический | `system.memory.usage`, Count, последние 10 минут | Нет данных за всё окно | Данные снова поступают |
-| High CPU Utilization | Warning | `system.cpu.utilization` для состояний `user` и `system`, сложенных и показанных в процентах, последние 5 минут | Выше 80 % | 72 % или ниже |
-| High Memory Utilization | Warning | `system.memory.utilization` для состояния `used`, в процентах, последние 5 минут | Выше 85 % | 76,5 % или ниже |
+| High CPU Utilization | Предупреждение | `system.cpu.utilization` для состояний `user` и `system`, сложенных и показанных в процентах, последние 5 минут | Выше 80 % | 72 % или ниже |
+| High Memory Utilization | Предупреждение | `system.memory.utilization` для состояния `used`, в процентах, последние 5 минут | Выше 85 % | 76,5 % или ниже |
 | High Filesystem Usage | Критический | `system.filesystem.utilization`, Max по `mountpoint` и `device`, в процентах, последние 5 минут | Выше 90 % | 81 % или ниже |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, последние 5 минут | Выше 4 | 3,6 или ниже |
-| High Process Count | Warning | `system.processes.count`, Max, последние 5 минут | Выше 2000 | 1800 или ниже |
+| High Load Average (1m) | Предупреждение | `system.cpu.load_average.1m`, Avg, последние 5 минут | Выше 4 | 3,6 или ниже |
+| High Process Count | Предупреждение | `system.processes.count`, Max, последние 5 минут | Выше 2000 | 1800 или ниже |
 
 **Серьёзность** – это метка, которую показывает список выбора. Инцидент и оповещение, которые создаёт шаблон, начинаются с самого серьёзного уровня инцидентов и оповещений вашего проекта; измените их в критериях.
 

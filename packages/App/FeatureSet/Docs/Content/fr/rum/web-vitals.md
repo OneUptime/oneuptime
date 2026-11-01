@@ -299,8 +299,8 @@ La page **Recommandations** de l'application propose un moniteur prêt à l'empl
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 ms | **Critique** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500 ms | **Critique** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0,25 | **Critique** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Avertissement** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Avertissement** |
 
 Ces moniteurs ne lisent que les noms `web_vital.*`. Si votre application envoie un vital sous un autre nom, modifiez la métrique du moniteur créé. Pour alerter sur une seule route, ajoutez un filtre `app.route` au moniteur. Vous pouvez aussi construire votre propre moniteur sur n'importe laquelle de ces métriques : voir [Surveillance des métriques](/docs/monitor/metrics-monitor).
 

@@ -66,7 +66,11 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
   const { summary } = props;
   const translator: Translator = useTranslator();
   const rootService: TraceServiceInfo | null = summary.rootSpan
-    ? getServiceInfo(props.serviceInfoById, summary.rootSpan.serviceId)
+    ? getServiceInfo(
+        props.serviceInfoById,
+        summary.rootSpan.serviceId,
+        translator,
+      )
     : null;
   /*
    * How long ago it started, written in the language the "Started" sentence
@@ -179,7 +183,10 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
               </span>
               {summary.rootSpan?.kind && (
                 <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/15">
-                  {SpanUtil.getSpanKindFriendlyName(summary.rootSpan.kind)}
+                  {SpanUtil.getSpanKindFriendlyName(
+                    summary.rootSpan.kind,
+                    translator,
+                  )}
                 </span>
               )}
               {rootService && (

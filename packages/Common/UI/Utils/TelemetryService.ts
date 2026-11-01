@@ -2,6 +2,7 @@ import Service from "../../Models/DatabaseModels/Service";
 import { Gray500 } from "../../Types/BrandColors";
 import ObjectID from "../../Types/ObjectID";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { Translator, translationKey } from "./TranslateTemplate";
 
 /*
  * Telemetry that arrives without an OTel service.name (and with no
@@ -15,8 +16,15 @@ import ServiceType from "../../Types/Telemetry/ServiceType";
  * it to a labelled "Unknown Service" entry without any per-view special
  * casing. A real Service._id is never equal to a projectId, so this
  * never collides with a genuine service.
+ *
+ * The name stays English on that Service, a key of the locales: the reader can
+ * switch language while it is loaded, so it is looked up where it is drawn
+ * (getServiceDisplayName).
  */
-export const UNKNOWN_SERVICE_NAME: string = "Unknown Service";
+export const UNKNOWN_SERVICE_NAME: string = translationKey("Unknown Service");
+
+// What a telemetry resource is called when nothing names it.
+export const UNKNOWN_RESOURCE_LABEL: string = translationKey("Unknown");
 
 /*
  * Result of resolving a telemetry row's polymorphic (primaryEntityId,
@@ -50,14 +58,71 @@ export default class TelemetryServiceUtil {
   }
 
   /*
+   * A service's name as the reader sees it. What a person's telemetry calls a
+   * service stays as written; the stand-in for telemetry that names none is
+   * OneUptime's own word, in the reader's language. Ingest writes the same
+   * word for a request that names no service, so it is matched by name.
+   */
+  public static getServiceDisplayName(
+    name: string | undefined,
+    translator: Translator,
+  ): string | undefined {
+    return name === UNKNOWN_SERVICE_NAME
+      ? translator.translateTerm(name)
+      : name;
+  }
+
+  /*
+   * The same id -> Service map with the stand-in named as the reader sees it,
+   * for a view that reads names off the map in many places. The map's own
+   * Service is not changed, and any other Service is handed on as it is. A
+   * Service row of that name keeps its own color: only its name is the
+   * stand-in's.
+   */
+  public static withUnknownServiceNamed(
+    services: Record<string, Service>,
+    translator: Translator,
+  ): Record<string, Service> {
+    const named: Record<string, Service> = {};
+
+    for (const id of Object.keys(services)) {
+      const service: Service = services[id] as Service;
+
+      if (service.name !== UNKNOWN_SERVICE_NAME) {
+        named[id] = service;
+        continue;
+      }
+
+      const standIn: Service = this.getUnknownService(
+        new ObjectID(id),
+        translator,
+      );
+
+      if (service.serviceColor) {
+        standIn.serviceColor = service.serviceColor;
+      }
+
+      named[id] = standIn;
+    }
+
+    return named;
+  }
+
+  /*
    * Build the synthetic Service used to render unattributed telemetry.
    * Not persisted — id is the projectId so that primaryEntityId -> Service
    * lookups (which key on the analytics row's primaryEntityId) resolve to it.
+   * With a translator it is named for the reader, for drawing only.
    */
-  public static getUnknownService(projectId: ObjectID): Service {
+  public static getUnknownService(
+    projectId: ObjectID,
+    translator?: Translator | undefined,
+  ): Service {
     const service: Service = new Service();
     service.id = projectId;
-    service.name = UNKNOWN_SERVICE_NAME;
+    service.name = translator
+      ? translator.translateTerm(UNKNOWN_SERVICE_NAME)
+      : UNKNOWN_SERVICE_NAME;
     service.serviceColor = Gray500;
     return service;
   }
@@ -102,15 +167,15 @@ export default class TelemetryServiceUtil {
 
     // Infrastructure resource types — no Service row; render a type label.
     const typeLabels: Record<string, string> = {
-      [ServiceType.Host]: "Host telemetry",
-      [ServiceType.DockerHost]: "Docker host telemetry",
-      [ServiceType.PodmanHost]: "Podman host telemetry",
-      [ServiceType.KubernetesCluster]: "Kubernetes telemetry",
-      [ServiceType.ProxmoxCluster]: "Proxmox Cluster",
-      [ServiceType.CephCluster]: "Ceph Cluster",
-      [ServiceType.StorageArray]: "Storage Array",
-      [ServiceType.VMwareVCenter]: "vCenter",
-      [ServiceType.DatabaseServer]: "Database telemetry",
+      [ServiceType.Host]: translationKey("Host telemetry"),
+      [ServiceType.DockerHost]: translationKey("Docker host telemetry"),
+      [ServiceType.PodmanHost]: translationKey("Podman host telemetry"),
+      [ServiceType.KubernetesCluster]: translationKey("Kubernetes telemetry"),
+      [ServiceType.ProxmoxCluster]: translationKey("Proxmox Cluster"),
+      [ServiceType.CephCluster]: translationKey("Ceph Cluster"),
+      [ServiceType.StorageArray]: translationKey("Storage Array"),
+      [ServiceType.VMwareVCenter]: translationKey("vCenter"),
+      [ServiceType.DatabaseServer]: translationKey("Database telemetry"),
     };
     const label: string | undefined = data.primaryEntityType
       ? typeLabels[data.primaryEntityType.toString()]
@@ -119,7 +184,7 @@ export default class TelemetryServiceUtil {
       return { label: label };
     }
 
-    return { label: "Unknown" };
+    return { label: UNKNOWN_RESOURCE_LABEL };
   }
 
   /*

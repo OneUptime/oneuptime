@@ -454,8 +454,15 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
       }),
       serviceNameMap: props.serviceNameMap,
       entityNames,
+      translator,
     });
-  }, [topListData, groupByFields, props.serviceNameMap, entityNames]);
+  }, [
+    topListData,
+    groupByFields,
+    props.serviceNameMap,
+    entityNames,
+    translator.language,
+  ]);
 
   // Table cell labels, unique per raw value within each column.
   const tableColumnLabels: Map<string, Map<string, string>> = useMemo(() => {
@@ -471,12 +478,13 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           }),
           serviceNameMap: props.serviceNameMap,
           entityNames,
+          translator,
         }),
       );
     }
 
     return byColumn;
-  }, [tableData, props.serviceNameMap, entityNames]);
+  }, [tableData, props.serviceNameMap, entityNames, translator.language]);
 
   /*
    * The table's columns as wide as a person makes them (Common's
@@ -626,8 +634,15 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
       serviceNameMap: props.serviceNameMap,
       entityNames,
       metricLabel,
+      translator,
     });
-  }, [timeseriesData, metricLabel, props.serviceNameMap, entityNames]);
+  }, [
+    timeseriesData,
+    metricLabel,
+    props.serviceNameMap,
+    entityNames,
+    translator.language,
+  ]);
 
   /*
    * Only the timeseries has a time axis: a window dragged across a top
@@ -1219,11 +1234,13 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                   <span className="font-mono text-sm font-semibold tabular-nums text-gray-800">
                     {isDuration
                       ? formatDurationMs(item.metricValue)
-                      : item.metricValue.toLocaleString()}
+                      : translator.formatNumber(item.metricValue)}
                   </span>
                   {isDuration && (
                     <span className="w-20 text-right font-mono text-[11px] tabular-nums text-gray-400">
-                      {item.count.toLocaleString()} req
+                      {translator.translateTemplate("{{count}} req", {
+                        count: translator.formatNumber(item.count),
+                      })}
                     </span>
                   )}
                 </div>

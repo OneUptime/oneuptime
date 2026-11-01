@@ -486,10 +486,12 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   ]);
 
   const unappliedFiltersHint: string = useMemo(() => {
-    return describeUnappliedScopeFilters(unappliedFilters, {
-      search: carriedSearch,
-    });
-  }, [unappliedFilters, carriedSearch]);
+    return describeUnappliedScopeFilters(
+      unappliedFilters,
+      { search: carriedSearch },
+      translator,
+    );
+  }, [unappliedFilters, carriedSearch, translator.language]);
 
   const serviceOptions: Array<DropdownOption> = useMemo(() => {
     return services.map((service: Service): DropdownOption => {

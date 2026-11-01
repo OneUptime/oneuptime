@@ -461,7 +461,7 @@ Wahrscheinlich exportiert das SDK über gRPC an einen HTTP-Endpunkt oder an `loc
 Ein Batch überschreitet die Größengrenze. Verkleinern Sie die Batches, zum Beispiel mit `send_batch_max_size: 1000` am Prozessor `batch`. Wenn Sie hinter Ihrem eigenen Proxy selbst hosten, prüfen Sie auch dessen Grenze für die Body-Größe.
 :::
 
-:::details Daten landen beim falschen Dienst oder unter Unknown Service
+:::details Daten landen beim falschen Dienst oder unter „Unbekannter Dienst“
 Der Dienst stammt aus dem Ressourcenattribut `service.name`. Setzen Sie `OTEL_SERVICE_NAME` in jeder Anwendung. Hat der Schlüssel einen **Festgelegter Dienstname**, landet jeder OTLP/HTTP-Export mit diesem Schlüssel stattdessen unter diesem Namen.
 :::
 

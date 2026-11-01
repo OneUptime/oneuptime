@@ -5,6 +5,7 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import { JSONObject } from "Common/Types/JSON";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   TelemetryScopeAttributeValue,
   getFilterAttributes,
@@ -164,12 +165,14 @@ const CONSUMED_QUERY_KEYS: Set<string> = new Set<string>([
 
 /** Human labels for the keys a hint may have to name. */
 const QUERY_KEY_LABELS: Dictionary<string> = {
-  durationUnixNano: "span duration filter",
-  endTime: "span end time filter",
-  parentSpanId: "parent span filter",
-  sessionId: "session filter",
-  attributeKeys: "attribute-presence filter",
+  durationUnixNano: translationKey("span duration filter"),
+  endTime: translationKey("span end time filter"),
+  parentSpanId: translationKey("parent span filter"),
+  sessionId: translationKey("session filter"),
+  attributeKeys: translationKey("attribute-presence filter"),
 };
+
+const ATTRIBUTE_FILTER_ON_PREFIX: string = "attribute filter on ";
 
 const SPAN_STATUS_LABELS: Dictionary<string> = {
   "0": "Unset",
@@ -179,6 +182,23 @@ const SPAN_STATUS_LABELS: Dictionary<string> = {
 
 function labelForKey(key: string): string {
   return QUERY_KEY_LABELS[key] || key;
+}
+
+/**
+ * One `notCarried` label as a sentence words it. The labels are English, and
+ * a key nothing names (a new column) stays as written.
+ */
+export function describeNotCarriedFilter(
+  label: string,
+  sentence: Translator,
+): string {
+  if (label.startsWith(ATTRIBUTE_FILTER_ON_PREFIX)) {
+    return sentence.translateTemplate("attribute filter on {{key}}", {
+      key: label.substring(ATTRIBUTE_FILTER_ON_PREFIX.length),
+    });
+  }
+
+  return sentence.translateTerm(label, { inSentence: true });
 }
 
 function pushUniqueLabel(labels: Array<string>, label: string): void {
@@ -319,7 +339,7 @@ export function buildSpanQueryScope(
     !isEmptyFilterValue(record["statusCode"])
   ) {
     scope.passthrough["statusCode"] = record["statusCode"] as never;
-    pushUniqueLabel(scope.notCarried, "span status filter");
+    pushUniqueLabel(scope.notCarried, translationKey("span status filter"));
   }
   for (const statusCode of scope.statusCodes) {
     addChip(
@@ -421,11 +441,14 @@ export function buildSpanQueryScope(
       for (const [key, value] of Object.entries(rawAttributes as JSONObject)) {
         if (scalarAttributes[key] === undefined && value !== undefined) {
           unmodelled[key] = value as never;
-          pushUniqueLabel(scope.notCarried, `attribute filter on ${key}`);
+          pushUniqueLabel(
+            scope.notCarried,
+            `${ATTRIBUTE_FILTER_ON_PREFIX}${key}`,
+          );
         }
       }
     } else {
-      pushUniqueLabel(scope.notCarried, "attribute filter");
+      pushUniqueLabel(scope.notCarried, translationKey("attribute filter"));
     }
 
     if (Object.keys(unmodelled).length > 0) {

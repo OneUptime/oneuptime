@@ -102,11 +102,11 @@ OneUptime دو مانیتور برای ماشین‌ها دارد. هر دو م�
 | الگو | شدت | چه چیزی را پایش می‌کند | چه وقت فعال می‌شود | چه وقت بهبود می‌یابد |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | بحرانی | `system.memory.usage`، Count، ۱۰ دقیقه گذشته | در تمام پنجره هیچ داده‌ای نیست | داده دوباره می‌رسد |
-| High CPU Utilization | Warning | `system.cpu.utilization` برای وضعیت‌های `user` و `system`، جمع‌شده و به‌صورت درصد، ۵ دقیقه گذشته | بیش از ۸۰٪ | ۷۲٪ یا کمتر |
-| High Memory Utilization | Warning | `system.memory.utilization` برای وضعیت `used`، به‌صورت درصد، ۵ دقیقه گذشته | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
+| High CPU Utilization | هشدار | `system.cpu.utilization` برای وضعیت‌های `user` و `system`، جمع‌شده و به‌صورت درصد، ۵ دقیقه گذشته | بیش از ۸۰٪ | ۷۲٪ یا کمتر |
+| High Memory Utilization | هشدار | `system.memory.utilization` برای وضعیت `used`، به‌صورت درصد، ۵ دقیقه گذشته | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
 | High Filesystem Usage | بحرانی | `system.filesystem.utilization`، Max به ازای هر `mountpoint` و `device`، به‌صورت درصد، ۵ دقیقه گذشته | بیش از ۹۰٪ | ۸۱٪ یا کمتر |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`، Avg، ۵ دقیقه گذشته | بیش از ۴ | ۳٫۶ یا کمتر |
-| High Process Count | Warning | `system.processes.count`، Max، ۵ دقیقه گذشته | بیش از ۲۰۰۰ | ۱۸۰۰ یا کمتر |
+| High Load Average (1m) | هشدار | `system.cpu.load_average.1m`، Avg، ۵ دقیقه گذشته | بیش از ۴ | ۳٫۶ یا کمتر |
+| High Process Count | هشدار | `system.processes.count`، Max، ۵ دقیقه گذشته | بیش از ۲۰۰۰ | ۱۸۰۰ یا کمتر |
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک الگو می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.
 

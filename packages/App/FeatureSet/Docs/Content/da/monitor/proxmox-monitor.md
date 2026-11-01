@@ -117,18 +117,18 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritisk | `pve_up`, Count over hele klyngen, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | Node Offline | Kritisk | `pve_up` for `pve.scope = node`, Min pr. `id` | Under 1 | Ved 1 |
-| Guest Down | Warning | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min pr. `id` | `pve_up` er under 1, mens `pve_onboot_status` er 1 | `pve_up` er tilbage på 1, eller start ved opstart er slået fra |
+| Guest Down | Advarsel | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min pr. `id` | `pve_up` er under 1, mens `pve_onboot_status` er 1 | `pve_up` er tilbage på 1, eller start ved opstart er slået fra |
 | Cluster Quorum at Risk | Kritisk | `pve_up` ÷ `pve_node_info` × 100 for `pve.scope = node` (begge Sum): andelen af noder, der er online | 50 % eller mindre | Over 55 % |
-| Node Restarted | Warning | `pve_uptime_seconds` og `pve_up` for `pve.scope = node`, Min pr. `id` | `pve_uptime_seconds` er under 900 (15 minutter), mens `pve_up` er 1 | `pve_uptime_seconds` er på 990 eller mere, eller `pve_up` er 0 |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg pr. `id` | Over 0,9 (90 % af nodens kerner) | Ved eller under 0,81 |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg pr. `id`, seneste 15 minutter | Over 0,95 (95 % af dens vCPU'er) i alle 15 minutter | Ved eller under 0,855 |
+| Node Restarted | Advarsel | `pve_uptime_seconds` og `pve_up` for `pve.scope = node`, Min pr. `id` | `pve_uptime_seconds` er under 900 (15 minutter), mens `pve_up` er 1 | `pve_uptime_seconds` er på 990 eller mere, eller `pve_up` er 0 |
+| High Node CPU Usage | Advarsel | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg pr. `id` | Over 0,9 (90 % af nodens kerner) | Ved eller under 0,81 |
+| High Node Memory Usage | Advarsel | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
+| High Guest CPU Usage | Advarsel | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg pr. `id`, seneste 15 minutter | Over 0,95 (95 % af dens vCPU'er) i alle 15 minutter | Ved eller under 0,855 |
 | Storage Unavailable | Kritisk | `pve_up` for `pve.scope = storage`, Min pr. `id` | Under 1 | Ved 1 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
-| Container Root Disk Near Full | Warning | Det samme diskforhold for `pve.type = lxc`, pr. `id` | Over 90 % | Ved eller under 81 % |
+| Storage Near Full | Advarsel | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
+| Container Root Disk Near Full | Advarsel | Det samme diskforhold for `pve.type = lxc`, pr. `id` | Over 90 % | Ved eller under 81 % |
 | HA Resource in Error State | Kritisk | `pve_ha_state` for `state = error`, Max pr. `id` | Over 0 | Ved 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (én klyngedækkende serie) | Over 0 | Ved 0 |
-| Backup Running Too Long | Warning | `pve_lock_state` for `pve.scope = guest` og `state = backup`, Min pr. `id`, seneste 6 timer | Over 0 | Ved 0 |
+| Guest Not Backed Up | Advarsel | `pve_not_backed_up_total`, Max (én klyngedækkende serie) | Over 0 | Ved 0 |
+| Backup Running Too Long | Advarsel | `pve_lock_state` for `pve.scope = guest` og `state = backup`, Min pr. `id`, seneste 6 timer | Over 0 | Ved 0 |
 | Replication Failing | Kritisk | `pve_replication_failed_syncs`, Max pr. `id` (job-id'et) | Over 0 | Ved 0 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
@@ -152,7 +152,7 @@ To advarsler mere læser Proxmox VE's egne notifikationer, som klyngen sender so
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Warning | Notifikationslogs med `pve.notification.type = vzdump` og `pve.notification.severity = error`, pr. node og job, seneste 60 minutter | Et backupjob melder en fejl | Det samme jobs næste kørsel lykkes |
+| Backup Job Failed | Advarsel | Notifikationslogs med `pve.notification.type = vzdump` og `pve.notification.severity = error`, pr. node og job, seneste 60 minutter | Et backupjob melder en fejl | Det samme jobs næste kørsel lykkes |
 | Node Fenced | Kritisk | Notifikationslogs med `pve.notification.type = fencing`, pr. node, seneste 30 minutter | Proxmox VE isolerer en node (fencing) | Den node isoleres ikke igen i 30 minutter |
 
 Hver node og hvert backupjob får sin egen hændelse og sin egen advarsel. Advarslen for et mislykket backupjob forbliver åben, indtil en senere kørsel af det samme job lykkes, uanset hvor lang tid det tager.

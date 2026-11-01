@@ -60,7 +60,7 @@ Fate clic su un valore nella barra laterale **Filtri** per aggiungerlo come chip
 
 ### Aprire uno span
 
-Fate clic su una riga per espanderla: i suoi attributi, e i log e le eccezioni che ha registrato. Fate clic su **See full trace** per aprire la sua traccia completa.
+Fate clic su una riga per espanderla: i suoi attributi, e i log e le eccezioni che ha registrato. Fate clic su **Vedi traccia completa** per aprire la sua traccia completa.
 :::
 
 La ricerca, i chip e l'intervallo di tempo restano nell'indirizzo della pagina, quindi un aggiornamento, un segnalibro o un link condiviso apre gli stessi span.
@@ -97,7 +97,7 @@ Una traccia grande carica 500 span alla volta. Fate clic sul pulsante in fondo a
 
 Il grafico sopra l'elenco mostra il numero di span nel tempo, suddiviso per stato. Scegliete un'altra misura nell'intestazione del grafico per mostrare invece il loro tempo di risposta medio, mediano (P50) o P95.
 
-Per altro, passate l'elenco da **Span** ad **Analytics**. Scegliete una serie temporale, una classifica o una tabella; misurate il numero di richieste, il numero di errori o i tempi di risposta (media, P50, P90, P95, P99, minimo o massimo); e raggruppate per nome di span, servizio, stato, tipo di span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra da 5 a 100 gruppi.
+Per altro, passate l'elenco da **Span** ad **Analisi**. Scegliete una serie temporale, una classifica o una tabella; misurate il numero di richieste, il numero di errori o i tempi di risposta (media, P50, P90, P95, P99, minimo o massimo); e raggruppate per nome di span, servizio, stato, tipo di span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra da 5 a 100 gruppi.
 
 ## Seguire, salvare e condividere
 

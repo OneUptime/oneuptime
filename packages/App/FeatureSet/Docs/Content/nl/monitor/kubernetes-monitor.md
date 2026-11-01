@@ -136,22 +136,22 @@ De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Beschikbaarheid | Er 10 minuten lang geen gegevens van de agent van het cluster binnenkomen | Kritiek |
 | CrashLoopBackOff Detection | Werklast | Een container binnen 15 minuten is herstart en minder dan de helft daarvan gereed was | Kritiek |
-| Pod Stuck in Pending | Plannen | Een pod in elke meting van een venster van 15 minuten in de fase Pending staat | Warning |
+| Pod Stuck in Pending | Plannen | Een pod in elke meting van een venster van 15 minuten in de fase Pending staat | Waarschuwing |
 | Node Not Ready | Node | Een node NotReady meldt of zijn status niet meer meldt (Unknown) | Kritiek |
-| High Node CPU Utilization | Node | Het gemiddelde CPU-gebruik van een node boven 90% van zijn toewijsbare CPU ligt | Warning |
-| High Node Memory Utilization | Node | De gemiddelde geheugen-working-set van een node boven 85% van zijn toewijsbare geheugen ligt | Warning |
-| Deployment Replica Mismatch | Werklast | Een deployment 15 minuten lang minder beschikbare replica's heeft dan gewenst | Warning |
-| Job Failures | Werklast | Een pod van een job binnen 15 minuten is mislukt | Warning |
+| High Node CPU Utilization | Node | Het gemiddelde CPU-gebruik van een node boven 90% van zijn toewijsbare CPU ligt | Waarschuwing |
+| High Node Memory Utilization | Node | De gemiddelde geheugen-working-set van een node boven 85% van zijn toewijsbare geheugen ligt | Waarschuwing |
+| Deployment Replica Mismatch | Werklast | Een deployment 15 minuten lang minder beschikbare replica's heeft dan gewenst | Waarschuwing |
+| Job Failures | Werklast | Een pod van een job binnen 15 minuten is mislukt | Waarschuwing |
 | etcd No Leader | Controlevlak | etcd geen gekozen leider heeft | Kritiek |
 | API Server Request Saturation | Controlevlak | De API-server het hele venster 200 of meer lopende verzoeken vasthoudt | Kritiek |
-| Scheduler Backlog | Plannen | De wachtrij met pods in afwachting van de scheduler 5 minuten lang niet leeg is | Warning |
-| High Node Disk Usage | Opslag | Het bestandssysteem van een node meer dan 90% vol is | Warning |
-| DaemonSet Misscheduled Nodes | Werklast | Een DaemonSet pods draait op nodes die niet meer passen bij zijn nodeselector, affiniteit of toleraties | Warning |
-| High Node CPU Request Commitment | Node | De opgetelde CPU-requests van de containers van een node meer dan 90% van zijn toewijsbare CPU bedragen | Warning |
-| High Node Memory Request Commitment | Node | De opgetelde geheugen-requests van de containers van een node meer dan 90% van zijn toewijsbare geheugen bedragen | Warning |
+| Scheduler Backlog | Plannen | De wachtrij met pods in afwachting van de scheduler 5 minuten lang niet leeg is | Waarschuwing |
+| High Node Disk Usage | Opslag | Het bestandssysteem van een node meer dan 90% vol is | Waarschuwing |
+| DaemonSet Misscheduled Nodes | Werklast | Een DaemonSet pods draait op nodes die niet meer passen bij zijn nodeselector, affiniteit of toleraties | Waarschuwing |
+| High Node CPU Request Commitment | Node | De opgetelde CPU-requests van de containers van een node meer dan 90% van zijn toewijsbare CPU bedragen | Waarschuwing |
+| High Node Memory Request Commitment | Node | De opgetelde geheugen-requests van de containers van een node meer dan 90% van zijn toewijsbare geheugen bedragen | Waarschuwing |
 | HPA Saturated at Max Replicas | Werklast | Een boven zijn `minReplicas` geschaalde HPA op 90% of meer van zijn `maxReplicas` draait | Kritiek |
 | Pod Memory Saturating Container Limit | Werklast | Een pod meer dan 90% van de geheugenlimiet van zijn containers gebruikt | Kritiek |
-| Pod CPU Saturating Container Limit | Werklast | Een pod meer dan 90% van de CPU-limiet van zijn containers gebruikt | Warning |
+| Pod CPU Saturating Container Limit | Werklast | Een pod meer dan 90% van de CPU-limiet van zijn containers gebruikt | Waarschuwing |
 
 Sjablonen op metrieken per object evalueren elke node, pod, deployment, job, DaemonSet of HPA afzonderlijk, zodat een cluster met meerdere ongezonde pods een incident per pod krijgt in plaats van één voor het hele cluster.
 

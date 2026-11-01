@@ -1,6 +1,9 @@
 import SpanUtil, { DivisibilityFactor } from "../../Utils/SpanUtil";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
+import TelemetryServiceUtil, {
+  UNKNOWN_RESOURCE_LABEL,
+} from "Common/UI/Utils/TelemetryService";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -133,7 +136,11 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
         );
         nodeMap.set(primaryEntityId, {
           primaryEntityId,
-          serviceName: service?.name || "Unknown",
+          serviceName:
+            TelemetryServiceUtil.getServiceDisplayName(
+              service?.name,
+              translator,
+            ) || translator.translateTerm(UNKNOWN_RESOURCE_LABEL),
           serviceColor: String(
             (service?.serviceColor as unknown as string) || "#6366f1",
           ),
@@ -191,7 +198,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
       nodes: Array.from(nodeMap.values()),
       edges: Array.from(edgeMap.values()),
     };
-  }, [spans, telemetryServices]);
+  }, [spans, telemetryServices, translator.language]);
 
   // Compute trace duration for context
   const traceDuration: number = React.useMemo(() => {

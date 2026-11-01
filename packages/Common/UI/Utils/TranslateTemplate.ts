@@ -802,6 +802,29 @@ export const getGlobalTranslator: () => Translator = (): Translator => {
   );
 };
 
+// How a language separates a list's items, where it is not a comma.
+const LIST_SEPARATORS: Record<string, string> = {
+  fa: "، ",
+  ja: "、",
+  zh: "、",
+};
+
+/*
+ * Names listed with the language's own separator and no "and" or "or": "a, b,
+ * c", "a、b、c". For a list that says what is left out rather than a clause.
+ */
+export const formatList: (
+  names: ReadonlyArray<string>,
+  translator: Translator,
+) => string = (
+  names: ReadonlyArray<string>,
+  translator: Translator,
+): string => {
+  return names.join(
+    LIST_SEPARATORS[getBaseLanguage(translator.language)] || ", ",
+  );
+};
+
 // A fixed string in the reader's language, outside React.
 export const translateText: (text: string | undefined) => string | undefined = (
   text: string | undefined,

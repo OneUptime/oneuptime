@@ -180,7 +180,7 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享。每个
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **文件系统** 页面：每个文件系统的预配空间和已用空间、数据缩减、延迟、IOPS 和带宽 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **存储桶** 页面：每个存储桶的空间、配额、对象数和性能，按帐户分组 |
 
-阵列在其 **概览** 上显示的健康状况：当它报告未关闭的严重告警，或有硬件组件、驱动器或控制器处于严重、故障、缺失或不健康状态时为 **严重**；当它报告未关闭的警告告警，或有降级或状态未知的组件时为 **Warning**；否则为 **OK**。在监控条件中，阵列的属性要加上 `resource.` 前缀（`resource.storage.array.name`、`resource.storage.system`），而数据点标签保持原样（`name`、`host`、`dimension`、`space`）。
+阵列在其 **概览** 上显示的健康状况：当它报告未关闭的严重告警，或有硬件组件、驱动器或控制器处于严重、故障、缺失或不健康状态时为 **严重**；当它报告未关闭的警告告警，或有降级或状态未知的组件时为 **警告**；否则为 **OK**。在监控条件中，阵列的属性要加上 `resource.` 前缀（`resource.storage.array.name`、`resource.storage.system`），而数据点标签保持原样（`name`、`host`、`dimension`、`space`）。
 
 ## 可选 — 发送阵列的 syslog
 

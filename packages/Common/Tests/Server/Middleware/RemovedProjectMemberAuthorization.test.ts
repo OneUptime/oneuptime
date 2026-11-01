@@ -335,6 +335,12 @@ describe("UserMiddleware - a user removed from a project is refused on their nex
               teamPermission.permission = permission;
               teamPermission.labels = [];
               teamPermission.isBlockPermission = false;
+              /*
+               * The team it is granted on, as every stored row has it: a
+               * cached set whose rows name no team reads as one written
+               * before they did, and is rebuilt (#5438).
+               */
+              teamPermission.teamId = membersTeamId;
               return teamPermission;
             })
           : [];
@@ -435,6 +441,34 @@ describe("UserMiddleware - a user removed from a project is refused on their nex
         `project-permissions-${aliceId.toString()}:${projectId.toString()}`,
       ),
     ).toBe(false);
+  });
+
+  /*
+   * A set cached before each row named the team it is granted on is read as
+   * missing (UserPermissionUtil.hasRowWithoutTeam, #5438) and rebuilt from
+   * the memberships, which a removed user no longer has: refused as well.
+   */
+  test("a removed user whose cached set is from before its rows named their team is refused as well", async () => {
+    memberships.push({ userId: aliceId, projectId, teamId: membersTeamId });
+    await signIn(aliceId);
+
+    const key: string = `project-permissions-${aliceId.toString()}:${projectId.toString()}`;
+    const cached: JSONObject = JSONFunctions.deserialize(
+      JSONFunctions.parse(mockStore.get(key) as string) as JSONObject,
+    );
+    for (const row of cached["permissions"] as Array<JSONObject>) {
+      delete row["teamId"];
+    }
+    mockStore.set(key, JSON.stringify(JSONFunctions.serialize(cached)));
+
+    // A removal as the code used to run it: only the global entry was updated.
+    deleteMembershipRows(aliceId);
+    await AccessTokenService.refreshUserGlobalAccessPermission(aliceId);
+
+    const outcome: RequestOutcome = await send(aliceId);
+
+    expect(outcome.req.userTenantAccessPermission).toBeUndefined();
+    expect(outcome.passedPermissionCheck).toBe(false);
   });
 
   test("a member of the same project is still let in after another member is removed", async () => {
