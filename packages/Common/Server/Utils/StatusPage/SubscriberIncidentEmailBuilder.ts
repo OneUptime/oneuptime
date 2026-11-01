@@ -29,6 +29,19 @@ import IncidentTemplateVariableBuilder, {
   IncidentTemplateVariables,
 } from "./IncidentTemplateVariableBuilder";
 import StatusPageEmailLogo from "./StatusPageEmailLogo";
+import SubscriberLanguage from "./SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberEmailText,
+} from "./SubscriberMessageText";
+import { writeInLanguage } from "../ServerTranslation";
+import {
+  DEFAULT_READER_LANGUAGE,
+  toReaderLanguage,
+} from "../../../Types/ReaderLanguage";
+import {
+  translationKey,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * The email a status page's subscribers get about an incident - its subject
@@ -60,6 +73,13 @@ import StatusPageEmailLogo from "./StatusPageEmailLogo";
  * field's inline images are made public so the recipient can load them. So a
  * job calls recordSending before each message goes out, and a preview never
  * does - previewing an email must not publish anything.
+ *
+ * A default email is written in its subscriber's language (forSubscriber's
+ * language, SubscriberLanguage): its subject, its template's own words
+ * (the envelope's language) and OneUptime's default names of the
+ * incident's severity and state. A preview is written in the page's default
+ * language, which every subscriber without a language of their own reads.
+ * A custom template is the team's own, and reads as it always did.
  */
 
 // Which notification the email is for.
@@ -74,10 +94,10 @@ interface SubscriberIncidentEmailCopy {
   templateEventType: StatusPageSubscriberNotificationEventType;
   // The default email's template.
   defaultTemplateType: EmailTemplateType;
-  // The default email's subject, before the incident title.
-  defaultSubjectPrefix: string;
-  // A custom template with no subject of its own: before the incident title.
-  customTemplateSubjectPrefix: string;
+  // The default email's subject, {{title}} the incident's title.
+  defaultSubject: string;
+  // A custom template's subject when it has none of its own.
+  customTemplateSubject: string;
 }
 
 const EMAIL_COPY: Record<
@@ -88,22 +108,22 @@ const EMAIL_COPY: Record<
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberIncidentCreated,
     defaultTemplateType: EmailTemplateType.SubscriberIncidentCreated,
-    defaultSubjectPrefix: "[Incident] ",
-    customTemplateSubjectPrefix: "[Incident] ",
+    defaultSubject: SubscriberEmailText.incidentSubject,
+    customTemplateSubject: SubscriberEmailText.incidentSubject,
   },
   [SubscriberIncidentEmailEvent.IncidentPublicNoteCreated]: {
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteCreated,
     defaultTemplateType: EmailTemplateType.SubscriberIncidentNoteCreated,
-    defaultSubjectPrefix: "[Update Incident] ",
-    customTemplateSubjectPrefix: "[Incident Update] ",
+    defaultSubject: translationKey("[Update Incident] {{title}}"),
+    customTemplateSubject: translationKey("[Incident Update] {{title}}"),
   },
   [SubscriberIncidentEmailEvent.IncidentPublicNoteUpdated]: {
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberIncidentNoteUpdated,
     defaultTemplateType: EmailTemplateType.SubscriberIncidentNoteUpdated,
-    defaultSubjectPrefix: "[Incident Note Updated] ",
-    customTemplateSubjectPrefix: "[Incident Note Updated] ",
+    defaultSubject: translationKey("[Incident Note Updated] {{title}}"),
+    customTemplateSubject: translationKey("[Incident Note Updated] {{title}}"),
   },
 };
 
@@ -139,9 +159,14 @@ export interface SubscriberIncidentStatusPageEmail {
   templateChoice: SubscriberEmailTemplateChoice;
   /*
    * The email one subscriber gets: the page's email, with the subscriber's
-   * own unsubscribe link. Pure: it can be called for a preview.
+   * own unsubscribe link, in their language (SubscriberLanguage) - the
+   * page's default language when none is given. Pure: it can be called for a
+   * preview.
    */
-  forSubscriber: (data: { unsubscribeUrl: string }) => SubscriberIncidentEmail;
+  forSubscriber: (data: {
+    unsubscribeUrl: string;
+    language?: string | undefined;
+  }) => SubscriberIncidentEmail;
   /*
    * An email is about to go out: records the custom field values it carries
    * (for the incident feed) and makes their inline images public. Awaited
@@ -344,11 +369,16 @@ export default class SubscriberIncidentEmailBuilder {
       statusPage: statusPage,
     });
 
+    // The language a subscriber with none of their own reads.
+    const pageLanguage: string =
+      SubscriberLanguage.getStatusPageLanguage(statusPage);
+
     if (templateChoice.usesCustomTemplate) {
       return {
         templateChoice: templateChoice,
         forSubscriber: (subscriber: {
           unsubscribeUrl: string;
+          language?: string | undefined;
         }): SubscriberIncidentEmail => {
           /*
            * The body is HTML (BlankTemplate wraps nothing around it), so its
@@ -370,17 +400,32 @@ export default class SubscriberIncidentEmailBuilder {
               emailTemplate!.templateBody!,
               emailBodyTemplateVariables,
             );
+          /*
+           * A template with no subject of its own gets OneUptime's, in the
+           * subscriber's language.
+           */
           const compiledSubject: string = emailTemplate!.emailSubject
             ? StatusPageSubscriberNotificationTemplateServiceClass.compileTemplate(
                 emailTemplate!.emailSubject,
                 plainTextTemplateVariables,
               )
-            : stateChange
-              ? StateChangeNoteMessage.getIncidentCustomTemplateEmailSubject({
-                  stateName: stateChange.name,
-                  incidentTitle: incidentTitle,
-                })
-              : copy.customTemplateSubjectPrefix + incidentTitle;
+            : writeInLanguage(
+                subscriber.language || pageLanguage,
+                (translator: Translator): string => {
+                  return stateChange
+                    ? StateChangeNoteMessage.getIncidentCustomTemplateEmailSubject(
+                        {
+                          stateName: stateChange.name,
+                          incidentTitle: incidentTitle,
+                          translator: translator,
+                        },
+                      )
+                    : translator.translateTemplate(
+                        copy.customTemplateSubject,
+                        { title: incidentTitle },
+                      );
+                },
+              );
 
           return {
             subject: compiledSubject,
@@ -403,12 +448,20 @@ export default class SubscriberIncidentEmailBuilder {
       };
     }
 
-    const subject: string = stateChange
-      ? StateChangeNoteMessage.getIncidentEmailSubject({
-          stateName: stateChange.name,
-          incidentTitle: incidentTitle,
-        })
-      : copy.defaultSubjectPrefix + incidentTitle;
+    // The default email's subject, in the subscriber's language.
+    const getSubject: (translator: Translator) => string = (
+      translator: Translator,
+    ): string => {
+      return stateChange
+        ? StateChangeNoteMessage.getIncidentEmailSubject({
+            stateName: stateChange.name,
+            incidentTitle: incidentTitle,
+            translator: translator,
+          })
+        : translator.translateTemplate(copy.defaultSubject, {
+            title: incidentTitle,
+          });
+    };
 
     // What the default email reads that does not vary per subscriber.
     const pageVars: JSONObject = {
@@ -467,19 +520,57 @@ export default class SubscriberIncidentEmailBuilder {
       templateChoice: templateChoice,
       forSubscriber: (subscriber: {
         unsubscribeUrl: string;
+        language?: string | undefined;
       }): SubscriberIncidentEmail => {
-        return {
-          subject: subject,
-          envelope: {
-            templateType: copy.defaultTemplateType,
-            vars: {
-              ...pageVars,
-              unsubscribeUrl: subscriber.unsubscribeUrl,
-            } as EmailEnvelope["vars"],
-            subject: subject,
-            isSubjectLiteral: true,
+        const language: string = toReaderLanguage(
+          subscriber.language || pageLanguage,
+        );
+
+        return writeInLanguage(
+          language,
+          (translator: Translator): SubscriberIncidentEmail => {
+            const subject: string = getSubject(translator);
+
+            /*
+             * OneUptime's default names of the severity and the state, in
+             * the subscriber's language; a project's own as written.
+             */
+            const namesInLanguage: JSONObject = {
+              incidentSeverity: data.incident.incidentSeverity?.name
+                ? SubscriberMessageText.nameInLanguage(
+                    translator,
+                    data.incident.incidentSeverity.name,
+                  )
+                : " - ",
+            };
+
+            if (stateChange) {
+              namesInLanguage["incidentState"] =
+                SubscriberMessageText.nameInLanguage(
+                  translator,
+                  stateChange.name,
+                );
+            }
+
+            return {
+              subject: subject,
+              envelope: {
+                templateType: copy.defaultTemplateType,
+                vars: {
+                  ...pageVars,
+                  ...namesInLanguage,
+                  unsubscribeUrl: subscriber.unsubscribeUrl,
+                } as EmailEnvelope["vars"],
+                subject: subject,
+                isSubjectLiteral: true,
+                // The template's own words, in the subscriber's language.
+                ...(language !== DEFAULT_READER_LANGUAGE
+                  ? { language: language }
+                  : {}),
+              },
+            };
           },
-        };
+        );
       },
       recordSending: async (): Promise<void> => {
         await incidentTemplateVariables.recordIncludedFieldsSent();

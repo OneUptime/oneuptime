@@ -68,7 +68,34 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "Common/Utils/Markdown/FeedMarkdown";
-import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberChatText,
+} from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import {
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The postmortem's own words in its messages, in each subscriber's
+ * language (Common/Server/Locales).
+ */
+const POSTMORTEM_TEXT: {
+  readonly emailSubject: string;
+  readonly smsHeadline: string;
+  readonly chatHeading: string;
+  readonly chatPostmortem: string;
+} = {
+  emailSubject: translationKey("[Postmortem] {{title}}"),
+  smsHeadline: translationKey(
+    "Postmortem: {{title}} ({{severity}}) on {{statusPageName}}. Impact: {{resources}}.",
+  ),
+  chatHeading: translationKey("Incident Postmortem - {{title}}"),
+  chatPostmortem: translationKey("Postmortem:"),
+};
 
 /*
  * A run decides from the incident as it read it, which was before it
@@ -684,6 +711,26 @@ RunCron(
                       subscriber,
                     ).toString();
 
+                  /*
+                   * The language this subscriber's messages are written in:
+                   * their own, else the page's (SubscriberLanguage).
+                   */
+                  const language: string = SubscriberLanguage.getLanguage({
+                    subscriber: subscriber,
+                    statusPage: statuspage,
+                  });
+
+                  // The default email's subject, in the subscriber's language.
+                  const postmortemSubject: string = writeInLanguage(
+                    language,
+                    (translator: Translator): string => {
+                      return translator.translateTemplate(
+                        POSTMORTEM_TEXT.emailSubject,
+                        { title: incident.title || "" },
+                      );
+                    },
+                  );
+
                   logger.debug(
                     `Prepared unsubscribe link for subscriber ${subscriber._id}.`,
                     {
@@ -744,7 +791,7 @@ RunCron(
                             emailTemplate.emailSubject,
                             subjectTemplateVars,
                           )
-                        : "[Postmortem] " + incident.title || "";
+                        : postmortemSubject;
                       await incidentTemplateVariables.recordFieldsUsedBy([
                         emailTemplate.templateBody,
                         emailTemplate.emailSubject,
@@ -788,7 +835,7 @@ RunCron(
                         method: StatusPageSubscriberNotificationMethod.Email,
                         // Which address it was, so a failed send frees it for a later page.
                         to: subscriberEmail,
-                        subject: "[Postmortem] " + incident.title || "",
+                        subject: postmortemSubject,
                         logAttributes: logAttributes,
                         send: () => {
                           return MailService.sendMail(
@@ -810,8 +857,19 @@ RunCron(
                                     ? "true"
                                     : "false",
                                 resourcesAffected: resourcesAffectedString,
-                                incidentSeverity:
-                                  incident.incidentSeverity?.name || " - ",
+                                // OneUptime's default name, in the subscriber's language.
+                                incidentSeverity: incident.incidentSeverity
+                                  ?.name
+                                  ? writeInLanguage(
+                                      language,
+                                      (translator: Translator): string => {
+                                        return SubscriberMessageText.nameInLanguage(
+                                          translator,
+                                          incident.incidentSeverity!.name,
+                                        );
+                                      },
+                                    )
+                                  : " - ",
                                 ...EmailColorUtil.getTemplateVariables(
                                   "incidentSeverity",
                                   incident.incidentSeverity?.color,
@@ -828,8 +886,12 @@ RunCron(
                                     statuspage,
                                   ),
                               },
-                              subject: "[Postmortem] " + incident.title || "",
+                              subject: postmortemSubject,
                               isSubjectLiteral: true,
+                              // The template's own words, in the subscriber's language.
+                              ...(language !== DEFAULT_READER_LANGUAGE
+                                ? { language: language }
+                                : {}),
                             },
                             {
                               mailServer:
@@ -889,8 +951,33 @@ RunCron(
                         smsTemplate.templateBody,
                       ]);
                     } else {
-                      smsMessage = writeDefaultSubscriberSms(
-                        `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                      // OneUptime's own words, in the subscriber's language.
+                      smsMessage = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return SubscriberMessageText.smsWithLinks(
+                            translator,
+                            {
+                              sentences: [
+                                translator.translateTemplate(
+                                  POSTMORTEM_TEXT.smsHeadline,
+                                  {
+                                    title: incident.title || "",
+                                    severity: incident.incidentSeverity?.name
+                                      ? SubscriberMessageText.stateName(
+                                          incident.incidentSeverity.name,
+                                        )
+                                      : "-",
+                                    statusPageName: statusPageName,
+                                    resources: resourcesAffectedPlainText,
+                                  },
+                                ),
+                              ],
+                              detailsUrl: incidentDetailsUrl,
+                              unsubscribeUrl: unsubscribeUrl,
+                            },
+                          );
+                        },
                       );
                     }
 
@@ -959,16 +1046,21 @@ RunCron(
                         slackTemplate.templateBody,
                       ]);
                     } else {
-                      markdownMessage =
-                        mdText`## 🚨 Incident Postmortem - ${incident.title || ""}
+                      // OneUptime's own words, in the subscriber's language.
+                      markdownMessage = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return mdText`## 🚨 ${translator.translateTemplate(POSTMORTEM_TEXT.chatHeading, { title: incident.title || "" })}
 
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, incident.incidentSeverity.name) : " - ")}
 
-**Resources Affected:** ${resourcesAffectedPlainText}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
 
-**Postmortem:** ${FeedMarkdown.asMarkdown(incident.postmortemNote || "")}
+${SubscriberMessageText.chatLine(translator, POSTMORTEM_TEXT.chatPostmortem, FeedMarkdown.asMarkdown(incident.postmortemNote || ""))}
 
-${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+${slackCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
+                        },
+                      );
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 
@@ -1027,12 +1119,17 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                         teamsTemplate.templateBody,
                       ]);
                     } else {
-                      teamsMarkdownMessage =
-                        mdText`## 🚨 Incident Postmortem - ${incident.title || ""}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Postmortem:** ${FeedMarkdown.asMarkdown(incident.postmortemNote || "")}
-${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                      // OneUptime's own words, in the subscriber's language.
+                      teamsMarkdownMessage = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return mdText`## 🚨 ${translator.translateTemplate(POSTMORTEM_TEXT.chatHeading, { title: incident.title || "" })}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, incident.incidentSeverity.name) : " - ")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
+${SubscriberMessageText.chatLine(translator, POSTMORTEM_TEXT.chatPostmortem, FeedMarkdown.asMarkdown(incident.postmortemNote || ""))}
+${teamsCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
+                        },
+                      );
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 

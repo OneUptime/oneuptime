@@ -3781,6 +3781,12 @@ Stay informed about service availability! 🚀`.toString();
          */
         isAddedByTeam: true,
         createdByUserId: true,
+        /*
+         * The language the subscriber reads the page in, when it is not the
+         * page's default: every message to it is written in it
+         * (SubscriberLanguage).
+         */
+        language: true,
       },
       // A stable order, which the afterId cursor reads on from.
       sort: {
@@ -4418,6 +4424,12 @@ Stay informed about service availability! 🚀`.toString();
         // Who may be a subscriber (Types/StatusPage/SubscriberRestrictions).
         limitSubscribersToPrivateUsers: true,
         allowedSubscriberEmailDomains: true,
+        /*
+         * The language every subscriber without one of their own is written
+         * to in (SubscriberLanguage). A page read without it writes them in
+         * English, as every message was before.
+         */
+        defaultLanguage: true,
       },
     });
 
