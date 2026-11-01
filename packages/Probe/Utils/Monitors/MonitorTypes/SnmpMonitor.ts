@@ -40,6 +40,10 @@ import FdbEntry from "Common/Types/Monitor/SnmpMonitor/FdbEntry";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
+import {
+  SnmpVendorIdentityRead,
+  getSnmpVendorIdentityReads,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpVendorIdentity";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import {
   SnmpTableResult,
@@ -910,6 +914,19 @@ export default class SnmpMonitor {
         );
       }
 
+      // Best-effort: what ENTITY-MIB left empty, from the vendor's own MIB.
+      try {
+        entityInfo = await SnmpMonitor.readVendorIdentity(
+          session,
+          systemInfo?.sysObjectId,
+          entityInfo,
+        );
+      } catch (err) {
+        logger.debug(
+          `SNMP vendor identity read failed for ${config.hostname}: ${err}`,
+        );
+      }
+
       const ifTable: SnmpTableRows = await SnmpMonitor.getTableColumns(
         session,
         IF_TABLE_OID,
@@ -1682,6 +1699,66 @@ export default class SnmpMonitor {
     );
 
     return hasAnyField ? entityInfo : undefined;
+  }
+
+  /*
+   * ENTITY-MIB's answer with what it left empty filled in from the vendor's
+   * own MIB, for a platform that keeps them there (SnmpVendorIdentity, issue
+   * #5384). One GET, and none at all for a device with nothing to fill or a
+   * platform that is not on the list - a Meraki device above all, which may
+   * not answer a GET for an object it lacks.
+   *
+   * What ENTITY-MIB said is never replaced. An object the agent lacks, or a
+   * value that is not text, says nothing rather than a blob of hex: a serial
+   * number that is not printable is not one.
+   */
+  private static async readVendorIdentity(
+    session: snmp.Session,
+    sysObjectId: string | undefined,
+    entityInfo: SnmpEntityInfo | undefined,
+  ): Promise<SnmpEntityInfo | undefined> {
+    const reads: Array<SnmpVendorIdentityRead> = getSnmpVendorIdentityReads({
+      sysObjectId: sysObjectId,
+      entityInfo: entityInfo,
+    });
+
+    if (reads.length === 0) {
+      return entityInfo;
+    }
+
+    const oids: Array<string> = Array.from(
+      new Set<string>(
+        reads.map((read: SnmpVendorIdentityRead): string => {
+          return read.oid;
+        }),
+      ),
+    );
+    const varbinds: Array<snmp.Varbind> = await SnmpMonitor.getOids(
+      session,
+      oids,
+    );
+    const filled: SnmpEntityInfo = { ...entityInfo };
+
+    for (const read of reads) {
+      const varbind: snmp.Varbind | undefined = varbinds[oids.indexOf(read.oid)];
+      const value: unknown =
+        varbind && !snmp.isVarbindError(varbind) ? varbind.value : undefined;
+
+      if (!Buffer.isBuffer(value) || !SnmpMonitor.isPrintableBuffer(value)) {
+        continue;
+      }
+
+      const text: string = value.toString("utf8").trim();
+      const fieldValue: string | undefined = read.read
+        ? read.read(text)
+        : text;
+
+      if (fieldValue) {
+        filled[read.field] = fieldValue;
+      }
+    }
+
+    return Object.keys(filled).length > 0 ? filled : entityInfo;
   }
 
   /*

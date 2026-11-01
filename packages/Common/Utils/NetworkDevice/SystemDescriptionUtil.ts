@@ -28,6 +28,10 @@
  * (SnmpVendorTemplate's ENTERPRISE_VENDOR_NAMES), so a device reads the same
  * whichever of the two named its maker.
  *
+ * A rule may state an operating system the description does not spell out,
+ * when the platform can run nothing else: every Palo Alto firewall runs
+ * PAN-OS, and every Meraki MX runs Meraki's MX firmware (issue #5384).
+ *
  * Pure and dependency-free: it runs in the inventory mirror on the server
  * and on the device's own page in the dashboard, and the tests drive it with
  * the descriptions real devices send.
@@ -63,9 +67,45 @@ const TRAILING_PUNCTUATION: RegExp = /[.,;:]+$/;
 
 // --- Cisco Meraki ------------------------------------------------------------
 
-// "Meraki MX85", "Meraki MS220-8P Cloud Managed Switch", "Meraki MR42 Cloud Managed AP".
+/*
+ * "Meraki MX85", "Meraki MS220-8P Cloud Managed Switch", "Meraki MR42 Cloud
+ * Managed AP". An access point can answer with a "=" in front of it:
+ * "=Meraki MR28 Cloud Managed AP".
+ */
 const MERAKI: RegExp =
-  /^(?:Cisco\s{1,4})?Meraki\s{1,4}([A-Za-z]{1,4}\d{1,4}[A-Za-z0-9+-]{0,24})/;
+  /^=?(?:Cisco\s{1,4})?Meraki\s{1,4}([A-Za-z]{1,4}\d{1,4}[A-Za-z0-9+-]{0,24})/;
+
+// A Catalyst access point in Meraki mode: "Cisco Wireless CW9176I Cloud Managed AP".
+const MERAKI_CATALYST_AP: RegExp =
+  /^=?Cisco Wireless\s{1,4}(CW\d{4}[A-Za-z0-9+-]{0,24})\s{1,4}Cloud Managed\b/;
+
+// The letters a Meraki model starts with: its product line.
+const MERAKI_PRODUCT_LINE: RegExp = /^[A-Za-z]{1,4}/;
+
+/*
+ * The firmware each Meraki product line runs. Meraki publishes one firmware
+ * per line, and the dashboard writes it by the line's name ("MX 18.211.2"), so
+ * a device's model names its firmware as surely as a sysDescr would - which is
+ * as well, since no Meraki sysDescr names one. A Z-series teleworker gateway
+ * runs MX firmware, and a Catalyst access point in Meraki mode MR firmware.
+ */
+const MERAKI_FIRMWARE_BY_PRODUCT_LINE: Readonly<Record<string, string>> = {
+  MX: "Meraki MX firmware",
+  Z: "Meraki MX firmware",
+  MS: "Meraki MS firmware",
+  MR: "Meraki MR firmware",
+  CW: "Meraki MR firmware",
+  MG: "Meraki MG firmware",
+  MV: "Meraki MV firmware",
+};
+
+/*
+ * What the Meraki dashboard lists as a device's firmware: its product type,
+ * then the release, in dashes ("wired-18-211-2", "switch-16-7"). Anything else
+ * it says there ("Firmware locked. Please contact support.") holds no release.
+ */
+const MERAKI_DASHBOARD_FIRMWARE: RegExp =
+  /^[a-z]{1,24}(?:-[a-z]{1,24}){0,3}-(\d{1,4}(?:-\d{1,4}){0,5})$/;
 
 // --- Cisco --------------------------------------------------------------------
 
@@ -252,6 +292,36 @@ function firstGroup(pattern: RegExp, text: string): string | undefined {
   return match ? fact(match[1]) : undefined;
 }
 
+/**
+ * The firmware a Meraki device of `model` runs ("MX85": "Meraki MX firmware"),
+ * or undefined for a model of no line it knows.
+ */
+export function getMerakiOperatingSystem(
+  model: string | undefined,
+): string | undefined {
+  const line: string | undefined = MERAKI_PRODUCT_LINE.exec(
+    (model || "").trim(),
+  )?.[0];
+
+  return line
+    ? MERAKI_FIRMWARE_BY_PRODUCT_LINE[line.toUpperCase()]
+    : undefined;
+}
+
+/**
+ * The release in what the Meraki dashboard lists as a device's firmware
+ * ("wired-18-211-2": "18.211.2"), or undefined when it holds none.
+ */
+export function getMerakiFirmwareRelease(
+  firmware: string | undefined,
+): string | undefined {
+  const release: string | undefined = MERAKI_DASHBOARD_FIRMWARE.exec(
+    (firmware || "").trim(),
+  )?.[1];
+
+  return release ? release.split("-").join(".") : undefined;
+}
+
 function ciscoRule(
   recognise: RegExp,
   operatingSystem: string,
@@ -269,6 +339,19 @@ function ciscoRule(
   };
 }
 
+function merakiFacts(
+  _text: string,
+  match: RegExpExecArray,
+): SystemDescriptionFacts {
+  const model: string | undefined = fact(match[1]);
+
+  return {
+    manufacturer: "Cisco Meraki",
+    model: model,
+    operatingSystem: getMerakiOperatingSystem(model),
+  };
+}
+
 /*
  * Most specific first. The Cisco rules are ordered so that a description
  * naming two of them is read as the more specific one: an FTD names its ASA
@@ -277,9 +360,11 @@ function ciscoRule(
 const RULES: ReadonlyArray<SystemDescriptionRule> = [
   {
     recognise: MERAKI,
-    read: (_text: string, match: RegExpExecArray): SystemDescriptionFacts => {
-      return { manufacturer: "Cisco Meraki", model: fact(match[1]) };
-    },
+    read: merakiFacts,
+  },
+  {
+    recognise: MERAKI_CATALYST_AP,
+    read: merakiFacts,
   },
   ciscoRule(CISCO_FTD, "Cisco Firepower Threat Defense", CISCO_FTD),
   ciscoRule(CISCO_ASA, "Cisco ASA", CISCO_ASA),
