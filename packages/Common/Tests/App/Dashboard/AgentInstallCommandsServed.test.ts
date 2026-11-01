@@ -613,11 +613,11 @@ describe("every run line reads whole where it is shown", () => {
 
         const lines: Array<string> = block.split("\n");
 
-        lines.forEach((line: string, index: number): void => {
-          const next: string = lines[index + 1] || "";
+        for (let index: number = 0; index < lines.length - 1; index++) {
+          const line: string = lines[index]!;
 
-          if (!line.endsWith(" \\") || !next.startsWith("  ")) {
-            return;
+          if (!line.endsWith(" \\") || !lines[index + 1]!.startsWith("  ")) {
+            continue;
           }
           continued++;
           expect({
@@ -625,7 +625,7 @@ describe("every run line reads whole where it is shown", () => {
             line,
             values: valuesOn(line),
           }).toEqual({ surface: surface.name, line, values: 1 });
-        });
+        }
       }
     }
 

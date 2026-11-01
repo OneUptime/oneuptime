@@ -69,7 +69,7 @@ export function getCodeBlockLineStyle(
   const indent: number = leadingSpaces + CODE_BLOCK_WRAPPED_LINE_INDENT;
 
   return {
-    paddingLeft: `${indent}ch`,
+    paddingInlineStart: `${indent}ch`,
     textIndent: `-${indent}ch`,
   };
 }

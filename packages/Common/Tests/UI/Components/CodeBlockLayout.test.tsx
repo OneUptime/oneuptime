@@ -182,13 +182,13 @@ describe("a wrapped line's rest", () => {
     for (const line of lines) {
       expect(classesOf(line)).toContain(CODE_BLOCK_LINE_CLASS_NAME);
     }
-    expect(lines[0]!.style.paddingLeft).toBe("2ch");
+    expect(lines[0]!.style.paddingInlineStart).toBe("2ch");
     expect(lines[0]!.style.textIndent).toBe("-2ch");
     // A line that starts with two spaces wraps past them.
-    expect(lines[2]!.style.paddingLeft).toBe("4ch");
+    expect(lines[2]!.style.paddingInlineStart).toBe("4ch");
     expect(lines[2]!.style.textIndent).toBe("-4ch");
     expect(getCodeBlockLineStyle(0)).toEqual({
-      paddingLeft: "2ch",
+      paddingInlineStart: "2ch",
       textIndent: "-2ch",
     });
   });
@@ -226,7 +226,7 @@ describe("a wrapped line's rest", () => {
     expect(lines).toHaveLength(2);
     // After "oneuptime.com/" and "install/".
     expect(lines[0]!.querySelectorAll("wbr")).toHaveLength(2);
-    expect(lines[1]!.style.paddingLeft).toBe("4ch");
+    expect(lines[1]!.style.paddingInlineStart).toBe("4ch");
     expect(codeOf(result).textContent).toBe(
       "https://oneuptime.com/install/x\n  next",
     );
