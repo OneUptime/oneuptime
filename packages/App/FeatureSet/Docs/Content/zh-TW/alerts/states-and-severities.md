@@ -102,7 +102,7 @@ flowchart TB
 | **高** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
 | **低**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-事件以三個嚴重程度開始，警示則以兩個開始。當監測器建議的範本寫的是 **嚴重** 或 **Warning** 時，OneUptime 會把它對應到你的第一個和第二個警示嚴重程度，在新專案中即 **高** 和 **低**。
+事件以三個嚴重程度開始，警示則以兩個開始。當監測器建議的範本寫的是 **嚴重** 或 **警告** 時，OneUptime 會把它對應到你的第一個和第二個警示嚴重程度，在新專案中即 **高** 和 **低**。
 
 ## 編輯嚴重程度
 

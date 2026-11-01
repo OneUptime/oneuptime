@@ -461,7 +461,7 @@ SDK:t exporterar troligen över gRPC till en HTTP-endpoint, eller till `localhos
 En batch är större än storleksgränsen. Minska batcherna, till exempel med `send_batch_max_size: 1000` på processorn `batch`. Om du kör i egen drift bakom din egen proxy, kontrollera också den proxyns gräns för body-storlek.
 :::
 
-:::details Data hamnar under fel tjänst, eller under Unknown Service
+:::details Data hamnar under fel tjänst, eller under "Okänd tjänst"
 Tjänsten kommer från resursattributet `service.name`. Sätt `OTEL_SERVICE_NAME` i varje applikation. Om nyckeln har en **Fäst tjänstnamn** hamnar varje OTLP/HTTP-export med den nyckeln under det namnet i stället.
 :::
 

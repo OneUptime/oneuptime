@@ -572,7 +572,7 @@ Ein Span-Prozessor stempelt jeden Span mit der ID, die beim Start des Spans aktu
 
 ### Wo die Links sind
 
-Eine Ausnahme im Dashboard zeigt eine Karte **Ansehen, was der Benutzer gesehen hat**, wenn es eine Aufzeichnung für eine Sitzung gibt, die auf diesen Fehler gestoßen ist, und öffnet den Player zehn Sekunden vor der Ausnahme mit ausgewähltem Tab Errors. Die Details eines Spans bieten **Watch session at this span**; die Details einer Log-Zeile bieten **View session replay** am Zeitpunkt der Zeile, wenn das Log selbst die Sitzungs-ID trägt, und ein über die Trace-ID verknüpftes Log erreicht die Aufzeichnung über seinen Trace. In der anderen Richtung verlinkt jede Netzwerk-, Log-, Trace- und Fehlerzeile im Player auf die Trace-Ansicht, den auf die Sitzung zu diesem Zeitpunkt beschränkten Log-Explorer oder die Ausnahmegruppe.
+Eine Ausnahme im Dashboard zeigt eine Karte **Ansehen, was der Benutzer gesehen hat**, wenn es eine Aufzeichnung für eine Sitzung gibt, die auf diesen Fehler gestoßen ist, und öffnet den Player zehn Sekunden vor der Ausnahme mit ausgewähltem Tab Errors. Die Details eines Spans bieten **Sitzung an diesem Span ansehen**; die Details einer Log-Zeile bieten **View session replay** am Zeitpunkt der Zeile, wenn das Log selbst die Sitzungs-ID trägt, und ein über die Trace-ID verknüpftes Log erreicht die Aufzeichnung über seinen Trace. In der anderen Richtung verlinkt jede Netzwerk-, Log-, Trace- und Fehlerzeile im Player auf die Trace-Ansicht, den auf die Sitzung zu diesem Zeitpunkt beschränkten Log-Explorer oder die Ausnahmegruppe.
 
 ## Eine Sitzung ansehen
 

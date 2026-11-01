@@ -299,8 +299,8 @@ histogram.record(metric.value, {
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000밀리초 | **심각** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500밀리초 | **심각** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0.25 | **심각** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000밀리초 | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800밀리초 | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000밀리초 | **경고** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800밀리초 | **경고** |
 
 이 모니터는 `web_vital.*` 이름만 읽습니다. 앱이 다른 이름으로 지표를 보낸다면 만들어진 모니터의 메트릭을 수정하세요. 경로 하나에 대해 알림을 받으려면 모니터에 `app.route` 필터를 추가하세요. 이 메트릭 중 어느 것으로든 직접 모니터를 만들 수도 있습니다. [메트릭 모니터](/docs/monitor/metrics-monitor)를 참고하세요.
 

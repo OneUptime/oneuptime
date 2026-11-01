@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 13164
+    "keys": 39461,
+    "untranslated": 13077
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -145,6 +145,7 @@
     "Object Gateways",
     "Observables",
     "Offline",
+    "Ok",
     "Online",
     "OpenShift",
     "Operators",
@@ -166,6 +167,7 @@
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Privacy",
+    "Producer",
     "Product",
     "Profiler",
     "Project",
@@ -265,6 +267,7 @@
     "cluster",
     "cluster {{name}}",
     "customer facing|tier-1",
+    "database",
     "db-primary",
     "debug",
     "failed password",
@@ -292,6 +295,7 @@
     "server",
     "services",
     "span {{spanId}}",
+    "spans",
     "status",
     "storefront-web",
     "svc-backup",

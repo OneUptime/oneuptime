@@ -334,7 +334,11 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                         key={key}
                         className="max-w-[280px] truncate whitespace-nowrap px-3 py-2 text-sm text-gray-700"
                       >
-                        {displayGroupValue(key, row.groupValues[key] || "")}
+                        {displayGroupValue(
+                          key,
+                          row.groupValues[key] || "",
+                          translator,
+                        )}
                       </td>
                     );
                   })}

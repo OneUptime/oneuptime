@@ -95,10 +95,10 @@ flowchart TB
 | 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | 可用性 | 严重 | `iot_device_up`，按 `device.id` 取 Min，过去 30 分钟 | 任一读数低于 1，或某个已注册的设备在整个窗口内什么也没发送 | 恢复为 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`，按 `device.id` 取 Avg，过去 5 分钟 | 低于 20% | 达到或高于 22% |
-| Weak Signal | 连接 | Warning | `iot_signal_strength_dbm`，按 `device.id` 取 Avg，过去 5 分钟 | 低于 -100 dBm | 达到或高于 -90 dBm |
+| Low Battery | Power | 警告 | `iot_battery_percent`，按 `device.id` 取 Avg，过去 5 分钟 | 低于 20% | 达到或高于 22% |
+| Weak Signal | 连接 | 警告 | `iot_signal_strength_dbm`，按 `device.id` 取 Avg，过去 5 分钟 | 低于 -100 dBm | 达到或高于 -90 dBm |
 | High Temperature | 环境 | 严重 | `iot_temperature_celsius`，按 `device.id` 取 Max，过去 5 分钟 | 高于 70 °C | 达到或低于 63 °C |
-| High CPU Usage | 系统 | Warning | `iot_cpu_usage_ratio`，按 `device.id` 取 Avg，过去 5 分钟 | 高于 0.9(其 CPU 的 90%) | 达到或低于 0.81 |
+| High CPU Usage | 系统 | 警告 | `iot_cpu_usage_ratio`，按 `device.id` 取 Avg，过去 5 分钟 | 高于 0.9(其 CPU 的 90%) | 达到或低于 0.81 |
 
 **严重程度** 是选择器显示的标签。模板创建的事件和告警以项目中最严重的事件和告警严重程度开始；可以在条件中修改。
 

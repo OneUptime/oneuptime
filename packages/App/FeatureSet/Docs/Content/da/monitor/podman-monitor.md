@@ -91,10 +91,10 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere på værten, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Avg pr. container, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`, Avg pr. container, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
+| High Container CPU Usage | Advarsel | `container.cpu.utilization`, Avg pr. container, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
+| High Container Memory Usage | Advarsel | `container.memory.percent`, Avg pr. container, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
 | Container Restart Loop | Kritisk | `container.restarts.increase`, Sum pr. container, seneste 15 minutter | Mere end 3 genstarter i vinduet (Sum) | 2,7 eller færre |
-| High Container Process Count | Warning | `container.pids.count`, Max pr. container, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
+| High Container Process Count | Advarsel | `container.pids.count`, Max pr. container, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min pr. container, seneste 1 minut | Under 120 sekunder | Ved eller over 132 sekunder |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.

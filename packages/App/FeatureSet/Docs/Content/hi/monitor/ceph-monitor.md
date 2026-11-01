@@ -116,42 +116,42 @@ flowchart TB
 | टेम्पलेट | गंभीरता | किस पर नज़र | कब फ़ायर होता है | कब रिकवर होता है |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | गंभीर | `ceph_health_status`, Max, पिछला 1 मिनट | 2 या अधिक: `HEALTH_ERR` | 1.8 से कम: `HEALTH_WARN` या बेहतर |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 या अधिक: `HEALTH_WARN` या बदतर | 0.9 से कम: `HEALTH_OK` |
+| Cluster Health Warning | चेतावनी | `ceph_health_status`, Max | 1 या अधिक: `HEALTH_WARN` या बदतर | 0.9 से कम: `HEALTH_OK` |
 | Monitor Quorum Degraded | गंभीर | `ceph_mon_quorum_status`, हर `ceph_daemon` का Min, पिछला 1 मिनट | कोई mon 1 से नीचे जाता है, यानी कोरम से बाहर। हर mon के लिए एक घटना | फिर से 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | 0 से ऊपर: क्लस्टर का `SLOW_OPS` चेक सक्रिय है | 0 पर |
-| Daemon Slow Operations | Warning | `type = SLOW_OPS` के लिए `ceph_daemon_health_metrics`, हर `ceph_daemon` का Max | 0 से ऊपर। हर OSD या mon के लिए एक घटना | सीरीज़ हट जाती है |
+| Slow Operations | चेतावनी | `ceph_healthcheck_slow_ops`, Max | 0 से ऊपर: क्लस्टर का `SLOW_OPS` चेक सक्रिय है | 0 पर |
+| Daemon Slow Operations | चेतावनी | `type = SLOW_OPS` के लिए `ceph_daemon_health_metrics`, हर `ceph_daemon` का Max | 0 से ऊपर। हर OSD या mon के लिए एक घटना | सीरीज़ हट जाती है |
 | Daemon Crash | गंभीर | `name = RECENT_CRASH` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: बिना आर्काइव किए डेमन क्रैश मौजूद हैं। mgr में कोई `ceph_crash_*` मेट्रिक नहीं है, इसलिए यही एकमात्र क्रैश संकेत है | क्रैश आर्काइव हो जाते हैं |
-| Monitor Clock Skew | Warning | `name = MON_CLOCK_SKEW` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: mon की घड़ियां अनुमत अंतर (डिफ़ॉल्ट 0.05 s) से ज़्यादा खिसक गई हैं | चेक हट जाता है |
+| Monitor Clock Skew | चेतावनी | `name = MON_CLOCK_SKEW` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: mon की घड़ियां अनुमत अंतर (डिफ़ॉल्ट 0.05 s) से ज़्यादा खिसक गई हैं | चेक हट जाता है |
 | Monitor Disk Critically Low | गंभीर | `name = MON_DISK_CRIT` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: mon की डेटाबेस डिस्क पर 5% से कम जगह खाली है (डिफ़ॉल्ट) | चेक हट जाता है |
-| Monitor Disk Space Low | Warning | `name = MON_DISK_LOW` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: 30% से कम जगह खाली है (डिफ़ॉल्ट) | चेक हट जाता है |
+| Monitor Disk Space Low | चेतावनी | `name = MON_DISK_LOW` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: 30% से कम जगह खाली है (डिफ़ॉल्ट) | चेक हट जाता है |
 
 ### OSD टेम्पलेट
 
 | टेम्पलेट | गंभीरता | किस पर नज़र | कब फ़ायर होता है | कब रिकवर होता है |
 | --- | --- | --- | --- | --- |
 | OSD Down | गंभीर | `ceph_osd_up`, हर `ceph_daemon` का Min | कोई OSD 1 से नीचे जाता है। हर OSD के लिए एक घटना | फिर से 1 |
-| OSD Out | Warning | `ceph_osd_in`, हर `ceph_daemon` का Min | कोई OSD 1 से नीचे जाता है: डेटा वितरण से बाहर चिह्नित | फिर से 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, हर `ceph_daemon` का Avg | 100 ms से ऊपर। हर OSD के लिए एक घटना | 90 ms या उससे कम |
-| OSD Slow Heartbeats | Warning | `name = OSD_SLOW_PING_TIME_FRONT` और `name = OSD_SLOW_PING_TIME_BACK` के लिए `ceph_health_detail`, Max | दोनों में से कोई एक चेक सक्रिय है: पब्लिक या क्लस्टर नेटवर्क पर हार्टबीट धीमी हैं। mgr कोई पिंग-टाइम गेज एक्सपोर्ट नहीं करता | दोनों चेक हट जाते हैं |
+| OSD Out | चेतावनी | `ceph_osd_in`, हर `ceph_daemon` का Min | कोई OSD 1 से नीचे जाता है: डेटा वितरण से बाहर चिह्नित | फिर से 1 |
+| OSD High Latency | चेतावनी | `ceph_osd_apply_latency_ms`, हर `ceph_daemon` का Avg | 100 ms से ऊपर। हर OSD के लिए एक घटना | 90 ms या उससे कम |
+| OSD Slow Heartbeats | चेतावनी | `name = OSD_SLOW_PING_TIME_FRONT` और `name = OSD_SLOW_PING_TIME_BACK` के लिए `ceph_health_detail`, Max | दोनों में से कोई एक चेक सक्रिय है: पब्लिक या क्लस्टर नेटवर्क पर हार्टबीट धीमी हैं। mgr कोई पिंग-टाइम गेज एक्सपोर्ट नहीं करता | दोनों चेक हट जाते हैं |
 
 ### प्लेसमेंट ग्रुप टेम्पलेट
 
 | टेम्पलेट | गंभीरता | किस पर नज़र | कब फ़ायर होता है | कब रिकवर होता है |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | गंभीर | `ceph_pg_total` − `ceph_pg_active`, हर `pool_id` का Max | 0 से ऊपर: PG I/O नहीं संभाल सकते, इसलिए उन तक जाने वाले क्लाइंट अनुरोध अटक जाते हैं। हर पूल के लिए एक घटना | 0 पर |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, हर `pool_id` का Max | 0 से ऊपर: ऑब्जेक्ट की रेप्लिका कॉन्फ़िगर की गई संख्या से कम हैं | 0 पर |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, हर `pool_id` का Max | 0 से ऊपर: PG अपनी रेप्लिका संख्या से कम OSD पर मैप होते हैं | 0 पर |
+| Degraded Placement Groups | चेतावनी | `ceph_pg_degraded`, हर `pool_id` का Max | 0 से ऊपर: ऑब्जेक्ट की रेप्लिका कॉन्फ़िगर की गई संख्या से कम हैं | 0 पर |
+| Undersized Placement Groups | चेतावनी | `ceph_pg_undersized`, हर `pool_id` का Max | 0 से ऊपर: PG अपनी रेप्लिका संख्या से कम OSD पर मैप होते हैं | 0 पर |
 | Damaged Placement Groups | गंभीर | `name = PG_DAMAGED` और `name = OSD_SCRUB_ERRORS` के लिए `ceph_health_detail`, Max | दोनों में से कोई एक चेक सक्रिय है: स्क्रबिंग में नुकसान या रीड त्रुटियां मिलीं | दोनों चेक हट जाते हैं |
 
 ### क्षमता टेम्पलेट
 
 | टेम्पलेट | गंभीरता | किस पर नज़र | कब फ़ायर होता है | कब रिकवर होता है |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 85% से ऊपर, Ceph का डिफ़ॉल्ट nearfull अनुपात | 76.5% या उससे कम |
+| Cluster Near Full | चेतावनी | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 85% से ऊपर, Ceph का डिफ़ॉल्ट nearfull अनुपात | 76.5% या उससे कम |
 | Cluster Full | गंभीर | वही अनुपात | 95% से ऊपर, Ceph का डिफ़ॉल्ट full अनुपात, जहां पूरे क्लस्टर में लिखना रुक जाता है | 85.5% या उससे कम |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, हर `pool_id` के लिए | पूल जितना रख सकता है उसके 85% से ऊपर। हर पूल के लिए एक घटना | 76.5% या उससे कम |
-| OSD Nearfull | Warning | `name = OSD_NEARFULL` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: किसी OSD ने nearfull थ्रेशोल्ड (डिफ़ॉल्ट 85%) पार किया। अकेले OSD क्लस्टर औसत से बहुत पहले भर जाते हैं | चेक हट जाता है |
-| OSD Backfillfull | Warning | `name = OSD_BACKFILLFULL` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: OSD पर बैकफ़िल अस्वीकार हो रहा है (डिफ़ॉल्ट 90%), जिससे रिकवरी रुक जाती है | चेक हट जाता है |
+| Pool Near Full | चेतावनी | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, हर `pool_id` के लिए | पूल जितना रख सकता है उसके 85% से ऊपर। हर पूल के लिए एक घटना | 76.5% या उससे कम |
+| OSD Nearfull | चेतावनी | `name = OSD_NEARFULL` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: किसी OSD ने nearfull थ्रेशोल्ड (डिफ़ॉल्ट 85%) पार किया। अकेले OSD क्लस्टर औसत से बहुत पहले भर जाते हैं | चेक हट जाता है |
+| OSD Backfillfull | चेतावनी | `name = OSD_BACKFILLFULL` के लिए `ceph_health_detail`, Max | चेक सक्रिय है: OSD पर बैकफ़िल अस्वीकार हो रहा है (डिफ़ॉल्ट 90%), जिससे रिकवरी रुक जाती है | चेक हट जाता है |
 | OSD Full | गंभीर | `name = OSD_FULL` के लिए `ceph_health_detail`, Max, पिछला 1 मिनट | चेक सक्रिय है: कोई OSD full थ्रेशोल्ड (डिफ़ॉल्ट 95%) तक पहुंच गया और लिखना अस्वीकार हो रहा है | चेक हट जाता है |
 
 - **डाउन और कोरम टेम्पलेट न्यूनतम का उपयोग करते हैं**, ताकि एक डाउन OSD या कोरम से बाहर एक mon स्वस्थ बहुमत में छिपने के बजाय उन्हें फ़ायर कर दे।

@@ -87,7 +87,7 @@ Hver logg lagres med en av sju alvorlighetsgrader. For logger fra OpenTelemetry 
 | **Spor** | 1–4 |
 | **Debug** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Advarsel** | 13–16 |
 | **Feil** | 17–20 |
 | **Fatal** | 21–24 |
 | **Uspesifisert** | Alt annet |

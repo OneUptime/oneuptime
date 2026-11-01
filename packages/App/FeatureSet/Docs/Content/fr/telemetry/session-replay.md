@@ -572,7 +572,7 @@ Un processeur de spans marque chaque span de l'id qui était actuel à son déma
 
 ### Où sont les liens
 
-Une exception dans le tableau de bord affiche une carte **Watch what the user saw** quand un enregistrement existe pour une session qui a rencontré cette erreur, et ouvre le lecteur dix secondes avant l'exception avec l'onglet Errors sélectionné. Les détails d'un span proposent **Watch session at this span** ; les détails d'une ligne de journal proposent **View session replay** au moment de la ligne quand le journal lui-même porte l'id de session, et un journal lié par id de trace atteint l'enregistrement par sa trace. Dans l'autre sens, chaque ligne réseau, de journal, de trace et d'erreur du lecteur renvoie vers la vue de la trace, l'explorateur de journaux limité à la session à ce moment, ou le groupe d'exceptions.
+Une exception dans le tableau de bord affiche une carte **Watch what the user saw** quand un enregistrement existe pour une session qui a rencontré cette erreur, et ouvre le lecteur dix secondes avant l'exception avec l'onglet Errors sélectionné. Les détails d'un span proposent **Regarder la session à ce span** ; les détails d'une ligne de journal proposent **View session replay** au moment de la ligne quand le journal lui-même porte l'id de session, et un journal lié par id de trace atteint l'enregistrement par sa trace. Dans l'autre sens, chaque ligne réseau, de journal, de trace et d'erreur du lecteur renvoie vers la vue de la trace, l'explorateur de journaux limité à la session à ce moment, ou le groupe d'exceptions.
 
 ## Regarder une session
 

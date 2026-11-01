@@ -95,10 +95,10 @@ Un critère ne déclenche que lorsque la condition est vraie pour chaque minute 
 | Modèle | Catégorie | Gravité | Surveille | Déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Disponibilité | Critique | `iot_device_up`, Min par `device.id`, 30 dernières minutes | Une mesure est inférieure à 1, ou un appareil enregistré n'envoie rien pendant toute la fenêtre | De retour à 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg par `device.id`, 5 dernières minutes | Sous 20 % | À 22 % ou plus |
-| Weak Signal | Connectivité | Warning | `iot_signal_strength_dbm`, Avg par `device.id`, 5 dernières minutes | Sous -100 dBm | À -90 dBm ou plus |
+| Low Battery | Power | Avertissement | `iot_battery_percent`, Avg par `device.id`, 5 dernières minutes | Sous 20 % | À 22 % ou plus |
+| Weak Signal | Connectivité | Avertissement | `iot_signal_strength_dbm`, Avg par `device.id`, 5 dernières minutes | Sous -100 dBm | À -90 dBm ou plus |
 | High Temperature | Environnement | Critique | `iot_temperature_celsius`, Max par `device.id`, 5 dernières minutes | Au-dessus de 70 °C | À 63 °C ou moins |
-| High CPU Usage | Système | Warning | `iot_cpu_usage_ratio`, Avg par `device.id`, 5 dernières minutes | Au-dessus de 0.9 (90 % de son CPU) | À 0.81 ou moins |
+| High CPU Usage | Système | Avertissement | `iot_cpu_usage_ratio`, Avg par `device.id`, 5 dernières minutes | Au-dessus de 0.9 (90 % de son CPU) | À 0.81 ou moins |
 
 La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent à la gravité d'incident et d'alerte la plus élevée de votre projet ; modifiez-les dans le critère.
 

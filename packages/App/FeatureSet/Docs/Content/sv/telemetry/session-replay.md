@@ -572,7 +572,7 @@ En spanprocessor märker varje span med det ID som gällde när det startade. At
 
 ### Var kopplingarna finns
 
-Ett undantag i instrumentpanelen visar ett kort **Watch what the user saw** när det finns en inspelning av en session som hade det felet, och öppnar spelaren tio sekunder före undantaget med fliken Fel vald. Detaljerna för ett span erbjuder **Watch session at this span**; detaljerna för en loggrad erbjuder **View session replay** vid radens tidpunkt när loggen själv bär sessions-ID:t, och en logg som kopplats via spår-ID når inspelningen genom sitt spår. I den andra riktningen länkar varje nätverks-, logg-, spår- och felrad i spelaren till spårvyn, loggutforskaren avgränsad till sessionen vid den tidpunkten, eller undantagsgruppen.
+Ett undantag i instrumentpanelen visar ett kort **Watch what the user saw** när det finns en inspelning av en session som hade det felet, och öppnar spelaren tio sekunder före undantaget med fliken Fel vald. Detaljerna för ett span erbjuder **Titta på sessionen vid det här spannet**; detaljerna för en loggrad erbjuder **View session replay** vid radens tidpunkt när loggen själv bär sessions-ID:t, och en logg som kopplats via spår-ID når inspelningen genom sitt spår. I den andra riktningen länkar varje nätverks-, logg-, spår- och felrad i spelaren till spårvyn, loggutforskaren avgränsad till sessionen vid den tidpunkten, eller undantagsgruppen.
 
 ## Titta på en session
 

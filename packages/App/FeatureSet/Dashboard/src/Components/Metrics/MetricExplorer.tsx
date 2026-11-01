@@ -79,7 +79,7 @@ import {
   TimeRangeZoomProvider,
   TimeRangeZoomScope,
 } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 const AUTO_REFRESH_STORAGE_KEY: string =
@@ -876,7 +876,7 @@ const MetricExplorer: FunctionComponent = (): ReactElement => {
               <TelemetrySavedViewsControl<MetricSavedView>
                 modelType={MetricSavedView}
                 savedViewNoun="Metric Explorer"
-                explorerLabel="metric explorer"
+                explorerLabel={translationKey("metric explorer")}
                 hasInitialUrlState={hasInitialUrlState}
                 captureCurrentState={captureCurrentState}
                 applyState={applySavedViewState}

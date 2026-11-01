@@ -293,7 +293,7 @@ Sur un écran de moins de 1024 pixels de large, la colonne **Événement** affic
 
 ### Rechercher les événements et être alerté
 
-Chaque événement est aussi un journal. Un avertissement est enregistré avec la gravité **Warning**, et ce que dit l'événement se trouve dans ses attributs :
+Chaque événement est aussi un journal. Un avertissement est enregistré avec la gravité **Avertissement**, et ce que dit l'événement se trouve dans ses attributs :
 
 | Attribut | Exemple |
 | --- | --- |

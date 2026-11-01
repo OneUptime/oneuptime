@@ -102,11 +102,11 @@ Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, o
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
-| High CPU Utilization | Warning | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som prosent, siste 5 minutter | Over 80 % | På eller under 72 % |
-| High Memory Utilization | Warning | `system.memory.utilization` for tilstanden `used`, som prosent, siste 5 minutter | Over 85 % | På eller under 76,5 % |
+| High CPU Utilization | Advarsel | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som prosent, siste 5 minutter | Over 80 % | På eller under 72 % |
+| High Memory Utilization | Advarsel | `system.memory.utilization` for tilstanden `used`, som prosent, siste 5 minutter | Over 85 % | På eller under 76,5 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max per `mountpoint` og `device`, som prosent, siste 5 minutter | Over 90 % | På eller under 81 % |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, siste 5 minutter | Over 4 | På eller under 3,6 |
-| High Process Count | Warning | `system.processes.count`, Max, siste 5 minutter | Over 2000 | På eller under 1800 |
+| High Load Average (1m) | Advarsel | `system.cpu.load_average.1m`, Avg, siste 5 minutter | Over 4 | På eller under 3,6 |
+| High Process Count | Advarsel | `system.processes.count`, Max, siste 5 minutter | Over 2000 | På eller under 1800 |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.
 

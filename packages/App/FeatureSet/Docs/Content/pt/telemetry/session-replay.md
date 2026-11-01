@@ -572,7 +572,7 @@ Um processador de spans marca cada span com o id que estava valendo quando ele c
 
 ### Onde estão os links
 
-Uma exceção no painel mostra um cartão **Watch what the user saw** quando existe uma gravação de uma sessão que teve esse erro, e abre o reprodutor dez segundos antes da exceção com a aba Errors selecionada. Os detalhes de um span oferecem **Watch session at this span**; os detalhes de uma linha de log oferecem **View session replay** no momento da linha quando o próprio log carrega o id da sessão, e um log vinculado pelo id do traço chega à gravação pelo traço dele. Na outra direção, cada linha de rede, registro, traço e erro do reprodutor leva à visão do traço, ao explorador de registros limitado à sessão naquele momento, ou ao grupo de exceções.
+Uma exceção no painel mostra um cartão **Watch what the user saw** quando existe uma gravação de uma sessão que teve esse erro, e abre o reprodutor dez segundos antes da exceção com a aba Errors selecionada. Os detalhes de um span oferecem **Assistir à sessão neste span**; os detalhes de uma linha de log oferecem **View session replay** no momento da linha quando o próprio log carrega o id da sessão, e um log vinculado pelo id do traço chega à gravação pelo traço dele. Na outra direção, cada linha de rede, registro, traço e erro do reprodutor leva à visão do traço, ao explorador de registros limitado à sessão naquele momento, ou ao grupo de exceções.
 
 ## Assistir a uma sessão
 

@@ -102,9 +102,9 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | गंभीर | `container.memory.percent`, क्लस्टर के सभी कंटेनरों पर Count, पिछले 10 मिनट | पूरी विंडो में कोई डेटा नहीं | डेटा फिर से आता है |
 | Task Down (Low Uptime) | गंभीर | `container.uptime`, प्रति कार्य Min, पिछला 1 मिनट | कोई भी मान 60 सेकंड से कम है | हर मान 66 सेकंड या उससे अधिक है |
-| High Task CPU Usage | Warning | `container.cpu.utilization`, प्रति कार्य Avg, पिछले 5 मिनट | 80 से ऊपर (एक कोर का %) | 72 या उससे कम |
-| High Task Memory Usage | Warning | `container.memory.percent`, प्रति कार्य Avg, पिछले 5 मिनट | 85% से ऊपर | 76.5% या उससे कम |
-| High Task Process Count | Warning | `container.pids.count`, प्रति कार्य Max, पिछले 5 मिनट | 2000 से ऊपर | 1800 या उससे कम |
+| High Task CPU Usage | चेतावनी | `container.cpu.utilization`, प्रति कार्य Avg, पिछले 5 मिनट | 80 से ऊपर (एक कोर का %) | 72 या उससे कम |
+| High Task Memory Usage | चेतावनी | `container.memory.percent`, प्रति कार्य Avg, पिछले 5 मिनट | 85% से ऊपर | 76.5% या उससे कम |
+| High Task Process Count | चेतावनी | `container.pids.count`, प्रति कार्य Max, पिछले 5 मिनट | 2000 से ऊपर | 1800 या उससे कम |
 
 **गंभीरता** वह लेबल है जो चयन सूची दिखाती है। टेम्पलेट जो घटना और अलर्ट बनाता है, वे आपके प्रोजेक्ट की सबसे गंभीर घटना और अलर्ट गंभीरता से शुरू होते हैं; इन्हें मानदंडों में बदलें।
 

@@ -91,10 +91,10 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `container.memory.percent`, Count över alla containrar på värden, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
+| High Container CPU Usage | Varning | `container.cpu.utilization`, Avg per container, senaste 5 minuterna | Över 80 (% av en kärna) | Vid eller under 72 |
+| High Container Memory Usage | Varning | `container.memory.percent`, Avg per container, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
 | Container Restart Loop | Kritisk | `container.restarts.increase`, Sum per container, senaste 15 minuterna | Fler än 3 omstarter i fönstret (Summa) | 2,7 eller färre |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
+| High Container Process Count | Varning | `container.pids.count`, Max per container, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min per container, senaste 1 minuten | Under 120 sekunder | Vid eller över 132 sekunder |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.

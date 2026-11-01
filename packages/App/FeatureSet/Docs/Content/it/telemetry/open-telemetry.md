@@ -461,7 +461,7 @@ Probabilmente l'SDK sta esportando tramite gRPC verso un endpoint HTTP, oppure v
 Un batch supera il limite di dimensione. Riduci la dimensione dei batch, per esempio con `send_batch_max_size: 1000` sul processore `batch`. Se hai un'installazione self-hosted dietro un tuo proxy, controlla anche il limite di dimensione del corpo di quel proxy.
 :::
 
-:::details I dati arrivano sotto il servizio sbagliato, o sotto Unknown Service
+:::details I dati arrivano sotto il servizio sbagliato, o sotto «Servizio sconosciuto»
 Il servizio deriva dall'attributo di risorsa `service.name`. Imposta `OTEL_SERVICE_NAME` in ogni applicazione. Se la chiave ha un **Nome del servizio fissato**, ogni esportazione OTLP/HTTP con quella chiave viene archiviata invece sotto quel nome.
 :::
 

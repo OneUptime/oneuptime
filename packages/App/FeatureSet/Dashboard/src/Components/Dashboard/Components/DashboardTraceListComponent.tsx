@@ -37,6 +37,8 @@ import {
 } from "../Utils/DashboardDateTime";
 import Query from "Common/Types/BaseDatabase/Query";
 import JSONFunctions from "Common/Types/JSONFunctions";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   SPAN_STATUS_PRESENTATIONS,
   SpanStatusPresentation,
@@ -83,6 +85,7 @@ const formatDuration: (durationNano: number) => string = (
 const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [spans, setSpans] = useState<Array<Span>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -244,9 +247,9 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
             <span
               className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${status.pillClassName} ${status.pillBorderClassName}`}
               style={{ fontSize: "10px" }}
-              title={status.description}
+              title={translator.translateText(status.description)}
             >
-              {status.label}
+              {translator.translateText(status.label)}
             </span>
           </td>
           <td

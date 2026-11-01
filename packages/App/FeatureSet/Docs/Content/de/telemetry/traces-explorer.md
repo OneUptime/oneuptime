@@ -60,7 +60,7 @@ Klicken Sie auf einen Wert in der Seitenleiste **Filter**, um ihn als Chip hinzu
 
 ### Einen Span öffnen
 
-Klicken Sie auf eine Zeile, um sie aufzuklappen: ihre Attribute und die Protokolle und Ausnahmen, die sie aufgezeichnet hat. Klicken Sie auf **See full trace**, um ihren ganzen Trace zu öffnen.
+Klicken Sie auf eine Zeile, um sie aufzuklappen: ihre Attribute und die Protokolle und Ausnahmen, die sie aufgezeichnet hat. Klicken Sie auf **Vollständigen Trace ansehen**, um ihren ganzen Trace zu öffnen.
 :::
 
 Ihre Suche, Ihre Chips und der Zeitraum stehen in der Adresse der Seite, sodass ein Neuladen, ein Lesezeichen oder ein geteilter Link dieselben Spans öffnet.

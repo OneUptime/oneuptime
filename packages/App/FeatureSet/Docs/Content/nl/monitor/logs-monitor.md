@@ -87,7 +87,7 @@ Elke log wordt opgeslagen met een van zeven ernstniveaus. Bij logs van OpenTelem
 | **Trace** | 1–4 |
 | **Debug** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Waarschuwing** | 13–16 |
 | **Fout** | 17–20 |
 | **Fatal** | 21–24 |
 | **Niet gespecificeerd** | Al het andere |

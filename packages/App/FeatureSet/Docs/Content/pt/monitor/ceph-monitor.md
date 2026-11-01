@@ -116,42 +116,42 @@ Os modelos leem os últimos 5 minutos, a menos que a tabela diga outra coisa. Um
 | Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | Crítico | `ceph_health_status`, Max, último minuto | 2 ou mais: `HEALTH_ERR` | Abaixo de 1,8: `HEALTH_WARN` ou melhor |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 ou mais: `HEALTH_WARN` ou pior | Abaixo de 0,9: `HEALTH_OK` |
+| Cluster Health Warning | Aviso | `ceph_health_status`, Max | 1 ou mais: `HEALTH_WARN` ou pior | Abaixo de 0,9: `HEALTH_OK` |
 | Monitor Quorum Degraded | Crítico | `ceph_mon_quorum_status`, Min por `ceph_daemon`, último minuto | Um monitor cai abaixo de 1, fora do quórum. Um incidente por monitor | De volta a 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | Acima de 0: o check `SLOW_OPS` do cluster está ativo | Em 0 |
-| Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` para `type = SLOW_OPS`, Max por `ceph_daemon` | Acima de 0. Um incidente por OSD ou monitor | A série desaparece |
+| Slow Operations | Aviso | `ceph_healthcheck_slow_ops`, Max | Acima de 0: o check `SLOW_OPS` do cluster está ativo | Em 0 |
+| Daemon Slow Operations | Aviso | `ceph_daemon_health_metrics` para `type = SLOW_OPS`, Max por `ceph_daemon` | Acima de 0. Um incidente por OSD ou monitor | A série desaparece |
 | Daemon Crash | Crítico | `ceph_health_detail` para `name = RECENT_CRASH`, Max | O check está ativo: existem falhas de daemons não arquivadas. O mgr não tem nenhuma métrica `ceph_crash_*`, então este é o único sinal de falha | As falhas são arquivadas |
-| Monitor Clock Skew | Warning | `ceph_health_detail` para `name = MON_CLOCK_SKEW`, Max | O check está ativo: os relógios dos monitores se desviam além do permitido (0,05 s por padrão) | O check desaparece |
+| Monitor Clock Skew | Aviso | `ceph_health_detail` para `name = MON_CLOCK_SKEW`, Max | O check está ativo: os relógios dos monitores se desviam além do permitido (0,05 s por padrão) | O check desaparece |
 | Monitor Disk Critically Low | Crítico | `ceph_health_detail` para `name = MON_DISK_CRIT`, Max | O check está ativo: o disco de banco de dados de um monitor tem menos de 5% livre (o padrão) | O check desaparece |
-| Monitor Disk Space Low | Warning | `ceph_health_detail` para `name = MON_DISK_LOW`, Max | O check está ativo: menos de 30% livre (o padrão) | O check desaparece |
+| Monitor Disk Space Low | Aviso | `ceph_health_detail` para `name = MON_DISK_LOW`, Max | O check está ativo: menos de 30% livre (o padrão) | O check desaparece |
 
 ### Modelos de OSD
 
 | Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
 | OSD Down | Crítico | `ceph_osd_up`, Min por `ceph_daemon` | Um OSD cai abaixo de 1. Um incidente por OSD | De volta a 1 |
-| OSD Out | Warning | `ceph_osd_in`, Min por `ceph_daemon` | Um OSD cai abaixo de 1: marcado como fora da distribuição de dados | De volta a 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, Avg por `ceph_daemon` | Acima de 100 ms. Um incidente por OSD | Em 90 ms ou menos |
-| OSD Slow Heartbeats | Warning | `ceph_health_detail` para `name = OSD_SLOW_PING_TIME_FRONT` e `name = OSD_SLOW_PING_TIME_BACK`, Max | Um dos checks está ativo: os heartbeats na rede pública ou na rede do cluster estão lentos. O mgr não exporta nenhuma medida de tempo de ping | Os dois checks desaparecem |
+| OSD Out | Aviso | `ceph_osd_in`, Min por `ceph_daemon` | Um OSD cai abaixo de 1: marcado como fora da distribuição de dados | De volta a 1 |
+| OSD High Latency | Aviso | `ceph_osd_apply_latency_ms`, Avg por `ceph_daemon` | Acima de 100 ms. Um incidente por OSD | Em 90 ms ou menos |
+| OSD Slow Heartbeats | Aviso | `ceph_health_detail` para `name = OSD_SLOW_PING_TIME_FRONT` e `name = OSD_SLOW_PING_TIME_BACK`, Max | Um dos checks está ativo: os heartbeats na rede pública ou na rede do cluster estão lentos. O mgr não exporta nenhuma medida de tempo de ping | Os dois checks desaparecem |
 
 ### Modelos de placement groups
 
 | Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | Crítico | `ceph_pg_total` − `ceph_pg_active`, Max por `pool_id` | Acima de 0: há PGs que não conseguem atender E/S, então as requisições dos clientes a elas travam. Um incidente por pool | Em 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, Max por `pool_id` | Acima de 0: há objetos com menos réplicas que o configurado | Em 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, Max por `pool_id` | Acima de 0: há PGs mapeadas para menos OSDs que o número de réplicas | Em 0 |
+| Degraded Placement Groups | Aviso | `ceph_pg_degraded`, Max por `pool_id` | Acima de 0: há objetos com menos réplicas que o configurado | Em 0 |
+| Undersized Placement Groups | Aviso | `ceph_pg_undersized`, Max por `pool_id` | Acima de 0: há PGs mapeadas para menos OSDs que o número de réplicas | Em 0 |
 | Damaged Placement Groups | Crítico | `ceph_health_detail` para `name = PG_DAMAGED` e `name = OSD_SCRUB_ERRORS`, Max | Um dos checks está ativo: o scrubbing encontrou danos ou erros de leitura | Os dois checks desaparecem |
 
 ### Modelos de capacidade
 
 | Modelo | Gravidade | Acompanha | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Acima de 85%, a razão nearfull padrão do Ceph | Em 76,5% ou menos |
+| Cluster Near Full | Aviso | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Acima de 85%, a razão nearfull padrão do Ceph | Em 76,5% ou menos |
 | Cluster Full | Crítico | A mesma razão | Acima de 95%, a razão full padrão do Ceph, a partir da qual as gravações param no cluster inteiro | Em 85,5% ou menos |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, por `pool_id` | Acima de 85% do que o pool comporta. Um incidente por pool | Em 76,5% ou menos |
-| OSD Nearfull | Warning | `ceph_health_detail` para `name = OSD_NEARFULL`, Max | O check está ativo: um OSD passou do limite nearfull (85% por padrão). OSDs individuais enchem muito antes da média do cluster | O check desaparece |
-| OSD Backfillfull | Warning | `ceph_health_detail` para `name = OSD_BACKFILLFULL`, Max | O check está ativo: o backfill para o OSD é recusado (90% por padrão), o que trava a recuperação | O check desaparece |
+| Pool Near Full | Aviso | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, por `pool_id` | Acima de 85% do que o pool comporta. Um incidente por pool | Em 76,5% ou menos |
+| OSD Nearfull | Aviso | `ceph_health_detail` para `name = OSD_NEARFULL`, Max | O check está ativo: um OSD passou do limite nearfull (85% por padrão). OSDs individuais enchem muito antes da média do cluster | O check desaparece |
+| OSD Backfillfull | Aviso | `ceph_health_detail` para `name = OSD_BACKFILLFULL`, Max | O check está ativo: o backfill para o OSD é recusado (90% por padrão), o que trava a recuperação | O check desaparece |
 | OSD Full | Crítico | `ceph_health_detail` para `name = OSD_FULL`, Max, último minuto | O check está ativo: um OSD atingiu o limite full (95% por padrão) e as gravações são recusadas | O check desaparece |
 
 - **Os modelos de queda e de quórum usam o mínimo**, para que um único OSD fora do ar ou um único monitor fora do quórum os dispare em vez de ficar escondido pela maioria saudável.

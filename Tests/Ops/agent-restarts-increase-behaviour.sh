@@ -75,8 +75,6 @@ cd "${REPO_ROOT}/Tests/Ops"
 
 docker network create "${RUN_ID}" >/dev/null
 
-EXPECTED_COUNT="$(node "${HELPER}" expected-count)"
-
 # run_case <label> [helm --set ...]
 run_case() {
   local label="$1"
@@ -145,8 +143,11 @@ run_case() {
   done
 
   # The file exporter writes as metrics arrive; give it a moment to flush.
+  # Wait for every point the check reads, not just the increases: they come
+  # back through the connector ahead of the raw points of the same sample, so
+  # the last sample's raw points can still be unwritten when they are all in.
   for _ in $(seq 1 20); do
-    if [ "$(node "${HELPER}" count "${dir}/out/metrics.json")" -ge "${EXPECTED_COUNT}" ]; then
+    if [ "$(node "${HELPER}" complete "${dir}/out/metrics.json")" = "yes" ]; then
       break
     fi
     sleep 0.5

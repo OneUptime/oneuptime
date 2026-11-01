@@ -95,10 +95,10 @@ Et kriterium utløser bare når betingelsen gjelder for hvert minutt i vinduet -
 | Mal | Kategori | Alvorlighetsgrad | Overvåker | Utløser når | Gjenoppretter når |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Tilgjengelighet | Kritisk | `iot_device_up`, Min per `device.id`, siste 30 minutter | En måling er under 1, eller en registrert enhet sender ingenting i hele vinduet | Tilbake på 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, siste 5 minutter | Under 20 % | Ved 22 % eller mer |
-| Weak Signal | Tilkobling | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, siste 5 minutter | Under -100 dBm | Ved -90 dBm eller mer |
+| Low Battery | Power | Advarsel | `iot_battery_percent`, Avg per `device.id`, siste 5 minutter | Under 20 % | Ved 22 % eller mer |
+| Weak Signal | Tilkobling | Advarsel | `iot_signal_strength_dbm`, Avg per `device.id`, siste 5 minutter | Under -100 dBm | Ved -90 dBm eller mer |
 | High Temperature | Miljø | Kritisk | `iot_temperature_celsius`, Max per `device.id`, siste 5 minutter | Over 70 °C | Ved 63 °C eller mindre |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, siste 5 minutter | Over 0.9 (90 % av CPU-en) | Ved 0.81 eller mindre |
+| High CPU Usage | System | Advarsel | `iot_cpu_usage_ratio`, Avg per `device.id`, siste 5 minutter | Over 0.9 (90 % av CPU-en) | Ved 0.81 eller mindre |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriet.
 

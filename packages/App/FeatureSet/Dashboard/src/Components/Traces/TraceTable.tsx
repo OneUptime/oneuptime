@@ -35,7 +35,11 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Service from "Common/Models/DatabaseModels/Service";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
-import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import TelemetryServiceUtil, {
+  UNKNOWN_RESOURCE_LABEL,
+} from "Common/UI/Utils/TelemetryService";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 
@@ -62,6 +66,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const modelId: ObjectID | undefined = props.modelId;
+  const translator: Translator = useTranslator();
 
   const [attributes, setAttributes] = React.useState<Array<string>>([]);
   const [attributesLoaded, setAttributesLoaded] =
@@ -278,7 +283,10 @@ const TraceTable: FunctionComponent<ComponentProps> = (
       {pageError && (
         <div className="mb-4">
           <ErrorMessage
-            message={`We couldn't load telemetry services. ${pageError}`}
+            message={translator.translateTemplate(
+              "We couldn't load telemetry services. {{error}}",
+              { error: pageError },
+            )}
             onRefreshClick={() => {
               void loadServices();
             }}
@@ -289,7 +297,10 @@ const TraceTable: FunctionComponent<ComponentProps> = (
       {areAdvancedFiltersVisible && attributesError && (
         <div className="mb-4">
           <ErrorMessage
-            message={`We couldn't load trace attributes. ${attributesError}`}
+            message={translator.translateTemplate(
+              "We couldn't load trace attributes. {{error}}",
+              { error: attributesError },
+            )}
             onRefreshClick={() => {
               setAttributesLoaded(false);
               void loadAttributes();
@@ -369,8 +380,12 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               filterDropdownOptions: telemetryServices.map(
                 (service: Service) => {
                   return {
-                    label: service.name!,
+                    label: TelemetryServiceUtil.getServiceDisplayName(
+                      service.name,
+                      translator,
+                    )!,
                     value: service.id!.toString(),
+                    isUserContent: true,
                   };
                 },
               ),
@@ -483,7 +498,9 @@ const TraceTable: FunctionComponent<ComponentProps> = (
                   });
 
                 if (!telemetryService) {
-                  return <p>Unknown</p>;
+                  return (
+                    <p>{translator.translateText(UNKNOWN_RESOURCE_LABEL)}</p>
+                  );
                 }
 
                 return (
