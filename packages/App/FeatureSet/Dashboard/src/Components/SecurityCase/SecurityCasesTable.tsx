@@ -41,6 +41,7 @@ import useSecurityCaseListActions, {
 } from "./useSecurityCaseListActions";
 import useSecurityCaseValues from "./useSecurityCaseValues";
 import {
+  SECURITY_CASE_DUE_COLUMN_ID,
   SecurityCaseDueCell,
   SecurityCaseDueLine,
 } from "./ResponseTargets/SecurityCaseTargetChip";
@@ -542,7 +543,7 @@ const SecurityCasesList: FunctionComponent<{
     },
     // When the next response target is due: what the open lists sort by.
     due: {
-      id: "due",
+      id: SECURITY_CASE_DUE_COLUMN_ID,
       field: { nextDueAt: true },
       title: RESPONSE_TARGETS_COPY.dueColumn,
       type: FieldType.Element,

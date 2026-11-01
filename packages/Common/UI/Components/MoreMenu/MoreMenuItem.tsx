@@ -50,6 +50,11 @@ export interface ComponentProps {
    * ordinary menuitem.
    */
   isChecked?: boolean | undefined;
+  /*
+   * With isChecked: an item that is on or off on its own (a table's "Compact
+   * rows"), a menuitemcheckbox, rather than one choice of several.
+   */
+  isCheckbox?: boolean | undefined;
   dataTestId?: string | undefined;
 }
 
@@ -116,7 +121,13 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
       className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-start text-sm transition-colors duration-100 ${colorClassName} ${stateClassName} ${
         props.className || ""
       }`}
-      role={props.isChecked === undefined ? "menuitem" : "menuitemradio"}
+      role={
+        props.isChecked === undefined
+          ? "menuitem"
+          : props.isCheckbox
+            ? "menuitemcheckbox"
+            : "menuitemradio"
+      }
       aria-checked={props.isChecked}
       tabIndex={-1}
       disabled={isDisabled && !isExplainedLock}

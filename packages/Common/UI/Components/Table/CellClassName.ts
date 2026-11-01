@@ -10,6 +10,7 @@ import {
   TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_VALUE_GIVE_CLASS_NAME,
+  TABLE_VALUE_WHOLE_CLASS_NAME,
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
   getTableCellPaddingClassName,
   hasMaxWidthClassName,
@@ -210,9 +211,13 @@ export function getTableCellContentClassName<T extends GenericObject>(
         classNames.push(TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME);
       }
 
-      // ...and any other value gives way before the rows scroll sideways.
+      /*
+       * ...and any other value gives way before the rows scroll sideways,
+       * and is held whole while the table has the room for it.
+       */
       if (isGivingValueColumn(column, options?.isPrimaryColumn)) {
         classNames.push(TABLE_VALUE_GIVE_CLASS_NAME);
+        classNames.push(TABLE_VALUE_WHOLE_CLASS_NAME);
       }
     }
 

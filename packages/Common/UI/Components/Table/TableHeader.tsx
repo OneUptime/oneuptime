@@ -56,13 +56,10 @@ import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
 import InfoTooltip from "../Tooltip/InfoTooltip";
-import React, {
-  ReactElement,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { ReactElement, useLayoutEffect, useRef } from "react";
+import useIsBelowWidth, {
+  PHONE_BELOW_WIDTH_IN_PX,
+} from "../../Utils/UseIsBelowWidth";
 
 /*
  * What the header needs to let a person size its columns (Table's
@@ -137,8 +134,12 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
-  // Track mobile view for responsive behavior
-  const [isMobile, setIsMobile] = useState<boolean>(false);
+  /*
+   * A phone's window, read as the header is first drawn: a table's header
+   * is drawn on no phone (its rows are cards there), so its hideOnMobile
+   * columns are only left out where a page draws one anyway.
+   */
+  const isMobile: boolean = useIsBelowWidth(PHONE_BELOW_WIDTH_IN_PX);
   const columnWidths: ColumnWidths = useColumnWidthsSnapshot(
     props.columnResize?.store,
   );
@@ -207,19 +208,6 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
         }}
       />
     ) : undefined;
-
-  useEffect(() => {
-    const checkMobile: () => void = (): void => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-    };
-  }, []);
 
   const selectBulkSelectCheckbox: boolean = Boolean(
     props.isAllItemsOnThePageSelected && props.hasTableItems,
@@ -462,7 +450,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                   <button
                     type="button"
                     onClick={sortColumn}
-                    className={`inline-flex items-center gap-1 py-2.5 pr-1 ${
+                    className={`inline-flex items-center gap-1 py-2.5 [[data-density=compact]_&]:py-2 pr-1 ${
                       isFirstCell
                         ? TABLE_CELL_EDGE_PADDING_LEFT_CLASS_NAME
                         : TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME

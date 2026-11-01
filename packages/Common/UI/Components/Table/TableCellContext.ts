@@ -62,3 +62,53 @@ export const useAreTableColumnsFolded: () => boolean = (): boolean => {
 
   return isTableCell && areColumnsFolded;
 };
+
+/*
+ * Which of its table's columns are drawn as columns of their own, and which
+ * are folded into other cells (TableFit): by each column's id - a
+ * ModelTable column's own id, or its field (Table's getTableColumnIds). A
+ * card on a phone draws neither the columns marked hideOnMobile nor the
+ * folded ones.
+ */
+export interface TableColumnsInView {
+  drawnIds: ReadonlySet<string>;
+  foldedIds: ReadonlySet<string>;
+}
+
+export const TableColumnsInViewContext: React.Context<TableColumnsInView | null> =
+  React.createContext<TableColumnsInView | null>(null);
+
+/*
+ * Whether the table a cell is in draws a column of its own with this id: a
+ * cell leaves out what that column already says on the row. A security
+ * case's priority says when its next target is due, under the priority -
+ * unless the person turned the Due column on (Columns), which says it
+ * already. Outside a table's cell: never.
+ */
+export const useIsTableColumnDrawn: (columnId: string) => boolean = (
+  columnId: string,
+): boolean => {
+  const isTableCell: boolean = useContext(TableCellContext);
+  const inView: TableColumnsInView | null = useContext(
+    TableColumnsInViewContext,
+  );
+
+  return Boolean(isTableCell && inView && inView.drawnIds.has(columnId));
+};
+
+/*
+ * Whether the table a cell is in folds the column with this id into other
+ * cells (Column.hideBelowLargeScreen, TableFit): the cell that shows its
+ * value draws it then. A column the person switched off (Columns) is in
+ * neither list: its value is nowhere.
+ */
+export const useIsTableColumnFolded: (columnId: string) => boolean = (
+  columnId: string,
+): boolean => {
+  const isTableCell: boolean = useContext(TableCellContext);
+  const inView: TableColumnsInView | null = useContext(
+    TableColumnsInViewContext,
+  );
+
+  return Boolean(isTableCell && inView && inView.foldedIds.has(columnId));
+};

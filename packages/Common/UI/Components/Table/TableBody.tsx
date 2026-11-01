@@ -3,9 +3,12 @@ import { DetailValueContext } from "../Detail/DetailValueContext";
 import {
   TableCardContext,
   TableCellContext,
+  TableColumnsInView,
+  TableColumnsInViewContext,
   TableFoldedColumnsContext,
 } from "./TableCellContext";
 import TableRow from "./TableRow";
+import { TABLE_CARDS_CLASS_NAME } from "./TableLayout";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
 import { getRecordIdText } from "../ObjectID/RecordIdText";
@@ -53,13 +56,29 @@ export interface ComponentProps<T extends GenericObject> {
   // A cell after the columns in each row, as the header draws one.
   hasEndFiller?: boolean | undefined;
 
-  // responsive
+  // responsive: each row drawn as a card (TableFit)
   isMobile?: boolean;
+  /*
+   * A phone's window (below md): the cards leave out the columns marked
+   * hideOnMobile. A tablet's cards - in a box too narrow for the rows -
+   * keep them: nothing a wider screen shows is lost there.
+   */
+  isPhone?: boolean | undefined;
   /*
    * A column is left out here whose value the cells show in their own
    * place (Column.hideBelowLargeScreen, useAreTableColumnsFolded).
    */
   areColumnsFolded?: boolean | undefined;
+  /*
+   * Which columns are drawn as columns of their own, and which are folded,
+   * by id: what a cell asks (useIsTableColumnDrawn, useIsTableColumnFolded).
+   */
+  columnsInView?: TableColumnsInView | undefined;
+  /*
+   * The columns folded away whose values the rows show under another
+   * column's value (Column.foldInto).
+   */
+  foldedColumns?: Columns<T> | undefined;
 }
 
 type TableBodyFunction = <T extends GenericObject>(
@@ -207,14 +226,14 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
   const getBody: GetBodyFunction = (
     provided?: DroppableProvided,
   ): ReactElement => {
-    // Mobile view: render as list
+    // Cards: each row a card of its column names over their values.
     if (props.isMobile) {
       return (
         <div
           id={props.id}
           ref={provided?.innerRef}
           {...provided?.droppableProps}
-          className="divide-y divide-gray-100 bg-white"
+          className={TABLE_CARDS_CLASS_NAME}
         >
           {props.data &&
             props.data.map((item: T, i: number) => {
@@ -235,6 +254,8 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   dragDropIdField={props.dragDropIdField}
                   dragDropIndexField={props.dragDropIndexField}
                   isMobile={true}
+                  isPhone={props.isPhone ?? true}
+                  foldedColumns={props.foldedColumns}
                 />
               );
             })}
@@ -272,6 +293,8 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 dragDropIdField={props.dragDropIdField}
                 dragDropIndexField={props.dragDropIndexField}
                 isMobile={false}
+                isPhone={false}
+                foldedColumns={props.foldedColumns}
               />
             );
           })}
@@ -295,15 +318,19 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
           <TableFoldedColumnsContext.Provider
             value={Boolean(props.areColumnsFolded)}
           >
-            {props.enableDragAndDrop ? (
-              <Droppable droppableId={props.dragAndDropScope || ""}>
-                {(provided: DroppableProvided) => {
-                  return getBody(provided);
-                }}
-              </Droppable>
-            ) : (
-              getBody()
-            )}
+            <TableColumnsInViewContext.Provider
+              value={props.columnsInView || null}
+            >
+              {props.enableDragAndDrop ? (
+                <Droppable droppableId={props.dragAndDropScope || ""}>
+                  {(provided: DroppableProvided) => {
+                    return getBody(provided);
+                  }}
+                </Droppable>
+              ) : (
+                getBody()
+              )}
+            </TableColumnsInViewContext.Provider>
           </TableFoldedColumnsContext.Provider>
         </TableCardContext.Provider>
       </TableCellContext.Provider>
