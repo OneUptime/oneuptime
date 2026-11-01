@@ -281,7 +281,7 @@ Het sjabloon middelt `pve_cpu_usage_ratio` per `id`, zodat elke node afzonderlij
 :::
 
 :::details Node Offline blijft afgaan voor een node die u uit het cluster hebt verwijderd
-Bij de native push van Proxmox VE ziet een node die uit het cluster is gehaald er hetzelfde uit als een node die is uitgevallen: hij rapporteert niet meer, dus de nodes die nog leven blijven hem als uitgevallen melden. Open de pagina van de node en klik op **Remove Node** – de node verdwijnt en zijn waarschuwing wordt opgelost. Anders blijft hij tot 7 dagen Offline. De agent heeft dit probleem niet: hij vraagt het aan het cluster, dat de node niet meer vermeldt.
+Bij de native push van Proxmox VE ziet een node die uit het cluster is gehaald er hetzelfde uit als een node die is uitgevallen: hij rapporteert niet meer, dus de nodes die nog leven blijven hem als uitgevallen melden. Open de pagina van de node en klik op **Node verwijderen** – de node verdwijnt en zijn waarschuwing wordt opgelost. Anders blijft hij tot 7 dagen Offline. De agent heeft dit probleem niet: hij vraagt het aan het cluster, dat de node niet meer vermeldt.
 :::
 
 :::details Back-up- of replicatiemetrieken ontbreken

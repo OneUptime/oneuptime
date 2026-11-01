@@ -281,7 +281,7 @@ Skabelonen tager gennemsnittet af `pve_cpu_usage_ratio` pr. `id`, så hver node 
 :::
 
 :::details Node Offline bliver ved med at udløses for en node, du har fjernet fra klyngen
-Med det indbyggede push i Proxmox VE ser en node, der er taget ud af klyngen, ud som en, der er gået ned: den holdt op med at rapportere, så de noder, der stadig lever, bliver ved med at melde den nede. Åbn nodens side, og klik på **Remove Node** – noden forsvinder, og dens advarsel løses. Ellers forbliver den Offline i op til 7 dage. Agenten har ikke dette problem: den spørger klyngen, som ikke længere viser noden.
+Med det indbyggede push i Proxmox VE ser en node, der er taget ud af klyngen, ud som en, der er gået ned: den holdt op med at rapportere, så de noder, der stadig lever, bliver ved med at melde den nede. Åbn nodens side, og klik på **Fjern node** – noden forsvinder, og dens advarsel løses. Ellers forbliver den Offline i op til 7 dage. Agenten har ikke dette problem: den spørger klyngen, som ikke længere viser noden.
 :::
 
 :::details Backup- eller replikeringsmetrikker mangler

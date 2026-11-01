@@ -18003,7 +18003,7 @@
   "Upper bound on rows read from the database (max 1000)": "データベースから読み取る行数の上限（最大 1000）",
   "Upstream otelcol-contrib, registered as a Windows service.": "Windows サービスとして登録された、アップストリームの otelcol-contrib。",
   "Upstream returned a server error": "アップストリームがサーバーエラーを返しました",
-  "Uptime": "稼働率",
+  "Uptime": "稼働時間",
   "Uptime %": "稼働率 %",
   "Uptime Percent Greater than or equal to": "稼働率が次の値以上",
   "Uptime Percent Precision": "稼働率（%）の精度",

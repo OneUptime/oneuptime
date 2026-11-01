@@ -281,7 +281,7 @@ Le modèle fait la moyenne de `pve_cpu_usage_ratio` par `id`, si bien que chaque
 :::
 
 :::details Node Offline continue de se déclencher pour un nœud retiré du cluster
-Avec l'envoi natif de Proxmox VE, un nœud retiré du cluster ressemble à un nœud tombé en panne : il a cessé de remonter des données, si bien que les nœuds encore en vie continuent de le signaler en panne. Ouvrez la page du nœud et cliquez sur **Remove Node** – le nœud disparaît et son alerte se résout. Sinon, il reste Hors ligne jusqu'à 7 jours. L'agent n'a pas ce problème : il interroge le cluster, qui ne liste plus le nœud.
+Avec l'envoi natif de Proxmox VE, un nœud retiré du cluster ressemble à un nœud tombé en panne : il a cessé de remonter des données, si bien que les nœuds encore en vie continuent de le signaler en panne. Ouvrez la page du nœud et cliquez sur **Retirer le nœud** – le nœud disparaît et son alerte se résout. Sinon, il reste Hors ligne jusqu'à 7 jours. L'agent n'a pas ce problème : il interroge le cluster, qui ne liste plus le nœud.
 :::
 
 :::details Les métriques de sauvegarde ou de réplication manquent

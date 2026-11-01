@@ -216,7 +216,7 @@ Elke melding komt binnen met deze attributen:
 | `pve.notification.job_id` | De id van de back-uptaak, bij een back-uptaak |
 | `proxmox.node.name` | De node die hem verstuurde |
 
-Uit de melding van een back-uptaak legt OneUptime de laatste back-up van elke gast vast: of die slaagde, wanneer die klaar was, hoe groot die was en hoe lang die duurde. De pagina van een gast toont het, de lijst **Gasten** heeft het in de kolom Backup, het **Overzicht** van het cluster telt de resultaten, en een mislukte blijft onder **Vraagt aandacht** staan tot een latere back-up van die gast slaagt. De waarschuwingen **Backup Job Failed** en **Node Fenced** lezen dezelfde logs.
+Uit de melding van een back-uptaak legt OneUptime de laatste back-up van elke gast vast: of die slaagde, wanneer die klaar was, hoe groot die was en hoe lang die duurde. De pagina van een gast toont het, de lijst **Gasten** heeft het in de kolom Back-up, het **Overzicht** van het cluster telt de resultaten, en een mislukte blijft onder **Vraagt aandacht** staan tot een latere back-up van die gast slaagt. De waarschuwingen **Backup Job Failed** en **Node Fenced** lezen dezelfde logs.
 
 Om het versturen te stoppen:
 
@@ -309,7 +309,7 @@ Wat dit niet kan dekken:
 
 - Een losse host, of een heel cluster dat in één keer stil valt: er is niemand meer om het te melden, dus er gaat geen waarschuwing per node af. Het cluster wordt in plaats daarvan **Verbinding verbroken**, zoals wanneer de agent stopt.
 - Een node die langer dan 7 dagen stil is, wordt niet meer gemeld: zijn waarschuwing wordt opgelost en hij verdwijnt van de pagina Nodes. Een zelf-gehoste OneUptime wijzigt de 7 dagen met `PVE_SILENT_NODE_RETENTION_HOURS`.
-- Een node die je uit het cluster haalt, ziet er hetzelfde uit als een uitgevallen node. Gebruik **Remove Node** op zijn pagina: hij verdwijnt en zijn waarschuwing wordt opgelost. Anders blijft hij tot 7 dagen Offline.
+- Een node die je uit het cluster haalt, ziet er hetzelfde uit als een uitgevallen node. Gebruik **Node verwijderen** op zijn pagina: hij verdwijnt en zijn waarschuwing wordt opgelost. Anders blijft hij tot 7 dagen Offline.
 - De gasten en opslag van de node: alleen de node zelf blijft als Offline staan. Zijn VM's, containers en opslag verdwijnen ongeveer 15 minuten na zijn laatste melding van hun pagina's, en gasten die HA op een andere node herstart, komen terug onder die node.
 
 Na een ingeststoring bij OneUptime wordt een node die net stil is gevallen pas gemeld zodra een van de andere weer 2 minuten heeft gepusht, dus de storing zelf alarmeert nooit voor elke node. Een node die al Offline was, blijft tijdens een korte storing Offline en houdt zijn waarschuwing; na een storing van meer dan 5 minuten wordt hij opnieuw gemeld zodra de andere 2 minuten hebben gepusht.
@@ -417,7 +417,7 @@ OneUptime registreert een Proxmox-cluster op zijn `proxmox.cluster.name`, die de
 :::
 
 :::details Met native push staat een node op Offline
-Hij rapporteert niet meer: een node die down is, een hangende `pvestatd`, een gestopte `pmxcfs` of een verbroken netwerk naar OneUptime zien er hetzelfde uit. Zijn volgende melding brengt hem terug. Heb je de node uit het cluster gehaald, gebruik dan **Remove Node** op zijn pagina; anders blijft hij tot 7 dagen Offline. Zie [Als een node niet meer rapporteert](#als-een-node-niet-meer-rapporteert).
+Hij rapporteert niet meer: een node die down is, een hangende `pvestatd`, een gestopte `pmxcfs` of een verbroken netwerk naar OneUptime zien er hetzelfde uit. Zijn volgende melding brengt hem terug. Heb je de node uit het cluster gehaald, gebruik dan **Node verwijderen** op zijn pagina; anders blijft hij tot 7 dagen Offline. Zie [Als een node niet meer rapporteert](#als-een-node-niet-meer-rapporteert).
 :::
 
 :::details Met native push gaan Guest Down-, HA- of back-upwaarschuwingen nooit af

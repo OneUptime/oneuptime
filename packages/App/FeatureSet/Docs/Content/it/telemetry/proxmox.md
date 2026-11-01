@@ -309,7 +309,7 @@ Cosa non può coprire:
 
 - Un host autonomo, o un intero cluster che smette di inviare dati tutto insieme: non resta nessuno a segnalarlo, quindi non scatta alcun avviso per nodo. Il cluster passa invece a **Disconnesso**, come quando l'agent si ferma.
 - Un nodo silenzioso da più di 7 giorni non viene più segnalato: il suo avviso si risolve ed esce dalla pagina Nodi. Un OneUptime self-hosted cambia i 7 giorni con `PVE_SILENT_NODE_RETENTION_HOURS`.
-- Un nodo che togli dal cluster appare uguale a uno guasto. Usa **Remove Node** nella sua pagina: scompare e il suo avviso si risolve. Altrimenti resta Offline fino a 7 giorni.
+- Un nodo che togli dal cluster appare uguale a uno guasto. Usa **Rimuovi nodo** nella sua pagina: scompare e il suo avviso si risolve. Altrimenti resta Offline fino a 7 giorni.
 - I guest e lo storage del nodo: solo il nodo stesso viene mantenuto come Offline. Le sue VM, i container e lo storage escono dalle loro pagine circa 15 minuti dopo il suo ultimo invio, e i guest che HA riavvia su un altro nodo ricompaiono sotto quel nodo.
 
 Dopo un'interruzione dell'acquisizione di OneUptime, un nodo che ha smesso di recente di inviare dati viene segnalato solo dopo che uno degli altri ha inviato di nuovo per 2 minuti, quindi l'interruzione stessa non genera mai avvisi per ogni nodo. Un nodo che era già Offline resta Offline durante una breve interruzione e mantiene il suo avviso; dopo un'interruzione di oltre 5 minuti viene segnalato di nuovo quando gli altri hanno inviato per 2 minuti.
@@ -417,7 +417,7 @@ OneUptime registra un cluster Proxmox in base al suo `proxmox.cluster.name`, che
 :::
 
 :::details Con il push nativo, un nodo risulta Offline
-Ha smesso di inviare dati: un nodo spento, un `pvestatd` bloccato, un `pmxcfs` fermo o una rete verso OneUptime interrotta appaiono allo stesso modo. Il suo invio successivo lo riporta. Se hai tolto il nodo dal cluster, usa **Remove Node** nella sua pagina; altrimenti resta Offline fino a 7 giorni. Vedi [Quando un nodo smette di inviare dati](#quando-un-nodo-smette-di-inviare-dati).
+Ha smesso di inviare dati: un nodo spento, un `pvestatd` bloccato, un `pmxcfs` fermo o una rete verso OneUptime interrotta appaiono allo stesso modo. Il suo invio successivo lo riporta. Se hai tolto il nodo dal cluster, usa **Rimuovi nodo** nella sua pagina; altrimenti resta Offline fino a 7 giorni. Vedi [Quando un nodo smette di inviare dati](#quando-un-nodo-smette-di-inviare-dati).
 :::
 
 :::details Con il push nativo, gli avvisi Guest Down, HA o di backup non scattano mai

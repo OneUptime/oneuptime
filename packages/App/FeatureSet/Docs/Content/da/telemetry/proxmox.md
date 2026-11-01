@@ -309,7 +309,7 @@ Hvad det ikke kan dække:
 
 - En enkeltstående vært eller en hel klynge, der bliver tavs på én gang: der er ingen tilbage til at rapportere det, så ingen advarsel pr. node udløses. Klyngen bliver i stedet **Afbrudt**, som når agenten stopper.
 - En node, der er tavs i mere end 7 dage, rapporteres ikke længere: dens advarsel lukkes, og den forsvinder fra siden Noder. En selvhostet OneUptime ændrer de 7 dage med `PVE_SILENT_NODE_RETENTION_HOURS`.
-- En node, du tager ud af klyngen, ser ud som en død. Brug **Remove Node** på dens side: den forsvinder, og dens advarsel lukkes. Ellers forbliver den Offline i op til 7 dage.
+- En node, du tager ud af klyngen, ser ud som en død. Brug **Fjern node** på dens side: den forsvinder, og dens advarsel lukkes. Ellers forbliver den Offline i op til 7 dage.
 - Nodens gæster og lager: kun selve noden beholdes som Offline. Dens VM'er, containere og lager forsvinder fra deres sider omkring 15 minutter efter dens seneste rapport, og gæster, som HA genstarter på en anden node, kommer tilbage under den node.
 
 Efter et udfald i OneUptimes indtagelse rapporteres en node, der nyligt er blevet tavs, først, når en af de andre har sendt igen i 2 minutter, så selve udfaldet aldrig alarmerer for hver node. En node, der allerede var Offline, forbliver Offline gennem et kort udfald og beholder sin advarsel; efter et udfald på mere end 5 minutter rapporteres den igen, når de andre har sendt i 2 minutter.
@@ -417,7 +417,7 @@ OneUptime registrerer en Proxmox-klynge ud fra dens `proxmox.cluster.name`, som 
 :::
 
 :::details Med native push vises en node som Offline
-Den holdt op med at rapportere: en node, der er nede, en hængende `pvestatd`, en stoppet `pmxcfs` eller et afbrudt netværk til OneUptime ser ens ud. Dens næste rapport bringer den tilbage. Hvis du tog noden ud af klyngen, så brug **Remove Node** på dens side; ellers forbliver den Offline i op til 7 dage. Se [Når en node holder op med at rapportere](#når-en-node-holder-op-med-at-rapportere).
+Den holdt op med at rapportere: en node, der er nede, en hængende `pvestatd`, en stoppet `pmxcfs` eller et afbrudt netværk til OneUptime ser ens ud. Dens næste rapport bringer den tilbage. Hvis du tog noden ud af klyngen, så brug **Fjern node** på dens side; ellers forbliver den Offline i op til 7 dage. Se [Når en node holder op med at rapportere](#når-en-node-holder-op-med-at-rapportere).
 :::
 
 :::details Med native push udløses Guest Down-, HA- eller backup-advarsler aldrig

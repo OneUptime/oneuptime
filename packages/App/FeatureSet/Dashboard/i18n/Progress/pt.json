@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39024,
-    "untranslated": 13332
+    "keys": 39264,
+    "untranslated": 13204
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -18,6 +18,7 @@
     "Appliance",
     "Appliance {{appliance}}",
     "Apps",
+    "Backup",
     "Backups",
     "Brute force detected",
     "Bucket",

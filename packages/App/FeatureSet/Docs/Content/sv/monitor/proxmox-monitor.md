@@ -281,7 +281,7 @@ Mallen tar genomsnittet av `pve_cpu_usage_ratio` per `id`, så varje nod kontrol
 :::
 
 :::details Node Offline fortsätter att utlösas för en nod som du har tagit bort från klustret
-Med den inbyggda pushen i Proxmox VE ser en nod som har tagits ur klustret likadan ut som en som har gått ned: den slutade rapportera, så de noder som fortfarande lever fortsätter att rapportera den som nere. Öppna nodens sida och klicka på **Remove Node** – noden försvinner och dess larm löses. Annars förblir den offline i upp till 7 dagar. Agenten har inte det här problemet: den frågar klustret, som inte längre listar noden.
+Med den inbyggda pushen i Proxmox VE ser en nod som har tagits ur klustret likadan ut som en som har gått ned: den slutade rapportera, så de noder som fortfarande lever fortsätter att rapportera den som nere. Öppna nodens sida och klicka på **Ta bort nod** – noden försvinner och dess larm löses. Annars förblir den offline i upp till 7 dagar. Agenten har inte det här problemet: den frågar klustret, som inte längre listar noden.
 :::
 
 :::details Mått för säkerhetskopiering eller replikering saknas

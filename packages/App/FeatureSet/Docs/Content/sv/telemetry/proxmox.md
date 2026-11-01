@@ -216,7 +216,7 @@ Varje avisering kommer med de här attributen:
 | `pve.notification.job_id` | Säkerhetskopieringsjobbets id, för ett säkerhetskopieringsjobb |
 | `proxmox.node.name` | Noden som skickade den |
 
-Från ett säkerhetskopieringsjobbs avisering registrerar OneUptime varje gästs senaste säkerhetskopia: om den lyckades, när den blev klar, hur stor den var och hur lång tid den tog. En gästs sida visar den, listan **Gäster** har den i kolumnen Backup, klustrets **Översikt** räknar resultaten, och en misslyckad ligger kvar under **Kräver uppmärksamhet** tills en senare säkerhetskopia av den gästen lyckas. Larmen **Backup Job Failed** och **Node Fenced** läser samma loggar.
+Från ett säkerhetskopieringsjobbs avisering registrerar OneUptime varje gästs senaste säkerhetskopia: om den lyckades, när den blev klar, hur stor den var och hur lång tid den tog. En gästs sida visar den, listan **Gäster** har den i kolumnen Säkerhetskopia, klustrets **Översikt** räknar resultaten, och en misslyckad ligger kvar under **Kräver uppmärksamhet** tills en senare säkerhetskopia av den gästen lyckas. Larmen **Backup Job Failed** och **Node Fenced** läser samma loggar.
 
 Så slutar du skicka dem:
 
@@ -309,7 +309,7 @@ Det här kan inte täcka:
 
 - En fristående värd, eller ett helt kluster som tystnar på en gång: det finns ingen kvar som kan rapportera det, så inget larm per nod utlöses. Klustret blir i stället **Frånkopplad**, som när agenten stannar.
 - En nod som varit tyst i mer än 7 dagar rapporteras inte längre: dess larm löses och den försvinner från nodsidan. En självhostad OneUptime ändrar de 7 dagarna med `PVE_SILENT_NODE_RETENTION_HOURS`.
-- En nod som du tar ut ur klustret ser likadan ut som en död. Använd **Remove Node** på dess sida: den försvinner och dess larm löses. Annars förblir den Offline i upp till 7 dagar.
+- En nod som du tar ut ur klustret ser likadan ut som en död. Använd **Ta bort nod** på dess sida: den försvinner och dess larm löses. Annars förblir den Offline i upp till 7 dagar.
 - Nodens gäster och lagring: bara själva noden behålls som Offline. Dess VM:ar, containrar och lagring försvinner från sina sidor ungefär 15 minuter efter dess senaste rapport, och gäster som HA startar om på en annan nod kommer tillbaka under den noden.
 
 Efter ett avbrott i OneUptimes intag rapporteras en nod som nyss tystnat först när någon av de andra har pushat igen i 2 minuter, så själva avbrottet larmar aldrig för varje nod. En nod som redan var Offline förblir Offline under ett kort avbrott och behåller sitt larm; efter ett avbrott på mer än 5 minuter rapporteras den igen när de andra har pushat i 2 minuter.
@@ -417,7 +417,7 @@ OneUptime registrerar ett Proxmox-kluster efter dess `proxmox.cluster.name`, som
 :::
 
 :::details Med inbyggd push visas en nod som Offline
-Den slutade rapportera: en nod som är nere, en `pvestatd` som har hängt sig, en stoppad `pmxcfs` eller ett avbrutet nätverk till OneUptime ser likadana ut. Dess nästa rapport tar tillbaka den. Om du tog ut noden ur klustret använder du **Remove Node** på dess sida; annars förblir den Offline i upp till 7 dagar. Se [När en nod slutar rapportera](#när-en-nod-slutar-rapportera).
+Den slutade rapportera: en nod som är nere, en `pvestatd` som har hängt sig, en stoppad `pmxcfs` eller ett avbrutet nätverk till OneUptime ser likadana ut. Dess nästa rapport tar tillbaka den. Om du tog ut noden ur klustret använder du **Ta bort nod** på dess sida; annars förblir den Offline i upp till 7 dagar. Se [När en nod slutar rapportera](#när-en-nod-slutar-rapportera).
 :::
 
 :::details Med inbyggd push utlöses aldrig Guest Down-, HA- eller säkerhetskopieringslarm

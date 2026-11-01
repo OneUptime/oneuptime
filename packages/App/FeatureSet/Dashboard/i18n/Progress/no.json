@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39024,
-    "untranslated": 13352
+    "keys": 39264,
+    "untranslated": 13226
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -70,6 +70,7 @@
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mexico (+52)",
+    "N/A",
     "Nav",
     "New Zealand (+64)",
     "Node",

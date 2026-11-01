@@ -309,7 +309,7 @@ O que isso não cobre:
 
 - Um host avulso, ou um cluster inteiro que fica em silêncio de uma vez: não sobra ninguém para reportar, então nenhum alerta por nó dispara. Em vez disso, o cluster passa a **Desconectado**, como quando o agente para.
 - Um nó em silêncio por mais de 7 dias deixa de ser reportado: o alerta dele é resolvido e ele sai da página Nós. Um OneUptime auto-hospedado muda os 7 dias com `PVE_SILENT_NODE_RETENTION_HOURS`.
-- Um nó que você tira do cluster parece igual a um que caiu. Use **Remove Node** na página dele: ele some e o alerta dele é resolvido. Caso contrário, ele continua Offline por até 7 dias.
+- Um nó que você tira do cluster parece igual a um que caiu. Use **Remover nó** na página dele: ele some e o alerta dele é resolvido. Caso contrário, ele continua Offline por até 7 dias.
 - Os convidados e o armazenamento do nó: só o próprio nó é mantido como Offline. As VMs, os contêineres e o armazenamento dele saem das páginas cerca de 15 minutos depois do último relatório dele, e os convidados que o HA reinicia em outro nó voltam a aparecer nesse nó.
 
 Depois de uma queda da ingestão do OneUptime, um nó que acabou de ficar em silêncio só é reportado quando um dos outros volta a enviar por 2 minutos, então a própria queda nunca gera alertas para todos os nós. Um nó que já estava Offline continua Offline durante uma queda curta e mantém o alerta dele; depois de uma queda de mais de 5 minutos, ele é reportado de novo quando os outros enviarem por 2 minutos.
@@ -417,7 +417,7 @@ O OneUptime registra um cluster Proxmox pelo `proxmox.cluster.name` dele, que o 
 :::
 
 :::details Com o push nativo, um nó aparece como Offline
-Ele parou de reportar: um nó que caiu, um `pvestatd` travado, um `pmxcfs` parado ou uma rede cortada para o OneUptime parecem iguais. O próximo relatório dele o traz de volta. Se você tirou o nó do cluster, use **Remove Node** na página dele; caso contrário, ele continua Offline por até 7 dias. Veja [Quando um nó para de reportar](#quando-um-nó-para-de-reportar).
+Ele parou de reportar: um nó que caiu, um `pvestatd` travado, um `pmxcfs` parado ou uma rede cortada para o OneUptime parecem iguais. O próximo relatório dele o traz de volta. Se você tirou o nó do cluster, use **Remover nó** na página dele; caso contrário, ele continua Offline por até 7 dias. Veja [Quando um nó para de reportar](#quando-um-nó-para-de-reportar).
 :::
 
 :::details Com o push nativo, os alertas de Guest Down, HA ou backup nunca disparam

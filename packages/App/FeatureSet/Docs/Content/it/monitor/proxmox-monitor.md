@@ -281,7 +281,7 @@ Il modello fa la media di `pve_cpu_usage_ratio` per `id`, quindi ogni nodo viene
 :::
 
 :::details Node Offline continua a scattare per un nodo rimosso dal cluster
-Con l'invio nativo di Proxmox VE, un nodo tolto dal cluster sembra uguale a uno andato giù: ha smesso di comunicare, quindi i nodi ancora vivi continuano a segnalarlo come giù. Aprite la pagina del nodo e fate clic su **Remove Node**: il nodo scompare e il suo avviso si risolve. Altrimenti resta Offline fino a 7 giorni. L'agente non ha questo problema: interroga il cluster, che non elenca più il nodo.
+Con l'invio nativo di Proxmox VE, un nodo tolto dal cluster sembra uguale a uno andato giù: ha smesso di comunicare, quindi i nodi ancora vivi continuano a segnalarlo come giù. Aprite la pagina del nodo e fate clic su **Rimuovi nodo**: il nodo scompare e il suo avviso si risolve. Altrimenti resta Offline fino a 7 giorni. L'agente non ha questo problema: interroga il cluster, che non elenca più il nodo.
 :::
 
 :::details Mancano le metriche di backup o di replica

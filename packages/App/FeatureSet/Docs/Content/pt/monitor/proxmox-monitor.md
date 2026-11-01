@@ -281,7 +281,7 @@ O modelo calcula a média de `pve_cpu_usage_ratio` por `id`, então cada nó é 
 :::
 
 :::details Node Offline continua disparando para um nó que você removeu do cluster
-No envio nativo do Proxmox VE, um nó retirado do cluster parece igual a um que caiu: ele parou de informar, então os nós que continuam vivos continuam dando-o como fora do ar. Abra a página do nó e clique em **Remove Node** – o nó some e o alerta dele é resolvido. Caso contrário, ele fica Offline por até 7 dias. O agente não tem esse problema: ele consulta o cluster, que não lista mais o nó.
+No envio nativo do Proxmox VE, um nó retirado do cluster parece igual a um que caiu: ele parou de informar, então os nós que continuam vivos continuam dando-o como fora do ar. Abra a página do nó e clique em **Remover nó** – o nó some e o alerta dele é resolvido. Caso contrário, ele fica Offline por até 7 dias. O agente não tem esse problema: ele consulta o cluster, que não lista mais o nó.
 :::
 
 :::details Faltam as métricas de backup ou de replicação

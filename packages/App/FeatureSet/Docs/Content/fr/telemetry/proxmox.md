@@ -309,7 +309,7 @@ Ce que cela ne couvre pas :
 
 - Un hôte autonome, ou un cluster entier qui se tait d'un coup : il ne reste personne pour le signaler, aucune alerte par nœud ne se déclenche donc. Le cluster passe plutôt à **Déconnecté**, comme lorsque l'agent s'arrête.
 - Un nœud silencieux depuis plus de 7 jours n'est plus signalé : son alerte se résout et il disparaît de la page Nœuds. Un OneUptime auto-hébergé modifie ces 7 jours avec `PVE_SILENT_NODE_RETENTION_HOURS`.
-- Un nœud que vous retirez du cluster ressemble à un nœud mort. Utilisez **Remove Node** sur sa page : il disparaît et son alerte se résout. Sinon, il reste Hors ligne jusqu'à 7 jours.
+- Un nœud que vous retirez du cluster ressemble à un nœud mort. Utilisez **Retirer le nœud** sur sa page : il disparaît et son alerte se résout. Sinon, il reste Hors ligne jusqu'à 7 jours.
 - Les invités et le stockage du nœud : seul le nœud lui-même est conservé comme Hors ligne. Ses VM, ses conteneurs et son stockage disparaissent de leurs pages environ 15 minutes après son dernier signalement, et les invités que HA redémarre sur un autre nœud réapparaissent sous ce nœud.
 
 Après une panne d'ingestion de OneUptime, un nœud qui vient de se taire n'est signalé qu'une fois qu'un des autres a de nouveau poussé pendant 2 minutes : la panne elle-même ne déclenche donc jamais d'alerte pour chaque nœud. Un nœud qui était déjà Hors ligne le reste pendant une courte panne et garde son alerte ; après une panne de plus de 5 minutes, il est de nouveau signalé une fois que les autres ont poussé pendant 2 minutes.
@@ -417,7 +417,7 @@ OneUptime enregistre un cluster Proxmox par son `proxmox.cluster.name`, que l'ag
 :::
 
 :::details Avec le push natif, un nœud apparaît Hors ligne
-Il a cessé de se signaler : un nœud en panne, un `pvestatd` bloqué, un `pmxcfs` arrêté ou un réseau coupé vers OneUptime se ressemblent. Son prochain signalement le fait revenir. Si vous avez retiré le nœud du cluster, utilisez **Remove Node** sur sa page ; sinon, il reste Hors ligne jusqu'à 7 jours. Voir [Quand un nœud cesse de se signaler](#quand-un-nœud-cesse-de-se-signaler).
+Il a cessé de se signaler : un nœud en panne, un `pvestatd` bloqué, un `pmxcfs` arrêté ou un réseau coupé vers OneUptime se ressemblent. Son prochain signalement le fait revenir. Si vous avez retiré le nœud du cluster, utilisez **Retirer le nœud** sur sa page ; sinon, il reste Hors ligne jusqu'à 7 jours. Voir [Quand un nœud cesse de se signaler](#quand-un-nœud-cesse-de-se-signaler).
 :::
 
 :::details Avec le push natif, les alertes Guest Down, HA ou de sauvegarde ne se déclenchent jamais
