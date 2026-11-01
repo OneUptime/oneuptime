@@ -34,6 +34,11 @@ import { FINDING_FRESHNESS_IN_DAYS } from "./DataSecurityFindingWriter";
 import DataSecurityIssueAlerts, {
   ClosedDataSecurityIssue,
 } from "./DataSecurityIssueAlerts";
+import DataSecurityIdentities, {
+  IdentityGrant,
+  IdentityStoreFacts,
+  buildIdentityDrafts,
+} from "./DataSecurityIdentities";
 import logger from "../Logger";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
@@ -102,7 +107,9 @@ import { customDataTypeId } from "../../../Utils/DataSecurity/CustomDataTypeDete
  *
  * Flows and copies are worked out first, because a copy of production data
  * is evidence for a check; the integrations - cases, alerts, owners - run
- * last, on what opened.
+ * last, on what opened. Then every identity the stores' grants name is
+ * worked out from them, with the stores' sensitivity as this evaluation
+ * found it (DataSecurityIdentities).
  */
 
 const PAGE_SIZE: number = 1000;
@@ -115,6 +122,8 @@ interface StoreFacts {
   unscrubbedDataTypeIds: Set<string>;
   hasOwner: boolean;
   readers: Set<string>;
+  // The readers not used in 90 days: principal -> the name people know it by.
+  unusedReaders: Map<string, string>;
   copiedFromProductionStoreName: string | null;
   aiProvidersReached: Set<string>;
   hasRecentSecurityActivity: boolean;
@@ -127,6 +136,7 @@ function newFacts(): StoreFacts {
     unscrubbedDataTypeIds: new Set(),
     hasOwner: false,
     readers: new Set(),
+    unusedReaders: new Map(),
     copiedFromProductionStoreName: null,
     aiProvidersReached: new Set(),
     hasRecentSecurityActivity: false,
@@ -174,7 +184,12 @@ export default class DataSecurityEvaluator {
 
     await this.readFindings(projectId, now, facts, custom);
     await this.readOwners(projectId, facts);
-    await this.readAccess(projectId, facts);
+
+    const grants: Array<IdentityGrant> = await this.readAccess(
+      projectId,
+      facts,
+    );
+
     await this.readFlows(projectId, stores, facts);
     await this.readIssues(projectId, facts);
     await this.readSecurityActivity(projectId, stores, facts, now);
@@ -188,6 +203,8 @@ export default class DataSecurityEvaluator {
 
     const opened: Array<OpenedIssueForIntegrations> = [];
     const closed: Array<ClosedDataSecurityIssue> = [];
+    // Each store as this evaluation found it, for the identities that reach it.
+    const evaluated: Map<string, IdentityStoreFacts> = new Map();
 
     for (const store of stores) {
       const storeFacts: StoreFacts | undefined = facts.get(
@@ -202,6 +219,7 @@ export default class DataSecurityEvaluator {
         const result: {
           output: ReconcileStoreOutput;
           sensitivity: DataSensitivity;
+          dataTypeIds: Array<string>;
         } = await this.evaluateStore({
           projectId,
           store,
@@ -209,6 +227,13 @@ export default class DataSecurityEvaluator {
           checkSettings,
           residencyRules,
           now,
+        });
+
+        evaluated.set(store.id!.toString(), {
+          sensitivity: result.sensitivity,
+          dataTypeIds: result.dataTypeIds,
+          estimatedRecords: store.estimatedRecords,
+          provider: store.provider,
         });
 
         for (const issue of result.output.opened) {
@@ -238,6 +263,20 @@ export default class DataSecurityEvaluator {
         projectId,
         issues: closed,
       });
+    }
+
+    // Who can reach the stores, one identity at a time.
+    try {
+      await DataSecurityIdentities.write({
+        projectId,
+        drafts: buildIdentityDrafts(grants, evaluated, now),
+        now,
+      });
+    } catch (error) {
+      logger.error(
+        `DataSecurity: could not work out the identities of project ${projectId.toString()}:`,
+      );
+      logger.error(error);
     }
   }
 
@@ -270,7 +309,11 @@ export default class DataSecurityEvaluator {
     };
     residencyRules: Array<ResidencyRuleInput>;
     now: Date;
-  }): Promise<{ output: ReconcileStoreOutput; sensitivity: DataSensitivity }> {
+  }): Promise<{
+    output: ReconcileStoreOutput;
+    sensitivity: DataSensitivity;
+    dataTypeIds: Array<string>;
+  }> {
     const { store, facts, now } = data;
     const computed: StoreSensitivity = getStoreSensitivity(facts.findings);
     const sensitivity: DataSensitivity = isDataSensitivity(
@@ -317,6 +360,9 @@ export default class DataSecurityEvaluator {
       hasOwner: facts.hasOwner,
       lastActivityAt: store.lastActivityAt || null,
       readerCount: posture.readAt ? facts.readers.size : null,
+      unusedReaderNames: posture.readAt
+        ? [...facts.unusedReaders.values()].sort()
+        : null,
       copiedFromProductionStoreName: facts.copiedFromProductionStoreName,
       unscrubbedDataTypeIds:
         kindInfo?.family === DataStoreFamily.Telemetry
@@ -368,7 +414,7 @@ export default class DataSecurityEvaluator {
       } as never,
     });
 
-    return { output, sensitivity };
+    return { output, sensitivity, dataTypeIds: computed.dataTypeIds };
   }
 
   private static async readPages<T>(
@@ -490,6 +536,8 @@ export default class DataSecurityEvaluator {
             confidence: true,
             isScrubbed: true,
             matchCount: true,
+            isConfirmed: true,
+            isAiSuggested: true,
           },
           skip,
           limit,
@@ -504,7 +552,17 @@ export default class DataSecurityEvaluator {
         finding.dataStoreId?.toString() || "",
       );
 
-      if (!storeFacts || !finding.dataTypeId || !finding.matchCount) {
+      /*
+       * A finding counts once a value matched it - or a person confirmed
+       * it, as they do OneUptime AI's suggestions, which match no value.
+       * A suggestion nobody confirmed counts toward nothing.
+       */
+      if (
+        !storeFacts ||
+        !finding.dataTypeId ||
+        (!finding.matchCount && !finding.isConfirmed) ||
+        (finding.isAiSuggested && !finding.isConfirmed)
+      ) {
         continue;
       }
 
@@ -565,15 +623,31 @@ export default class DataSecurityEvaluator {
     }
   }
 
+  /*
+   * Every store's grants: the identities that read it, and the ones of them
+   * not used in 90 days, for its checks - and every grant of a store this
+   * evaluation reads, for the identities.
+   */
   private static async readAccess(
     projectId: ObjectID,
     facts: Map<string, StoreFacts>,
-  ): Promise<void> {
+  ): Promise<Array<IdentityGrant>> {
     const entries: Array<DataStoreAccess> = await this.readPages(
       (skip: number, limit: number): Promise<Array<DataStoreAccess>> => {
         return DataStoreAccessService.findBy({
           query: { projectId },
-          select: { dataStoreId: true, principal: true, isPublic: true },
+          select: {
+            dataStoreId: true,
+            principal: true,
+            principalName: true,
+            principalType: true,
+            accessLevel: true,
+            isPublic: true,
+            isExternal: true,
+            isSeenInTraces: true,
+            isUnused: true,
+            lastUsedAt: true,
+          },
           skip,
           limit,
           props: { isRoot: true },
@@ -581,16 +655,42 @@ export default class DataSecurityEvaluator {
       },
       MAX_STORES_PER_EVALUATION * 20,
     );
+    const grants: Array<IdentityGrant> = [];
 
     for (const entry of entries) {
-      const storeFacts: StoreFacts | undefined = facts.get(
-        entry.dataStoreId?.toString() || "",
-      );
+      const dataStoreId: string = entry.dataStoreId?.toString() || "";
+      const storeFacts: StoreFacts | undefined = facts.get(dataStoreId);
 
-      if (storeFacts && entry.principal && !entry.isPublic) {
-        storeFacts.readers.add(entry.principal);
+      if (!storeFacts || !entry.principal) {
+        continue;
       }
+
+      if (!entry.isPublic) {
+        storeFacts.readers.add(entry.principal);
+
+        if (entry.isUnused) {
+          storeFacts.unusedReaders.set(
+            entry.principal,
+            entry.principalName || entry.principal,
+          );
+        }
+      }
+
+      grants.push({
+        dataStoreId,
+        principal: entry.principal,
+        principalName: entry.principalName,
+        principalType: entry.principalType,
+        accessLevel: entry.accessLevel,
+        isExternal: Boolean(entry.isExternal),
+        isPublic: Boolean(entry.isPublic),
+        isSeenInTraces: Boolean(entry.isSeenInTraces),
+        isUnused: Boolean(entry.isUnused),
+        lastUsedAt: entry.lastUsedAt,
+      });
     }
+
+    return grants;
   }
 
   private static async readFlows(

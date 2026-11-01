@@ -1,5 +1,14 @@
 import PageComponentProps from "../../PageComponentProps";
 import { useDataStoreViewContext } from "./DataStoreViewContext";
+import {
+  AccessLevelPill,
+  GrantedViaCell,
+  NOT_USED_IN_90_DAYS,
+  PrincipalText,
+  canOpenIdentities,
+  getAccessIdentityRoute,
+  showsPrincipal,
+} from "../../../Components/DataSecurity/IdentityCells";
 import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
 import { Gray500, Orange500, Red500 } from "Common/Types/BrandColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -8,6 +17,7 @@ import {
   DataStorePrincipalType,
 } from "Common/Types/DataSecurity/DataStoreAccess";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
@@ -18,10 +28,15 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * WHO CAN REACH THIS STORE, as its cloud's own settings say it - bucket
- * policies and ACLs, role assignments, IAM bindings, snapshot shares - and
- * the services seen using it in traces. Anyone on the internet, and anyone
- * outside your connected accounts, come first: that is the access to look
- * at.
+ * policies and ACLs, role assignments, IAM bindings, snapshot shares, and
+ * on AWS each role's and user's own IAM policies - and the services seen
+ * using it in traces. Anyone on the internet, and anyone outside your
+ * connected accounts, come first: that is the access to look at. Access
+ * not used in 90 days is marked, and has a filter of its own: it is what
+ * the unused-access check asks a person to review here.
+ *
+ * Each row opens the identity's own page - every other store it reaches,
+ * and why it ranks where it does - for a reader who may read identities.
  */
 
 const ACCESS_LEVEL_OPTIONS: Array<DropdownOption> = [
@@ -75,7 +90,11 @@ const DataStoreAccessPage: FunctionComponent<
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
-      isViewable={false}
+      // A row opens its identity's page, for whoever may read identities.
+      isViewable={canOpenIdentities()}
+      // Its View opens the row's identity: "View Identity" to a screen reader.
+      singularName="Identity"
+      onViewPage={getAccessIdentityRoute}
       showRefreshButton={true}
       // Outside your accounts first; anyone on the internet is outside too.
       sortBy="isExternal"
@@ -88,9 +107,12 @@ const DataStoreAccessPage: FunctionComponent<
       noItemsMessage="Nobody is known to reach this store yet. Its access is read with its configuration, from a cloud connection with Data Security turned on."
       searchableFields={["principal", "principalName"]}
       selectMoreFields={{
+        principal: true,
         principalName: true,
+        principalType: true,
         isPublic: true,
         isSeenInTraces: true,
+        isUnused: true,
       }}
       filters={[
         {
@@ -101,6 +123,11 @@ const DataStoreAccessPage: FunctionComponent<
         {
           field: { isExternal: true },
           title: "Outside Your Accounts",
+          type: FieldType.Boolean,
+        },
+        {
+          field: { isUnused: true },
+          title: "Not Used in 90 Days",
           type: FieldType.Boolean,
         },
         {
@@ -121,17 +148,30 @@ const DataStoreAccessPage: FunctionComponent<
           field: { principal: true },
           title: "Who",
           type: FieldType.Element,
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-xs",
           getElement: (item: DataStoreAccess): ReactElement => {
             return (
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-gray-900">
-                  {item.isPublic
-                    ? translator.translateText("Anyone on the internet")
-                    : item.principalName || item.principal || "—"}
+              <div>
+                <div className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
+                  {item.isPublic ? (
+                    translator.translateText("Anyone on the internet")
+                  ) : (
+                    <IsolatedText
+                      text={item.principalName || item.principal || "—"}
+                    />
+                  )}
                 </div>
-                {item.principalName && item.principal && !item.isPublic ? (
-                  <div className="truncate font-mono text-xs text-gray-500">
-                    {item.principal}
+                {showsPrincipal(item) ? (
+                  <div className="text-xs text-gray-500 [overflow-wrap:anywhere]">
+                    <PrincipalText principal={item.principal || ""} />
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {item.isUnused ? (
+                  <div className="mt-1" data-testid="data-store-access-unused">
+                    <Pill text={NOT_USED_IN_90_DAYS} color={Gray500} />
                   </div>
                 ) : (
                   <></>
@@ -169,13 +209,8 @@ const DataStoreAccessPage: FunctionComponent<
           title: "Access Level",
           type: FieldType.Element,
           getElement: (item: DataStoreAccess): ReactElement => {
-            return item.accessLevel ? (
-              <span className="text-sm text-gray-700">
-                {translator.translateText(item.accessLevel)}
-              </span>
-            ) : (
-              <TableEmptyValue />
-            );
+            // Red for Admin, as on Access and an identity's page.
+            return <AccessLevelPill level={item.accessLevel} />;
           },
         },
         {
@@ -183,21 +218,10 @@ const DataStoreAccessPage: FunctionComponent<
           title: "Granted Via",
           type: FieldType.Element,
           hideOnMobile: true,
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-xs",
           getElement: (item: DataStoreAccess): ReactElement => {
-            return (
-              <div className="min-w-0">
-                <div className="truncate text-sm text-gray-700">
-                  {item.grantedVia || "—"}
-                </div>
-                {item.isSeenInTraces ? (
-                  <div className="text-xs text-gray-500">
-                    {translator.translateText("Seen using it in traces")}
-                  </div>
-                ) : (
-                  <></>
-                )}
-              </div>
-            );
+            return <GrantedViaCell access={item} />;
           },
         },
         {

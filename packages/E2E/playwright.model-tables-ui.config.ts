@@ -20,8 +20,27 @@ import path from "path";
  */
 const port: string = process.env["MODEL_TABLES_FIXTURE_PORT"] || "4319";
 
+/*
+ * App Test runs this suite in halves, one per Dashboard Offline UI group:
+ * the group's matrix sets MODEL_TABLES_SHARD to "1/2" or "2/2". #5485 grew
+ * it to 176 tests, about 12 minutes on 14.0.100's first gate run, past what
+ * was left of its group's 28. Its tests are independent - each opens its
+ * own page - so it is split by test rather than by file (fullyParallel):
+ * by file, ModelTables.spec.ts (97 of the 176) put 154 in one half. Each
+ * half is one worker as before. Unset, the whole suite runs, in file
+ * order, as it always has.
+ */
+const SHARD_PATTERN: RegExp = /^(\d+)\/(\d+)$/;
+const shardMatch: RegExpExecArray | null = SHARD_PATTERN.exec(
+  process.env["MODEL_TABLES_SHARD"] || "",
+);
+const shard: { current: number; total: number } | null = shardMatch
+  ? { current: Number(shardMatch[1]), total: Number(shardMatch[2]) }
+  : null;
+
 export default defineConfig({
   testDir: "./ModelTables",
+  shard: shard,
   testMatch: [
     "ModelTables.spec.ts",
     "CardHeaders.spec.ts",
@@ -29,7 +48,8 @@ export default defineConfig({
     "LiveLists.spec.ts",
     "ColumnResize.spec.ts",
   ],
-  fullyParallel: false,
+  // By test when halved, as Event Overview is: its tests are independent.
+  fullyParallel: shard !== null,
   workers: 1,
   timeout: 90000,
   expect: { timeout: 15000 },

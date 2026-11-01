@@ -8,7 +8,7 @@ Data Security does not run a pager or a security queue of its own. It hands what
 - [Incidents](#incidents): Declare an incident for a breach your incident process should run.
 - [Owners](#owners): Who owns each store, set by hand or by rules, and the email they get.
 - [OneUptime AI](#oneuptime-ai): Explain an issue, open a pull request that fixes it, or ask Ask AI about your data.
-- [Close an exposure](#close-an-exposure): Block public access or stop sharing, from an issue or a playbook.
+- [Close an exposure](#close-an-exposure): Block public access or stop sharing, from an issue or a playbook, and turn on a missing protection from an issue.
 :::
 
 ## How it works
@@ -43,6 +43,8 @@ Every store is an entity of its own in Security Operations, of the type **Data S
 - it is grouped by the store: a second Critical issue on the same store joins the open case about it instead of opening another.
 
 From there the case is worked like any other: assigned, noted, closed, and answered by the project's playbooks. The store's detections count toward its risk on [Entity Risk](/docs/telemetry/security-entity-risk), as any entity's do. See [Security Cases and Playbooks](/docs/telemetry/security-cases).
+
+Any security case, whatever opened it, shows the data at risk on its **Impact**: the stores with sensitive data the case is about, and every store its users and roles can reach, the most sensitive first, with what each holds, about how many records, how exposed it is and how many identities can reach it. An assumed-role session the case names counts as its role, and an email address as the cloud users it belongs to. It is read with the reader's own permissions, so a role that cannot read Data Security sees that it is left out.
 
 ## Alerts and on-call
 
@@ -106,12 +108,15 @@ They read data types, locations and counts, never a finding's samples, masked or
 
 ## Close an exposure
 
-Two changes close a cloud store's exposure, each through the store's cloud connection with **Data security response** turned on (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)):
+Two changes close a cloud store's exposure, each through the store's cloud connection with **Data security response** turned on (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)), and six more turn on a setting that protects a store, from its issue only:
 
 - **Block public access**, on an S3 bucket, an Azure storage account or a Cloud Storage bucket.
 - **Revoke sharing**, on an RDS snapshot, or on the shared manual snapshots of an RDS database, an Aurora cluster or a DocumentDB cluster.
+- **Turn on versioning**, **Turn on soft delete**, **Turn off object ACLs**, **Turn on uniform access**, **Require secure transfer** and **Turn on point-in-time recovery**, on the stores [Fix it from here](/docs/data-security/checks-and-issues#fix-it-from-here) lists.
 
 A person runs one from an open issue it fixes, with **Fix it from here** (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues#fix-it-from-here)). A Security Operations playbook runs them as steps of the **Contain** category, **Block public access to data stores** and **Revoke data store sharing**: on every data store the case is about, at most 10, each a step that starts with **Needs Approval** on. A store marked **Public By Design** is never blocked. Either way the store's feed says what was done, and the store is checked again at once, so the issue resolves when the change took.
+
+The **Close a Data Exposure** playbook template answers the cases Data Security opens: it emails the store's owners, blocks public access and revokes sharing once a person approves each, and adds the response's checklist to the case as tasks - who read the data while it was exposed, whether it is a breach you must report, which secrets to rotate, and what to write when the case closes. Add it from **Create from Template** on the project's playbooks.
 
 ## API, Terraform and MCP
 
@@ -119,7 +124,7 @@ Everything Data Security keeps is a record of the OneUptime API, read with the s
 
 | Records | API path |
 | --- | --- |
-| Data stores, their timelines, their findings and who can reach them | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| Data stores, their timelines, their findings, who can reach them and each identity that does | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Issues, their timelines and data flows | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
 | Custom data types, check settings and residency rules | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-security-issue/<id>/explain` | **Explain with AI** on an issue |
 | `/data-security-issue/<id>/fix-with-ai` | **Fix with AI** on an issue |
 | `/data-store/<id>/response-actions` | Which response actions the store can take now, and why not |
-| `/data-store/<id>/respond` | **Block Public Access** or **Revoke Sharing** on the store, with the issue it was run from |
+| `/data-store/<id>/respond` | One response action on the store, such as **Block Public Access** or **Turn On Versioning**, with the issue it was run from |
 
 The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 
-The [MCP server](/docs/ai/mcp-server) has create, get, list, update, delete and count tools for these records: Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule and Data Security Setting. An AI assistant can then ask which stores hold card numbers, or what is open on a bucket, with your permissions.
+The [MCP server](/docs/ai/mcp-server) has create, get, list, update, delete and count tools for these records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule and Data Security Setting. An AI assistant can then ask which stores hold card numbers, or what is open on a bucket, with your permissions.
 
 ## Next steps
 

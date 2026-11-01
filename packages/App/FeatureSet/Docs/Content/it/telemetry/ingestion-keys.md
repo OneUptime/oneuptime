@@ -52,7 +52,7 @@ Ovunque altrove OneUptime rifiuta una chiave Browser, ad esempio su gRPC e MQTT,
 :::steps
 ### Aprire le chiavi di acquisizione
 
-Andate in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. **Telemetria e APM** parte compresso nel menu laterale: fateci clic per aprirlo. L'elenco mostra di ogni chiave le colonne **Nome**, **Tipo**, **Last Used** e **Descrizione**.
+Andate in **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. **Telemetria e APM** parte compresso nel menu laterale: fateci clic per aprirlo. L'elenco mostra di ogni chiave le colonne **Nome**, **Tipo**, **Ultimo utilizzo** e **Descrizione**.
 
 ### Dare un nome alla chiave e sceglierne il tipo
 

@@ -122,6 +122,16 @@ jobs:
           cache-dependency-path: '**/package-lock.json'
       - name: Install root dependencies
         uses: ./.github/actions/npm-install
+      # MobileApp's tsconfig extends expo/tsconfig.base, which only its own
+      # install brings. typescript-eslint 8.72 (the root's since #5466's npm
+      # audit fix) refuses a tsconfig whose extends it cannot resolve: every
+      # MobileApp file was a "Parsing error" (TS6053) and the lint failed,
+      # where 8.56 had linted them without their types. With the install they
+      # lint against their own types (2026-11-01, 14.0.100's first gate).
+      - name: Install MobileApp dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/MobileApp
       - run: npm run lint
       - name: Validate locale files (key parity + placeholders)
         run: npm run i18n:validate

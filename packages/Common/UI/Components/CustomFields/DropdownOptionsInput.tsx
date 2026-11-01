@@ -1,6 +1,7 @@
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import ColorPicker from "../Forms/Fields/ColorPicker";
+import FieldError from "../Forms/Fields/FieldError";
 import Input, { InputType } from "../Input/Input";
 import DragHandle from "../Table/DragHandle";
 import Color from "../../../Types/Color";
@@ -753,7 +754,11 @@ const DropdownOptionsInput: FunctionComponent<ComponentProps> = (
         },
       )}
       {props.error ? (
-        <p className="mt-2 text-sm text-red-500">{props.error}</p>
+        <FieldError
+          message={props.error}
+          className="mt-2 text-sm text-red-500"
+          announce="none"
+        />
       ) : null}
     </div>
   );

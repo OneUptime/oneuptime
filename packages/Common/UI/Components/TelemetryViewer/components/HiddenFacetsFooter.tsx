@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import { getListSeparator } from "../../../Utils/ListSeparator";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import Icon from "../../Icon/Icon";
@@ -34,11 +35,15 @@ const HiddenFacetsFooter: FunctionComponent<HiddenFacetsFooterProps> = (
     return null;
   }
 
-  const hiddenTitlesText: string = props.hiddenTitles
-    .map((title: string): string => {
+  const hiddenTitles: Array<string> = props.hiddenTitles.map(
+    (title: string): string => {
       return translator.translateText(title) || title;
-    })
-    .join(", ");
+    },
+  );
+  // In the commas of the script the titles are written in (ListSeparator).
+  const hiddenTitlesText: string = hiddenTitles.join(
+    getListSeparator(hiddenTitles),
+  );
 
   /*
    * One button, folded or open: the count goes before it while the filters

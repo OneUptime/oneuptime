@@ -141,6 +141,8 @@ const LEAVES_OUT_AI_CONTEXT: Record<string, string> = {
     "summarizes a call's transcript in the speakers' own words",
   "Utils/CodeRepository/ProductionReview/ProductionReviewAI.ts":
     "reads one pull request against production's own data",
+  "Utils/AI/DataSecurity/FieldSuggestion.ts":
+    "names the data type of fields from their names and the shapes of their values: one short call after a store's scan",
 };
 
 // Files that name the role without writing a prompt.

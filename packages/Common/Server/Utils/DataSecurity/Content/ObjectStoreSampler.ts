@@ -10,6 +10,10 @@ import {
   toPathPattern,
 } from "../../../../Utils/DataSecurity/PathPattern";
 import {
+  MAX_UNPLACED_LOCATION_LENGTH,
+  UnplacedField,
+} from "../../../../Utils/DataSecurity/UnplacedFields";
+import {
   ObjectStoreListPage,
   ObjectStoreObject,
   ObjectStoreReader,
@@ -21,6 +25,7 @@ import {
   emptyContentScanResult,
   LocationFindings,
   MAX_READ_LOG_ENTRIES,
+  MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
 import { classifyContent, ContentClassification } from "./ContentClassifier";
@@ -604,6 +609,7 @@ export async function sampleObjectStore(
   const findings: Findings = new Findings();
   const stats: Map<string, PatternStats> = new Map();
   const plaintextPasswordFields: Array<string> = [];
+  const unplacedFields: Array<UnplacedField> = [];
   const readNow: Map<string, StateEntry> = new Map();
 
   for (let index: number = 0; index < picks.length; index++) {
@@ -694,6 +700,21 @@ export async function sampleObjectStore(
       findings.add(pick.group.pattern, location);
     }
 
+    // A pattern's fields, described once: by the first object of it that has them.
+    for (const unplaced of classification.unplacedFields || []) {
+      const path: string = `${pick.group.pattern}${LOCATION_SEPARATOR}${unplaced.location}`;
+
+      if (
+        unplacedFields.length < MAX_UNPLACED_FIELDS_PER_SCAN &&
+        path.length <= MAX_UNPLACED_LOCATION_LENGTH &&
+        !unplacedFields.some((known: UnplacedField): boolean => {
+          return known.location === path;
+        })
+      ) {
+        unplacedFields.push({ ...unplaced, location: path });
+      }
+    }
+
     for (const field of classification.plaintextPasswordFields) {
       const path: string = `${pick.group.pattern}${LOCATION_SEPARATOR}${field}`;
 
@@ -741,6 +762,7 @@ export async function sampleObjectStore(
   }
 
   result.locations = findings.toLocations();
+  result.unplacedFields = unplacedFields;
   result.fingerprints = fingerprints.getFingerprints();
   result.plaintextPasswordFields = plaintextPasswordFields;
   result.warnings = warnings;

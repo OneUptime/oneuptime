@@ -7,7 +7,7 @@ Gegevensbeveiliging leest alleen wat je toestaat. Elke cloudkoppeling wordt gele
 - [Wat elk niveau toestaat](#wat-elk-niveau-toestaat): De AWS-acties, en de rollen in Azure en Google Cloud.
 - [Een database scannen die je zelf beheert](#een-database-scannen-die-je-zelf-beheert): Een alleen-lezen verbindingsreeks, of een sonde in je netwerk.
 - [Wat OneUptime bewaart](#wat-oneuptime-bewaart): Tellingen, locaties en gemaskeerde voorbeelden, nooit een waarde.
-- [Gegevensbeveiliging een blootstelling laten sluiten](#gegevensbeveiliging-een-blootstelling-laten-sluiten): Het enige schrijfrecht dat een koppeling kan krijgen, uit tot je het aanzet.
+- [Gegevensbeveiliging een blootstelling laten sluiten](#gegevensbeveiliging-een-blootstelling-laten-sluiten): De enige schrijfrechten die een koppeling kan krijgen, uit tot je ze aanzet.
 :::
 
 ## Kies een niveau voor elke koppeling
@@ -48,6 +48,9 @@ Het configuratieniveau zet een tweede inline-beleid, `OneUptimeDataSecurity`, op
 | Lezen hoe de databases worden bereikt, versleuteld en geback-upt, en met wie hun handmatige snapshots worden gedeeld | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | Lezen hoe de zoekdomeinen, caches en bestandssystemen zijn ingericht | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | De eigen sleutels van AWS (alias/aws/...) onderscheiden van de sleutels die je zelf beheert | `kms:ListAliases` |
+| Lezen welke gebruikers en rollen elke bucket en elke tabel bereiken via hun eigen IAM-beleid, wie elke rol mag aannemen en wanneer elk voor het laatst is gebruikt | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+Met de IAM-acties kan **Toegang** elke rol en elke gebruiker noemen die een opslag via het eigen beleid bereikt, en wanneer elk voor het laatst is gebruikt. Het referentierapport dat IAM daarvoor maakt, bevat datums en vlaggen, nooit een wachtwoord of een sleutel. Een koppeling die is ingesteld voordat Gegevensbeveiliging IAM las, leest alleen het eigen beleid van elke opslag tot haar opdracht opnieuw wordt uitgevoerd.
 
 Het inhoudsniveau voegt drie acties toe aan hetzelfde beleid, elk op zijn eigen resources:
 
@@ -95,7 +98,10 @@ Met een **Toegangssleutel** in plaats van een rol gaat het beleid op een groep, 
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@ Het configuratieniveau voegt niets toe: de rol **Cloud Asset Viewer** van de kop
 
 ## Gegevensbeveiliging een blootstelling laten sluiten
 
-Lezen is alles wat een koppeling doet, tot je anders kiest. **Gegevensbeveiligingsrespons**, onder **Meer velden** naast **Gegevensbeveiliging**, laat Gegevensbeveiliging ook de openbare toegang van een opslag blokkeren en het delen van zijn snapshots stoppen: vanuit het probleem van de opslag, met **Hier oplossen** (zie [Controles en problemen van Gegevensbeveiliging](/docs/data-security/checks-and-issues#hier-oplossen)), en vanuit playbooks van Security Operations. Het staat op **Uit** tot je **Openbare toegang en delen blokkeren** kiest, en de opdracht die het formulier dan toont, geeft één beperkt schrijfrecht, los van de rest:
+Lezen is alles wat een koppeling doet, tot je anders kiest. **Gegevensbeveiligingsrespons**, onder **Meer velden** naast **Gegevensbeveiliging**, laat Gegevensbeveiliging ook de instellingen van een opslag via de koppeling wijzigen: de openbare toegang blokkeren en het delen van zijn snapshots stoppen, vanuit het probleem van de opslag met **Hier oplossen** (zie [Controles en problemen van Gegevensbeveiliging](/docs/data-security/checks-and-issues#hier-oplossen)) en vanuit playbooks van Security Operations, en een instelling aanzetten die hem beschermt, zoals versiebeheer of veilige overdracht, vanuit zijn probleem. Het staat op **Uit** tot je **Blootstellingen sluiten en instellingen herstellen** kiest, en de opdracht die het formulier dan toont, geeft deze beperkte schrijfrechten, los van de rest:
 
 | Cloud | Wat de opdracht toevoegt | Wat het mag doen |
 | --- | --- | --- |
-| AWS | Een derde inline-beleid, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` en `rds:ModifyDBClusterSnapshotAttribute`: de Block Public Access van een bucket, en met wie een handmatige snapshot wordt gedeeld |
-| Azure | Een aangepaste rol, `OneUptime Data Security Response`, op het bereik van de koppeling | `Microsoft.Storage/storageAccounts/read` en `Microsoft.Storage/storageAccounts/write`: de instellingen van een opslagaccount, zoals anonieme blobtoegang, nooit zijn sleutels |
-| Google Cloud | Een aangepaste rol, `oneuptimeDataSecurityResponse` | `storage.buckets.get` en `storage.buckets.update`: de instellingen van een bucket, zoals de preventie van openbare toegang |
+| AWS | Een derde inline-beleid, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` en `dynamodb:UpdateContinuousBackups`: de Block Public Access, het versiebeheer en het objecteigendom van een bucket, met wie een handmatige snapshot wordt gedeeld, en het herstel naar een tijdstip van een tabel |
+| Azure | Een aangepaste rol, `OneUptime Data Security Response`, op het bereik van de koppeling | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` en `Microsoft.Storage/storageAccounts/blobServices/write`: de instellingen van een opslagaccount, zoals anonieme blobtoegang en veilige overdracht, en het voorlopig verwijderen van zijn blobs, nooit zijn sleutels |
+| Google Cloud | Een aangepaste rol, `oneuptimeDataSecurityResponse` | `storage.buckets.get` en `storage.buckets.update`: de instellingen van een bucket, zoals de preventie van openbare toegang, uniforme toegang en versiebeheer |
 
 Niets wat het geeft, leest gegevens, verwijdert iets of wijzigt wie mag inloggen. Zet het terug op **Uit** en Gegevensbeveiliging stopt meteen met het gebruik ervan. Om op AWS ook de toegang in te trekken, verwijder je het beleid met `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse`.
+
+Een koppeling die het eerder aanzette, moet haar opdracht voor deze instellingen opnieuw uitvoeren: tot dan weigert de cloud de wijziging, en het paneel zegt welke machtiging ontbreekt.
 
 ## Waarom inhoudsvoorbeelden optioneel zijn
 

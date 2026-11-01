@@ -3,6 +3,7 @@ import Permission, {
   PermissionHelper,
   PermissionProps,
 } from "../../../../Types/Permission";
+import FieldError from "./FieldError";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, {
@@ -309,9 +310,7 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {props.error && (
-        <p className="mt-1 text-sm text-red-400">{props.error}</p>
-      )}
+      {props.error && <FieldError message={props.error} announce="none" />}
     </div>
   );
 };

@@ -66,6 +66,7 @@ import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
+import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
 import DataStoreFeed, {
   DataStoreFeedEventType,
 } from "Common/Models/DatabaseModels/DataStoreFeed";
@@ -125,7 +126,10 @@ import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityResponseUnavailableReason,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
-import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  DataSecurityResponseAction,
+  getDataSecurityResponseActions,
+} from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -186,6 +190,7 @@ const ID = {
   securityCase: (n) => uuid("d0000000", n),
   alert: (n) => uuid("e0000000", n),
   incident: (n) => uuid("f0000000", n),
+  identity: (n) => uuid("1a000000", n),
 };
 
 const fixture = {
@@ -200,6 +205,12 @@ const fixture = {
     unencryptedIssue: ID.issue(2),
     emailInLogsIssue: ID.issue(3),
     connection: ID.connection(1),
+    // Who can reach the data: anyone, a role that writes, an account outside, an unused role, a service.
+    publicIdentity: ID.identity(1),
+    exporterIdentity: ID.identity(2),
+    vendorIdentity: ID.identity(3),
+    legacyIdentity: ID.identity(4),
+    serviceIdentity: ID.identity(5),
   },
   scenario: {
     language,
@@ -309,7 +320,8 @@ const STORES = [
       encryptedAtRest: true,
       customerManagedKey: false,
       encryptionInTransitEnforced: false,
-      versioning: true,
+      // Off, so its deleted files cannot be recovered: Turn On Versioning fixes it.
+      versioning: false,
       accessLogging: false,
     },
     sizeInBytes: 48 * 1024 * 1024 * 1024,
@@ -322,6 +334,7 @@ const STORES = [
     contentScannedAt: ago(5 * HOUR),
     contentScanStatus: "Succeeded",
     findingCount: 2,
+    // Its open issues: public-read, access-not-logged, deleted-data-not-recoverable.
     openIssueCount: 3,
     highestIssueSeverity: SecuritySeverity.Critical,
     riskScore: 92,
@@ -529,6 +542,16 @@ table(DataSecurityIssue).push(
     firstDetectedAt: ago(3 * DAY),
     lastDetectedAt: ago(2 * HOUR),
   }),
+  // A hardening fix, not an exposure: Turn On Versioning on the same bucket.
+  issue(6, {
+    dataStoreId: ID.store(1),
+    checkId: "deleted-data-not-recoverable",
+    evidence: "Versioning and soft delete are off.",
+    severity: SecuritySeverity.Medium,
+    dataTypeIds: ["credit-card-number", "email-address"],
+    firstDetectedAt: ago(3 * DAY),
+    lastDetectedAt: ago(2 * HOUR),
+  }),
 );
 
 /*
@@ -619,6 +642,71 @@ table(DataStoreFinding).push(
     firstSeenAt: ago(2 * DAY),
     lastSeenAt: ago(40 * MINUTE),
   },
+  /*
+   * OneUptime AI's suggestions for two columns of the exports no detector
+   * placed, from their names and the shapes of their values: one nobody
+   * judged yet, and one a person confirmed - High since.
+   */
+  {
+    _id: ID.finding(4),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(1)),
+    findingKey: "date-of-birth:exports/orders-2026-10-26.csv:geb_datum",
+    dataTypeId: "date-of-birth",
+    dataTypeName: "Date of birth",
+    dataCategory: DataCategory.ContactAndIdentity,
+    sensitivity: DataSensitivity.Confidential,
+    location: "exports/orders-2026-10-26.csv · geb_datum",
+    locationKind: "Column",
+    confidence: "Low",
+    matchCount: 0,
+    valueCount: 500,
+    matchPercent: 0,
+    distinctValues: 0,
+    testValueCount: 0,
+    maskedSamples: [],
+    isFreeText: false,
+    isNameHinted: false,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    isAiSuggested: true,
+    aiReason:
+      "Geb. Datum is German for date of birth, and every value has the shape of a date.",
+    isConfirmed: false,
+    firstSeenAt: ago(1 * DAY),
+    lastSeenAt: ago(5 * HOUR),
+  },
+  {
+    _id: ID.finding(5),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(1)),
+    findingKey: "de-tax-id:exports/orders-2026-10-26.csv:steuer_nr",
+    dataTypeId: "de-tax-id",
+    dataTypeName: "Germany tax ID",
+    dataCategory: DataCategory.GovernmentId,
+    sensitivity: DataSensitivity.Restricted,
+    location: "exports/orders-2026-10-26.csv · steuer_nr",
+    locationKind: "Column",
+    confidence: "High",
+    matchCount: 0,
+    valueCount: 500,
+    matchPercent: 0,
+    distinctValues: 0,
+    testValueCount: 0,
+    maskedSamples: [],
+    isFreeText: false,
+    isNameHinted: false,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    isAiSuggested: true,
+    aiReason:
+      "Steuer-Nr is German for tax number, and the values are eleven digits.",
+    isConfirmed: true,
+    firstSeenAt: ago(6 * DAY),
+    lastSeenAt: ago(5 * HOUR),
+  },
 );
 
 table(DataStoreAccess).push(
@@ -654,6 +742,216 @@ table(DataStoreAccess).push(
     lastUsedAt: ago(9 * HOUR),
     firstSeenAt: ago(21 * DAY),
     lastSeenAt: ago(2 * HOUR),
+  },
+);
+
+/*
+ * Who reaches the stores through IAM, an account outside that may assume a
+ * role, a role nobody has used in months and a service seen in traces -
+ * each grant behind one of the identities below.
+ */
+table(DataStoreAccess).push(
+  {
+    _id: ID.access(3),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(1)),
+    accessKey: "account:210987654321:read",
+    principal: "arn:aws:iam::210987654321:root",
+    principalName: "210987654321",
+    principalType: DataStorePrincipalType.Account,
+    accessLevel: DataStoreAccessLevel.Read,
+    grantedVia:
+      "Can assume role vendor-reader: IAM policy AmazonS3ReadOnlyAccess",
+    isExternal: true,
+    isPublic: false,
+    isSeenInTraces: false,
+    isUnused: false,
+    firstSeenAt: ago(9 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.access(4),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(2)),
+    accessKey: "role:legacy-etl:read",
+    principal: "arn:aws:iam::123456789012:role/legacy-etl",
+    principalName: "legacy-etl",
+    principalType: DataStorePrincipalType.Role,
+    accessLevel: DataStoreAccessLevel.Read,
+    grantedVia: "Inline IAM policy orders-read",
+    isExternal: false,
+    isPublic: false,
+    isSeenInTraces: false,
+    isUnused: true,
+    lastUsedAt: ago(140 * DAY),
+    firstSeenAt: ago(300 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.access(5),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(2)),
+    accessKey: "service:checkout:read",
+    principal: "66666666-6666-4666-8666-666666666666",
+    principalName: "checkout",
+    principalType: DataStorePrincipalType.Service,
+    accessLevel: DataStoreAccessLevel.Read,
+    grantedVia: "Seen in traces",
+    isExternal: false,
+    isPublic: false,
+    isSeenInTraces: true,
+    isUnused: false,
+    lastUsedAt: ago(20 * MINUTE),
+    firstSeenAt: ago(12 * DAY),
+    lastSeenAt: ago(20 * MINUTE),
+  },
+  {
+    _id: ID.access(6),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(2)),
+    accessKey: "role:finance-exporter:read",
+    principal: "arn:aws:iam::123456789012:role/finance-exporter",
+    principalName: "finance-exporter",
+    principalType: DataStorePrincipalType.Role,
+    accessLevel: DataStoreAccessLevel.Read,
+    grantedVia: "IAM policy AmazonRDSReadOnlyAccess",
+    isExternal: false,
+    isPublic: false,
+    isSeenInTraces: false,
+    isUnused: false,
+    lastUsedAt: ago(9 * HOUR),
+    firstSeenAt: ago(21 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+);
+
+/*
+ * The identities those grants add up to, as the evaluator writes them:
+ * the riskiest first on the Access page.
+ */
+table(DataSecurityIdentity).push(
+  {
+    _id: ID.identity(1),
+    projectId,
+    identityKey: "*",
+    principal: "*",
+    principalName: "Everyone",
+    principalType: DataStorePrincipalType.Public,
+    provider: "aws",
+    isExternal: true,
+    isPublic: true,
+    isUnused: false,
+    isSeenInTraces: false,
+    storeCount: 1,
+    sensitiveStoreCount: 1,
+    restrictedStoreCount: 1,
+    highestSensitivity: DataSensitivity.Restricted,
+    highestAccessLevel: DataStoreAccessLevel.Read,
+    canChangeSensitiveData: false,
+    dataTypeIds: ["credit-card-number", "email-address"],
+    estimatedRecords: 2400000,
+    riskScore: 71,
+    firstSeenAt: ago(3 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.identity(2),
+    projectId,
+    identityKey: "arn:aws:iam::123456789012:role/finance-exporter",
+    principal: "arn:aws:iam::123456789012:role/finance-exporter",
+    principalName: "finance-exporter",
+    principalType: DataStorePrincipalType.Role,
+    provider: "aws",
+    isExternal: false,
+    isPublic: false,
+    isUnused: false,
+    isSeenInTraces: false,
+    storeCount: 2,
+    sensitiveStoreCount: 2,
+    restrictedStoreCount: 1,
+    highestSensitivity: DataSensitivity.Restricted,
+    highestAccessLevel: DataStoreAccessLevel.Write,
+    canChangeSensitiveData: true,
+    dataTypeIds: ["credit-card-number", "email-address", "phone-number"],
+    estimatedRecords: 3040000,
+    riskScore: 67,
+    lastUsedAt: ago(9 * HOUR),
+    firstSeenAt: ago(21 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.identity(3),
+    projectId,
+    identityKey: "arn:aws:iam::210987654321:root",
+    principal: "arn:aws:iam::210987654321:root",
+    principalName: "210987654321",
+    principalType: DataStorePrincipalType.Account,
+    provider: "aws",
+    isExternal: true,
+    isPublic: false,
+    isUnused: false,
+    isSeenInTraces: false,
+    storeCount: 1,
+    sensitiveStoreCount: 1,
+    restrictedStoreCount: 1,
+    highestSensitivity: DataSensitivity.Restricted,
+    highestAccessLevel: DataStoreAccessLevel.Read,
+    canChangeSensitiveData: false,
+    dataTypeIds: ["credit-card-number", "email-address"],
+    estimatedRecords: 2400000,
+    riskScore: 66,
+    firstSeenAt: ago(9 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.identity(4),
+    projectId,
+    identityKey: "arn:aws:iam::123456789012:role/legacy-etl",
+    principal: "arn:aws:iam::123456789012:role/legacy-etl",
+    principalName: "legacy-etl",
+    principalType: DataStorePrincipalType.Role,
+    provider: "aws",
+    isExternal: false,
+    isPublic: false,
+    isUnused: true,
+    isSeenInTraces: false,
+    storeCount: 1,
+    sensitiveStoreCount: 1,
+    restrictedStoreCount: 0,
+    highestSensitivity: DataSensitivity.Confidential,
+    highestAccessLevel: DataStoreAccessLevel.Read,
+    canChangeSensitiveData: false,
+    dataTypeIds: ["email-address", "phone-number"],
+    estimatedRecords: 640000,
+    riskScore: 41,
+    lastUsedAt: ago(140 * DAY),
+    firstSeenAt: ago(300 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.identity(5),
+    projectId,
+    identityKey: "66666666-6666-4666-8666-666666666666",
+    principal: "66666666-6666-4666-8666-666666666666",
+    principalName: "checkout",
+    principalType: DataStorePrincipalType.Service,
+    provider: "oneuptime",
+    isExternal: false,
+    isPublic: false,
+    isUnused: false,
+    isSeenInTraces: true,
+    storeCount: 1,
+    sensitiveStoreCount: 1,
+    restrictedStoreCount: 0,
+    highestSensitivity: DataSensitivity.Confidential,
+    highestAccessLevel: DataStoreAccessLevel.Read,
+    canChangeSensitiveData: false,
+    dataTypeIds: ["email-address", "phone-number"],
+    estimatedRecords: 640000,
+    riskScore: 31,
+    lastUsedAt: ago(20 * MINUTE),
+    firstSeenAt: ago(12 * DAY),
+    lastSeenAt: ago(20 * MINUTE),
   },
 );
 
@@ -885,6 +1183,17 @@ table(DataSecurityIssueFeed).push(
  */
 
 // ?data=busy: stores with long names, as real accounts name them.
+const BUSY_IDENTITY_NAMES = [
+  "AWSReservedSSO_DataEngineeringPowerUserAccess_7a1b2c3d4e5f6a7b",
+  "eks-nodegroup-payments-production-eu-central-1-NodeInstanceRole-1X2Y3Z",
+  "customer-data-platform-nightly-export-to-partner-warehouse",
+  "terraform-ci-deployer",
+  "analytics-reader",
+  "support-tools-readonly-access-for-escalations",
+  "backup-vault-restore-operator",
+  "ml-feature-store-training-pipeline-role",
+];
+
 const BUSY_STORES = [
   [
     "prod-eu-west-1-customer-analytics-events-archive-2026",
@@ -1036,6 +1345,47 @@ const EXPOSURE_CYCLE = [
 ];
 
 function addBusyData() {
+  /*
+   * Identities with the long names a big account has: a role path and a
+   * session-length name, an SSO permission set, a service account.
+   */
+  BUSY_IDENTITY_NAMES.forEach((name, index) => {
+    const external = index % 4 === 1;
+    const principal = `arn:aws:iam::${external ? "999988887777" : "123456789012"}:role/service-role/${name}`;
+    table(DataSecurityIdentity).push({
+      _id: ID.identity(20 + index),
+      projectId,
+      identityKey: principal,
+      principal,
+      principalName: name,
+      principalType: DataStorePrincipalType.Role,
+      provider: "aws",
+      isExternal: external,
+      isPublic: false,
+      isUnused: index % 3 === 2,
+      isSeenInTraces: false,
+      storeCount: 3 + index,
+      sensitiveStoreCount: 1 + (index % 3),
+      restrictedStoreCount: index % 2,
+      highestSensitivity:
+        index % 2 === 1
+          ? DataSensitivity.Restricted
+          : DataSensitivity.Confidential,
+      highestAccessLevel:
+        index % 3 === 0
+          ? DataStoreAccessLevel.Admin
+          : DataStoreAccessLevel.Read,
+      canChangeSensitiveData: index % 3 === 0,
+      dataTypeIds: ["email-address", "credit-card-number"],
+      estimatedRecords: (index + 1) * 90000,
+      riskScore: 60 - index,
+      lastUsedAt:
+        index % 3 === 2 ? ago((100 + index) * DAY) : ago(index * HOUR),
+      firstSeenAt: ago(40 * DAY),
+      lastSeenAt: ago(2 * HOUR),
+    });
+  });
+
   BUSY_STORES.forEach(([name, kind, provider, region], index) => {
     const number = 10 + index;
     const sensitivity = SENSITIVITY_CYCLE[index % SENSITIVITY_CYCLE.length];
@@ -1115,6 +1465,7 @@ function emptyData() {
     DataSecurityIssue,
     DataStoreFinding,
     DataStoreAccess,
+    DataSecurityIdentity,
     DataSecurityScan,
     DataSecurityFlow,
     DataStoreOwnerUser,
@@ -1451,6 +1802,10 @@ ModelAPI.updateById = async (options) => {
   });
   if (record) {
     Object.assign(record, options.data);
+    // A confirmed finding counts as High, as DataStoreFindingService sets it.
+    if (modelName === "DataStoreFinding" && options.data.isConfirmed === true) {
+      record.confidence = "High";
+    }
   }
   return new HTTPResponse(200, {}, {});
 };
@@ -1614,34 +1969,50 @@ function compliance() {
   };
 }
 
+// Every action the bucket's kind can take, as the server lists them.
 function responseActions(dataStoreId) {
   const store = storeById(dataStoreId);
   if (!store || store.kind !== DataStoreKind.AwsS3Bucket) {
     return { actions: [] };
   }
   return {
-    actions: [
-      {
-        action: DataSecurityResponseAction.BlockPublicAccess,
+    actions: getDataSecurityResponseActions(store.kind).map((action) => {
+      return {
+        action,
         isAvailable: isResponseOn,
         unavailableReason: isResponseOn
           ? undefined
           : DataSecurityResponseUnavailableReason.ResponseOff,
-      },
-    ],
+      };
+    }),
     cloudConnectionId: isResponseOn ? undefined : ID.connection(1),
   };
 }
 
+// What each action the bucket can take does to it, in the server's words.
+const RESPONSES = {
+  [DataSecurityResponseAction.BlockPublicAccess]: (store) => {
+    store.exposure = DataStoreExposure.Private;
+    store.posture = {
+      ...store.posture,
+      publicRead: false,
+      blockPublicAccess: true,
+    };
+    return `Turned on all four Block Public Access settings of bucket ${store.name}.`;
+  },
+  [DataSecurityResponseAction.TurnOnVersioning]: (store) => {
+    store.posture = { ...store.posture, versioning: true };
+    return `Turned on versioning for bucket ${store.name}: an object overwritten or deleted from now on can be restored from its earlier version.`;
+  },
+  [DataSecurityResponseAction.TurnOffObjectAcls]: (store) => {
+    store.posture = { ...store.posture, uniformAccess: true };
+    return `Turned off object ACLs for bucket ${store.name}: the bucket's policy alone decides who reads it now.`;
+  },
+};
+
 function respond(dataStoreId, body) {
   const store = storeById(dataStoreId);
-  const summary = `Turned on all four Block Public Access settings of ${store.name}.`;
-  store.exposure = DataStoreExposure.Private;
-  store.posture = {
-    ...store.posture,
-    publicRead: false,
-    blockPublicAccess: true,
-  };
+  const summary = RESPONSES[body.action](store);
   const next = table(DataStoreFeed).length + 1;
   table(DataStoreFeed).push({
     _id: ID.feed(100 + next),

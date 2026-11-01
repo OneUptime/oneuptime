@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import {
   BUTTON_DISABLED_CLASS_NAME,
   BUTTON_DISABLED_CURSOR_CLASS_NAME,
@@ -484,16 +485,13 @@ const Toggle: FunctionComponent<ComponentProps> = (
         )}
       </div>
       {props.error ? (
-        <p
+        <FieldError
           id={errorId}
-          data-testid="error-message"
+          message={props.error}
           className={`mt-1 text-sm text-red-400 ${
             hasTitle || hasDescription ? "pl-14" : ""
           }`}
-          role="alert"
-        >
-          {props.error}
-        </p>
+        />
       ) : (
         <></>
       )}

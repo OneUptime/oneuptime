@@ -14,6 +14,7 @@ import fs from "fs";
 import path from "path";
 import * as React from "react";
 import ExceptionRow from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionRow";
+import { isolated } from "../../Helpers/IsolateMarks";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 
 /*
@@ -187,9 +188,13 @@ describe("an exception row's first seen, last seen and events", () => {
       />,
     );
 
-    expect(smallPrint(view)).toContain("اولین بار ۹ روز پیش");
-    expect(smallPrint(view)).toContain("آخرین بار ۱۷ دقیقه پیش");
-    expect(smallPrint(view)).toContain("۴۱۲ رویداد");
+    /*
+     * Each time and the count set apart from the Persian words, so a digit
+     * keeps to the words it belongs with (TranslatedSentence).
+     */
+    expect(smallPrint(view)).toContain(`اولین بار ${isolated("۹ روز پیش")}`);
+    expect(smallPrint(view)).toContain(`آخرین بار ${isolated("۱۷ دقیقه پیش")}`);
+    expect(smallPrint(view)).toContain(`${isolated("۴۱۲")} رویداد`);
   });
 
   test.each(LANGUAGES)(

@@ -4,7 +4,7 @@ Sapere cosa contiene un archivio è solo metà del lavoro. Sicurezza dei dati ri
 
 :::cards
 - [Flussi di dati](#flussi-di-dati): Servizi, provider di IA, host esterni e copie.
-- [Chi può raggiungere un archivio](#chi-può-raggiungere-un-archivio): Ogni concessione che il tuo cloud riporta, e quanto è esposto l'archivio.
+- [Chi può raggiungere un archivio](#chi-può-raggiungere-un-archivio): Ogni identità e ogni concessione, cosa raggiunge ciascuna identità, e quanto è esposto l'archivio.
 - [Regole di residenza](#regole-di-residenza): Le regioni in cui può risiedere ogni tipo di dati.
 :::
 
@@ -39,18 +39,18 @@ Una copia viene trovata senza i valori di nessuno dei due archivi. Per ogni tipo
 
 ## Chi può raggiungere un archivio
 
-La lettura della configurazione trasforma le impostazioni di accesso proprie di ogni cloud - policy e ACL dei bucket, assegnazioni di ruolo di Azure, binding IAM di Google Cloud, condivisioni di snapshot - in un unico elenco di chi può raggiungere l'archivio, nella sua pagina **Chi può accedervi**:
+La lettura della configurazione trasforma le impostazioni di accesso proprie di ogni cloud - policy e ACL dei bucket, assegnazioni di ruolo di Azure, binding IAM di Google Cloud, condivisioni di snapshot e, su AWS, le policy IAM proprie di ogni ruolo e di ogni utente - in un unico elenco di chi può raggiungere l'archivio, nella sua pagina **Chi può accedervi**. Ci sono anche i servizi che la mappa dei servizi mostra mentre chiamano l'archivio:
 
 | Colonna | Cosa dice |
 | --- | --- |
-| **Principal** | Chi o cosa ha accesso, come lo chiama il cloud: `*`, l'id di un account, un ARN, un'email, un account di servizio. |
-| **Tipo di principal** | Pubblico, Account, Ruolo, Utente, Gruppo, Service Principal, Account di servizio o Servizio. |
+| **Chi** | Chi o cosa ha accesso, come lo chiama il cloud: `*`, l'id di un account, un ARN, un'email, un account di servizio, un servizio. Un'identità non usata da 90 giorni è contrassegnata come tale. |
+| **Tipo** | Pubblico, Account, Ruolo, Utente, Gruppo, Service Principal, Account di servizio o Servizio. |
 | **Livello di accesso** | Lettura, Scrittura o Amministratore. |
-| **Concesso tramite** | Cosa lo concede: una policy del bucket, un'ACL, un'assegnazione di ruolo, un binding IAM o una condivisione di snapshot. |
-| **Esterno** | Il principal è esterno agli account, alle sottoscrizioni e ai progetti collegati a OneUptime. |
-| **Pubblico** | Il principal è chiunque su Internet. |
+| **Concesso tramite** | Cosa lo concede: una policy del bucket, un'ACL, una policy IAM, un ruolo che può assumere, un'assegnazione di ruolo, un binding IAM o una condivisione di snapshot - oppure, per un servizio, il fatto che le tracce lo hanno visto usare l'archivio. |
+| **Raggiungibilità** | Chiunque su Internet, all'esterno dei tuoi account - gli account, le sottoscrizioni e i progetti collegati a OneUptime - o i tuoi account. |
+| **Ultimo utilizzo** | Quando l'identità ha usato il suo accesso l'ultima volta, secondo il cloud, o quando la mappa dei servizi ha visto il servizio chiamare l'archivio l'ultima volta. |
 
-L'elenco viene riletto a ogni lettura della configurazione, e una concessione che il cloud non riporta più viene rimossa. [Più di 25 identità possono leggere dati di livello Ristretto](/docs/data-security/checks-and-issues#accesso) conta i lettori presenti nell'elenco. I servizi che usano un archivio sono i suoi flussi **Usa**.
+L'elenco viene riletto a ogni lettura della configurazione, e una concessione che il cloud non riporta più viene rimossa. [Più di 25 identità possono leggere dati di livello Ristretto](/docs/data-security/checks-and-issues#accesso) conta i lettori presenti nell'elenco, e [Identità inutilizzate da 90 giorni possono ancora raggiungerlo](/docs/data-security/checks-and-issues#accesso) non viene superato finché un'identità non usata da 90 giorni può raggiungere i suoi dati sensibili. I servizi che usano un archivio sono i suoi flussi **Usa**.
 
 In base a ciò che legge, ogni archivio riceve un'esposizione:
 
@@ -63,6 +63,22 @@ In base a ciò che legge, ogni archivio riceve un'esposizione:
 | **Sconosciuto** | OneUptime non ha potuto leggere abbastanza della sua configurazione per stabilirlo. |
 
 Pubblico prevale su condiviso, e condiviso prevale su raggiungibile: un bucket pubblico che è anche condiviso con un altro account è Pubblico. L'esposizione si somma al [punteggio di rischio](/docs/data-security/checks-and-issues#punteggio-di-rischio) di un problema.
+
+### Ogni identità, e cosa può raggiungere
+
+Su AWS, la lettura elenca una volta gli utenti e i ruoli dell'account, e decide come fa IAM quali raggiungono ogni bucket e ogni tabella DynamoDB, e come: ciò che le loro policy consentono meno ciò che negano, i limiti delle autorizzazioni, e una concessione valida solo a determinate condizioni lo dice. Un account esterno ai tuoi account collegati che può assumere un ruolo raggiunge ciò che raggiunge il ruolo. L'ultimo utilizzo di ogni identità viene da IAM per i ruoli, e dal report delle credenziali dell'account per gli utenti.
+
+**Sicurezza dei dati → Accesso** elenca ogni identità che può raggiungere i tuoi archivi, la più rischiosa per prima: cosa raggiunge e quanto è sensibile, il massimo che può fare e quando è stata usata l'ultima volta, con i filtri **All'esterno dei tuoi account**, **Non usata da 90 giorni** e **Può modificare dati sensibili**. Ognuna apre la propria pagina: ogni archivio che può raggiungere, il più sensibile per primo, e il suo punteggio di rischio parte per parte. Sotto, Accesso elenca ogni concessione dall'esterno dei tuoi account.
+
+| Cosa si aggiunge al rischio di un'identità | Punti |
+| --- | --- |
+| I dati più sensibili che raggiunge | 50 per Ristretto, 30 per Confidenziale, 10 per Interno |
+| Può scrivere in un archivio Confidenziale o Ristretto, o amministrarlo | 15 |
+| È chiunque su Internet, o è all'esterno dei tuoi account | 20 per chiunque, 15 per l'esterno |
+| Non è stata usata da 90 giorni e raggiunge dati Interni, Confidenziali o Ristretti | 10 |
+| Quanti archivi sensibili raggiunge | 1 per ciascuno, fino a 5 |
+
+Il punteggio è al massimo 100. Un ruolo di un account esterno che può modificare un archivio di numeri di carta ottiene 50 + 15 + 15 + 1 = 81.
 
 ## Regole di residenza
 

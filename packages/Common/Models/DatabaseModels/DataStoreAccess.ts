@@ -349,6 +349,25 @@ export default class DataStoreAccess extends BaseModel {
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Unused",
+    description:
+      "The principal has not been used in 90 days, as far as its cloud can say.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isUnused?: boolean = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
     type: TableColumnType.Date,
     required: false,
     computed: true,

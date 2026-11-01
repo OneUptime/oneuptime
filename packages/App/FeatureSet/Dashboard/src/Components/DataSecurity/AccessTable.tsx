@@ -1,5 +1,12 @@
 import AppLink from "../AppLink/AppLink";
 import { SensitivityPill } from "./DataSecurityPills";
+import {
+  GrantedViaCell,
+  PrincipalText,
+  canOpenIdentities,
+  getAccessIdentityRoute,
+  showsPrincipal,
+} from "./IdentityCells";
 import { getStoreViewRoute } from "./IssueListRoute";
 import IssueMoment from "./IssueMoment";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
@@ -36,8 +43,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * a role assignment, an IAM binding, a snapshot share - or a service seen
  * using the store in traces: who or what it gives access to, what it may
  * do, and the store, with how sensitive what it holds is. The Access page
- * draws two of these: what reaches the stores from outside your accounts,
- * anyone on the internet first, and what reaches them from inside.
+ * draws what reaches the stores from outside your accounts, anyone on the
+ * internet first, under its identities; each row opens its identity's
+ * page.
  */
 
 export const ACCESS_LEVEL_COLOR: Readonly<Record<string, Color>> = {
@@ -126,7 +134,10 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
-      isViewable={false}
+      isViewable={canOpenIdentities()}
+      // Its View opens the row's identity: "View Identity" to a screen reader.
+      singularName="Identity"
+      onViewPage={getAccessIdentityRoute}
       sortBy={props.isExternal ? "isPublic" : "accessLevel"}
       sortOrder={SortOrder.Descending}
       cardProps={{
@@ -163,9 +174,9 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
                     text={access.principalName || access.principal || ""}
                   />
                 </div>
-                {access.principalName && access.principal ? (
-                  <div className="font-mono text-xs text-gray-500 [overflow-wrap:anywhere]">
-                    {access.principal}
+                {showsPrincipal(access) ? (
+                  <div className="text-xs text-gray-500 [overflow-wrap:anywhere]">
+                    <PrincipalText principal={access.principal || ""} />
                   </div>
                 ) : (
                   <></>
@@ -194,6 +205,13 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
           type: FieldType.Element,
           hideOnMobile: true,
           disableSort: true,
+          /*
+           * Under the principal's name where the list does not fit its card
+           * (TableFit): beside the side menu at 1280px, German's headers and
+           * a row's View ran 122px past it.
+           */
+          hideBelowLargeScreen: true,
+          foldInto: "principalName",
           getElement: (access: DataStoreAccess): ReactElement => {
             return (
               <span className="whitespace-nowrap text-sm text-gray-700">
@@ -207,7 +225,7 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
         },
         {
           field: { accessLevel: true },
-          title: "Level",
+          title: "Access Level",
           type: FieldType.Element,
           disableSort: true,
           getElement: (access: DataStoreAccess): ReactElement => {
@@ -233,11 +251,7 @@ const AccessTable: FunctionComponent<AccessTableProps> = (
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-xs",
           getElement: (access: DataStoreAccess): ReactElement => {
-            return (
-              <span className="text-sm text-gray-700 [overflow-wrap:anywhere]">
-                <IsolatedText text={access.grantedVia || "-"} />
-              </span>
-            );
+            return <GrantedViaCell access={access} />;
           },
         },
         {

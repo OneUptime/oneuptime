@@ -19,6 +19,7 @@ import DataSecuritySensitiveDataPage from "../Pages/DataSecurity/SensitiveData";
 import DataSecurityTelemetryPage from "../Pages/DataSecurity/Telemetry";
 import DataSecurityDataFlowsPage from "../Pages/DataSecurity/DataFlows";
 import DataSecurityAccessPage from "../Pages/DataSecurity/Access";
+import DataSecurityIdentityViewPage from "../Pages/DataSecurity/IdentityView";
 import DataSecurityCompliancePage from "../Pages/DataSecurity/Compliance";
 import DataSecurityScansPage from "../Pages/DataSecurity/Scans";
 import DataSecurityDocumentationPage from "../Pages/DataSecurity/Documentation";
@@ -49,7 +50,8 @@ import DataSecurityIssueDeletePage from "../Pages/DataSecurity/IssueView/Delete"
  * StoreView): its Overview at the store's address, and each of its other
  * pages one level under it. An issue is the same (Pages/DataSecurity/
  * IssueView). "stores/archived" is a word, so it wins over a store's
- * "stores/:id".
+ * "stores/:id". An identity has one page, its own, under the product's
+ * side menu (Pages/DataSecurity/IdentityView).
  */
 const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -294,6 +296,17 @@ const DataSecurityRoutes: FunctionComponent<ComponentProps> = (
           }
         />
       </PageRoute>
+
+      {/* One identity: what it can reach, under the product's side menu. */}
+      <PageRoute
+        path={DataSecurityRoutePath[PageMap.DATA_SECURITY_IDENTITY_VIEW] || ""}
+        element={
+          <DataSecurityIdentityViewPage
+            {...props}
+            pageRoute={RouteMap[PageMap.DATA_SECURITY_IDENTITY_VIEW] as Route}
+          />
+        }
+      />
 
       {/* One data store's pages, under its own side menu. */}
       <PageRoute

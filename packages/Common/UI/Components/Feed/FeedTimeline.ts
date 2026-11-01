@@ -233,7 +233,11 @@ export const buildFeedTimeline: <TItem extends FeedTimelineItem>(data: {
       ? item.itemDateTime
       : new Date(0);
     const dayKey: string = getFeedDayKey(date, data.clock.timezone);
-    const zoneName: string = getFeedZoneName(date, data.clock.timezone);
+    const zoneName: string = getFeedZoneName(
+      date,
+      data.clock.timezone,
+      data.clock.language,
+    );
 
     if (!currentDay || currentDay.dayKey !== dayKey) {
       currentDay = {

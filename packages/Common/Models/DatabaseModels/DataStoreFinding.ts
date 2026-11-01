@@ -34,7 +34,12 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * OneUptime writes every row; people mark a finding "not sensitive", which
  * keeps it out of the store's sensitivity and its checks and tunes the next
- * scans. No row ever holds a raw value.
+ * scans, or confirm one the scan was not sure of, which makes it count. No
+ * row ever holds a raw value.
+ *
+ * A row can be OneUptime AI's suggestion for a field no detector placed
+ * (isAiSuggested, with its reason): it is Low confidence and matched no
+ * value, so it counts only once a person confirms it.
  */
 const readPermissions: Array<Permission> = [
   Permission.ProjectOwner,
@@ -579,6 +584,59 @@ export default class DataStoreFinding extends BaseModel {
     nullable: true,
   })
   public suppressedReason?: string = undefined;
+
+  @ColumnAccessControl(peopleEditableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Confirmed",
+    description:
+      "A person confirmed the finding holds this data. A confirmed finding counts as High confidence toward the store's sensitivity and checks, whatever the scan or OneUptime AI was sure of.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isConfirmed?: boolean = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Suggested by OneUptime AI",
+    description:
+      "OneUptime AI suggested this data type for a field no detector placed, from the field's name, the names beside it and the shapes of its values - never a value. It counts only once a person confirms it.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isAiSuggested?: boolean = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Why OneUptime AI Suggested It",
+    description: "OneUptime AI's reason for its suggestion, in a sentence.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public aiReason?: string = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

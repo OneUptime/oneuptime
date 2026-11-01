@@ -374,6 +374,95 @@ describe("reading an impact", () => {
     expect(impact.unreadableSources).toEqual([SecurityCaseImpactSource.Owners]);
   });
 
+  test("the data at risk reads as the server says it; a store or an identity without an id is left out", () => {
+    const impact: SecurityCaseImpactJson = model.parseSecurityCaseImpact({
+      records: [],
+      dataAtRisk: {
+        stores: [
+          {
+            id: "s-1",
+            name: "card-vault",
+            kind: "AWS S3 bucket",
+            sensitivity: "Restricted",
+            dataTypeIds: ["credit-card-number", 7, null],
+            estimatedRecords: 1200000,
+            exposure: "Public",
+            isNamedByCase: true,
+            reachedThrough: ["exporter"],
+            identityCount: 14,
+            externalIdentityCount: 2,
+          },
+          { name: "no id" },
+          "not a store",
+        ],
+        identities: [
+          {
+            id: "i-1",
+            name: "exporter",
+            principal: "arn:aws:iam::123456789012:role/exporter",
+            principalType: "Role",
+            storeCount: 12,
+            sensitiveStoreCount: 3,
+            highestSensitivity: "Restricted",
+            riskScore: 81,
+          },
+          { name: "no id" },
+        ],
+        hasMoreStores: true,
+      },
+    } as unknown as JSONObject);
+
+    expect(impact.dataAtRisk).toEqual({
+      stores: [
+        {
+          id: "s-1",
+          name: "card-vault",
+          kind: "AWS S3 bucket",
+          sensitivity: "Restricted",
+          dataTypeIds: ["credit-card-number"],
+          estimatedRecords: 1200000,
+          exposure: "Public",
+          isNamedByCase: true,
+          reachedThrough: ["exporter"],
+          identityCount: 14,
+          externalIdentityCount: 2,
+        },
+      ],
+      identities: [
+        {
+          id: "i-1",
+          name: "exporter",
+          principal: "arn:aws:iam::123456789012:role/exporter",
+          principalType: "Role",
+          storeCount: 12,
+          sensitiveStoreCount: 3,
+          highestSensitivity: "Restricted",
+          riskScore: 81,
+        },
+      ],
+      hasMoreStores: true,
+    });
+  });
+
+  test("a server that sends no data at risk - it could not read it, or is older - reads as not known", () => {
+    expect(
+      model.parseSecurityCaseImpact({ records: [] } as unknown as JSONObject)
+        .dataAtRisk,
+    ).toBeNull();
+    expect(
+      model.parseSecurityCaseImpact({
+        records: [],
+        dataAtRisk: { stores: "x", identities: null },
+      } as unknown as JSONObject).dataAtRisk,
+    ).toEqual({ stores: [], identities: [], hasMoreStores: false });
+    expect(
+      model.parseSecurityCaseImpact({
+        records: [],
+        unreadableSources: ["DataStores", "Nonsense"],
+      } as unknown as JSONObject).unreadableSources,
+    ).toEqual([SecurityCaseImpactSource.DataStores]);
+  });
+
   test("facts the server could not read stay not known, never empty", () => {
     const impact: SecurityCaseImpactJson = model.parseSecurityCaseImpact({
       records: [{ kind: "Host", id: "h-1", name: "web-1" }],

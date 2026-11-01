@@ -8,7 +8,8 @@ import ObjectID from "../../../Types/ObjectID";
  * The Workers run them (Jobs/DataSecurity/*): discovering one project's
  * stores, scanning one project's telemetry, evaluating a project's stores
  * again after something that decides their checks changed, scanning one
- * store's content, and reading one cloud connection's configuration. The
+ * store's content, asking OneUptime AI about the fields a store's scan
+ * could not place, and reading one cloud connection's configuration. The
  * schedules only queue them, one per project, store or connection, so a
  * large installation is spread over every worker instead of one loop.
  * Each is deduplicated by what it is about, keeping the latest asked for,
@@ -26,6 +27,8 @@ export const DATA_SECURITY_EVALUATE_PROJECT_JOB: string =
 export const DATA_SECURITY_SCAN_STORE_JOB: string = "DataSecurity:ScanStore";
 export const DATA_SECURITY_READ_CONNECTION_JOB: string =
   "DataSecurity:ReadConnection";
+export const DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB: string =
+  "DataSecurity:SuggestFieldTypes";
 
 async function queue(data: {
   jobName: string;
@@ -102,6 +105,25 @@ export async function queueDataStoreScan(data: {
       dataStoreId: data.dataStoreId.toString(),
     },
     description: `the scan of store ${data.dataStoreId.toString()}`,
+  });
+}
+
+/*
+ * Asks OneUptime AI which data type each field a store's last content scan
+ * could not place holds (Server/Utils/AI/DataSecurity/FieldSuggestion).
+ */
+export async function queueDataSecurityFieldSuggestions(data: {
+  projectId: ObjectID;
+  dataStoreId: ObjectID;
+}): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB,
+    key: `data-security-suggest-${data.dataStoreId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      dataStoreId: data.dataStoreId.toString(),
+    },
+    description: `the field suggestions of store ${data.dataStoreId.toString()}`,
   });
 }
 
