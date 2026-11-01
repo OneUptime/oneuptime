@@ -38,6 +38,7 @@ Når en undersøgelse er færdig, lægger OneUptime AI en årsagsanalyse op med 
 - **Summary**: en eller to sætninger, som en tilkaldt person kan læse på fem sekunder.
 - **Most likely root cause**: hypotesen, kun med den sikkerhed, beviserne giver, og med kilde til hver faktuel påstand. Er telemetrien utilstrækkelig, siger AI det klart og lister, hvad den har tjekket, i stedet for at gætte.
 - **Evidence**: de vigtigste fund, der understøtter eller udelukker hypotesen, hver med kilde.
+- **Ruled out**: de andre sandsynlige årsager, den kontrollerede, såsom en nylig ændring, en kapacitetsgrænse, en afhængighed eller skyen nedenunder, hver med det citerede bevis, der udelukker den. Kortet viser dem én pr. linje. En analyse, der ikke kontrollerede andre årsager, udelader afsnittet.
 - **Suggested next steps**: konkrete handlinger for den vagthavende.
 
 For hændelser lægges analysen op i hændelsens feed **og** som en intern note på hændelsen (hvor dem, der håndterer den, samarbejder). For advarsler lægges den op i advarslens feed.
@@ -65,6 +66,7 @@ En undersøgelse starter ved hændelsen eller advarslen og ved den infrastruktur
 - Infrastrukturens egne metrikker, læst sådan som mennesker læser dem. Værtsmetrikker som `system.cpu.utilization` og `system.memory.utilization` rapporteres én gang pr. tilstand, og tilstandene giver tilsammen 100 %, så ét gennemsnit over dem alle siger intet. OneUptime AI læser dem én tilstand ad gangen (optaget CPU er user plus system), og enhver metrik pr. container, pr. monteringspunkt eller efter enhver anden attribut.
 - Containerne på en Docker- eller Podman-vært: de travleste efter CPU, hukommelse eller genstarter, og dem, der holdt op med at rapportere. En stoppet container sender intet i stedet for nul, så tallene for hele værten skjuler den.
 - De ændringer, der er registreret i de 2 timer før hændelsen eller advarslen (udrulninger, Kubernetes-rollouts, konfigurationsændringer og de rettelser, OneUptime kørte), og hvilke af dem dens tjenesters telemetri gør til mistænkte: en tjeneste, der blev målbart dårligere lige efter en ændring. Se [Udrulninger og ændringer](/docs/telemetry/change-events).
+- Projektets løste hændelser, der deler hændelsens monitorer eller etiketter: hvordan hver blev løst og, når OneUptime AI's rettelse af en af dem blev verificeret, hvad den rettelse kørte, så en gentagelse nævner den rettelse, der virkede sidst. Private hændelser er udeladt.
 
 Undersøgelsens aktivitet på kortet **OneUptime AI** fortæller, hvor mange åbne eller nye advarsler den læste, og på hvilke ressourcer.
 
@@ -412,6 +414,25 @@ Når hændelsen slet ikke er knyttet til noget cluster eller nogen infrastruktur
 En beslutning træffes én gang, med projektets indstillinger i det øjeblik: en kontakt, der slås til senere, virker ikke tilbage på hændelser, der allerede er åbne. Når sådan en kontakt er slået til, siger linjen, at den var slået fra, da OneUptime AI tjekkede, og er slået til nu, og på en åben hændelse, hvor intet blev rettet, beslutter **Prøv igen** igen med indstillingerne, som de er nu, som for en ny hændelse. Alle, der må redigere hændelsen, kan trykke på den. Den tilbydes ikke, mens en rettelse udarbejdes eller venter på godkendelse, eller mens rettelsen venter på undersøgelsen, og lige efter at OneUptime AI har tjekket, beder den dig prøve igen om et øjeblik.
 
 Når undersøgelsen finder årsagen i koden, siger trinnet, hvad der kom ud af det: den pull request med rettelse, som OneUptime AI skriver eller har åbnet, med et link til den i Code; det ene opsætningstrin, der står i vejen, som **Forbind et repository**; eller **Åbn pull request med rettelse**, med årsagen til, at OneUptime AI ikke selv åbnede den (se [Automatiske koderettelser](#automatiske-koderettelser)).
+
+### Før du godkender en rettelse
+
+En rettelse, der venter på godkendelse, viser under hver ændring, hvad du skal bruge for at beslutte:
+
+- **Hvad den gør, med almindelige ord.** En cloud-ændring siger det over sin præcise kommando, for eksempel "ECS-tjeneste checkout-api: skaler op til 8 opgaver". Ordene læses ud af selve kommandoen, aldrig ud af det, modellen skrev, og det er kommandoen, der kører.
+- **Hvordan den samme ændring gik før.** Når OneUptime AI har foretaget den samme ændring på den samme klynge eller ressource for andre hændelser og advarsler inden for de seneste 90 dage, siger ændringen, hvor ofte den virkede, for eksempel "Virkede alle 3 gange, den kørte her før", med et link til hver hændelse og advarsel, den kørte for, og med rødt, når den aldrig virkede. En ændring virkede, når verificeringen fandt, at dens rettelse virkede; en ændring, der aldrig kørte, tælles ikke med. Den samme ændring er den samme handling på det samme objekt, uanset dens tal: en skalering til 6 og en til 8 er én ændring. Private hændelser og advarsler hverken nævnes eller tælles.
+
+OneUptime AI læser den samme historik, før den planlægger: når beviserne passer til en rettelse, der virkede her før, prøver den den rettelse først, og den foreslår ikke igen en ændring, der ikke virkede, uden at sige, hvorfor den ville virke nu.
+
+### Godkend eller afvis en rettelse fra Slack eller Microsoft Teams
+
+Når en rettelse venter på godkendelse, viser dens besked i hændelsens eller advarslens Slack- og Microsoft Teams-kanaler dens ændringer, hver med hvordan den gik før, og tre knapper:
+
+- **Review and approve** viser alt, hvad rettelsen kører, med **Approve and run**. En godkendelse kører præcis det viste, som din egen OneUptime-konto, og rettelsen verificeres og rulles tilbage som en, der er godkendt på kortet.
+- **Dismiss** afviser rettelsen: OneUptime AI kører den ikke, og hændelsen eller advarslen beholder det, den foreslog.
+- **View in OneUptime** åbner hændelsen eller advarslen.
+
+Et tryk kontrolleres som kortets knapper: din chatkonto skal være forbundet med OneUptime, du skal have lov til at godkende rettelser i projektet og se hændelsen eller advarslen, og en rettelse på en klynge eller ressource kræver tilladelse til at redigere den. En rettelse, der ændrede sig, efter dens besked blev sendt, afvises, og intet køres. Et tryk, efter at en anden har godkendt eller afvist rettelsen, siger, hvem der gjorde det, og hvornår. Hændelsens eller advarslens feed siger, hvem der godkendte eller afviste den, og fra hvilken chat.
 
 ## OneUptime AI reagerer først
 

@@ -149,7 +149,8 @@ export const CLOUD_SCALE_SENTENCES: Readonly<
     },
     minimumInstances: {
       one: "Raise the minimum of the {{kind}} {{name}} to {{count}} instance",
-      other: "Raise the minimum of the {{kind}} {{name}} to {{count}} instances",
+      other:
+        "Raise the minimum of the {{kind}} {{name}} to {{count}} instances",
     },
   },
   in: {
@@ -163,7 +164,8 @@ export const CLOUD_SCALE_SENTENCES: Readonly<
     },
     minimumInstances: {
       one: "Lower the minimum of the {{kind}} {{name}} to {{count}} instance",
-      other: "Lower the minimum of the {{kind}} {{name}} to {{count}} instances",
+      other:
+        "Lower the minimum of the {{kind}} {{name}} to {{count}} instances",
     },
   },
 };

@@ -38,6 +38,7 @@ When an investigation finishes, OneUptime AI posts a root cause analysis with th
 - **Summary** — one or two sentences a paged engineer can read in five seconds.
 - **Most likely root cause** — the hypothesis, with only the confidence the evidence supports, each factual claim cited. If the telemetry is insufficient, the AI says so plainly and lists what it checked instead of guessing.
 - **Evidence** — the key findings that support or rule out the hypothesis, each cited.
+- **Ruled out** — the other likely causes it checked, such as a recent change, a capacity limit, a dependency or the cloud underneath, each with the cited evidence that rules it out. The card lists them one a line. An analysis that checked no other cause leaves it out.
 - **Suggested next steps** — concrete actions for the on-call engineer.
 
 For incidents, the analysis is posted to the incident feed **and** as an incident internal note (where responders collaborate). For alerts, it is posted to the alert feed.
@@ -65,6 +66,7 @@ An investigation starts from the incident or alert and from the infrastructure i
 - The infrastructure's own metrics, read the way people read them. Host metrics such as `system.cpu.utilization` and `system.memory.utilization` are reported once per state, and the states add up to 100%, so one average across them says nothing. OneUptime AI reads them one state at a time (busy CPU is user plus system), and any metric per container, per mount point or by any other attribute.
 - The containers of a Docker or Podman host: the busiest by CPU, memory or restarts, and the ones that stopped reporting. A stopped container sends nothing rather than zero, so numbers for the whole host hide it.
 - The changes recorded in the two hours before the incident or alert - deploys, Kubernetes rollouts, config changes and the fixes OneUptime ran - and which of them its services' telemetry makes suspects: a service that got measurably worse right after a change. See [Deploys and Changes](/docs/telemetry/change-events).
+- The project's resolved incidents that share the incident's monitors or labels: how each was resolved and, when OneUptime AI's fix of one was verified, what that fix ran, so a recurrence names the fix that worked last time. Private incidents are left out.
 
 The investigation's activity on the **OneUptime AI** card says how many open or recent alerts it read, and on which resources.
 
@@ -412,6 +414,25 @@ When the incident is linked to no cluster and no infrastructure resource at all,
 A decision is made once, with the project's settings of that moment: a switch turned on later does not reach back into incidents already open. Once such a switch is on, the line says it was off when OneUptime AI checked and is on now, and on an open incident nothing was fixed for, **Try again** decides again with the settings of now, as for a new incident. Anyone who may edit the incident can press it. It is not offered while a fix is being worked out or waits for approval, or while fixing waits for the investigation, and right after OneUptime AI checked, it asks you to try again in a moment.
 
 When the investigation finds the cause in the code, the step says what came of it: the fix pull request OneUptime AI is writing or opened, with a link to it in Code; the one setup step in the way, such as **Connect a repository**; or **Open fix pull request**, with why OneUptime AI did not open it on its own (see [Automatic code fixes](#automatic-code-fixes)).
+
+### Before you approve a fix
+
+A fix that waits for approval shows, under each change, what you need to decide on it:
+
+- **What it does, in plain words.** A cloud change says it above its exact command, such as "Scale the ECS service checkout-api out to 8 tasks". The words are read from the command itself, never from what the model wrote, and the command is what runs.
+- **How the same change went before.** When OneUptime AI made the same change on the same cluster or resource for other incidents and alerts in the last 90 days, the change says how often it worked, such as "Worked all 3 times it ran here before", with a link to each incident and alert it ran for, and in red when it never worked. A change worked when verification found its fix worked; a change that never ran is not counted. The same change is the same action on the same object, whatever its numbers: a scale to 6 and a scale to 8 are one change. Private incidents and alerts are neither named nor counted.
+
+OneUptime AI reads the same record before it plans: when the evidence matches a fix that worked here before, it tries that fix first, and it does not propose again a change that did not work unless it says why it would work now.
+
+### Approve or dismiss a fix from Slack or Microsoft Teams
+
+When a fix waits for approval, its message in the incident's or alert's Slack and Microsoft Teams channels lists its changes, with how each went before, and three buttons:
+
+- **Review and approve** shows everything the fix runs, with **Approve and run**. Approving runs exactly what was shown, as your own OneUptime account, and the fix is verified and rolled back as one approved on the card is.
+- **Dismiss** dismisses the fix: OneUptime AI will not run it, and the incident or alert keeps what it proposed.
+- **View in OneUptime** opens the incident or alert.
+
+A press is checked as the card's buttons are: your chat account must be connected to OneUptime, you must be allowed to approve fixes in the project and to see the incident or alert, and a fix to a cluster or resource needs permission to edit it. A fix that changed after its message was posted is refused, and nothing runs. A press after someone else approved or dismissed the fix says who did, and when. The incident's or alert's feed says who approved or dismissed it, and from which chat.
 
 ## OneUptime AI responds first
 

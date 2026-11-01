@@ -399,9 +399,9 @@ export default class RemediationTrackRecordReader {
         const subjectKind: "incident" | "alert" = row.incidentId
           ? "incident"
           : "alert";
-        const subjectId: string = (
-          row.incidentId || row.alertId
-        )!.toString().toLowerCase();
+        const subjectId: string = (row.incidentId || row.alertId)!
+          .toString()
+          .toLowerCase();
         const subject: SubjectFacts | undefined = subjects.get(subjectId);
 
         // A private subject, or one this project does not have: left out.
@@ -572,10 +572,7 @@ export default class RemediationTrackRecordReader {
     incidentIds: Array<ObjectID>;
     alertIds: Array<ObjectID>;
   }): Promise<Map<string, SubjectFacts>> {
-    const subjects: Map<string, SubjectFacts> = new Map<
-      string,
-      SubjectFacts
-    >();
+    const subjects: Map<string, SubjectFacts> = new Map<string, SubjectFacts>();
 
     if (data.incidentIds.length > 0) {
       const incidents: Array<Incident> = await IncidentService.findBy({

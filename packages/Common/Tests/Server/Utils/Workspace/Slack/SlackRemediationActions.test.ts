@@ -151,13 +151,15 @@ beforeEach(() => {
   jest
     .spyOn(WorkspaceRemediationActions, "getLatePressAnswer")
     .mockResolvedValue(null as never);
-  jest.spyOn(WorkspaceRemediationActions, "getApprovalDialog").mockResolvedValue({
-    title: "Approve this fix?",
-    markdown: "**Incident INC-42:** Checkout slow\n\n**1. Scale out**",
-    submitTitle: "Approve and run",
-    cancelTitle: "Cancel",
-    value: `${SUGGESTION_ID.toString()}:fedcba9876543210`,
-  } as never);
+  jest
+    .spyOn(WorkspaceRemediationActions, "getApprovalDialog")
+    .mockResolvedValue({
+      title: "Approve this fix?",
+      markdown: "**Incident INC-42:** Checkout slow\n\n**1. Scale out**",
+      submitTitle: "Approve and run",
+      cancelTitle: "Cancel",
+      value: `${SUGGESTION_ID.toString()}:fedcba9876543210`,
+    } as never);
   approve = jest
     .spyOn(WorkspaceRemediationActions, "approve")
     .mockResolvedValue(undefined as never) as AnySpy;
@@ -218,9 +220,11 @@ describe("Review and approve", () => {
     );
     expect(showModal).toHaveBeenCalledTimes(1);
 
-    const modal: WorkspaceModalBlock = (showModal.mock.calls[0]![0] as {
-      modalBlock: WorkspaceModalBlock;
-    }).modalBlock;
+    const modal: WorkspaceModalBlock = (
+      showModal.mock.calls[0]![0] as {
+        modalBlock: WorkspaceModalBlock;
+      }
+    ).modalBlock;
 
     expect(modal.title).toBe("Approve this fix?");
     expect(modal.submitButtonTitle).toBe("Approve and run");
@@ -271,10 +275,12 @@ describe("Review and approve", () => {
   });
 
   test("a press that came too late says who got there first, and opens nothing", async () => {
-    jest.spyOn(WorkspaceRemediationActions, "getLatePressAnswer").mockResolvedValue({
-      markdown: "✅ This fix was already approved by **Maya Chen**.",
-      text: "This fix was already approved by Maya Chen",
-    } as never);
+    jest
+      .spyOn(WorkspaceRemediationActions, "getLatePressAnswer")
+      .mockResolvedValue({
+        markdown: "✅ This fix was already approved by **Maya Chen**.",
+        text: "This fix was already approved by Maya Chen",
+      } as never);
 
     await SlackRemediationActions.handleRemediationAction(
       press(SlackActionType.ViewApproveRemediation),
@@ -370,7 +376,9 @@ describe("Dismiss", () => {
 
   test("a refused dismissal is told, nothing logged", async () => {
     dismiss.mockRejectedValue(
-      new BadDataException("Only suggested or planning remediations can be dismissed — this one is Approved.") as never,
+      new BadDataException(
+        "Only suggested or planning remediations can be dismissed — this one is Approved.",
+      ) as never,
     );
 
     await SlackRemediationActions.handleRemediationAction(

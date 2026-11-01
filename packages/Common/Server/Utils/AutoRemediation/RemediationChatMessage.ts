@@ -423,9 +423,8 @@ export default class RemediationChatMessage {
         fingerprint: RemediationChatMessage.getFingerprint(fix),
       });
 
-      const viewUrl: URL | null = await RemediationChatMessage.getSubjectUrl(
-        fix,
-      );
+      const viewUrl: URL | null =
+        await RemediationChatMessage.getSubjectUrl(fix);
 
       const changes: WorkspacePayloadMarkdown = {
         _type: "WorkspacePayloadMarkdown",

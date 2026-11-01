@@ -38,6 +38,7 @@ Quand une investigation se termine, OneUptime AI publie une analyse des causes r
 - **Summary** — une ou deux phrases qu'une personne alertée peut lire en cinq secondes.
 - **Most likely root cause** — l'hypothèse, avec seulement la confiance que les éléments justifient, chaque affirmation factuelle étant citée. Si la télémétrie est insuffisante, l'IA le dit clairement et liste ce qu'elle a vérifié au lieu de deviner.
 - **Evidence** — les principaux constats qui étayent ou écartent l'hypothèse, chacun cité.
+- **Ruled out** — les autres causes probables qu'elle a vérifiées, comme un changement récent, une limite de capacité, une dépendance ou le cloud sous-jacent, chacune avec la preuve citée qui l'écarte. La carte les liste une par ligne. Une analyse qui n'a vérifié aucune autre cause omet cette section.
 - **Suggested next steps** — des actions concrètes pour la personne d'astreinte.
 
 Pour les incidents, l'analyse est publiée dans le fil de l'incident **et** comme note interne de l'incident (là où les intervenants collaborent). Pour les alertes, elle est publiée dans le fil de l'alerte.
@@ -65,6 +66,7 @@ Une investigation part de l'incident ou de l'alerte et de l'infrastructure à la
 - Les métriques de l'infrastructure elle-même, lues comme on les lit. Les métriques d'hôte comme `system.cpu.utilization` et `system.memory.utilization` sont rapportées une fois par état, et les états totalisent 100 %, donc une moyenne sur l'ensemble ne dit rien. OneUptime AI les lit état par état (le CPU occupé, c'est user plus system), et toute métrique par conteneur, par point de montage ou par n'importe quel autre attribut.
 - Les conteneurs d'un hôte Docker ou Podman : les plus chargés en CPU, en mémoire ou en redémarrages, et ceux qui ont cessé de remonter des données. Un conteneur arrêté n'envoie rien plutôt que zéro, donc les chiffres de l'hôte entier le cachent.
 - Les changements enregistrés dans les 2 heures avant l'incident ou l'alerte — déploiements, rollouts Kubernetes, changements de configuration et correctifs que OneUptime a exécutés — et ceux que la télémétrie de ses services rend suspects : un service qui s'est dégradé de façon mesurable juste après un changement. Voir [Déploiements et changements](/docs/telemetry/change-events).
+- Les incidents résolus du projet qui partagent les moniteurs ou les étiquettes de l'incident : comment chacun a été résolu et, quand le correctif de OneUptime AI pour l'un d'eux a été vérifié, ce que ce correctif a exécuté, pour qu'une récidive nomme le correctif qui a fonctionné la dernière fois. Les incidents privés sont exclus.
 
 L'activité de l'investigation sur la carte **OneUptime AI** indique combien d'alertes ouvertes ou récentes elle a lues, et sur quelles ressources.
 
@@ -412,6 +414,25 @@ Quand l'incident n'est lié à aucun cluster ni à aucune ressource d'infrastruc
 Une décision est prise une fois, avec les paramètres du projet à ce moment-là : un interrupteur activé plus tard ne revient pas sur les incidents déjà ouverts. Une fois un tel interrupteur activé, la ligne dit qu'il était désactivé quand OneUptime AI a vérifié et qu'il est activé maintenant, et sur un incident ouvert pour lequel rien n'a été corrigé, **Réessayer** décide à nouveau avec les paramètres actuels, comme pour un nouvel incident. Toute personne qui peut modifier l'incident peut l'utiliser. Ce n'est pas proposé tant qu'un correctif est en préparation ou attend une approbation, ou tant que la correction attend l'investigation, et juste après une vérification de OneUptime AI, cela vous demande de réessayer dans un instant.
 
 Quand l'investigation trouve la cause dans le code, l'étape dit ce qu'il en est advenu : la pull request de correction que OneUptime AI rédige ou a ouverte, avec un lien vers elle dans Code ; la seule étape de configuration qui bloque, comme **Connecter un dépôt** ; ou **Ouvrir une pull request de correction**, avec la raison pour laquelle OneUptime AI ne l'a pas ouverte d'elle-même (voir [Correctifs de code automatiques](#correctifs-de-code-automatiques)).
+
+### Avant d'approuver un correctif
+
+Un correctif en attente d'approbation montre, sous chaque changement, ce dont vous avez besoin pour décider :
+
+- **Ce qu'il fait, en clair.** Un changement cloud le dit au-dessus de sa commande exacte, par exemple « Service ECS checkout-api : augmenter à 8 tâches ». Les mots sont lus dans la commande elle-même, jamais dans ce que le modèle a écrit, et c'est la commande qui s'exécute.
+- **Comment le même changement s'est passé avant.** Quand OneUptime AI a fait le même changement sur le même cluster ou la même ressource pour d'autres incidents et alertes au cours des 90 derniers jours, le changement dit combien de fois il a fonctionné, par exemple « A fonctionné les 3 fois où il a été exécuté ici », avec un lien vers chaque incident et chaque alerte pour lesquels il a été exécuté, et en rouge quand il n'a jamais fonctionné. Un changement a fonctionné quand la vérification a constaté que son correctif a fonctionné ; un changement qui n'a jamais été exécuté n'est pas compté. Le même changement est la même action sur le même objet, quels que soient ses nombres : un passage à 6 et un passage à 8 sont un seul changement. Les incidents et alertes privés ne sont ni nommés ni comptés.
+
+OneUptime AI lit ce même historique avant de planifier : quand les preuves correspondent à un correctif qui a fonctionné ici auparavant, il essaie d'abord ce correctif, et il ne propose pas à nouveau un changement qui n'a pas fonctionné sans dire pourquoi il fonctionnerait maintenant.
+
+### Approuver ou rejeter un correctif depuis Slack ou Microsoft Teams
+
+Quand un correctif attend une approbation, son message dans les canaux Slack et Microsoft Teams de l'incident ou de l'alerte liste ses changements, chacun avec la manière dont il s'est passé avant, et trois boutons :
+
+- **Review and approve** montre tout ce que le correctif exécute, avec **Approve and run**. L'approbation exécute exactement ce qui a été montré, sous votre propre compte OneUptime, et le correctif est vérifié et annulé comme un correctif approuvé sur la carte.
+- **Dismiss** rejette le correctif : OneUptime AI ne l'exécutera pas, et l'incident ou l'alerte garde ce qu'il a proposé.
+- **View in OneUptime** ouvre l'incident ou l'alerte.
+
+Un clic est vérifié comme les boutons de la carte : votre compte de messagerie doit être connecté à OneUptime, vous devez avoir le droit d'approuver des correctifs dans le projet et de voir l'incident ou l'alerte, et un correctif sur un cluster ou une ressource exige le droit de le modifier. Un correctif qui a changé après la publication de son message est refusé, et rien ne s'exécute. Un clic après que quelqu'un d'autre a approuvé ou rejeté le correctif dit qui l'a fait, et quand. Le fil de l'incident ou de l'alerte dit qui l'a approuvé ou rejeté, et depuis quelle messagerie.
 
 ## OneUptime AI répond en premier
 

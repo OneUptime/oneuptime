@@ -72,9 +72,7 @@ export function getRemediationPlanFingerprint(suggestion: {
 }): string {
   let parts: JSONObject = { type: suggestion.suggestionType || "Runbook" };
 
-  if (
-    suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
-  ) {
+  if (suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan) {
     const plan: AiRemediationCommandPlan | null =
       AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
 
@@ -90,9 +88,10 @@ export function getRemediationPlanFingerprint(suggestion: {
 
     parts = {
       ...parts,
-      calls: (plan ? ExternalMcpToolCallPlanUtil.getProposedCalls(plan) : []).map(
-        describeMcpCall,
-      ),
+      calls: (plan
+        ? ExternalMcpToolCallPlanUtil.getProposedCalls(plan)
+        : []
+      ).map(describeMcpCall),
     };
   } else {
     parts = {

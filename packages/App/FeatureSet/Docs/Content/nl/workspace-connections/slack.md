@@ -278,6 +278,10 @@ De knoppen in de Slack-berichten van OneUptime handelen ook als jou: als het One
 - **Waar je antwoord krijgt.** Onder het bericht met de knop, in een bericht dat alleen jij ziet; alleen als Slack dat weigert, in een direct bericht. Een knop die te laat wordt ingedrukt, zegt wie je voor was, en wanneer, zoals "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Als je Slack-account niet gekoppeld is.** Het antwoord vraagt je het te koppelen, met een knop **Connect Slack account**. De knop opent je eigen Slack-instellingen in OneUptime en koppelt je account in één stap, nadat je zo nodig bij OneUptime bent ingelogd. Daarna maakt OneUptime af wat je indrukte, als jou, en antwoordt onder hetzelfde bericht; bij een knop die een formulier opent, of een opdracht, vraagt het je die opnieuw in te drukken of te geven. De knop werkt één keer, 30 minuten lang, en alleen voor het Slack-account dat hem indrukte: ingelogd in Slack als iemand anders koppelt hij niets.
 
+## Een fix goedkeuren die OneUptime AI voorstelt
+
+Een fix die OneUptime AI ter goedkeuring voorstelt, wordt in de kanalen van het incident of de waarschuwing geplaatst met zijn wijzigingen en drie knoppen. **Review and approve** opent alles wat de fix uitvoert, met **Approve and run**, dat precies dat uitvoert, als jou. **Dismiss** wijst de fix af, en **View in OneUptime** opent het incident of de waarschuwing. Ze handelen als jou, zoals elke knop op de Slack-berichten van OneUptime: goedkeuren vereist toestemming om in het project fixes goed te keuren en, voor een fix aan een cluster of resource, om die te bewerken. Een fix die veranderde nadat zijn bericht was geplaatst, wordt geweigerd, en er wordt niets uitgevoerd. Zie [Een fix goedkeuren of afwijzen vanuit Slack of Microsoft Teams](/docs/ai/ai-sre#een-fix-goedkeuren-of-afwijzen-vanuit-slack-of-microsoft-teams).
+
 ## Ontkoppelen
 
 - **Verbinding verbreken** ontkoppelt alleen je eigen Slack-account, en verwijdert daarmee ook je Slack-meldingsmethode.

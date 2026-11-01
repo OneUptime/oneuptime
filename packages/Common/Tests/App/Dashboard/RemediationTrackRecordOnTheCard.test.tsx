@@ -261,7 +261,9 @@ describe("RemediationTrackRecordLine", () => {
     const text: HTMLElement = screen.getByTestId(
       "remediation-command-track-record-text",
     );
-    expect(text).toHaveTextContent("Didn't work the 2 times it ran here before");
+    expect(text).toHaveTextContent(
+      "Didn't work the 2 times it ran here before",
+    );
     expect(text.parentElement!).toHaveClass(
       REMEDIATION_FIX_FACT_ALARMING_TEXT_CLASS_NAME,
     );
@@ -296,7 +298,9 @@ describe("RemediationTrackRecordLine", () => {
     const text: HTMLElement = screen.getByTestId(
       "remediation-command-track-record-text",
     );
-    expect(text).toHaveTextContent("Worked 2 of the 3 times it ran here before");
+    expect(text).toHaveTextContent(
+      "Worked 2 of the 3 times it ran here before",
+    );
     expect(
       text.parentElement!.querySelector("[aria-hidden='true']"),
     ).toHaveClass("bg-amber-500");
@@ -326,8 +330,7 @@ describe("a cloud change on the Remediation step", () => {
 
     // The words first, then the command that runs, then how it went before.
     expect(
-      words.compareDocumentPosition(command) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+      words.compareDocumentPosition(command) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       command.compareDocumentPosition(trackRecord) &

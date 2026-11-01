@@ -278,6 +278,10 @@ Knapparna i OneUptimes Slack-meddelanden agerar också som dig: som det OneUptim
 - **Var du får svar.** Under meddelandet med knappen, i ett meddelande som bara du ser; i ett direktmeddelande bara om Slack nekar det. En knapp som trycks för sent säger vem som hann först, och när, till exempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Om ditt Slack-konto inte är anslutet.** Svaret ber dig ansluta det, med knappen **Connect Slack account**. Knappen öppnar dina egna Slack-inställningar i OneUptime och ansluter ditt konto i ett steg, efter att du loggat in i OneUptime om det behövs. Sedan slutför OneUptime det du tryckte på, som du, och svarar under samma meddelande; för en knapp som öppnar ett formulär, eller ett kommando, ber det dig trycka på den eller köra det igen. Knappen fungerar en gång, i 30 minuter, och bara för det Slack-konto som tryckte på den: inloggad i Slack som någon annan ansluter den ingenting.
 
+## Godkänn en åtgärd som OneUptime AI föreslår
+
+En åtgärd som OneUptime AI föreslår för godkännande skickas till incidentens eller larmets kanaler med dess ändringar och tre knappar. **Review and approve** öppnar allt som åtgärden kör, med **Approve and run**, som kör exakt det, som dig. **Dismiss** avvisar åtgärden, och **View in OneUptime** öppnar incidenten eller larmet. De agerar som dig, liksom varje knapp på OneUptimes Slack-meddelanden: ett godkännande kräver behörighet att godkänna åtgärder i projektet och, för en åtgärd på ett kluster eller en resurs, att redigera den. En åtgärd som ändrades efter att dess meddelande skickades avvisas, och inget körs. Se [Godkänn eller avvisa en åtgärd från Slack eller Microsoft Teams](/docs/ai/ai-sre#godkänn-eller-avvisa-en-åtgärd-från-slack-eller-microsoft-teams).
+
 ## Koppla från
 
 - **Koppla från** kopplar bara från ditt eget Slack-konto och tar samtidigt bort din aviseringsmetod för Slack.

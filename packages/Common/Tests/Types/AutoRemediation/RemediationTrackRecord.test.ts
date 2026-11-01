@@ -84,15 +84,7 @@ describe("reading a stored track record", () => {
   });
 
   test("nothing that is not an object is a record", () => {
-    for (const value of [
-      undefined,
-      null,
-      "Worked",
-      3,
-      true,
-      [],
-      [record()],
-    ]) {
+    for (const value of [undefined, null, "Worked", 3, true, [], [record()]]) {
       expect(parseRemediationTrackRecord(value)).toBeUndefined();
     }
   });
@@ -168,9 +160,11 @@ describe("reading a stored track record", () => {
         runs,
       });
 
-    expect(read?.runs.map((each: RemediationTrackRecordRun) => {
-      return each.subjectNumber;
-    })).toEqual(["INC-1", "INC-2", "INC-3"]);
+    expect(
+      read?.runs.map((each: RemediationTrackRecordRun) => {
+        return each.subjectNumber;
+      }),
+    ).toEqual(["INC-1", "INC-2", "INC-3"]);
   });
 
   test("a malformed run is dropped, the record kept", () => {

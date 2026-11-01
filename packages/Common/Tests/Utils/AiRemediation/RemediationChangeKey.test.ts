@@ -129,7 +129,9 @@ describe("kubectl: the verb on its one object, in its namespace, on its cluster"
 
   test("whether or not the model wrote kubectl, it is one change", () => {
     expect(
-      getRemediationChangeKey(kubectl("rollout restart deployment/web -n shop")),
+      getRemediationChangeKey(
+        kubectl("rollout restart deployment/web -n shop"),
+      ),
     ).toBe(
       getRemediationChangeKey(
         kubectl("kubectl rollout restart deployment/web -n shop"),

@@ -100,9 +100,7 @@ export default class SlackRemediationActions {
         requester: slackRequest,
         action: action,
         run: async (): Promise<RemediationActionValue> => {
-          return WorkspaceRemediationActions.readValue(
-            data.action.actionValue,
-          );
+          return WorkspaceRemediationActions.readValue(data.action.actionValue);
         },
       });
 

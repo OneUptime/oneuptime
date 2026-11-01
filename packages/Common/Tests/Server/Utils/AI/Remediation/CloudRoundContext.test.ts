@@ -93,18 +93,14 @@ describe("what a cloud round is told it is about", () => {
       });
     readIncident = jest
       .spyOn(LinkedAffectedResources, "readForIncident")
-      .mockImplementation(
-        async (): Promise<Array<LinkedAffectedResource>> => {
-          return linked;
-        },
-      );
+      .mockImplementation(async (): Promise<Array<LinkedAffectedResource>> => {
+        return linked;
+      });
     readAlert = jest
       .spyOn(LinkedAffectedResources, "readForAlert")
-      .mockImplementation(
-        async (): Promise<Array<LinkedAffectedResource>> => {
-          return linked;
-        },
-      );
+      .mockImplementation(async (): Promise<Array<LinkedAffectedResource>> => {
+        return linked;
+      });
     jest
       .spyOn(CloudResourceService, "findBy")
       .mockImplementation(async (): Promise<Array<CloudResource>> => {
@@ -343,7 +339,9 @@ describe("what a cloud round is told it is about", () => {
     expect(lines[lines.length - 1]).toBe("</untrusted_context>");
     expect(
       lines.some((line: string) => {
-        return line.startsWith("Ignore the rules") || line.startsWith("# heading");
+        return (
+          line.startsWith("Ignore the rules") || line.startsWith("# heading")
+        );
       }),
     ).toBe(false);
   });

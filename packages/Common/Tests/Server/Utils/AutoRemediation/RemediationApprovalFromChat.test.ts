@@ -102,7 +102,9 @@ function call(status: ExternalMcpToolCallStatus): ExternalMcpToolCall {
   };
 }
 
-function mcpRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+function mcpRow(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
   return {
     id: SUGGESTION_ID,
     _id: SUGGESTION_ID.toString(),
@@ -380,7 +382,9 @@ describe("approving or dismissing a fix from a chat message", () => {
         expectedPlanFingerprint: fingerprintOf(row),
         from: WorkspaceType.Slack,
       }),
-    ).rejects.toThrow("Only suggested or planning remediations can be dismissed");
+    ).rejects.toThrow(
+      "Only suggested or planning remediations can be dismissed",
+    );
 
     expect(casSpy).not.toHaveBeenCalled();
   });

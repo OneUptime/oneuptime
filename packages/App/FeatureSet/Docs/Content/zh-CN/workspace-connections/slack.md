@@ -278,6 +278,10 @@ OneUptime 的 Slack 消息上的按钮同样以您的身份执行：即以您的
 - **在哪里收到回复。** 在带有按钮的消息下方，以只有您能看到的消息回复；只有当 Slack 拒绝时，才会改用私信。按得太晚的按钮会说明谁先操作了、何时操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **如果您的 Slack 账户未连接。** 回复会请您连接它，并附带一个 **Connect Slack account** 按钮。该按钮会打开您在 OneUptime 中自己的 Slack 设置，并在您按需登录 OneUptime 后一步连接您的账户。随后 OneUptime 会以您的身份完成您按下的操作，并在同一条消息下方回复；对于打开表单的按钮或命令，它会请您再按一次或再运行一次。该按钮只能使用一次，有效 30 分钟，并且只对按下它的 Slack 账户有效：以其他人的身份登录 Slack 时，它不会连接任何账户。
 
+## 批准 OneUptime AI 提出的修复
+
+OneUptime AI 提出待批准的修复时，会将其变更连同三个按钮发布到事件或警报的频道中。 **Review and approve** 会打开修复要执行的全部内容，并附有 **Approve and run**，它会以您的身份准确执行这些内容。 **Dismiss** 会驳回修复， **View in OneUptime** 会打开事件或警报。与 OneUptime 的 Slack 消息上的每个按钮一样，它们以您的身份执行：批准需要在项目中批准修复的权限，对于集群或资源的修复，还需要编辑它的权限。在消息发布后发生了变化的修复会被拒绝，什么都不会执行。参见 [从 Slack 或 Microsoft Teams 批准或驳回修复](/docs/ai/ai-sre#从-slack-或-microsoft-teams-批准或驳回修复)。
+
 ## 断开连接
 
 - **断开连接** 只解除您自己的 Slack 账户的关联，并同时删除您的 Slack 通知方式。

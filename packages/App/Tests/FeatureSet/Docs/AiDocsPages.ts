@@ -112,7 +112,10 @@ export const PLAN_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
  *     follow-up check's analysis (IncidentFollowUpCheck.buildReportLead);
  *   - the namespaces Kubernetes names kube-system, kube-public and
  *     kube-node-lease;
- *   - the command policy's SafeWrite and RiskyWrite tiers.
+ *   - the command policy's SafeWrite and RiskyWrite tiers;
+ *   - the section OneUptime AI writes what it ruled out under, and the
+ *     buttons of a fix's Slack and Microsoft Teams message, which the
+ *     server writes in English (REMEDIATION_CHAT_WORDS).
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -127,7 +130,10 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Insufficient Balance",
       "Most likely root cause",
       "Suggested next steps",
+      "Ruled out",
       "Checked again",
+      "Review and approve",
+      "View in OneUptime",
     ],
     [INFRASTRUCTURE_AI_AGENTS]: ["⋯", "SafeWrite", "RiskyWrite"],
     /*
@@ -156,11 +162,12 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
  * another product draws (GitHub's permissions and webhook events, Claude's
  * menus and the name Claude Code gives the server, LM Studio's setting,
  * vSphere's Read-Only role), the command
- * policy's Read and Denied tiers, and the sections OneUptime AI writes its
- * report under.
+ * policy's Read and Denied tiers, the sections OneUptime AI writes its
+ * report under, and the buttons of a fix's chat message that are a
+ * Dashboard label too (REMEDIATION_CHAT_WORDS).
  */
 export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
-  [AI_SRE]: ["Summary", "Evidence"],
+  [AI_SRE]: ["Summary", "Evidence", "Approve and run", "Dismiss"],
   [INFRASTRUCTURE_AI_AGENTS]: ["Read", "Denied", "Read-Only"],
   // The GitHub App's permission a production review's check needs.
   [CODE_PAGE]: ["Checks", "Read & write"],
@@ -322,6 +329,9 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Workloads Argo CD, Flux or Helm declare.",
     "temporary fix",
     "Verification notices a fix that was put back.",
+    // What a fix that waits for approval shows under each change.
+    "What it does, in plain words.",
+    "How the same change went before.",
   ],
   [INFRASTRUCTURE_AI_AGENTS]: [
     "resource AI agents",

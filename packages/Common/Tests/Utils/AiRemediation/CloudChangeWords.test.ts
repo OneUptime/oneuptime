@@ -69,7 +69,8 @@ const RUN: string =
   "//run.googleapis.com/projects/my-project/locations/us-central1/services/web";
 const MIG: string =
   "//compute.googleapis.com/projects/my-project/regions/us-central1/instanceGroupManagers/web-mig";
-const SQL: string = "//sqladmin.googleapis.com/projects/my-project/instances/db-1";
+const SQL: string =
+  "//sqladmin.googleapis.com/projects/my-project/instances/db-1";
 
 function sentence(resourceType: AiResourceType, command: string): string {
   const words: CloudChangeWords | null = describeCloudChange({
@@ -86,34 +87,130 @@ function sentence(resourceType: AiResourceType, command: string): string {
 
 describe("every change of the catalog reads as one sentence", () => {
   test.each([
-    [AWS, `cloud restart-service ${ECS}`, "Restart the ECS service checkout-api"],
-    [AWS, `cloud start-instance ${EC2}`, "Start the EC2 instance i-0123456789abcdef0"],
+    [
+      AWS,
+      `cloud restart-service ${ECS}`,
+      "Restart the ECS service checkout-api",
+    ],
+    [
+      AWS,
+      `cloud start-instance ${EC2}`,
+      "Start the EC2 instance i-0123456789abcdef0",
+    ],
     [AWS, `cloud start-instance ${RDS}`, "Start the RDS instance orders-db"],
-    [AWS, `cloud scale-out ${ECS} --count 8`, "Scale the ECS service checkout-api out to 8 tasks"],
-    [AWS, `cloud scale-out ${ASG} --count 6`, "Scale the Auto Scaling group web-asg out to 6 instances"],
-    [AWS, `cloud scale-in ${ECS} --count 1`, "Scale the ECS service checkout-api in to 1 task"],
+    [
+      AWS,
+      `cloud scale-out ${ECS} --count 8`,
+      "Scale the ECS service checkout-api out to 8 tasks",
+    ],
+    [
+      AWS,
+      `cloud scale-out ${ASG} --count 6`,
+      "Scale the Auto Scaling group web-asg out to 6 instances",
+    ],
+    [
+      AWS,
+      `cloud scale-in ${ECS} --count 1`,
+      "Scale the ECS service checkout-api in to 1 task",
+    ],
     [AWS, `cloud reboot-instance ${RDS}`, "Reboot the RDS instance orders-db"],
-    [AWS, `cloud roll-back-service ${ECS}`, "Roll the ECS service checkout-api back to the version before"],
-    [AWS, `cloud roll-back-service ${LAMBDA_ALIAS} --to 41`, "Roll the Lambda alias checkout:live back to 41"],
-    [AWS, `cloud set-concurrency ${LAMBDA} --value 20`, "Let at most 20 copies of the Lambda function checkout run at once"],
-    [AWS, `cloud set-concurrency ${LAMBDA} --value 1`, "Let at most 1 copy of the Lambda function checkout run at once"],
-    [AWS, `cloud set-concurrency ${LAMBDA} --value none`, "Remove the limit on how many copies of the Lambda function checkout run at once"],
-    [AWS, `cloud fail-over-database ${AURORA}`, "Fail the Aurora cluster orders-cluster over to its standby"],
-    [AWS, `cloud stop-instance ${EC2}`, "Stop the EC2 instance i-0123456789abcdef0"],
-    [AWS, `cloud redrive-queue ${SQS}`, "Move the messages of the SQS queue orders-dlq back to the queue they came from"],
-    [AZURE, `cloud restart-service ${APP_SERVICE}`, "Restart the App Service or Function App web"],
-    [AZURE, `cloud restart-service ${CONTAINER_APP}`, "Restart the Container App api"],
-    [AZURE, `cloud scale-out ${APP_PLAN} --count 3`, "Scale the App Service plan plan-1 out to 3 instances"],
-    [AZURE, `cloud scale-in ${VMSS} --count 2`, "Scale the VM scale set vmss-1 in to 2 instances"],
-    [AZURE, `cloud reboot-instance ${AZURE_VM}`, "Reboot the Azure virtual machine vm-1"],
-    [AZURE, `cloud roll-back-service ${APP_SERVICE} --slot staging`, "Swap the App Service or Function App web with its staging slot, back to the version before"],
-    [AZURE, `cloud fail-over-database ${FAILOVER_GROUP}`, "Fail the SQL failover group fg-1 over to its standby"],
+    [
+      AWS,
+      `cloud roll-back-service ${ECS}`,
+      "Roll the ECS service checkout-api back to the version before",
+    ],
+    [
+      AWS,
+      `cloud roll-back-service ${LAMBDA_ALIAS} --to 41`,
+      "Roll the Lambda alias checkout:live back to 41",
+    ],
+    [
+      AWS,
+      `cloud set-concurrency ${LAMBDA} --value 20`,
+      "Let at most 20 copies of the Lambda function checkout run at once",
+    ],
+    [
+      AWS,
+      `cloud set-concurrency ${LAMBDA} --value 1`,
+      "Let at most 1 copy of the Lambda function checkout run at once",
+    ],
+    [
+      AWS,
+      `cloud set-concurrency ${LAMBDA} --value none`,
+      "Remove the limit on how many copies of the Lambda function checkout run at once",
+    ],
+    [
+      AWS,
+      `cloud fail-over-database ${AURORA}`,
+      "Fail the Aurora cluster orders-cluster over to its standby",
+    ],
+    [
+      AWS,
+      `cloud stop-instance ${EC2}`,
+      "Stop the EC2 instance i-0123456789abcdef0",
+    ],
+    [
+      AWS,
+      `cloud redrive-queue ${SQS}`,
+      "Move the messages of the SQS queue orders-dlq back to the queue they came from",
+    ],
+    [
+      AZURE,
+      `cloud restart-service ${APP_SERVICE}`,
+      "Restart the App Service or Function App web",
+    ],
+    [
+      AZURE,
+      `cloud restart-service ${CONTAINER_APP}`,
+      "Restart the Container App api",
+    ],
+    [
+      AZURE,
+      `cloud scale-out ${APP_PLAN} --count 3`,
+      "Scale the App Service plan plan-1 out to 3 instances",
+    ],
+    [
+      AZURE,
+      `cloud scale-in ${VMSS} --count 2`,
+      "Scale the VM scale set vmss-1 in to 2 instances",
+    ],
+    [
+      AZURE,
+      `cloud reboot-instance ${AZURE_VM}`,
+      "Reboot the Azure virtual machine vm-1",
+    ],
+    [
+      AZURE,
+      `cloud roll-back-service ${APP_SERVICE} --slot staging`,
+      "Swap the App Service or Function App web with its staging slot, back to the version before",
+    ],
+    [
+      AZURE,
+      `cloud fail-over-database ${FAILOVER_GROUP}`,
+      "Fail the SQL failover group fg-1 over to its standby",
+    ],
     [GCP, `cloud start-instance ${GCE}`, "Start the Compute Engine VM web-1"],
-    [GCP, `cloud scale-out ${RUN} --count 2`, "Raise the minimum of the Cloud Run service web to 2 instances"],
-    [GCP, `cloud scale-in ${RUN} --count 1`, "Lower the minimum of the Cloud Run service web to 1 instance"],
-    [GCP, `cloud scale-out ${MIG} --count 5`, "Scale the managed instance group web-mig out to 5 instances"],
+    [
+      GCP,
+      `cloud scale-out ${RUN} --count 2`,
+      "Raise the minimum of the Cloud Run service web to 2 instances",
+    ],
+    [
+      GCP,
+      `cloud scale-in ${RUN} --count 1`,
+      "Lower the minimum of the Cloud Run service web to 1 instance",
+    ],
+    [
+      GCP,
+      `cloud scale-out ${MIG} --count 5`,
+      "Scale the managed instance group web-mig out to 5 instances",
+    ],
     [GCP, `cloud reboot-instance ${SQL}`, "Reboot the Cloud SQL instance db-1"],
-    [GCP, `cloud roll-back-service ${RUN} --to web-00041-abc`, "Roll the Cloud Run service web back to web-00041-abc"],
+    [
+      GCP,
+      `cloud roll-back-service ${RUN} --to web-00041-abc`,
+      "Roll the Cloud Run service web back to web-00041-abc",
+    ],
   ])(
     "%s %s",
     (resourceType: AiResourceType, command: string, expected: string) => {
@@ -199,9 +296,9 @@ describe("a resource's short name", () => {
   });
 
   test("an id the catalog has no kind for is named by its last word", () => {
-    expect(
-      parsed("aws", "arn:aws:s3:::checkout-assets"),
-    ).toBe("checkout-assets");
+    expect(parsed("aws", "arn:aws:s3:::checkout-assets")).toBe(
+      "checkout-assets",
+    );
   });
 
   test("a long name is cut in the sentence; the command under it stays whole", () => {

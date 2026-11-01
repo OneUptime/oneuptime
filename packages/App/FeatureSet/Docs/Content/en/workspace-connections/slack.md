@@ -278,6 +278,10 @@ The buttons on OneUptime's Slack messages act as you too: as the OneUptime accou
 - **Where you are answered.** Under the message the button is on, in a message only you see; in a direct message only if Slack refuses that. A button pressed too late says who got there first, and when, such as "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **If your Slack account is not connected.** The answer asks you to connect it, with a **Connect Slack account** button. The button opens your own Slack settings in OneUptime and connects your account in one step, after you sign in to OneUptime if you need to. OneUptime then finishes what you pressed, as you, and answers under the same message; for a button that opens a form, or a command, it asks you to press or run it again. The button works once, for 30 minutes, and only for the Slack account that pressed it: signed in to Slack as someone else, it connects nothing.
 
+## Approving a fix OneUptime AI proposes
+
+A fix OneUptime AI proposes for approval is posted to the incident's or alert's channels with its changes and three buttons. **Review and approve** opens everything the fix runs, with **Approve and run**, which runs exactly that, as you. **Dismiss** dismisses the fix, and **View in OneUptime** opens the incident or alert. They act as you, like every button on OneUptime's Slack messages: approving needs permission to approve fixes in the project and, for a fix to a cluster or resource, to edit it. A fix that changed after its message was posted is refused, and nothing runs. See [Approve or dismiss a fix from Slack or Microsoft Teams](/docs/ai/ai-sre#approve-or-dismiss-a-fix-from-slack-or-microsoft-teams).
+
 ## Disconnecting
 
 - **Disconnect** unlinks only your own Slack account, and removes your Slack notification method with it.

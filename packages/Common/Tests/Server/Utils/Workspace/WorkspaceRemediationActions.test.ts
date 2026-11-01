@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -248,7 +241,9 @@ describe("a press that came too late", () => {
   }
 
   test("a fix that still waits answers nothing", async () => {
-    expect(await WorkspaceRemediationActions.getLatePressAnswer(fix())).toBeNull();
+    expect(
+      await WorkspaceRemediationActions.getLatePressAnswer(fix()),
+    ).toBeNull();
   });
 
   test("approved: by whom and when, as news", async () => {
@@ -328,7 +323,9 @@ describe("the approval dialog", () => {
     const incident: Incident = new Incident();
     incident.incidentNumberWithPrefix = "INC-42";
     incident.title = "Checkout API p95 latency above 2s";
-    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident as never);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incident as never);
 
     const row: AutoRemediationSuggestion = fix();
     const dialog: RemediationApprovalDialog | null =
@@ -442,7 +439,12 @@ describe("a button's value", () => {
   });
 
   test("anything else is refused before anything is read", () => {
-    for (const value of [undefined, "", "INC-42", `${SUGGESTION_ID.toString()}`]) {
+    for (const value of [
+      undefined,
+      "",
+      "INC-42",
+      `${SUGGESTION_ID.toString()}`,
+    ]) {
       expect(() => {
         return WorkspaceRemediationActions.readValue(value);
       }).toThrow(BadDataException);

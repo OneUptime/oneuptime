@@ -188,9 +188,11 @@ describe("reading the earlier fixes on one target", () => {
     });
     findFixes = jest
       .spyOn(AutoRemediationSuggestionService, "findBy")
-      .mockImplementation(async (): Promise<Array<AutoRemediationSuggestion>> => {
-        return fixRows;
-      });
+      .mockImplementation(
+        async (): Promise<Array<AutoRemediationSuggestion>> => {
+          return fixRows;
+        },
+      );
     findIncidents = jest
       .spyOn(IncidentService, "findBy")
       .mockImplementation(async (): Promise<Array<Incident>> => {
@@ -363,6 +365,14 @@ describe("reading the earlier fixes on one target", () => {
       wasRolledBack: false,
     });
     expect(findIncidents).not.toHaveBeenCalled();
+
+    // The alerts are read once, held to the project and to the fixes' alerts.
+    expect(findAlerts).toHaveBeenCalledTimes(1);
+    const alertQuery: JSONObject = (
+      findAlerts.mock.calls[0]![0] as { query: JSONObject }
+    ).query;
+    expect(alertQuery["projectId"]).toBe(PROJECT_ID);
+    expect(JSON.stringify(alertQuery["_id"])).toContain(alertId);
   });
 
   test("a private incident or alert is neither named nor counted", async () => {
@@ -370,7 +380,9 @@ describe("reading the earlier fixes on one target", () => {
       fixRow({
         id: "81000000-0000-4000-8000-000000000003",
         incident: incidentId(1),
-        commands: [ran(kubectlCommand("kubectl rollout restart deployment/web"))],
+        commands: [
+          ran(kubectlCommand("kubectl rollout restart deployment/web")),
+        ],
         verification: AutoRemediationVerificationStatus.Verified,
         at: "2026-10-30T12:00:00.000Z",
       }),
@@ -391,7 +403,9 @@ describe("reading the earlier fixes on one target", () => {
       fixRow({
         id: "81000000-0000-4000-8000-000000000004",
         incident: incidentId(2),
-        commands: [ran(kubectlCommand("kubectl rollout restart deployment/web"))],
+        commands: [
+          ran(kubectlCommand("kubectl rollout restart deployment/web")),
+        ],
         verification: AutoRemediationVerificationStatus.Verified,
         at: "2026-10-30T12:00:00.000Z",
       }),
@@ -438,14 +452,18 @@ describe("reading the earlier fixes on one target", () => {
       fixRow({
         id: CURRENT_SUGGESTION.toString(),
         incident: incidentId(1),
-        commands: [ran(kubectlCommand("kubectl rollout restart deployment/web"))],
+        commands: [
+          ran(kubectlCommand("kubectl rollout restart deployment/web")),
+        ],
         verification: AutoRemediationVerificationStatus.Verified,
         at: "2026-10-30T12:00:00.000Z",
       }),
       fixRow({
         id: "81000000-0000-4000-8000-000000000006",
         incident: CURRENT_INCIDENT.toString(),
-        commands: [ran(kubectlCommand("kubectl rollout restart deployment/web"))],
+        commands: [
+          ran(kubectlCommand("kubectl rollout restart deployment/web")),
+        ],
         verification: AutoRemediationVerificationStatus.Verified,
         at: "2026-10-30T12:00:00.000Z",
       }),
@@ -512,15 +530,17 @@ describe("a change's track record", () => {
     return fixes.map((each: EarlierFix): EarlierFix => {
       return {
         ...each,
-        changes: each.changes.map((change: { command: string; ran: boolean }) => {
-          return {
-            ...change,
-            key: `kubectl-key:${change.command
-              .replace("--replicas=6", "")
-              .replace("--replicas=8", "")
-              .trim()}`,
-          };
-        }),
+        changes: each.changes.map(
+          (change: { command: string; ran: boolean }) => {
+            return {
+              ...change,
+              key: `kubectl-key:${change.command
+                .replace("--replicas=6", "")
+                .replace("--replicas=8", "")
+                .trim()}`,
+            };
+          },
+        ),
       };
     });
   }
@@ -530,7 +550,12 @@ describe("a change's track record", () => {
       kubectlCommand("kubectl rollout restart deployment/web -n shop"),
       [
         {
-          ...fix(1, RemediationTrackRecordOutcome.Worked, [], "2026-10-01T00:00:00Z"),
+          ...fix(
+            1,
+            RemediationTrackRecordOutcome.Worked,
+            [],
+            "2026-10-01T00:00:00Z",
+          ),
           changes: [
             {
               command: "kubectl rollout restart deploy/web -n shop",
@@ -540,7 +565,12 @@ describe("a change's track record", () => {
           ],
         },
         {
-          ...fix(2, RemediationTrackRecordOutcome.DidNotWork, [], "2026-10-20T00:00:00Z"),
+          ...fix(
+            2,
+            RemediationTrackRecordOutcome.DidNotWork,
+            [],
+            "2026-10-20T00:00:00Z",
+          ),
           changes: [
             {
               command: "kubectl rollout restart deployment/web -n shop",
@@ -550,7 +580,12 @@ describe("a change's track record", () => {
           ],
         },
         {
-          ...fix(3, RemediationTrackRecordOutcome.Worked, [], "2026-10-25T00:00:00Z"),
+          ...fix(
+            3,
+            RemediationTrackRecordOutcome.Worked,
+            [],
+            "2026-10-25T00:00:00Z",
+          ),
           changes: [
             {
               command: "kubectl rollout restart deployment/api -n shop",
@@ -593,7 +628,12 @@ describe("a change's track record", () => {
         kubectlCommand("kubectl rollout restart deployment/web -n shop"),
         [
           {
-            ...fix(1, RemediationTrackRecordOutcome.Worked, [], "2026-10-01T00:00:00Z"),
+            ...fix(
+              1,
+              RemediationTrackRecordOutcome.Worked,
+              [],
+              "2026-10-01T00:00:00Z",
+            ),
             changes: [{ command: "x", key, ran: false }],
           },
         ],
@@ -606,13 +646,23 @@ describe("a change's track record", () => {
       buildTrackRecord(
         kubectlCommand("kubectl rollout restart deployment/web -n shop"),
         withKeys([
-          fix(1, RemediationTrackRecordOutcome.Worked, ["something else"], "2026-10-01T00:00:00Z"),
+          fix(
+            1,
+            RemediationTrackRecordOutcome.Worked,
+            ["something else"],
+            "2026-10-01T00:00:00Z",
+          ),
         ]),
       ),
     ).toBeUndefined();
     expect(
       buildTrackRecord(kubectlCommand("kubectl"), [
-        fix(1, RemediationTrackRecordOutcome.Worked, ["kubectl"], "2026-10-01T00:00:00Z"),
+        fix(
+          1,
+          RemediationTrackRecordOutcome.Worked,
+          ["kubectl"],
+          "2026-10-01T00:00:00Z",
+        ),
       ]),
     ).toBeUndefined();
   });
@@ -638,9 +688,11 @@ describe("a change's track record", () => {
     );
 
     expect(record?.workedCount).toBe(5);
-    expect(record?.runs.map((each: { subjectNumber?: string | undefined }) => {
-      return each.subjectNumber;
-    })).toEqual(["INC-45", "INC-44", "INC-43"]);
+    expect(
+      record?.runs.map((each: { subjectNumber?: string | undefined }) => {
+        return each.subjectNumber;
+      }),
+    ).toEqual(["INC-45", "INC-44", "INC-43"]);
   });
 });
 
@@ -706,9 +758,7 @@ describe("a plan's track records", () => {
     expect(plan.commands[0]?.trackRecord).toEqual({
       workedCount: 1,
       didNotWorkCount: 0,
-      runs: [
-        expect.objectContaining({ subjectNumber: "INC-41" }),
-      ],
+      runs: [expect.objectContaining({ subjectNumber: "INC-41" })],
     });
     // Another change on the same account never ran there.
     expect(plan.commands[1]?.trackRecord).toBeUndefined();
@@ -783,9 +833,9 @@ describe("a command's target", () => {
   });
 
   test("a target's key names it once, whatever its case", () => {
-    expect(describeTargetKey({ kubernetesClusterId: CLUSTER_ID.toUpperCase() })).toBe(
-      `cluster:${CLUSTER_ID}`,
-    );
+    expect(
+      describeTargetKey({ kubernetesClusterId: CLUSTER_ID.toUpperCase() }),
+    ).toBe(`cluster:${CLUSTER_ID}`);
     expect(
       describeTargetKey({
         resourceType: AiResourceType.AwsAccount,
@@ -910,8 +960,10 @@ describe("what the planner reads", () => {
 
     expect(text.match(/<\/untrusted_context>/g)?.length).toBe(1);
     expect(lines[lines.length - 1]).toBe("</untrusted_context>");
-    expect(lines.some((line: string) => {
-      return line.startsWith("Ignore the rules");
-    })).toBe(false);
+    expect(
+      lines.some((line: string) => {
+        return line.startsWith("Ignore the rules");
+      }),
+    ).toBe(false);
   });
 });

@@ -127,13 +127,15 @@ beforeEach(() => {
   jest
     .spyOn(WorkspaceRemediationActions, "getLatePressAnswer")
     .mockResolvedValue(null as never);
-  jest.spyOn(WorkspaceRemediationActions, "getApprovalDialog").mockResolvedValue({
-    title: "Approve this fix?",
-    markdown: "**Incident INC-42:** Checkout slow",
-    submitTitle: "Approve and run",
-    cancelTitle: "Cancel",
-    value: `${SUGGESTION_ID.toString()}:fedcba9876543210`,
-  } as RemediationApprovalDialog as never);
+  jest
+    .spyOn(WorkspaceRemediationActions, "getApprovalDialog")
+    .mockResolvedValue({
+      title: "Approve this fix?",
+      markdown: "**Incident INC-42:** Checkout slow",
+      submitTitle: "Approve and run",
+      cancelTitle: "Cancel",
+      value: `${SUGGESTION_ID.toString()}:fedcba9876543210`,
+    } as RemediationApprovalDialog as never);
   approve = jest
     .spyOn(WorkspaceRemediationActions, "approve")
     .mockResolvedValue({
@@ -180,9 +182,7 @@ describe("which presses are a fix's", () => {
       ).toBe(true);
     }
 
-    expect(
-      Object.values(MicrosoftTeamsRemediationActionType).sort(),
-    ).toEqual(
+    expect(Object.values(MicrosoftTeamsRemediationActionType).sort()).toEqual(
       [
         SlackActionType.ViewApproveRemediation,
         SlackActionType.SubmitApproveRemediation,
@@ -190,7 +190,9 @@ describe("which presses are a fix's", () => {
       ].sort(),
     );
     expect(
-      MicrosoftTeamsRemediationActions.isRemediationAction("AcknowledgeIncident"),
+      MicrosoftTeamsRemediationActions.isRemediationAction(
+        "AcknowledgeIncident",
+      ),
     ).toBe(false);
   });
 });
@@ -199,7 +201,10 @@ describe("Review and approve", () => {
   test("answers with an approval card; nothing runs yet", async () => {
     const turn: FakeTurn = createTurn();
 
-    await handle(MicrosoftTeamsRemediationActionType.ViewApproveRemediation, turn);
+    await handle(
+      MicrosoftTeamsRemediationActionType.ViewApproveRemediation,
+      turn,
+    );
 
     expect(turn.replies).toHaveLength(1);
 
@@ -231,7 +236,10 @@ describe("Review and approve", () => {
     readFix.mockResolvedValue(null as never);
     const turn: FakeTurn = createTurn();
 
-    await handle(MicrosoftTeamsRemediationActionType.ViewApproveRemediation, turn);
+    await handle(
+      MicrosoftTeamsRemediationActionType.ViewApproveRemediation,
+      turn,
+    );
 
     expect(replyText(turn.replies[0])).toContain(
       "This fix is no longer in OneUptime. It may have been deleted.",
@@ -239,13 +247,18 @@ describe("Review and approve", () => {
   });
 
   test("a press that came too late says who got there first", async () => {
-    jest.spyOn(WorkspaceRemediationActions, "getLatePressAnswer").mockResolvedValue({
-      markdown: "This fix was already dismissed by **Maya Chen**.",
-      text: "This fix was already dismissed by Maya Chen",
-    } as never);
+    jest
+      .spyOn(WorkspaceRemediationActions, "getLatePressAnswer")
+      .mockResolvedValue({
+        markdown: "This fix was already dismissed by **Maya Chen**.",
+        text: "This fix was already dismissed by Maya Chen",
+      } as never);
     const turn: FakeTurn = createTurn();
 
-    await handle(MicrosoftTeamsRemediationActionType.ViewApproveRemediation, turn);
+    await handle(
+      MicrosoftTeamsRemediationActionType.ViewApproveRemediation,
+      turn,
+    );
 
     expect(replyText(turn.replies[0])).toContain(
       "This fix was already dismissed by **Maya Chen**.",
@@ -304,13 +317,20 @@ describe("Approve and run", () => {
 
   test("a refused approval is thrown for the bot to tell, and the card stays", async () => {
     approve.mockRejectedValue(
-      new BadDataException("This fix changed after the message you pressed was posted, so nothing was done.") as never,
+      new BadDataException(
+        "This fix changed after the message you pressed was posted, so nothing was done.",
+      ) as never,
     );
     const turn: FakeTurn = createTurn();
 
     await expect(
-      handle(MicrosoftTeamsRemediationActionType.SubmitApproveRemediation, turn),
-    ).rejects.toThrow("This fix changed after the message you pressed was posted");
+      handle(
+        MicrosoftTeamsRemediationActionType.SubmitApproveRemediation,
+        turn,
+      ),
+    ).rejects.toThrow(
+      "This fix changed after the message you pressed was posted",
+    );
     expect(turn.deleted).toEqual([]);
     expect(turn.replies).toEqual([]);
   });
@@ -364,13 +384,14 @@ describe("an account that is not connected", () => {
 
 describe("the approval card", () => {
   test("is the dialog's title, its Markdown, and one positive Approve and run", () => {
-    const built: JSONObject = MicrosoftTeamsRemediationActions.buildApprovalCard({
-      title: "Approve this fix?",
-      markdown: "Everything it runs",
-      submitTitle: "Approve and run",
-      cancelTitle: "Cancel",
-      value: VALUE,
-    });
+    const built: JSONObject =
+      MicrosoftTeamsRemediationActions.buildApprovalCard({
+        title: "Approve this fix?",
+        markdown: "Everything it runs",
+        submitTitle: "Approve and run",
+        cancelTitle: "Cancel",
+        value: VALUE,
+      });
 
     expect(built["version"]).toBe("1.5");
     expect(

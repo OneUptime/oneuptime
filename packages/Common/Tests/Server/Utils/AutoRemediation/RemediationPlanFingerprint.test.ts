@@ -95,7 +95,10 @@ describe("a fix's fingerprint", () => {
       [command({ resourceId: "dddddddd-4444-4444-8444-444444444444" })],
       [command({ resourceType: AiResourceType.AzureSubscription })],
       [command({ sequence: 2 })],
-      [command(), command({ sequence: 2, command: `cloud restart-service ${ECS}` })],
+      [
+        command(),
+        command({ sequence: 2, command: `cloud restart-service ${ECS}` }),
+      ],
     ]) {
       expect(ofPlan(changed)).not.toBe(base);
     }
@@ -219,7 +222,9 @@ describe("a fix's fingerprint", () => {
 
     expect(ofCalls([call()])).toBe(base);
     expect(
-      ofCalls([call({ arguments: { flag: "checkout-db-pool-v2", enabled: true } })]),
+      ofCalls([
+        call({ arguments: { flag: "checkout-db-pool-v2", enabled: true } }),
+      ]),
     ).not.toBe(base);
     expect(ofCalls([call({ toolName: "delete_flag" })])).not.toBe(base);
     // What a server answered never changes what was proposed.
@@ -239,10 +244,7 @@ describe("a fix's fingerprint", () => {
 
 describe("what is a fingerprint", () => {
   test("only sixteen lowercase hex digits", () => {
-    for (const value of [
-      "0123456789abcdef",
-      "ffffffffffffffff",
-    ]) {
+    for (const value of ["0123456789abcdef", "ffffffffffffffff"]) {
       expect(isRemediationPlanFingerprint(value)).toBe(true);
     }
 

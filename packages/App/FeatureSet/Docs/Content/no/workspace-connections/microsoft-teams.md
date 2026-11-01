@@ -264,6 +264,10 @@ Knappene på OneUptimes kort handler som personen som trykker på dem, i en pers
 - **Hvor personen får svar.** I et svar i den samme samtalen, kortets tråd i en kanal, som nevner personen, så Microsoft Teams varsler dem. En knapp som trykkes for sent, sier hvem som kom først, og når, for eksempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Hvis kontoen til personen ikke er koblet til.** Svaret ber personen koble den til, med en knapp **Connect Microsoft Teams account**. Knappen åpner personens egne Microsoft Teams-innstillinger i OneUptime og kobler til kontoen i ett trinn, etter innlogging i OneUptime om nødvendig. Deretter fullfører OneUptime det personen trykket på, som personen, og svarer i den samme samtalen; for en knapp som åpner et skjema, eller en kommando, ber det personen trykke på den eller skrive den igjen. Knappen virker én gang, i 30 minutter, og bare for Microsoft-kontoen som trykket på den.
 
+## Godkjenn en retting som OneUptime AI foreslår
+
+En retting som OneUptime AI foreslår til godkjenning, sendes til hendelsens eller varselets kanaler som et kort med endringene og tre knapper. **Review and approve** svarer med et kort med alt rettingen kjører og **Approve and run**, som kjører nøyaktig det, som personen som trykker; når rettingen er godkjent, fjernes det kortet, og personen får vite at rettingen blir gjort. **Dismiss** avviser rettingen, og **View in OneUptime** åpner hendelsen eller varselet. De handler som personen som trykker på dem, som hver knapp på OneUptimes kort: en godkjenning krever tillatelse til å godkjenne rettinger i prosjektet og, for en retting på en klynge eller ressurs, til å redigere den. En retting som endret seg etter at kortet dens ble sendt, avvises, og ingenting kjøres. Se [Godkjenn eller avvis en retting fra Slack eller Microsoft Teams](/docs/ai/ai-sre#godkjenn-eller-avvis-en-retting-fra-slack-eller-microsoft-teams).
+
 ## Koble fra
 
 - **Koble fra** kobler bare fra din egen Microsoft Teams-konto, og fjerner samtidig Microsoft Teams-varselmetoden din.

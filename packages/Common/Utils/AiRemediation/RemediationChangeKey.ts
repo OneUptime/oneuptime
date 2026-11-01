@@ -73,9 +73,7 @@ function getKubectlChangeKey(
   }
 
   // The argv without "kubectl", which the model may or may not write.
-  const tokens: KubectlTokenizeResult = KubectlPolicy.tokenize(
-    command.command,
-  );
+  const tokens: KubectlTokenizeResult = KubectlPolicy.tokenize(command.command);
 
   if (!tokens.args || tokens.args.length === 0) {
     return null;

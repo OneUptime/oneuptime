@@ -254,7 +254,8 @@ export default class AIMemory {
         });
 
       for (const suggestion of suggestions) {
-        const key: string = suggestion.incidentId?.toString().toLowerCase() || "";
+        const key: string =
+          suggestion.incidentId?.toString().toLowerCase() || "";
 
         // The newest verified fix of each incident speaks for it.
         if (!key || fixes.has(key)) {

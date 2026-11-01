@@ -13,7 +13,11 @@ import {
   TRACK_RECORD_WORKED,
 } from "../../../Types/AutoRemediation/RemediationTrackRecordWords";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
-import { createTranslator, PluralTemplate, Translator } from "../../../UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  PluralTemplate,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
 import {
   CLOUD_CHANGE_SENTENCES,
   CLOUD_CONCURRENCY_SENTENCE,
@@ -118,7 +122,10 @@ function translatorFor(language: string): Translator {
 
 const ECS: string = "arn:aws:ecs:us-east-1:123456789012:service/prod/web";
 
-function trackRecord(worked: number, didNotWork: number): RemediationTrackRecord {
+function trackRecord(
+  worked: number,
+  didNotWork: number,
+): RemediationTrackRecord {
   return {
     workedCount: worked,
     didNotWorkCount: didNotWork,

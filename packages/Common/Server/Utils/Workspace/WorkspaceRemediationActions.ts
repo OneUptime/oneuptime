@@ -187,12 +187,14 @@ export default class WorkspaceRemediationActions {
         });
       case AutoRemediationSuggestionStatus.AutoExecuted:
         return {
-          markdown: mdText`✅ ${ProductBrandingText.getProductName()} AI already made this fix on its own.`.toString(),
+          markdown:
+            mdText`✅ ${ProductBrandingText.getProductName()} AI already made this fix on its own.`.toString(),
           text: `${ProductBrandingText.getProductName()} AI already made this fix on its own`,
         };
       default:
         return {
-          markdown: mdText`This fix no longer waits for approval, so nothing was done. Its incident or alert in ${ProductBrandingText.getProductName()} says what came of it.`.toString(),
+          markdown:
+            mdText`This fix no longer waits for approval, so nothing was done. Its incident or alert in ${ProductBrandingText.getProductName()} says what came of it.`.toString(),
           text: "This fix no longer waits for approval",
         };
     }
@@ -291,7 +293,8 @@ export default class WorkspaceRemediationActions {
     const product: string = ProductBrandingText.getProductName();
 
     return {
-      markdown: mdText`✅ You approved this fix: ${product} AI is making it now. Its incident or alert in ${product} shows how it goes.`.toString(),
+      markdown:
+        mdText`✅ You approved this fix: ${product} AI is making it now. Its incident or alert in ${product} shows how it goes.`.toString(),
       text: "You approved this fix",
     };
   }
@@ -316,7 +319,8 @@ export default class WorkspaceRemediationActions {
     const product: string = ProductBrandingText.getProductName();
 
     return {
-      markdown: mdText`You dismissed this fix: ${product} AI will not run it. Its incident or alert in ${product} keeps what it proposed.`.toString(),
+      markdown:
+        mdText`You dismissed this fix: ${product} AI will not run it. Its incident or alert in ${product} keeps what it proposed.`.toString(),
       text: "You dismissed this fix",
     };
   }

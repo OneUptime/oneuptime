@@ -45,9 +45,8 @@ export const TRACK_RECORD_RUN_TITLES: Readonly<
   Record<RemediationTrackRecordOutcome, string>
 > = {
   [RemediationTrackRecordOutcome.Worked]: translationKey("Worked here"),
-  [RemediationTrackRecordOutcome.DidNotWork]: translationKey(
-    "Didn't work here",
-  ),
+  [RemediationTrackRecordOutcome.DidNotWork]:
+    translationKey("Didn't work here"),
 };
 
 export interface ComponentProps {
@@ -58,7 +57,9 @@ export interface ComponentProps {
 export function getTrackRecordRunRoute(run: RemediationTrackRecordRun): Route {
   return RouteUtil.populateRouteParams(
     RouteMap[
-      run.subjectKind === "incident" ? PageMap.INCIDENT_VIEW : PageMap.ALERT_VIEW
+      run.subjectKind === "incident"
+        ? PageMap.INCIDENT_VIEW
+        : PageMap.ALERT_VIEW
     ] as Route,
     { modelId: new ObjectID(run.subjectId) },
   );

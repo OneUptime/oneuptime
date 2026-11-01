@@ -1694,9 +1694,10 @@ export default class RemediationExecutionRunner {
     proposedPlan.executionStatus = AiRemediationPlanExecutionStatus.NotStarted;
 
     // Each change says how the same change went there before.
-    const recordedPlan: AiRemediationCommandPlan = await this.withTrackRecords(
-      { suggestion, plan: proposedPlan },
-    );
+    const recordedPlan: AiRemediationCommandPlan = await this.withTrackRecords({
+      suggestion,
+      plan: proposedPlan,
+    });
 
     const transitioned: number =
       await AutoRemediationSuggestionService.attemptStatusTransition({

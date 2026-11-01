@@ -67,7 +67,9 @@ describe("the investigation is asked to rule other causes in or out", () => {
     expect(INVESTIGATION_PERSONA).toContain(
       `one bullet per cause, written "- **The cause:** why it is ruled out", each cited, at most ${MAX_RULED_OUT_CAUSES}, the most plausible first. Leave this section out when you checked no other cause.`,
     );
-    expect(MAX_RULED_OUT_CAUSES).toBeLessThanOrEqual(MAX_RULED_OUT_CAUSES_SHOWN);
+    expect(MAX_RULED_OUT_CAUSES).toBeLessThanOrEqual(
+      MAX_RULED_OUT_CAUSES_SHOWN,
+    );
   });
 
   test("the sections are asked for in order, no longer as exactly these", () => {
@@ -96,9 +98,11 @@ describe("what it is asked for is what the card reads", () => {
     const report: ParsedInvestigationReport = parseInvestigationReport(answer);
 
     expect(
-      report.sections.some((section: { kind: InvestigationReportSectionKind }) => {
-        return section.kind === InvestigationReportSectionKind.RuledOut;
-      }),
+      report.sections.some(
+        (section: { kind: InvestigationReportSectionKind }) => {
+          return section.kind === InvestigationReportSectionKind.RuledOut;
+        },
+      ),
     ).toBe(true);
     expect(parseRuledOutCauses(report.ruledOut)).toEqual([
       {

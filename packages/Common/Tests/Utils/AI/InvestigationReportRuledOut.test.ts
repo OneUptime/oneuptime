@@ -48,8 +48,7 @@ const REPORT: string = [
 
 describe("a Ruled out section is a section of its own", () => {
   test("it is read as RuledOut, between Evidence and the next steps", () => {
-    const report: ParsedInvestigationReport =
-      parseInvestigationReport(REPORT);
+    const report: ParsedInvestigationReport = parseInvestigationReport(REPORT);
 
     expect(
       report.sections.map((section: InvestigationReportSection) => {
@@ -92,12 +91,8 @@ describe("a Ruled out section is a section of its own", () => {
   });
 
   test("a report written before the section existed reads as before", () => {
-    const before: string = REPORT.replace(
-      /\*\*Ruled out\*\*[\s\S]*?\n\n/,
-      "",
-    );
-    const report: ParsedInvestigationReport =
-      parseInvestigationReport(before);
+    const before: string = REPORT.replace(/\*\*Ruled out\*\*[\s\S]*?\n\n/, "");
+    const report: ParsedInvestigationReport = parseInvestigationReport(before);
 
     expect(report.ruledOut).toBeUndefined();
     expect(
@@ -219,8 +214,7 @@ describe("a Ruled out label nested in a section stays in it", () => {
 
 describe("its list reads as causes, one per bullet", () => {
   test("the bold label is the cause, without its colon; the rest is why", () => {
-    const report: ParsedInvestigationReport =
-      parseInvestigationReport(REPORT);
+    const report: ParsedInvestigationReport = parseInvestigationReport(REPORT);
 
     expect(parseRuledOutCauses(report.ruledOut)).toEqual([
       {
@@ -281,7 +275,8 @@ describe("its list reads as causes, one per bullet", () => {
     ).toEqual([
       {
         causeMarkdown: "A bad deploy",
-        reasonMarkdown: "the last one went out at 15:02, three hours before [C2].",
+        reasonMarkdown:
+          "the last one went out at 15:02, three hours before [C2].",
       },
       { causeMarkdown: "The network", reasonMarkdown: "no drops [C3]." },
     ]);
@@ -301,9 +296,12 @@ describe("its list reads as causes, one per bullet", () => {
   });
 
   test(`at most ${MAX_RULED_OUT_CAUSES_SHOWN} causes are read, the first ones`, () => {
-    const many: string = Array.from({ length: 12 }, (_value: unknown, index: number) => {
-      return `- **Cause ${index + 1}:** ruled out [C${index + 1}].`;
-    }).join("\n");
+    const many: string = Array.from(
+      { length: 12 },
+      (_value: unknown, index: number) => {
+        return `- **Cause ${index + 1}:** ruled out [C${index + 1}].`;
+      },
+    ).join("\n");
 
     const causes: Array<RuledOutCause> = parseRuledOutCauses(many);
 
@@ -327,10 +325,7 @@ describe("reading it takes time in line with its length", () => {
   test.each([
     ["one bullet of asterisks", `- **${"*".repeat(LENGTH)}`],
     ["one bullet of colons", `- **${":".repeat(LENGTH)}**`],
-    [
-      "many bullets of open labels",
-      "- **a\n".repeat(Math.floor(LENGTH / 6)),
-    ],
+    ["many bullets of open labels", "- **a\n".repeat(Math.floor(LENGTH / 6))],
     ["a list of markers", "- ".repeat(LENGTH / 2)],
     ["one long continued bullet", `- x\n${"  y\n".repeat(LENGTH / 4)}`],
   ])("%s", (_label: string, markdown: string) => {

@@ -190,7 +190,10 @@ export default class CloudRoundContext {
       getCloudResourceTypeLabel(row.cloudProvider, row.cloudResourceType),
       120,
     );
-    const id: string = untrustedLine(row.providerResourceId || "", MAX_ID_CHARS);
+    const id: string = untrustedLine(
+      row.providerResourceId || "",
+      MAX_ID_CHARS,
+    );
     const tags: Dictionary<string> =
       row.cloudTags && typeof row.cloudTags === "object" ? row.cloudTags : {};
     const managedAsCode: string | null = CloudAiTargets.getManagedAsCode(tags);

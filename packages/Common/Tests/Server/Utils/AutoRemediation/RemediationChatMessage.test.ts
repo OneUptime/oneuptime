@@ -229,9 +229,7 @@ describe("what the message lists", () => {
       { withDetails: false },
     ).toString();
 
-    expect(failed).toContain(
-      "❌ Didn't work the one time it ran here before.",
-    );
+    expect(failed).toContain("❌ Didn't work the one time it ran here before.");
 
     const mixed: string = RemediationChatMessage.describeChanges(
       commandFix([
@@ -468,9 +466,9 @@ describe("the message's blocks", () => {
       (fromRunbook[0]!.messageBlocks[0] as WorkspacePayloadMarkdown).text,
     ).toBe("Runbook **Restart pods**");
 
-    const valueOf: (
+    const valueOf: (blocks: Array<MessageBlocksByWorkspaceType>) => string = (
       blocks: Array<MessageBlocksByWorkspaceType>,
-    ) => string = (blocks: Array<MessageBlocksByWorkspaceType>): string => {
+    ): string => {
       return (blocks[0]!.messageBlocks[1] as WorkspacePayloadButtons)
         .buttons[0]!.value;
     };
@@ -510,7 +508,9 @@ describe("the approval dialog", () => {
       "Why: checkout-api's 4 tasks have run at 100% CPU since 17:52.",
     );
     expect(text).toContain(`Undo: \`cloud scale-in ${ECS} --count 4\``);
-    expect(text).toContain("Dry run: this change would run. Nothing was changed.");
+    expect(text).toContain(
+      "Dry run: this change would run. Nothing was changed.",
+    );
     expect(text).toContain(
       "Approving runs exactly what is shown, under your name. OneUptime then watches the monitors for 15 minutes and rolls back the changes that have an undo if they do not recover.",
     );
@@ -565,7 +565,9 @@ describe("the approval dialog", () => {
       subjectName: "Alert #305",
     }).toString();
 
-    expect(text).toContain("OneUptime then watches the monitors for 30 minutes.");
+    expect(text).toContain(
+      "OneUptime then watches the monitors for 30 minutes.",
+    );
     expect(text).not.toContain("rolls back");
   });
 
@@ -642,16 +644,18 @@ describe("a button's value", () => {
 
 describe("the buttons' words", () => {
   test("each fix button asks to be connected for what it does, and to be pressed again", () => {
-    expect(REMEDIATION_PRESSES.get(SlackActionType.ViewApproveRemediation)).toEqual(
-      { purpose: "approve this fix", button: "Review and approve" },
-    );
+    expect(
+      REMEDIATION_PRESSES.get(SlackActionType.ViewApproveRemediation),
+    ).toEqual({ purpose: "approve this fix", button: "Review and approve" });
     expect(
       REMEDIATION_PRESSES.get(SlackActionType.SubmitApproveRemediation),
     ).toEqual({ purpose: "approve this fix", button: "Review and approve" });
-    expect(REMEDIATION_PRESSES.get(SlackActionType.DismissRemediation)).toEqual({
-      purpose: "dismiss this fix",
-      button: "Dismiss",
-    });
+    expect(REMEDIATION_PRESSES.get(SlackActionType.DismissRemediation)).toEqual(
+      {
+        purpose: "dismiss this fix",
+        button: "Dismiss",
+      },
+    );
   });
 
   test("the product is named as the installation names it", () => {

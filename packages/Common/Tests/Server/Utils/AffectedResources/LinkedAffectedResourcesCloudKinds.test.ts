@@ -78,9 +78,7 @@ describe("reading the cloud rows", () => {
           continue;
         }
 
-        expect(
-          (value as JSONObject)["cloudResourceKind"],
-        ).toBeUndefined();
+        expect((value as JSONObject)["cloudResourceKind"]).toBeUndefined();
       }
     }
   });

@@ -55,8 +55,9 @@ export default class MicrosoftTeamsRemediationActions {
         : WorkspaceRemediationActions.APPROVE_ACTION;
 
     // A value this bot never wrote is refused before anything is read.
-    const value: RemediationActionValue =
-      WorkspaceRemediationActions.readValue(data.actionValue);
+    const value: RemediationActionValue = WorkspaceRemediationActions.readValue(
+      data.actionValue,
+    );
 
     const suggestion: AutoRemediationSuggestion | null =
       await WorkspaceRemediationActions.readFix({
@@ -162,7 +163,9 @@ export default class MicrosoftTeamsRemediationActions {
    * The approval card: the dialog's title and everything the fix runs, and
    * Approve and run, which carries the fix and its fingerprint.
    */
-  public static buildApprovalCard(dialog: RemediationApprovalDialog): JSONObject {
+  public static buildApprovalCard(
+    dialog: RemediationApprovalDialog,
+  ): JSONObject {
     return {
       type: "AdaptiveCard",
       $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -187,7 +190,8 @@ export default class MicrosoftTeamsRemediationActions {
           title: dialog.submitTitle,
           style: "positive",
           data: {
-            action: MicrosoftTeamsRemediationActionType.SubmitApproveRemediation,
+            action:
+              MicrosoftTeamsRemediationActionType.SubmitApproveRemediation,
             actionValue: dialog.value,
           },
         },
