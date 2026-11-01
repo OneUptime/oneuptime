@@ -636,9 +636,16 @@ describe("the cloud environments the guide waits for", () => {
     );
   });
 
-  test("the summary above the list counts again when the Add dialog connects one", () => {
-    expect(code("Pages/AppPlatforms/Environments.tsx")).toContain(
+  /*
+   * The counts are App Platforms' Overview's, over its Platforms card: the
+   * list of every environment is the list alone.
+   */
+  test("the summary on the Overview counts again when the Add dialog connects one", () => {
+    expect(code("Pages/AppPlatforms/Overview.tsx")).toContain(
       "<CloudFleetSummary refreshToken={(firstRecordWatch.count || 0) + connectedCount} />",
+    );
+    expect(code("Pages/AppPlatforms/Environments.tsx")).not.toContain(
+      "<CloudFleetSummary",
     );
   });
 });

@@ -52,11 +52,7 @@ export function getDeveloperSideMenuItems(
 ): Array<SideMenuItemProps> {
   const tableName: string = new options.modelType().tableName || "";
   const parent: DeveloperDocsParentPage | undefined =
-    getDeveloperDocsParentPage(
-      tableName,
-      options.scope,
-      options.parentPageKey,
-    );
+    getDeveloperDocsParentPage(tableName, options.scope, options.parentPageKey);
 
   if (!parent) {
     throw new Error(

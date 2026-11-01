@@ -126,7 +126,8 @@ export function groupEnvironmentsByPlatform(
 
   const ordered: Array<AppPlatformGroup> = Array.from(groups.values()).sort(
     (a: AppPlatformGroup, b: AppPlatformGroup): number => {
-      const byRank: number = platformRank(a.platform) - platformRank(b.platform);
+      const byRank: number =
+        platformRank(a.platform) - platformRank(b.platform);
       return byRank !== 0 ? byRank : a.title.localeCompare(b.title);
     },
   );

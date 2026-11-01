@@ -314,7 +314,7 @@ const SHARED_OVERVIEW_PAGES: Array<[string, SharedOverviewPageCase]> = [
       resourceVariable: "r",
       identifierColumn: "cloudPlatform",
       builder: "getCloudResourceConnectionGuide",
-      documentationPage: "CLOUD_RESOURCE_VIEW_DOCUMENTATION",
+      documentationPage: "APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION",
     },
   ],
 ];
@@ -411,7 +411,8 @@ const expectCardProps: ExpectCardPropsFunction = (
     return;
   }
 
-  expect(route).toContain(
+  // A key too long for one line is wrapped inside its brackets: RouteMap[ PageMap.X ].
+  expect(route.replace(/\[\s+/g, "[").replace(/\s+\]/g, "]")).toContain(
     `RouteMap[PageMap.${pageCase.documentationPage}] as Route`,
   );
   expect(route).toContain("{ modelId: modelId }");

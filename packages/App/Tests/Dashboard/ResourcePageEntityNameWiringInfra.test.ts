@@ -457,7 +457,7 @@ describe("Cloud environment pages label every chip through the helper", () => {
   ])(
     "%s passes getCloudResourceAttributeDisplayKeys to the viewer",
     (tab: string, viewer: string) => {
-      const code: string = readCode(`Pages/Cloud/View/${tab}.tsx`);
+      const code: string = readCode(`Pages/AppPlatforms/View/${tab}.tsx`);
 
       expect(code).toContain(
         compact("getCloudResourceAttributeDisplayKeys(cloudResource)"),
@@ -485,7 +485,7 @@ describe("Cloud environment pages label every chip through the helper", () => {
 
   test("values are the genuine scope, so no page overrides them", () => {
     for (const tab of ["Logs", "Metrics", "Traces"]) {
-      expect(readCode(`Pages/Cloud/View/${tab}.tsx`)).not.toContain(
+      expect(readCode(`Pages/AppPlatforms/View/${tab}.tsx`)).not.toContain(
         "attributeFilterDisplayValues",
       );
     }

@@ -502,7 +502,7 @@ describe("Cloud environment overview tooltips", () => {
     const title: string = between(
       code,
       "export const TopInstancesByCpuTitle: FunctionComponent",
-      "const CloudResourceOverview",
+      "const CloudEnvironmentOverview",
     );
 
     expect(code).toContain(

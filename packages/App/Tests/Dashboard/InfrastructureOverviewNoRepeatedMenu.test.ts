@@ -53,6 +53,15 @@ function code(relative: string): string {
     .replace(/\s+/g, " ");
 }
 
+/*
+ * Without the breaks prettier puts inside brackets and parentheses when a
+ * page key is too long for one line: RouteMap[ PageMap.X ] is
+ * RouteMap[PageMap.X], populate( PageMap.X, ) is populate(PageMap.X).
+ */
+function tight(text: string): string {
+  return text.replace(/([[(]) /g, "$1").replace(/,? ([\])])/g, "$1");
+}
+
 interface OverviewCase {
   name: string;
   overview: string;
@@ -101,17 +110,18 @@ const OVERVIEWS: Array<OverviewCase> = [
     settingsPage: "SERVERLESS_FUNCTION_VIEW_SETTINGS",
   },
   {
+    // An environment's pages moved with it from Cloud to App Platforms.
     name: "Cloud environment",
     overview: "Pages/AppPlatforms/View/Overview.tsx",
-    sideMenu: "Pages/Cloud/View/SideMenu.tsx",
+    sideMenu: "Pages/AppPlatforms/View/SideMenu.tsx",
     formerLinks: [
-      "CLOUD_RESOURCE_VIEW_TRACES",
-      "CLOUD_RESOURCE_VIEW_LOGS",
-      "CLOUD_RESOURCE_VIEW_METRICS",
-      "CLOUD_RESOURCE_VIEW_INSTANCES",
-      "CLOUD_RESOURCE_VIEW_OWNERS",
+      "APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES",
+      "APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS",
+      "APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS",
+      "APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES",
+      "APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS",
     ],
-    settingsPage: "CLOUD_RESOURCE_VIEW_SETTINGS",
+    settingsPage: "APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS",
   },
   {
     name: "Cloud resource",
@@ -168,7 +178,7 @@ const OVERVIEWS: Array<OverviewCase> = [
 
 describe.each(OVERVIEWS)("$name Overview", (overviewCase: OverviewCase) => {
   const overview: string = code(overviewCase.overview);
-  const sideMenu: string = code(overviewCase.sideMenu);
+  const sideMenu: string = tight(code(overviewCase.sideMenu));
 
   test("draws no Explore telemetry card", () => {
     expect(overview).toContain("<ResourceOverview ");
@@ -189,7 +199,7 @@ describe.each(OVERVIEWS)("$name Overview", (overviewCase: OverviewCase) => {
   });
 
   test("links its Details card to its Settings page, which the side menu lists too", () => {
-    expect(overview).toContain(
+    expect(tight(overview)).toContain(
       `settingsRoute={populate(PageMap.${overviewCase.settingsPage})}`,
     );
     expect(sideMenu).toContain(

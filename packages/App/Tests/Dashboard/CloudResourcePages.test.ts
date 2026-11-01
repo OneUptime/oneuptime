@@ -13,6 +13,10 @@ import path from "path";
  * create form now: ingest creates every environment, and Add Cloud
  * Environment opens the platform's guide (Components/ResourceOnboarding).
  *
+ * The environments are App Platforms' now (Pages/AppPlatforms): one
+ * CloudResource table holds them and the resources in Cloud's accounts,
+ * and each product's pages are for its own kind.
+ *
  * The App suite runs in plain Node with no renderer and App/tsconfig.json
  * excludes FeatureSet/Dashboard, so these pin the JSX wiring by reading the
  * sources, the way EmptyResourceInventoryPages.test.ts does. Whitespace is
@@ -130,14 +134,27 @@ describe("Cloud Environments list", () => {
     );
   });
 
-  test("draws the fleet summary over the table", () => {
+  test("is the list alone: the fleet summary is the Overview's", () => {
     expect(code).not.toContain("getCloudDocMarkdown");
     expect(code).not.toContain("<ResourceDocumentationCard");
+    expect(code).not.toContain("CloudFleetSummary");
 
-    expect(code).toContain('from "../../Components/Cloud/CloudFleetSummary"');
-    expect(code.indexOf("<CloudFleetSummary")).toBeGreaterThan(-1);
-    expect(code.indexOf("<CloudFleetSummary")).toBeLessThan(
-      code.indexOf("<ModelTable<CloudResource>"),
+    const overview: string = readCode("Pages/AppPlatforms/Overview.tsx");
+
+    expect(overview).toContain(
+      'from "../../Components/Cloud/CloudFleetSummary"',
+    );
+    // Over the Platforms card, which groups the environments by platform.
+    expect(overview.indexOf("<CloudFleetSummary")).toBeGreaterThan(-1);
+    expect(overview.indexOf("<CloudFleetSummary")).toBeLessThan(
+      overview.indexOf("title={PLATFORMS_CARD_TITLE}"),
+    );
+  });
+
+  test("lists environments only: Cloud's resources are Cloud's", () => {
+    expect(code).toContain("cloudResourceKind: CloudResourceKind.Environment");
+    expect(readCode("Pages/Cloud/MonitoredResources.tsx")).toContain(
+      "cloudResourceKind: CloudResourceKind.Resource",
     );
   });
 });
@@ -159,7 +176,7 @@ describe("Cloud Environment telemetry scope", () => {
   test.each(["Logs", "Traces", "Metrics"])(
     "%s tab scopes through the helper and never renders unfiltered",
     (tab: string) => {
-      const code: string = readCode(`Pages/Cloud/View/${tab}.tsx`);
+      const code: string = readCode(`Pages/AppPlatforms/View/${tab}.tsx`);
 
       expect(code).toContain(SCOPE_IMPORT);
       expect(code).toContain("isCloudResourceScoped");
@@ -189,7 +206,7 @@ describe("Cloud Environment telemetry scope", () => {
      * "Platform".
      */
     for (const tab of ["Logs", "Traces", "Metrics"]) {
-      const code: string = readCode(`Pages/Cloud/View/${tab}.tsx`);
+      const code: string = readCode(`Pages/AppPlatforms/View/${tab}.tsx`);
 
       expect(code).toContain("getCloudResourceAttributeDisplayKeys(");
       expect(code).toContain(
@@ -203,8 +220,31 @@ describe("Cloud Environment telemetry scope", () => {
       "Components/Cloud/CloudResourceConnectBanner.tsx",
     );
 
-    expect(code).toContain("PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION");
+    expect(code).toContain(
+      "PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION",
+    );
     expect(code).toContain("Waiting for telemetry");
+  });
+
+  /*
+   * A resource in a cloud account has the provider's metrics only, scoped
+   * by the attributes ingest recorded for it; it has no Logs, Traces or
+   * Instances pages of its own.
+   */
+  test("a cloud resource's Metrics tab in Cloud scopes by its recorded attributes", () => {
+    const code: string = readCode("Pages/Cloud/View/Metrics.tsx");
+
+    expect(code).toContain("getCloudMonitoredResourceAttributeFilters(");
+    expect(code).toContain("isCloudMonitoredResourceScoped(");
+    expect(code).not.toContain("isCloudResourceScoped(");
+
+    for (const tab of ["Logs", "Traces", "Instances"]) {
+      expect(
+        fs.existsSync(
+          path.join(DASHBOARD_SRC, "Pages", "Cloud", "View", `${tab}.tsx`),
+        ),
+      ).toBe(false);
+    }
   });
 });
 
@@ -281,10 +321,12 @@ describe("Cloud Environment overview", () => {
   });
 
   test("Instances and Owners are in the side menu, not repeated on the overview", () => {
-    const sideMenu: string = readCode("Pages/Cloud/View/SideMenu.tsx");
+    const sideMenu: string = readCode("Pages/AppPlatforms/View/SideMenu.tsx");
 
-    expect(sideMenu).toContain("PageMap.CLOUD_RESOURCE_VIEW_INSTANCES");
-    expect(sideMenu).toContain("PageMap.CLOUD_RESOURCE_VIEW_OWNERS");
+    expect(sideMenu).toContain(
+      "PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES",
+    );
+    expect(sideMenu).toContain("PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS");
     // The overview's Explore telemetry card only listed the side menu again.
     expect(code).not.toContain("quickLinks");
   });
@@ -346,56 +388,64 @@ describe("Cloud Environment owners page wiring", () => {
     const routeMap: string = squash(readSource("Utils/RouteMap.ts"));
 
     expect(pageMap).toContain(
-      'CLOUD_RESOURCE_VIEW_OWNERS = "CLOUD_RESOURCE_VIEW_OWNERS"',
+      'APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS = "APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS"',
     );
     expect(routeMap).toContain(
-      "[PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`",
+      "[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`",
     );
+    expect(routeMap).toContain(
+      "AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS]",
+    );
+    // A cloud resource has its own, in Cloud.
     expect(routeMap).toContain(
       "CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_OWNERS]",
     );
   });
 
-  test("mounts the page in the cloud routes", () => {
-    const routes: string = readCode("Routes/CloudResourceRoutes.tsx");
+  test("mounts the page in App Platforms' routes, and a resource's in Cloud's", () => {
+    const routes: string = readCode("Routes/AppPlatformsRoutes.tsx");
 
-    expect(routes).toContain('from "../Pages/Cloud/View/Owners"');
+    expect(routes).toContain('from "../Pages/AppPlatforms/View/Owners"');
     expect(routes).toContain(
+      "RouteUtil.getLastPathForKey( PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS, )",
+    );
+
+    const cloudRoutes: string = readCode("Routes/CloudResourceRoutes.tsx");
+
+    expect(cloudRoutes).toContain('from "../Pages/Cloud/View/Owners"');
+    expect(cloudRoutes).toContain(
       "RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_OWNERS)",
     );
-    expect(routes).toContain("<CloudResourceOwners");
   });
 
   test("links to it from the environment side menu", () => {
-    const sideMenu: string = readCode("Pages/Cloud/View/SideMenu.tsx");
+    const sideMenu: string = readCode("Pages/AppPlatforms/View/SideMenu.tsx");
 
     expect(sideMenu).toContain('title: "Owners"');
     expect(sideMenu).toContain(
-      "RouteMap[PageMap.CLOUD_RESOURCE_VIEW_OWNERS] as Route",
+      "RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS] as Route",
     );
     // The Feed entry the feed-wiring sweep depends on stays put.
     expect(sideMenu).toContain('title: "Feed"');
   });
 
-  test("the page reads the id from the route and uses the cloud owner models", () => {
-    const page: string = readCode("Pages/Cloud/View/Owners.tsx");
+  test.each([
+    ["Pages/AppPlatforms/View/Owners.tsx", "cloud environment"],
+    ["Pages/Cloud/View/Owners.tsx", "cloud resource"],
+  ])(
+    "%s reads the id from the route, uses the cloud owner models and names its row a %s",
+    (file: string, noun: string) => {
+      const page: string = readCode(file);
 
-    // The route is <modelId>/owners, so the id is one segment back.
-    expect(page).toContain("Navigation.getLastParamAsObjectID(1)");
-    expect(page).toContain(
-      "<OwnersCard<CloudResourceOwnerUser, CloudResourceOwnerTeam>",
-    );
-    expect(page).toContain('resourceIdField="cloudResourceId"');
-  });
-
-  test("the page names the row by its kind: a discovered resource is not an environment", () => {
-    const page: string = readCode("Pages/Cloud/View/Owners.tsx");
-
-    expect(page).toContain("useCloudResourceViewContext()");
-    expect(page).toMatch(
-      /resourceDisplayName=\{\s*isCloudResourceKindResource\(cloudResourceKind\)\s*\?\s*"cloud resource"\s*:\s*"cloud environment"\s*\}/,
-    );
-  });
+      // The route is <modelId>/owners, so the id is one segment back.
+      expect(page).toContain("Navigation.getLastParamAsObjectID(1)");
+      expect(page).toContain(
+        "<OwnersCard<CloudResourceOwnerUser, CloudResourceOwnerTeam>",
+      );
+      expect(page).toContain('resourceIdField="cloudResourceId"');
+      expect(page).toContain(`resourceDisplayName="${noun}"`);
+    },
+  );
 });
 
 describe("Cloud breadcrumbs", () => {
@@ -443,7 +493,7 @@ describe("Cloud breadcrumbs", () => {
   });
 
   test.each([
-    ["CLOUD_RESOURCE_VIEW_INSTANCES", "Instances"],
+    ["CLOUD_RESOURCE_VIEW_CHANGES", "Changes"],
     ["CLOUD_RESOURCE_VIEW_FEED", "Feed"],
     ["CLOUD_RESOURCE_VIEW_OWNERS", "Owners"],
     ["CLOUD_ARCHIVED", "Archived"],
@@ -457,17 +507,29 @@ describe("Cloud breadcrumbs", () => {
 
     expect(entry).toContain(`"${title}",`);
   });
+
+  test("Cloud's own address is the trail's link to the product", () => {
+    const breadcrumbs: string = readCode(
+      "Utils/Breadcrumbs/CloudBreadcrumbs.ts",
+    );
+
+    expect(between(breadcrumbs, "PageMap.CLOUD_HOME,", "]),")).toContain(
+      '"Cloud"',
+    );
+  });
 });
 
 describe("Cloud Environment copy", () => {
   test("the view layout, list and inventory catalogue say environment, not resource", () => {
     /*
-     * The table also holds the resources discovered from cloud monitoring;
-     * the page is titled by the row's kind, and an environment's still says
-     * environment.
+     * The table also holds the resources in Cloud's accounts; each
+     * product's view is titled by its own kind.
      */
+    expect(readCode("Pages/AppPlatforms/View/Layout.tsx")).toContain(
+      'title="Cloud Environment"',
+    );
     expect(readCode("Pages/Cloud/View/Layout.tsx")).toContain(
-      'title={isResource ? "Cloud Resource" : "Cloud Environment"}',
+      'title="Cloud Resource"',
     );
     /*
      * The Logs tab renders its viewer bare, like the Traces and Metrics tabs,
@@ -476,8 +538,11 @@ describe("Cloud Environment copy", () => {
     expect(readCode("Pages/AppPlatforms/View/Logs.tsx")).toContain(
       'noLogsMessage="Logs appear here when they carry this environment\'s cloud.platform, cloud.account.id and cloud.region resource attributes."',
     );
-    expect(readCode("Pages/Cloud/SideMenu.tsx")).toContain(
+    expect(readCode("Pages/AppPlatforms/SideMenu.tsx")).toContain(
       'title: "All Environments"',
+    );
+    expect(readCode("Pages/Cloud/SideMenu.tsx")).not.toContain(
+      "All Environments",
     );
 
     const catalog: string = readCode(
@@ -497,24 +562,41 @@ describe("Cloud Environment copy", () => {
 describe("Cloud Resource settings", () => {
   /*
    * An environment's retention is folded under its More settings, as every
-   * resource's is (TelemetryResourceMoreSettings).
+   * resource's is (TelemetryResourceMoreSettings). A resource in a cloud
+   * account is never the row its metrics are filed under, so a retention
+   * set on it would change nothing.
    */
-  test("a discovered resource gets no retention card: its metrics are not filed under its row", () => {
-    const settings: string = readCode("Pages/Cloud/View/Settings.tsx");
-
-    expect(settings).toMatch(
-      /\{isResource \? null : \(\s*<TelemetryResourceMoreSettings<CloudResource>/,
+  test("a resource in Cloud gets no retention card; an environment in App Platforms does", () => {
+    expect(readCode("Pages/Cloud/View/Settings.tsx")).not.toContain(
+      "TelemetryResourceMoreSettings",
+    );
+    expect(readCode("Pages/AppPlatforms/View/Settings.tsx")).toContain(
+      '<TelemetryResourceMoreSettings<CloudResource> modelType={CloudResource} modelId={modelId} resourceName="cloud environment"',
     );
   });
 
-  test("archiving names the row by its kind and returns to its own list", () => {
-    const settings: string = readCode("Pages/Cloud/View/Settings.tsx");
+  test.each([
+    [
+      "Pages/Cloud/View/Settings.tsx",
+      "cloud resource",
+      "CLOUD_MONITORED_RESOURCES",
+    ],
+    [
+      "Pages/AppPlatforms/View/Settings.tsx",
+      "cloud environment",
+      "APP_PLATFORMS_ENVIRONMENTS",
+    ],
+  ])(
+    "%s archives a %s and returns to its own list",
+    (file: string, noun: string, listKey: string) => {
+      const settings: string = between(
+        readCode(file),
+        "<ArchiveResourceCard<CloudResource>",
+        "/>",
+      );
 
-    expect(settings).toContain(
-      'singularName={isResource ? "cloud resource" : "cloud environment"}',
-    );
-    expect(settings).toMatch(
-      /isResource\s*\?\s*PageMap\.CLOUD_MONITORED_RESOURCES\s*:\s*PageMap\.CLOUD_RESOURCES/,
-    );
-  });
+      expect(settings).toContain(`singularName="${noun}"`);
+      expect(settings).toContain(`RouteMap[PageMap.${listKey}] as Route`);
+    },
+  );
 });

@@ -30,28 +30,27 @@ export function getAppPlatformsBreadcrumbs(
       "App Platforms",
       "Archived",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULES, [
-      "Project",
-      "App Platforms",
-      "Label Rules",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULES,
+      ["Project", "App Platforms", "Label Rules"],
+    ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULE_VIEW,
       ["Project", "App Platforms", "Label Rules", "View Rule"],
     ),
-    ...BuildBreadcrumbLinksByTitles(PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULES, [
-      "Project",
-      "App Platforms",
-      "Owner Rules",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULES,
+      ["Project", "App Platforms", "Owner Rules"],
+    ),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULE_VIEW,
       ["Project", "App Platforms", "Owner Rules", "View Rule"],
     ),
-    ...BuildBreadcrumbLinksByTitles(
-      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
-      ["Project", "App Platforms", "View Environment"],
-    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW, [
+      "Project",
+      "App Platforms",
+      "View Environment",
+    ]),
     ...BuildBreadcrumbLinksByTitles(
       PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS,
       ["Project", "App Platforms", "View Environment", "Metrics"],

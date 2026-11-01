@@ -16,7 +16,7 @@ import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKin
  *
  *   - an environment - where an app runs on a managed app or container
  *     platform, such as ECS, Cloud Run or App Service - in App Platforms
- *     (…/app-platforms/environments/:id/…);
+ *     (…/app-platforms/:id/…);
  *   - a resource - a virtual machine, a bucket, a managed database or any
  *     other resource in a cloud account - in Cloud (…/cloud/:id/…).
  *
@@ -50,7 +50,7 @@ export enum CloudResourceViewTab {
 
 /*
  * What follows the row's id in a tab's address, in both products: the
- * environment's logs are …/environments/:id/logs, a resource's metrics
+ * environment's logs are …/app-platforms/:id/logs, a resource's metrics
  * …/cloud/:id/metrics.
  */
 export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
@@ -83,7 +83,8 @@ export const ENVIRONMENT_VIEW_PAGES: Readonly<
   Partial<Record<CloudResourceViewTab, string>>
 > = {
   [CloudResourceViewTab.Overview]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
-  [CloudResourceViewTab.Metrics]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS,
+  [CloudResourceViewTab.Metrics]:
+    PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS,
   [CloudResourceViewTab.Logs]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS,
   [CloudResourceViewTab.Traces]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES,
   [CloudResourceViewTab.Instances]:

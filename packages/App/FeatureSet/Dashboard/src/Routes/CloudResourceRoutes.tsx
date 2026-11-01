@@ -50,9 +50,21 @@ import PageNotFound from "../Pages/PageNotFound/PageNotFound";
 
 /*
  * Cloud, mounted at …/cloud/*: its accounts, every resource in them and the
- * way to connect one. The environments it used to list are App Platforms'
- * now (AppPlatformsRoutes); their old addresses here forward there
- * (Routes/MovedPagePaths MOVED_CLOUD_DEVELOPER_PATHS says which).
+ * way to connect one.
+ *
+ * Its environments - the apps on ECS and Fargate, Cloud Run, App Service
+ * and the other managed app and container platforms - moved to App
+ * Platforms (AppPlatformsRoutes, …/app-platforms/), and every old address
+ * still arrives:
+ *
+ *   - the environments list was Cloud's own address (…/cloud), which stays
+ *     the product's: it forwards to Cloud > Accounts;
+ *   - an environment's pages (…/cloud/:id/…) forward to the same tab in App
+ *     Platforms, keeping the id, the query string and the hash - the view
+ *     reads the row's kind first (Pages/Cloud/View/Layout,
+ *     Utils/CloudResourceViewPages), since a resource keeps those addresses;
+ *   - the list's Developer pages (…/cloud/developer/…) moved under All
+ *     Resources (…/cloud/resources/developer/…).
  */
 const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

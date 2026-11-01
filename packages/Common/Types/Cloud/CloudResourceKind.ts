@@ -50,7 +50,9 @@ export function isCloudResourceKindResource(
 }
 
 // Whether a value is one of the two kinds, spelled exactly as stored.
-export function isCloudResourceKind(value: unknown): value is CloudResourceKind {
+export function isCloudResourceKind(
+  value: unknown,
+): value is CloudResourceKind {
   return (
     value === CloudResourceKind.Environment ||
     value === CloudResourceKind.Resource

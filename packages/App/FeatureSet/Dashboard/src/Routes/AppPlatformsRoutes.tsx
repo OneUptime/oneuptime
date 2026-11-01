@@ -86,7 +86,9 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
             <AppPlatformsLabelRules
               {...props}
               pageRoute={
-                RouteMap[PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULE_VIEW] as Route
+                RouteMap[
+                  PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULE_VIEW
+                ] as Route
               }
               ruleViewModelType={CloudResourceLabelRule}
             />
@@ -116,7 +118,9 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
             <AppPlatformsOwnerRules
               {...props}
               pageRoute={
-                RouteMap[PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULE_VIEW] as Route
+                RouteMap[
+                  PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULE_VIEW
+                ] as Route
               }
               ruleViewModelType={CloudResourceOwnerRule}
             />
@@ -166,7 +170,9 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
             <AppPlatformEnvironmentMetrics
               {...props}
               pageRoute={
-                RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS] as Route
+                RouteMap[
+                  PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS
+                ] as Route
               }
             />
           }
@@ -276,7 +282,9 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
             <AppPlatformEnvironmentSettings
               {...props}
               pageRoute={
-                RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS] as Route
+                RouteMap[
+                  PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS
+                ] as Route
               }
             />
           }

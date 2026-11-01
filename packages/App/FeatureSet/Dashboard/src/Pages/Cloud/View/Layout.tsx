@@ -19,7 +19,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { Location, Navigate, Outlet, useLocation, useParams } from "react-router-dom";
+import {
+  Location,
+  Navigate,
+  Outlet,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 
 /*
  * A cloud resource's page in Cloud. The CloudResource table also holds the

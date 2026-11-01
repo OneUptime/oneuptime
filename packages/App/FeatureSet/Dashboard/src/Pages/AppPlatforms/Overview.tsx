@@ -88,9 +88,8 @@ export const SOME_DISCONNECTED: PluralTemplate = {
   other: "{{count}} environments disconnected",
 };
 export const ENVIRONMENT_CONNECTED: string = translationKey("Connected");
-export const ENVIRONMENT_LAST_SEEN: string = translationKey(
-  "Last seen {{time}}",
-);
+export const ENVIRONMENT_LAST_SEEN: string =
+  translationKey("Last seen {{time}}");
 export const ENVIRONMENT_NEVER_SEEN: string = translationKey(
   "Waiting for its first data",
 );
@@ -166,7 +165,10 @@ const PlatformGroupRows: FunctionComponent<{
             {translator.translatePlural(PLATFORM_ENVIRONMENT_COUNT, total)}
           </div>
         </div>
-        <div className="flex-shrink-0" data-testid="app-platforms-platform-status">
+        <div
+          className="flex-shrink-0"
+          data-testid="app-platforms-platform-status"
+        >
           <Pill text={toneText} color={TONE_COLORS[tone]} />
         </div>
       </div>
@@ -313,7 +315,12 @@ const AppPlatformsOverview: FunctionComponent<
     return (): void => {
       ignore = true;
     };
-  }, [hasEnvironments, firstRecordWatch.refreshToken, connectedCount, groupsAttempt]);
+  }, [
+    hasEnvironments,
+    firstRecordWatch.refreshToken,
+    connectedCount,
+    groupsAttempt,
+  ]);
 
   if (firstRecordWatch.error) {
     return (
