@@ -9,6 +9,11 @@ import ProductCompare, {
 } from "../Utils/ProductCompare";
 import Pricing, { PricingPlan, PricingPlans } from "../Utils/Pricing";
 import { Claim, Claims, getClaim } from "../Utils/Claims";
+import { getAirGappedTopicContent } from "../Utils/AirGapped";
+import {
+  AirGappedTopicPage,
+  AirGappedTopicPages,
+} from "../Utils/AirGappedPages";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import ejs from "ejs";
 import fs from "fs";
@@ -861,6 +866,27 @@ describe("pages whose copy moved into the register", () => {
       const html: string = await render(template, {
         enableGoogleTagManager: false,
         seo,
+        homeUrl: HOME_URL,
+      });
+
+      expectHeadFrom(html, seo);
+    },
+  );
+
+  test.each(
+    AirGappedTopicPages.map((page: AirGappedTopicPage): [string, string] => {
+      return [page.path, page.slug];
+    }),
+  )(
+    "%s renders its own title and description",
+    async (pagePath: string, slug: string) => {
+      const seo: SEOForTemplate = seoFor(pagePath);
+      const html: string = await render("air-gapped-topic.ejs", {
+        enableGoogleTagManager: false,
+        seo,
+        airGappedTopic: getAirGappedTopicContent(
+          slug as AirGappedTopicPage["slug"],
+        ),
         homeUrl: HOME_URL,
       });
 

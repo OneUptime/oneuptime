@@ -1735,7 +1735,7 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           key: "sms-subscribers",
           title: "SMS subscribers",
           description:
-            "Status page subscriber SMS goes through the gateway you run, like every other SMS OneUptime sends.",
+            "Status page subscriber SMS goes through the gateway you run, as on-call pages do.",
           icon: "phone",
           link: {
             label: "SMS and call gateway",

@@ -4,7 +4,14 @@ import {
   ClaimStatuses,
 } from "../Utils/Claims";
 import { getSelfHostedContent } from "../Utils/SelfHosted";
-import { getAirGappedContent } from "../Utils/AirGapped";
+import {
+  getAirGappedContent,
+  getAirGappedTopicContent,
+} from "../Utils/AirGapped";
+import {
+  AirGappedTopicPage,
+  AirGappedTopicPages,
+} from "../Utils/AirGappedPages";
 import PageSEOConfig, { getPageSEO, PageSEOData } from "../Utils/PageSEO";
 import ejs from "ejs";
 import fs from "fs";
@@ -154,6 +161,42 @@ describe("air-gapped.ejs", () => {
     expect(html.indexOf("mailto:enterprise@oneuptime.com")).toBeLessThan(
       html.indexOf('id="my-cal-inline-air-gapped"'),
     );
+  });
+});
+
+describe.each(
+  AirGappedTopicPages.map((page: AirGappedTopicPage): [string, string] => {
+    return [page.path, page.slug];
+  }),
+)("air-gapped-topic.ejs at %s", (pagePath: string, slug: string) => {
+  let html: string = "";
+
+  beforeAll(async () => {
+    // The locals Routes.ts hands the page.
+    html = await render("air-gapped-topic.ejs", {
+      enableGoogleTagManager: false,
+      airGappedTopic: getAirGappedTopicContent(
+        slug as AirGappedTopicPage["slug"],
+      ),
+      seo: seoFor(pagePath),
+      homeUrl: HOME_URL,
+    });
+  });
+
+  test("every way to the booking on the hub is tagged, so it counts", () => {
+    const tagged: RegExpMatchArray | null = html.match(
+      /<a href="\/enterprise\/air-gapped#plan-your-install" data-ou-cta="cta_request_demo"/g,
+    );
+
+    expect(tagged).toHaveLength(3);
+  });
+
+  test("no link to the booking is left untagged", () => {
+    const untagged: RegExpMatchArray | null = html.match(
+      /<a href="\/enterprise\/air-gapped#plan-your-install"(?! data-ou-cta)/g,
+    );
+
+    expect(untagged).toBeNull();
   });
 });
 
