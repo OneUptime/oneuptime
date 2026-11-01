@@ -33,6 +33,16 @@ chartDefaultsVersion: "0.7.3"
 #   eks-fargate   — EKS Fargate. Same config as gke-autopilot (no host
 #                   access, no privileged pods, no DaemonSets on Fargate).
 #
+#   openshift     — OpenShift: OpenShift Container Platform, ROSA, ARO,
+#                   OKD. Logs and node metrics come from the DaemonSet, as
+#                   on standard. OpenShift's default SCC, restricted-v2,
+#                   refuses hostPath, privileged pods and fixed user IDs,
+#                   so the chart creates an SCC for the node collector
+#                   (read-only hostPath, root, SELinux type spc_t) and one
+#                   for the eBPF and profiler pods (privileged), each used
+#                   only by those pods' own service account, and lets
+#                   OpenShift assign every other pod's user and group IDs.
+#
 # If unset, "standard" is assumed. Individual values (logs.mode, etc.) can
 # still be overridden explicitly — they always win over preset defaults.
 # The one exception is the privileged pods: on gke-autopilot and

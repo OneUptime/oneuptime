@@ -1,0 +1,183 @@
+{{- /*
+OpenShift's security context constraints (SCCs) for the node pods, on the
+openshift preset.
+
+OpenShift admits a pod only under an SCC that the pod's service account may
+use, and a service account may use restricted-v2 and nothing more until an
+admin grants it. restricted-v2 refuses hostPath volumes, privileged
+containers, the host PID namespace, and user IDs outside the namespace's
+range. Two kinds of pods need more:
+
+  - The node collector (daemonset.yaml) reads pod logs, /proc and /sys
+    through read-only hostPath mounts. Pod log files belong to root and are
+    not world-readable, and RHCOS runs SELinux enforcing, so the collector
+    runs as root with the SELinux type spc_t. It stays unprivileged, with
+    every capability dropped.
+  - The eBPF instrumentation and the profiler (daemonset-ebpf.yaml,
+    daemonset-profiling.yaml) load eBPF programs: privileged, in the host's
+    PID namespace.
+
+Each SCC may be used only by its pods' own service account
+(kubernetes-agent.nodeServiceAccounts), through a Role in the release's
+namespace. Every other pod runs under restricted-v2 with the user and group
+IDs OpenShift assigns (kubernetes-agent.nonRootPodSecurityContext).
+
+Neither SCC has a priority, so OpenShift tries the more restrictive SCCs
+first and admits any pod that restricted-v2 fits under restricted-v2.
+
+The schema requires allowedCapabilities, defaultAddCapabilities and
+priority, null or not, so they are written out.
+*/}}
+{{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+{{- $fullname := include "kubernetes-agent.fullname" . }}
+{{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: {{ $fullname }}-node-collector
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/description: >-
+      The OneUptime Kubernetes agent's node collector: read-only hostPath
+      mounts of the node's pod logs, /proc and /sys, as root with the
+      SELinux type spc_t, unprivileged and with every capability dropped.
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegeEscalation: false
+allowPrivilegedContainer: false
+allowedCapabilities: null
+defaultAddCapabilities: null
+requiredDropCapabilities:
+  - ALL
+priority: null
+readOnlyRootFilesystem: false
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+  seLinuxOptions:
+    {{- include "kubernetes-agent.spcSeLinuxOptions" . | nindent 4 }}
+fsGroup:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+seccompProfiles:
+  - runtime/default
+volumes:
+  - configMap
+  - downwardAPI
+  - emptyDir
+  - hostPath
+  - projected
+  - secret
+users: []
+groups: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullname }}-node-collector-scc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["security.openshift.io"]
+    resources: ["securitycontextconstraints"]
+    resourceNames: ["{{ $fullname }}-node-collector"]
+    verbs: ["use"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-node-collector-scc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $fullname }}-node-collector-scc
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubernetes-agent.nodeCollectorServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.ebpfPodsEnabled" .) "true" }}
+---
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: {{ $fullname }}-ebpf
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/description: >-
+      The OneUptime Kubernetes agent's eBPF instrumentation and profiler:
+      privileged, in the host's PID namespace, with hostPath mounts of the
+      node's BPF, tracing and debug filesystems.
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: true
+allowHostPorts: false
+allowPrivilegeEscalation: true
+allowPrivilegedContainer: true
+allowedCapabilities: null
+defaultAddCapabilities: null
+requiredDropCapabilities: null
+priority: null
+readOnlyRootFilesystem: false
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+fsGroup:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+seccompProfiles:
+  - "*"
+volumes:
+  - configMap
+  - downwardAPI
+  - emptyDir
+  - hostPath
+  - projected
+  - secret
+users: []
+groups: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullname }}-ebpf-scc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["security.openshift.io"]
+    resources: ["securitycontextconstraints"]
+    resourceNames: ["{{ $fullname }}-ebpf"]
+    verbs: ["use"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-ebpf-scc
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $fullname }}-ebpf-scc
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kubernetes-agent.ebpfServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}

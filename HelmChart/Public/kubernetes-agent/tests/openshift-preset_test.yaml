@@ -1,0 +1,662 @@
+# The openshift preset: what OpenShift needs before it admits the agent.
+#
+# OpenShift admits a pod only under a security context constraint (SCC) its
+# service account may use, and a service account may use restricted-v2 alone
+# until an admin grants more: no hostPath, no privileged containers, no host
+# PID namespace, user and group IDs from the namespace's range only. On the
+# standard preset the node collector (hostPath), the eBPF and profiler pods
+# (privileged, hostPID) and every pod that pins a user ID were refused, and
+# only the cluster collector came up: inventory and events, but no node, pod
+# or container metrics, no logs and no traces.
+#
+# So the openshift preset creates an SCC for each kind of node pod, which
+# only that pod's own service account may use (through a Role in the
+# release's namespace), runs the node collector as root with the SELinux type
+# spc_t, unprivileged, and leaves every other pod's IDs for OpenShift to
+# assign. Its collectors also stamp oneuptime.kubernetes.distribution and run
+# the openshift resource detector, which must never rename the cluster. Every
+# other preset renders as it did.
+suite: the openshift preset creates the SCCs its node pods need and lets OpenShift assign every other pod's IDs
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/openshift-scc.yaml
+  - templates/rbac.yaml
+  - templates/daemonset.yaml
+  - templates/daemonset-ebpf.yaml
+  - templates/daemonset-profiling.yaml
+  - templates/deployment.yaml
+  - templates/ai-agent.yaml
+  - templates/kube-state-metrics.yaml
+  - templates/deployment-logs-api.yaml
+  - templates/deployment-cost-agent.yaml
+  - templates/prometheus-cost.yaml
+  - templates/configmap-deployment.yaml
+  - templates/configmap-daemonset.yaml
+  - templates/configmap-profiling.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- The SCCs ---------------------------------------------------------------
+  - it: creates no SCC on the standard preset
+    template: templates/openshift-scc.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: creates no SCC on GKE Autopilot
+    template: templates/openshift-scc.yaml
+    set:
+      preset: gke-autopilot
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: gives the node collector an SCC for read-only node paths, as root with the SELinux type spc_t, unprivileged and with every capability dropped
+    template: templates/openshift-scc.yaml
+    set:
+      preset: openshift
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-node-collector
+    asserts:
+      - isKind:
+          of: SecurityContextConstraints
+      - isAPIVersion:
+          of: security.openshift.io/v1
+      - equal:
+          path: allowHostDirVolumePlugin
+          value: true
+      - equal:
+          path: allowPrivilegedContainer
+          value: false
+      - equal:
+          path: allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: allowHostPID
+          value: false
+      - equal:
+          path: allowHostNetwork
+          value: false
+      - equal:
+          path: allowHostIPC
+          value: false
+      - equal:
+          path: allowHostPorts
+          value: false
+      - equal:
+          path: requiredDropCapabilities
+          value:
+            - ALL
+      - exists:
+          path: allowedCapabilities
+      - equal:
+          path: allowedCapabilities
+          value: null
+      - exists:
+          path: defaultAddCapabilities
+      - equal:
+          path: defaultAddCapabilities
+          value: null
+      - exists:
+          path: priority
+      - equal:
+          path: priority
+          value: null
+      - equal:
+          path: runAsUser
+          value:
+            type: RunAsAny
+      - equal:
+          path: seLinuxContext
+          value:
+            type: MustRunAs
+            seLinuxOptions:
+              user: system_u
+              role: system_r
+              type: spc_t
+              level: s0
+      - equal:
+          path: seccompProfiles
+          value:
+            - runtime/default
+      - contains:
+          path: volumes
+          content: hostPath
+      - equal:
+          path: users
+          value: []
+      - equal:
+          path: groups
+          value: []
+
+  - it: gives the eBPF instrumentation and the profiler an SCC for privileged pods in the host's PID namespace
+    template: templates/openshift-scc.yaml
+    set:
+      preset: openshift
+    documentSelector:
+      path: metadata.name
+      value: oneuptime-agent-kubernetes-agent-ebpf
+    asserts:
+      - isKind:
+          of: SecurityContextConstraints
+      - equal:
+          path: allowPrivilegedContainer
+          value: true
+      - equal:
+          path: allowHostPID
+          value: true
+      - equal:
+          path: allowHostDirVolumePlugin
+          value: true
+      - equal:
+          path: allowHostNetwork
+          value: false
+      - equal:
+          path: allowHostPorts
+          value: false
+      - exists:
+          path: priority
+      - equal:
+          path: priority
+          value: null
+      - equal:
+          path: seLinuxContext
+          value:
+            type: RunAsAny
+
+  # The template's documents, in order: the node collector's SCC, Role and
+  # RoleBinding, then the eBPF SCC, Role and RoleBinding.
+  - it: lets only the node collector's service account use its SCC, in the release's namespace
+    template: templates/openshift-scc.yaml
+    set:
+      preset: openshift
+    asserts:
+      - isKind:
+          of: Role
+        documentIndex: 1
+      - equal:
+          path: metadata.namespace
+          value: oneuptime
+        documentIndex: 1
+      - equal:
+          path: rules
+          value:
+            - apiGroups: ["security.openshift.io"]
+              resources: ["securitycontextconstraints"]
+              resourceNames: ["oneuptime-agent-kubernetes-agent-node-collector"]
+              verbs: ["use"]
+        documentIndex: 1
+      - isKind:
+          of: RoleBinding
+        documentIndex: 2
+      - equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: oneuptime-agent-kubernetes-agent-node-collector-scc
+        documentIndex: 2
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-node-collector
+              namespace: oneuptime
+        documentIndex: 2
+
+  - it: lets only the eBPF service account use the privileged SCC
+    template: templates/openshift-scc.yaml
+    set:
+      preset: openshift
+    asserts:
+      - equal:
+          path: rules[0].resourceNames
+          value: ["oneuptime-agent-kubernetes-agent-ebpf"]
+        documentIndex: 4
+      - isKind:
+          of: Role
+        documentIndex: 4
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-ebpf
+              namespace: oneuptime
+        documentIndex: 5
+      - equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ebpf-scc
+        documentIndex: 5
+
+  - it: leaves the privileged SCC out when neither eBPF nor the profiler runs
+    template: templates/openshift-scc.yaml
+    set:
+      preset: openshift
+      ebpf.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 3
+      - equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-node-collector
+        documentIndex: 0
+
+  - it: creates the privileged SCC for the profiler alone
+    template: templates/openshift-scc.yaml
+    set:
+      preset: openshift
+      ebpf.enabled: false
+      profiling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 6
+      - equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ebpf
+        documentIndex: 3
+
+  - it: grants both SCCs to the service account you name when the chart creates none
+    template: templates/openshift-scc.yaml
+    set:
+      preset: openshift
+      serviceAccount.create: false
+      serviceAccount.name: my-agent
+    asserts:
+      - equal:
+          path: subjects[0].name
+          value: my-agent
+        documentIndex: 2
+      - equal:
+          path: subjects[0].name
+          value: my-agent
+        documentIndex: 5
+
+  # --- Service accounts and RBAC -----------------------------------------------
+  - it: runs the node pods as service accounts of their own, bound to the agent's ClusterRole
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+    asserts:
+      - isKind:
+          of: ServiceAccount
+        documentSelector:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-node-collector
+      - isKind:
+          of: ServiceAccount
+        documentSelector:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ebpf
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent
+              namespace: oneuptime
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-node-collector
+              namespace: oneuptime
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-ebpf
+              namespace: oneuptime
+        documentSelector:
+          path: kind
+          value: ClusterRoleBinding
+
+  - it: creates no eBPF service account when neither eBPF nor the profiler runs
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+      ebpf.enabled: false
+    asserts:
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent
+              namespace: oneuptime
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-node-collector
+              namespace: oneuptime
+        documentSelector:
+          path: kind
+          value: ClusterRoleBinding
+      - hasDocuments:
+          count: 4
+
+  - it: creates no service account at all when serviceAccount.create is false
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+      serviceAccount.create: false
+      serviceAccount.name: my-agent
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: my-agent
+              namespace: oneuptime
+        documentSelector:
+          path: kind
+          value: ClusterRoleBinding
+
+  - it: binds only the main service account on the standard preset
+    template: templates/rbac.yaml
+    asserts:
+      - lengthEqual:
+          path: subjects
+          count: 1
+        documentSelector:
+          path: kind
+          value: ClusterRoleBinding
+      - hasDocuments:
+          count: 3
+
+  - it: lets the openshift detector read the status of the cluster's Infrastructure object, and nothing more of it
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["config.openshift.io"]
+            resources:
+              - infrastructures/status
+            resourceNames:
+              - cluster
+            verbs: ["get"]
+
+  - it: grants nothing of config.openshift.io on the standard preset
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["config.openshift.io"]
+          any: true
+
+  # --- The node pods ------------------------------------------------------------
+  - it: runs the node collector as its own service account, as root with the SELinux type spc_t, unprivileged
+    template: templates/daemonset.yaml
+    set:
+      preset: openshift
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent-node-collector
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsUser: 0
+            seLinuxOptions:
+              user: system_u
+              role: system_r
+              type: spc_t
+              level: s0
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+
+  - it: leaves the node collector's identity and security context as they were on the standard preset
+    template: templates/daemonset.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent
+      - notExists:
+          path: spec.template.spec.securityContext
+      - notExists:
+          path: spec.template.spec.containers[0].securityContext
+
+  - it: runs the eBPF instrumentation as the eBPF service account
+    template: templates/daemonset-ebpf.yaml
+    set:
+      preset: openshift
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent-ebpf
+
+  - it: runs the profiler as the eBPF service account
+    template: templates/daemonset-profiling.yaml
+    set:
+      preset: openshift
+      profiling.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent-ebpf
+
+  - it: runs the node pods as the service account you name when the chart creates none
+    template: templates/daemonset.yaml
+    set:
+      preset: openshift
+      serviceAccount.create: false
+      serviceAccount.name: my-agent
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: my-agent
+
+  - it: keeps the cluster collector on the main service account, under restricted-v2
+    template: templates/deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent
+      - notExists:
+          path: spec.template.spec.securityContext
+
+  # --- User and group IDs ---------------------------------------------------------
+  - it: lets OpenShift assign the AI agent's user and group IDs
+    template: templates/ai-agent.yaml
+    set:
+      preset: openshift
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+
+  - it: lets OpenShift assign kube-state-metrics' user and group IDs
+    template: templates/kube-state-metrics.yaml
+    set:
+      preset: openshift
+      kubeStateMetrics.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+
+  - it: lets OpenShift assign the log tailer's user and group IDs
+    template: templates/deployment-logs-api.yaml
+    set:
+      preset: openshift
+      logs.mode: api
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+
+  - it: lets OpenShift assign the cost agent's and the cost Prometheus' user and group IDs
+    set:
+      preset: openshift
+      cost.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/deployment-cost-agent.yaml
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/prometheus-cost.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  - it: keeps every fixed user and group ID on the standard preset
+    set:
+      kubeStateMetrics.enabled: true
+      cost.enabled: true
+      logs.mode: api
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/ai-agent.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            runAsUser: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/kube-state-metrics.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/deployment-logs-api.yaml
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/deployment-cost-agent.yaml
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            fsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+        template: templates/prometheus-cost.yaml
+        documentSelector:
+          path: kind
+          value: Deployment
+
+  # --- The collectors' configuration -----------------------------------------
+  - it: stamps the distribution and runs the openshift detector right after the resource processor in every cluster collector pipeline
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^      - key: oneuptime\\.kubernetes\\.distribution\\n        value: openshift\\n        action: insert$"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^  resourcedetection/openshift:\\n    detectors: \\[openshift\\]\\n    override: false\\n    openshift:\\n      resource_attributes:\\n        k8s\\.cluster\\.name:\\n          enabled: false\\n        cloud\\.region:\\n          enabled: false$"
+      # metrics, logs and the eBPF traces pipeline: each one that stamps
+      # the cluster's identity runs the detector after it.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?s)^(?:.*?\\n        - resource\\n        - resourcedetection/openshift\\n){3}"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - resource\\n        - (?:[^r]|r[^e])"
+
+  - it: stamps the distribution and runs the openshift detector in the node collector's pipelines
+    template: templates/configmap-daemonset.yaml
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^      - key: oneuptime\\.kubernetes\\.distribution\\n        value: openshift\\n        action: upsert$"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?m)^  resourcedetection/openshift:$"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "(?s)^(?:.*?\\n        - resource\\n        - resourcedetection/openshift\\n){2}"
+
+  - it: stamps the distribution on profiles, without the detector the profiler's distribution cannot run
+    template: templates/configmap-profiling.yaml
+    set:
+      preset: openshift
+      profiling.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["config.yaml"]
+          pattern: "(?m)^      - key: oneuptime\\.kubernetes\\.distribution\\n        value: openshift\\n        action: insert$"
+      - notMatchRegex:
+          path: data["config.yaml"]
+          pattern: "resourcedetection"
+
+  - it: neither stamps the distribution nor runs the detector on the standard preset
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "resourcedetection|oneuptime\\.kubernetes\\.distribution"
+        template: templates/configmap-deployment.yaml
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "resourcedetection|oneuptime\\.kubernetes\\.distribution"
+        template: templates/configmap-daemonset.yaml

@@ -575,7 +575,13 @@ data:
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}
             action: upsert
+          {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+          {{- include "kubernetes-agent.distributionAttribute" (dict "action" "upsert") | nindent 10 }}
+          {{- end }}
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "upsert") | nindent 10 }}
+      {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+      {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
+      {{- end }}
 
       # Set service.name from deployment/statefulset/daemonset name when available
       transform:
@@ -667,6 +673,9 @@ data:
             - filter/telemetry
             {{- end }}
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             - transform
             - batch
           exporters:
@@ -687,6 +696,9 @@ data:
             - filter/telemetry
             {{- end }}
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             - transform
             - batch
           exporters:

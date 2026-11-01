@@ -4,7 +4,7 @@ L'agente Kubernetes di OneUptime è un chart Helm che raccoglie le metriche, gli
 
 :::cards
 - [Installare l'agente](#installare-lagente): Quattro passaggi con Helm.
-- [Scegliere un preset](#scegliere-un-preset): Cluster standard, GKE Autopilot o EKS Fargate.
+- [Scegliere un preset](#scegliere-un-preset): Cluster standard, GKE Autopilot, EKS Fargate o OpenShift.
 - [Opzioni comuni](#opzioni-comuni): Le impostazioni che la maggior parte dei cluster modifica.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Uno script di diagnostica e i problemi più comuni.
 :::
@@ -92,10 +92,13 @@ Alcune piattaforme Kubernetes non consentono a un workload di montare un volume 
 | `standard` (predefinito) | Autogestito, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Il collector di nodo legge `/var/log/pods` | Metriche di kubelet, cAdvisor e del sistema operativo |
 | `gke-autopilot` | **GKE Autopilot** | Il lettore di log li legge tramite l'API di Kubernetes | Metriche di kubelet e cAdvisor, senza `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Il lettore di log li legge tramite l'API di Kubernetes | Niente: Fargate non esegue DaemonSet |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Il collector di nodo legge `/var/log/pods` | Metriche di kubelet, cAdvisor e del sistema operativo |
 
 Se non sei sicuro, lascia `preset` non impostato per ottenere `standard`. Se l'installazione fallisce con un errore Pod Security che cita `hostPath`, reinstalla con `gke-autopilot`, oppure con `eks-fargate` su EKS Fargate.
 
-GKE Autopilot ed EKS Fargate rifiutano anche i pod privilegiati, di cui l'instrumentazione eBPF e la profilazione hanno bisogno, quindi i loro preset li lasciano fuori entrambi:
+GKE Autopilot ed EKS Fargate rifiutano anche i pod privilegiati, di cui l'instrumentazione eBPF e la profilazione hanno bisogno, quindi i loro preset li lasciano fuori entrambi.
+
+Su OpenShift, il vincolo del contesto di sicurezza (SCC) predefinito, `restricted-v2`, rifiuta il collector di nodo e i pod eBPF. Il preset `openshift` crea un SCC per ciascuno, usato solo dal rispettivo account di servizio, e lascia che OpenShift scelga l'ID utente di tutti gli altri pod:
 
 :::tabs
 @tab Standard
@@ -123,6 +126,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
 ```
 :::
 
@@ -355,7 +367,7 @@ La profilazione richiede **Linux 5.10** o successivo, e un pod privilegiato con 
 | `oneuptime.url` | (obbligatorio) | Il tuo URL di OneUptime. |
 | `oneuptime.apiKey` | (obbligatorio) | La chiave di acquisizione, da **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**. Inviata come intestazione `x-oneuptime-token`; una chiave API di progetto non funziona. |
 | `clusterName` | (obbligatorio) | Il nome del cluster, univoco nel progetto. Ogni record lo porta come `k8s.cluster.name`. |
-| `preset` | (vuoto: `standard`) | `standard`, `gke-autopilot` o `eks-fargate`. Vedi [Scegliere un preset](#scegliere-un-preset). |
+| `preset` | (vuoto: `standard`) | `standard`, `gke-autopilot`, `eks-fargate` o `openshift`. Vedi [Scegliere un preset](#scegliere-un-preset). |
 | `oneuptime.labels` | `{}` | Etichette per ogni record di questo agente. Vedi [Assegnare etichette al cluster](#assegnare-etichette-al-cluster). |
 | `namespaceFilters.rules` | Esclude `kube-system` da `podLogs` ed `ebpfDiscovery` | Regole che includono o escludono namespace, per `podLogs`, `ebpfDiscovery`, `metrics` e `traces`. I pattern possono usare `*`, e l'esclusione vince sempre. |
 | `filters.logs.minSeverity` | `""` | Scarta le righe di log dei pod sotto questo livello: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` o `FATAL`. |

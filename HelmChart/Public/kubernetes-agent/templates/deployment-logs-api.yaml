@@ -28,12 +28,7 @@ spec:
       # No privileged containers, no hostPath, no hostNetwork — GKE Autopilot
       # compatible. The tailer only needs the ServiceAccount's API access.
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
+        {{- include "kubernetes-agent.nonRootPodSecurityContext" (dict "root" $ "runAsUser" 1000 "runAsGroup" 1000 "fsGroup" 1000) | nindent 8 }}
       containers:
         - name: log-tailer
           image: "{{ .Values.logs.api.image.repository }}:{{ .Values.logs.api.image.tag | default "release" }}"

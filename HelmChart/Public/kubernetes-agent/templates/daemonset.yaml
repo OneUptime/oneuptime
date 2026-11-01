@@ -29,7 +29,18 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-daemonset.yaml") . | sha256sum }}
     spec:
-      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      serviceAccountName: {{ include "kubernetes-agent.nodeCollectorServiceAccountName" . }}
+      {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+      # OpenShift: pod log files belong to root and are not world-readable,
+      # and RHCOS's enforcing SELinux keeps the default container type away
+      # from the node's files. So the collector runs as root with the type
+      # spc_t, under the SCC the chart creates for it
+      # (templates/openshift-scc.yaml); it stays unprivileged.
+      securityContext:
+        runAsUser: 0
+        seLinuxOptions:
+          {{- include "kubernetes-agent.spcSeLinuxOptions" . | nindent 10 }}
+      {{- end }}
       {{- if and .Values.debug.enabled .Values.debug.shareProcessNamespace }}
       # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
       shareProcessNamespace: true
@@ -45,6 +56,13 @@ spec:
         - name: otel-collector
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          {{- end }}
           args:
             - "--config=/etc/otel/otel-collector-config.yaml"
           env:
