@@ -2,16 +2,21 @@ import MerakiTrafficReader, {
   ANALYTICS_GAP_WARNING,
   ANALYTICS_WINDOW_MS,
   BACKFILL_MS,
+  MAX_TOPOLOGY_NETWORKS_PER_READ,
+  MerakiNetwork,
   NO_APPLIANCE_WARNING,
   RATE_LIMITED_WARNING,
   STOPPED_ANSWERING_WARNING,
+  TOPOLOGY_WINDOW_MS,
   getAnalyticsStart,
+  getTopologyDueNetworks,
   isTrafficAnalysisOff,
   planUplinkWindows,
   readNetworks,
 } from "../../../../Server/Utils/NetworkController/Meraki/MerakiTrafficReader";
 import { MERAKI_REQUESTS_PER_SECOND } from "../../../../Server/Utils/NetworkController/Meraki/MerakiApiClient";
 import LlmProviderError from "../../../../Server/Utils/LlmObservability/LlmProviderError";
+import { JSONObject } from "../../../../Types/JSON";
 import {
   NetworkControllerPullState,
   NetworkControllerReadOptions,
@@ -34,6 +39,7 @@ import {
   FakeMerakiOptions,
   FakeMerakiOrganization,
   FakeMerakiRequest,
+  FakeMerakiResponse,
   TestClock,
   buildBranchOrganization,
   createFakeMerakiApi,
@@ -300,9 +306,9 @@ describe("reading Meraki's answers about networks", () => {
         "L_4",
       ]),
     ).toEqual([
-      { id: "L_1", name: "Branch 1", hasTraffic: true },
-      { id: "L_2", name: "Cameras", hasTraffic: false },
-      { id: "L_3", name: "Old", hasTraffic: true },
+      { id: "L_1", name: "Branch 1", hasTraffic: true, hasTopology: true },
+      { id: "L_2", name: "Cameras", hasTraffic: false, hasTopology: false },
+      { id: "L_3", name: "Old", hasTraffic: true, hasTopology: true },
     ]);
   });
 
@@ -349,8 +355,8 @@ describe("a first read", () => {
     expect(result.complete).toBe(true);
     expect(result.warnings).toEqual([]);
 
-    // 3 listings, 34 uplink windows, 2 calls for each of 5 networks.
-    expect(result.requestCount).toBe(3 + 34 + 10);
+    // 3 listings, 34 uplink windows, 3 calls for each of 5 networks.
+    expect(result.requestCount).toBe(3 + 34 + 15);
     expect(env.api.requests).toHaveLength(result.requestCount);
     expect(env.api.callsTo(UPLINKS)).toHaveLength(34);
     expect(result.uplinkWindows).toBe(34);
@@ -794,8 +800,14 @@ describe("a large organization", () => {
     expect(first.appliances).toHaveLength(1200);
     expect(first.requestCount).toBe(900);
     expect(first.complete).toBe(false);
-    // 5 listings (two pages each of networks and devices) and 34 windows.
-    expect(first.analyticsNetworks).toBe(Math.floor((900 - 5 - 34) / 2));
+    /*
+     * 5 listings (two pages each of networks and devices), 34 windows, and
+     * the links of as many networks as one read asks.
+     */
+    expect(first.analyticsNetworks).toBe(
+      Math.floor((900 - 5 - 34 - MAX_TOPOLOGY_NETWORKS_PER_READ) / 2),
+    );
+    expect(first.linkNetworkIds).toHaveLength(MAX_TOPOLOGY_NETWORKS_PER_READ);
     expect(first.analyticsNetworksWaiting).toBe(1200 - first.analyticsNetworks);
     expect(first.uplinkWindows).toBe(34);
     expectRecordsInWindows(first);
@@ -814,7 +826,8 @@ describe("a large organization", () => {
     }
 
     expect(read).toBe(1200);
-    expect(reads).toBe(3);
+    // Two more reads than the traffic alone: the links share the budget.
+    expect(reads).toBe(5);
     expect(Object.keys(env.state.analyticsCursors || {})).toHaveLength(1200);
     expectPaced(env.api);
   });
@@ -871,7 +884,7 @@ describe("the organization's device list", () => {
       [],
     );
     // Nothing more than the read cost before it listed every device.
-    expect(result.requestCount).toBe(3 + 34 + 10);
+    expect(result.requestCount).toBe(3 + 34 + 15);
 
     expect(result.devices).toHaveLength(7);
     expect(result.isDeviceListComplete).toBe(true);
@@ -1061,5 +1074,356 @@ describe("what else a read says", () => {
     await readOnce(env);
 
     expect(JSON.stringify(given)).toBe(copy);
+  });
+});
+
+describe("the links of a read (#5379)", () => {
+  const LINK_LAYER: (networkId: string) => string = (
+    networkId: string,
+  ): string => {
+    return `/api/v1/networks/${networkId}/topology/linkLayer`;
+  };
+
+  const topology: JSONObject = {
+    nodes: [
+      {
+        derivedId: "sw",
+        mac: "e0:55:3d:00:00:01",
+        type: "device",
+        device: { serial: "Q2SW-0000-0001", name: "SW", model: "MS130-48P" },
+      },
+      {
+        derivedId: "mx",
+        mac: "88:15:44:c8:5d:58",
+        type: "device",
+        device: { serial: "Q2MX-0000-0001", name: "MX", model: "MX85" },
+      },
+    ],
+    links: [
+      {
+        ends: [
+          {
+            node: { derivedId: "sw", type: "device" },
+            device: { serial: "Q2SW-0000-0001", name: "SW" },
+            discovered: { lldp: { portId: "49" } },
+          },
+          {
+            node: { derivedId: "mx", type: "device" },
+            device: { serial: "Q2MX-0000-0001", name: "MX" },
+            discovered: { lldp: { portId: "3" } },
+          },
+        ],
+        lastReportedAt: "2026-10-24T11:00:00Z",
+      },
+    ],
+    errors: [],
+  };
+
+  const environmentWith: (
+    change: (organization: FakeMerakiOrganization) => void,
+    options?: Partial<FakeMerakiOptions>,
+    count?: number,
+  ) => Env = (
+    change: (organization: FakeMerakiOrganization) => void,
+    options: Partial<FakeMerakiOptions> = {},
+    count: number = 5,
+  ): Env => {
+    const organization: FakeMerakiOrganization = buildBranchOrganization({
+      id: "549236",
+      name: "Acme Retail",
+      count,
+    });
+
+    change(organization);
+
+    return environment({ organizations: [organization], ...options });
+  };
+
+  test("each network's links are read once, and said to have been", async () => {
+    const env: Env = environmentWith((organization: FakeMerakiOrganization) => {
+      organization.networks[0]!.topology = topology;
+    });
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.linkNetworkIds).toHaveLength(5);
+    expect(result.links).toHaveLength(1);
+    expect(result.links[0]?.controllerNetworkId).toBe(result.linkNetworkIds[0]);
+    expect(result.links[0]?.ends[1]).toMatchObject({
+      serial: "Q2MX-0000-0001",
+      port: "Port 3",
+    });
+    expect(Object.keys(env.state.topologyCursors || {})).toHaveLength(5);
+    expect(result.complete).toBe(true);
+  });
+
+  test("a read a few minutes later does not ask again; six hours later it does", async () => {
+    const env: Env = environment();
+
+    await readOnce(env);
+
+    const networkId: string = Object.keys(env.state.topologyCursors || {})[0]!;
+
+    env.clock.advance(5 * MINUTE);
+    expect((await readOnce(env)).linkNetworkIds).toEqual([]);
+    expect(env.api.callsTo(LINK_LAYER(networkId))).toHaveLength(1);
+
+    env.clock.advance(TOPOLOGY_WINDOW_MS);
+    expect((await readOnce(env)).linkNetworkIds).toHaveLength(5);
+    expect(env.api.callsTo(LINK_LAYER(networkId))).toHaveLength(2);
+  });
+
+  test("a network with neither an MX nor an MS is not asked: Meraki builds none", async () => {
+    const env: Env = environmentWith((organization: FakeMerakiOrganization) => {
+      organization.networks[0]!.productTypes = ["wireless"];
+      organization.networks[1]!.productTypes = ["camera"];
+      organization.networks[2]!.productTypes = ["switch"];
+      organization.networks[3]!.productTypes = ["appliance", "wireless"];
+    });
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    // The two above, and the last network, which lists no product types.
+    expect(result.linkNetworkIds).toHaveLength(3);
+  });
+
+  test("clients come from the listing the read already asked for: not one call more", async () => {
+    const env: Env = environmentWith((organization: FakeMerakiOrganization) => {
+      organization.networks[0]!.clients = [
+        {
+          id: "k1",
+          description: "wb-0660-kds01",
+          ip: "10.18.166.51",
+          mac: "aa:bb:cc:00:00:51",
+          manufacturer: "Elo Touch",
+          sentPerSecond: 1,
+          receivedPerSecond: 1,
+          recentDeviceSerial: "Q2SW-0000-0001",
+          recentDeviceConnection: "Wired",
+          switchport: "7",
+          vlan: "18",
+          lastSeen: Math.floor(START.getTime() / 1000) - 60,
+        },
+        {
+          id: "k2",
+          mac: "aa:bb:cc:00:00:52",
+          sentPerSecond: 1,
+          receivedPerSecond: 1,
+        },
+      ];
+    });
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.clients).toEqual([
+      expect.objectContaining({
+        mac: "aa:bb:cc:00:00:51",
+        ip: "10.18.166.51",
+        name: "wb-0660-kds01",
+        deviceSerial: "Q2SW-0000-0001",
+        port: "Port 7",
+        vlanId: 18,
+        isWireless: false,
+      }),
+    ]);
+    // 3 listings, 34 uplink windows, 3 calls for each of 5 networks.
+    expect(result.requestCount).toBe(3 + 34 + 15);
+  });
+
+  test("a network whose window was not read gives no clients", async () => {
+    const env: Env = environment();
+
+    await readOnce(env);
+    env.clock.advance(5 * MINUTE);
+
+    expect((await readOnce(env)).clients).toEqual([]);
+  });
+
+  test("the busiest read asks a bounded number of networks, the longest-waiting first", async () => {
+    const count: number = MAX_TOPOLOGY_NETWORKS_PER_READ + 20;
+    const env: Env = environment({}, count);
+
+    const first: NetworkControllerReadResult = await readOnce(env);
+
+    expect(first.linkNetworkIds).toHaveLength(MAX_TOPOLOGY_NETWORKS_PER_READ);
+
+    env.clock.advance(MINUTE);
+
+    const second: NetworkControllerReadResult = await readOnce(env);
+
+    expect(second.linkNetworkIds).toHaveLength(20);
+    expect(
+      second.linkNetworkIds.filter((id: string): boolean => {
+        return first.linkNetworkIds.includes(id);
+      }),
+    ).toEqual([]);
+  });
+
+  test("links left for the next read are no partial read: nothing is behind that matters", async () => {
+    const count: number = MAX_TOPOLOGY_NETWORKS_PER_READ + 20;
+    const env: Env = environment({}, count);
+
+    // Traffic is up to date, so links are all this read has to do.
+    await readOnce(env);
+    while (!(await readOnce(env)).complete) {
+      env.clock.advance(MINUTE);
+    }
+
+    env.clock.advance(TOPOLOGY_WINDOW_MS);
+    env.state = {
+      ...env.state,
+      analyticsCursors: Object.fromEntries(
+        Object.keys(env.state.analyticsCursors || {}).map(
+          (networkId: string): [string, string] => {
+            return [networkId, env.clock.now().toISOString()];
+          },
+        ),
+      ),
+    };
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.linkNetworkIds).toHaveLength(MAX_TOPOLOGY_NETWORKS_PER_READ);
+    expect(result.analyticsNetworks).toBe(0);
+    expect(result.complete).toBe(true);
+  });
+
+  test("a network that will not answer is said once, with a count, and asked again next window", async () => {
+    const env: Env = environment({
+      scripted: {
+        [LINK_LAYER("L_1000")]: [merakiError(400, "Topology is unavailable")],
+        [LINK_LAYER("L_1001")]: [merakiError(400, "Topology is unavailable")],
+      },
+    });
+
+    const first: NetworkControllerReadResult = await readOnce(env);
+
+    expect(first.linkNetworkIds).toHaveLength(3);
+    expect(first.linkNetworkIds).not.toContain("L_1000");
+    expect(first.warnings).toEqual([
+      'Couldn\'t read the links of 2 networks: Meraki answered the links of network "Branch 1" with HTTP 400: Topology is unavailable',
+    ]);
+    expect(first.complete).toBe(true);
+
+    env.clock.advance(5 * MINUTE);
+    await readOnce(env);
+
+    expect(env.api.callsTo(LINK_LAYER("L_1000"))).toHaveLength(1);
+  });
+
+  test("one network that will not answer says which", async () => {
+    const env: Env = environment({
+      scripted: {
+        [LINK_LAYER("L_1002")]: [merakiError(404, "Nope")],
+      },
+    });
+
+    expect((await readOnce(env)).warnings).toEqual([
+      'Couldn\'t read the links of 1 network: Meraki answered the links of network "Branch 3" with HTTP 404: Nope',
+    ]);
+  });
+
+  test("a rate limit that outlasts its retries stops the links and keeps what they read", async () => {
+    const limited: FakeMerakiResponse = {
+      ...merakiError(429, "Too many"),
+      headers: { "retry-after": "1" },
+    };
+    const env: Env = environment({
+      scripted: {
+        [LINK_LAYER("L_1001")]: [limited, limited, limited, limited],
+      },
+    });
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.linkNetworkIds).toEqual(["L_1000"]);
+    expect(result.complete).toBe(false);
+    expect(result.warnings).toContain(RATE_LIMITED_WARNING);
+    // It is asked again next read: it never answered.
+    expect(env.state.topologyCursors?.["L_1001"]).toBeUndefined();
+  });
+
+  test("three networks in a row that Meraki cannot serve stop the links", async () => {
+    const down: FakeMerakiResponse = merakiError(503, "Down");
+    const threeTimes: Array<FakeMerakiResponse> = [down, down, down];
+    const env: Env = environment({
+      scripted: {
+        [LINK_LAYER("L_1000")]: threeTimes,
+        [LINK_LAYER("L_1001")]: [...threeTimes],
+        [LINK_LAYER("L_1002")]: [...threeTimes],
+      },
+    });
+
+    const result: NetworkControllerReadResult = await readOnce(env);
+
+    expect(result.linkNetworkIds).toEqual([]);
+    expect(result.warnings).toContain(STOPPED_ANSWERING_WARNING);
+    expect(result.complete).toBe(false);
+    expect(env.state.topologyCursors?.["L_1000"]).toBeUndefined();
+    // The traffic after them is still read.
+    expect(result.analyticsNetworks).toBe(5);
+  });
+
+  test("a refused key fails the read, as it does anywhere", async () => {
+    const env: Env = environment({
+      scripted: {
+        [LINK_LAYER("L_1000")]: [merakiError(401, "Bad key")],
+      },
+    });
+
+    await expect(readOnce(env)).rejects.toThrow(LlmProviderError);
+  });
+
+  test("a network that left the organization leaves no cursor behind", async () => {
+    const env: Env = environment();
+
+    env.state = {
+      topologyCursors: { L_GONE: "2026-10-24T00:00:00.000Z" },
+    };
+    await readOnce(env);
+
+    expect(env.state.topologyCursors?.["L_GONE"]).toBeUndefined();
+  });
+});
+
+describe("which networks' links are due", () => {
+  const network: (id: string, hasTopology?: boolean) => MerakiNetwork = (
+    id: string,
+    hasTopology: boolean = true,
+  ): MerakiNetwork => {
+    return { id, name: id, hasTraffic: true, hasTopology };
+  };
+
+  test("never asked first, then the oldest, then by id", () => {
+    expect(
+      getTopologyDueNetworks({
+        networks: [
+          network("L_c"),
+          network("L_b"),
+          network("L_a"),
+          network("L_d"),
+          network("L_e", false),
+          network("L_f"),
+        ],
+        cursors: {
+          L_a: "2026-10-24T01:00:00.000Z",
+          L_b: "2026-10-24T02:00:00.000Z",
+          L_f: "2026-10-24T11:00:00.000Z",
+        },
+        now: START,
+      }).map((due: MerakiNetwork): string => {
+        return due.id;
+      }),
+    ).toEqual(["L_c", "L_d", "L_a", "L_b"]);
+  });
+
+  test("a cursor that does not parse is one that was never there", () => {
+    expect(
+      getTopologyDueNetworks({
+        networks: [network("L_a")],
+        cursors: { L_a: "yesterday" },
+        now: START,
+      }),
+    ).toHaveLength(1);
   });
 });

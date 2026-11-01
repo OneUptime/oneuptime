@@ -3373,6 +3373,7 @@ export class Service extends ProjectReferencesService<Model> {
       isArchived: boolean | null;
       discoveredDetails: unknown;
       refreshRequestedAt: Date | null;
+      siteId: string | null;
     }>
   > {
     const rows: Array<{
@@ -3385,11 +3386,12 @@ export class Service extends ProjectReferencesService<Model> {
       isArchived: boolean | null;
       discoveredDetails: unknown;
       refreshRequestedAt: Date | null;
+      siteId: string | null;
     }> = await this.getRepository().manager.query(
       `
       SELECT nd."_id", nd."name", nd."hostname", nd."serialNumber",
         nd."macAddress", nd."sysName", nd."isArchived",
-        nd."discoveredDetails", nd."refreshRequestedAt"
+        nd."discoveredDetails", nd."refreshRequestedAt", nd."siteId"
       FROM "NetworkDevice" AS nd
       WHERE nd."projectId" = $1
         AND nd."deletedAt" IS NULL
@@ -3402,6 +3404,7 @@ export class Service extends ProjectReferencesService<Model> {
           OR (nd."discoveredDetails" -> 'ownMacAddress' ->> 'value') = ANY($3::text[])
           OR (nd."discoveredDetails" -> 'scannedMacAddress' ->> 'value') = ANY($3::text[])
           OR (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $5
+          OR (nd."discoveredDetails" -> 'controllerLinks' -> 'readBy' ->> 'id') = $5
           OR lower(btrim(nd."name")) = ANY($7::text[])
           OR lower(btrim(nd."sysName")) = ANY($7::text[])
           OR lower(btrim(nd."discoveredDetails" -> 'sysName' ->> 'value')) = ANY($7::text[])
@@ -3430,6 +3433,7 @@ export class Service extends ProjectReferencesService<Model> {
         isArchived: boolean | null;
         discoveredDetails: unknown;
         refreshRequestedAt: Date | null;
+        siteId: string | null;
       }): {
         id: string;
         name: string | null;
@@ -3440,6 +3444,7 @@ export class Service extends ProjectReferencesService<Model> {
         isArchived: boolean | null;
         discoveredDetails: unknown;
         refreshRequestedAt: Date | null;
+        siteId: string | null;
       } => {
         return {
           id: String(row._id),
@@ -3451,6 +3456,7 @@ export class Service extends ProjectReferencesService<Model> {
           isArchived: row.isArchived,
           discoveredDetails: row.discoveredDetails,
           refreshRequestedAt: row.refreshRequestedAt,
+          siteId: row.siteId,
         };
       },
     );
@@ -3459,9 +3465,10 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * A network controller connection was deleted: what it said about the
    * project's devices goes with it (their discovered details' `controller`
-   * reading, when that connection read it). Hook-free and leaves updatedAt
-   * alone, like every other write of that column after a device is made.
-   * Returns how many devices it touched.
+   * reading and the links it read, when that connection read them).
+   * Hook-free and leaves updatedAt alone, like every other write of that
+   * column after a device is made. Returns how many devices lost a reading
+   * of what they are; a device with links has one of those too.
    */
   @CaptureSpan()
   public async forgetControllerReadings(data: {
@@ -3474,6 +3481,16 @@ export class Service extends ProjectReferencesService<Model> {
       SET "discoveredDetails" = nd."discoveredDetails" - 'controller'
       WHERE nd."projectId" = $1
         AND (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $2
+    `,
+      [data.projectId.toString(), data.connectionId.toString()],
+    );
+
+    await this.getRepository().manager.query(
+      `
+      UPDATE "NetworkDevice" AS nd
+      SET "discoveredDetails" = nd."discoveredDetails" - 'controllerLinks'
+      WHERE nd."projectId" = $1
+        AND (nd."discoveredDetails" -> 'controllerLinks' -> 'readBy' ->> 'id') = $2
     `,
       [data.projectId.toString(), data.connectionId.toString()],
     );

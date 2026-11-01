@@ -3,6 +3,7 @@ import { NetworkControllerConfig } from "../../../Types/NetworkController/Networ
 import { NetworkControllerTestResult } from "../../../Types/NetworkController/NetworkControllerConnectionTest";
 import NetworkControllerProvider from "../../../Types/NetworkController/NetworkControllerProvider";
 import { NetworkTrafficUsageKind } from "../../../Types/NetFlow/NetworkTrafficUsage";
+import { NetworkDeviceControllerLinkProtocol } from "../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import {
   DataSourceHttpRequest,
   DataSourceHttpResponse,
@@ -65,6 +66,11 @@ export interface NetworkControllerPullState {
    * the network), and when that was found: asked again a day later.
    */
   trafficAnalysisOff?: Record<string, string> | undefined;
+  /*
+   * Per network: when its links were last asked for (ISO), answered or not,
+   * so a network that cannot answer is not asked again on every read.
+   */
+  topologyCursors?: Record<string, string> | undefined;
 }
 
 /*
@@ -124,6 +130,57 @@ export interface NetworkControllerDevice {
 }
 
 /*
+ * A client of the controller's networks: which of the controller's devices
+ * it was last connected to, on which port, and what it is called. What puts
+ * a device that speaks no LLDP on its switch port
+ * (NetworkControllerTopology). Every text is cleaned and bounded; a value
+ * the controller did not give is "".
+ */
+export interface NetworkControllerClient {
+  // Lowercase, colon-separated. A client without one is not read at all.
+  mac: string;
+  // An address literal, or "".
+  ip: string;
+  // What the controller calls it, unless that is only its MAC or address.
+  name: string;
+  manufacturer: string;
+  vlanId?: number | undefined;
+  // The serial number of the device it was last connected to.
+  deviceSerial: string;
+  // "Port 3" on a switch, the SSID on an access point, or "".
+  port: string;
+  isWireless: boolean;
+  // When the controller last saw it, never later than the read.
+  lastSeenAt: Date;
+}
+
+/*
+ * One end of a link the controller reports: one of its own devices when it
+ * has a serial number, otherwise a neighbour one of them discovered, known
+ * by whatever it advertised. Every text is cleaned and bounded; a value the
+ * controller did not give is "".
+ */
+export interface NetworkControllerLinkEnd {
+  serial: string;
+  name: string;
+  // Its port on this link, as the controller names it.
+  port: string;
+  // Lowercase, colon-separated, or "".
+  mac: string;
+  // An address literal, or "".
+  ip: string;
+  platform: string;
+}
+
+// A cable between two ends, in the controller network it was read from.
+export interface NetworkControllerLink {
+  controllerNetworkId: string;
+  ends: [NetworkControllerLinkEnd, NetworkControllerLinkEnd];
+  // Which discovery protocols reported it, when the controller says.
+  protocols: Array<NetworkDeviceControllerLinkProtocol>;
+}
+
+/*
  * One row a read produced, before the runner gives it the device it
  * belongs to and turns it into the stored JSON (NetworkTrafficUsageRows).
  */
@@ -170,6 +227,18 @@ export interface NetworkControllerReadResult {
    */
   devices: Array<NetworkControllerDevice>;
   isDeviceListComplete: boolean;
+  /*
+   * The clients of the networks whose window this read stored, from the same
+   * listing the client usage comes from: they cost no call of their own.
+   */
+  clients: Array<NetworkControllerClient>;
+  /*
+   * The links of the networks whose links this read asked for, and which
+   * networks those were: a device in one of them that has no link any more
+   * loses the links it had, and a device in any other keeps them.
+   */
+  links: Array<NetworkControllerLink>;
+  linkNetworkIds: Array<string>;
   records: Array<NetworkTrafficUsageRecord>;
   // The windows the records cover, whether or not they hold a row.
   windows: Array<NetworkTrafficUsageWindowKey>;
@@ -219,7 +288,11 @@ export function readPullState(value: unknown): NetworkControllerPullState {
     result.uplinkCursor = state["uplinkCursor"];
   }
 
-  for (const key of ["analyticsCursors", "trafficAnalysisOff"] as const) {
+  for (const key of [
+    "analyticsCursors",
+    "trafficAnalysisOff",
+    "topologyCursors",
+  ] as const) {
     const map: unknown = state[key];
 
     if (map && typeof map === "object" && !Array.isArray(map)) {

@@ -448,3 +448,101 @@ describe("getDeviceNeighbourNames", () => {
     ).rejects.toThrow("network down");
   });
 });
+
+describe("the names and links Meraki adds (#5379)", () => {
+  test("a Meraki neighbour reads by its name, not its advertised model", () => {
+    const found: Array<DeviceNeighbour> = getDeviceNeighbours({
+      lldpNeighbors: [
+        {
+          localInterfaceIndex: 1,
+          remoteSysName: "Meraki MX85 - UN0660WANRTR01",
+        } as LldpNeighbor,
+      ],
+      cdpNeighbors: [
+        {
+          localInterfaceIndex: 2,
+          remoteDeviceId: "MS130-48P - UN0660LANSWI03",
+        } as CdpNeighbor,
+      ],
+    });
+
+    expect(
+      found.map((neighbour: DeviceNeighbour): string => {
+        return neighbour.name;
+      }),
+    ).toEqual(["UN0660WANRTR01", "UN0660LANSWI03"]);
+  });
+
+  test("a device nothing walks lists what its controller reports", () => {
+    expect(
+      getDeviceNeighbours({
+        controllerLinks: [
+          {
+            port: "Port 3",
+            peerDeviceId: "sw-1",
+            peerName: "UN0660LANSWI01",
+            peerPort: "Port 49",
+            protocols: ["lldp"],
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        name: "UN0660LANSWI01",
+        hasAdvertisedName: true,
+        remotePort: "Port 49",
+        localPortName: "Port 3",
+        deviceId: "sw-1",
+        protocol: NeighbourProtocol.Controller,
+      },
+    ]);
+  });
+
+  test("a cable a walk reported is not repeated from the controller, by either name", () => {
+    const found: Array<DeviceNeighbour> = getDeviceNeighbours({
+      lldpNeighbors: [
+        {
+          localInterfaceIndex: 49,
+          remoteSysName: "Meraki MX85 - UN0660WANRTR01",
+        } as LldpNeighbor,
+      ],
+      controllerLinks: [
+        {
+          port: "Port 49",
+          peerName: "un0660wanrtr01",
+          protocols: ["lldp"],
+        },
+      ],
+    });
+
+    expect(found).toHaveLength(1);
+    expect(found[0]?.protocol).toBe(NeighbourProtocol.Lldp);
+  });
+
+  test("two cables to one neighbour from a controller are two", () => {
+    expect(
+      getDeviceNeighbours({
+        controllerLinks: [
+          { port: "Port 49", peerName: "core", protocols: [] },
+          { port: "Port 50", peerName: "core", protocols: [] },
+        ],
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("a peer known only by its MAC has no advertised name to look up", () => {
+    expect(
+      getDeviceNeighbours({
+        controllerLinks: [{ peerMac: "aa:bb:cc:dd:ee:ff", protocols: [] }],
+      })[0],
+    ).toMatchObject({ name: "aa:bb:cc:dd:ee:ff", hasAdvertisedName: false });
+  });
+
+  test("a link that names nobody is left out", () => {
+    expect(
+      getDeviceNeighbours({
+        controllerLinks: [{ port: "Port 1", protocols: [] }],
+      }),
+    ).toEqual([]);
+  });
+});

@@ -957,6 +957,7 @@ Pour que la carte se remplisse :
 - Donnez des identifiants SNMP aux équipements. Les tables de voisins viennent du parcours, si bien qu'un équipement seulement pingué apparaît sur la carte mais ne rapporte aucun voisin à lui.
 - Gardez **Walk Interfaces** activé dans les paramètres d'interrogation des équipements : les tables de voisins sont parcourues avec les interfaces.
 - Activez LLDP, ou CDP sur les équipements Cisco, sur les équipements eux-mêmes.
+- Sur un réseau Meraki, connectez le tableau de bord. Une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) dessine les câbles que Meraki connaît, y compris ceux d'un MX qui ne répond qu'au ping.
 
 Cliquez sur un pair non géré et **Ajouter à la surveillance** l'enregistre comme équipement interrogé par sonde. Il prend la sonde sur laquelle ses voisins s'accordent, il est donc pingué dès sa première interrogation, et vous pouvez ajouter des identifiants plus tard s'il s'avère avoir SNMP.
 
@@ -995,6 +996,8 @@ Pour cela, la carte doit savoir quelle MAC apprise est celle de l'équipement. I
 - En la saisissant : définissez l'**Adresse MAC** sur l'équipement, sur sa page **Paramètres** ou dans la carte de l'aperçu, quand son nom d'hôte est un nom DNS ou qu'aucun routeur du site n'est parcouru. Toutes les écritures habituelles sont acceptées.
 
 Le commutateur auquel l'équipement est relié a besoin aussi de **Collecter les points de terminaison connectés** activé : c'est de là que vient le port. Les adresses sont associées au sein du site de l'équipement, puisque chaque agence a son `10.0.0.5` ; une MAC correspond quel que soit le site.
+
+Une [connexion Meraki](/docs/monitor/network-traffic#cisco-meraki-sans-netflow) fait tout cela sans rien à activer. La liste des clients de Meraki indique le commutateur et le port de chaque client : un équipement est donc placé dès que ce commutateur est un équipement réseau ici, dans le même site. La liste donne aussi à l'équipement son adresse MAC, et le nom que Meraki donne à un client apparaît dans la colonne **Nom d'hôte** sous **Points de terminaison**. Elle est lue toutes les deux heures, un nouvel équipement peut donc mettre ce temps à apparaître. Tant que Meraki signale un client, son port l'emporte sur une table de transfert parcourue, car Meraki distingue un port d'accès d'une liaison montante. Un client Wi-Fi n'est placé sur son point d'accès que s'il est un équipement ici : les téléphones d'un réseau invité restent hors de la carte.
 
 L'aperçu de l'équipement a une carte **Connecté à** qui nomme le commutateur, le port et le VLAN. Un commutateur, un routeur ou un pare-feu qui signale ses voisins via LLDP ou CDP les y liste à la place : son propre port, le voisin (un lien quand c'est un équipement d'ici) et le port à l'autre bout, avec **Ouvrir la carte** à côté. Sur la carte, le panneau de l'équipement montre la même chose sous **Connecté à**, et le panneau du lien indique qu'il a été appris de la table de commutation du commutateur. La vue parent-enfant dessine l'équipement sous son commutateur. Un lien que vous avez dessiné à la main sous **Liens d'équipements** pour la même paire fusionne avec le lien appris au lieu de le doubler : le port appris remplace un port mal saisi, et un parent que vous avez défini sur le lien dessiné à la main est conservé.
 
@@ -1053,6 +1056,8 @@ La carte dessine le câble d'un équipement seulement pingué à partir de la ta
 - Le commutateur collecte les points de terminaison : **Collecter les points de terminaison connectés** activé dans ses paramètres d'interrogation, avec des identifiants qui permettent au parcours de réussir. L'aperçu de l'équipement affiche une carte **Connecté à** dès qu'un commutateur l'a appris.
 - La MAC de l'équipement est connue : son **Adresse MAC** est définie, ou un routeur du site collecte les points de terminaison et le nom d'hôte de l'équipement est l'adresse que lie la table ARP de ce routeur. Un équipement enregistré par nom DNS sans MAC ne peut pas être associé : saisissez la MAC.
 - Le même site : une adresse n'est associée qu'à un équipement du même site que le commutateur qui l'a apprise. Un équipement sans site n'est associé par adresse que si ce commutateur n'a pas de site non plus ; si le commutateur est dans un site, mettez l'équipement dans le même. Une MAC correspond quel que soit le site.
+
+Le panneau de l'équipement sur la carte indique lequel de ces éléments manque. Sur un réseau Meraki, la liste des clients de Meraki remplace les deux premiers : vérifiez que le commutateur est un équipement réseau ici, dans le même site, et comptez deux heures pour qu'un nouvel équipement apparaisse.
 
 Si l'équipement est derrière un commutateur non géré ou un concentrateur, le commutateur géré apprend chaque MAC située derrière sur un seul port, et c'est ce port que dessine la carte : la réalité physique vue du commutateur géré.
 :::

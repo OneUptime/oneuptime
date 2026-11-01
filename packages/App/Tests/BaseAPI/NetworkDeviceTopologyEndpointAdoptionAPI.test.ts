@@ -11,6 +11,7 @@ import CommonAPI from "Common/Server/API/CommonAPI";
 import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkEndpoint from "Common/Models/DatabaseModels/NetworkEndpoint";
+import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import NetworkTopologyUtil, {
   TopologyDeviceInput,
   TopologyEndpointInput,
@@ -789,5 +790,201 @@ describe("POST /network-device/topology — site ids reach the builder as string
     const endpoints: Array<TopologyEndpointInput> = builderEndpoints();
     expect(endpoints.length).toBe(1);
     expect(endpoints[0]!.siteId).toBe(siteId.toString());
+  });
+});
+
+describe("POST /network-device/topology — what a network controller reported (#5379)", () => {
+  const HOUR: number = 60 * 60 * 1000;
+  const reader: JSONObject = {
+    type: "networkController",
+    id: "22222222-2222-4222-8222-222222222222",
+    name: "Stores",
+  };
+
+  function clientOf(switchId: ObjectID, siteId: ObjectID): NetworkEndpoint {
+    const row: NetworkEndpoint = makeEndpoint(switchId, "aa:bb:cc:00:00:51", {
+      ipAddress: "10.18.166.51",
+      siteId: siteId,
+      attachedPortName: "Port 7",
+      vlanId: 18,
+      lastSeenAt: new Date(Date.now() - 3 * HOUR),
+    });
+
+    row.hostname = "wb-0660-kds01";
+    row.attachmentSource = "meraki";
+    // What the column holds for a row a controller wrote, as Postgres says it.
+    row.attachedInterfaceIndex = null as unknown as number;
+
+    return row;
+  }
+
+  function linksOf(readAt: Date, links: Array<JSONObject>): JSONObject {
+    return {
+      controllerLinks: {
+        provider: "meraki",
+        readBy: reader,
+        readAt: readAt.toISOString(),
+        links: links,
+      },
+    };
+  }
+
+  beforeEach(() => {
+    resetTopologyMocks();
+  });
+
+  test("asks for what the map and the diagnostics read", async () => {
+    deviceService.findBy.mockResolvedValue([makeDevice("sw")] as never);
+
+    await callTopology({});
+
+    const deviceSelect: JSONObject = (
+      deviceService.findBy.mock.calls[0]![0] as { select: JSONObject }
+    ).select;
+    const endpointSelect: JSONObject = (
+      endpointService.findBy.mock.calls[0]![0] as { select: JSONObject }
+    ).select;
+
+    expect(deviceSelect["collectEndpoints"]).toBe(true);
+    expect(deviceSelect["discoveredDetails"]).toBe(true);
+    expect(endpointSelect["hostname"]).toBe(true);
+    expect(endpointSelect["attachmentSource"]).toBe(true);
+  });
+
+  test("a display Meraki lists hangs from its port, hours after a walk's window, with the port's state", async () => {
+    const siteId: ObjectID = ObjectID.generate();
+    const accessSwitch: NetworkDevice = makeDeviceAt("sw", { siteId: siteId });
+    const display: NetworkDevice = makeDeviceAt("wb-0660-kds01", {
+      hostname: "10.18.166.51",
+      siteId: siteId,
+    });
+    const port: NetworkInterface = new NetworkInterface(ObjectID.generate());
+
+    port.networkDeviceId = accessSwitch.id!;
+    port.interfaceIndex = 7;
+    port.name = "port7";
+    port.isOperationallyUp = true;
+
+    deviceService.findBy.mockResolvedValue([accessSwitch, display] as never);
+    interfaceService.findBy.mockResolvedValue([port] as never);
+    endpointService.findBy.mockResolvedValue([
+      clientOf(accessSwitch.id!, siteId),
+    ] as never);
+
+    await callTopology({ siteId: siteId.toString() });
+
+    const edges: Array<JSONObject> = edgesTouching(
+      lastResponseBody(),
+      display.id!,
+    );
+
+    expect(edges).toHaveLength(1);
+    expect(edges[0]).toMatchObject({
+      fromNodeId: accessSwitch.id!.toString(),
+      fromPort: "Port 7",
+      reportedBy: "meraki",
+      parentNodeId: accessSwitch.id!.toString(),
+    });
+    expect((edges[0]!["fromInterface"] as JSONObject)["interfaceIndex"]).toBe(
+      7,
+    );
+  });
+
+  test("a reading of a device's links is drawn, with who reported it", async () => {
+    const router: NetworkDevice = makeDevice("rtr");
+    const accessSwitch: NetworkDevice = makeDevice("sw");
+
+    accessSwitch.discoveredDetails = linksOf(new Date(), [
+      {
+        port: "Port 49",
+        peerDeviceId: router.id!.toString(),
+        peerName: "rtr",
+        peerPort: "Port 3",
+        protocols: ["lldp"],
+      },
+    ]);
+    deviceService.findBy.mockResolvedValue([accessSwitch, router] as never);
+
+    await callTopology({});
+
+    expect(edgesTouching(lastResponseBody(), router.id!)[0]).toMatchObject({
+      fromPort: "Port 49",
+      toPort: "Port 3",
+      protocols: ["lldp"],
+      reportedBy: "meraki",
+    });
+  });
+
+  test("a reading nobody has renewed in over a day draws nothing: a cable the map cannot vouch for", async () => {
+    const router: NetworkDevice = makeDevice("rtr");
+    const accessSwitch: NetworkDevice = makeDevice("sw");
+
+    accessSwitch.discoveredDetails = linksOf(new Date(Date.now() - 25 * HOUR), [
+      {
+        port: "Port 49",
+        peerDeviceId: router.id!.toString(),
+        protocols: ["lldp"],
+      },
+    ]);
+    deviceService.findBy.mockResolvedValue([accessSwitch, router] as never);
+
+    await callTopology({});
+
+    expect(edgesTouching(lastResponseBody(), router.id!)).toEqual([]);
+  });
+
+  test("a Meraki box is recognised by the chassis MAC and serial only its controller knows", async () => {
+    const reading: JSONObject = {
+      controller: {
+        provider: "meraki",
+        readBy: reader,
+        readAt: new Date().toISOString(),
+        values: {
+          macAddress: "88:15:44:c8:5d:58",
+          serialNumber: "Q2MX-0000-0001",
+        },
+      },
+    };
+    const router: NetworkDevice = makeDevice("a-name-nothing-advertises");
+    const accessSwitch: NetworkDevice = makeDevice("sw");
+
+    router.discoveredDetails = reading;
+    accessSwitch.lldpNeighbors = [
+      {
+        localInterfaceIndex: 49,
+        remoteChassisId: "88:15:44:c8:5d:58",
+      },
+    ] as never;
+    deviceService.findBy.mockResolvedValue([accessSwitch, router] as never);
+
+    await callTopology({});
+
+    expect(edgesTouching(lastResponseBody(), router.id!)).toHaveLength(1);
+  });
+
+  test("what could have placed a device is counted for the drawer", async () => {
+    const siteId: ObjectID = ObjectID.generate();
+    const collector: NetworkDevice = makeDeviceAt("sw", { siteId: siteId });
+    const display: NetworkDevice = makeDeviceAt("kds", {
+      hostname: "10.18.166.51",
+      siteId: siteId,
+    });
+
+    collector.collectEndpoints = true;
+    deviceService.findBy.mockResolvedValue([collector, display] as never);
+
+    await callTopology({ siteId: siteId.toString() });
+
+    const node: JSONObject | undefined = nodeById(
+      lastResponseBody(),
+      display.id!,
+    );
+
+    expect((node!["diagnostics"] as JSONObject)["placement"]).toEqual({
+      hasMacAddress: false,
+      hasAddressKey: true,
+      siteEndpointCollectorCount: 1,
+      siteControllerDeviceCount: 0,
+    });
   });
 });

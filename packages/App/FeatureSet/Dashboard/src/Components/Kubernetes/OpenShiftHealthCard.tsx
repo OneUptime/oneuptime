@@ -219,7 +219,7 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
           </div>
           <div data-testid="openshift-update">
             <div className="text-sm text-gray-500">
-              {translator.translateText("Update")}
+              {translator.translateText("Cluster update")}
             </div>
             <div className="mt-1">
               <StatusBadge

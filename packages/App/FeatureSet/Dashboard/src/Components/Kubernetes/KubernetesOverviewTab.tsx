@@ -24,6 +24,8 @@ export interface ComponentProps {
   annotations: Record<string, string>;
   conditions?: Array<KubernetesCondition> | undefined;
   ownerReferences?: Array<{ kind: string; name: string }> | undefined;
+  // The namespace of the object these owners own, which is theirs too.
+  namespace?: string | undefined;
   modelId?: ObjectID | undefined;
   isLoading: boolean;
   emptyMessage?: string | undefined;
@@ -62,6 +64,11 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
                   modelId={modelId}
                   resourceKind={ref.kind}
                   resourceName={ref.name}
+                  namespace={
+                    ref.kind === "DeploymentConfig"
+                      ? props.namespace
+                      : undefined
+                  }
                 />
               );
             }

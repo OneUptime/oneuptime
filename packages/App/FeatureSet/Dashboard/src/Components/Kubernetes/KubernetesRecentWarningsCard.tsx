@@ -114,6 +114,7 @@ const WarningLine: FunctionComponent<{
           <KubernetesObjectChip
             kind={warning.objectKind}
             name={warning.objectName}
+            namespace={warning.namespace}
             clusterId={props.clusterId}
             dataTestId="kubernetes-recent-warning-object"
           />

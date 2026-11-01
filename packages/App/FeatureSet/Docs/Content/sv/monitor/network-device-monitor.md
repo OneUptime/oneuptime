@@ -957,6 +957,7 @@ För att kartan ska fyllas i:
 - Ge enheterna SNMP-autentiseringsuppgifter. Granntabeller kommer från walken, så en enhet med bara ping syns på kartan men rapporterar inga egna grannar.
 - Håll **Walk Interfaces** påslaget i enheternas avsökningsinställningar: granntabellerna walkas tillsammans med gränssnitten.
 - Slå på LLDP, eller CDP på Cisco-enheter, på enheterna själva.
+- Anslut instrumentpanelen på ett Meraki-nätverk. En [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) ritar kablarna som Meraki känner till, även de till en MX som bara svarar på ping.
 
 Klicka på en ohanterad peer så registrerar **Add to Monitoring** den som en sondavsökt enhet. Den tar den sond som dess grannar är överens om, så den pingas från sin första avsökning, och du kan lägga till autentiseringsuppgifter senare om den visar sig ha SNMP.
 
@@ -995,6 +996,8 @@ För det måste kartan veta vilken inlärd MAC som är enhetens. Det finns två 
 - Genom att skriva den: ange **MAC-adress** på enheten, på dess sida **Inställningar** eller kortet på översikten, när dess värdnamn är ett DNS-namn eller ingen router på platsen walkas. Alla vanliga skrivsätt accepteras.
 
 Switchen som enheten hänger på behöver också **Collect Connected Endpoints** påslaget: det är därifrån porten kommer. Adresser matchas inom enhetens plats, eftersom varje filial har en `10.0.0.5`; en MAC matchar oavsett plats.
+
+En [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) gör allt detta utan att något behöver slås på. Merakis klientlista visar vilken switch och port varje klient är på, så en enhet placeras så snart den switchen är en nätverksenhet här, på samma plats. Listan ger också enheten dess MAC-adress, och det Meraki kallar en klient visas i kolumnen **Värdnamn** under **Slutpunkter**. Den läses varannan timme, så en ny enhet kan ta så lång tid på sig att dyka upp. Så länge Meraki rapporterar en klient går dess port före en genomgången vidarebefordringstabell, eftersom Meraki kan skilja en accessport från en upplänk. En Wi-Fi-klient placeras på sin accesspunkt bara när den är en enhet här: telefonerna på ett gästnätverk hålls utanför kartan.
 
 Enhetens översikt har ett kort **Ansluten till** som namnger switchen, porten och VLAN:et. En switch, router eller brandvägg som rapporterar sina grannar via LLDP eller CDP visar dem där i stället: sin egen port, grannen (en länk när den är en enhet här) och porten i andra änden, med **Öppna kartan** bredvid. På kartan visar enhetens panel samma sak under **Ansluten till**, och länkens panel säger att den lärdes in från switchens vidarebefordringstabell. Parent-Child-vyn ritar enheten under dess switch. En länk som du har ritat för hand under **Device Links** för samma par slås ihop med den inlärda i stället för att dubbleras: den inlärda porten ersätter en felskriven, och en förälder som du har satt på den handritade länken behålls.
 
@@ -1053,6 +1056,8 @@ Kartan ritar kabeln för en enhet med bara ping från dess switchs vidarebefordr
 - Switchen samlar in slutpunkter: **Collect Connected Endpoints** påslaget i dess avsökningsinställningar, med autentiseringsuppgifter som låter walken lyckas. Enhetens översikt visar ett kort **Ansluten till** så snart en switch har lärt sig den.
 - Enhetens MAC är känd: dess **MAC-adress** är angiven, eller så samlar en router på platsen in slutpunkter och enhetens värdnamn är den adress som routerns ARP-tabell binder. En enhet som är registrerad efter DNS-namn utan MAC kan inte matchas, så skriv in MAC:en.
 - Samma plats: en adress matchas bara mot en enhet på samma plats som switchen som lärde sig den. En enhet utan plats matchas bara på adress när den switchen inte heller har någon plats; om switchen finns på en plats, lägg enheten på samma. En MAC matchar oavsett plats.
+
+Enhetens panel på kartan visar vad av detta som saknas. På ett Meraki-nätverk ersätter Merakis klientlista de två första: kontrollera att switchen är en nätverksenhet här, på samma plats, och räkna med två timmar innan en ny enhet dyker upp.
 
 Om enheten sitter bakom en ohanterad switch eller en hubb lär sig den hanterade switchen varje MAC bakom den på en port, och det är den port som kartan ritar: den fysiska sanningen så som den hanterade switchen ser den.
 :::

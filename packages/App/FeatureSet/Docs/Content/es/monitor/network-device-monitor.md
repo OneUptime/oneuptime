@@ -957,6 +957,7 @@ Para que el mapa se rellene:
 - Da credenciales SNMP a los dispositivos. Las tablas de vecinos vienen del recorrido, así que un dispositivo solo con ping aparece en el mapa pero no informa vecinos propios.
 - Mantén **Recorrer interfaces** activado en los ajustes de sondeo de los dispositivos: las tablas de vecinos se recorren junto con las interfaces.
 - Activa LLDP, o CDP en los dispositivos Cisco, en los propios dispositivos.
+- En una red Meraki, conecte el panel. Una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) dibuja los cables que Meraki conoce, incluidos los de un MX que solo responde a ping.
 
 Haz clic en un par no gestionado y **Añadir al monitoreo** lo registra como dispositivo sondeado por sonda. Toma la sonda en la que coinciden sus vecinos, así que recibe ping desde su primer sondeo, y puedes añadir credenciales más tarde si resulta que tiene SNMP.
 
@@ -995,6 +996,8 @@ Para eso, el mapa tiene que saber qué MAC aprendida es la del dispositivo. Hay 
 - Escribiéndola: define la **Dirección MAC** en el dispositivo, en su página **Ajustes** o en la tarjeta de la vista general, cuando su nombre de host es un nombre DNS o ningún router del sitio se recorre. Se acepta cualquiera de las grafías habituales.
 
 El switch del que cuelga el dispositivo también necesita **Recopilar endpoints conectados** activado: de ahí sale el puerto. Las direcciones se asocian dentro del sitio del dispositivo, porque cada sucursal tiene su `10.0.0.5`; una MAC coincide sea cual sea el sitio.
+
+Una [conexión de Meraki](/docs/monitor/network-traffic#cisco-meraki-sin-netflow) hace todo esto sin nada que activar. La lista de clientes de Meraki indica en qué switch y puerto está cada cliente, así que un dispositivo se coloca en cuanto ese switch es un dispositivo de red aquí, en el mismo sitio. La lista también le da al dispositivo su dirección MAC, y el nombre que Meraki da a un cliente aparece en la columna **Nombre de host** de **Endpoints**. Se lee cada dos horas, así que un dispositivo nuevo puede tardar ese tiempo en aparecer. Mientras Meraki informa de un cliente, su puerto prevalece sobre una tabla de reenvío recorrida, porque Meraki distingue un puerto de acceso de un enlace ascendente. Un cliente Wi-Fi se coloca en su punto de acceso solo si es un dispositivo de aquí: los teléfonos de una red de invitados quedan fuera del mapa.
 
 La vista general del dispositivo tiene una tarjeta **Conectado a** que nombra el switch, el puerto y la VLAN. Un switch, router o firewall que informa de sus vecinos por LLDP o CDP los muestra ahí en su lugar: su propio puerto, el vecino (un enlace cuando es un dispositivo de aquí) y el puerto del otro extremo, con **Abrir el mapa** al lado. En el mapa, el panel del dispositivo muestra lo mismo bajo **Conectado a**, y el panel del enlace indica que se aprendió de la tabla de reenvío del switch. La vista padre-hijo dibuja el dispositivo bajo su switch. Un enlace que dibujaste a mano en **Enlaces del dispositivo** para el mismo par se fusiona con el aprendido en lugar de duplicarlo: el puerto aprendido sustituye a uno mal escrito, y se conserva un padre que hayas definido en el enlace dibujado a mano.
 
@@ -1053,6 +1056,8 @@ El mapa dibuja el cable de un dispositivo solo con ping a partir de la tabla de 
 - El switch recopila endpoints: **Recopilar endpoints conectados** activado en sus ajustes de sondeo, con credenciales que permitan que el recorrido funcione. La vista general del dispositivo muestra una tarjeta **Conectado a** en cuanto un switch lo ha aprendido.
 - Se conoce la MAC del dispositivo: su **Dirección MAC** está definida, o un router del sitio recopila endpoints y el nombre de host del dispositivo es la dirección que asocia la tabla ARP de ese router. Un dispositivo registrado por nombre DNS sin MAC no se puede asociar, así que escribe la MAC.
 - El mismo sitio: una dirección solo se asocia a un dispositivo del mismo sitio que el switch que la aprendió. Un dispositivo sin sitio solo se asocia por dirección cuando ese switch tampoco tiene sitio; si el switch está en un sitio, pon el dispositivo en el mismo. Una MAC coincide sea cual sea el sitio.
+
+El panel del dispositivo en el mapa indica cuál de estas cosas falta. En una red Meraki, la lista de clientes de Meraki sustituye a las dos primeras: compruebe que el switch es un dispositivo de red aquí, en el mismo sitio, y cuente dos horas para que aparezca un dispositivo nuevo.
 
 Si el dispositivo está detrás de un switch no gestionado o de un hub, el switch gestionado aprende todas las MAC que hay detrás en un solo puerto, y ese es el puerto que dibuja el mapa: la realidad física vista desde el switch gestionado.
 :::

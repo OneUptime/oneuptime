@@ -252,6 +252,93 @@ describe("a learned link stored switch-second", () => {
   });
 });
 
+describe("a link Meraki reported (#5379)", () => {
+  const MERAKI_EDGE: NetworkTopologyEdge = {
+    ...LEARNED_EDGE,
+    fromPort: "Port 7",
+    fromInterface: undefined,
+    reportedBy: "meraki",
+  };
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("the drawer says Meraki lists it, and never that a table learned it", () => {
+    renderLinkPanel(MERAKI_EDGE);
+
+    expect(screen.getByText("Learned link")).toBeInTheDocument();
+    expect(screen.getByText(/^Meraki lists/)).toBeInTheDocument();
+    expect(screen.getByText(/as a client of/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/forwarding or ARP table/),
+    ).not.toBeInTheDocument();
+  });
+
+  test("its chip is the one source it has", () => {
+    renderLinkPanel(MERAKI_EDGE);
+
+    expect(screen.getByText("Meraki")).toBeInTheDocument();
+    expect(screen.queryByText("FDB")).not.toBeInTheDocument();
+  });
+
+  test("a parent somebody else declared is still said beside it", () => {
+    renderLinkPanel({ ...MERAKI_EDGE, parentNodeId: REGISTER_NODE.id });
+
+    expect(screen.getByText(/is the declared parent/)).toBeInTheDocument();
+  });
+
+  test("with no parent it still explains what it does not say", () => {
+    renderLinkPanel({
+      ...LEARNED_UPLINK_EDGE,
+      reportedBy: "meraki",
+    });
+
+    expect(
+      screen.getByTestId("network-topology-learned-link-note"),
+    ).toHaveTextContent(/^Meraki lists/);
+  });
+
+  test("a discovered link Meraki also reported stays a discovered link", () => {
+    renderLinkPanel({ ...LLDP_EDGE, reportedBy: "meraki" });
+
+    expect(screen.getByText("Network link")).toBeInTheDocument();
+    expect(screen.getByText("LLDP")).toBeInTheDocument();
+    expect(screen.getByText("Meraki")).toBeInTheDocument();
+  });
+
+  test("the device's drawer says who reported it", () => {
+    renderDevicePanel(REGISTER_NODE, [MERAKI_EDGE]);
+
+    expect(
+      screen.getByTestId("network-topology-learned-attachment"),
+    ).toHaveTextContent("Port 7");
+    expect(
+      screen.getByText(/^Reported by Meraki, not drawn by hand/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/forwarding or ARP table/),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a name the controller has for it is shown beside the device's own", () => {
+    renderDevicePanel({ ...REGISTER_NODE, hostname: "KITCHEN-1" }, [
+      MERAKI_EDGE,
+    ]);
+
+    expect(screen.getByText("Hostname")).toBeInTheDocument();
+    expect(screen.getByText("KITCHEN-1")).toBeInTheDocument();
+  });
+
+  test("not when it is only the node's name again", () => {
+    renderDevicePanel({ ...REGISTER_NODE, hostname: REGISTER_NODE.name }, [
+      MERAKI_EDGE,
+    ]);
+
+    expect(screen.queryByText("Hostname")).not.toBeInTheDocument();
+  });
+});
+
 describe("the link drawer for a learned link", () => {
   afterEach(() => {
     cleanup();

@@ -8,6 +8,7 @@ import { MacLearningIpBinding } from "../../../../Utils/Monitor/DeviceMacLearnin
 import ObjectID from "../../../../Types/ObjectID";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../../Types/JSON";
+import { NetworkDeviceDiscoveryReader } from "../../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import { FindOperator } from "typeorm";
 
 /*
@@ -687,6 +688,32 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings - recording the read
     expect(
       new Date(entry["readAt"] as string).getTime(),
     ).toBeGreaterThanOrEqual(before - 1000);
+  });
+
+  test("a controller's client list is credited with what it taught, never an ARP table", async () => {
+    mockServices([deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A })]);
+
+    const connection: JSONObject = {
+      type: "networkController",
+      id: "8f2c1f0e-0000-4000-8000-0000000000dd",
+      name: "Stores",
+    };
+
+    await NetworkDeviceMacLearningUtil.learnFromArpBindings({
+      projectId: new ObjectID(PROJECT_ID),
+      observingDeviceId: new ObjectID(ROUTER_ID),
+      observingSiteId: SITE_A,
+      ipBindings: [binding(REGISTER_IP, "AA-BB-CC-DD-EE-01")],
+      reader: connection as unknown as NetworkDeviceDiscoveryReader,
+    });
+
+    const entry: JSONObject = (mergedPatches()[0]!["set"] as JSONObject)[
+      "macAddress"
+    ] as JSONObject;
+
+    expect(entry["value"]).toBe(REGISTER_MAC);
+    expect(entry["method"]).toBe("controllerClientList");
+    expect(entry["readBy"]).toEqual(connection);
   });
 
   test("a typed MAC the table contradicts: the column is untouched, the reading recorded", async () => {

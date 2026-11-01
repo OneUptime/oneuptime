@@ -4,6 +4,7 @@ import {
   NetworkTopologyNode,
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
 import {
   isUnclassifiedNode,
   roleDisplayLabelForNode,
@@ -158,12 +159,22 @@ function describeAddress(node: NetworkTopologyNode): string {
 }
 
 function describeSources(edge: NetworkTopologyEdge): string {
+  const reporter: string | undefined = getNetworkControllerProviderShortTitle(
+    edge.reportedBy,
+  );
   const labels: Array<string> = [];
   for (const protocol of edge.protocols || []) {
+    // A client list is not a forwarding table: see linkSourceLabelsForEdge.
+    if (reporter && protocol === "fdb") {
+      continue;
+    }
     const label: string | undefined = PROTOCOL_LABELS[protocol];
     if (label && !labels.includes(label)) {
       labels.push(label);
     }
+  }
+  if (reporter) {
+    labels.push(reporter);
   }
   return labels.join(", ") || NOT_AVAILABLE;
 }
