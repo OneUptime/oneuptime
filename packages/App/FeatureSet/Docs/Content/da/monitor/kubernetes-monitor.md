@@ -124,7 +124,7 @@ Anomalidetektion mod en baseline kræver ingen tærskel. Vælg en af disse betin
 | **Anomalously Low** | Falder under det forventede interval |
 | **Anomalous** | Forlader det forventede interval i en af retningerne |
 
-Hver måling sammenlignes med en baseline for samme time på ugen, bygget ud fra **Baseline-vindue** (som standard 14 dage; 28, 60 eller 90 dage). **Følsomhed** angiver, hvor bredt det forventede interval er: **Lav (4σ — kun grove afvigelser)**, **Mellem (3σ — anbefalet)**, som er standard, eller **Høj (2σ — mere støjende, meget stabile tjenester)**. Anomalibetingelser forbliver i en "Learning"-tilstand og giver ingen advarsler, før der findes mindst det valgte baseline-vindue af metrikhistorik.
+Hver måling sammenlignes med en baseline for samme time på ugen, bygget ud fra **Baseline-vindue** (som standard 14 dage; 28, 60 eller 90 dage). **Følsomhed** angiver, hvor bredt det forventede interval er: **Lav (4σ — kun grove afvigelser)**, **Mellem (3σ — anbefalet)**, som er standard, eller **Høj (2σ — mere støjende, meget stabile tjenester)**. Anomalibetingelser forbliver i en "Learning"-tilstand og giver ingen advarsler, før den time på ugen har to ugers historik.
 
 **Hvis ingen data**, under **Flere felter**, afgør, hvad der sker, når forespørgslen intet returnerer i vinduet: **Ignore** (standard) matcher ikke, **Trigger** behandler stilheden som problemet, og **Treat As Zero** sammenligner et nul. Tid, hvor OneUptime selv ikke modtog data, er aldrig manglende data: en kontrol, hvis vindue indeholder sådan tid, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 

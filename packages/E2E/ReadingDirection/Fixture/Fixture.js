@@ -21,6 +21,17 @@
  * breadcrumbs, the product bar (NavBar: Home and Products, and a product
  * that is open), pagination, a keyboard shortcut, code, dates, and Korean
  * words in a box too narrow for them.
+ *
+ * And what a page says back and what it cuts short: a field's error and a
+ * form's (Input, Alert) with an English answer from the server; a table of
+ * people (the Dashboard's UserElement) and of long plain values cut short
+ * to their column; a folded products menu category (NavBarCategoryToggle);
+ * a sentence that puts a time after a name in Latin letters
+ * (TranslatedSentence); a field whose popup opens from its start edge
+ * (ColorPicker); a React Flow canvas with a node and a line; and a note
+ * whose diagrams have labels in English and in Persian. A note's editor
+ * with an English error, and a narrow month whose English and Persian
+ * events are cut short to their blocks (Calendar).
  */
 import "Common/UI/Styles/Theme.css";
 import React, { useState } from "react";
@@ -37,6 +48,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Breadcrumbs from "Common/UI/Components/Breadcrumbs/Breadcrumbs";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -44,11 +56,17 @@ import Detail from "Common/UI/Components/Detail/Detail";
 import Input from "Common/UI/Components/Input/Input";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import ColorPicker from "Common/UI/Components/Forms/Fields/ColorPicker";
+import NavBarCategoryToggle from "Common/UI/Components/Navbar/NavBarCategoryToggle";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import ReactFlow, { Controls } from "reactflow";
+import "reactflow/dist/style.css";
 import Icon from "Common/UI/Components/Icon/Icon";
 import KeyboardShortcut, {
   KeyboardKey,
 } from "Common/UI/Components/KeyboardShortcut/KeyboardShortcut";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
+import Calendar from "Common/UI/Components/Calendar/Calendar";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import Modal from "Common/UI/Components/Modal/Modal";
 import NavBar from "Common/UI/Components/Navbar/NavBar";
@@ -70,6 +88,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import KO from "../../../App/FeatureSet/Dashboard/src/Locales/ko.json";
+import UserElement from "../../../App/FeatureSet/Dashboard/src/Components/User/User";
 
 const params = new URLSearchParams(window.location.search);
 const language = ["de", "fa", "ko"].includes(params.get("lang"))
@@ -174,6 +193,101 @@ const ROWS = [
     checks: 1440,
     lastCheckedAt: "2026-10-16T05:30:00.000Z",
   },
+];
+
+/*
+ * A feed's owner and its last poll's summary: an English name and an
+ * English sentence, each longer than its column, which cuts them short.
+ * The owners have no id, so each is drawn with the blank picture the
+ * fixture serves rather than one from a server it does not have.
+ */
+const FEED_ROWS = [
+  {
+    _id: "row-feed-1",
+    owner: {
+      name: "José Ignacio Negro de la Vega Fernández de Córdoba",
+      email: "jose.ignacio.negro@acme-commerce.example",
+    },
+    summary:
+      "Polled 4,812 indicators from the AlienVault OTX pulse feed; 12 were new and 3 were revoked.",
+  },
+  {
+    _id: "row-feed-2",
+    owner: {
+      name: "سارا احمدی",
+      email: "sara@acme-commerce.example",
+    },
+    summary: "Up to date.",
+  },
+];
+
+const FEED_COLUMNS = [
+  {
+    title: "Owner",
+    type: FieldType.Text,
+    key: "owner",
+    getElement: (row) => {
+      return <UserElement user={row.owner} />;
+    },
+  },
+  { title: "Last Poll Summary", type: FieldType.Text, key: "summary" },
+];
+
+/*
+ * A month's events, each longer than its day in a narrow calendar: an
+ * English title and a Persian one, cut short to their blocks.
+ */
+const CALENDAR_EVENTS = [
+  {
+    id: 1,
+    title: "Database upgrade for the payments cluster",
+    start: new Date("2026-10-14T09:00:00.000Z"),
+    end: new Date("2026-10-14T11:00:00.000Z"),
+    color: "#6366f1",
+  },
+  {
+    id: 2,
+    title: "به‌روزرسانی سرور پایگاه داده پرداخت",
+    start: new Date("2026-10-15T09:00:00.000Z"),
+    end: new Date("2026-10-15T11:00:00.000Z"),
+    color: "#059669",
+  },
+  // A title short enough for its day: it starts where the page's lines do.
+  {
+    id: 3,
+    title: "ارتقا",
+    start: new Date("2026-10-21T09:00:00.000Z"),
+    end: new Date("2026-10-21T10:00:00.000Z"),
+    color: "#d97706",
+  },
+];
+
+// A time after a name in Latin letters, in the page's own words.
+const READ_FROM_TIME = {
+  en: "4 minutes ago",
+  de: "vor 4 Minuten",
+  fa: "۴ دقیقه پیش",
+};
+
+// A node and the line out of it, at fixed places on the canvas.
+const FLOW_NODES = [
+  {
+    id: "payments",
+    position: { x: 40, y: 30 },
+    data: {
+      label: language === "fa" ? "درگاه پرداخت." : "Payments gateway.",
+    },
+  },
+  // A workflow step's description, from the step catalogue: English.
+  {
+    id: "checkout",
+    position: { x: 300, y: 140 },
+    data: { label: "Charges the card." },
+  },
+];
+
+const FLOW_EDGES = [
+  { id: "payments-checkout", source: "payments", target: "checkout" },
 ];
 
 const COLUMNS = [
@@ -357,6 +471,140 @@ function Page() {
         </div>
       </Section>
 
+      {/*
+       * What a page says back: a field's error and a form's, an English
+       * answer from the server, and a check in the page's own words.
+       */}
+      <Section name="errors">
+        <div className="w-full max-w-md space-y-4 bg-white p-4">
+          <div data-testid="error-server-field">
+            <Input
+              initialValue="SAVE50"
+              onChange={() => {}}
+              error="Promo code is invalid."
+            />
+          </div>
+          <div data-testid="error-check-field">
+            <Input onChange={() => {}} error="Description is required" />
+          </div>
+          <div data-testid="error-form">
+            <Alert type={AlertType.DANGER} title="Promo code is invalid." />
+          </div>
+          <div data-testid="error-note-field">
+            <MarkdownEditor
+              initialValue="Customers cannot pay."
+              onChange={() => {}}
+              error="Notes cannot be empty."
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/*
+       * A table of people and plain values, each longer than its column,
+       * cut short at the column's edge.
+       */}
+      <Section name="people">
+        <div style={{ width: `${tableWidth}px` }}>
+          <Card title="Threat Intel Feeds">
+            <Table
+              id="reading-direction-people"
+              data={FEED_ROWS}
+              columns={FEED_COLUMNS}
+              singularLabel="Feed"
+              pluralLabel="Feeds"
+              currentPageNumber={1}
+              totalItemsCount={FEED_ROWS.length}
+              itemsOnPage={10}
+              onNavigateToPage={() => {}}
+              error=""
+              isLoading={false}
+              sortOrder={SortOrder.Ascending}
+              sortBy={null}
+              onSortChanged={() => {}}
+            />
+          </Card>
+        </div>
+      </Section>
+
+      {/* A folded category of the products menu: what it holds, listed. */}
+      <Section name="products-menu">
+        <div className="w-96 max-w-full bg-white p-2">
+          <NavBarCategoryToggle
+            title={i18next.t("Infrastructure")}
+            itemTitles={["Incidents", "Alerts", "Monitors"].map((title) => {
+              return i18next.t(title);
+            })}
+            isOpen={false}
+            onToggle={() => {}}
+          />
+        </div>
+      </Section>
+
+      {/* A sentence that puts a time after a name in Latin letters. */}
+      <Section name="sentence">
+        <p
+          className="w-[36rem] max-w-full bg-white p-2 text-sm text-gray-700"
+          data-testid="sentence-meraki"
+        >
+          <TranslatedSentence
+            template="Read from the Meraki dashboard ({{name}}), {{time}}."
+            slots={{}}
+            values={{ name: "Acme Retail", time: READ_FROM_TIME[language] }}
+          />
+        </p>
+      </Section>
+
+      {/* A field whose popup opens from its start edge. */}
+      <Section name="popup">
+        <div className="w-72 max-w-full bg-white p-4">
+          <ColorPicker
+            onChange={() => {}}
+            initialValue="#6366f1"
+            layout="compact"
+            dataTestId="popup-color"
+            ariaLabel="Color"
+          />
+        </div>
+      </Section>
+
+      {/* A React Flow canvas: a node, and the line out of it. */}
+      <Section name="canvas">
+        <div
+          className="bg-white"
+          data-testid="canvas"
+          style={{ width: `${Math.min(600, tableWidth)}px`, height: "240px" }}
+        >
+          <ReactFlow
+            nodes={FLOW_NODES}
+            edges={FLOW_EDGES}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Controls showInteractive={false} />
+          </ReactFlow>
+        </div>
+      </Section>
+
+      {/* A month's events in a narrow calendar, cut short to their blocks. */}
+      <Section name="calendar">
+        <div
+          className="bg-white"
+          style={{ width: `${Math.min(390, tableWidth)}px` }}
+        >
+          <Calendar
+            events={CALENDAR_EVENTS}
+            defaultDate={WRITTEN_AT}
+            defaultCalendarView="month"
+            views={["month"]}
+            onRangeChange={() => {}}
+          />
+        </div>
+      </Section>
+
       <Section name="markdown">
         <div className="grid gap-4 bg-white p-4">
           <div data-testid="note-english">
@@ -373,6 +621,25 @@ function Page() {
           </div>
           <div data-testid="note-persian-from-english">
             <MarkdownViewer text={PERSIAN_FROM_AN_ENGLISH_WORD_NOTE} />
+          </div>
+          <div data-testid="note-diagram">
+            <MarkdownViewer
+              text={[
+                "Where a payment goes:",
+                "",
+                "```mermaid",
+                "graph LR",
+                "  A[Checkout API] --> B[درگاه پرداخت]",
+                "  B --> C[Bank]",
+                "```",
+                "",
+                "```mermaid",
+                "sequenceDiagram",
+                "  Checkout->>Gateway: Charge the card",
+                "  Gateway-->>Checkout: پرداخت انجام شد.",
+                "```",
+              ].join("\n")}
+            />
           </div>
           <div data-testid="editor-empty">
             <MarkdownEditor

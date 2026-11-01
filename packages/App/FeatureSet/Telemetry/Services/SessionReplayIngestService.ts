@@ -34,6 +34,7 @@ import {
   SESSION_REPLAY_MAX_TRAIT_KEY_LENGTH,
   SESSION_REPLAY_MAX_TRAIT_VALUE_LENGTH,
   SESSION_REPLAY_SCHEMA_VERSION,
+  SESSION_REPLAY_USER_KEY_PATTERN,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
   SessionReplayDirective,
@@ -168,9 +169,6 @@ const SESSION_START_KEY_PREFIX: string = "replay:session-start:";
  *                                       the chunk rows, which are authoritative.
  */
 const SESSION_CARRY_KEY_PREFIX: string = "replay:session-carry:";
-
-/* What SessionReplayIdentity.buildUserKey yields: a hex SHA-256 HMAC. */
-const USER_KEY_PATTERN: RegExp = /^[0-9a-f]{64}$/;
 
 /*
  * Long enough that a session idle for the finalizer's whole 10-minute
@@ -1946,7 +1944,7 @@ export default class SessionReplayIngestService {
 
     if (
       typeof key !== "string" ||
-      !USER_KEY_PATTERN.test(key) ||
+      !SESSION_REPLAY_USER_KEY_PATTERN.test(key) ||
       !SessionReplayIdentity.isUsableUserRef(label)
     ) {
       return {

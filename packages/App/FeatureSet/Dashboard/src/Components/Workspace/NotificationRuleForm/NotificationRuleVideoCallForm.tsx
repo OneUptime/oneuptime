@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -278,9 +279,7 @@ const NotificationRuleVideoCallForm: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && (
-        <p role="alert" className="text-sm text-red-600">
-          {props.error}
-        </p>
+        <FieldError message={props.error} className="text-sm text-red-600" />
       )}
     </div>
   );

@@ -96,6 +96,9 @@ const TABLES: string = read(
 const DETAIL_PANEL: string = read(
   `${DASHBOARD}/Components/UserFlow/UserFlowDetailPanel.tsx`,
 );
+const JOURNEYS: string = read(
+  `${DASHBOARD}/Components/UserFlow/UserFlowJourneys.tsx`,
+);
 const USER_FLOW_MAP: string = read(
   `${DASHBOARD}/Components/UserFlow/UserFlowMap.tsx`,
 );
@@ -337,7 +340,7 @@ describe("User Flows tables carry their own text", () => {
     );
   });
 
-  test("the text keys are split between the three files with nothing left over", () => {
+  test("the text keys are split between the four files with nothing left over", () => {
     const keys: Array<string> = Object.keys(RUM_USER_FLOW_METRIC_DESCRIPTIONS);
     const usedIn: (source: string) => Array<string> = (
       source: string,
@@ -351,11 +354,12 @@ describe("User Flows tables carry their own text", () => {
     const inOverview: Array<string> = usedIn(OVERVIEW);
     const inTables: Array<string> = usedIn(TABLES);
     const inDetail: Array<string> = usedIn(DETAIL_PANEL);
+    const inJourneys: Array<string> = usedIn(JOURNEYS);
 
     // Every key in exactly one file.
-    expect([...inOverview, ...inTables, ...inDetail].sort()).toEqual(
-      [...keys].sort(),
-    );
+    expect(
+      [...inOverview, ...inTables, ...inDetail, ...inJourneys].sort(),
+    ).toEqual([...keys].sort());
     // The detail panel's texts, and only those, say so in their key.
     expect(
       inDetail.every((key: string): boolean => {

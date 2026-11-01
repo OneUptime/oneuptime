@@ -11,7 +11,10 @@ import ClickhouseDatabase, {
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
-import { UserFlowJourneysResponseDto } from "Common/Types/Rum/UserFlow";
+import {
+  USER_FLOW_MAX_PAGES_PER_JOURNEY,
+  UserFlowJourneysResponseDto,
+} from "Common/Types/Rum/UserFlow";
 import {
   analyzeUserFlow,
   UserFlowAnalysis,
@@ -65,7 +68,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
 import AnalyticsDatabaseService from "Common/Server/Services/AnalyticsDatabaseService";
-import SessionReplayUserFlowReadService from "Common/Server/Utils/SessionReplay/SessionReplayUserFlowReadService";
+import SessionReplayUserFlowReadService, {
+  UserFlowJourneysScope,
+} from "Common/Server/Utils/SessionReplay/SessionReplayUserFlowReadService";
 
 const endpoint: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
 
@@ -78,6 +83,7 @@ const database: string = `rum_user_flow_test_${process.pid}_${Date.now()}`;
 const projectId: ObjectID = new ObjectID("6600000000000000000000c1");
 const rumApplicationId: string = "6600000000000000000000c2";
 const otherApplicationId: string = "6600000000000000000000c3";
+const longApplicationId: string = "6600000000000000000000c4";
 
 const ORIGIN: string = "https://shop.example.com";
 const CHUNK_MS: number = 15 * 1000;
@@ -116,12 +122,38 @@ const SESSIONS: {
   ancient: "a0000000000000000000000000000005",
 };
 
+/*
+ * Who those sessions belong to:
+ *
+ *   JANE     journey and ancient, and a session in the other application -
+ *            the key is per project, so she is one person across both. Her
+ *            journey session's provisional header was written before the
+ *            recorder said who she was; only the newest header names her,
+ *            under a label that changed between the two.
+ *   VISITOR  journey (signed in on this browser) and landing (not signed in).
+ *   FORMER   the key on a superseded header of blank: the page switched
+ *            user, so a read of that key must not find the session.
+ */
+/* One session in an application of its own, so it counts in no other test. */
+const LONG_SESSION: string = "a0000000000000000000000000000006";
+const LONGEST_JOURNEY: Array<string> = Array.from(
+  { length: USER_FLOW_MAX_PAGES_PER_JOURNEY + 1 },
+  (_value: unknown, index: number): string => {
+    return `${ORIGIN}/step-${index}`;
+  },
+);
+
+const JANE_KEY: string = "1".repeat(64);
+const FORMER_KEY: string = "2".repeat(64);
+const VISITOR_ID: string = "b".repeat(32);
+
 const START: Record<string, Date> = {
   [SESSIONS.journey]: new Date(now - 10 * 60 * 1000),
   [SESSIONS.landing]: new Date(now - 20 * 60 * 1000),
   [SESSIONS.blank]: new Date(now - 30 * 60 * 1000),
   [SESSIONS.elsewhere]: new Date(now - 15 * 60 * 1000),
   [SESSIONS.ancient]: new Date(now - 3 * 24 * 60 * 60 * 1000),
+  [LONG_SESSION]: new Date(now - 5 * 60 * 1000),
 };
 
 interface ChunkFixture {
@@ -209,6 +241,16 @@ const chunkFixtures: Array<ChunkFixture> = [
     url: `${ORIGIN}/ancient`,
     routes: [`${ORIGIN}/ancient`],
   },
+  {
+    sessionId: LONG_SESSION,
+    rumApplicationId: longApplicationId,
+    tabId: "tab-1",
+    chunkIndex: 0,
+    version: 1000,
+    startOffsetMs: 0,
+    url: LONGEST_JOURNEY[LONGEST_JOURNEY.length - 1] as string,
+    routes: LONGEST_JOURNEY,
+  },
 ];
 
 function chunkRow(fixture: ChunkFixture): JSONObject {
@@ -265,6 +307,12 @@ function headerRow(data: {
   version: number;
   entryUrl: string;
   deviceType: string;
+  identifiedUserKey?: string;
+  identifiedUserLabel?: string;
+  visitorId?: string;
+  isFinalized?: boolean;
+  chunkCount?: number;
+  sealedReason?: string;
 }): JSONObject {
   const sessionStart: Date = START[data.sessionId] as Date;
   const applicationId: string = data.rumApplicationId || rumApplicationId;
@@ -283,7 +331,12 @@ function headerRow(data: {
     ),
     sessionId: data.sessionId,
     version: String(data.version),
-    isFinalized: false,
+    isFinalized: data.isFinalized ?? false,
+    chunkCount: data.chunkCount ?? 0,
+    sealedReason: data.sealedReason ?? "",
+    identifiedUserKey: data.identifiedUserKey ?? "",
+    identifiedUserLabel: data.identifiedUserLabel ?? "",
+    visitorId: data.visitorId ?? "",
     triggerReason: "sampled",
     samplePercentageAtCapture: 100,
     errorCount: 0,
@@ -303,24 +356,42 @@ const headerFixtures: Array<JSONObject> = [
     version: 1000,
     entryUrl: `${ORIGIN}/`,
     deviceType: "desktop",
+    visitorId: VISITOR_ID,
   }),
   headerRow({
     sessionId: SESSIONS.journey,
     version: 2000,
     entryUrl: `${ORIGIN}/`,
     deviceType: "mobile",
+    identifiedUserKey: JANE_KEY,
+    identifiedUserLabel: "jane@example.com",
+    visitorId: VISITOR_ID,
+    isFinalized: true,
+    chunkCount: 3,
   }),
   headerRow({
     sessionId: SESSIONS.landing,
     version: 1000,
     entryUrl: `${ORIGIN}/landing`,
     deviceType: "desktop",
+    visitorId: VISITOR_ID,
   }),
   headerRow({
     sessionId: SESSIONS.blank,
     version: 1000,
     entryUrl: `${ORIGIN}/blank-entry`,
     deviceType: "tablet",
+    identifiedUserKey: FORMER_KEY,
+    identifiedUserLabel: "former@example.com",
+  }),
+  /* Finalized with nothing stored: there is no recording to offer. */
+  headerRow({
+    sessionId: SESSIONS.blank,
+    version: 2000,
+    entryUrl: `${ORIGIN}/blank-entry`,
+    deviceType: "tablet",
+    isFinalized: true,
+    chunkCount: 0,
   }),
   headerRow({
     sessionId: SESSIONS.elsewhere,
@@ -328,11 +399,25 @@ const headerFixtures: Array<JSONObject> = [
     version: 1000,
     entryUrl: `${ORIGIN}/other-app`,
     deviceType: "desktop",
+    identifiedUserKey: JANE_KEY,
+    identifiedUserLabel: "jane@example.com",
   }),
   headerRow({
     sessionId: SESSIONS.ancient,
     version: 1000,
     entryUrl: `${ORIGIN}/ancient`,
+    deviceType: "desktop",
+    identifiedUserKey: JANE_KEY,
+    identifiedUserLabel: "j.doe@example.com",
+    sealedReason: "recording-lost",
+    isFinalized: true,
+    chunkCount: 1,
+  }),
+  headerRow({
+    sessionId: LONG_SESSION,
+    rumApplicationId: longApplicationId,
+    version: 1000,
+    entryUrl: LONGEST_JOURNEY[0] as string,
     deviceType: "desktop",
   }),
 ];
@@ -445,9 +530,24 @@ integration("User Flows journeys against ClickHouse", () => {
       clickhouseSettings: { wait_for_async_insert: 1 },
     });
 
-    await RumSessionService.insertJsonRows(headerFixtures, {
-      clickhouseSettings: { wait_for_async_insert: 1 },
+    /*
+     * One insert per version, with merges stopped. ReplacingMergeTree keeps
+     * only the newest of the rows one insert holds, so written together a
+     * superseded header would never exist. The real thing is a provisional
+     * header and a finalized one in two parts, until a merge happens to run.
+     */
+    await client.command({
+      query: `SYSTEM STOP MERGES ${database}.${new RumSession().tableName}`,
     });
+
+    for (const version of ["1000", "2000"]) {
+      await RumSessionService.insertJsonRows(
+        headerFixtures.filter((row: JSONObject): boolean => {
+          return row["version"] === version;
+        }),
+        { clickhouseSettings: { wait_for_async_insert: 1 } },
+      );
+    }
   });
 
   afterAll(async (): Promise<void> => {
@@ -568,6 +668,25 @@ integration("User Flows journeys against ClickHouse", () => {
     expect(response.maxSessions).toBe(1);
   });
 
+  test("a session that goes on past the page cap says so", async () => {
+    const response: UserFlowJourneysResponseDto =
+      await SessionReplayUserFlowReadService.readJourneys({
+        projectId: projectId,
+        rumApplicationId: new ObjectID(longApplicationId),
+        startTime: windowStart,
+        endTime: windowEnd,
+      });
+    const session: UserFlowJourneysResponseDto["sessions"][number] =
+      response.sessions[0]!;
+
+    expect(session.pages).toHaveLength(USER_FLOW_MAX_PAGES_PER_JOURNEY);
+    expect(session.isTruncated).toBe(true);
+    /* The page it was cut after is the last one sent, not the one after. */
+    expect(response.pages).not.toContain(
+      LONGEST_JOURNEY[USER_FLOW_MAX_PAGES_PER_JOURNEY],
+    );
+  });
+
   test("the journeys fold into a flow map", async () => {
     const response: UserFlowJourneysResponseDto =
       await SessionReplayUserFlowReadService.readJourneys({
@@ -592,6 +711,226 @@ integration("User Flows journeys against ClickHouse", () => {
       "3:/cart:1",
     ]);
     expect(analysis.summary.bounceRate).toBeCloseTo(2 / 3);
+  });
+
+  describe("narrowed to one person or one session", () => {
+    const sessionIdsOf: (
+      response: UserFlowJourneysResponseDto,
+    ) => Array<string> = (
+      response: UserFlowJourneysResponseDto,
+    ): Array<string> => {
+      return response.sessions.map(
+        (session: UserFlowJourneysResponseDto["sessions"][number]): string => {
+          return session.sessionId;
+        },
+      );
+    };
+
+    const read: (
+      scope: UserFlowJourneysScope,
+      options?: { includeIdentifiedUserLabel?: boolean; startTime?: Date },
+    ) => Promise<UserFlowJourneysResponseDto> = (
+      scope: UserFlowJourneysScope,
+      options: { includeIdentifiedUserLabel?: boolean; startTime?: Date } = {},
+    ): Promise<UserFlowJourneysResponseDto> => {
+      return SessionReplayUserFlowReadService.readJourneys({
+        projectId: projectId,
+        rumApplicationId: new ObjectID(rumApplicationId),
+        startTime: options.startTime || windowStart,
+        endTime: windowEnd,
+        scope: scope,
+        includeIdentifiedUserLabel: options.includeIdentifiedUserLabel ?? true,
+      });
+    };
+
+    test("a user's key finds their session in this application and window, and nobody else's", async () => {
+      const response: UserFlowJourneysResponseDto = await read({
+        kind: "user",
+        identifiedUserKey: JANE_KEY,
+      });
+
+      expect(sessionIdsOf(response)).toEqual([SESSIONS.journey]);
+      /* The chunk read's IN-subquery narrowed with the header read. */
+      expect(pagesOf(response, SESSIONS.journey)).toEqual([
+        `${ORIGIN}/`,
+        `${ORIGIN}/products`,
+        `${ORIGIN}/products/42`,
+        `${ORIGIN}/cart`,
+      ]);
+      expect(response.sessionsInWindow).toBe(1);
+      expect(response.isSampled).toBe(false);
+      expect(response.pages).not.toContain(`${ORIGIN}/landing`);
+      expect(response.scope).toEqual({
+        kind: "user",
+        identifiedUserKey: JANE_KEY,
+        visitorId: "",
+        sessionId: "",
+        identifiedUserLabel: "jane@example.com",
+      });
+    });
+
+    test("a wider window reaches their older session, and the newest label wins", async () => {
+      const response: UserFlowJourneysResponseDto = await read(
+        { kind: "user", identifiedUserKey: JANE_KEY },
+        { startTime: new Date(now - 7 * 24 * 60 * 60 * 1000) },
+      );
+
+      expect(sessionIdsOf(response)).toEqual([
+        SESSIONS.journey,
+        SESSIONS.ancient,
+      ]);
+      expect(response.sessionsInWindow).toBe(2);
+      expect(response.scope?.identifiedUserLabel).toBe("jane@example.com");
+    });
+
+    test("a person is judged on the newest header, never on a superseded one", async () => {
+      const response: UserFlowJourneysResponseDto = await read({
+        kind: "user",
+        identifiedUserKey: FORMER_KEY,
+      });
+
+      expect(response.sessions).toEqual([]);
+      expect(response.sessionsInWindow).toBe(0);
+      /* Still says what was asked, with no session to name them. */
+      expect(response.scope).toEqual({
+        kind: "user",
+        identifiedUserKey: FORMER_KEY,
+        visitorId: "",
+        sessionId: "",
+        identifiedUserLabel: "",
+      });
+    });
+
+    test("a key nobody has answers empty, not with everyone", async () => {
+      const response: UserFlowJourneysResponseDto = await read({
+        kind: "user",
+        identifiedUserKey: "f".repeat(64),
+      });
+
+      expect(response.sessions).toEqual([]);
+      expect(response.pages).toEqual([]);
+      expect(response.sessionsInWindow).toBe(0);
+    });
+
+    test("a visitor finds every session from that browser, signed in or not", async () => {
+      const response: UserFlowJourneysResponseDto = await read({
+        kind: "visitor",
+        visitorId: VISITOR_ID,
+      });
+
+      expect(sessionIdsOf(response)).toEqual([
+        SESSIONS.journey,
+        SESSIONS.landing,
+      ]);
+      expect(response.sessionsInWindow).toBe(2);
+      expect(response.scope).toEqual({
+        kind: "visitor",
+        identifiedUserKey: "",
+        visitorId: VISITOR_ID,
+        sessionId: "",
+      });
+    });
+
+    test("a session is found by id and says whose it is", async () => {
+      const response: UserFlowJourneysResponseDto = await read({
+        kind: "session",
+        sessionId: SESSIONS.journey,
+      });
+
+      expect(sessionIdsOf(response)).toEqual([SESSIONS.journey]);
+      expect(response.sessionsInWindow).toBe(1);
+      expect(response.scope).toEqual({
+        kind: "session",
+        identifiedUserKey: JANE_KEY,
+        visitorId: VISITOR_ID,
+        sessionId: SESSIONS.journey,
+        identifiedUserLabel: "jane@example.com",
+      });
+    });
+
+    test("a session of another application, or outside the window, is not found", async () => {
+      for (const sessionId of [SESSIONS.elsewhere, SESSIONS.ancient]) {
+        const response: UserFlowJourneysResponseDto = await read({
+          kind: "session",
+          sessionId: sessionId,
+        });
+
+        expect(response.sessions).toEqual([]);
+        expect(response.sessionsInWindow).toBe(0);
+      }
+    });
+
+    test("the label is read only for a role that may read it", async () => {
+      const response: UserFlowJourneysResponseDto = await read(
+        { kind: "user", identifiedUserKey: JANE_KEY },
+        { includeIdentifiedUserLabel: false },
+      );
+
+      expect(sessionIdsOf(response)).toEqual([SESSIONS.journey]);
+      expect(response.scope).toEqual({
+        kind: "user",
+        identifiedUserKey: JANE_KEY,
+        visitorId: "",
+        sessionId: "",
+      });
+    });
+
+    test("a recording is offered when there is footage, by the session list's rule", async () => {
+      const everyone: UserFlowJourneysResponseDto = await read({
+        kind: "visitor",
+        visitorId: VISITOR_ID,
+      });
+      const blank: UserFlowJourneysResponseDto = await read({
+        kind: "session",
+        sessionId: SESSIONS.blank,
+      });
+      const lost: UserFlowJourneysResponseDto = await read(
+        { kind: "user", identifiedUserKey: JANE_KEY },
+        { startTime: new Date(now - 7 * 24 * 60 * 60 * 1000) },
+      );
+
+      const hasRecording: (
+        response: UserFlowJourneysResponseDto,
+        sessionId: string,
+      ) => boolean | undefined = (
+        response: UserFlowJourneysResponseDto,
+        sessionId: string,
+      ): boolean | undefined => {
+        return response.sessions.find(
+          (
+            session: UserFlowJourneysResponseDto["sessions"][number],
+          ): boolean => {
+            return session.sessionId === sessionId;
+          },
+        )?.hasRecording;
+      };
+
+      /* Finalized with chunks counted. */
+      expect(hasRecording(everyone, SESSIONS.journey)).toBe(true);
+      /* Not finalized: its zero means "not counted yet". */
+      expect(hasRecording(everyone, SESSIONS.landing)).toBe(true);
+      /* Finalized with nothing stored. */
+      expect(hasRecording(blank, SESSIONS.blank)).toBe(false);
+      /* Sealed as lost, whatever it counted. */
+      expect(hasRecording(lost, SESSIONS.ancient)).toBe(false);
+    });
+
+    test("a read over everyone stays silent about who anyone is", async () => {
+      const response: UserFlowJourneysResponseDto =
+        await SessionReplayUserFlowReadService.readJourneys({
+          projectId: projectId,
+          rumApplicationId: new ObjectID(rumApplicationId),
+          startTime: windowStart,
+          endTime: windowEnd,
+          includeIdentifiedUserLabel: true,
+        });
+
+      expect(response.scope).toBeNull();
+
+      for (const session of response.sessions) {
+        expect(session.hasRecording).toBeUndefined();
+      }
+    });
   });
 });
 

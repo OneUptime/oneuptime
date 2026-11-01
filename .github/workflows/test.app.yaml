@@ -358,6 +358,8 @@ jobs:
           # Escape tests joined it later that day (4 tests, about 12 seconds
           # locally: the help and an option's sentence put away by Escape,
           # pointed at, reached with Tab and tapped).
+          # Navigation Search (3.6 minutes) from group 13 on 2026-11-01, when
+          # 14.0.100's first gate run took this group 20.9: about 24.5.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -368,6 +370,7 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-runbook-steps-ui
+              test-navigation-search-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -1050,6 +1053,9 @@ jobs:
           # Chromium only) joined them from group 10 on 2026-11-01, when cut 5
           # took that group past its 28 minutes; cut 4 took this group 17.3:
           # about 20.5.
+          # 14.0.100's first gate run (2026-11-01) took this group 24.1 minutes
+          # (Data Security 3.2 of them, before #5500 grew it to 71 walks, about
+          # 4.5): Navigation Search (3.6) moved to group 2. About 22.
           - group: 13
             suites: >-
               test-asset-details-ui
@@ -1057,7 +1063,6 @@ jobs:
               test-external-mcp-servers-ui
               test-detail-cards-ui
               test-llm-connect-ui
-              test-navigation-search-ui
               test-bulk-actions-ui
               test-status-page-search-ui
               test-reading-direction-ui

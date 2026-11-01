@@ -136,7 +136,29 @@ describe("BaselineAnomalyTool", () => {
     );
 
     expect(result.dataForLlm).toContain("insufficient baseline data");
-    expect(result.dataForLlm).toContain("only 2 sample(s)");
+    expect(result.dataForLlm).toContain("2 earlier sample(s)");
+  });
+
+  test("plenty of samples from one earlier week is insufficient too, and says why", async () => {
+    mockBaseline({
+      mean: 100,
+      stddev: 10,
+      sampleCount: 120,
+      isReliable: false,
+    });
+    jest.spyOn(MetricBaselineService, "getCoverage").mockResolvedValue({
+      totalSamples: 5000,
+      oldestDay: null,
+    });
+
+    const result: { dataForLlm: string } = await BaselineAnomalyTool.execute(
+      { metricName: "cpu.usage" },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("insufficient baseline data");
+    expect(result.dataForLlm).toContain("120 earlier sample(s)");
+    expect(result.dataForLlm).toContain("needs two earlier weeks of it");
   });
 
   test("value above the 3-sigma band is anomalous (above)", async () => {
@@ -218,6 +240,51 @@ describe("BaselineAnomalyTool", () => {
     expect(result.dataForLlm).toContain("cannot judge");
     expect(result.dataForLlm).toContain("zero variance");
     expect(result.dataForLlm).not.toContain("ANOMALOUS");
+  });
+
+  test("a zero-stddev baseline the metric has left is judged on the value it held", async () => {
+    jest.spyOn(MetricBaselineService, "getBaseline").mockResolvedValue({
+      sampleCount: 240,
+      mean: 0,
+      stddev: 0,
+      median: 0,
+      p95: 0,
+      minObserved: 0,
+      maxObserved: 0,
+      isReliable: true,
+      leftFlatHistory: true,
+      windowDays: 14,
+      hourOfWeek: 10,
+    });
+    mockCurrentValues([5]);
+    mockEmptyBand();
+
+    const result: { dataForLlm: string } = await BaselineAnomalyTool.execute(
+      { metricName: "dead.letter.depth" },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("ANOMALOUS");
+    expect(result.dataForLlm).toContain("above the expected range");
+    expect(result.dataForLlm).not.toContain("cannot judge");
+    expect(result.dataForLlm).not.toContain("Infinity");
+  });
+
+  test("a moment in the past is judged by the days before it", async () => {
+    mockBaseline({ mean: 100, stddev: 10 });
+    mockCurrentValues([100]);
+    mockEmptyBand();
+
+    await BaselineAnomalyTool.execute(
+      { metricName: "cpu.usage", atTime: "2026-10-12T14:00:00.000Z" },
+      ctx,
+    );
+
+    expect(MetricBaselineService.getBaseline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        judgedAt: new Date("2026-10-12T14:00:00.000Z"),
+      }),
+    );
   });
 
   test("a label-scoped user without entityId is refused (baseline SQL skips the owned-scope filter)", async () => {

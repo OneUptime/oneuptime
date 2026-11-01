@@ -10,11 +10,13 @@ import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableN
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { SessionReplaySealedReason } from "../../../Types/Rum/SessionReplay";
 import {
   USER_FLOW_DEFAULT_MAX_SESSIONS,
   USER_FLOW_MAX_PAGES_PER_JOURNEY,
   USER_FLOW_MAX_SESSIONS,
   UserFlowJourneysResponseDto,
+  UserFlowScopeDto,
   UserFlowSessionDto,
 } from "../../../Types/Rum/UserFlow";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -49,6 +51,12 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  *    scanning a table that has no time in its key.
  * A session that started between the two reads is simply absent from the
  * chunk side and falls back to its entry URL, so the race costs nothing.
+ *
+ * A read can be narrowed to one person or one session (UserFlowJourneysScope):
+ * every statement takes the same narrowing, so the three still agree. Only a
+ * narrowed read names who the sessions belong to - a read over everyone has
+ * no use for it - and the label among those columns only for a caller who may
+ * read it.
  */
 
 const RETENTION_FILTER: string = " AND retentionDate >= now()";
@@ -65,12 +73,25 @@ const READ_QUERY_SETTINGS: string = getQuerySettings({
  */
 const MAX_RAW_ROUTES_PER_SESSION: number = 2000;
 
+export type UserFlowJourneysScope =
+  | { kind: "user"; identifiedUserKey: string }
+  | { kind: "visitor"; visitorId: string }
+  | { kind: "session"; sessionId: string };
+
 export interface UserFlowJourneysRequest {
   projectId: ObjectID;
   rumApplicationId: ObjectID;
   startTime: Date;
   endTime: Date;
   maxSessions?: number | undefined;
+  /* Absent reads everyone in the window. */
+  scope?: UserFlowJourneysScope | undefined;
+  /*
+   * The label has a narrower ACL than the rest of the header, and this
+   * raw-SQL path never invokes ModelPermission, so the handler decides and
+   * the column is simply not named when it is not permitted.
+   */
+  includeIdentifiedUserLabel?: boolean | undefined;
 }
 
 interface HeaderRow {
@@ -80,6 +101,11 @@ interface HeaderRow {
   browserName: string;
   countryCode: string;
   entryUrl: string;
+  /* Read on a narrowed read only, like everything below. */
+  identifiedUserKey?: string | undefined;
+  visitorId?: string | undefined;
+  identifiedUserLabel?: string | undefined;
+  hasRecording?: boolean | undefined;
 }
 
 interface ChunkRollupRow {
@@ -100,6 +126,12 @@ function readNumber(row: JSONObject, key: string): number {
   const parsed: number = Number(row[key]);
 
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function readBoolean(row: JSONObject, key: string): boolean {
+  const value: unknown = row[key];
+
+  return value === true || value === 1 || value === "1" || value === "true";
 }
 
 function readStringArray(row: JSONObject, key: string): Array<string> {
@@ -162,11 +194,33 @@ export function clampUserFlowMaxSessions(value: number | undefined): number {
   return Math.max(1, Math.min(Math.floor(value), USER_FLOW_MAX_SESSIONS));
 }
 
+/*
+ * The session list's own rule (getSessionReplayPlayability): a lost recording
+ * has nothing to play, and neither has a finalized session that stored no
+ * chunks. An unfinalized header's zero only means "not counted yet".
+ */
+function readHasRecording(row: JSONObject): boolean {
+  if (
+    readString(row, "flowSealedReason") ===
+    SessionReplaySealedReason.RecordingLost
+  ) {
+    return false;
+  }
+
+  return (
+    !readBoolean(row, "flowIsFinalized") ||
+    readNumber(row, "flowChunkCount") > 0
+  );
+}
+
 export default class SessionReplayUserFlowReadService {
   /*
    * WHERE for the header table: the sort-key prefix plus retention. Shared
    * by the header read, the chunk read's IN-subquery and the count so the
    * three can never disagree about which sessions are in the window.
+   *
+   * A session id never changes between header versions, so it is safe here,
+   * and it is the end of the sort key. A person is not: see appendScopeHaving.
    */
   private static appendHeaderWindow(
     statement: Statement,
@@ -190,7 +244,49 @@ export default class SessionReplayUserFlowReadService {
             type: TableColumnType.DateTime64,
             value: request.endTime,
           }}`);
+
+    if (request.scope?.kind === "session") {
+      statement.append(
+        SQL`
+          AND sessionId = ${{
+            type: TableColumnType.Text,
+            value: request.scope.sessionId,
+          }}`,
+      );
+    }
+
     statement.append(RETENTION_FILTER);
+  }
+
+  /*
+   * After GROUP BY sessionId: whose session it is, judged on the newest
+   * header version. Never a WHERE on the raw columns, which would match a
+   * superseded version, and miss a session whose provisional header was
+   * written before the recorder's first meta chunk carried the identity.
+   */
+  private static appendScopeHaving(
+    statement: Statement,
+    request: UserFlowJourneysRequest,
+  ): void {
+    if (request.scope?.kind === "user") {
+      statement.append(
+        SQL`
+        HAVING argMax(identifiedUserKey, version) = ${{
+          type: TableColumnType.Text,
+          value: request.scope.identifiedUserKey,
+        }}`,
+      );
+    }
+
+    if (request.scope?.kind === "visitor") {
+      statement.append(
+        SQL`
+        HAVING argMax(visitorId, version) = ${{
+          type: TableColumnType.Text,
+          value: request.scope.visitorId,
+        }}`,
+      );
+    }
   }
 
   /*
@@ -208,7 +304,9 @@ export default class SessionReplayUserFlowReadService {
         SELECT sessionId, argMax(startTime, version) AS flowNewestStart`);
     SessionReplayUserFlowReadService.appendHeaderWindow(statement, request);
     statement.append(`
-        GROUP BY sessionId
+        GROUP BY sessionId`);
+    SessionReplayUserFlowReadService.appendScopeHaving(statement, request);
+    statement.append(`
         ORDER BY flowNewestStart DESC, sessionId DESC`);
     statement.append(
       SQL`
@@ -238,10 +336,26 @@ export default class SessionReplayUserFlowReadService {
         argMax(countryCode, version) AS flowCountryCode,
         argMax(entryUrl, version) AS flowEntryUrl`;
 
+    if (request.scope) {
+      statement.append(`,
+        argMax(identifiedUserKey, version) AS flowIdentifiedUserKey,
+        argMax(visitorId, version) AS flowVisitorId,
+        argMax(isFinalized, version) AS flowIsFinalized,
+        argMax(chunkCount, version) AS flowChunkCount,
+        argMax(sealedReason, version) AS flowSealedReason`);
+
+      if (request.includeIdentifiedUserLabel) {
+        statement.append(`,
+        argMax(identifiedUserLabel, version) AS flowIdentifiedUserLabel`);
+      }
+    }
+
     SessionReplayUserFlowReadService.appendHeaderWindow(statement, request);
 
     statement.append(`
-        GROUP BY sessionId
+        GROUP BY sessionId`);
+    SessionReplayUserFlowReadService.appendScopeHaving(statement, request);
+    statement.append(`
         ORDER BY flowStartUnixMs DESC, flowSessionId DESC`);
     statement.append(
       SQL`
@@ -258,6 +372,24 @@ export default class SessionReplayUserFlowReadService {
   public static buildCountStatement(
     request: UserFlowJourneysRequest,
   ): Statement {
+    if (request.scope) {
+      /* One row per session first: the narrowing is judged per session. */
+      const narrowed: Statement = SQL`
+      SELECT toFloat64(count()) AS flowSessionCount
+      FROM (
+        SELECT sessionId`;
+
+      SessionReplayUserFlowReadService.appendHeaderWindow(narrowed, request);
+      narrowed.append(`
+        GROUP BY sessionId`);
+      SessionReplayUserFlowReadService.appendScopeHaving(narrowed, request);
+      narrowed.append(`
+      )`);
+      narrowed.append(READ_QUERY_SETTINGS);
+
+      return narrowed;
+    }
+
     const statement: Statement = SQL`
       SELECT toFloat64(uniqExact(sessionId)) AS flowSessionCount`;
 
@@ -277,7 +409,8 @@ export default class SessionReplayUserFlowReadService {
      * Middle: per session, chunks sorted by (start, tab, index) and their
      * route lists flattened; signal-bearing chunks kept with the page they
      * were flushed from; totals and the recorded span.
-     * Outer: back-to-back repeats collapsed and the journey capped.
+     * Outer: back-to-back repeats collapsed and the journey capped, one
+     * page over the cap, which is how toResponse knows the journey was cut.
      */
     const statement: Statement = SQL`
       SELECT
@@ -291,7 +424,7 @@ export default class SessionReplayUserFlowReadService {
           1,
           ${{
             type: TableColumnType.Number,
-            value: USER_FLOW_MAX_PAGES_PER_JOURNEY,
+            value: USER_FLOW_MAX_PAGES_PER_JOURNEY + 1,
           }}
         ) AS flowPages,
         flowSignals,
@@ -419,6 +552,12 @@ export default class SessionReplayUserFlowReadService {
           browserName: readString(row, "flowBrowserName"),
           countryCode: readString(row, "flowCountryCode"),
           entryUrl: readString(row, "flowEntryUrl"),
+          ...(request.scope && {
+            identifiedUserKey: readString(row, "flowIdentifiedUserKey"),
+            visitorId: readString(row, "flowVisitorId"),
+            identifiedUserLabel: readString(row, "flowIdentifiedUserLabel"),
+            hasRecording: readHasRecording(row),
+          }),
         };
       },
     );
@@ -504,9 +643,11 @@ export default class SessionReplayUserFlowReadService {
       }
 
       /* The journey first, so the dictionary reads in visiting order. */
-      const pageIndexes: Array<number> = urls.map((url: string): number => {
-        return indexOf(url);
-      });
+      const pageIndexes: Array<number> = urls
+        .slice(0, USER_FLOW_MAX_PAGES_PER_JOURNEY)
+        .map((url: string): number => {
+          return indexOf(url);
+        });
 
       /* Several chunks flushed from one page fold into one entry. */
       const signalsByPage: Map<number, [number, number]> = new Map<
@@ -543,6 +684,12 @@ export default class SessionReplayUserFlowReadService {
             return [index, errors, frustration];
           },
         ),
+        ...(urls.length > USER_FLOW_MAX_PAGES_PER_JOURNEY && {
+          isTruncated: true,
+        }),
+        ...(header.hasRecording !== undefined && {
+          hasRecording: header.hasRecording,
+        }),
       });
     }
 
@@ -554,6 +701,62 @@ export default class SessionReplayUserFlowReadService {
       maxSessions: data.maxSessions,
       startUnixMs: data.request.startTime.getTime(),
       endUnixMs: data.request.endTime.getTime(),
+      scope: SessionReplayUserFlowReadService.toScope(
+        data.request,
+        data.headers,
+      ),
     };
+  }
+
+  /*
+   * What the read was narrowed to, and who that is. Headers are newest first,
+   * so the first one that says is the latest word on it: a session recorded
+   * before identify() has no label to give.
+   */
+  private static toScope(
+    request: UserFlowJourneysRequest,
+    headers: Array<HeaderRow>,
+  ): UserFlowScopeDto | null {
+    const scope: UserFlowJourneysScope | undefined = request.scope;
+
+    if (!scope) {
+      return null;
+    }
+
+    const label: { identifiedUserLabel?: string } =
+      request.includeIdentifiedUserLabel && scope.kind !== "visitor"
+        ? {
+            identifiedUserLabel:
+              headers.find((header: HeaderRow): boolean => {
+                return Boolean(header.identifiedUserLabel);
+              })?.identifiedUserLabel ?? "",
+          }
+        : {};
+
+    switch (scope.kind) {
+      case "user":
+        return {
+          kind: "user",
+          identifiedUserKey: scope.identifiedUserKey,
+          visitorId: "",
+          sessionId: "",
+          ...label,
+        };
+      case "visitor":
+        return {
+          kind: "visitor",
+          identifiedUserKey: "",
+          visitorId: scope.visitorId,
+          sessionId: "",
+        };
+      case "session":
+        return {
+          kind: "session",
+          identifiedUserKey: headers[0]?.identifiedUserKey ?? "",
+          visitorId: headers[0]?.visitorId ?? "",
+          sessionId: scope.sessionId,
+          ...label,
+        };
+    }
   }
 }

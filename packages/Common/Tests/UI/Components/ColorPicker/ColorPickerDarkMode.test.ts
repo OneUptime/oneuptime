@@ -217,10 +217,11 @@ describe("the color field in the dark theme", () => {
       },
     );
 
-    expect(unthemed).toEqual([
-      // FormField's own error colour, shared with every other field.
-      "text-red-400",
-    ]);
+    /*
+     * None: the field's error line is FieldError's, in the error colour
+     * every field shares (FIELD_ERROR_CLASS_NAME's text-red-400).
+     */
+    expect(unthemed).toEqual([]);
   });
 
   test("uses no dark: variants, which this theme never turns on", () => {

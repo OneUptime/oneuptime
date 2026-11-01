@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -254,7 +255,11 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && (
-        <p className="mt-2 text-sm text-red-600">{props.error}</p>
+        <FieldError
+          message={props.error}
+          className="mt-2 text-sm text-red-600"
+          announce="none"
+        />
       )}
     </div>
   );

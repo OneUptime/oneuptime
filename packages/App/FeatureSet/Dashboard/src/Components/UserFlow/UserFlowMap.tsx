@@ -23,6 +23,7 @@ import {
 import {
   formatUserFlowCount,
   formatUserFlowShare,
+  pluralizeSessions,
   truncateUserFlowLabel,
 } from "./UserFlowFormat";
 
@@ -256,7 +257,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
   ): Array<string> => {
     const columnTotal: number = columnTotals.get(node.step) || 0;
     const lines: Array<string> = [
-      `${formatUserFlowCount(node.sessions)} sessions · ${formatUserFlowShare(
+      `${pluralizeSessions(node.sessions)} · ${formatUserFlowShare(
         columnTotal > 0 ? node.sessions / columnTotal : 0,
       )} of this step`,
     ];
@@ -297,7 +298,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
   ): Array<string> => {
     const source: UserFlowNodeBox | undefined = nodesById.get(link.sourceId);
     const lines: Array<string> = [
-      `${formatUserFlowCount(link.sessions)} sessions${
+      `${pluralizeSessions(link.sessions)}${
         source
           ? ` · ${formatUserFlowShare(
               link.sessions / source.node.sessions,
@@ -357,9 +358,9 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
           height={layout.height}
           viewBox={`0 0 ${layout.width} ${layout.height}`}
           role="img"
-          aria-label={`User flow map with ${props.graph.steps} steps across ${formatUserFlowCount(
+          aria-label={`User flow map with ${props.graph.steps} steps across ${pluralizeSessions(
             props.graph.sessions,
-          )} sessions`}
+          )}`}
           className="select-none"
           data-node-width={Math.round(layout.nodeWidth)}
           onMouseMove={(event: MouseEvent<SVGSVGElement>): void => {
@@ -425,7 +426,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                     fontSize={11}
                     fill={COLORS.mutedText}
                   >
-                    {formatUserFlowCount(column.sessions)} sessions
+                    {pluralizeSessions(column.sessions)}
                   </text>
                 </g>
               );
@@ -464,7 +465,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                   role="button"
                   aria-label={`${source?.node.label || ""} to ${
                     target?.node.label || ""
-                  }: ${formatUserFlowCount(band.link.sessions)} sessions`}
+                  }: ${pluralizeSessions(band.link.sessions)}`}
                   data-testid="user-flow-link"
                   data-from={band.link.fromPage}
                   data-to={band.link.toPage}
@@ -558,9 +559,9 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                   tabIndex={0}
                   role="button"
                   aria-pressed={selected}
-                  aria-label={`${node.label}, ${formatUserFlowCount(
+                  aria-label={`${node.label}, ${pluralizeSessions(
                     node.sessions,
-                  )} sessions`}
+                  )}`}
                   data-testid="user-flow-node"
                   data-page={node.page}
                   data-step={node.step}
@@ -639,9 +640,9 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                         fill={COLORS.error}
                       />
                       <title>
-                        {`${formatUserFlowCount(
+                        {`${pluralizeSessions(
                           node.errorSessions,
-                        )} sessions hit an error on this page`}
+                        )} hit an error on this page`}
                       </title>
                     </g>
                   ) : (
