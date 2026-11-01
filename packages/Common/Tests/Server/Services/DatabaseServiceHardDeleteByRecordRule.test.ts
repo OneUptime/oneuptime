@@ -159,7 +159,17 @@ describe("DatabaseService.hardDeleteBy under the record rule", () => {
     expect(deletes[0]!["incident"]).toBeUndefined();
     expect(JSON.stringify(deletes[0]!["_id"])).toContain(NOTE_ID.toString());
     expect(String(deletes[0]!["projectId"])).toBe(PROJECT_ID.toString());
-    expect(String(deletes[0]!["incidentId"])).toBe(INCIDENT_ID.toString());
+    /*
+     * The caller's incident stays on the DELETE's own column, with the check
+     * a private incident's notes get there since #5438 - that they are
+     * changed only through the teams that own it - so it is an operator
+     * now, not the bare id. That check reads no relation either: a raw
+     * condition on the column, as the owned-scope hard delete runs on
+     * Postgres (OwnedRecordsDeletePostgres).
+     */
+    expect(JSON.stringify(deletes[0]!["incidentId"])).toContain(
+      INCIDENT_ID.toString(),
+    );
   });
 
   test("a block with labels narrows the lookup, and the DELETE still names the rows found", async () => {
