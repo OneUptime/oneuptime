@@ -4,8 +4,10 @@ import {
   getAgentFileDownloadCommand,
   getAgentFileDownloadToCommand,
   getInstallScriptDownloadCommand,
+  getInstallScriptRunCommand,
   getTroubleshootScriptDownloadCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
+import { joinContinuedLines } from "./InstallCommandLines";
 import {
   SETUP_GUIDE_URL_PLACEHOLDER,
   SetupGuideContent,
@@ -101,6 +103,27 @@ const SERVED_ADDRESS: RegExp =
 // The URL an install command hands the script it runs.
 const INSTALL_COMMAND_URL: RegExp =
   /(?:^|\s)ONEUPTIME_URL=(\S+)[^\n]*\binstall\.sh$/gm;
+
+// A value a command line hands its command: NAME=value, starting a word.
+const COMMAND_LINE_VALUE: RegExp = /(?:^|\s)[A-Z][A-Z0-9_]*=/g;
+
+// A line that runs a downloaded install script.
+const RUNS_INSTALL_SCRIPT: RegExp = /(?:^|\s)(?:ba)?sh install\.sh(?:\s|$)/;
+
+/*
+ * The most characters a line of an install command may take on OneUptime
+ * Cloud: the code block beside the side menu holds about 95 at 1280 pixels
+ * wide, and a few are left for a longer key or address.
+ */
+const INSTALL_COMMAND_LINE_MAX_LENGTH: number = 90;
+
+// A key as the key picker hands it to the guides (a uuid), for the widths.
+const UUID_KEY: string = "94245962-5a3e-46a1-ac4c-7d9c1e43e7dc";
+
+// How many NAME=value words a line hands its command.
+function valuesOn(line: string): number {
+  return (line.match(COMMAND_LINE_VALUE) || []).length;
+}
 
 interface Commands {
   name: string;
@@ -415,6 +438,35 @@ describe("the commands that download an agent's files", () => {
     expect(downloads).toBeGreaterThan(40);
   });
 
+  test("a run line of two values or more puts each on a line of its own, as one command", () => {
+    expect(getInstallScriptRunCommand([], "bash install.sh")).toBe(
+      "bash install.sh",
+    );
+    expect(
+      getInstallScriptRunCommand(
+        ["ONEUPTIME_URL='https://oneuptime.acme.com'"],
+        "sh install.sh",
+      ),
+    ).toBe("ONEUPTIME_URL='https://oneuptime.acme.com' sh install.sh");
+    expect(
+      getInstallScriptRunCommand(
+        [
+          "ONEUPTIME_URL=https://oneuptime.com",
+          `ONEUPTIME_TELEMETRY_INGESTION_KEY=${UUID_KEY}`,
+          "STORAGE_ARRAY_NAME='Prod Array #1'",
+        ],
+        "bash install.sh",
+      ),
+    ).toBe(
+      [
+        "ONEUPTIME_URL=https://oneuptime.com \\",
+        `  ONEUPTIME_TELEMETRY_INGESTION_KEY=${UUID_KEY} \\`,
+        "  STORAGE_ARRAY_NAME='Prod Array #1' \\",
+        "  bash install.sh",
+      ].join("\n"),
+    );
+  });
+
   test("the note says the script is a file to read before it runs", () => {
     expect(INSTALL_SCRIPT_READ_FIRST_NOTE).toBe(
       "The first line downloads the script as install.sh, so you can read it before you run it.",
@@ -498,7 +550,10 @@ describe.each(READER_URLS)("on %s", (oneuptimeUrl: string) => {
 
     for (const surface of surfaces) {
       for (const block of surface.blocks) {
-        for (const match of block.matchAll(INSTALL_COMMAND_URL)) {
+        // As a shell reads it: a long run line goes on over several.
+        for (const match of joinContinuedLines(block).matchAll(
+          INSTALL_COMMAND_URL,
+        )) {
           commands++;
           expect({ surface: surface.name, url: match[1] }).toEqual({
             surface: surface.name,
@@ -510,6 +565,170 @@ describe.each(READER_URLS)("on %s", (oneuptimeUrl: string) => {
 
     // The guides with a key picked, and (off OneUptime Cloud) the Swarm script's default.
     expect(commands).toBeGreaterThan(10);
+  });
+});
+
+/*
+ * A run line handing its script two values or more - the URL, the key, the
+ * platform, a database's identity - ran past the code block on one line:
+ * the key and "bash install.sh" sat behind a sideways scroll at 1280
+ * pixels, and a self-hosted address hid even the start of the key. Each
+ * value is on a line of its own instead, every line but the last ending in
+ * a backslash, so the whole command reads where it is shown.
+ */
+describe("every run line reads whole where it is shown", () => {
+  const surfaces: Array<Commands> = everyCommand("https://oneuptime.com");
+
+  test("a line that runs an install script hands it one value at most", () => {
+    let runLines: number = 0;
+
+    for (const surface of surfaces) {
+      for (const block of surface.blocks) {
+        for (const line of block.split("\n")) {
+          if (!RUNS_INSTALL_SCRIPT.test(line)) {
+            continue;
+          }
+          runLines++;
+          expect({
+            surface: surface.name,
+            line,
+            isOneValueAtMost: valuesOn(line) <= 1,
+          }).toEqual({ surface: surface.name, line, isOneValueAtMost: true });
+        }
+      }
+    }
+
+    // The guides, their upgrade topics and the upgrade dialogs.
+    expect(runLines).toBeGreaterThan(30);
+  });
+
+  test("a line that goes on over the next hands its command exactly one value", () => {
+    let continued: number = 0;
+
+    for (const surface of surfaces) {
+      for (const block of surface.blocks) {
+        if (!RUNS_INSTALL_SCRIPT.test(joinContinuedLines(block))) {
+          continue;
+        }
+
+        const lines: Array<string> = block.split("\n");
+
+        lines.forEach((line: string, index: number): void => {
+          const next: string = lines[index + 1] || "";
+
+          if (!line.endsWith(" \\") || !next.startsWith("  ")) {
+            return;
+          }
+          continued++;
+          expect({
+            surface: surface.name,
+            line,
+            values: valuesOn(line),
+          }).toEqual({ surface: surface.name, line, values: 1 });
+        });
+      }
+    }
+
+    // The guides with a key picked: Proxmox, Ceph, VMware, the arrays, the databases.
+    expect(continued).toBeGreaterThan(20);
+  });
+
+  test("on OneUptime Cloud, with a key picked, no line of an install command is wider than the code block at 1280 pixels", () => {
+    const cloud: string = "https://oneuptime.com";
+    const guides: Array<Commands> = [
+      guideCommands(
+        "Proxmox guide",
+        cloud,
+        getProxmoxSetupGuide({
+          oneuptimeUrl: cloud,
+          apiKey: UUID_KEY,
+          hasApiKey: true,
+          method: "install-script",
+        }),
+      ),
+      guideCommands(
+        "Ceph guide",
+        cloud,
+        getCephSetupGuide({
+          oneuptimeUrl: cloud,
+          apiKey: UUID_KEY,
+          hasApiKey: true,
+          method: "install-script",
+        }),
+      ),
+      guideCommands(
+        "VMware guide",
+        cloud,
+        getVMwareSetupGuide({
+          oneuptimeUrl: cloud,
+          apiKey: UUID_KEY,
+          hasApiKey: true,
+          method: "install-script",
+        }),
+      ),
+      ...keysOf<StorageArrayPlatform>(STORAGE_ARRAY_PLATFORMS).map(
+        (platform: StorageArrayPlatform): Commands => {
+          return guideCommands(
+            `Storage Array guide (${platform})`,
+            cloud,
+            getStorageArraySetupGuide({
+              oneuptimeUrl: cloud,
+              apiKey: UUID_KEY,
+              hasApiKey: true,
+              platform,
+              arrayName: "fa-prod-01",
+            }),
+          );
+        },
+      ),
+      ...DATABASE_AGENT_ENGINES.map((engine: string): Commands => {
+        return guideCommands(
+          `Database guide (${engine})`,
+          cloud,
+          getDatabaseAgentSetupGuide({
+            oneuptimeUrl: cloud,
+            apiKey: UUID_KEY,
+            hasApiKey: true,
+            engine: engine as DatabaseAgentEngine,
+            database: {
+              id: "3c1e9a52-1f2b-4c3d-9e8f-0a1b2c3d4e5f",
+              dbSystem: engine,
+              serverAddress: "db.prod.internal",
+              serverPort: 5432,
+            },
+          }),
+        );
+      }),
+    ];
+    let lines: number = 0;
+
+    for (const guide of guides) {
+      for (const block of guide.blocks) {
+        const blockLines: Array<string> = block.split("\n");
+        // From the line that downloads the script to the line that runs it.
+        const start: number = blockLines.findIndex((line: string): boolean => {
+          return line.endsWith(" -o install.sh");
+        });
+        const end: number = blockLines.findIndex((line: string): boolean => {
+          return RUNS_INSTALL_SCRIPT.test(line);
+        });
+
+        if (start === -1 || end < start) {
+          continue;
+        }
+
+        for (const line of blockLines.slice(start, end + 1)) {
+          lines++;
+          expect({
+            guide: guide.name,
+            line,
+            fits: line.length <= INSTALL_COMMAND_LINE_MAX_LENGTH,
+          }).toEqual({ guide: guide.name, line, fits: true });
+        }
+      }
+    }
+
+    expect(lines).toBeGreaterThan(40);
   });
 });
 

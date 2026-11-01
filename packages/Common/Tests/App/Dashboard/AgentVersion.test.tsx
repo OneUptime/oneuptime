@@ -957,6 +957,19 @@ describe("the agents that report the collector they pin", () => {
       expect(className).toContain("whitespace-pre-wrap");
     }
 
+    /*
+     * Line by line, the rest of a line that wraps indented under it, so it
+     * never reads as a command of its own ("install.sh" on a line alone).
+     */
+    const lineIndents: () => Array<string> = (): Array<string> => {
+      return Array.from(dialog.querySelectorAll("pre code > span.block")).map(
+        (line: Element): string => {
+          return (line as HTMLElement).style.textIndent;
+        },
+      );
+    };
+    expect(lineIndents()).toEqual(["-2ch", "-2ch"]);
+
     fireEvent.click(
       within(dialog).getByRole("tab", { name: "Docker Compose" }),
     );
@@ -975,6 +988,7 @@ describe("the agents that report the collector they pin", () => {
     for (const className of codeClasses()) {
       expect(className).not.toContain("whitespace-pre-wrap");
     }
+    expect(lineIndents()).toEqual([]);
   });
 
   test("Storage Array: the install script again with a note for another array's folder, or every file again", async () => {

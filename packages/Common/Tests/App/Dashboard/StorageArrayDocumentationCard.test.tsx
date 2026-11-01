@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { joinContinuedLines } from "./InstallCommandLines";
 import {
   afterEach,
   beforeEach,
@@ -152,7 +153,7 @@ describe("StorageArrayDocumentationCard", () => {
     expect(platformRadio(0)).toHaveAttribute("aria-checked", "true");
 
     await waitForKey(container);
-    expect(container.textContent).toContain(
+    expect(joinContinuedLines(container.textContent || "")).toContain(
       `ONEUPTIME_TELEMETRY_INGESTION_KEY=${SECRET} STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.yaml bash install.sh`,
     );
     expect(container.textContent).toContain(
@@ -209,7 +210,7 @@ describe("StorageArrayDocumentationCard", () => {
 
     expect(platformRadio(2)).toHaveAttribute("aria-checked", "true");
     await waitFor(() => {
-      expect(container.textContent).toContain(
+      expect(joinContinuedLines(container.textContent || "")).toContain(
         "STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml bash install.sh",
       );
     });
@@ -235,7 +236,7 @@ describe("StorageArrayDocumentationCard", () => {
     fireEvent.click(platformRadio(1));
 
     await waitFor(() => {
-      expect(container.textContent).toContain(
+      expect(joinContinuedLines(container.textContent || "")).toContain(
         "STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml bash install.sh",
       );
     });
@@ -261,7 +262,7 @@ describe("StorageArrayDocumentationCard", () => {
     await waitForKey(container);
 
     expect(platformRadio(2)).toHaveAttribute("aria-checked", "true");
-    expect(container.textContent).toContain(
+    expect(joinContinuedLines(container.textContent || "")).toContain(
       "STORAGE_ARRAY_NAME=fb-prod-01 STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml bash install.sh",
     );
 

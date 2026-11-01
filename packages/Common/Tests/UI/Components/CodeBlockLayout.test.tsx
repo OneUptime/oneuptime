@@ -14,8 +14,10 @@
  */
 import CodeBlock, {
   CODE_BLOCK_COPY_BUTTON_GUTTER_CLASS_NAME,
+  CODE_BLOCK_LINE_CLASS_NAME,
   CODE_BLOCK_TOKEN_FONT_CLASS_NAME,
   CODE_BLOCK_WRAP_CLASS_NAME,
+  getCodeBlockLineStyle,
 } from "../../../UI/Components/CodeBlock/CodeBlock";
 import "@testing-library/jest-dom";
 import { cleanup, render, RenderResult } from "@testing-library/react";
@@ -149,5 +151,113 @@ describe("a long line", () => {
     expect(classes).toContain("whitespace-pre-wrap");
     expect(classes).not.toContain(CODE_BLOCK_COPY_BUTTON_GUTTER_CLASS_NAME);
     expect(result.container.querySelector("button")).toBeNull();
+  });
+});
+
+/*
+ * Wrapped, each line is drawn on its own, and the rest of a line that does
+ * not fit is indented under it: in the upgrade dialog the end of
+ * "curl -fsSL https://oneuptime.com/install/storage-array-agent -o
+ * install.sh" wrapped to the left edge and read as a command of its own.
+ */
+describe("a wrapped line's rest", () => {
+  const COMMAND: string = [
+    "curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh",
+    "ONEUPTIME_URL=https://oneuptime.com \\",
+    "  bash install.sh",
+  ].join("\n");
+
+  function linesOf(result: RenderResult): Array<HTMLElement> {
+    return Array.from(codeOf(result).children) as Array<HTMLElement>;
+  }
+
+  test("is indented under its line: a hanging indent past the spaces the line starts with", () => {
+    const result: RenderResult = render(
+      <CodeBlock language="bash" code={COMMAND} wrapLongLines={true} />,
+    );
+    const lines: Array<HTMLElement> = linesOf(result);
+
+    expect(lines).toHaveLength(3);
+    expect(CODE_BLOCK_LINE_CLASS_NAME).toBe("block");
+    for (const line of lines) {
+      expect(classesOf(line)).toContain(CODE_BLOCK_LINE_CLASS_NAME);
+    }
+    expect(lines[0]!.style.paddingLeft).toBe("2ch");
+    expect(lines[0]!.style.textIndent).toBe("-2ch");
+    // A line that starts with two spaces wraps past them.
+    expect(lines[2]!.style.paddingLeft).toBe("4ch");
+    expect(lines[2]!.style.textIndent).toBe("-4ch");
+    expect(getCodeBlockLineStyle(0)).toEqual({
+      paddingLeft: "2ch",
+      textIndent: "-2ch",
+    });
+  });
+
+  test("keeps the code exactly as written: what a selection copies", () => {
+    const code: string = `${COMMAND}\n\n  # done\n`;
+    const result: RenderResult = render(
+      <CodeBlock language="bash" code={code} wrapLongLines={true} />,
+    );
+
+    expect(codeOf(result).textContent).toBe(code);
+    expect(linesOf(result)).toHaveLength(code.split("\n").length);
+  });
+
+  test("an address in it may break after a slash of its path, not mid-word", () => {
+    const result: RenderResult = render(
+      <CodeBlock language="bash" code={COMMAND} wrapLongLines={true} />,
+    );
+    const first: HTMLElement = linesOf(result)[0]!;
+
+    expect(first.querySelectorAll("wbr")).toHaveLength(2);
+    expect(first.textContent).toBe(COMMAND.split("\n")[0] + "\n");
+  });
+
+  test("of code no highlighter knows is drawn the same way", () => {
+    const result: RenderResult = render(
+      <CodeBlock
+        language="not-a-language"
+        code={"https://oneuptime.com/install/x\n  next"}
+        wrapLongLines={true}
+      />,
+    );
+    const lines: Array<HTMLElement> = linesOf(result);
+
+    expect(lines).toHaveLength(2);
+    // After "oneuptime.com/" and "install/".
+    expect(lines[0]!.querySelectorAll("wbr")).toHaveLength(2);
+    expect(lines[1]!.style.paddingLeft).toBe("4ch");
+    expect(codeOf(result).textContent).toBe(
+      "https://oneuptime.com/install/x\n  next",
+    );
+  });
+
+  test("a token over a line break keeps its colour on both lines", () => {
+    const result: RenderResult = render(
+      <CodeBlock
+        language="bash"
+        code={'echo "first\nsecond"'}
+        wrapLongLines={true}
+      />,
+    );
+    const lines: Array<HTMLElement> = linesOf(result);
+
+    expect(lines).toHaveLength(2);
+    expect(lines[0]!.querySelector(".hljs-string")?.textContent).toBe('"first');
+    expect(lines[1]!.querySelector(".hljs-string")?.textContent).toBe(
+      'second"',
+    );
+  });
+
+  test("code that scrolls as written is drawn whole, without lines of its own", () => {
+    const result: RenderResult = render(
+      <CodeBlock language="bash" code={COMMAND} />,
+    );
+
+    expect(
+      codeOf(result).querySelector(`span.${CODE_BLOCK_LINE_CLASS_NAME}`),
+    ).toBeNull();
+    expect(codeOf(result).querySelector("wbr")).toBeNull();
+    expect(codeOf(result).textContent).toBe(COMMAND);
   });
 });

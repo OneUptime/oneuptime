@@ -3438,6 +3438,21 @@ describe("every resource type", () => {
       expect(
         codeIn(within(byHand).getByTestId("ai-agent-install-command")),
       ).toContain("oneuptime-host-ai-agent:");
+
+      /*
+       * Each value whole - "from .env", "(empty)", the host's name - never
+       * broken mid-word to a column a few letters wide ("(empt" / "y)").
+       */
+      const values: Array<Element> = Array.from(
+        within(byHand)
+          .getByTestId("ai-agent-install-variables")
+          .querySelectorAll("tbody td:nth-child(2)"),
+      );
+      expect(values.length).toBeGreaterThan(5);
+      for (const value of values) {
+        expect(value).toHaveClass("whitespace-nowrap");
+        expect(value).not.toHaveClass("break-all");
+      }
     },
   );
 

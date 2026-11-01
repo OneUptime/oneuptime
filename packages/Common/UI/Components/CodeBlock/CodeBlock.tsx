@@ -12,6 +12,12 @@ import Clipboard from "../../Utils/Clipboard";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useClipboardCopy, { ClipboardCopy } from "../../Utils/UseClipboardCopy";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  CODE_BLOCK_WRAPPED_LINE_INDENT,
+  CodeBlockLine,
+  getCodeBlockLines,
+  splitTextAtSlashBreaks,
+} from "./CodeBlockLines";
 
 export interface ComponentProps {
   code: string | ReactElement;
@@ -22,7 +28,9 @@ export interface ComponentProps {
    * Wrap a line too long for the box instead of scrolling it sideways, and
    * keep the text clear of the copy button: for a snippet of a line or two
    * that people read whole and copy - an address, an ID, an embed code -
-   * not for a program, whose lines read best as written.
+   * not for a program, whose lines read best as written. The rest of a
+   * wrapped line is indented under its start (CodeBlockLines), so it never
+   * reads as a line of its own.
    */
   wrapLongLines?: boolean | undefined;
 }
@@ -45,6 +53,26 @@ export const CODE_BLOCK_TOKEN_FONT_CLASS_NAME: string =
 export const CODE_BLOCK_WRAP_CLASS_NAME: string =
   "whitespace-pre-wrap break-words";
 export const CODE_BLOCK_COPY_BUTTON_GUTTER_CLASS_NAME: string = "!pr-14";
+
+/*
+ * Each line of wrapped code is a block of its own, with a hanging indent:
+ * its first row starts where the line does, and the rows it wraps onto
+ * start CODE_BLOCK_WRAPPED_LINE_INDENT characters past the spaces it
+ * starts with. Every line but the last keeps its line break, so the text
+ * of the code - what a selection copies - is the code as written.
+ */
+export const CODE_BLOCK_LINE_CLASS_NAME: string = "block";
+
+export function getCodeBlockLineStyle(
+  leadingSpaces: number,
+): React.CSSProperties {
+  const indent: number = leadingSpaces + CODE_BLOCK_WRAPPED_LINE_INDENT;
+
+  return {
+    paddingLeft: `${indent}ch`,
+    textIndent: `-${indent}ch`,
+  };
+}
 
 /*
  * The copy button says "Copied!" (a green tick) only once the code is on the
@@ -112,6 +140,16 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
     }).value;
   }, [props.code, registeredLanguage]);
 
+  // Wrapped code, line by line: null draws it whole, as code that scrolls.
+  const lines: Array<CodeBlockLine> | null =
+    useMemo((): Array<CodeBlockLine> | null => {
+      if (!props.wrapLongLines || typeof props.code !== "string") {
+        return null;
+      }
+
+      return getCodeBlockLines(props.code, highlightedHtml);
+    }, [props.code, props.wrapLongLines, highlightedHtml]);
+
   /*
    * `hljs` carries the a11y-dark theme background; react-highlight added it
    * post-mount, we add it up front so there is no unstyled first paint.
@@ -172,7 +210,40 @@ const CodeBlock: FunctionComponent<ComponentProps> = (
         style={{ maxHeight: maxHeight }}
       >
         <pre>
-          {highlightedHtml !== null ? (
+          {lines !== null ? (
+            <code ref={codeRef} className={codeClassName}>
+              {lines.map((line: CodeBlockLine, index: number): ReactElement => {
+                const lineBreak: string = index < lines.length - 1 ? "\n" : "";
+
+                return line.html !== null ? (
+                  <span
+                    key={index}
+                    className={CODE_BLOCK_LINE_CLASS_NAME}
+                    style={getCodeBlockLineStyle(line.leadingSpaces)}
+                    dangerouslySetInnerHTML={{ __html: line.html + lineBreak }}
+                  />
+                ) : (
+                  <span
+                    key={index}
+                    className={CODE_BLOCK_LINE_CLASS_NAME}
+                    style={getCodeBlockLineStyle(line.leadingSpaces)}
+                  >
+                    {splitTextAtSlashBreaks(line.text).map(
+                      (piece: string, pieceIndex: number): ReactElement => {
+                        return (
+                          <React.Fragment key={pieceIndex}>
+                            {pieceIndex > 0 ? <wbr /> : <></>}
+                            {piece}
+                          </React.Fragment>
+                        );
+                      },
+                    )}
+                    {lineBreak}
+                  </span>
+                );
+              })}
+            </code>
+          ) : highlightedHtml !== null ? (
             <code
               ref={codeRef}
               className={codeClassName}

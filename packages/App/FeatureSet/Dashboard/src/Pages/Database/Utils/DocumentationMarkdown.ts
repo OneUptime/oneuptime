@@ -8,6 +8,7 @@ import {
 import {
   getAgentFileDownloadToCommand,
   getInstallScriptDownloadCommand,
+  getInstallScriptRunCommand,
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
@@ -1203,7 +1204,7 @@ function installScriptCommand(
   words: Array<string>,
 ): string {
   return `${getInstallScriptDownloadCommand(oneuptimeUrl, DATABASE_AGENT_INSTALL_NAME)}
-${[...words, "bash install.sh"].join(" ")}`;
+${getInstallScriptRunCommand(words, "bash install.sh")}`;
 }
 
 /*
@@ -1772,12 +1773,14 @@ function getUpgradeTopic(data: {
   system: string;
   connection: Array<string>;
 }): SetupGuideTopic {
-  const secondAgent: string = [
-    ...data.connection,
-    `INSTALL_DIR=${DATABASE_AGENT_INSTALL_DIRECTORY}-orders`,
-    `DATABASE_SYSTEM=${shellWord(data.system)}`,
+  const secondAgent: string = getInstallScriptRunCommand(
+    [
+      ...data.connection,
+      `INSTALL_DIR=${DATABASE_AGENT_INSTALL_DIRECTORY}-orders`,
+      `DATABASE_SYSTEM=${shellWord(data.system)}`,
+    ],
     "bash install.sh",
-  ].join(" ");
+  );
 
   return {
     title: "Upgrade or uninstall the agent",

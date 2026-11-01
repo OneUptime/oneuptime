@@ -868,7 +868,13 @@ function ComposeInstructions(props: {
                     <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-800">
                       {variable.name}
                     </td>
-                    <td className="break-all px-3 py-2 font-mono text-gray-800">
+                    {/*
+                     * A value is one short token ("from .env", "(empty)",
+                     * the host's name, a database's id): kept whole, never
+                     * broken mid-word to a column a few letters wide. The
+                     * table scrolls inside its box when it runs out of room.
+                     */}
+                    <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-800">
                       {variable.value}
                     </td>
                     <td className="px-3 py-2 text-gray-600">
