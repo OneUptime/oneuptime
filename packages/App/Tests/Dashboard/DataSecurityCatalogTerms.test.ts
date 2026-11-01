@@ -152,9 +152,14 @@ describe("Data Security's catalog terms", () => {
       },
     );
 
-    // Five sentences: three clouds' buckets, a snapshot, and a database's snapshots.
-    expect(new Set(sentences).size).toBe(5);
-    expect(ALL_DATA_SECURITY_RESPONSE_ACTIONS).toHaveLength(2);
+    /*
+     * Twelve sentences: three clouds' buckets blocked, a snapshot and a
+     * database's snapshots unshared, two buckets' versioning, an Azure
+     * account's soft delete and secure transfer, a bucket's object ACLs
+     * and a Cloud Storage bucket's uniform access, a table's recovery.
+     */
+    expect(new Set(sentences).size).toBe(12);
+    expect(ALL_DATA_SECURITY_RESPONSE_ACTIONS).toHaveLength(8);
     expectRegistered("response actions", sentences);
   });
 

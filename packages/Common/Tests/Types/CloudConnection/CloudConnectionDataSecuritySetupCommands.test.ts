@@ -217,10 +217,16 @@ describe("Data security response", () => {
           Action: [
             "s3:GetBucketPublicAccessBlock",
             "s3:PutBucketPublicAccessBlock",
+            "s3:GetBucketVersioning",
+            "s3:PutBucketVersioning",
+            "s3:GetBucketOwnershipControls",
+            "s3:PutBucketOwnershipControls",
             "rds:DescribeDBSnapshotAttributes",
             "rds:DescribeDBClusterSnapshotAttributes",
             "rds:ModifyDBSnapshotAttribute",
             "rds:ModifyDBClusterSnapshotAttribute",
+            "dynamodb:DescribeContinuousBackups",
+            "dynamodb:UpdateContinuousBackups",
           ],
           Resource: "*",
         },
@@ -235,7 +241,12 @@ describe("Data security response", () => {
     expect(both[6]).toBe(today[4]);
   });
 
-  test("AWS: the only writes are turning on a bucket's Block Public Access and narrowing a snapshot's shares", () => {
+  /*
+   * Each write changes one setting, and none of them can delete, read data
+   * or change who may sign in: never rds:ModifyDBInstance or
+   * dynamodb:UpdateTable, which change everything about a database.
+   */
+  test("AWS: the only writes are a bucket's Block Public Access, versioning and ownership, a snapshot's shares and a table's point-in-time recovery", () => {
     const writes: Array<string> = AWS_DATA_SECURITY_RESPONSE_ACTIONS.filter(
       (action: string): boolean => {
         return !READ_ACTION_NAME.test(action.split(":")[1] || "");
@@ -244,9 +255,22 @@ describe("Data security response", () => {
 
     expect(writes).toEqual([
       "s3:PutBucketPublicAccessBlock",
+      "s3:PutBucketVersioning",
+      "s3:PutBucketOwnershipControls",
       "rds:ModifyDBSnapshotAttribute",
       "rds:ModifyDBClusterSnapshotAttribute",
+      "dynamodb:UpdateContinuousBackups",
     ]);
+
+    for (const broad of [
+      "rds:ModifyDBInstance",
+      "rds:ModifyDBCluster",
+      "dynamodb:UpdateTable",
+      "s3:PutBucketPolicy",
+      "s3:PutBucketAcl",
+    ]) {
+      expect(AWS_DATA_SECURITY_RESPONSE_ACTIONS).not.toContain(broad);
+    }
 
     for (const action of AWS_DATA_SECURITY_RESPONSE_ACTIONS) {
       expect(action).not.toContain("*");
@@ -363,7 +387,7 @@ describe("Data security response", () => {
 
       expect(lines).toEqual([
         ...today.slice(0, 3),
-        `RESPONSE_ROLE=$(jq -n --arg scope "$SCOPE" '{Name: "OneUptime Data Security Response", IsCustom: true, Description: "OneUptime: turn off public access to storage accounts. Never lists their keys.", Actions: ["Microsoft.Storage/storageAccounts/read", "Microsoft.Storage/storageAccounts/write"], NotActions: [], AssignableScopes: [$scope]}')`,
+        `RESPONSE_ROLE=$(jq -n --arg scope "$SCOPE" '{Name: "OneUptime Data Security Response", IsCustom: true, Description: "OneUptime: turn off public access to storage accounts, and turn on secure transfer and soft delete. Never lists their keys.", Actions: ["Microsoft.Storage/storageAccounts/read", "Microsoft.Storage/storageAccounts/write", "Microsoft.Storage/storageAccounts/blobServices/read", "Microsoft.Storage/storageAccounts/blobServices/write"], NotActions: [], AssignableScopes: [$scope]}')`,
         `az role definition create --role-definition "$RESPONSE_ROLE" > /dev/null 2>&1 || az role definition update --role-definition "$RESPONSE_ROLE" > /dev/null`,
         `az role assignment create --assignee "$APP" --role "OneUptime Data Security Response" --scope "$SCOPE" > /dev/null`,
         ...today.slice(3),
@@ -377,6 +401,8 @@ describe("Data security response", () => {
     expect(AZURE_DATA_SECURITY_RESPONSE_ACTIONS).toEqual([
       "Microsoft.Storage/storageAccounts/read",
       "Microsoft.Storage/storageAccounts/write",
+      "Microsoft.Storage/storageAccounts/blobServices/read",
+      "Microsoft.Storage/storageAccounts/blobServices/write",
     ]);
   });
 
@@ -502,7 +528,7 @@ describe("Data security response", () => {
       });
       expect(field!.options).toEqual([
         { label: "Off", value: "off" },
-        { label: "Block public access and sharing", value: "block" },
+        { label: "Close exposures and fix settings", value: "block" },
       ]);
       expect(field!.description).toContain("approved by a person");
     }

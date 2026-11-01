@@ -70,6 +70,58 @@ function step(
 // The template the one-click setup turns on: it enriches every new case.
 export const ENRICH_NEW_CASES_TEMPLATE_KEY: string = "enrich";
 
+// The template for the cases Data Security opens on an exposed store.
+export const DATA_EXPOSURE_TEMPLATE_KEY: string = "data-exposure";
+
+/*
+ * The cases Data Security opens - a store with sensitive data that anyone
+ * on the internet, or an account outside, can read - answered the way a
+ * data exposure is: its owners told, its exposure closed through its cloud
+ * connection once a person approves, and a checklist of what a breach
+ * response asks.
+ */
+export const DATA_EXPOSURE_TEMPLATE: SecurityPlaybookTemplateDefinition = {
+  key: DATA_EXPOSURE_TEMPLATE_KEY,
+  title: "Close a Data Exposure",
+  description:
+    "When Data Security opens a case on an exposed store: email its owners, block its public access and revoke its sharing once a person approves, and leave a response checklist.",
+  icon: IconProp.Database,
+  trigger: SecurityPlaybookTrigger.CaseOpened,
+  detectionSource: SecurityDetectionSource.DataSecurity,
+  getSteps: (): Array<SecurityPlaybookStep> => {
+    return [
+      step(
+        SecurityPlaybookActionType.NotifyDataStoreOwners,
+        {},
+        { continueOnFailure: true },
+      ),
+      /*
+       * Each changes a cloud's settings, so a person approves it; a store
+       * it does not fit, or marked public by design, is left alone.
+       */
+      step(
+        SecurityPlaybookActionType.BlockDataStorePublicAccess,
+        {},
+        { requiresApproval: true, continueOnFailure: true },
+      ),
+      step(
+        SecurityPlaybookActionType.RevokeDataStoreSharing,
+        {},
+        { requiresApproval: true, continueOnFailure: true },
+      ),
+      // The response checklist, as the case's own tasks to tick off.
+      step(SecurityPlaybookActionType.AddCaseTasks, {
+        tasks: [
+          "Find who read the data while it was exposed: the store's access logs, and its Who Can Reach It",
+          "Decide whether this is a breach you must report, to whom and by when",
+          "Rotate every secret and key the store held",
+          "Close the case with what was exposed, for how long, and to whom",
+        ],
+      }),
+    ];
+  },
+};
+
 export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlaybookTemplateDefinition> =
   [
     {
@@ -199,6 +251,7 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
         ];
       },
     },
+    DATA_EXPOSURE_TEMPLATE,
   ];
 
 export function getSecurityPlaybookTemplateDefinition(

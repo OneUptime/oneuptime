@@ -465,14 +465,18 @@ export function getAwsDataSecurityPolicyDocument(
  * Nothing it grants deletes, reads data, or changes who may sign in.
  *
  *   AWS: a third inline policy, OneUptimeDataSecurityResponse: read and
- *     turn on a bucket's Block Public Access, read and narrow whom an RDS
- *     manual snapshot is shared with.
+ *     turn on a bucket's Block Public Access, versioning and Bucket owner
+ *     enforced ownership; read and narrow whom an RDS manual snapshot is
+ *     shared with; read and turn on a DynamoDB table's point-in-time
+ *     recovery.
  *   Azure: a custom role, OneUptime Data Security Response, that reads and
- *     updates storage accounts' settings (public blob access, network
- *     access) on the same scope - never their keys.
+ *     updates storage accounts' settings (public blob access, secure
+ *     transfer) and their blob services' (soft delete) on the same scope -
+ *     never their keys.
  *   Google Cloud: a custom role, oneuptimeDataSecurityResponse, that reads
- *     and updates buckets' settings (public access prevention), on the
- *     project or organization the command targets.
+ *     and updates buckets' settings (public access prevention, uniform
+ *     access, versioning), on the project or organization the command
+ *     targets.
  */
 export const AWS_DATA_SECURITY_RESPONSE_POLICY_NAME: string =
   "OneUptimeDataSecurityResponse";
@@ -480,19 +484,27 @@ export const AWS_DATA_SECURITY_RESPONSE_POLICY_NAME: string =
 export const AWS_DATA_SECURITY_RESPONSE_ACTIONS: Array<string> = [
   "s3:GetBucketPublicAccessBlock",
   "s3:PutBucketPublicAccessBlock",
+  "s3:GetBucketVersioning",
+  "s3:PutBucketVersioning",
+  "s3:GetBucketOwnershipControls",
+  "s3:PutBucketOwnershipControls",
   "rds:DescribeDBSnapshotAttributes",
   "rds:DescribeDBClusterSnapshotAttributes",
   "rds:ModifyDBSnapshotAttribute",
   "rds:ModifyDBClusterSnapshotAttribute",
+  "dynamodb:DescribeContinuousBackups",
+  "dynamodb:UpdateContinuousBackups",
 ];
 
 export const AZURE_DATA_SECURITY_RESPONSE_ROLE: string =
   "OneUptime Data Security Response";
 
-// Reading and updating a storage account's settings; never listKeys.
+// Reading and updating a storage account's settings and its blob service's; never listKeys.
 export const AZURE_DATA_SECURITY_RESPONSE_ACTIONS: Array<string> = [
   "Microsoft.Storage/storageAccounts/read",
   "Microsoft.Storage/storageAccounts/write",
+  "Microsoft.Storage/storageAccounts/blobServices/read",
+  "Microsoft.Storage/storageAccounts/blobServices/write",
 ];
 
 export const GCP_DATA_SECURITY_RESPONSE_ROLE_ID: string =
@@ -545,7 +557,7 @@ function getAzureResponseRoleLines(): Array<string> {
   ).join(", ");
 
   return [
-    `RESPONSE_ROLE=$(jq -n --arg scope "$SCOPE" '{Name: "${AZURE_DATA_SECURITY_RESPONSE_ROLE}", IsCustom: true, Description: "OneUptime: turn off public access to storage accounts. Never lists their keys.", Actions: [${actions}], NotActions: [], AssignableScopes: [$scope]}')`,
+    `RESPONSE_ROLE=$(jq -n --arg scope "$SCOPE" '{Name: "${AZURE_DATA_SECURITY_RESPONSE_ROLE}", IsCustom: true, Description: "OneUptime: turn off public access to storage accounts, and turn on secure transfer and soft delete. Never lists their keys.", Actions: [${actions}], NotActions: [], AssignableScopes: [$scope]}')`,
     `az role definition create --role-definition "$RESPONSE_ROLE" > /dev/null 2>&1 || az role definition update --role-definition "$RESPONSE_ROLE" > /dev/null`,
     `az role assignment create --assignee "$APP" --role "${AZURE_DATA_SECURITY_RESPONSE_ROLE}" --scope "$SCOPE" > /dev/null`,
   ];

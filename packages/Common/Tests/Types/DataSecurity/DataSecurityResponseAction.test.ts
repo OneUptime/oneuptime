@@ -10,7 +10,9 @@ import {
   BLOCKABLE_DATA_STORE_KINDS,
   CLUSTER_SNAPSHOT_DATA_STORE_KINDS,
   DATA_SECURITY_RESPONSE_ACTION_CHECKS,
+  DATA_SECURITY_RESPONSE_ACTION_KINDS,
   DataSecurityResponseAction,
+  EXPOSURE_RESPONSE_ACTIONS,
   SHAREABLE_DATA_STORE_KINDS,
   describeDataSecurityResponseAction,
   getDataSecurityResponseActionForIssue,
@@ -31,17 +33,89 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 describe("the response actions", () => {
-  test("are the two, by the names the API and the playbook steps use", () => {
+  test("are eight, by the names the API and the playbook steps use", () => {
     expect([...ALL_DATA_SECURITY_RESPONSE_ACTIONS]).toEqual([
       "Block public access",
       "Revoke sharing",
+      "Turn on versioning",
+      "Turn on soft delete",
+      "Turn off object ACLs",
+      "Turn on uniform access",
+      "Require secure transfer",
+      "Turn on point-in-time recovery",
     ]);
-    expect(isDataSecurityResponseAction("Block public access")).toBe(true);
-    expect(isDataSecurityResponseAction("Revoke sharing")).toBe(true);
+
+    for (const action of ALL_DATA_SECURITY_RESPONSE_ACTIONS) {
+      expect(isDataSecurityResponseAction(action)).toBe(true);
+    }
 
     for (const value of ["block public access", "Delete", "", null, 1]) {
       expect(isDataSecurityResponseAction(value)).toBe(false);
     }
+  });
+
+  test("the two that close an exposure are the ones a playbook runs", () => {
+    expect([...EXPOSURE_RESPONSE_ACTIONS]).toEqual([
+      DataSecurityResponseAction.BlockPublicAccess,
+      DataSecurityResponseAction.RevokeSharing,
+    ]);
+  });
+
+  test("each hardening action fits the stores whose cloud has the setting", () => {
+    expect(
+      DATA_SECURITY_RESPONSE_ACTION_KINDS[
+        DataSecurityResponseAction.TurnOnVersioning
+      ],
+    ).toEqual([DataStoreKind.AwsS3Bucket, DataStoreKind.GcpStorageBucket]);
+    expect(
+      DATA_SECURITY_RESPONSE_ACTION_KINDS[
+        DataSecurityResponseAction.TurnOnSoftDelete
+      ],
+    ).toEqual([DataStoreKind.AzureStorageAccount]);
+    expect(
+      DATA_SECURITY_RESPONSE_ACTION_KINDS[
+        DataSecurityResponseAction.TurnOffObjectAcls
+      ],
+    ).toEqual([DataStoreKind.AwsS3Bucket]);
+    expect(
+      DATA_SECURITY_RESPONSE_ACTION_KINDS[
+        DataSecurityResponseAction.TurnOnUniformAccess
+      ],
+    ).toEqual([DataStoreKind.GcpStorageBucket]);
+    expect(
+      DATA_SECURITY_RESPONSE_ACTION_KINDS[
+        DataSecurityResponseAction.RequireSecureTransfer
+      ],
+    ).toEqual([DataStoreKind.AzureStorageAccount]);
+    expect(
+      DATA_SECURITY_RESPONSE_ACTION_KINDS[
+        DataSecurityResponseAction.TurnOnPointInTimeRecovery
+      ],
+    ).toEqual([DataStoreKind.AwsDynamoDbTable]);
+
+    // In the catalog's order, whatever the store.
+    expect(getDataSecurityResponseActions(DataStoreKind.AwsS3Bucket)).toEqual([
+      DataSecurityResponseAction.BlockPublicAccess,
+      DataSecurityResponseAction.TurnOnVersioning,
+      DataSecurityResponseAction.TurnOffObjectAcls,
+    ]);
+    expect(
+      getDataSecurityResponseActions(DataStoreKind.AzureStorageAccount),
+    ).toEqual([
+      DataSecurityResponseAction.BlockPublicAccess,
+      DataSecurityResponseAction.TurnOnSoftDelete,
+      DataSecurityResponseAction.RequireSecureTransfer,
+    ]);
+    expect(
+      getDataSecurityResponseActions(DataStoreKind.GcpStorageBucket),
+    ).toEqual([
+      DataSecurityResponseAction.BlockPublicAccess,
+      DataSecurityResponseAction.TurnOnVersioning,
+      DataSecurityResponseAction.TurnOnUniformAccess,
+    ]);
+    expect(
+      getDataSecurityResponseActions(DataStoreKind.AwsDynamoDbTable),
+    ).toEqual([DataSecurityResponseAction.TurnOnPointInTimeRecovery]);
   });
 
   test("Block public access fits each cloud's object store, and nothing else", () => {
@@ -76,16 +150,26 @@ describe("the response actions", () => {
     }
   });
 
-  test("no store takes both, and every other kind takes neither", () => {
+  test("no store is both blocked and unshared; only a cloud's own stores take any", () => {
     for (const kind of Object.values(DataStoreKind)) {
       const actions: Array<DataSecurityResponseAction> =
         getDataSecurityResponseActions(kind);
 
-      expect(actions.length).toBeLessThanOrEqual(1);
-      expect(actions.length === 1).toBe(
-        BLOCKABLE_DATA_STORE_KINDS.includes(kind) ||
-          SHAREABLE_DATA_STORE_KINDS.includes(kind),
-      );
+      expect(
+        actions.includes(DataSecurityResponseAction.BlockPublicAccess) &&
+          actions.includes(DataSecurityResponseAction.RevokeSharing),
+      ).toBe(false);
+
+      if (actions.length > 0) {
+        expect([kind, getDataStoreKindInfo(kind)?.provider]).not.toEqual([
+          kind,
+          DataStoreProvider.OneUptime,
+        ]);
+        expect([kind, getDataStoreKindInfo(kind)?.provider]).not.toEqual([
+          kind,
+          DataStoreProvider.SelfManaged,
+        ]);
+      }
     }
 
     expect(getDataSecurityResponseActions(undefined)).toEqual([]);
@@ -187,22 +271,104 @@ describe("the issues each action fixes", () => {
     ).toBeUndefined();
   });
 
-  test("the checks the actions fix are exposure checks", () => {
-    const named: Array<string> = ALL_DATA_SECURITY_RESPONSE_ACTIONS.flatMap(
-      (action: DataSecurityResponseAction): Array<string> => {
-        return [...DATA_SECURITY_RESPONSE_ACTION_CHECKS[action]];
-      },
-    );
-
-    expect(new Set(named).size).toBe(named.length);
-
-    for (const checkId of named) {
-      expect(
-        DATA_SECURITY_CHECKS.find((check: DataSecurityCheckInfo): boolean => {
-          return check.id === checkId;
-        })?.group,
-      ).toBe(DataSecurityCheckGroup.Exposure);
+  test("the checks the exposure actions fix are exposure checks", () => {
+    for (const action of EXPOSURE_RESPONSE_ACTIONS) {
+      for (const checkId of DATA_SECURITY_RESPONSE_ACTION_CHECKS[action]) {
+        expect([
+          action,
+          checkId,
+          DATA_SECURITY_CHECKS.find((check: DataSecurityCheckInfo): boolean => {
+            return check.id === checkId;
+          })?.group,
+        ]).toEqual([action, checkId, DataSecurityCheckGroup.Exposure]);
+      }
     }
+  });
+
+  test("an issue of a store is fixed by one action at most", () => {
+    for (const kind of Object.values(DataStoreKind)) {
+      const checks: Array<string> = getDataSecurityResponseActions(
+        kind,
+      ).flatMap((action: DataSecurityResponseAction): Array<string> => {
+        return [...DATA_SECURITY_RESPONSE_ACTION_CHECKS[action]];
+      });
+
+      expect([kind, new Set(checks).size]).toEqual([kind, checks.length]);
+    }
+  });
+
+  test("a hardening issue is fixed by its cloud's own setting", () => {
+    const fixes: Array<[string, DataStoreKind, DataSecurityResponseAction]> = [
+      [
+        "deleted-data-not-recoverable",
+        DataStoreKind.AwsS3Bucket,
+        DataSecurityResponseAction.TurnOnVersioning,
+      ],
+      [
+        "deleted-data-not-recoverable",
+        DataStoreKind.GcpStorageBucket,
+        DataSecurityResponseAction.TurnOnVersioning,
+      ],
+      [
+        "deleted-data-not-recoverable",
+        DataStoreKind.AzureStorageAccount,
+        DataSecurityResponseAction.TurnOnSoftDelete,
+      ],
+      [
+        "object-acls-enabled",
+        DataStoreKind.AwsS3Bucket,
+        DataSecurityResponseAction.TurnOffObjectAcls,
+      ],
+      [
+        "object-acls-enabled",
+        DataStoreKind.GcpStorageBucket,
+        DataSecurityResponseAction.TurnOnUniformAccess,
+      ],
+      [
+        "encryption-in-transit-not-enforced",
+        DataStoreKind.AzureStorageAccount,
+        DataSecurityResponseAction.RequireSecureTransfer,
+      ],
+      [
+        "weak-tls",
+        DataStoreKind.AzureStorageAccount,
+        DataSecurityResponseAction.RequireSecureTransfer,
+      ],
+      [
+        "no-point-in-time-recovery",
+        DataStoreKind.AwsDynamoDbTable,
+        DataSecurityResponseAction.TurnOnPointInTimeRecovery,
+      ],
+    ];
+
+    for (const [checkId, kind, action] of fixes) {
+      expect([
+        checkId,
+        kind,
+        getDataSecurityResponseActionForIssue(checkId, kind),
+      ]).toEqual([checkId, kind, action]);
+    }
+
+    // No button for a setting OneUptime may not write: an S3 bucket's TLS is its policy.
+    expect(
+      getDataSecurityResponseActionForIssue(
+        "encryption-in-transit-not-enforced",
+        DataStoreKind.AwsS3Bucket,
+      ),
+    ).toBeUndefined();
+    // Nor for one that could reset a database: RDS backups and deletion protection.
+    expect(
+      getDataSecurityResponseActionForIssue(
+        "no-backups",
+        DataStoreKind.AwsRdsInstance,
+      ),
+    ).toBeUndefined();
+    expect(
+      getDataSecurityResponseActionForIssue(
+        "deletion-protection-off",
+        DataStoreKind.AwsRdsInstance,
+      ),
+    ).toBeUndefined();
   });
 });
 
@@ -246,6 +412,45 @@ describe("what a person is told before they confirm", () => {
         DataStoreKind.AwsRdsCluster,
       ),
     ).toContain("No snapshot or database is changed.");
+  });
+
+  test("a hardening action says what it costs, or what stops working", () => {
+    expect(
+      describeDataSecurityResponseAction(
+        DataSecurityResponseAction.TurnOnVersioning,
+        DataStoreKind.AwsS3Bucket,
+      ),
+    ).toContain("Earlier versions are kept, and billed");
+    expect(
+      describeDataSecurityResponseAction(
+        DataSecurityResponseAction.TurnOnSoftDelete,
+        DataStoreKind.AzureStorageAccount,
+      ),
+    ).toContain("for those 14 days");
+    expect(
+      describeDataSecurityResponseAction(
+        DataSecurityResponseAction.TurnOffObjectAcls,
+        DataStoreKind.AwsS3Bucket,
+      ),
+    ).toContain("stops working");
+    expect(
+      describeDataSecurityResponseAction(
+        DataSecurityResponseAction.TurnOnUniformAccess,
+        DataStoreKind.GcpStorageBucket,
+      ),
+    ).toContain("after 90 days it cannot be turned off again");
+    expect(
+      describeDataSecurityResponseAction(
+        DataSecurityResponseAction.RequireSecureTransfer,
+        DataStoreKind.AzureStorageAccount,
+      ),
+    ).toContain("over HTTP, or with older TLS, stops working");
+    expect(
+      describeDataSecurityResponseAction(
+        DataSecurityResponseAction.TurnOnPointInTimeRecovery,
+        DataStoreKind.AwsDynamoDbTable,
+      ),
+    ).toContain("AWS bills it by the table's size");
   });
 
   test("every sentence says what is left untouched", () => {

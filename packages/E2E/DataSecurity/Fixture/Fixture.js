@@ -126,7 +126,10 @@ import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityResponseUnavailableReason,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
-import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  DataSecurityResponseAction,
+  getDataSecurityResponseActions,
+} from "Common/Types/DataSecurity/DataSecurityResponseAction";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
@@ -317,7 +320,8 @@ const STORES = [
       encryptedAtRest: true,
       customerManagedKey: false,
       encryptionInTransitEnforced: false,
-      versioning: true,
+      // Off, so its deleted files cannot be recovered: Turn On Versioning fixes it.
+      versioning: false,
       accessLogging: false,
     },
     sizeInBytes: 48 * 1024 * 1024 * 1024,
@@ -330,7 +334,7 @@ const STORES = [
     contentScannedAt: ago(5 * HOUR),
     contentScanStatus: "Succeeded",
     findingCount: 2,
-    openIssueCount: 3,
+    openIssueCount: 4,
     highestIssueSeverity: SecuritySeverity.Critical,
     riskScore: 92,
     isArchived: false,
@@ -534,6 +538,16 @@ table(DataSecurityIssue).push(
     acceptedReason: "Only served through CloudFront, which enforces HTTPS.",
     acceptedUntil: new Date(NOW.getTime() + 60 * DAY),
     acceptedByUserId: new ObjectID(ID.user(2)),
+    firstDetectedAt: ago(3 * DAY),
+    lastDetectedAt: ago(2 * HOUR),
+  }),
+  // A hardening fix, not an exposure: Turn On Versioning on the same bucket.
+  issue(6, {
+    dataStoreId: ID.store(1),
+    checkId: "deleted-data-not-recoverable",
+    evidence: "Versioning and soft delete are off.",
+    severity: SecuritySeverity.Medium,
+    dataTypeIds: ["credit-card-number", "email-address"],
     firstDetectedAt: ago(3 * DAY),
     lastDetectedAt: ago(2 * HOUR),
   }),
@@ -1954,34 +1968,50 @@ function compliance() {
   };
 }
 
+// Every action the bucket's kind can take, as the server lists them.
 function responseActions(dataStoreId) {
   const store = storeById(dataStoreId);
   if (!store || store.kind !== DataStoreKind.AwsS3Bucket) {
     return { actions: [] };
   }
   return {
-    actions: [
-      {
-        action: DataSecurityResponseAction.BlockPublicAccess,
+    actions: getDataSecurityResponseActions(store.kind).map((action) => {
+      return {
+        action,
         isAvailable: isResponseOn,
         unavailableReason: isResponseOn
           ? undefined
           : DataSecurityResponseUnavailableReason.ResponseOff,
-      },
-    ],
+      };
+    }),
     cloudConnectionId: isResponseOn ? undefined : ID.connection(1),
   };
 }
 
+// What each action the bucket can take does to it, in the server's words.
+const RESPONSES = {
+  [DataSecurityResponseAction.BlockPublicAccess]: (store) => {
+    store.exposure = DataStoreExposure.Private;
+    store.posture = {
+      ...store.posture,
+      publicRead: false,
+      blockPublicAccess: true,
+    };
+    return `Turned on all four Block Public Access settings of bucket ${store.name}.`;
+  },
+  [DataSecurityResponseAction.TurnOnVersioning]: (store) => {
+    store.posture = { ...store.posture, versioning: true };
+    return `Turned on versioning for bucket ${store.name}: an object overwritten or deleted from now on can be restored from its earlier version.`;
+  },
+  [DataSecurityResponseAction.TurnOffObjectAcls]: (store) => {
+    store.posture = { ...store.posture, uniformAccess: true };
+    return `Turned off object ACLs for bucket ${store.name}: the bucket's policy alone decides who reads it now.`;
+  },
+};
+
 function respond(dataStoreId, body) {
   const store = storeById(dataStoreId);
-  const summary = `Turned on all four Block Public Access settings of ${store.name}.`;
-  store.exposure = DataStoreExposure.Private;
-  store.posture = {
-    ...store.posture,
-    publicRead: false,
-    blockPublicAccess: true,
-  };
+  const summary = RESPONSES[body.action](store);
   const next = table(DataStoreFeed).length + 1;
   table(DataStoreFeed).push({
     _id: ID.feed(100 + next),

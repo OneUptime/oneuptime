@@ -899,7 +899,20 @@ function jsonDataStoreAnswer(data: {
     return json({ Table: named.table });
   }
 
-  if (data.action === "DescribeContinuousBackups") {
+  // Point-in-time recovery turned on or off, as the table keeps it.
+  if (data.action === "UpdateContinuousBackups") {
+    const specification: JSONObject = (data.body[
+      "PointInTimeRecoverySpecification"
+    ] || {}) as JSONObject;
+
+    named.pointInTimeRecovery =
+      specification["PointInTimeRecoveryEnabled"] === true;
+  }
+
+  if (
+    data.action === "DescribeContinuousBackups" ||
+    data.action === "UpdateContinuousBackups"
+  ) {
     return json({
       ContinuousBackupsDescription: {
         ContinuousBackupsStatus: "ENABLED",
@@ -1130,14 +1143,8 @@ function bucketAnswer(data: {
   }
 }
 
-/*
- * PutPublicAccessBlock: taken only with the body's Content-MD5, as S3
- * takes it, and kept on the bucket - the next read sees it.
- */
-function putPublicAccessBlock(
-  bucket: FakeBucket,
-  request: DataSourceHttpRequest,
-): FakeResponse {
+// A bucket setting's PUT is taken only with its body's Content-MD5, as S3 takes it.
+function checksumError(request: DataSourceHttpRequest): FakeResponse | null {
   const body: string = typeof request.body === "string" ? request.body : "";
   const sent: string = headerOf(request, "Content-MD5");
 
@@ -1155,6 +1162,101 @@ function putPublicAccessBlock(
       "InvalidDigest",
       "The Content-MD5 you specified did not match what we received.",
     );
+  }
+
+  return null;
+}
+
+// The text of a body's first element of this name.
+function firstElement(body: string, name: string): string {
+  const open: string = `<${name}>`;
+  const start: number = body.indexOf(open);
+
+  if (start < 0) {
+    return "";
+  }
+
+  const end: number = body.indexOf(`</${name}>`, start);
+
+  return end < 0 ? "" : body.slice(start + open.length, end);
+}
+
+/*
+ * PutBucketVersioning: Enabled or Suspended, kept on the bucket - the next
+ * read sees it.
+ */
+function putVersioning(
+  bucket: FakeBucket,
+  request: DataSourceHttpRequest,
+): FakeResponse {
+  const refused: FakeResponse | null = checksumError(request);
+
+  if (refused) {
+    return refused;
+  }
+
+  const status: string = firstElement(
+    typeof request.body === "string" ? request.body : "",
+    "Status",
+  );
+
+  if (status !== "Enabled" && status !== "Suspended") {
+    return s3Error(
+      400,
+      "MalformedXML",
+      "The XML you provided was not well-formed",
+    );
+  }
+
+  bucket.versioning = status;
+  return { status: 200, body: "" };
+}
+
+/*
+ * PutBucketOwnershipControls: kept on the bucket. Bucket owner enforced
+ * is refused, as S3 refuses it, while the bucket's own ACL grants anyone
+ * but its owner.
+ */
+function putOwnershipControls(
+  bucket: FakeBucket,
+  request: DataSourceHttpRequest,
+): FakeResponse {
+  const refused: FakeResponse | null = checksumError(request);
+
+  if (refused) {
+    return refused;
+  }
+
+  const ownership: string = firstElement(
+    typeof request.body === "string" ? request.body : "",
+    "ObjectOwnership",
+  );
+
+  if (ownership === "BucketOwnerEnforced" && (bucket.grants || []).length > 0) {
+    return s3Error(
+      400,
+      "InvalidBucketAclWithObjectOwnership",
+      "Bucket cannot have ACLs set with ObjectOwnership's BucketOwnerEnforced setting",
+    );
+  }
+
+  bucket.ownership = ownership;
+  return { status: 200, body: "" };
+}
+
+/*
+ * PutPublicAccessBlock: taken only with the body's Content-MD5, as S3
+ * takes it, and kept on the bucket - the next read sees it.
+ */
+function putPublicAccessBlock(
+  bucket: FakeBucket,
+  request: DataSourceHttpRequest,
+): FakeResponse {
+  const body: string = typeof request.body === "string" ? request.body : "";
+  const refused: FakeResponse | null = checksumError(request);
+
+  if (refused) {
+    return refused;
   }
 
   const setting: (name: string) => boolean = (name: string): boolean => {
@@ -1899,6 +2001,14 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
 
         if (subresource === "putPublicAccessBlock") {
           return putPublicAccessBlock(bucket, request);
+        }
+
+        if (subresource === "putVersioning") {
+          return putVersioning(bucket, request);
+        }
+
+        if (subresource === "putOwnershipControls") {
+          return putOwnershipControls(bucket, request);
         }
 
         const answer: FakeBytesResponse = bucketAnswer({

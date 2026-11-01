@@ -31,6 +31,8 @@ const NOW: Date = new Date("2026-10-27T12:00:00.000Z");
 const BASE: string = `/dashboard/${PROJECT_ID}/data-security`;
 const BUCKET: string = "20000000-0000-4000-8000-000000000001";
 const PUBLIC_BUCKET_ISSUE: string = "30000000-0000-4000-8000-000000000001";
+// The same bucket's deleted files cannot be recovered: Turn On Versioning.
+const VERSIONING_ISSUE: string = "30000000-0000-4000-8000-000000000006";
 // The security case, alert and incident the public bucket's Critical issue started.
 const ITS_CASE: string = "d0000000-0000-4000-8000-000000000001";
 const ITS_ALERT: string = "e0000000-0000-4000-8000-000000000001";
@@ -328,6 +330,53 @@ test.describe("Fix it from here", () => {
     await expect(
       page.getByText("on the store, through its cloud connection").first(),
     ).toBeVisible();
+  });
+
+  test("hardens the bucket from another of its issues: Turn On Versioning, after saying what it costs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${BASE}/issues/${VERSIONING_ISSUE}`);
+
+    const panel: Locator = responsePanel(page);
+    await expect(panel).toContainText(
+      "OneUptime can turn on versioning for this bucket through its cloud connection",
+    );
+    // The issue's own fix, and none of the bucket's other actions.
+    await expect(
+      panel.getByRole("button", { name: "Block Public Access" }),
+    ).toHaveCount(0);
+    await expect(
+      panel.getByRole("button", { name: "Turn Off Object ACLs" }),
+    ).toHaveCount(0);
+
+    await panel.getByRole("button", { name: "Turn On Versioning" }).click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText(
+      "Turn on versioning for customer-exports?",
+    );
+    // What it costs, before a person confirms it.
+    await expect(dialog).toContainText(
+      "Earlier versions are kept, and billed, until a lifecycle rule removes them.",
+    );
+    await screenshot(page, "issue-turn-on-versioning-confirm-1280");
+
+    await dialog.getByRole("button", { name: "Turn On Versioning" }).click();
+    await expect(
+      page.getByTestId("data-security-issue-response-result"),
+    ).toContainText("Versioning is on.");
+
+    const respond: RecordedApiRequest | undefined = (
+      await fixture(page)
+    ).apiRequests.find((request: RecordedApiRequest): boolean => {
+      return request.url.endsWith(`/data-store/${BUCKET}/respond`);
+    });
+    expect(respond?.body).toEqual({
+      action: "Turn on versioning",
+      dataSecurityIssueId: VERSIONING_ISSUE,
+    });
   });
 
   test("with the connection's response off, says what to turn on and where", async ({

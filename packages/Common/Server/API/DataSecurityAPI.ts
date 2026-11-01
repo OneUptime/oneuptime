@@ -67,7 +67,10 @@ import {
 import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import DataSecurityIntegrations from "../Utils/DataSecurity/DataSecurityIntegrations";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
-import { isDataSecurityResponseAction } from "../../Types/DataSecurity/DataSecurityResponseAction";
+import {
+  ALL_DATA_SECURITY_RESPONSE_ACTIONS,
+  isDataSecurityResponseAction,
+} from "../../Types/DataSecurity/DataSecurityResponseAction";
 import {
   queueDataSecurityConnectionRead,
   queueDataSecurityEvaluation,
@@ -261,7 +264,11 @@ export default class DataSecurityAPI extends BaseAPI<
 
         if (!isDataSecurityResponseAction(action)) {
           throw new BadDataException(
-            'Choose "Block public access" or "Revoke sharing".',
+            `Choose one of the response actions: ${ALL_DATA_SECURITY_RESPONSE_ACTIONS.map(
+              (name: string): string => {
+                return `"${name}"`;
+              },
+            ).join(", ")}.`,
           );
         }
 
