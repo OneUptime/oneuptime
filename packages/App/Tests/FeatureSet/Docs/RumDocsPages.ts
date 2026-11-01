@@ -321,6 +321,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Some of a signed-in user's sessions say _Visitor_, others name them",
   ],
   [SESSION_REPLAY]: [
+    "One person's journeys.",
     "One `GET .../session-replay/v1/config`",
     "A `POST .../session-replay/v1/chunk` about every 15 seconds while the user is doing something",
     "When a mobile session ends idle.",
