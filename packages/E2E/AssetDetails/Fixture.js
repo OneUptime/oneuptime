@@ -103,6 +103,15 @@ const language = ["ja", "de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const hasProbe = params.get("probe") !== "none";
+/*
+ * What Security Events says about the device this week, on its Overview's
+ * Security card: news (an open case naming it, events, findings and its
+ * risk) or quiet (nothing named it). Left out, the project uses no Security
+ * Events and the card draws nothing.
+ */
+const securityMode = ["news", "quiet"].includes(params.get("security"))
+  ? params.get("security")
+  : "none";
 
 // Persian reads right to left, as the Dashboard sets it for the reader.
 document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
@@ -689,23 +698,55 @@ API.post = async (options) => {
     );
   }
 
+  /*
+   * The device's Security card (?security=), as the server tells a network
+   * device: named by its name (its address is a private one, which names no
+   * machine for sure), with the case naming it and its risk.
+   */
   if (url.endsWith("/security-case/resource-security")) {
+    const isDevice =
+      options.data?.kind === "NetworkDevice" && options.data?.id === DEVICE_ID;
+    const name = isDevice ? DEVICES[scenario]?.name || "" : "";
+    const news = securityMode === "news" && isDevice;
+
     return new HTTPResponse(
       200,
       {
         kind: options.data?.kind,
         id: options.data?.id,
-        name: "",
-        isInUse: false,
+        name,
+        isInUse: securityMode !== "none",
         windowDays: 7,
-        values: [],
-        entity: null,
-        eventCount: 0,
-        findingCount: 0,
-        maxSeverityId: 0,
-        lastSeen: null,
-        openCases: null,
-        risk: null,
+        values: name && securityMode !== "none" ? [name] : [],
+        isSearchedByLogs: false,
+        entity: name ? { type: "Host", value: name } : null,
+        eventCount: news ? 46 : 0,
+        findingCount: news ? 1 : 0,
+        maxSeverityId: news ? 3 : 0,
+        lastSeen: news ? minutesAgo(55) : null,
+        openCases:
+          securityMode === "none"
+            ? null
+            : news
+              ? {
+                  count: 1,
+                  items: [
+                    {
+                      id: "20000000-0000-4000-8000-000000000133",
+                      number: "SEC-133",
+                      title: `Port scan from ${name} to the store's point-of-sale subnet`,
+                      priorityName: "Medium",
+                      priorityColor: "#eab308",
+                      statusName: "New",
+                      statusColor: "#ef4444",
+                      lastDetectedAt: minutesAgo(55),
+                    },
+                  ],
+                }
+              : { count: 0, items: [] },
+        risk: news
+          ? { score: 27, entityValue: name, entityType: "Host" }
+          : null,
       },
       {},
     );

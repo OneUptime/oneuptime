@@ -147,6 +147,15 @@ const agentSettingsState =
 const language = ["ja", "de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+/*
+ * What Security Events says about the load balancer this week, on its
+ * Overview's Security card (?security=news: an open case naming the name
+ * it answers on, a week of events and findings; quiet: nothing named it).
+ * Left out, the project uses no Security Events and the card draws nothing.
+ */
+const securityState = ["news", "quiet"].includes(params.get("security"))
+  ? params.get("security")
+  : "none";
 
 if (params.get("theme") === "dark") {
   document.documentElement.classList.add("dark");
@@ -979,6 +988,8 @@ const state = {
   roleSetupAsks: 0,
   verdict: params.get("verdict") || "pass",
   held: [],
+  // What each Security card asked about: the kind and id of its record.
+  securityReads: [],
 };
 
 /*
@@ -1743,6 +1754,68 @@ API.post = async (options) => {
   if (url.endsWith("/read-now")) {
     state.readNows.push(new URL(url).pathname);
     return new HTTPResponse(200, { queued: true }, {});
+  }
+
+  /*
+   * A cloud resource's Security card, as the server answers it
+   * (ResourceSecurity): named by its own ID and the names it answers on,
+   * its Security Events page opening on the first of those names.
+   */
+  if (url.endsWith("/security-case/resource-security")) {
+    const body = options.data || {};
+    state.securityReads.push({ kind: body.kind, id: body.id });
+    const resource =
+      body.kind === "CloudResource"
+        ? AWS_RESOURCES.find((item) => {
+            return item._id === body.id;
+          })
+        : null;
+    const names = resource ? resource.cloudEndpoints || [] : [];
+    const isNews = securityState === "news" && resource?._id === WEB_ALB_ID;
+    return new HTTPResponse(
+      200,
+      {
+        kind: body.kind,
+        id: body.id,
+        name: resource?.name || "",
+        isInUse: securityState !== "none",
+        windowDays: 7,
+        values:
+          resource && securityState !== "none"
+            ? [String(resource.providerResourceId).toLowerCase(), ...names]
+            : [],
+        isSearchedByLogs: false,
+        entity: names[0] ? { type: "Host", value: names[0] } : null,
+        eventCount: isNews ? 212 : 0,
+        findingCount: isNews ? 3 : 0,
+        maxSeverityId: isNews ? 4 : 0,
+        lastSeen: isNews ? new Date(NOW - 26 * MINUTE).toISOString() : null,
+        openCases:
+          securityState === "none"
+            ? null
+            : {
+                count: isNews ? 1 : 0,
+                items: isNews
+                  ? [
+                      {
+                        id: "20000000-0000-4000-8000-000000000150",
+                        number: "SEC-150",
+                        title: `Credential stuffing through ${names[0]}`,
+                        priorityName: "High",
+                        priorityColor: "#f97316",
+                        statusName: "Investigating",
+                        statusColor: "#3b82f6",
+                        lastDetectedAt: new Date(
+                          NOW - 26 * MINUTE,
+                        ).toISOString(),
+                      },
+                    ]
+                  : [],
+              },
+        risk: null,
+      },
+      {},
+    );
   }
 
   return new HTTPResponse(200, {}, {});

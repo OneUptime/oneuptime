@@ -1352,3 +1352,190 @@ test.describe("dark, and what the pages read", () => {
     }
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * The Security card: what Security Events read from the service's own logs
+ * ---------------------------------------------------------------------------
+ *
+ * A service has no name or address an event would name it by: it is told
+ * about by the events read from its own logs, so its card counts those
+ * events and findings, opens Security Events on its logs, and has no open
+ * cases or risk to show (Components/SecurityConnections, ?security=).
+ */
+const SERVICE_SECURITY_NEWS: string =
+  "What Security Events found in its logs in the last 7 days.";
+const SERVICE_SECURITY_QUIET: string =
+  "No security event was read from its logs in the last 7 days.";
+
+function securityCard(page: Page): Locator {
+  return page.getByTestId("resource-security-card");
+}
+
+// What the page asked Security Events about.
+async function securityReads(
+  page: Page,
+): Promise<Array<{ method: string; url: string }>> {
+  const requests: Array<{ method: string; url: string }> = await page.evaluate(
+    (): Array<{ method: string; url: string }> => {
+      return JSON.parse(
+        JSON.stringify(
+          (
+            window as unknown as {
+              __resourceOverviewsFixture: {
+                apiRequests: Array<{ method: string; url: string }>;
+              };
+            }
+          ).__resourceOverviewsFixture.apiRequests,
+        ),
+      );
+    },
+  );
+
+  // The fixture records each request's path.
+  return requests.filter((request: { url: string }): boolean => {
+    return new URL(request.url, "http://127.0.0.1").pathname.endsWith(
+      "/security-case/resource-security",
+    );
+  });
+}
+
+test.describe("the Security card: what Security Events read from the service's own logs", () => {
+  test("a project that uses no Security Events is told nothing: the service is asked about, and no card is drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, SERVICE_PAGE);
+    await expect
+      .poll(
+        async (): Promise<number> => {
+          return (await securityReads(page)).length;
+        },
+        { timeout: 30000 },
+      )
+      .toBeGreaterThan(0);
+    await expect(securityCard(page)).toHaveCount(0);
+  });
+
+  test("its week of events and findings, each opening Security Events on its own logs - and no cases or risk, which need a name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, SERVICE_PAGE, "security=news");
+    const card: Locator = securityCard(page);
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "news");
+    await expect(card).toContainText(SERVICE_SECURITY_NEWS);
+
+    const events: Locator = card.getByTestId("resource-security-open");
+    await expect(events).toHaveText("312");
+    const search: URL = new URL(
+      (await events.getAttribute("href"))!,
+      "http://127.0.0.1",
+    );
+    expect(search.pathname).toBe(`/dashboard/${PROJECT_ID}/security-events`);
+    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
+      `@oneuptime.log.resource.id:${SERVICE_ID}`,
+    );
+    await expect(card).toContainText("Last seen 40 minutes ago");
+    await expect(card).toContainText("Critical");
+
+    // Two figures: the events and the findings. No case or risk names a service.
+    const figures: Locator = card.getByRole("group", { name: "Security" });
+    await expect(figures).toContainText("Events");
+    await expect(figures).toContainText("Findings");
+    await expect(figures).not.toContainText("Open Cases");
+    await expect(figures).not.toContainText("Risk");
+    await expect(card.getByTestId("resource-security-cases")).toHaveCount(0);
+
+    // Open in Security Events opens its logs' events too: it has no page there.
+    expect(
+      await card
+        .getByRole("link", { name: "Open in Security Events" })
+        .getAttribute("href"),
+    ).toBe(await events.getAttribute("href"));
+  });
+
+  test("a week with nothing read from its logs says so in one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, SERVICE_PAGE, "security=quiet");
+    const card: Locator = securityCard(page);
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "quiet");
+    await expect(card).toContainText(SERVICE_SECURITY_QUIET);
+    await expect(card.getByRole("group", { name: "Security" })).toHaveCount(0);
+  });
+
+  for (const [name, size, theme] of [
+    ["phone", PHONE, undefined],
+    ["phone, dark", PHONE, "dark"],
+    ["tablet", TABLET, undefined],
+    ["laptop", LAPTOP, undefined],
+    ["laptop, dark", LAPTOP, "dark"],
+  ] as Array<[string, { width: number; height: number }, "dark" | undefined]>) {
+    test(`on a ${name} page the card reads whole, its two figures side by side, and nothing scrolls sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize(size);
+      await openOverview(
+        page,
+        SERVICE_PAGE,
+        `security=news${theme ? `&theme=${theme}` : ""}`,
+      );
+      const card: Locator = securityCard(page);
+      await expect(card.getByTestId("resource-security-open")).toBeVisible({
+        timeout: 30000,
+      });
+
+      await expectNoSidewaysScroll(page);
+      const outside: Array<string> = await card.evaluate(
+        (root: Element): Array<string> => {
+          const box: DOMRect = root.getBoundingClientRect();
+          const found: Array<string> = [];
+          root.querySelectorAll("*").forEach((element: Element): void => {
+            const part: DOMRect = element.getBoundingClientRect();
+            if (
+              part.width > 0 &&
+              part.height > 0 &&
+              (part.left < box.left - 1 || part.right > box.right + 1)
+            ) {
+              found.push((element.textContent || "").trim().slice(0, 40));
+            }
+          });
+          return found;
+        },
+      );
+      expect(outside).toEqual([]);
+
+      // Two short figures share a row from 16rem of the card's own width: on every page here.
+      const tops: Array<number> = await card
+        .getByRole("group", { name: "Security" })
+        .evaluate((bar: Element): Array<number> => {
+          return Array.from(bar.children).map((cell: Element): number => {
+            return Math.round(cell.getBoundingClientRect().top);
+          });
+        });
+      expect(tops).toHaveLength(2);
+      expect(new Set(tops).size).toBe(1);
+
+      await fsPromises.mkdir(SCREENSHOTS, { recursive: true });
+      await card.scrollIntoViewIfNeeded();
+      await page.mouse.move(0, 0);
+      await card.screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `service-security-card-${name.replace(", ", "-")}-synthetic.png`,
+        ),
+        animations: "disabled",
+      });
+    });
+  }
+});

@@ -360,6 +360,12 @@ jobs:
           # pointed at, reached with Tab and tapped).
           # Navigation Search (3.6 minutes) from group 13 on 2026-11-01, when
           # 14.0.100's first gate run took this group 20.9: about 24.5.
+          # Chart Time Zoom's fixture draws its pages in Inter since
+          # 2026-11-01, as production does (Tests/Ops/E2EFixtureFonts), and
+          # ResourceSecurityCard.spec.ts gained a Docker host's and a Podman
+          # host's Security card the same day (6 tests, about 20 seconds
+          # locally: their open case, week and risk, a quiet week, no card
+          # without Security Events, at 1280 and 390 pixels, dark): about 25.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -420,6 +426,12 @@ jobs:
           # network device and its alert pack's filters on a phone): about 21,
           # from the 20.3 this group kept once Value Picker and List Delete
           # left for group 14.
+          # MonitorSecurityCard.spec.ts joined Monitor Overview on 2026-11-01
+          # (11 tests, 52 seconds locally: a monitor's Security card about the
+          # hosts it checks - its open case, week and risk, a quiet week, none
+          # for a heartbeat or a role that may not read security events, read
+          # again on Refresh, its stacked header in the side column at 1440
+          # and 390 pixels, dark): about 22.
           - group: 3
             suites: >-
               test-monitor-overview-ui
@@ -536,6 +548,11 @@ jobs:
           # took this group 25.5 minutes, the new suite 8.2 of them, and group
           # 11 15.1: Status Timeline (2.2 minutes there) and Runbook Triggers
           # (1.7) moved to group 11 the same day: about 21.5 at that pace.
+          # ConnectedSignals.spec.ts gained 3 tests on 2026-11-01 (about 10
+          # seconds locally: a monitor, a cloud resource and a serverless
+          # function among a case's records, a member's on-call schedules
+          # and teams, and a member's own page with its Security card, at
+          # 1280 and 390 pixels, dark): still about 21.5.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -794,6 +811,11 @@ jobs:
           # 28 minutes (Cloud Connect 7.4, Time Range 5.0): Security Events
           # Empty States (3.7) moved to group 14 and Meraki Traffic (3.0) to
           # group 7. About 21.
+          # Cloud Connect gained a cloud resource's Security card on
+          # 2026-11-01 (2 tests on each of its two projects, about 22 seconds
+          # locally: its open case and week, opening Security Events on the
+          # name it answers on, a quiet week and no card without Security
+          # Events): still about 21.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -1025,6 +1047,10 @@ jobs:
           # Consumers and a database's Calling services as one shared table, at
           # every width with busy and long names, in German and dark (2.4
           # minutes locally with its bundle, from 1.3): about 20.5.
+          # It gained a service's Security card on 2026-11-01 (8 tests, about
+          # 36 seconds locally: the events read from its own logs and their
+          # findings, a quiet week, no card without Security Events, at 390,
+          # 768 and 1280 pixels, dark): about 21.
           - group: 12
             suites: >-
               test-code-ui
@@ -1056,6 +1082,10 @@ jobs:
           # 14.0.100's first gate run (2026-11-01) took this group 24.1 minutes
           # (Data Security 3.2 of them, before #5500 grew it to 71 walks, about
           # 4.5): Navigation Search (3.6) moved to group 2. About 22.
+          # Asset Details gained a network device's Security card the same day
+          # (2 tests, about 11 seconds locally: its open case, week and risk
+          # at 1280 and 390 pixels, dark, a quiet week and no card without
+          # Security Events): still about 22.
           - group: 13
             suites: >-
               test-asset-details-ui

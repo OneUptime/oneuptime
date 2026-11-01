@@ -22,6 +22,11 @@
  *               more consumers than the table holds, so its footer counts
  *               them) | long (long names and big figures, to measure the
  *               table's columns with)
+ *   ?security=  what Security Events read from the service's own logs this
+ *               week, on its Security card (POST /security-case/resource-
+ *               security): news (events and findings, the worst of them
+ *               critical) | quiet (none). Left out, the project uses no
+ *               Security Events and the card draws nothing.
  *
  * Every read is recorded on window.__resourceOverviewsFixture: listRequests,
  * itemRequests, countRequests, aggregateRequests, apiRequests and unhandled
@@ -87,6 +92,9 @@ const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   : "en";
 const CALLERS = ["busy", "long"].includes(params.get("callers"))
   ? params.get("callers")
+  : "none";
+const SECURITY = ["news", "quiet"].includes(params.get("security"))
+  ? params.get("security")
   : "none";
 
 if (params.get("dir") === "rtl") {
@@ -718,25 +726,32 @@ async function handleApi(method, options) {
   }
 
   /*
-   * The Security card: this project uses no Security Events, as the server
-   * says when no event arrived this week, so the card draws nothing.
+   * The Security card. Without ?security= this project uses no Security
+   * Events, as the server says when no event arrived this week, so the card
+   * draws nothing. With it, the service is told about by the events read
+   * from its own logs, as the server tells a service: no values of its own
+   * to name it, so no open cases and no risk (ResourceSecurity).
    */
   if (
     method === "POST" &&
     parsed.pathname.endsWith("/security-case/resource-security")
   ) {
+    const isService = body.kind === "Service" && body.id === SERVICE_ID;
+    const news = SECURITY === "news" && isService;
+
     return ok({
       kind: body.kind,
       id: body.id,
-      name: "",
-      isInUse: false,
+      name: isService ? SERVICES[RESOURCE].name : "",
+      isInUse: SECURITY !== "none",
       windowDays: 7,
       values: [],
+      isSearchedByLogs: isService,
       entity: null,
-      eventCount: 0,
-      findingCount: 0,
-      maxSeverityId: 0,
-      lastSeen: null,
+      eventCount: news ? 312 : 0,
+      findingCount: news ? 3 : 0,
+      maxSeverityId: news ? 5 : 0,
+      lastSeen: news ? new Date(LOADED_AT - 40 * MINUTE).toISOString() : null,
       openCases: null,
       risk: null,
     });

@@ -11,6 +11,12 @@
  *                                     Pages/Kubernetes/View/{Layout,Insights}
  *   HOST_VIEW                         /dashboard/:projectId/host/:id
  *                                     Pages/Host/View/{Layout,Overview}
+ *   DOCKER_HOST_VIEW                  /dashboard/:projectId/docker/:id
+ *                                     Pages/Docker/View/{Layout,Overview}
+ *   PODMAN_HOST_VIEW                  /dashboard/:projectId/podman/:id
+ *                                     Pages/Podman/View/{Layout,Overview}
+ *                                     (their Security card; the hosts are
+ *                                     read by id only, see CONTAINER_HOSTS)
  *   TRACES                            /dashboard/:projectId/traces
  *                                     Pages/Traces/{Layout,Index} (TracesViewer)
  *   LOGS                              /dashboard/:projectId/logs
@@ -116,12 +122,13 @@
  *
  * Query parameters (parsed once per page load):
  *   ?theme=dark   adds html.dark (handled by server.js).
- *   ?security=    what Security Events says about the host and the cluster,
- *                 on their Security card (POST /security-case/resource-
- *                 security): `news` (open cases, a week of events and
- *                 findings, some risk) or `quiet` (nothing named them this
- *                 week). Left out, the project uses no Security Events and
- *                 the card draws nothing, as on every page above.
+ *   ?security=    what Security Events says about the host, the cluster, the
+ *                 Docker host and the Podman host, on their Security card
+ *                 (POST /security-case/resource-security): `news` (open
+ *                 cases, a week of events and findings, some risk - the
+ *                 Podman host none of either) or `quiet` (nothing named
+ *                 them this week). Left out, the project uses no Security
+ *                 Events and the card draws nothing, as on every page above.
  */
 import React from "react";
 import { createRoot } from "react-dom/client";
@@ -141,6 +148,10 @@ import KubernetesClusterOverview from "../../../App/FeatureSet/Dashboard/src/Pag
 import KubernetesClusterInsights from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/Insights";
 import HostViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Layout";
 import HostOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Overview";
+import DockerHostViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Layout";
+import DockerHostOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Overview";
+import PodmanHostViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/Layout";
+import PodmanHostOverview from "../../../App/FeatureSet/Dashboard/src/Pages/Podman/View/Overview";
 import TracesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Traces/Layout";
 import TracesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Traces/Index";
 import LogsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Logs/Layout";
@@ -235,6 +246,11 @@ function uuid(prefix, number) {
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const CLUSTER_ID = uuid("60000000", 1);
 const HOST_ID = uuid("62000000", 1);
+// A Docker host and a Podman host, for their Overviews' Security card.
+const DOCKER_HOST_ID = uuid("67000000", 1);
+const DOCKER_HOST_IDENTIFIER = "docker-edge-01";
+const PODMAN_HOST_ID = uuid("68000000", 1);
+const PODMAN_HOST_IDENTIFIER = "podman-build-02";
 const ID = {
   incidentState: (number) => uuid("21000000", number),
   alertState: (number) => uuid("31000000", number),
@@ -1199,6 +1215,61 @@ HOST_MOUNTS.forEach((mount, index) => {
   );
 });
 
+/*
+ * The Docker host's and the Podman host's containers, as their collectors'
+ * docker_stats / podman_stats receivers report them: CPU and memory in
+ * percent, network as cumulative byte counters, and processes per
+ * container - each tagged with the host and its runtime, as the Overviews
+ * read them.
+ */
+[
+  [DOCKER_HOST_IDENTIFIER, "docker", ["nginx", "checkout-worker"]],
+  [PODMAN_HOST_IDENTIFIER, "podman", ["build-runner", "registry-cache"]],
+].forEach(([hostName, runtime, containers], hostIndex) => {
+  series("oneuptime.host.heartbeat", { "resource.host.name": hostName }, () => {
+    return 1;
+  });
+  containers.forEach((containerName, index) => {
+    const containerAttributes = {
+      "resource.host.name": hostName,
+      "resource.container.runtime": runtime,
+      "resource.container.name": containerName,
+    };
+    const phase = hostIndex * 2 + index;
+    series("container.cpu.utilization", containerAttributes, (time) => {
+      return Math.max(
+        0.5,
+        wave(time, { base: 18 + 9 * index, amplitude: 6, period: 13, phase }),
+      );
+    });
+    series("container.memory.percent", containerAttributes, (time) => {
+      return wave(time, {
+        base: 32 + 14 * index,
+        amplitude: 3,
+        period: 23,
+        phase,
+      });
+    });
+    series(
+      "container.network.io.usage.rx_bytes",
+      { ...containerAttributes, interface: "eth0" },
+      (time) => {
+        return counter(time, 90000 + 40000 * index, phase);
+      },
+    );
+    series(
+      "container.network.io.usage.tx_bytes",
+      { ...containerAttributes, interface: "eth0" },
+      (time) => {
+        return counter(time, 60000 + 25000 * index, phase + 1);
+      },
+    );
+    series("container.pids.count", containerAttributes, () => {
+      return 6 + 5 * index;
+    });
+  });
+});
+
 const MODELLED_METRICS = new Set(
   SERIES.map((item) => {
     return item.metricName;
@@ -1599,6 +1670,46 @@ fixture.dataset.services = EXPLORER_SERVICES.map((service) => {
 // Read by the explorers' resource lists and saved views.
 table(DockerHost);
 table(PodmanHost);
+
+/*
+ * A Docker host and a Podman host, whose Overviews carry a Security card
+ * (ResourceSecurityCard.spec.ts). Read by their id only - their layouts and
+ * Overviews read nothing else of them - so the explorers' resource lists,
+ * which list every Docker and Podman host from the tables above, stay as
+ * their specs know them.
+ */
+const CONTAINER_HOSTS = {
+  [tableName(DockerHost)]: {
+    [DOCKER_HOST_ID]: {
+      _id: DOCKER_HOST_ID,
+      projectId: projectObjectId,
+      name: DOCKER_HOST_IDENTIFIER,
+      slug: DOCKER_HOST_IDENTIFIER,
+      description: "Runs the storefront's edge proxy and the checkout worker.",
+      hostIdentifier: DOCKER_HOST_IDENTIFIER,
+      otelCollectorStatus: "connected",
+      lastSeenAt: ago(20 * SECOND),
+      osType: "linux",
+      osVersion: "Debian 12",
+      createdAt: ago(120 * DAY),
+    },
+  },
+  [tableName(PodmanHost)]: {
+    [PODMAN_HOST_ID]: {
+      _id: PODMAN_HOST_ID,
+      projectId: projectObjectId,
+      name: PODMAN_HOST_IDENTIFIER,
+      slug: PODMAN_HOST_IDENTIFIER,
+      description: "Rootless Podman host for the CI build runners.",
+      hostIdentifier: PODMAN_HOST_IDENTIFIER,
+      otelCollectorStatus: "connected",
+      lastSeenAt: ago(25 * SECOND),
+      osType: "linux",
+      osVersion: "Fedora 40",
+      createdAt: ago(80 * DAY),
+    },
+  },
+};
 table(TraceSavedView);
 
 /*
@@ -2665,6 +2776,10 @@ ModelAPI.getItem = async (options) => {
     id,
     select: serialize(options.select),
   });
+  const containerHost = CONTAINER_HOSTS[modelName]?.[id];
+  if (containerHost) {
+    return projectRecord(options.modelType, containerHost, options.select);
+  }
   const known = knownTable(options.modelType, "getItem", { id });
   const found = known?.records.find((item) => {
     return String(item._id) === id;
@@ -2998,6 +3113,48 @@ const SECURITY_RECORDS = {
       risk: { score: 64, entityValue: HOST_IDENTIFIER, entityType: "Host" },
     },
   },
+  [`DockerHost:${DOCKER_HOST_ID}`]: {
+    name: DOCKER_HOST_IDENTIFIER,
+    values: [DOCKER_HOST_IDENTIFIER, "203.0.113.61"],
+    news: {
+      eventCount: 19,
+      findingCount: 2,
+      maxSeverityId: 4,
+      lastSeen: ago(50 * MINUTE),
+      openCases: {
+        count: 1,
+        items: [
+          {
+            id: uuid("20000000", 144),
+            number: "SEC-144",
+            title: `Container escape attempt on ${DOCKER_HOST_IDENTIFIER}`,
+            priorityName: "High",
+            priorityColor: "#f97316",
+            statusName: "Investigating",
+            statusColor: "#3b82f6",
+            lastDetectedAt: ago(50 * MINUTE),
+          },
+        ],
+      },
+      risk: {
+        score: 38,
+        entityValue: DOCKER_HOST_IDENTIFIER,
+        entityType: "Host",
+      },
+    },
+  },
+  [`PodmanHost:${PODMAN_HOST_ID}`]: {
+    name: PODMAN_HOST_IDENTIFIER,
+    values: [PODMAN_HOST_IDENTIFIER],
+    news: {
+      eventCount: 7,
+      findingCount: 1,
+      maxSeverityId: 3,
+      lastSeen: ago(3 * HOUR),
+      openCases: { count: 0, items: [] },
+      risk: null,
+    },
+  },
   [`KubernetesCluster:${CLUSTER_ID}`]: {
     name: CLUSTER_IDENTIFIER,
     values: [CLUSTER_IDENTIFIER],
@@ -3186,13 +3343,19 @@ async function handleApi(method, options) {
     method === "POST" &&
     parsed.pathname.endsWith("/resource-ai-access/status")
   ) {
-    if (body.resourceType !== "Host" || body.resourceId !== HOST_ID) {
+    // The host's, and the Docker host's and the Podman host's (the same card).
+    const aiResource = {
+      [`Host:${HOST_ID}`]: "api-gateway-01",
+      [`DockerHost:${DOCKER_HOST_ID}`]: DOCKER_HOST_IDENTIFIER,
+      [`PodmanHost:${PODMAN_HOST_ID}`]: PODMAN_HOST_IDENTIFIER,
+    }[`${body.resourceType}:${body.resourceId}`];
+    if (!aiResource) {
       throw fail(404, "Resource not found.");
     }
     return ok({
-      resourceType: "Host",
-      resourceId: HOST_ID,
-      resourceName: "api-gateway-01",
+      resourceType: body.resourceType,
+      resourceId: body.resourceId,
+      resourceName: aiResource,
       isAiInvestigationEnabled: true,
       aiRemediationMode: "Disabled",
       aiCommandAllowlist: [],
@@ -3306,6 +3469,16 @@ function FixtureHostLayout() {
   return <HostViewLayout {...pageProps(undefined)} />;
 }
 
+function FixtureDockerHostLayout() {
+  useNavigationHooks();
+  return <DockerHostViewLayout {...pageProps(undefined)} />;
+}
+
+function FixturePodmanHostLayout() {
+  useNavigationHooks();
+  return <PodmanHostViewLayout {...pageProps(undefined)} />;
+}
+
 function FixtureTracesLayout() {
   useNavigationHooks();
   return <TracesLayout {...pageProps(PageMap.TRACES)} />;
@@ -3400,6 +3573,28 @@ createRoot(document.getElementById("root")).render(
           <Route
             index
             element={<HostOverview {...pageProps(PageMap.HOST_VIEW)} />}
+          />
+        </Route>
+        <Route
+          path={RouteMap[PageMap.DOCKER_HOST_VIEW].toString()}
+          element={<FixtureDockerHostLayout />}
+        >
+          <Route
+            index
+            element={
+              <DockerHostOverview {...pageProps(PageMap.DOCKER_HOST_VIEW)} />
+            }
+          />
+        </Route>
+        <Route
+          path={RouteMap[PageMap.PODMAN_HOST_VIEW].toString()}
+          element={<FixturePodmanHostLayout />}
+        >
+          <Route
+            index
+            element={
+              <PodmanHostOverview {...pageProps(PageMap.PODMAN_HOST_VIEW)} />
+            }
           />
         </Route>
         <Route

@@ -570,6 +570,106 @@ test.describe("the device's Overview", () => {
     );
     await shoot(page, "overview-disagree-1280-light");
   });
+
+  /*
+   * The way back from Security Events: the device's Security card, named
+   * by its name (its address is a private one, which names no machine for
+   * sure) - the open case naming it, its week of events and findings, and
+   * its risk, each opening Security Events on it (?security=).
+   */
+  test("its Security card: the case naming it, its week of events and findings, and its risk, each opening Security Events", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const dashboard: string = "/dashboard/10000000-0000-4000-8000-000000000001";
+    await openOverview(page, "&scenario=pinged&security=news");
+    const card: Locator = page.getByTestId("resource-security-card");
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "news");
+    await expect(card).toContainText(
+      "What Security Events found about it in the last 7 days.",
+    );
+
+    const events: Locator = card.getByTestId("resource-security-open");
+    await expect(events).toHaveText("46");
+    const search: URL = new URL(
+      (await events.getAttribute("href"))!,
+      "http://127.0.0.1",
+    );
+    expect(search.pathname).toBe(`${dashboard}/security-events`);
+    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
+      "observable:edge-sw-07",
+    );
+    await expect(card).toContainText("27");
+
+    const cases: Locator = card.getByTestId("resource-security-cases");
+    await expect(cases.getByTestId("resource-security-case")).toHaveCount(1);
+    expect(
+      await cases
+        .getByRole("link", { name: /Port scan from edge-sw-07/ })
+        .getAttribute("href"),
+    ).toBe(
+      `${dashboard}/security-events/cases/20000000-0000-4000-8000-000000000133`,
+    );
+    const entity: URL = new URL(
+      (await card
+        .getByRole("link", { name: "Open in Security Events" })
+        .getAttribute("href"))!,
+      "http://127.0.0.1",
+    );
+    expect(entity.pathname).toBe(
+      `${dashboard}/security-events/entity-risk/entity`,
+    );
+    expect(entity.searchParams.get("value")).toBe("edge-sw-07");
+
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    await card.scrollIntoViewIfNeeded();
+    await card.screenshot({
+      path: path.join(SCREENSHOTS, "overview-security-card-1280-light.png"),
+      animations: "disabled",
+    });
+
+    // On a phone, dark: the card reads whole, and nothing scrolls sideways.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openOverview(page, "&scenario=pinged&security=news&theme=dark");
+    await expect(card.getByTestId("resource-security-case")).toBeVisible({
+      timeout: 30000,
+    });
+    expect(await overflow(page)).toBeLessThanOrEqual(0);
+    const cardBox: { x: number; width: number } | null =
+      await card.boundingBox();
+    const caseBox: { x: number; width: number } | null = await card
+      .getByTestId("resource-security-case")
+      .boundingBox();
+    expect(caseBox!.x).toBeGreaterThanOrEqual(cardBox!.x);
+    expect(caseBox!.x + caseBox!.width).toBeLessThanOrEqual(
+      cardBox!.x + cardBox!.width + 1,
+    );
+    await card.scrollIntoViewIfNeeded();
+    await card.screenshot({
+      path: path.join(SCREENSHOTS, "overview-security-card-390-dark.png"),
+      animations: "disabled",
+    });
+  });
+
+  test("a quiet week says so in one line, and a project that uses no Security Events is told nothing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page, "&scenario=pinged&security=quiet");
+    const card: Locator = page.getByTestId("resource-security-card");
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "quiet");
+    await expect(card).toContainText(
+      "No security event named it in the last 7 days.",
+    );
+
+    await openOverview(page, "&scenario=pinged");
+    await expect(page.getByText("Device Details")).toBeVisible();
+    await expect(card).toHaveCount(0);
+  });
 });
 
 test.describe("at a phone's width, in the dark and in other languages", () => {

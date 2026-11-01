@@ -455,6 +455,57 @@ test.describe("a case's Connected Signals", () => {
     await expect(
       kai.getByTestId("security-connected-nothing-active"),
     ).toHaveCount(0);
+    for (const fact of [
+      "security-connected-incidents",
+      "security-connected-alerts",
+      "security-connected-monitors",
+      "security-connected-changes",
+    ]) {
+      await expect(kai.getByTestId(fact)).toHaveCount(0);
+    }
+
+    /*
+     * Who to reach: the on-call schedules they are on, the one they are on
+     * call for now first and saying so, and the teams they are in - each
+     * opening its page.
+     */
+    const schedules: Locator = factRow(kai, "security-connected-schedules");
+    await expect(
+      schedules.getByTestId("security-connected-fact-label"),
+    ).toHaveText("On 2 on-call schedules");
+    expect(await factItems(schedules)).toEqual([
+      "Identity on-call",
+      "Checkout primary",
+    ]);
+    const scheduleItems: Locator = schedules.getByTestId(
+      "security-connected-fact-item",
+    );
+    await expect(
+      scheduleItems.nth(0).getByTestId("security-connected-on-call-now"),
+    ).toHaveText("On call now");
+    await expect(
+      scheduleItems.nth(1).getByTestId("security-connected-on-call-now"),
+    ).toHaveCount(0);
+    expect(
+      await hrefOf(
+        scheduleItems
+          .nth(0)
+          .getByRole("link", { name: "Identity on-call", exact: true }),
+      ),
+    ).toBe(
+      `${DASHBOARD}/on-call-duty/schedules/3e000000-0000-4000-8000-000000000001`,
+    );
+
+    const teams: Locator = factRow(kai, "security-connected-teams");
+    await expect(teams.getByTestId("security-connected-fact-label")).toHaveText(
+      "In 2 teams",
+    );
+    expect(await factItems(teams)).toEqual(["Checkout SRE", "Identity"]);
+    expect(
+      await hrefOf(teams.getByRole("link", { name: "Identity", exact: true })),
+    ).toBe(`${DASHBOARD}/teams/81000000-0000-4000-8000-000000000021`);
+    // Each on a line of its own, its label beside or above it.
+    expect(itemsOnLinesOfTheirOwn(await factRowLayouts(page))).toEqual([]);
 
     const notFound: Locator = page.getByTestId("security-connected-not-found");
     for (const value of [
@@ -809,16 +860,20 @@ test.describe("a case's Connected Signals", () => {
       await open(page, DOMAIN_CASE, { width, theme, connections: "busy" });
       await waitForRecords(page);
 
+      // Exact first, then by kind, then by name - as the server orders them.
       expect(await names(page)).toEqual([
         "checkout-web-01",
         "prod-eu-west-1",
-        "checkout-api",
         "edge-fw-01",
+        "checkout-alb",
+        "orders-webhook",
+        "checkout-api",
+        "Storefront",
         "Kai Morgan",
         "checkout-web-01.staging.acme-commerce.example",
-        "lab-podman-01",
         "db-replica-2",
         "cache-docker-1",
+        "lab-podman-01",
       ]);
       const group: Locator = page.getByTestId(
         "security-connected-possible-group",
@@ -915,6 +970,143 @@ test.describe("a case's Connected Signals", () => {
       );
     });
   }
+
+  test("a monitor with its status, a cloud resource and a serverless function, each by what named it, and a member's schedules and teams", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE, { width: 1280, connections: "busy" });
+    await waitForRecords(page);
+    // The busy answer's records (ConnectionsFixture.js's busyAnswer).
+    const recordId: (n: number) => string = (n: number): string => {
+      return `2d000000-0000-4000-8000-${String(200 + n).padStart(12, "0")}`;
+    };
+
+    /*
+     * The monitor: by the host of a URL it checks, its status beside its
+     * name, its incidents, and its Logs and Metrics - what it saw on each
+     * check. Nothing watches a monitor, and it has no changes of its own.
+     */
+    const monitor: Locator = record(page, "Storefront");
+    await expect(monitor).toHaveAttribute("data-kind", "Monitor");
+    await expect(monitor).toHaveAttribute("data-certainty", "Exact");
+    await expect(
+      monitor.getByTestId("security-connected-monitor-status"),
+    ).toHaveText("Degraded");
+    await expect(
+      monitor.getByTestId("security-connected-record-reason"),
+    ).toHaveText(
+      "Named https://shop.acme-commerce.example/login, on shop.acme-commerce.example, the address it checks.",
+    );
+    expect(
+      await hrefOf(monitor.getByTestId("security-connected-record-name")),
+    ).toBe(`${DASHBOARD}/monitors/${recordId(12)}`);
+    const monitorLinks: Locator = monitor.getByTestId(
+      "security-connected-signal-links",
+    );
+    expect(
+      (await monitorLinks.getByRole("link").allInnerTexts()).map(
+        (text: string) => {
+          return text.trim();
+        },
+      ),
+    ).toEqual(["Logs", "Metrics"]);
+    expect(await hrefOf(monitorLinks.getByRole("link", { name: "Logs" }))).toBe(
+      `${DASHBOARD}/monitors/${recordId(12)}/logs`,
+    );
+    expect(
+      await factItems(factRow(monitor, "security-connected-incidents")),
+    ).toEqual(["INC-1043 Storefront slow for EU visitors"]);
+    for (const fact of [
+      "security-connected-monitors",
+      "security-connected-changes",
+    ]) {
+      await expect(monitor.getByTestId(fact)).toHaveCount(0);
+    }
+
+    // The cloud resource: by a name it answers on, with the monitor watching it.
+    const alb: Locator = record(page, "checkout-alb");
+    await expect(alb).toHaveAttribute("data-kind", "CloudResource");
+    await expect(
+      alb.getByTestId("security-connected-record-reason"),
+    ).toHaveText(
+      "Named checkout-alb-1234.eu-west-1.elb.amazonaws.com, a name it answers on.",
+    );
+    expect(
+      await hrefOf(alb.getByTestId("security-connected-record-name")),
+    ).toBe(`${DASHBOARD}/cloud/${recordId(10)}`);
+    const albLogs: URL = new URL(
+      (await hrefOf(
+        alb
+          .getByTestId("security-connected-signal-links")
+          .getByRole("link", { name: "Logs" }),
+      ))!,
+      `http://127.0.0.1:${PORT}`,
+    );
+    expect(albLogs.pathname).toBe(`${DASHBOARD}/logs`);
+    expect(JSON.parse(albLogs.searchParams.get("filters") || "[]")).toEqual([
+      ["cloudResourceId", [recordId(10)]],
+    ]);
+    const watching: Locator = factRow(alb, "security-connected-monitors");
+    expect(await factItems(watching)).toEqual(["Storefront"]);
+    expect(await hrefOf(watching.getByRole("link"))).toBe(
+      `${DASHBOARD}/monitors/${recordId(12)}`,
+    );
+    expect(await factItems(factRow(alb, "security-connected-changes"))).toEqual(
+      ["Changed the listener rule: /checkout to the canary target group"],
+    );
+
+    // The serverless function: by its own logs, and what changed on it.
+    const webhook: Locator = record(page, "orders-webhook");
+    await expect(webhook).toHaveAttribute("data-kind", "ServerlessFunction");
+    await expect(
+      webhook.getByTestId("security-connected-record-reason"),
+    ).toHaveText("Read from its logs.");
+    expect(
+      await hrefOf(webhook.getByTestId("security-connected-record-name")),
+    ).toBe(`${DASHBOARD}/serverless/${recordId(11)}`);
+    expect(
+      await factItems(factRow(webhook, "security-connected-changes")),
+    ).toEqual(["Deployed version 42"]);
+    await expect(
+      webhook.getByTestId("security-connected-incidents"),
+    ).toHaveCount(0);
+
+    // The member: more schedules than are listed.
+    const schedules: Locator = factRow(
+      record(page, "Kai Morgan"),
+      "security-connected-schedules",
+    );
+    await expect(
+      schedules.getByTestId("security-connected-fact-label"),
+    ).toHaveText("On 3 on-call schedules");
+    await expect(schedules).toContainText("+1 more");
+    await expect(
+      schedules.getByTestId("security-connected-on-call-now"),
+    ).toHaveCount(1);
+    await expect(
+      factRow(record(page, "Kai Morgan"), "security-connected-teams"),
+    ).toContainText("Checkout SRE");
+
+    // Each new kind's line as it is drawn, for the UI review.
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.mouse.move(0, 0);
+    for (const [name, file] of [
+      ["Storefront", "monitor"],
+      ["checkout-alb", "cloud-resource"],
+      ["orders-webhook", "serverless-function"],
+      ["Kai Morgan", "member"],
+    ] as Array<[string, string]>) {
+      await record(page, name).screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `case-connected-signals-busy-${file}-synthetic.png`,
+        ),
+        animations: "disabled",
+      });
+    }
+  });
 
   test("a busy case in Persian on a phone: right to left, each item on a line of its own, nothing past the card", async ({
     page,
@@ -1027,6 +1219,121 @@ test.describe("a case's Connected Signals", () => {
       await screenshot(page, `case-connected-signals-fa-${width}`);
     });
   }
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A member's own page: the way back
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("a member's own page", () => {
+  test("a connected member's name opens their page, whose Security card says the cases naming them and their week, and opens Security Events on them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE, { width: 1280 });
+    await waitForRecords(page);
+    await record(page, "Kai Morgan")
+      .getByTestId("security-connected-record-name")
+      .click();
+    await expect(page).toHaveURL(new RegExp(`${DASHBOARD}/users/${KAI_ID}$`));
+
+    const card: Locator = page.getByTestId("resource-security-card");
+    await expect(card).toBeVisible({ timeout: 30000 });
+    await expect(card).toHaveAttribute("data-state", "news");
+    await expect(card).toContainText(
+      "What Security Events found about it in the last 7 days.",
+    );
+
+    // The open cases naming their email, the one detected last first.
+    const cases: Locator = card.getByTestId("resource-security-case");
+    await expect(cases).toHaveCount(2);
+    await expect(cases.nth(0)).toContainText("Password spray against Okta");
+    await expect(cases.nth(1)).toContainText(
+      "Impossible travel for k.morgan@acme-commerce.example",
+    );
+    expect(
+      await cases
+        .nth(0)
+        .getByRole("link", { name: /Password spray against Okta/ })
+        .getAttribute("href"),
+    ).toBe(`${PRODUCT}/cases/20000000-0000-4000-8000-000000000142`);
+
+    // Their week, opening the explorer on what named their email.
+    const events: Locator = card.getByTestId("resource-security-open");
+    await expect(events).toHaveText("58");
+    const search: URL = new URL(
+      (await hrefOf(events))!,
+      `http://127.0.0.1:${PORT}`,
+    );
+    expect(search.pathname).toBe(PRODUCT);
+    expect(decodeURIComponent(search.searchParams.get("search") || "")).toBe(
+      "observable:k.morgan@acme-commerce.example",
+    );
+
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.mouse.move(0, 0);
+    await card.screenshot({
+      path: path.join(SCREENSHOTS, "member-security-card-1280-synthetic.png"),
+      animations: "disabled",
+    });
+
+    // Open in Security Events: their entity's page, where OneUptime knows them.
+    await card.getByRole("link", { name: "Open in Security Events" }).click();
+    await expect(page).toHaveURL(/\/security-events\/entity-risk\/entity\?/);
+    const entity: URL = new URL(page.url());
+    expect(entity.searchParams.get("value")).toBe(
+      "k.morgan@acme-commerce.example",
+    );
+    expect(entity.searchParams.get("type")).toBe("User");
+    await waitForRecords(page);
+    expect(await names(page)).toEqual(["Kai Morgan"]);
+  });
+
+  test("on a phone, dark: the member's Security card reads whole, and nothing scrolls sideways", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${DASHBOARD}/users/${KAI_ID}`, {
+      width: 390,
+      theme: "dark",
+    });
+    const card: Locator = page.getByTestId("resource-security-card");
+    await expect(
+      card.getByTestId("resource-security-case").first(),
+    ).toBeVisible({ timeout: 30000 });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    const outside: Array<string> = await card.evaluate(
+      (root: Element): Array<string> => {
+        const box: DOMRect = root.getBoundingClientRect();
+        const found: Array<string> = [];
+        root.querySelectorAll("*").forEach((element: Element): void => {
+          const part: DOMRect = element.getBoundingClientRect();
+          if (
+            part.width > 0 &&
+            part.height > 0 &&
+            (part.left < box.left - 1 || part.right > box.right + 1)
+          ) {
+            found.push((element.textContent || "").trim().slice(0, 40));
+          }
+        });
+        return found;
+      },
+    );
+    expect(outside).toEqual([]);
+    await card.scrollIntoViewIfNeeded();
+    await page.mouse.move(0, 0);
+    await card.screenshot({
+      path: path.join(
+        SCREENSHOTS,
+        "member-security-card-390-dark-synthetic.png",
+      ),
+      animations: "disabled",
+    });
+  });
 });
 
 /*
