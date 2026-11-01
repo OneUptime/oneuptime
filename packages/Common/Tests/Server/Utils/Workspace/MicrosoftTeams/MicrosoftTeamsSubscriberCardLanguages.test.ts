@@ -230,6 +230,31 @@ describe("the label as it was written", () => {
     );
   });
 
+  test("the line of links is the card's buttons, not its text too", async () => {
+    const card: JSONObject = await cardFor(
+      SubscriberMessageText.incidentStateChangeChatMessage(
+        getServerTranslator("de"),
+        {
+          title: "Checkout is down",
+          resourcesAffected: "Checkout API",
+          severityName: "Major Incident",
+          stateName: "Resolved",
+          statusPageUrl: STATUS_PAGE_URL,
+          unsubscribeUrl: UNSUBSCRIBE_URL,
+        },
+      ),
+    );
+
+    expect(textOf(card)).not.toContain("Statusseite ansehen");
+    expect(
+      ((card["potentialAction"] as Array<JSONObject>) || []).map(
+        (action: JSONObject): string => {
+          return String(action["name"]);
+        },
+      ),
+    ).toEqual(["Statusseite ansehen", "Abbestellen"]);
+  });
+
   test("a label with nothing after it, in any words, is text over what follows", async () => {
     const card: JSONObject = await cardFor(
       ["## Rollout", "", "**Steps:**", "1. Drain the node."].join("\n"),

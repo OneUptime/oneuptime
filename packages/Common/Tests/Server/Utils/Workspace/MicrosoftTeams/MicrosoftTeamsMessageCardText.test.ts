@@ -6,6 +6,7 @@ import {
   MessageCardLink,
   findFact,
   findMessageCardLinks,
+  isOnlyLinks,
   toLabelKey,
   withLinksAsText,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageCardText";
@@ -145,6 +146,45 @@ describe("findMessageCardLinks", () => {
 
       expect([unit, Date.now() - started < 500]).toEqual([unit, true]);
     }
+  });
+});
+
+describe("isOnlyLinks", () => {
+  const only: (line: string) => boolean = (line: string): boolean => {
+    return isOnlyLinks(line, findMessageCardLinks(line));
+  };
+
+  test.each([
+    "[View Status Page](https://a.example) | [Unsubscribe](https://b.example)",
+    "  [Open](https://a.example)  ",
+    "[Open](https://a.example) \u{00B7} [Acknowledge](https://b.example)",
+    "[Open](https://a.example), [Close](https://b.example)",
+  ])("a line of links and separators is only links: %s", (line: string) => {
+    expect(only(line)).toBe(true);
+  });
+
+  test.each([
+    "Read the [postmortem](https://a.example).",
+    "**Details:** [Open](https://a.example)",
+    "[Open](https://a.example) now",
+    "No link here | at all",
+    "",
+  ])("a line with words of its own is not: %s", (line: string) => {
+    expect(only(line)).toBe(false);
+  });
+
+  test("400,000 characters of links and separators take well under two seconds", () => {
+    const line: string = "[a](https://a.example) | ".repeat(16000);
+    const links: Array<MessageCardLink> = findMessageCardLinks(line);
+    const read: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        return isOnlyLinks(line, links);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(read.result).toBe(true);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });
 

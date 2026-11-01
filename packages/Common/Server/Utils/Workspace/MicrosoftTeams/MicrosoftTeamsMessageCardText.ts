@@ -170,6 +170,67 @@ export const withLinksAsText: WithLinksAsTextFunction = (
   return text + line.slice(copiedUpTo);
 };
 
+/*
+ * What may stand between the links of a line of links:
+ * "[View Status Page](...) | [Unsubscribe](...)", "[Open](...) · [Ack](...)".
+ */
+const LINK_SEPARATORS: ReadonlySet<string> = new Set<string>([
+  "|",
+  "\u{00B7}",
+  "\u{2022}",
+  "-",
+  "\u{2013}",
+  "\u{2014}",
+  "/",
+  ",",
+]);
+
+export type IsOnlyLinksFunction = (
+  line: string,
+  links: Array<MessageCardLink>,
+) => boolean;
+
+/*
+ * Whether a line is nothing but its links, and separators and spaces
+ * between them: on a card each of them is a button already, and their
+ * words as text too would say them twice.
+ */
+export const isOnlyLinks: IsOnlyLinksFunction = (
+  line: string,
+  links: Array<MessageCardLink>,
+): boolean => {
+  if (links.length === 0) {
+    return false;
+  }
+
+  let copiedUpTo: number = 0;
+
+  const isSeparatorText: (text: string) => boolean = (
+    text: string,
+  ): boolean => {
+    for (const character of text) {
+      if (
+        !WHITESPACE_PATTERN.test(character) &&
+        !LINK_SEPARATORS.has(character)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  for (const link of links) {
+    if (!isSeparatorText(line.slice(copiedUpTo, link.start))) {
+      return false;
+    }
+
+    copiedUpTo = link.end;
+  }
+
+  return isSeparatorText(line.slice(copiedUpTo));
+};
+
 export interface MessageCardFact {
   name: string;
   value: string;

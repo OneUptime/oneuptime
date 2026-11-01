@@ -138,6 +138,7 @@ import {
   MessageCardLink,
   findFact,
   findMessageCardLinks,
+  isOnlyLinks,
   toLabelKey,
   withLinksAsText,
 } from "./MicrosoftTeamsMessageCardText";
@@ -1004,6 +1005,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             },
           ],
         });
+      }
+
+      /*
+       * A line of nothing but links - "[View Status Page](...) |
+       * [Unsubscribe](...)" - is the card's buttons: its words as text
+       * too would sit right above them, saying them twice.
+       */
+      if (isOnlyLinks(line, links)) {
+        continue;
       }
 
       /*
