@@ -1983,7 +1983,7 @@ test.describe("Forms", () => {
 
     // The Share Link card says what a submitter now sees.
     await expect(page.getByTestId("form-share-link-turned-off")).toContainText(
-      "This form is turned off, so its link shows a 'not available' message.",
+      "This form is turned off, so people who open it see a 'not available' message.",
       { timeout: 60000 },
     );
 

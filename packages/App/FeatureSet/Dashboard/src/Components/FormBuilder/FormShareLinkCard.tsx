@@ -1,6 +1,9 @@
 import FormsCopy from "./FormsCopy";
 import { FORM_EXAMPLE_DOMAIN, getFormShareLink } from "./FormShareLink";
-import { FORM_CUSTOM_DOMAINS } from "../CustomDomain/CustomDomainKinds";
+import {
+  CustomDomainModel,
+  FORM_CUSTOM_DOMAINS,
+} from "../CustomDomain/CustomDomainKinds";
 import PublicAddresses from "../CustomDomain/PublicAddresses";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -34,7 +37,12 @@ import useAsyncEffect from "use-async-effect";
  * Overview and a dashboard's Sharing page draw theirs (PublicAddresses).
  *
  * Reset Link gives the form a new key, so its link on OneUptime stops
- * working; its own domains name no key, and keep working.
+ * working; its own domains name no key, and keep working. Its question
+ * says so when the form has custom domains - whoever shared report.acme.com
+ * would otherwise read "the current one stops working" as theirs.
+ *
+ * Turned off, every address shows the not-available message, its domains
+ * as much as its link, and the notice under the list says it of them all.
  *
  * The card is ResetObjectID's own, since resetting is an update of the
  * form's shareKey column like any other key reset: a viewer who may not
@@ -64,6 +72,19 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
   const [loaded, setLoaded] = useState<LoadedLink | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * The form whose list read custom domains of its own, if any: Reset Link's
+   * question then says they are not affected. Not known (not read, or the
+   * read failed) reads as none: the question never promises what it cannot
+   * see. Kept by form, so another form's domains never answer for this one.
+   */
+  const [formWithCustomDomains, setFormWithCustomDomains] = useState<
+    string | null
+  >(null);
+
+  const hasCustomDomains: boolean =
+    formWithCustomDomains === props.modelId.toString();
 
   /*
    * Reads are numbered so that only the latest one is shown: a slow answer
@@ -158,7 +179,11 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
       description={FormsCopy.shareLinkDescription}
       buttonTitle={FormsCopy.resetLink}
       confirmTitle={FormsCopy.resetLink}
-      confirmDescription={FormsCopy.resetLinkConfirmation}
+      confirmDescription={
+        hasCustomDomains
+          ? FormsCopy.resetLinkConfirmationWithCustomDomains
+          : FormsCopy.resetLinkConfirmation
+      }
       confirmButtonText={FormsCopy.resetLink}
       resultTitle={FormsCopy.newLinkTitle}
       resultDescription={FormsCopy.newLinkDescription}
@@ -180,6 +205,9 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
             { modelId: props.modelId },
           )}
           exampleDomain={FORM_EXAMPLE_DOMAIN}
+          onDomainsRead={(domains: ReadonlyArray<CustomDomainModel>) => {
+            setFormWithCustomDomains(domains.length > 0 ? shown.formId : null);
+          }}
         />
 
         {shown.isEnabled ? (
