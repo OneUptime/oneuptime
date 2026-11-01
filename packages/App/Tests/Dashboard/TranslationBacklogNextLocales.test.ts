@@ -108,12 +108,13 @@ function sameAsEnglishIn(code: string): Array<string> {
   return [...everyLanguage, ...own];
 }
 
+// The {{names}} a text holds: one class that stops at a brace, linear in the text.
 function placeholdersOf(text: string): Array<string> {
   return Array.from(
     new Set(
-      Array.from(text.matchAll(/\{\{\s*([^{}]+?)\s*\}\}/g)).map(
+      Array.from(text.matchAll(/\{\{([^{}]+)\}\}/g)).map(
         (match: RegExpMatchArray): string => {
-          return match[1] as string;
+          return (match[1] as string).trim();
         },
       ),
     ),

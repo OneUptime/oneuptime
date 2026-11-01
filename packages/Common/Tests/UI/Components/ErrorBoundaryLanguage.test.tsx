@@ -260,9 +260,7 @@ describe("the card in every frontend, in the reader's language", () => {
         expect(locale["Something went wrong"]).toBe(
           readLocale("Dashboard", language)["Something went wrong"],
         );
-        expect(locale["Something went wrong"]).not.toBe(
-          "Something went wrong",
-        );
+        expect(locale["Something went wrong"]).not.toBe("Something went wrong");
 
         render(
           <I18nextProvider i18n={await instanceFor(frontend, language)}>
@@ -400,7 +398,8 @@ describe("a page that could not be loaded, for the people who use OneUptime, in 
     // Persian words for the card itself, none for its support part or details.
     const dashboard: Record<string, string> = readLocale("Dashboard", "fa");
     const cardOnly: Record<string, string> = {
-      "This page couldn't be loaded": dashboard["This page couldn't be loaded"]!,
+      "This page couldn't be loaded":
+        dashboard["This page couldn't be loaded"]!,
       "A file it needs couldn't be downloaded from the server. Try reloading in a moment.":
         dashboard[
           "A file it needs couldn't be downloaded from the server. Try reloading in a moment."

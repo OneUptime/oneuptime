@@ -117,9 +117,7 @@ function withoutCodeSpans(line: string): string {
 }
 
 // The particle written right after each bold span of a line (none, when none is).
-function particlesAfterBoldLabels(
-  line: string,
-): Array<ParticleAfterLabel> {
+function particlesAfterBoldLabels(line: string): Array<ParticleAfterLabel> {
   const masked: string = withoutCodeSpans(line);
   const markers: Array<number> = [];
   let at: number = masked.indexOf("**");
@@ -215,9 +213,12 @@ describe("a particle's form follows the syllable before it", () => {
     ["지금 확인", "와", "과"],
     ["추가 필드", "이며", "며"],
     ["식별됨", "라는", "이라는"],
-  ])("**%s** takes %s's other form, %s", (label: string, given: string, wanted: string) => {
-    expect(particleFor(label, given)).toBe(wanted);
-  });
+  ])(
+    "**%s** takes %s's other form, %s",
+    (label: string, given: string, wanted: string) => {
+      expect(particleFor(label, given)).toBe(wanted);
+    },
+  );
 
   test("으로 after a consonant, 로 after a vowel or a final ㄹ", () => {
     expect(particleFor("사용자 지정 색상", "로")).toBe("으로");
@@ -252,12 +253,12 @@ describe("the particle after a bold label is read as the page writes it", () => 
   });
 
   test("markers are paired in order, and a ** inside code is not one", () => {
-    expect(
-      particlesAfterBoldLabels("`**x**` **복제** 는 **이름** 을"),
-    ).toEqual([
-      { label: "복제", particle: "는", isSpaced: true },
-      { label: "이름", particle: "을", isSpaced: true },
-    ]);
+    expect(particlesAfterBoldLabels("`**x**` **복제** 는 **이름** 을")).toEqual(
+      [
+        { label: "복제", particle: "는", isSpaced: true },
+        { label: "이름", particle: "을", isSpaced: true },
+      ],
+    );
     // The text between two labels is never read as a label of its own.
     expect(particlesAfterBoldLabels("**편집** 를 누르고 **저장**")).toEqual([
       { label: "편집", particle: "를", isSpaced: true },

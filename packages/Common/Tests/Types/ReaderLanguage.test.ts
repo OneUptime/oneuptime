@@ -243,12 +243,18 @@ describe("toDetectedLanguage (each frontend's language detector)", () => {
   test("every frontend's detector is the shared one, with no copy of its own", () => {
     const packages: string = path.resolve(__dirname, "../../..");
     const frontends: Array<[string, string]> = [
-      ["App/FeatureSet/Dashboard/src/Utils/i18n.ts", "SUPPORTED_DASHBOARD_LANGUAGE_CODES"],
+      [
+        "App/FeatureSet/Dashboard/src/Utils/i18n.ts",
+        "SUPPORTED_DASHBOARD_LANGUAGE_CODES",
+      ],
       [
         "App/FeatureSet/AdminDashboard/src/Utils/i18n.ts",
         "SUPPORTED_ADMIN_DASHBOARD_LANGUAGE_CODES",
       ],
-      ["App/FeatureSet/Accounts/src/Utils/i18n.ts", "SUPPORTED_ACCOUNTS_LANGUAGE_CODES"],
+      [
+        "App/FeatureSet/Accounts/src/Utils/i18n.ts",
+        "SUPPORTED_ACCOUNTS_LANGUAGE_CODES",
+      ],
       [
         "App/FeatureSet/StatusPage/src/Utils/i18n.ts",
         "SUPPORTED_STATUS_PAGE_LANGUAGE_CODES",

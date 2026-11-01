@@ -1062,14 +1062,15 @@ const incidents: Array<SectionDef> = [
     translationKey("Incidents"),
     translationKey("Notify me about incidents on resources I own."),
     [
-    NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
-    NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
-  ]),
+      NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_NOTE_POSTED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_INCIDENT_MEMBER_ADDED_NOTIFICATION,
+    ],
+  ),
   buildSection(
     translationKey("Incident Episodes"),
     translationKey("Notify me about activity on incident episodes I own."),
@@ -1088,12 +1089,13 @@ const alerts: Array<SectionDef> = [
     translationKey("Alerts"),
     translationKey("Notify me about alerts on resources I own."),
     [
-    NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
-  ]),
+      NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_STATE_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_REMINDER_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_NOTE_POSTED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_ALERT_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
   buildSection(
     translationKey("Alert Episodes"),
     translationKey("Notify me about activity on alert episodes I own."),
@@ -1112,19 +1114,21 @@ const monitoring: Array<SectionDef> = [
     translationKey("Monitors"),
     translationKey("Notify me about monitors I own."),
     [
-    NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
-    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
-    NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
-  ]),
+      NotificationSettingEventType.SEND_MONITOR_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_MONITOR_STATUS_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_MONITOR_OWNER_ADDED_NOTIFICATION,
+      NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_PORBE_STATUS_CHANGES,
+      NotificationSettingEventType.SEND_MONITOR_NOTIFICATION_WHEN_NO_PROBES_ARE_MONITORING_THE_MONITOR,
+    ],
+  ),
   buildSection(
     translationKey("SLOs"),
     translationKey("Notify me about SLOs I own."),
     [
-    NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
-    NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
-  ]),
+      NotificationSettingEventType.SEND_SLO_OWNER_STATUS_CHANGE_NOTIFICATION,
+      NotificationSettingEventType.SEND_SLO_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
   // Keys of their own, so the card says them in the reader's language.
   buildSection(
     translationKey("Exceptions"),
@@ -1137,16 +1141,18 @@ const monitoring: Array<SectionDef> = [
     translationKey("Probes"),
     translationKey("Notify me about custom probes I own."),
     [
-    NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
-  ]),
+      NotificationSettingEventType.SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
   buildSection(
     translationKey("AI Agents"),
     translationKey("Notify me about AI agents I own."),
     [
-    NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION,
-  ]),
+      NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_AI_AGENT_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
 ];
 
 const statusPages: Array<SectionDef> = [
@@ -1154,10 +1160,11 @@ const statusPages: Array<SectionDef> = [
     translationKey("Status Pages"),
     translationKey("Notify me about status pages I own."),
     [
-    NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
-    NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
-  ]),
+      NotificationSettingEventType.SEND_STATUS_PAGE_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_STATUS_PAGE_ANNOUNCEMENT_CREATED_OWNER_NOTIFICATION,
+      NotificationSettingEventType.SEND_STATUS_PAGE_OWNER_ADDED_NOTIFICATION,
+    ],
+  ),
 ];
 
 const scheduledMaintenance: Array<SectionDef> = [
@@ -1177,7 +1184,9 @@ const scheduledMaintenance: Array<SectionDef> = [
 const onCall: Array<SectionDef> = [
   buildSection(
     translationKey("On-Call"),
-    translationKey("Notify me about my on-call schedule and policy membership."),
+    translationKey(
+      "Notify me about my on-call schedule and policy membership.",
+    ),
     [
       NotificationSettingEventType.SEND_WHEN_USER_IS_ON_CALL_ROSTER,
       NotificationSettingEventType.SEND_WHEN_USER_IS_NEXT_ON_CALL_ROSTER,

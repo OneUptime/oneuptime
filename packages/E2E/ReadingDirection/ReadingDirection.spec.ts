@@ -991,7 +991,7 @@ const koreanWordsLayout: (page: Page) => Promise<KoreanWordsLayout> = async (
 };
 
 test.describe("Korean keeps its words whole", () => {
-  test("ko: <html lang=\"ko\">, and every word stays on one line in a narrow box", async ({
+  test('ko: <html lang="ko">, and every word stays on one line in a narrow box', async ({
     page,
   }: {
     page: Page;

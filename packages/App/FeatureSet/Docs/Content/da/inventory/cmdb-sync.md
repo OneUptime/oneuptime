@@ -147,7 +147,7 @@ Værter og netværksenheder beskrives med de samme oplysninger, gemt under de sa
 | Firmwareversion | `device.firmware.version` | Stemplet | ENTITY-MIB, ellers det, `sysDescr` nævner |
 | Operativsystem | `os.name` | `os.description` (eller `os.type`) | Det, `sysDescr` nævner: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-version | `os.version` | Registreret | ENTITY-MIB, ellers det, `sysDescr` nævner |
-| Device Type | `device.type` | Stemplet. Ellers klassificerer kortet den ud fra operativsystem og navn (Server, Firewall, ...) | Dens rolle: den, du tildelte, ellers den, topologikortet tegner den som |
+| Enhedstype | `device.type` | Stemplet. Ellers klassificerer kortet den ud fra operativsystem og navn (Server, Firewall, ...) | Dens rolle: den, du tildelte, ellers den, topologikortet tegner den som |
 | Placering | `device.location` | Stemplet. Ellers viser kortet dens cloudzone | `sysLocation`. Kortet viser først dens site |
 
 [Værtstabellen](#aktivattributter-for-værter) og [tabellen over netværksenheder](#aktivattributter-for-netværksenheder) nedenfor fortæller i detaljer, hvor hver værdi kommer fra.

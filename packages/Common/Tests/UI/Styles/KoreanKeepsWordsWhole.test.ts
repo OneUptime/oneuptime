@@ -25,9 +25,7 @@ const KOREAN_RULE_SELECTOR: string = "html:lang(ko)";
 
 describe("Theme.css keeps Korean words whole", () => {
   test("a Korean page breaks lines only between words", () => {
-    expect(declaredValue(KOREAN_RULE_SELECTOR, "word-break")).toBe(
-      "keep-all",
-    );
+    expect(declaredValue(KOREAN_RULE_SELECTOR, "word-break")).toBe("keep-all");
   });
 
   test("a word too long for its line still breaks instead of running out of its box", () => {
