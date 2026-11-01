@@ -22,6 +22,7 @@ import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
 import MetricBaselineService, {
+  BaselineBand,
   BaselineSummary,
   MetricBaselineService as MetricBaselineServiceClass,
 } from "../../../Services/MetricBaselineService";
@@ -120,7 +121,7 @@ export default class SnmpMonitorCriteria {
    *
    * Missing or unreliable baselines mean the rule is still learning —
    * never alert from a thin baseline. Zero-variance baselines are skipped
-   * too: any deviation at all would fire.
+   * too, until the samples themselves have left the one value they held.
    */
   private static async evaluateUtilizationAnomaly(input: {
     projectId: ObjectID;
@@ -164,17 +165,20 @@ export default class SnmpMonitorCriteria {
       return null;
     }
 
-    if (!Number.isFinite(baseline.stddev) || baseline.stddev === 0) {
+    const band: BaselineBand | null = MetricBaselineServiceClass.getBand({
+      baseline,
+      sigmaCount,
+    });
+
+    if (!band) {
       // A zero-variance baseline would flag every deviation. Skip.
       return null;
     }
 
-    const expectedHigh: number = baseline.mean + sigmaCount * baseline.stddev;
-    const expectedLow: number = baseline.mean - sigmaCount * baseline.stddev;
     const observed: number = input.observedUtilizationPercent;
 
-    const isHighBreach: boolean = observed > expectedHigh;
-    const isLowBreach: boolean = observed < expectedLow;
+    const isHighBreach: boolean = observed > band.expectedHigh;
+    const isLowBreach: boolean = observed < band.expectedLow;
 
     let breaches: boolean = false;
     if (input.criteriaFilter.filterType === FilterType.AnomalouslyHigh) {
@@ -189,8 +193,19 @@ export default class SnmpMonitorCriteria {
       return null;
     }
 
+    const direction: string = observed >= baseline.mean ? "above" : "below";
+
+    // A baseline with no spread has no σ to count: it held one value.
+    if (baseline.stddev === 0) {
+      return (
+        `SNMP interface utilization ${observed.toFixed(2)}% is ${direction} the ` +
+        `same-hour baseline, which held at ${baseline.mean.toFixed(2)}% for all ` +
+        `${baseline.sampleCount} samples over ${baseline.windowDays} days ` +
+        `(sensitivity ${sensitivity}).`
+      );
+    }
+
     const observedSigma: number = (observed - baseline.mean) / baseline.stddev;
-    const direction: string = observedSigma >= 0 ? "above" : "below";
 
     return (
       `SNMP interface utilization ${observed.toFixed(2)}% is ` +
