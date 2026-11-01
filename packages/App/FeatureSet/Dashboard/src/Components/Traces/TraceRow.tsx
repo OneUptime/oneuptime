@@ -240,7 +240,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
           {/* Time */}
           {startTimeDate && (
             <div
-              className="max-md:hidden w-20 text-right text-xs text-gray-400 md:block"
+              className="max-md:hidden w-24 whitespace-nowrap text-right text-xs text-gray-400 md:block"
               title={`${formatAbsoluteTime(startTimeDate)} — ${startTimeDate.toISOString()}`}
             >
               {formatRelativeTime(startTimeDate, translator)}
