@@ -290,6 +290,8 @@ describe("the page's install command is the product's", () => {
       }),
     ).toHaveLength(1);
     expect(words).toContain("One helm install, no oc adm policy step");
+    // Creating an SCC takes cluster-admin: the page must not imply otherwise.
+    expect(words).toContain("A cluster admin runs the install");
   });
 
   test("it adds the chart repository the docs add", () => {
