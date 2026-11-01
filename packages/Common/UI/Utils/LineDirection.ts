@@ -17,19 +17,18 @@ import {
  * that cuts the line, not to the isolate inside it.
  *
  * So the box itself reads the way its value does (dir), which puts the
- * "..." at the value's own end - "José Ignacio Negro de l...". And it lines
- * up as the page's lines do (LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
- * text-align: match-parent): a short English name on a Persian page still
- * starts at the right, under its column's name; one too long for its box
- * runs from its own start, as every line too long for its box does.
- *
- * Only a value that reads the other way from the page gets a dir of its
- * own: on an English page an English name's box is drawn exactly as
- * before.
+ * "..." at the value's own end - "José Ignacio Negro de l...". Only a value
+ * that reads the other way from the page gets a dir of its own (on an
+ * English page an English name's box is drawn exactly as before), so the
+ * page's start is always that box's end: aligned to its end
+ * (LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME, text-align: end), a short English
+ * name on a Persian page still starts at the right, under its column's
+ * name. One too long for its box runs from its own start, as every line
+ * too long for its box does, and ends in "..." at the left. (text-align:
+ * match-parent says the same in one word, but Chrome does not know it.)
  */
 
-export const LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME: string =
-  "[text-align:match-parent]";
+export const LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME: string = "text-end";
 
 /*
  * The dir a box that holds one line of `text` needs: the way most of the

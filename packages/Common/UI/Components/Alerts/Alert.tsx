@@ -1,5 +1,8 @@
 import Icon from "../Icon/Icon";
 import IsolatedText from "../IsolatedText/IsolatedText";
+import { getLineDirection } from "../../Utils/LineDirection";
+import { Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
@@ -41,18 +44,22 @@ export interface ComponentProps {
 }
 
 /*
- * A message's words, read the way they are written (IsolatedText): an
- * answer from the server is in English - "Promo code is invalid." - and on a
- * Persian page, laid out right to left, its full stop came first. A message
- * the page draws as an element of its own (links, bold names) is drawn as
- * it is.
+ * A message's words, read the way they are written: an answer from the
+ * server is in English - "Promo code is invalid." - and on a Persian page,
+ * laid out right to left, its full stop came first. Words that read the
+ * other way from the page are drawn in an isolate of their own
+ * (IsolatedText); words in the page's own way, and a message the page draws
+ * as an element of its own (links, bold names), are drawn as they are.
  */
 const readAsWritten: (
   message: string | ReactElement | undefined,
+  pageLanguage: string,
 ) => string | ReactElement | undefined = (
   message: string | ReactElement | undefined,
+  pageLanguage: string,
 ): string | ReactElement | undefined => {
-  return typeof message === "string" && message ? (
+  return typeof message === "string" &&
+    getLineDirection(message, pageLanguage) ? (
     <IsolatedText text={message} />
   ) : (
     message
@@ -63,6 +70,8 @@ const Alert: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString, translateValue } = useTranslateValue();
+  // The page's language: the way its lines read.
+  const translator: Translator = useTranslator();
   const translatedStrongTitle: string | undefined = translateString(
     props.strongTitle,
   );
@@ -183,10 +192,12 @@ const Alert: FunctionComponent<ComponentProps> = (
             <div className="min-w-0 space-y-1">
               {translatedStrongTitle && (
                 <div className="font-semibold">
-                  {readAsWritten(translatedStrongTitle)}
+                  {readAsWritten(translatedStrongTitle, translator.language)}
                 </div>
               )}
-              {translatedTitle && <div>{readAsWritten(translatedTitle)}</div>}
+              {translatedTitle && (
+                <div>{readAsWritten(translatedTitle, translator.language)}</div>
+              )}
             </div>
             {translatedTextOnRight && (
               /*
@@ -202,7 +213,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                 className="min-w-0 font-medium sm:ml-auto sm:max-w-[50%] sm:shrink-0 sm:text-right"
                 data-testid="alert-text-on-right"
               >
-                {readAsWritten(translatedTextOnRight)}
+                {readAsWritten(translatedTextOnRight, translator.language)}
               </div>
             )}
           </div>

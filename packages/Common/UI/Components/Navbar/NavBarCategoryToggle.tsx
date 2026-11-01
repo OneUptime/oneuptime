@@ -184,7 +184,13 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
     </span>
   );
 
-  // Icon draws an <svg> inside a <div>: the wrapper is the grid or flex item.
+  /*
+   * Icon draws an <svg> inside a <div>: the wrapper is the grid or flex item.
+   * Folded, the chevron points along the line - right, and left on a page
+   * read right to left, as a side menu's folded section's does: the down
+   * chevron turned a quarter, then mirrored with the line
+   * (isMirroredRightToLeft). Open, it points down either way.
+   */
   const chevron: ReactElement = (
     <div
       className={`flex flex-shrink-0 items-center ${
@@ -193,6 +199,7 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
     >
       <Icon
         icon={IconProp.ChevronDown}
+        isMirroredRightToLeft={true}
         className={`h-4 w-4 transition-transform duration-200 ${
           props.isOpen ? "rotate-0" : "-rotate-90"
         } ${isActive ? "text-indigo-500" : "text-gray-400"}`}

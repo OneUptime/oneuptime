@@ -2399,16 +2399,22 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   }
 
   let className: string = "";
+  /*
+   * Room at the end for the error's icon: pr-10 in place of pr-3, which
+   * Tailwind's stylesheet puts after pr-10 when both are written - a note
+   * ran under the icon, at the left of a Persian page.
+   */
   if (!props.className) {
-    className =
-      "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y";
+    className = `block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 ${
+      props.error ? "pr-10" : "pr-3"
+    } text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y`;
   } else {
-    className = props.className;
+    className = props.error ? `${props.className} pr-10` : props.className;
   }
 
   if (props.error) {
     className +=
-      " border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
+      " border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
   }
 
   /*
@@ -2419,9 +2425,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
   const textDirection: ReadingDirection | undefined =
     getMarkdownReadingDirection(text);
 
-  const wysiwygClassName: string = `oneuptime-wysiwyg block w-full min-h-32 rounded-md rounded-t-none border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
+  const wysiwygClassName: string = `oneuptime-wysiwyg block w-full min-h-32 rounded-md rounded-t-none border border-gray-300 bg-white py-2 pl-3 ${
+    props.error ? "pr-10" : "pr-3"
+  } text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
     props.error
-      ? "border-red-300 pr-10 text-red-900 focus:border-red-500 focus:outline-none focus:ring-red-500"
+      ? "border-red-300 text-red-900 focus:border-red-500 focus:outline-none focus:ring-red-500"
       : ""
   } ${
     isDraggingOver

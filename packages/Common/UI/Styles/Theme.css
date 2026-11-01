@@ -2208,6 +2208,23 @@ pre:dir(rtl) {
   direction: ltr;
 }
 
+/*
+ * A React Flow canvas - a workflow, the service map, the topology, Correlate
+ * - is laid out left to right in every language (React Flow's own
+ * .react-flow { direction: ltr }): a node's place is its x and y, and its
+ * handles sit on its physical sides, where its lines meet it. What a node,
+ * a panel or a line's label says reads the way the page does: a Persian
+ * node's words, its icon and its badges run from the right, as every card
+ * on a Persian page does, and a Persian sentence in it keeps its full stop
+ * at its end. A node's place does not move: it is set by a transform, from
+ * the canvas's left.
+ */
+.react-flow__node:dir(rtl),
+.react-flow__panel:dir(rtl),
+.react-flow__edgelabel-renderer:dir(rtl) {
+  direction: rtl;
+}
+
 :is(code, kbd, samp):dir(rtl) {
   direction: ltr;
   unicode-bidi: isolate;

@@ -1,5 +1,7 @@
 import IsolatedText from "../../IsolatedText/IsolatedText";
-import useTranslateValue from "../../../Utils/Translation";
+import { getLineDirection } from "../../../Utils/LineDirection";
+import { Translator } from "../../../Utils/TranslateTemplate";
+import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -8,12 +10,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Every field draws its error with this one line: in red, under the field,
  * where the field's words start, and said to a screen reader as it appears.
  *
- * The message is read the way it is written (IsolatedText). A check the
- * product makes is in the reader's language, but an answer from the server
- * is in English - "Promo code is invalid." - and on a Persian page, laid out
- * right to left, its full stop came first: ".Promo code is invalid". In an
- * isolate it keeps its full stop at its end, and the line still starts at
- * the right, under the field.
+ * The message reads the way it is written. A check the product makes is in
+ * the reader's language, but an answer from the server is in English -
+ * "Promo code is invalid." - and on a Persian page, laid out right to left,
+ * its full stop came first: ".Promo code is invalid". A message that reads
+ * the other way from the page is drawn in an isolate of its own
+ * (IsolatedText), so it keeps its full stop at its end and the line still
+ * starts at the right, under the field. One in the page's own words is
+ * drawn as it always was.
  */
 
 export const FIELD_ERROR_TEST_ID: string = "error-message";
@@ -38,8 +42,9 @@ export interface ComponentProps {
 const FieldError: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
-  const message: string = translateString(props.message) ?? props.message;
+  const translator: Translator = useTranslator();
+  const message: string =
+    translator.translateText(props.message) ?? props.message;
   const announce: "alert" | "polite" | "none" = props.announce || "alert";
 
   return (
@@ -50,7 +55,11 @@ const FieldError: FunctionComponent<ComponentProps> = (
       role={announce === "alert" ? "alert" : undefined}
       aria-live={announce === "polite" ? "polite" : undefined}
     >
-      <IsolatedText text={message} />
+      {getLineDirection(message, translator.language) ? (
+        <IsolatedText text={message} />
+      ) : (
+        message
+      )}
     </p>
   );
 };
