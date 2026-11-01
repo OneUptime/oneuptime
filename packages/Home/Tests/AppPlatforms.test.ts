@@ -86,7 +86,11 @@ describe("the platforms the page lists", () => {
       ),
     );
     expect(
-      new Set(cards.map((card: AppPlatformCard) => card.platform)).size,
+      new Set(
+        cards.map((card: AppPlatformCard): string => {
+          return card.platform;
+        }),
+      ).size,
     ).toBe(cards.length);
   });
 

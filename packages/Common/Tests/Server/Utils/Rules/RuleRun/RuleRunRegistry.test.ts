@@ -169,28 +169,33 @@ describe("RuleRunRegistry", () => {
   it.each([
     RuleRunType.CloudResourceLabelRule,
     RuleRunType.CloudResourceOwnerRule,
-  ])("%s walks only the rows of the kind the rule is for", (ruleType) => {
-    const definition: RuleRunDefinition =
-      RuleRunRegistry.getDefinition(ruleType)!;
+  ])(
+    "%s walks only the rows of the kind the rule is for",
+    (ruleType: RuleRunType) => {
+      const definition: RuleRunDefinition =
+        RuleRunRegistry.getDefinition(ruleType)!;
 
-    expect(definition.getResourceScope).toBeDefined();
-    expect(
-      definition.getResourceScope!({
-        cloudResourceKind: "environment",
-      } as never),
-    ).toEqual({ cloudResourceKind: "environment" });
-    expect(
-      definition.getResourceScope!({ cloudResourceKind: "resource" } as never),
-    ).toEqual({ cloudResourceKind: "resource" });
-    expect(definition.getResourceScope!({} as never)).toEqual({});
-    expect(
-      definition.getResourceScope!({ cloudResourceKind: null } as never),
-    ).toEqual({});
-    // What the engine reads of the rule, the scope reads too.
-    expect(definition.engine.ruleSelect).toMatchObject({
-      cloudResourceKind: true,
-    });
-  });
+      expect(definition.getResourceScope).toBeDefined();
+      expect(
+        definition.getResourceScope!({
+          cloudResourceKind: "environment",
+        } as never),
+      ).toEqual({ cloudResourceKind: "environment" });
+      expect(
+        definition.getResourceScope!({
+          cloudResourceKind: "resource",
+        } as never),
+      ).toEqual({ cloudResourceKind: "resource" });
+      expect(definition.getResourceScope!({} as never)).toEqual({});
+      expect(
+        definition.getResourceScope!({ cloudResourceKind: null } as never),
+      ).toEqual({});
+      // What the engine reads of the rule, the scope reads too.
+      expect(definition.engine.ruleSelect).toMatchObject({
+        cloudResourceKind: true,
+      });
+    },
+  );
 
   it("scopes no other rule's walk", () => {
     for (const ruleType of RESOURCE_RULE_TYPES) {

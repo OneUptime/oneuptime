@@ -206,7 +206,7 @@ for (const page of PAGES) {
   });
 }
 
-/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 const AppPlatformsRoutes: FunctionComponent<Record<string, unknown>> = require(
   `${DASHBOARD}/Routes/AppPlatformsRoutes`,
 ).default;
@@ -219,14 +219,18 @@ const PageMap: Record<string, string> = require(
 const { RouteUtil } = require(`${DASHBOARD}/Utils/RouteMap`) as {
   RouteUtil: { getRouteString: (key: string) => string };
 };
-/* eslint-enable @typescript-eslint/no-require-imports */
+/* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
 const ROW_ID: string = "0193c0de-9999-4aaa-8bbb-000000000009";
 const CLOUD: string = `/dashboard/${PROJECT_ID}/cloud`;
 const APP_PLATFORMS: string = `/dashboard/${PROJECT_ID}/app-platforms`;
 
 const PAGE_PROPS: Record<string, unknown> = {
-  pageRoute: { toString: () => `/dashboard/${PROJECT_ID}/home` },
+  pageRoute: {
+    toString: (): string => {
+      return `/dashboard/${PROJECT_ID}/home`;
+    },
+  },
   currentProject: null,
   hasPaymentMethod: true,
 };
