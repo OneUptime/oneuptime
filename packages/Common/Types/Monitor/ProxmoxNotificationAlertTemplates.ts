@@ -246,7 +246,7 @@ const backupJobFailedTemplate: ProxmoxNotificationAlertTemplate = {
   id: PROXMOX_BACKUP_JOB_FAILED_TEMPLATE_ID,
   name: "Backup Job Failed",
   summary:
-    "A backup job fails on a node: one alert per node and job, until it succeeds again.",
+    "A backup job fails: one alert per node and job, until the job succeeds again.",
   /*
    * No backticks: the description is drawn as plain text on the
    * recommendation card.
