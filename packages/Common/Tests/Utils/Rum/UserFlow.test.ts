@@ -1074,9 +1074,7 @@ describe("one session's journey, page by page", () => {
   });
 
   test("a journey that never went back has no returns", () => {
-    expect(
-      stepsOf({ id: "s", pages: ["/", "/a", "/b"] }).revisits,
-    ).toBe(0);
+    expect(stepsOf({ id: "s", pages: ["/", "/a", "/b"] }).revisits).toBe(0);
   });
 
   test("a reload is not a return: back-to-back repeats are already collapsed", () => {

@@ -197,12 +197,13 @@ describe("getUserFlowScopeKey", () => {
   test("everyone is empty, and each person a key of their own", () => {
     expect(getUserFlowScopeKey(null)).toBe("");
 
-    const keys: Array<string> = [
+    const scopes: Array<UserFlowScope> = [
       user("a"),
       user("b"),
       { kind: "visitor", visitorId: VISITOR },
       { kind: "session", sessionId: SESSION },
-    ].map((scope: UserFlowScope): string => {
+    ];
+    const keys: Array<string> = scopes.map((scope: UserFlowScope): string => {
       return getUserFlowScopeKey(scope);
     });
 
