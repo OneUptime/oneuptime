@@ -52,6 +52,7 @@ import {
   APP_LAST_SEEN,
   CloudAppSignalsSummaryCell,
 } from "./CloudAppCells";
+import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
 import { APP_REVISION } from "./CloudAppHeader";
 
 /*
@@ -281,24 +282,31 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
            * One line of what the app runs: its revision, and how many
            * instances run it - or, quiet, when it was last heard from.
            */
-          const facts: Array<string> = [];
+          const facts: Array<CloudAppFact> = [];
 
           if (revision) {
-            facts.push(
-              translator.translateTemplate(APP_REVISION, { revision }),
-            );
+            facts.push({
+              key: "revision",
+              content: translator.translateTemplate(APP_REVISION, {
+                revision,
+              }),
+            });
           }
 
           if (state === CloudAppState.NotReporting && app.lastSeenAt) {
-            facts.push(
-              translator.translateTemplate(APP_LAST_SEEN, {
+            facts.push({
+              key: "last-seen",
+              content: translator.translateTemplate(APP_LAST_SEEN, {
                 time: OneUptimeDate.fromNow(
                   OneUptimeDate.fromString(app.lastSeenAt),
                 ),
               }),
-            );
+            });
           } else if (live !== undefined && live > 0) {
-            facts.push(translator.translatePlural(APP_INSTANCE_COUNT, live));
+            facts.push({
+              key: "instances",
+              content: translator.translatePlural(APP_INSTANCE_COUNT, live),
+            });
           }
 
           return (
@@ -334,19 +342,14 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
                 <span className="sr-only">
                   {translator.translateText(CLOUD_APP_STATE_LABELS[state])}
                 </span>
-                {facts.length > 0 ? (
-                  <div
-                    className={`mt-0.5 text-xs ${
-                      state === CloudAppState.NotReporting
-                        ? "text-amber-700"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    <bdi>{facts.join(" · ")}</bdi>
-                  </div>
-                ) : (
-                  <></>
-                )}
+                <CloudAppFacts
+                  facts={facts}
+                  className={`mt-0.5 text-xs ${
+                    state === CloudAppState.NotReporting
+                      ? "text-amber-700"
+                      : "text-gray-500"
+                  }`}
+                />
               </div>
               <div className="text-end">
                 <CloudAppSignalsSummaryCell

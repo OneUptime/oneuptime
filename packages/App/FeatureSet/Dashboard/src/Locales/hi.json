@@ -39564,5 +39564,20 @@
   "trace id": "ट्रेस ID",
   "{{count}} req": "{{count}} अनुरोध",
   "{{name}} Service Color": "{{name}} सेवा का रंग",
-  "metric explorer": "मेट्रिक एक्सप्लोरर"
+  "metric explorer": "मेट्रिक एक्सप्लोरर",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "इस प्रोजेक्ट के क्लाउड परिवेश - हर क्लाउड प्लेटफ़ॉर्म, खाते और क्षेत्र के लिए एक - संग्रहीत परिवेशों को छोड़कर। नीचे की पंक्ति बताती है कि कितने डिस्कनेक्टेड हैं, नहीं तो कितने पहले डेटा की प्रतीक्षा में हैं, और नहीं तो वे किन प्रदाताओं पर हैं।",
+  "Deploys and rollbacks": "डिप्लॉय और रोलबैक",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "हर ऐप का नाम वैसा ही जैसा आपका क्लाउड कंसोल रखता है, हर प्लेटफ़ॉर्म, खाते और क्षेत्र के एक परिवेश में।",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "हर नया रिविज़न, आपकी टेलीमेट्री से पहचाना गया और चार्ट पर चिह्नित।",
+  "Everything an app sends, already filtered to it.": "किसी ऐप द्वारा भेजा गया सब कुछ, पहले से उसी पर फ़िल्टर किया हुआ।",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "कितने ऐप चल रहे हैं, पिछले एक दिन के डिप्लॉय, और कितने इंस्टेंस लाइव हैं।",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "एक से ज़्यादा रिविज़न चल रहे हैं: डिप्लॉय चल रहा है, या ट्रैफ़िक उनके बीच बँटा है।",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "क्लाउड रिसोर्स डिटेक्टर के साथ अपने ऐप के OpenTelemetry को OneUptime की ओर इंगित करें। ECS से लेकर Cloud Run और App Service तक, हर ऐप अपने डिप्लॉय, इंस्टेंस, लॉग, ट्रेस और मेट्रिक्स के साथ दिखता है।",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "हर ऐप के अनुरोध, त्रुटि दर और p95 लेटेंसी, और उसके इंस्टेंस का CPU और मेमोरी।",
+  "Rolled back {{time}}": "{{time}} रोलबैक किया गया",
+  "See every app your cloud platforms run": "वे सभी ऐप देखें जो आपके क्लाउड प्लेटफ़ॉर्म चलाते हैं",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "वे संसाधन एट्रिब्यूट जिनसे इस ऐप की टेलीमेट्री पहचानी जाती है, और वह रिविज़न जो यह चलाता है।",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "हर लाइव इंस्टेंस कौन-सा रिविज़न चला रहा है: पिछले 15 मिनट में दिखे इंस्टेंस।",
+  "{{count}} environments waiting for first data": "{{count}} परिवेश पहले डेटा की प्रतीक्षा में",
+  "{{count}} environments waiting for first data_one": "{{count}} परिवेश पहले डेटा की प्रतीक्षा में"
 }

@@ -39564,5 +39564,20 @@
   "trace id": "트레이스 ID",
   "{{count}} req": "요청 {{count}}건",
   "{{name}} Service Color": "{{name}} 서비스 색상",
-  "metric explorer": "메트릭 탐색기"
+  "metric explorer": "메트릭 탐색기",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "이 프로젝트의 클라우드 환경(클라우드 플랫폼, 계정, 리전마다 하나)이며 보관된 환경은 제외합니다. 아래 줄은 연결이 끊긴 환경 수를, 없으면 첫 데이터를 기다리는 환경 수를, 그것도 없으면 어느 공급자에 있는지 보여 줍니다.",
+  "Deploys and rollbacks": "배포와 롤백",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "각 앱은 클라우드 콘솔에서 부르는 이름 그대로, 플랫폼, 계정, 리전마다 하나인 환경 안에 표시됩니다.",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "새 리비전을 텔레메트리에서 찾아 차트에 표시합니다.",
+  "Everything an app sends, already filtered to it.": "앱이 보내는 모든 데이터를 해당 앱으로 미리 필터링해 보여 줍니다.",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "실행 중인 앱 수, 지난 하루의 배포, 활성 인스턴스 수를 보여 줍니다.",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "리비전 둘 이상이 실행 중입니다. 배포가 진행 중이거나 트래픽이 나뉘어 있는 것입니다.",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "클라우드 리소스 감지기를 사용해 앱의 OpenTelemetry가 OneUptime을 가리키도록 설정하세요. ECS부터 Cloud Run, App Service까지 각 앱이 배포, 인스턴스, 로그, 트레이스, 메트릭과 함께 표시됩니다.",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "각 앱의 요청, 오류율, p95 지연 시간과 인스턴스의 CPU, 메모리를 보여 줍니다.",
+  "Rolled back {{time}}": "{{time}} 롤백됨",
+  "See every app your cloud platforms run": "클라우드 플랫폼에서 실행되는 모든 앱을 한눈에",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "이 앱의 텔레메트리를 식별하는 리소스 속성과 실행 중인 리비전입니다.",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "활성 인스턴스(최근 15분 동안 확인된 인스턴스)마다 실행 중인 리비전입니다.",
+  "{{count}} environments waiting for first data": "환경 {{count}}개가 첫 데이터를 기다리는 중",
+  "{{count}} environments waiting for first data_one": "환경 {{count}}개가 첫 데이터를 기다리는 중"
 }

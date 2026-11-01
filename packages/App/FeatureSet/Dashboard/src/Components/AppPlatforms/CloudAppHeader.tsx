@@ -21,26 +21,39 @@ import {
 } from "../TelemetryResource/ResourceHeroLayout";
 import {
   CLOUD_APP_STATE_LABELS,
+  CloudAppRevisionMarkerSource,
   CloudAppState,
-  getCloudAppGroupNoun,
+  getCloudAppGroupLabel,
   getCloudAppRevisionNoun,
   getCloudAppState,
   getShortRevision,
+  isCloudAppRolledBack,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import {
   APP_DEPLOYED,
   APP_INSTANCE_COUNT,
   APP_LAST_SEEN,
+  APP_ROLLED_BACK,
 } from "./CloudAppCells";
+import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
 import { REVISION_REPLACED } from "./CloudAppRevisionsTab";
 
 /*
  * The top of an App Platforms app's page, above its tabs - what the app is
  * and whether it is all right, as a platform console's service header says
  * it: its name, Running or Not reporting and on how many instances, where
- * it runs, the revision it runs and since when, and the service its
- * telemetry is under. The time range for every tab's numbers sits at its
- * end, as on every resource's Overview.
+ * it runs, the revision it runs and since when - deployed, or rolled back
+ * to - and the service its telemetry is under. The time range for every
+ * tab's numbers sits at its end, as on every resource's Overview.
+ *
+ * Laid out as every resource hero is (ResourceHeroLayout): the name and its
+ * facts keep their room and the controls give way. The facts wrap, so on
+ * their own they asked for no room at all, and beside the side menu at 1024
+ * - or in German at 1280, where the controls are wider - they were squeezed
+ * to a word a line: "us-" over "east-1", "Revision 43 ·" over "Deployed 25
+ * minutes ago" (#5511's UI review). They ask for 20rem from md up, as a
+ * hero's description does, so the controls move under them instead; each
+ * line is a CloudAppFacts, kept whole between its dots.
  */
 
 export const APP_REVISION: string = translationKey("Revision {{revision}}");
@@ -54,6 +67,13 @@ export const APP_SET_UP_ALERTS: string = translationKey("Set up alerts");
 export const APP_SET_UP_ALERTS_HINT: string = translationKey(
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.",
 );
+// The words beside the name and the facts under it ask for this much room.
+export const CLOUD_APP_HEADER_TEXT_CLASS_NAME: string =
+  "min-w-0 flex-1 md:min-w-[20rem]";
+
+// A keyboard's focus on the header's links, as on its buttons.
+const LINK_FOCUS_CLASS_NAME: string =
+  "focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 const STATE_PILL_CLASS_NAMES: Readonly<Record<CloudAppState, string>> = {
   [CloudAppState.Running]: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -70,6 +90,11 @@ export interface ComponentProps {
   environment: CloudResource;
   // Live instances, when they were read.
   liveInstances?: number | undefined;
+  /*
+   * The app's revisions, when they were read: they say whether the revision
+   * it runs is one it went back to (a rollback) rather than a deploy.
+   */
+  revisions?: ReadonlyArray<CloudAppRevisionMarkerSource> | undefined;
   // The service the app's telemetry is under, in Services, when it has one.
   serviceRoute?: Route | undefined;
   // That service's recommended alerts, when it has a service.
@@ -86,25 +111,29 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
   const state: CloudAppState = getCloudAppState(app.lastSeenAt);
   const descriptor: ManagedCloudPlatformDescriptor | null =
     getManagedCloudPlatformDescriptor(app.cloudPlatform);
-  const groupNoun: string | null = getCloudAppGroupNoun(app.cloudPlatform);
+  const group: string = getCloudAppGroupLabel({
+    groupName: app.groupName,
+    cloudPlatform: app.cloudPlatform,
+    translator,
+  });
 
-  const where: Array<string> = [];
+  const where: Array<CloudAppFact> = [];
 
   if (descriptor) {
-    where.push(descriptor.productName);
+    where.push({ key: "platform", content: descriptor.productName });
   }
 
   if (environment.cloudRegion) {
-    where.push(environment.cloudRegion);
+    where.push({ key: "region", content: environment.cloudRegion });
   }
 
-  if (app.groupName && groupNoun) {
-    where.push(
-      translator.translateTemplate("{{noun}} {{name}}", {
-        noun: (translator.translateText(groupNoun) || groupNoun).toLowerCase(),
-        name: app.groupName,
-      }),
-    );
+  if (group) {
+    where.push({ key: "group", content: group });
+  }
+
+  // Nothing the platform says: the environment's name stands for it.
+  if (where.length === 0 && environment.name) {
+    where.push({ key: "environment", content: environment.name });
   }
 
   const stateLabel: string =
@@ -129,6 +158,54 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
     revision: app.currentRevision,
     appName: app.name,
   });
+  const isRolledBack: boolean = isCloudAppRolledBack({
+    revisions: props.revisions || [],
+    currentRevision: app.currentRevision,
+    currentRevisionSince: app.currentRevisionSince,
+    previousRevision: app.previousRevision,
+  });
+
+  /*
+   * Three facts about what it runs: the revision, since when and how it got
+   * there - deployed, or rolled back to - and the revision it replaced.
+   */
+  const revisionFacts: Array<CloudAppFact> = [];
+
+  if (revision) {
+    revisionFacts.push({
+      key: "revision",
+      content: translator.translateTemplate(APP_REVISION, { revision }),
+      title: translator.translateText(revisionNoun) || revisionNoun,
+    });
+
+    if (app.currentRevisionSince) {
+      revisionFacts.push({
+        key: isRolledBack ? "rolled-back" : "deployed",
+        content: translator.translateTemplate(
+          isRolledBack ? APP_ROLLED_BACK : APP_DEPLOYED,
+          {
+            time: OneUptimeDate.fromNow(
+              OneUptimeDate.fromString(app.currentRevisionSince),
+            ),
+          },
+        ),
+        className: isRolledBack ? "font-medium text-amber-700" : undefined,
+      });
+    }
+
+    if (app.previousRevision) {
+      revisionFacts.push({
+        key: "replaced",
+        content: translator.translateTemplate(REVISION_REPLACED, {
+          revision: getShortRevision({
+            revision: app.previousRevision,
+            appName: app.name,
+          }),
+        }),
+        className: "text-gray-500",
+      });
+    }
+  }
 
   return (
     <div
@@ -154,7 +231,7 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
                 size="md"
               />
             </div>
-            <div className="min-w-0">
+            <div className={CLOUD_APP_HEADER_TEXT_CLASS_NAME}>
               <div className="flex flex-wrap items-center gap-2">
                 <h1
                   className="break-words text-xl font-semibold text-gray-900"
@@ -178,72 +255,28 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
               </div>
-              <div className="mt-1 text-sm text-gray-600">
+              {where.length > 0 ? (
                 <AppLink
                   to={props.environmentRoute}
-                  className="hover:underline"
+                  className={`mt-1 block max-w-full rounded-sm text-sm text-gray-600 hover:text-gray-900 hover:underline ${LINK_FOCUS_CLASS_NAME}`}
+                  dataTestId="cloud-app-header-where"
                 >
-                  <bdi>{where.join(" · ") || environment.name || ""}</bdi>
+                  <CloudAppFacts facts={where} />
                 </AppLink>
-              </div>
+              ) : (
+                <></>
+              )}
               <div
                 className="mt-1 text-sm text-gray-600"
                 data-testid="cloud-app-header-revision"
+                data-change={
+                  revision ? (isRolledBack ? "rolled-back" : "deployed") : ""
+                }
               >
-                {/*
-                 * Three facts, each kept whole: the line breaks between them,
-                 * never inside "deployed 25 minutes ago".
-                 */}
                 {revision ? (
-                  <>
-                    <span
-                      className="whitespace-nowrap"
-                      title={
-                        translator.translateText(revisionNoun) || revisionNoun
-                      }
-                    >
-                      <bdi>
-                        {translator.translateTemplate(APP_REVISION, {
-                          revision: revision,
-                        })}
-                      </bdi>
-                    </span>
-                    {app.currentRevisionSince ? (
-                      <>
-                        {" · "}
-                        <span className="whitespace-nowrap">
-                          {translator.translateTemplate(APP_DEPLOYED, {
-                            time: OneUptimeDate.fromNow(
-                              OneUptimeDate.fromString(
-                                app.currentRevisionSince,
-                              ),
-                            ),
-                          })}
-                        </span>
-                      </>
-                    ) : (
-                      <></>
-                    )}
-                    {app.previousRevision ? (
-                      <>
-                        {" · "}
-                        <span className="whitespace-nowrap text-gray-400">
-                          <bdi>
-                            {translator.translateTemplate(REVISION_REPLACED, {
-                              revision: getShortRevision({
-                                revision: app.previousRevision,
-                                appName: app.name,
-                              }),
-                            })}
-                          </bdi>
-                        </span>
-                      </>
-                    ) : (
-                      <></>
-                    )}
-                  </>
+                  <CloudAppFacts facts={revisionFacts} />
                 ) : (
-                  <span className="text-gray-400">
+                  <span className="text-gray-500">
                     {translator.translateText(APP_NO_REVISION)}
                   </span>
                 )}
@@ -269,7 +302,7 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
             {props.alertsRoute ? (
               <AppLink
                 to={props.alertsRoute}
-                className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100"
+                className={`inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100 ${LINK_FOCUS_CLASS_NAME}`}
                 title={translator.translateText(APP_SET_UP_ALERTS_HINT)}
               >
                 <Icon icon={IconProp.Bell} className="h-3 w-3" />
@@ -281,7 +314,7 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
             {props.serviceRoute && app.serviceName ? (
               <AppLink
                 to={props.serviceRoute}
-                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-indigo-300 hover:text-indigo-700"
+                className={`inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-indigo-300 hover:text-indigo-700 ${LINK_FOCUS_CLASS_NAME}`}
                 title={translator.translateTemplate(APP_OPEN_SERVICE, {
                   service: app.serviceName,
                 })}

@@ -39564,5 +39564,20 @@
   "trace id": "trace-ID",
   "{{count}} req": "{{count}} aanvr.",
   "{{name}} Service Color": "Servicekleur van {{name}}",
-  "metric explorer": "metriekverkenner"
+  "metric explorer": "metriekverkenner",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "Cloud-omgevingen in dit project - één per cloudplatform, account en regio - zonder de gearchiveerde. De regel eronder zegt hoeveel er verbroken zijn, anders hoeveel er nog op hun eerste gegevens wachten, anders bij welke providers ze draaien.",
+  "Deploys and rollbacks": "Implementaties en terugdraaiingen",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "Elke app genoemd zoals je cloudconsole hem noemt, in een omgeving per platform, account en regio.",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "Elke nieuwe revisie, herkend uit je telemetrie en gemarkeerd in de grafieken.",
+  "Everything an app sends, already filtered to it.": "Alles wat een app verstuurt, al op die app gefilterd.",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "Hoeveel apps er draaien, de implementaties van de afgelopen dag en hoeveel instanties er live zijn.",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "Er draait meer dan één revisie: een lopende implementatie of verkeer dat over ze is verdeeld.",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "Richt de OpenTelemetry van je app op OneUptime met een cloud-resourcedetector. Elke app, van ECS tot Cloud Run en App Service, verschijnt met zijn implementaties, instanties, logboeken, traces en metrieken.",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "Aanvragen, foutpercentage en p95-latentie per app, CPU en geheugen per instantie.",
+  "Rolled back {{time}}": "Teruggedraaid {{time}}",
+  "See every app your cloud platforms run": "Bekijk elke app die je cloudplatforms draaien",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "De resource-attributen waaraan de telemetrie van deze app wordt herkend, en de revisie die hij draait.",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "Welke revisie elke live instantie draait: de instanties die de afgelopen 15 minuten zijn gezien.",
+  "{{count}} environments waiting for first data": "{{count}} omgevingen wachten op de eerste gegevens",
+  "{{count}} environments waiting for first data_one": "{{count}} omgeving wacht op de eerste gegevens"
 }

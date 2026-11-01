@@ -39564,5 +39564,20 @@
   "trace id": "شناسه ترِیس",
   "{{count}} req": "{{count}} درخواست",
   "{{name}} Service Color": "رنگ سرویس {{name}}",
-  "metric explorer": "کاوشگر متریک"
+  "metric explorer": "کاوشگر متریک",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "محیط‌های ابری این پروژه - یکی برای هر بستر ابری، حساب و منطقه - بدون محیط‌های بایگانی‌شده. خط پایین نشان می‌دهد چند محیط قطع شده‌اند، وگرنه چند محیط در انتظار نخستین داده‌ها هستند، وگرنه روی کدام ارائه‌دهندگان هستند.",
+  "Deploys and rollbacks": "استقرارها و بازگردانی‌ها",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "هر برنامه با همان نامی که کنسول ابری‌تان به آن می‌دهد، در محیطی برای هر بستر، حساب و منطقه.",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "هر ویرایش تازه، از روی تله‌متری شما شناسایی و روی نمودارها علامت‌گذاری می‌شود.",
+  "Everything an app sends, already filtered to it.": "هر آنچه یک برنامه می‌فرستد، از پیش فیلترشده برای همان برنامه.",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "چند برنامه در حال اجراست، استقرارهای روز گذشته، و چند نمونه فعال‌اند.",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "بیش از یک ویرایش در حال اجراست: استقراری در جریان است یا ترافیک بین آن‌ها تقسیم شده است.",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "OpenTelemetry برنامه‌تان را با یک تشخیص‌دهندهٔ منبع ابری به OneUptime هدایت کنید. هر برنامه، از ECS تا Cloud Run و App Service، با استقرارها، نمونه‌ها، لاگ‌ها، ترِیس‌ها و متریک‌هایش ظاهر می‌شود.",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "درخواست‌ها، نرخ خطا و تأخیر p95 برای هر برنامه، و CPU و حافظه برای نمونه‌هایش.",
+  "Rolled back {{time}}": "بازگردانی {{time}}",
+  "See every app your cloud platforms run": "همه برنامه‌هایی را که بسترهای ابری‌تان اجرا می‌کنند ببینید",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "ویژگی‌های منبعی که تله‌متری این برنامه با آن‌ها شناخته می‌شود، و ویرایشی که اجرا می‌کند.",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "هر نمونهٔ فعال کدام ویرایش را اجرا می‌کند: نمونه‌هایی که در ۱۵ دقیقه گذشته دیده شده‌اند.",
+  "{{count}} environments waiting for first data": "{{count}} محیط در انتظار نخستین داده‌ها",
+  "{{count}} environments waiting for first data_one": "{{count}} محیط در انتظار نخستین داده‌ها"
 }

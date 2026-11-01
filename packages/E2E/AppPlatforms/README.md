@@ -37,7 +37,9 @@ Six apps run in them: `checkout-api` and `inventory` in `checkout`'s
 minutes, after 42 and 41, with two tasks on 43 and one still on 42;
 `inventory` quiet for two hours), `billing-api` (quiet for three hours),
 `api` and `worker` on Cloud Run (`api` deployed from `api-00041-abc` to
-`api-00042-xyz` an hour ago) and `reports` on Container Apps. Their requests,
+`api-00042-xyz` an hour ago) and `reports` on Container Apps (rolled back 40
+minutes ago from `reports--v12abc`, deployed two days ago, to the
+`reports--v11def` it ran before). Their requests,
 errors and p95 over the last hour, and `checkout-api`'s per revision, come
 back from `/telemetry/traces/analytics` (`APP_SIGNALS`, `REVISION_SIGNALS`).
 The service `checkout-api`'s telemetry is under is in Services, so its app page

@@ -10,7 +10,10 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
+import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
+import Pill from "Common/UI/Components/Pill/Pill";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import ChartEventKind from "Common/UI/Components/Charts/Types/ChartEventKind";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
@@ -18,6 +21,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ChartCard from "../TelemetryResource/ChartCard";
 import {
+  RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME,
   ResourceOverviewTile,
   ResourceOverviewTileCard,
 } from "../TelemetryResource/ResourceOverview";
@@ -32,17 +36,25 @@ import {
 import { CLOUD_APP_METRIC_DESCRIPTIONS } from "../MetricDescriptions/CloudMetricDescriptions";
 import {
   CLOUD_APP_LIVE_WINDOW_MINUTES,
+  CLOUD_APP_REVISION_STATE_LABELS,
   CloudAppChangeMarker,
   CloudAppChangeMarkerKind,
+  CloudAppRevisionState,
   countLiveInstancesByRevision,
+  getCloudAppAttributeNoun,
   getCloudAppAttributes,
   getCloudAppChangeMarkers,
+  getCloudAppDetailAttributeKeys,
+  getCloudAppRevisionNoun,
   getCloudAppTelemetryFilters,
   getShortRevision,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import { isCloudInstanceLive } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
 import { APP_INSTANCE_COUNT } from "./CloudAppCells";
-import { REVISION_REPLACED } from "./CloudAppRevisionsTab";
+import {
+  CLOUD_APP_REVISION_STATE_COLORS,
+  REVISION_REPLACED,
+} from "./CloudAppRevisionsTab";
 
 /*
  * An App Platforms app's Overview tab: how it is doing in the range picked
@@ -50,6 +62,15 @@ import { REVISION_REPLACED } from "./CloudAppRevisionsTab";
  * dashed line at every deploy - what runs it right now (its live instances,
  * their CPU and memory, and which revisions they run), and the attributes
  * it is told apart by.
+ *
+ * "Running now" names each revision's state as the Revisions tab does
+ * (Current in green, an older or newer one still Running in amber), so the
+ * bars' colours say what they mean, and explains two revisions at once only
+ * when there are two (#5511's UI review: the card's description said it on
+ * every app). Its Details card is laid out as every resource Overview's is
+ * (ResourceOverview): each attribute named as the app's telemetry chips
+ * name it, its key beside it - "Cluster (aws.ecs.cluster.arn)" - and the
+ * revision it runs under the attribute it is read from.
  */
 
 export const DEPLOY_MARKER_LABEL: string = translationKey(
@@ -62,9 +83,23 @@ export const RUNNING_NOW_TITLE: string = translationKey("Running now");
 export const RUNNING_NOW_EMPTY: string = translationKey(
   "No instance of this app reported in the last 15 minutes.",
 );
-export const APP_DETAILS_DESCRIPTION: string = translationKey(
-  "The resource attributes this app is told apart by, as its telemetry sends them.",
+export const RUNNING_NOW_SPLIT: string = translationKey(
+  "More than one revision is running: a deploy in progress, or traffic split between them.",
 );
+export const APP_DETAILS_DESCRIPTION: string = translationKey(
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.",
+);
+
+// One row of the Details card.
+interface AppDetailRow {
+  key: string;
+  // What the value is, in the reader's language.
+  label: string;
+  // The attribute it is read from, beside the label: "(aws.ecs.task.family)".
+  attribute?: string | undefined;
+  value: string;
+  mono: boolean;
+}
 
 // The colours the metric charts draw a change in (UseEventTimeReferenceLines).
 const DEPLOY_MARKER_COLOR: string = "#6366f1";
@@ -85,6 +120,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const ruledListClassName: string = useCardRuledListClassName();
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -296,6 +332,56 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const ownAttributes: Record<string, string> = getCloudAppAttributes(
     props.app,
   );
+  const revisionNoun: string = getCloudAppRevisionNoun(props.app.cloudPlatform);
+
+  const detailRows: Array<AppDetailRow> = [
+    ...getCloudAppDetailAttributeKeys(props.app).map(
+      (key: string): AppDetailRow => {
+        const noun: string = getCloudAppAttributeNoun({
+          key,
+          cloudPlatform: props.app.cloudPlatform,
+        });
+
+        return {
+          key,
+          label: translator.translateText(noun) || noun,
+          attribute: key,
+          value: ownAttributes[key] || "",
+          mono: true,
+        };
+      },
+    ),
+  ];
+
+  if (props.app.currentRevision) {
+    detailRows.push({
+      key: "revision",
+      label: translator.translateText(revisionNoun) || revisionNoun,
+      attribute: props.app.revisionAttribute || undefined,
+      value: props.app.currentRevision,
+      mono: true,
+    });
+  }
+
+  if (props.app.image) {
+    detailRows.push({
+      key: "image",
+      label: translator.translateText("Image") || "Image",
+      value: props.app.image,
+      mono: true,
+    });
+  }
+
+  if (props.app.createdAt) {
+    detailRows.push({
+      key: "first-seen",
+      label: translator.translateText("First Seen") || "First Seen",
+      value: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        OneUptimeDate.fromString(props.app.createdAt),
+      ),
+      mono: false,
+    });
+  }
 
   return (
     <div data-testid="cloud-app-overview">
@@ -361,96 +447,117 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
               {translator.translateText(RUNNING_NOW_EMPTY)}
             </p>
           ) : (
-            <ul className="space-y-3" data-testid="cloud-app-running-now">
-              {runningRevisions.map((entry: [string, number]): ReactElement => {
-                const [revision, count] = entry;
-                const share: number =
-                  totalRunning > 0 ? (count / totalRunning) * 100 : 0;
-                const isCurrent: boolean =
-                  revision === props.app.currentRevision;
+            <>
+              <ul className="space-y-4" data-testid="cloud-app-running-now">
+                {runningRevisions.map(
+                  (entry: [string, number]): ReactElement => {
+                    const [revision, count] = entry;
+                    const share: number =
+                      totalRunning > 0 ? (count / totalRunning) * 100 : 0;
+                    const isCurrent: boolean =
+                      revision === props.app.currentRevision;
+                    const state: CloudAppRevisionState = isCurrent
+                      ? CloudAppRevisionState.Current
+                      : CloudAppRevisionState.Running;
 
-                return (
-                  <li
-                    key={revision}
-                    data-testid="cloud-app-running-revision"
-                    data-current={isCurrent ? "true" : "false"}
-                  >
-                    <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <span className="min-w-0 truncate font-mono text-gray-900">
-                        <bdi>
-                          {getShortRevision({
-                            revision,
-                            appName: props.app.name,
-                          })}
-                        </bdi>
-                      </span>
-                      <span className="flex-shrink-0 text-gray-500">
-                        {translator.translatePlural(APP_INSTANCE_COUNT, count)}
-                      </span>
-                    </div>
-                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-100">
-                      <div
-                        className={`h-1.5 rounded-full ${
-                          isCurrent ? "bg-emerald-500" : "bg-amber-400"
-                        }`}
-                        style={{ width: `${share}%` }}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                    return (
+                      <li
+                        key={revision}
+                        data-testid="cloud-app-running-revision"
+                        data-current={isCurrent ? "true" : "false"}
+                      >
+                        <div className="flex items-center justify-between gap-3 text-sm">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span
+                              className="min-w-0 truncate font-mono text-gray-900"
+                              title={revision}
+                            >
+                              <bdi>
+                                {getShortRevision({
+                                  revision,
+                                  appName: props.app.name,
+                                })}
+                              </bdi>
+                            </span>
+                            <Pill
+                              text={CLOUD_APP_REVISION_STATE_LABELS[state]}
+                              color={CLOUD_APP_REVISION_STATE_COLORS[state]}
+                            />
+                          </span>
+                          <span className="flex-shrink-0 text-gray-500">
+                            {translator.translatePlural(
+                              APP_INSTANCE_COUNT,
+                              count,
+                            )}
+                          </span>
+                        </div>
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-gray-100">
+                          <div
+                            className={`h-1.5 rounded-full ${
+                              isCurrent ? "bg-emerald-500" : "bg-amber-400"
+                            }`}
+                            style={{ width: `${share}%` }}
+                          />
+                        </div>
+                      </li>
+                    );
+                  },
+                )}
+              </ul>
+              {runningRevisions.length > 1 ? (
+                <p
+                  className="mt-4 text-sm text-gray-500"
+                  data-testid="cloud-app-running-now-split"
+                >
+                  {translator.translateText(RUNNING_NOW_SPLIT)}
+                </p>
+              ) : (
+                <></>
+              )}
+            </>
           )}
         </Card>
       </div>
 
       <Card title="Details" description={APP_DETAILS_DESCRIPTION}>
-        <dl
-          className="-mx-6 -mb-6 divide-y divide-gray-200 border-t border-gray-200"
-          data-testid="cloud-app-details"
-        >
-          {Object.keys(ownAttributes).map((key: string): ReactElement => {
-            return (
-              <div
-                key={key}
-                className="px-6 py-3 sm:grid sm:grid-cols-3 sm:gap-4"
-              >
-                <dt className="break-all font-mono text-sm text-gray-500">
-                  {key}
-                </dt>
-                <dd className="mt-1 break-all font-mono text-sm text-gray-900 sm:col-span-2 sm:mt-0">
-                  <bdi>{ownAttributes[key]}</bdi>
-                </dd>
-              </div>
-            );
-          })}
-          {props.app.revisionAttribute ? (
-            <div className="px-6 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
-              <dt className="text-sm font-medium text-gray-500">
-                {translator.translateText("Revision Attribute")}
-              </dt>
-              <dd className="mt-1 break-all font-mono text-sm text-gray-900 sm:col-span-2 sm:mt-0">
-                {props.app.revisionAttribute}
-              </dd>
-            </div>
-          ) : (
-            <></>
-          )}
-          {props.app.createdAt ? (
-            <div className="px-6 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
-              <dt className="text-sm font-medium text-gray-500">
-                {translator.translateText("First Seen")}
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
-                {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                  OneUptimeDate.fromString(props.app.createdAt),
-                )}
-              </dd>
-            </div>
-          ) : (
-            <></>
-          )}
-        </dl>
+        <div className={ruledListClassName}>
+          <dl
+            className="divide-y divide-gray-200"
+            data-testid="cloud-app-details"
+          >
+            {detailRows.map((row: AppDetailRow): ReactElement => {
+              return (
+                <div
+                  key={row.key}
+                  className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
+                  data-testid="cloud-app-detail-row"
+                  data-detail={row.key}
+                >
+                  <dt className="text-sm font-medium text-gray-500 [overflow-wrap:anywhere]">
+                    {row.label}
+                    {row.attribute ? (
+                      <>
+                        {" "}
+                        <bdi>({row.attribute})</bdi>
+                      </>
+                    ) : (
+                      <></>
+                    )}
+                  </dt>
+                  <dd
+                    className={`${RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME} ${
+                      row.mono ? "font-mono" : ""
+                    }`}
+                  >
+                    <bdi>
+                      <BreakableName text={row.value} />
+                    </bdi>
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </div>
       </Card>
     </div>
   );

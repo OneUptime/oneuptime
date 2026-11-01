@@ -39564,5 +39564,20 @@
   "trace id": "Trace-ID",
   "{{count}} req": "{{count}} Anfr.",
   "{{name}} Service Color": "Dienstfarbe von {{name}}",
-  "metric explorer": "Metrik-Explorer"
+  "metric explorer": "Metrik-Explorer",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "Cloud-Umgebungen in diesem Projekt – eine je Cloud-Plattform, Konto und Region –, archivierte nicht mitgezählt. Die Zeile darunter sagt, wie viele getrennt sind, sonst wie viele noch auf ihre ersten Daten warten, sonst bei welchen Anbietern sie laufen.",
+  "Deploys and rollbacks": "Deployments und Rollbacks",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "Jede App so benannt, wie Ihre Cloud-Konsole sie nennt, in einer Umgebung pro Plattform, Konto und Region.",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "Jede neue Revision, aus Ihrer Telemetrie erkannt und in den Diagrammen markiert.",
+  "Everything an app sends, already filtered to it.": "Alles, was eine App sendet, bereits auf sie gefiltert.",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "Wie viele Apps laufen, die Deployments des letzten Tages und wie viele Instanzen aktiv sind.",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "Mehr als eine Revision läuft: ein laufendes Deployment oder aufgeteilter Traffic.",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "Richten Sie OpenTelemetry in Ihrer App mit einem Cloud-Ressourcendetektor auf OneUptime aus. Jede App, von ECS über Cloud Run bis App Service, erscheint mit ihren Deployments, Instanzen, Protokollen, Traces und Metriken.",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "Anfragen, Fehlerrate und p95-Latenz für jede App, CPU und Arbeitsspeicher für ihre Instanzen.",
+  "Rolled back {{time}}": "Zurückgesetzt {{time}}",
+  "See every app your cloud platforms run": "Sehen Sie jede App, die Ihre Cloud-Plattformen ausführen",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "Die Ressourcenattribute, an denen die Telemetrie dieser App erkannt wird, und die Revision, die sie ausführt.",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "Welche Revision jede aktive Instanz ausführt: die in den letzten 15 Minuten gesehenen Instanzen.",
+  "{{count}} environments waiting for first data": "{{count}} Umgebungen warten auf die ersten Daten",
+  "{{count}} environments waiting for first data_one": "{{count}} Umgebung wartet auf die ersten Daten"
 }

@@ -39564,5 +39564,20 @@
   "trace id": "跟踪 ID",
   "{{count}} req": "{{count}} 个请求",
   "{{name}} Service Color": "{{name}} 的服务颜色",
-  "metric explorer": "指标浏览器"
+  "metric explorer": "指标浏览器",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "此项目中的云环境（每个云平台、账号和区域各一个），不含已归档的。下一行显示已断开的数量；若没有，则显示正在等待首批数据的数量；若仍没有，则显示它们所在的提供商。",
+  "Deploys and rollbacks": "部署与回滚",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "每个应用都沿用云控制台中的名称，归入按平台、账号和区域划分的环境。",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "从遥测数据中识别出每个新修订版本，并在图表上标出。",
+  "Everything an app sends, already filtered to it.": "应用发送的所有数据，已按该应用筛选好。",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "有多少应用在运行、最近一天的部署，以及有多少实例在线。",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "有多个修订版本在运行：部署正在进行，或流量在它们之间分配。",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "使用云资源检测器，将应用的 OpenTelemetry 指向 OneUptime。从 ECS、Cloud Run 到 App Service，每个应用都会连同其部署、实例、日志、追踪和指标一起显示。",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "每个应用的请求、错误率和 p95 延迟，以及其实例的 CPU 和内存。",
+  "Rolled back {{time}}": "{{time}}回滚",
+  "See every app your cloud platforms run": "查看云平台上运行的每个应用",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "用于识别此应用遥测数据的资源属性，以及它运行的修订版本。",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "每个在线实例运行的修订版本（最近 15 分钟内出现的实例）。",
+  "{{count}} environments waiting for first data": "{{count}} 个环境正在等待首批数据",
+  "{{count}} environments waiting for first data_one": "{{count}} 个环境正在等待首批数据"
 }

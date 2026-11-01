@@ -31,7 +31,11 @@ import AppLink from "../AppLink/AppLink";
 import CloudConnectionLogo from "../Cloud/Connect/CloudConnectionLogo";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import { getShortRevision } from "../../Pages/AppPlatforms/Utils/CloudApps";
+import {
+  getCloudAppGroupLabel,
+  getShortRevision,
+} from "../../Pages/AppPlatforms/Utils/CloudApps";
+import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
 
 /*
  * App Platforms' Overview: the newest deploys of every app - which app,
@@ -184,10 +188,24 @@ const RecentDeploysCard: FunctionComponent<ComponentProps> = (
               },
             ).toString()}?tab=Revisions`,
           );
-          const where: Array<string> = [getManagedCloudPlatformLabel(platform)];
+          /*
+           * Where it runs, as All Apps says it: "AWS ECS · cluster
+           * production", not a bare "production".
+           */
+          const where: Array<CloudAppFact> = [];
+          const platformLabel: string = getManagedCloudPlatformLabel(platform);
+          const group: string = getCloudAppGroupLabel({
+            groupName: deploy.cloudApp?.groupName,
+            cloudPlatform: platform,
+            translator,
+          });
 
-          if (deploy.cloudApp?.groupName) {
-            where.push(deploy.cloudApp.groupName);
+          if (platformLabel) {
+            where.push({ key: "platform", content: platformLabel });
+          }
+
+          if (group) {
+            where.push({ key: "group", content: group });
           }
 
           return (
@@ -219,9 +237,10 @@ const RecentDeploysCard: FunctionComponent<ComponentProps> = (
                     </bdi>
                   </span>
                 </div>
-                <div className="mt-0.5 text-xs text-gray-500">
-                  <bdi>{where.filter(Boolean).join(" · ")}</bdi>
-                </div>
+                <CloudAppFacts
+                  facts={where}
+                  className="mt-0.5 text-xs text-gray-500"
+                />
               </div>
               <span className="flex-shrink-0 text-xs text-gray-500">
                 {deploy.firstSeenAt

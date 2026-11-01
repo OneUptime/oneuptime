@@ -110,7 +110,7 @@ export const CLOUD_APP_METRIC_DESCRIPTIONS: Record<CloudAppMetric, string> = {
     "The 95th percentile of this app's request durations in each interval. A dashed line marks each deploy, so a slower release shows where it started.",
   ),
   rollout: translationKey(
-    "The revisions this app's instances run right now, from the instances seen in the last 15 minutes. Two revisions at once is a deploy in progress, or traffic split between them.",
+    "Which revision each live instance runs: the instances seen in the last 15 minutes.",
   ),
 };
 
@@ -131,7 +131,7 @@ export const CLOUD_FLEET_METRIC_DESCRIPTIONS: Record<CloudFleetMetric, string> =
       "Apps on your platforms - an ECS service, a Cloud Run service, a Container App - in every environment. The line below says how many have not reported in the last 15 minutes.",
     ),
     environments: translationKey(
-      "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else which providers they are on.",
+      "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.",
     ),
     deploys: translationKey(
       "New revisions your apps started running in the last 24 hours: a new ECS task definition revision, Cloud Run revision or service.version. A rollback is not counted.",

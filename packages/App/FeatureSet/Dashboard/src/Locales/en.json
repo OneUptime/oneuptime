@@ -39564,5 +39564,20 @@
   "trace id": "trace id",
   "{{count}} req": "{{count}} req",
   "{{name}} Service Color": "{{name}} Service Color",
-  "metric explorer": "metric explorer"
+  "metric explorer": "metric explorer",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.",
+  "Deploys and rollbacks": "Deploys and rollbacks",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "Each app named as your cloud console names it, in an environment for each platform, account and region.",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "Every new revision, spotted from your telemetry and marked on the charts.",
+  "Everything an app sends, already filtered to it.": "Everything an app sends, already filtered to it.",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "How many apps run, the deploys of the last day, and how many instances are live.",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "More than one revision is running: a deploy in progress, or traffic split between them.",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "Requests, error rate and p95 latency for each app, CPU and memory for its instances.",
+  "Rolled back {{time}}": "Rolled back {{time}}",
+  "See every app your cloud platforms run": "See every app your cloud platforms run",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "The resource attributes this app's telemetry is matched on, and the revision it runs.",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "Which revision each live instance runs: the instances seen in the last 15 minutes.",
+  "{{count}} environments waiting for first data": "{{count}} environments waiting for first data",
+  "{{count}} environments waiting for first data_one": "{{count}} environment waiting for first data"
 }

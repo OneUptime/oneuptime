@@ -44,6 +44,7 @@ import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -249,7 +250,8 @@ const RESOURCE = {
  * checkout-api deployed 25 minutes ago - revision 43 replaced 42, one task
  * still draining on 42 - and inventory, quiet for two hours; billing's one
  * app quiet with its environment; on Cloud Run, api (deployed an hour ago,
- * erroring at 6.2%) and worker; reports on Container Apps. The App Service
+ * erroring at 6.2%) and worker; reports on Container Apps, rolled back 40
+ * minutes ago from v12abc (deployed two days ago) to v11def. The App Service
  * environment that never reported has none.
  */
 const ECS_CLUSTER = "arn:aws:ecs:us-east-1:4109-2277-8841:cluster/production";
@@ -339,8 +341,9 @@ const APPS = EMPTY
         telemetryAttributes: { "service.name": "reports" },
         serviceName: "reports",
         revisionAttribute: "service.version",
-        currentRevision: "reports--v12abc",
-        currentRevisionSince: new Date(LOADED_AT - 2 * 24 * HOUR),
+        currentRevision: "reports--v11def",
+        currentRevisionSince: new Date(LOADED_AT - 40 * MINUTE),
+        previousRevision: "reports--v12abc",
         lastSeenAt: new Date(LOADED_AT - MINUTE),
       }),
     ];
@@ -408,10 +411,17 @@ const REVISIONS = EMPTY
         firstSeenAt: new Date(LOADED_AT - 4 * 24 * HOUR),
         lastSeenAt: new Date(LOADED_AT - 2 * MINUTE),
       }),
+      // reports went back to v11def when v12abc stopped, 40 minutes ago.
       revision(9, 6, 5, {
-        revision: "reports--v12abc",
-        firstSeenAt: new Date(LOADED_AT - 2 * 24 * HOUR),
+        revision: "reports--v11def",
+        firstSeenAt: new Date(LOADED_AT - 5 * 24 * HOUR),
         lastSeenAt: new Date(LOADED_AT - MINUTE),
+      }),
+      revision(10, 6, 5, {
+        revision: "reports--v12abc",
+        previousRevision: "reports--v11def",
+        firstSeenAt: new Date(LOADED_AT - 2 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 40 * MINUTE),
       }),
     ];
 
@@ -467,8 +477,8 @@ const OTHER_INSTANCES = EMPTY
         revision: "worker-00007-k2j",
       }),
       instance(14, 6, 5, {
-        instanceName: "reports--v12abc-6d9f8-xk2lp",
-        revision: "reports--v12abc",
+        instanceName: "reports--v11def-6d9f8-xk2lp",
+        revision: "reports--v11def",
       }),
     ];
 
@@ -631,6 +641,13 @@ function rowMatches(row, query) {
     // The revisions' and the strip's reads: set, in a window, after a time.
     if (wanted instanceof NotNull) {
       if (row[field] === undefined || row[field] === null) {
+        return false;
+      }
+      continue;
+    }
+    // The strip's environments that never reported: not set.
+    if (wanted instanceof IsNull) {
+      if (row[field] !== undefined && row[field] !== null) {
         return false;
       }
       continue;

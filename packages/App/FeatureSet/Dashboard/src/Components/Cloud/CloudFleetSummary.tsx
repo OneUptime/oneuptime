@@ -12,6 +12,7 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -166,6 +167,15 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
           modelType: CloudResourceInstance,
           query: { lastSeenAt: new GreaterThan<Date>(liveSince) },
         }),
+        // Never heard from: waiting for their first data, not disconnected.
+        ModelAPI.count({
+          modelType: CloudResource,
+          query: {
+            isArchived: false,
+            cloudResourceKind: ENVIRONMENT,
+            lastSeenAt: new IsNull(),
+          },
+        }),
         ...providers.map((provider: CloudProvider): Promise<number> => {
           return ModelAPI.count({
             modelType: CloudResource,
@@ -179,7 +189,7 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
       ]),
     ]);
 
-  const [total, connected, liveInstances, ...providerCounts]: Array<number> =
+  const [total, connected, liveInstances, neverSeen, ...providerCounts]: Array<number> =
     environmentCounts;
 
   /*
@@ -219,11 +229,16 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
 
   const safeTotal: number = total || 0;
   const safeConnected: number = Math.min(safeTotal, connected || 0);
+  const safeWaiting: number = Math.min(
+    safeTotal - safeConnected,
+    neverSeen || 0,
+  );
 
   return {
     total: safeTotal,
     connected: safeConnected,
-    disconnected: safeTotal - safeConnected,
+    waiting: safeWaiting,
+    disconnected: safeTotal - safeConnected - safeWaiting,
     byProvider,
     liveInstances: liveInstances || 0,
     apps: apps || 0,

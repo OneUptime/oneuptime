@@ -34,6 +34,11 @@ export const APP_INSTANCE_COUNT: PluralTemplate = {
 };
 export const APP_LAST_SEEN: string = translationKey("Last seen {{time}}");
 export const APP_DEPLOYED: string = translationKey("Deployed {{time}}");
+/*
+ * The app went back to the revision it runs: said instead of "Deployed", in
+ * amber, as a rollback's marker is on the charts.
+ */
+export const APP_ROLLED_BACK: string = translationKey("Rolled back {{time}}");
 export const APP_SIGNALS_UNKNOWN: string = translationKey(
   "Could not load requests",
 );

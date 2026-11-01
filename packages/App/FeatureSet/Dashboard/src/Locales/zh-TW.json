@@ -39564,5 +39564,20 @@
   "trace id": "追蹤 ID",
   "{{count}} req": "{{count}} 個請求",
   "{{name}} Service Color": "{{name}} 的服務顏色",
-  "metric explorer": "指標瀏覽器"
+  "metric explorer": "指標瀏覽器",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "此專案中的雲端環境（每個雲端平台、帳戶和區域各一個），不含已封存的。下一行顯示已中斷連線的數量；若沒有，則顯示正在等待第一筆資料的數量；若仍沒有，則顯示它們所在的供應商。",
+  "Deploys and rollbacks": "部署與復原",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "每個應用程式都沿用雲端主控台中的名稱，歸入依平台、帳戶與地區劃分的環境。",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "從遙測資料中辨識出每個新修訂版本，並在圖表上標示。",
+  "Everything an app sends, already filtered to it.": "應用程式傳送的一切資料，皆已預先篩選。",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "有多少應用程式正在執行、最近一天的部署，以及有多少執行個體正在運作。",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "有多個修訂版本正在執行：部署正在進行，或流量分配在它們之間。",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "使用雲端資源偵測器，將應用程式的 OpenTelemetry 指向 OneUptime。從 ECS、Cloud Run 到 App Service，每個應用程式都會連同其部署、執行個體、日誌、追蹤與指標一起顯示。",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "每個應用程式的請求、錯誤率與 p95 延遲，以及其執行個體的 CPU 與記憶體。",
+  "Rolled back {{time}}": "{{time}}復原",
+  "See every app your cloud platforms run": "查看雲端平台上執行的每個應用程式",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "用來識別此應用程式遙測資料的資源屬性，以及它執行的修訂版本。",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "每個運作中的執行個體所執行的修訂版本（最近 15 分鐘內出現的執行個體）。",
+  "{{count}} environments waiting for first data": "{{count}} 個環境正在等待第一筆資料",
+  "{{count}} environments waiting for first data_one": "{{count}} 個環境正在等待第一筆資料"
 }

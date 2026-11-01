@@ -1,7 +1,10 @@
 import { ManagedCloudPlatform } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
 import { shortenEcsClusterArn } from "Common/Utils/Telemetry/CloudInstanceIdentity";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
   CloudResourceScopeSource,
@@ -68,6 +71,30 @@ export function getCloudAppGroupNoun(
     default:
       return null;
   }
+}
+
+/*
+ * "cluster production": what keeps an app apart from another of its name,
+ * as a line about it says it - its platform's noun (lower case, as it reads
+ * in the middle of a line) and the name. Empty when the app has none, or
+ * its platform keeps no two apps of one name apart.
+ */
+export function getCloudAppGroupLabel(data: {
+  groupName: string | null | undefined;
+  cloudPlatform: string | null | undefined;
+  translator: Pick<Translator, "translateText" | "translateTemplate">;
+}): string {
+  const name: string = (data.groupName || "").trim();
+  const noun: string | null = getCloudAppGroupNoun(data.cloudPlatform);
+
+  if (!name || !noun) {
+    return "";
+  }
+
+  return data.translator.translateTemplate("{{noun}} {{name}}", {
+    noun: (data.translator.translateText(noun) || noun).toLowerCase(),
+    name,
+  });
 }
 
 /*
@@ -145,14 +172,60 @@ export function getCloudAppTelemetryFilters(data: {
   return filters;
 }
 
-const ECS_CLUSTER_FILTER_KEY: string = `${RESOURCE_ATTRIBUTE_PREFIX}aws.ecs.cluster.arn`;
+const ECS_CLUSTER_ATTRIBUTE: string = "aws.ecs.cluster.arn";
+const ECS_CLUSTER_FILTER_KEY: string = `${RESOURCE_ATTRIBUTE_PREFIX}${ECS_CLUSTER_ATTRIBUTE}`;
+
+/*
+ * Whether one of an app's own attributes (unprefixed) is what keeps it apart
+ * from another app of its name - an ECS cluster, an Elastic Beanstalk
+ * environment, an App Service slot - rather than its name.
+ */
+export function isCloudAppGroupAttribute(key: string): boolean {
+  return (
+    key === ECS_CLUSTER_ATTRIBUTE || key.startsWith("deployment.environment")
+  );
+}
 
 // Whether a filter key is the attribute an app is kept apart by.
 function isGroupFilterKey(key: string): boolean {
   return (
-    key === ECS_CLUSTER_FILTER_KEY ||
-    key.startsWith(`${RESOURCE_ATTRIBUTE_PREFIX}deployment.environment`)
+    key.startsWith(RESOURCE_ATTRIBUTE_PREFIX) &&
+    isCloudAppGroupAttribute(key.slice(RESOURCE_ATTRIBUTE_PREFIX.length))
   );
+}
+
+/*
+ * What one of an app's own attributes is, as its platform calls it: "App"
+ * for the one that names it, "Cluster", "Environment" or "Slot" for the one
+ * that keeps it apart (getCloudAppGroupNoun) - the words its telemetry
+ * chips use, so its Details card reads "Cluster (aws.ecs.cluster.arn)".
+ */
+export function getCloudAppAttributeNoun(data: {
+  key: string;
+  cloudPlatform: string | null | undefined;
+}): string {
+  return isCloudAppGroupAttribute(data.key)
+    ? getCloudAppGroupNoun(data.cloudPlatform) || translationKey("Group")
+    : translationKey("App");
+}
+
+/*
+ * An app's own attributes in the order its Details card lists them: the
+ * ones that name it first, then the one that keeps it apart, each by key.
+ */
+export function getCloudAppDetailAttributeKeys(
+  app: CloudAppScopeSource | null | undefined,
+): Array<string> {
+  const keys: Array<string> = Object.keys(getCloudAppAttributes(app));
+
+  return [
+    ...keys.filter((key: string): boolean => {
+      return !isCloudAppGroupAttribute(key);
+    }),
+    ...keys.filter((key: string): boolean => {
+      return isCloudAppGroupAttribute(key);
+    }),
+  ];
 }
 
 /*
@@ -639,4 +712,42 @@ export function getCloudAppChangeMarkers(data: {
       return a.time.getTime() - b.time.getTime();
     },
   );
+}
+
+// Every change the revisions record, whenever it was.
+const ALL_TIME: { start: Date; end: Date } = {
+  start: new Date(0),
+  end: new Date(8.64e15),
+};
+
+/*
+ * Whether the revision an app runs is one it went back to: the last change
+ * that made it current was a rollback (getCloudAppChangeMarkers' rule, over
+ * all time). Its header then says "Rolled back 25 minutes ago", not
+ * "Deployed": the app went back to a revision it had run before, older than
+ * the one it replaced. False while the revisions do not say so - the first
+ * revision OneUptime saw, or revisions not read yet.
+ */
+export function isCloudAppRolledBack(data: {
+  revisions: ReadonlyArray<CloudAppRevisionMarkerSource>;
+  currentRevision?: string | null | undefined;
+  currentRevisionSince?: Date | string | null | undefined;
+  previousRevision?: string | null | undefined;
+}): boolean {
+  const current: string = (data.currentRevision || "").trim();
+
+  if (!current) {
+    return false;
+  }
+
+  const ownChanges: Array<CloudAppChangeMarker> = getCloudAppChangeMarkers({
+    ...data,
+    ...ALL_TIME,
+  }).filter((marker: CloudAppChangeMarker): boolean => {
+    return marker.revision === current;
+  });
+  const latest: CloudAppChangeMarker | undefined =
+    ownChanges[ownChanges.length - 1];
+
+  return latest?.kind === CloudAppChangeMarkerKind.RolledBack;
 }

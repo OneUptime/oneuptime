@@ -1,5 +1,4 @@
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -33,7 +32,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   CloudAppSignals,
   countLiveInstancesByApp,
-  getCloudAppGroupNoun,
+  getCloudAppGroupLabel,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import {
   CLOUD_APP_SIGNAL_WINDOW_MINUTES,
@@ -47,6 +46,7 @@ import {
   CloudAppSignalsSummaryCell,
   CloudAppStateCell,
 } from "./CloudAppCells";
+import CloudAppFacts, { CloudAppFact } from "./CloudAppFacts";
 
 /*
  * A list of App Platforms apps: every app on every platform (All Apps), or
@@ -230,12 +230,13 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
   /*
    * Where an app runs, under its name: its platform and region on All Apps,
    * where apps of every environment sit together, and the cluster or slot
-   * it is kept apart by. One part a string: the line wraps between parts.
+   * it is kept apart by. One fact each: the line wraps between them
+   * (CloudAppFacts).
    */
-  const getWhere: (app: CloudApp) => Array<string> = (
+  const getWhere: (app: CloudApp) => Array<CloudAppFact> = (
     app: CloudApp,
-  ): Array<string> => {
-    const parts: Array<string> = [];
+  ): Array<CloudAppFact> => {
+    const facts: Array<CloudAppFact> = [];
 
     if (!environmentId) {
       const environment: CloudResource | undefined = props.environments?.get(
@@ -246,28 +247,25 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
       );
 
       if (platform) {
-        parts.push(platform);
+        facts.push({ key: "platform", content: platform });
       }
 
       if (environment?.cloudRegion) {
-        parts.push(environment.cloudRegion);
+        facts.push({ key: "region", content: environment.cloudRegion });
       }
     }
 
-    const groupNoun: string | null = getCloudAppGroupNoun(app.cloudPlatform);
+    const group: string = getCloudAppGroupLabel({
+      groupName: app.groupName,
+      cloudPlatform: app.cloudPlatform,
+      translator,
+    });
 
-    if (app.groupName && groupNoun) {
-      parts.push(
-        translator.translateTemplate("{{noun}} {{name}}", {
-          noun: (
-            translator.translateText(groupNoun) || groupNoun
-          ).toLowerCase(),
-          name: app.groupName,
-        }),
-      );
+    if (group) {
+      facts.push({ key: "group", content: group });
     }
 
-    return parts;
+    return facts;
   };
 
   return (
@@ -340,7 +338,7 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-xs",
           getElement: (app: CloudApp): ReactElement => {
-            const where: Array<string> = getWhere(app);
+            const where: Array<CloudAppFact> = getWhere(app);
 
             return (
               <div className="flex min-w-0 items-start gap-2.5">
@@ -362,31 +360,16 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
                   >
                     {app.name || "—"}
                   </AppLink>
-                  {where.length > 0 ? (
-                    <div className="mt-0.5 text-xs text-gray-500">
-                      {/*
-                       * Each part is kept whole where it fits - a region such
-                       * as europe-west1 never breaks at its hyphen - and the
-                       * dot stays with the part before it.
-                       */}
-                      <bdi>
-                        {where.map(
-                          (part: string, index: number): ReactElement => {
-                            return (
-                              <Fragment key={index}>
-                                {index > 0 ? "\u00a0· " : ""}
-                                <span className="inline-block max-w-full break-words">
-                                  {part}
-                                </span>
-                              </Fragment>
-                            );
-                          },
-                        )}
-                      </bdi>
-                    </div>
-                  ) : (
-                    <></>
-                  )}
+                  {/*
+                   * Each part is kept whole where it fits - a region such as
+                   * europe-west1 never breaks at its hyphen - and no dot is
+                   * left at a line's end.
+                   */}
+                  <CloudAppFacts
+                    facts={where}
+                    className="mt-0.5 text-xs text-gray-500"
+                    dataTestId="cloud-app-where"
+                  />
                 </div>
               </div>
             );

@@ -39564,5 +39564,20 @@
   "trace id": "ID трассировки",
   "{{count}} req": "Запросов: {{count}}",
   "{{name}} Service Color": "Цвет сервиса {{name}}",
-  "metric explorer": "обозреватель метрик"
+  "metric explorer": "обозреватель метрик",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "Облачные среды этого проекта - по одной на облачную платформу, аккаунт и регион - без архивных. Строка ниже показывает, сколько из них отключено, если таких нет - сколько ждут первых данных, а если нет и таких - у каких провайдеров они размещены.",
+  "Deploys and rollbacks": "Развёртывания и откаты",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "Каждое приложение названо так, как его называет ваша облачная консоль, в среде для каждой платформы, аккаунта и региона.",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "Каждая новая ревизия, замеченная по вашей телеметрии и отмеченная на графиках.",
+  "Everything an app sends, already filtered to it.": "Всё, что отправляет приложение, уже отфильтровано по нему.",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "Сколько приложений работает, развёртывания за последние сутки и сколько экземпляров активно.",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "Работает больше одной ревизии: идёт развёртывание или трафик разделён между ними.",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "Направьте OpenTelemetry вашего приложения в OneUptime с детектором облачных ресурсов. Каждое приложение, от ECS до Cloud Run и App Service, появится со своими развёртываниями, экземплярами, логами, трассировками и метриками.",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "Запросы, частота ошибок и задержка p95 для каждого приложения, CPU и память для его экземпляров.",
+  "Rolled back {{time}}": "Откат {{time}}",
+  "See every app your cloud platforms run": "Все приложения на ваших облачных платформах",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "Атрибуты ресурса, по которым распознаётся телеметрия этого приложения, и ревизия, которую оно выполняет.",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "Какую ревизию выполняет каждый активный экземпляр: экземпляры, замеченные за последние 15 минут.",
+  "{{count}} environments waiting for first data": "Сред в ожидании первых данных: {{count}}",
+  "{{count}} environments waiting for first data_one": "{{count}} среда ждёт первых данных"
 }

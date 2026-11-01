@@ -39564,5 +39564,20 @@
   "trace id": "トレース ID",
   "{{count}} req": "{{count}} 件",
   "{{name}} Service Color": "{{name}} のサービスカラー",
-  "metric explorer": "メトリクスエクスプローラー"
+  "metric explorer": "メトリクスエクスプローラー",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "このプロジェクトのクラウド環境 (クラウドプラットフォーム、アカウント、リージョンごとに 1 つ) です。アーカイブ済みは含みません。下の行は切断中の数、なければ最初のデータを待っている数、それもなければどのプロバイダーにあるかを示します。",
+  "Deploys and rollbacks": "デプロイとロールバック",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "各アプリはクラウドコンソールと同じ名前で、プラットフォーム、アカウント、リージョンごとの環境に表示されます。",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "新しいリビジョンをテレメトリーから検出し、グラフ上に示します。",
+  "Everything an app sends, already filtered to it.": "アプリが送信するすべてのデータを、そのアプリで絞り込んだ状態で表示します。",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "実行中のアプリの数、直近 1 日のデプロイ、稼働中のインスタンスの数を表示します。",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "複数のリビジョンが実行中です。デプロイ中か、トラフィックを分割しています。",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "クラウドリソースディテクターを使って、アプリの OpenTelemetry の送信先を OneUptime に設定します。ECS から Cloud Run、App Service まで、各アプリがデプロイ、インスタンス、ログ、トレース、メトリクスとともに表示されます。",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "各アプリのリクエスト、エラー率、p95 レイテンシと、そのインスタンスの CPU、メモリを表示します。",
+  "Rolled back {{time}}": "{{time}}にロールバック",
+  "See every app your cloud platforms run": "クラウドプラットフォームで動くすべてのアプリを可視化",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "このアプリのテレメトリーを識別するリソース属性と、実行中のリビジョンです。",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "稼働中の各インスタンスが実行しているリビジョンです (直近 15 分間に確認されたインスタンス)。",
+  "{{count}} environments waiting for first data": "{{count}} 件の環境が最初のデータを待っています",
+  "{{count}} environments waiting for first data_one": "{{count}} 件の環境が最初のデータを待っています"
 }

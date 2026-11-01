@@ -365,6 +365,7 @@ const AppPlatformApp: FunctionComponent<
           app={app}
           environment={environment}
           instances={loaded.instances}
+          revisions={loaded.revisions}
           start={window.start}
           end={window.end}
           refreshToken={refreshToken}
@@ -419,6 +420,7 @@ const AppPlatformApp: FunctionComponent<
           app={app}
           environment={environment}
           liveInstances={liveInstances}
+          revisions={loaded.revisions}
           serviceRoute={serviceRoute}
           alertsRoute={alertsRoute}
           environmentRoute={environmentRoute}

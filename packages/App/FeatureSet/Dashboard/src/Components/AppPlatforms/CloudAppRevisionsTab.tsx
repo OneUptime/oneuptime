@@ -24,11 +24,13 @@ import {
   CloudAppSignalRow,
   CloudAppSignals,
   RESOURCE_ATTRIBUTE_PREFIX,
+  CloudAppRevisionMarkerSource,
   countLiveInstancesByRevision,
   getCloudAppAttributes,
   getCloudAppRevisionNoun,
   getCloudAppRevisionState,
   getShortRevision,
+  isCloudAppRolledBack,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import {
   buildCloudAppSignalRequest,
@@ -37,6 +39,7 @@ import {
 import { isCloudResourceScoped } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
 import {
   APP_INSTANCE_COUNT,
+  APP_ROLLED_BACK,
   CloudAppSignalCell,
   CloudAppSignalKind,
 } from "./CloudAppCells";
@@ -65,7 +68,10 @@ export const REVISION_FIRST_SEEN: string = translationKey(
   "First revision seen",
 );
 
-const STATE_COLORS: Readonly<Record<CloudAppRevisionState, Color>> = {
+// A revision's state, in the colours its pill and its Running now bar share.
+export const CLOUD_APP_REVISION_STATE_COLORS: Readonly<
+  Record<CloudAppRevisionState, Color>
+> = {
   [CloudAppRevisionState.Current]: Green,
   [CloudAppRevisionState.Running]: Yellow,
   [CloudAppRevisionState.Retired]: Gray500,
@@ -75,6 +81,11 @@ export interface ComponentProps {
   app: CloudApp;
   environment: CloudResource;
   instances: Array<CloudResourceInstance>;
+  /*
+   * Every revision the page read, when it read them: they say whether the
+   * revision the app runs is one it went back to, which its row then says.
+   */
+  revisions?: ReadonlyArray<CloudAppRevisionMarkerSource> | undefined;
   start: Date;
   end: Date;
   refreshToken: number;
@@ -212,6 +223,22 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
 
   const revisionNoun: string = getCloudAppRevisionNoun(props.app.cloudPlatform);
 
+  /*
+   * A rollback is a moment in the history, not a revision of its own: the
+   * row of the revision the app went back to says when it did, under its
+   * Current pill, as the header says it.
+   */
+  const rolledBackAt: Date | null =
+    props.app.currentRevisionSince &&
+    isCloudAppRolledBack({
+      revisions: props.revisions || [],
+      currentRevision: props.app.currentRevision,
+      currentRevisionSince: props.app.currentRevisionSince,
+      previousRevision: props.app.previousRevision,
+    })
+      ? OneUptimeDate.fromString(props.app.currentRevisionSince)
+      : null;
+
   return (
     <ModelTable<CloudAppRevision>
       modelType={CloudAppRevision}
@@ -300,8 +327,20 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
               <div className="min-w-0" data-revision-state={state}>
                 <Pill
                   text={CLOUD_APP_REVISION_STATE_LABELS[state]}
-                  color={STATE_COLORS[state]}
+                  color={CLOUD_APP_REVISION_STATE_COLORS[state]}
                 />
+                {state === CloudAppRevisionState.Current && rolledBackAt ? (
+                  <div
+                    className="mt-1 text-xs font-medium text-amber-700"
+                    data-testid="cloud-app-revision-rolled-back"
+                  >
+                    {translator.translateTemplate(APP_ROLLED_BACK, {
+                      time: OneUptimeDate.fromNow(rolledBackAt),
+                    })}
+                  </div>
+                ) : (
+                  <></>
+                )}
                 {live > 0 ? (
                   <div className="mt-1 text-xs text-gray-500">
                     {translator.translatePlural(APP_INSTANCE_COUNT, live)}
@@ -318,13 +357,26 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
           title: "Deployed",
           type: FieldType.Element,
           getElement: (row: CloudAppRevision): ReactElement => {
+            if (!row.firstSeenAt) {
+              return <span className="text-sm text-gray-400">—</span>;
+            }
+
+            const deployedAt: Date = OneUptimeDate.fromString(
+              row.firstSeenAt,
+            );
+
+            /*
+             * "25 minutes ago", with the date and time it was under the
+             * pointer: a deploy history is read against other times.
+             */
             return (
-              <span className="text-sm text-gray-700">
-                {row.firstSeenAt
-                  ? OneUptimeDate.fromNow(
-                      OneUptimeDate.fromString(row.firstSeenAt),
-                    )
-                  : "—"}
+              <span
+                className="text-sm text-gray-700"
+                title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                  deployedAt,
+                )}
+              >
+                {OneUptimeDate.fromNow(deployedAt)}
               </span>
             );
           },

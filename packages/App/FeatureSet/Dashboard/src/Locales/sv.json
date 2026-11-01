@@ -39564,5 +39564,20 @@
   "trace id": "spår-ID",
   "{{count}} req": "{{count}} beg.",
   "{{name}} Service Color": "Tjänstfärg för {{name}}",
-  "metric explorer": "måttutforskare"
+  "metric explorer": "måttutforskare",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "Molnmiljöer i projektet - en per molnplattform, konto och region - utom de arkiverade. Raden under visar hur många som är frånkopplade, annars hur många som väntar på sina första data, annars vilka leverantörer de finns hos.",
+  "Deploys and rollbacks": "Distributioner och återställningar",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "Varje app namngiven som din molnkonsol kallar den, i en miljö för varje plattform, konto och region.",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "Varje ny revision, upptäckt i din telemetri och markerad i diagrammen.",
+  "Everything an app sends, already filtered to it.": "Allt som en app skickar, redan filtrerat på appen.",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "Hur många appar som körs, det senaste dygnets distributioner och hur många instanser som är aktiva.",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "Mer än en revision körs: en pågående distribution eller trafik som delas mellan dem.",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "Peka din apps OpenTelemetry mot OneUptime med en molnresursdetektor. Varje app, från ECS till Cloud Run och App Service, visas med sina distributioner, instanser, loggar, spår och mätvärden.",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "Begäranden, felfrekvens och p95-latens för varje app, CPU och minne för dess instanser.",
+  "Rolled back {{time}}": "Återställd {{time}}",
+  "See every app your cloud platforms run": "Se alla appar som dina molnplattformar kör",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "Resursattributen som appens telemetri känns igen på, och revisionen den kör.",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "Vilken revision varje aktiv instans kör: instanserna som setts de senaste 15 minuterna.",
+  "{{count}} environments waiting for first data": "{{count}} miljöer väntar på de första data",
+  "{{count}} environments waiting for first data_one": "{{count}} miljö väntar på de första data"
 }

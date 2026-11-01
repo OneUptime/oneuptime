@@ -39564,5 +39564,20 @@
   "trace id": "spor-id",
   "{{count}} req": "{{count}} anm.",
   "{{name}} Service Color": "Tjenestefarve for {{name}}",
-  "metric explorer": "måleudforsker"
+  "metric explorer": "måleudforsker",
+  "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.": "Cloud-miljøer i dette projekt - ét pr. cloudplatform, konto og region - uden de arkiverede. Linjen nedenfor siger, hvor mange der er afbrudt, ellers hvor mange der venter på deres første data, ellers hvilke udbydere de kører hos.",
+  "Deploys and rollbacks": "Udrulninger og tilbagerulninger",
+  "Each app named as your cloud console names it, in an environment for each platform, account and region.": "Hver app navngivet, som din cloud-konsol kalder den, i et miljø for hver platform, konto og region.",
+  "Every new revision, spotted from your telemetry and marked on the charts.": "Hver ny revision, fundet i din telemetri og markeret på graferne.",
+  "Everything an app sends, already filtered to it.": "Alt, hvad en app sender, allerede filtreret til den.",
+  "How many apps run, the deploys of the last day, and how many instances are live.": "Hvor mange apps der kører, det seneste døgns udrulninger, og hvor mange instanser der er aktive.",
+  "More than one revision is running: a deploy in progress, or traffic split between them.": "Mere end én revision kører: en igangværende udrulning eller trafik delt mellem dem.",
+  "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each app, from ECS to Cloud Run to App Service, shows up with its deploys, instances, logs, traces and metrics.": "Peg din apps OpenTelemetry mod OneUptime med en cloud-ressourcedetektor. Hver app, fra ECS over Cloud Run til App Service, vises med sine udrulninger, instanser, logs, spor og metrikker.",
+  "Requests, error rate and p95 latency for each app, CPU and memory for its instances.": "Anmodninger, fejlrate og p95-latens for hver app, CPU og hukommelse for dens instanser.",
+  "Rolled back {{time}}": "Rullet tilbage {{time}}",
+  "See every app your cloud platforms run": "Se alle apps, dine cloudplatforme kører",
+  "The resource attributes this app's telemetry is matched on, and the revision it runs.": "De ressourceattributter, denne apps telemetri genkendes på, og den revision, den kører.",
+  "Which revision each live instance runs: the instances seen in the last 15 minutes.": "Hvilken revision hver aktiv instans kører: instanserne set i de seneste 15 minutter.",
+  "{{count}} environments waiting for first data": "{{count}} miljøer venter på de første data",
+  "{{count}} environments waiting for first data_one": "{{count}} miljø venter på de første data"
 }
