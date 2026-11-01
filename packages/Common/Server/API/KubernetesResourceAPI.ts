@@ -4,6 +4,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import KubernetesResourceService, {
   InventorySummary,
+  KubernetesNeedsAttention,
   Service as KubernetesResourceServiceType,
 } from "../Services/KubernetesResourceService";
 import KubernetesClusterService from "../Services/KubernetesClusterService";
@@ -24,11 +25,12 @@ import { JSONObject } from "../../Types/JSON";
  * ------------------------------------------------------------------
  * KubernetesResourceAPI
  *
- * Augments the auto-generated CRUD router with a single custom
- * endpoint the Kubernetes overview page uses to fetch counts and
- * health summaries in one round-trip:
+ * Augments the auto-generated CRUD router with the custom endpoints
+ * the Kubernetes pages use: counts and health summaries in one
+ * round-trip, and what needs attention, the most urgent first:
  *
  *   POST /kubernetes-resource/inventory-summary/:clusterId
+ *   POST /kubernetes-resource/needs-attention/:clusterId
  *
  * The standard CRUD endpoints (list / get) are still registered by
  * BaseAPI; the UI uses them via ModelAPI for detail-page reads.
@@ -51,6 +53,25 @@ export default class KubernetesResourceAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getInventorySummary(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * What needs attention in the cluster, the most urgent first: the
+     * Overview's Needs attention card and its health pill
+     * (KubernetesResourceService.getNeedsAttention).
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/needs-attention/:clusterId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getNeedsAttention(req, res);
         } catch (err) {
           next(err);
         }
@@ -230,6 +251,25 @@ export default class KubernetesResourceAPI extends BaseAPI<
 
     return Response.sendJsonObjectResponse(req, res, {
       aggregates: this.mapAggregatesToJson(aggregates),
+    });
+  }
+
+  private async getNeedsAttention(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const { projectId, kubernetesClusterId } =
+      await this.resolveClusterForRequest(req);
+
+    const result: KubernetesNeedsAttention =
+      await this.service.getNeedsAttention({
+        projectId,
+        kubernetesClusterId,
+      });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      findings: result.findings as unknown as JSONObject,
+      isTruncated: result.isTruncated,
     });
   }
 

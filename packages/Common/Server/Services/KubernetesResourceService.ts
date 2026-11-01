@@ -6,6 +6,11 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { ParsedKubernetesResource } from "../../Types/Kubernetes/KubernetesInventoryExtractor";
 import {
+  KubernetesAttentionFinding,
+  KubernetesHealthRow,
+  getKubernetesAttentionFindings,
+} from "../../Types/Kubernetes/KubernetesHealth";
+import {
   truncateLongText,
   truncateShortText,
 } from "../Utils/Database/TruncateColumnValue";
@@ -98,6 +103,32 @@ export interface InventorySummary {
 }
 
 const DEGRADED_SAMPLE_LIMIT: number = 20;
+
+/*
+ * What a cluster's Needs attention reads (getNeedsAttention). The objects
+ * that need attention are few in a working cluster; these bound what one
+ * read can cost in a broken one. The worst come first, so a cluster with
+ * more than the limit still shows its critical findings.
+ */
+export const NEEDS_ATTENTION_ROW_LIMIT: number = 2000;
+export const NEEDS_ATTENTION_WORKLOAD_LIMIT: number = 5000;
+export const NEEDS_ATTENTION_FINDING_LIMIT: number = 500;
+
+// The workloads a pod's or a Job's finding folds into.
+const NEEDS_ATTENTION_WORKLOAD_KINDS: Array<string> = [
+  "Deployment",
+  "StatefulSet",
+  "DaemonSet",
+  "Job",
+  "CronJob",
+  "DeploymentConfig",
+];
+
+export interface KubernetesNeedsAttention {
+  findings: Array<KubernetesAttentionFinding>;
+  // More needed attention than one read takes: the worst are listed.
+  isTruncated: boolean;
+}
 
 /*
  * Pull the first meaningful reason/message off a pod's status block.
@@ -319,6 +350,7 @@ const UPSERT_COLUMNS: Array<keyof ParsedKubernetesResource | string> = [
   "status",
   "lastSeenAt",
   "resourceCreationTimestamp",
+  "healthSeverity",
   "version",
 ];
 
@@ -341,6 +373,9 @@ function sanitizeResource(
     name: truncateLongText(r.name),
     uid: truncateShortText(r.uid),
     phase: truncateShortText(r.phase),
+    healthSeverity: truncateShortText(r.healthSeverity ?? null) as
+      | ParsedKubernetesResource["healthSeverity"]
+      | null,
   };
 }
 
@@ -415,6 +450,7 @@ export class Service extends DatabaseService<Model> {
           r.status ? JSON.stringify(r.status) : null,
           r.lastSeenAt,
           r.resourceCreationTimestamp,
+          r.healthSeverity ?? null,
           0, // version (BaseModel @VersionColumn)
         );
       }
@@ -425,7 +461,7 @@ export class Service extends DatabaseService<Model> {
           "uid", "phase", "isReady",
           "hasMemoryPressure", "hasDiskPressure", "hasPidPressure",
           "labels", "annotations", "ownerReferences", "spec", "containerCount", "status",
-          "lastSeenAt", "resourceCreationTimestamp", "version"
+          "lastSeenAt", "resourceCreationTimestamp", "healthSeverity", "version"
         )
         VALUES ${valueFragments.join(", ")}
         ON CONFLICT ("projectId", "kubernetesClusterId", "kind", "namespaceKey", "name")
@@ -444,6 +480,7 @@ export class Service extends DatabaseService<Model> {
           "status" = EXCLUDED."status",
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "resourceCreationTimestamp" = EXCLUDED."resourceCreationTimestamp",
+          "healthSeverity" = EXCLUDED."healthSeverity",
           "updatedAt" = now()
         WHERE EXCLUDED."lastSeenAt" >= "KubernetesResource"."lastSeenAt"
       `;
@@ -860,6 +897,90 @@ export class Service extends DatabaseService<Model> {
       },
       degradedPods,
       degradedNodes,
+    };
+  }
+
+  /**
+   * What needs attention in a cluster, the most urgent first: every
+   * object ingest flagged (healthSeverity, read through its partial
+   * index), with the workloads of the namespaces they are in, so a pod's
+   * finding folds into its Deployment and a Job into its CronJob
+   * (KubernetesHealth.getKubernetesAttentionFindings). The rules run again
+   * on the rows read, at the time each was seen, so the findings say why
+   * in today's words even for a row flagged before an upgrade.
+   */
+  @CaptureSpan()
+  public async getNeedsAttention(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+  }): Promise<KubernetesNeedsAttention> {
+    const manager: ReturnType<Service["getRepository"]>["manager"] =
+      this.getRepository().manager;
+
+    const columns: string = `"kind", "namespaceKey", "name", "phase", "isReady",
+      "hasMemoryPressure", "hasDiskPressure", "hasPidPressure", "labels",
+      "ownerReferences", "spec", "status", "lastSeenAt", "resourceCreationTimestamp"`;
+
+    const flagged: Array<KubernetesHealthRow> = await manager.query(
+      `SELECT ${columns}
+       FROM "KubernetesResource"
+       WHERE "projectId" = $1
+         AND "kubernetesClusterId" = $2
+         AND "deletedAt" IS NULL
+         AND "healthSeverity" IS NOT NULL
+       ORDER BY
+         CASE "healthSeverity" WHEN 'critical' THEN 0 ELSE 1 END,
+         "lastSeenAt" DESC
+       LIMIT ${NEEDS_ATTENTION_ROW_LIMIT + 1}`,
+      [data.projectId.toString(), data.kubernetesClusterId.toString()],
+    );
+
+    const isRowLimitHit: boolean = flagged.length > NEEDS_ATTENTION_ROW_LIMIT;
+    const rows: Array<KubernetesHealthRow> = flagged.slice(
+      0,
+      NEEDS_ATTENTION_ROW_LIMIT,
+    );
+
+    // The namespaces whose workloads a flagged pod or Job may fold into.
+    const namespaces: Array<string> = Array.from(
+      new Set(
+        rows
+          .filter((row: KubernetesHealthRow): boolean => {
+            return Boolean(row.namespaceKey);
+          })
+          .map((row: KubernetesHealthRow): string => {
+            return row.namespaceKey as string;
+          }),
+      ),
+    );
+
+    const workloads: Array<KubernetesHealthRow> =
+      namespaces.length > 0
+        ? await manager.query(
+            `SELECT ${columns}
+             FROM "KubernetesResource"
+             WHERE "projectId" = $1
+               AND "kubernetesClusterId" = $2
+               AND "deletedAt" IS NULL
+               AND "kind" = ANY($3)
+               AND "namespaceKey" = ANY($4)
+             LIMIT ${NEEDS_ATTENTION_WORKLOAD_LIMIT}`,
+            [
+              data.projectId.toString(),
+              data.kubernetesClusterId.toString(),
+              NEEDS_ATTENTION_WORKLOAD_KINDS,
+              namespaces,
+            ],
+          )
+        : [];
+
+    const findings: Array<KubernetesAttentionFinding> =
+      getKubernetesAttentionFindings([...workloads, ...rows]);
+
+    return {
+      findings: findings.slice(0, NEEDS_ATTENTION_FINDING_LIMIT),
+      isTruncated:
+        isRowLimitHit || findings.length > NEEDS_ATTENTION_FINDING_LIMIT,
     };
   }
 
