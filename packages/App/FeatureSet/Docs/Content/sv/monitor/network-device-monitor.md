@@ -747,7 +747,7 @@ OneUptime håller sedan en nätverksenhetsmonitor per matchande enhet, skapad fr
 > [!IMPORTANT]
 > Varje monitor som en policy skapar räknas mot din plan. En policy över en stor miljö är många monitorer från en sparning, så bekräftelsen av den rekommenderade policyn anger projektets antal enheter innan den skapar något.
 
-Tabellens kolumn **Covered Devices** visar **Inte räknat ännu** fram till policyns första synkronisering, och **Last Sync** säger när den var, eller varför den misslyckades.
+Tabellens kolumn **Covered Devices** visar **Inte räknat ännu** fram till policyns första synkronisering, och **Senaste synkronisering** säger när den var, eller varför den misslyckades.
 
 Utan några policyer ännu erbjuder sidan **Create the recommended policy**: en monitormall **Network device alert pack (recommended)**, som bär det [rekommenderade larmpaketet](#rekommenderat-larmpaket), och en policy **Alert on every device** som tillämpar den på hela projektet. Mallen hittas igen via en markör i dess beskrivning, så åtgärden skapar aldrig en andra kopia, och det är en monitormall som du också kan använda för monitorer du skapar själv. Smalna av policyns omfattning efteråt om hela projektet är för mycket.
 

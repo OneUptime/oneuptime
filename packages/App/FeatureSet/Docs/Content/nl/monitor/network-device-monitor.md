@@ -747,7 +747,7 @@ OneUptime houdt dan één netwerkapparaat-monitor bij per apparaat dat past, gem
 > [!IMPORTANT]
 > Elke monitor die een beleid inricht, telt mee voor je abonnement. Een beleid over een grote omgeving is veel monitors uit één keer opslaan, dus de bevestiging van het aanbevolen beleid noemt het aantal apparaten van het project voordat het iets maakt.
 
-De kolom **Covered Devices** van de tabel toont **Nog niet geteld** tot de eerste synchronisatie van het beleid, en **Last Sync** zegt wanneer dat was, of waarom het mislukte.
+De kolom **Covered Devices** van de tabel toont **Nog niet geteld** tot de eerste synchronisatie van het beleid, en **Laatste synchronisatie** zegt wanneer dat was, of waarom het mislukte.
 
 Zolang er nog geen beleid is, biedt de pagina **Create the recommended policy** aan: een monitorsjabloon **Network device alert pack (recommended)**, met het [aanbevolen waarschuwingspakket](#aanbevolen-waarschuwingspakket), en een beleid **Alert on every device** dat het op het hele project toepast. Het sjabloon wordt teruggevonden aan een markering in zijn beschrijving, dus de actie maakt nooit een tweede kopie, en het is een monitorsjabloon dat je ook kunt gebruiken voor monitors die je zelf maakt. Versmal daarna het bereik van het beleid als het hele project te veel is.
 

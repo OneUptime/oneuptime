@@ -747,7 +747,7 @@ O OneUptime então mantém um monitor de dispositivo de rede por dispositivo cor
 > [!IMPORTANT]
 > Cada monitor que uma política provisiona conta para o seu plano. Uma política sobre um parque grande são muitos monitores a partir de um único salvamento, então a confirmação da política recomendada informa a contagem de dispositivos do projeto antes de criar qualquer coisa.
 
-A coluna **Covered Devices** da tabela mostra **Ainda não contado** até a primeira sincronização da política, e **Last Sync** diz quando foi, ou por que falhou.
+A coluna **Covered Devices** da tabela mostra **Ainda não contado** até a primeira sincronização da política, e **Última sincronização** diz quando foi, ou por que falhou.
 
 Sem nenhuma política ainda, a página oferece **Create the recommended policy**: um modelo de monitor **Network device alert pack (recommended)**, que carrega o [pacote de alertas recomendado](#pacote-de-alertas-recomendado), e uma política **Alert on every device** que o aplica ao projeto inteiro. O modelo é reencontrado por um marcador na descrição dele, então a ação nunca cria uma segunda cópia, e ele é um modelo de monitor que você também pode usar para os monitores que cria. Estreite depois o escopo da política se o projeto inteiro for demais.
 
