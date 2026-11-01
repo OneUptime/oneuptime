@@ -5,7 +5,7 @@ En Kubernetes-monitor varsler på metrikkene som OneUptimes Kubernetes-agent sen
 :::cards
 - [Installer agenten](/docs/monitor/kubernetes-agent): Én Helm-kommando tar klyngen inn i OneUptime.
 - [Opprett monitoren](#opprett-en-kubernetes-monitor): Velg klyngen, og deretter en mal, en metrikk eller en spørring.
-- [Varslingsmaler](#ferdige-varslingsmaler): Atten ferdige varsler, fra en taus klynge til etcd.
+- [Varslingsmaler](#ferdige-varslingsmaler): Tjueen ferdige varsler, fra en taus klynge til etcd.
 - [Kriterier](#overvåkingskriterier): Statiske terskler og avviksdeteksjon.
 :::
 
@@ -86,9 +86,9 @@ Fanen **Custom Metric** tilbyr disse metrikkene, gruppert etter ressurstype:
 | Kategori | Metrikker |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Node | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Arbeidsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| Arbeidsbelastning | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Kontrollplan | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -138,14 +138,17 @@ Listen under **Hva det skal varsles om** viser disse malene, gruppert etter kate
 | CrashLoopBackOff Detection | Arbeidsbelastning | En container startet på nytt innen 15 minutter og var klar mindre enn halvparten av dem | Kritisk |
 | Pod Stuck in Pending | Planlegging | En pod er i fasen Pending i hver måling i et vindu på 15 minutter | Warning |
 | Node Not Ready | Node | En node melder NotReady eller slutter å melde statusen sin (Unknown) | Kritisk |
+| Node Under Pressure | Node | En node melder MemoryPressure, DiskPressure eller PIDPressure i 10 minutter | Warning |
 | High Node CPU Utilization | Node | En nodes gjennomsnittlige CPU-bruk er over 90 % av den allokerbare CPU-en | Warning |
 | High Node Memory Utilization | Node | En nodes gjennomsnittlige working set-minne er over 85 % av det allokerbare minnet | Warning |
 | Deployment Replica Mismatch | Arbeidsbelastning | En deployment har færre tilgjengelige replikaer enn ønsket i 15 minutter | Warning |
+| StatefulSet Replica Mismatch | Arbeidsbelastning | Et StatefulSet har færre klare replikaer enn ønsket i 15 minutter | Warning |
 | Job Failures | Arbeidsbelastning | En pod i en job mislyktes innen 15 minutter | Warning |
 | etcd No Leader | Kontrollplan | etcd har ingen valgt leder | Kritisk |
 | API Server Request Saturation | Kontrollplan | API-serveren holder 200 eller flere pågående forespørsler i hele vinduet | Kritisk |
 | Scheduler Backlog | Planlegging | Schedulerens kø av ventende poder er ikke tom i 5 minutter | Warning |
 | High Node Disk Usage | Lagring | En nodes filsystem er mer enn 90 % fullt | Warning |
+| DaemonSet Pods Not Ready | Arbeidsbelastning | Et DaemonSet har noder uten en klar pod fra det i 15 minutter | Warning |
 | DaemonSet Misscheduled Nodes | Arbeidsbelastning | Et DaemonSet kjører poder på noder som ikke lenger samsvarer med nodeselektoren, affiniteten eller toleransene | Warning |
 | High Node CPU Request Commitment | Node | En nodes summerte CPU-forespørsler fra containere overstiger 90 % av den allokerbare CPU-en | Warning |
 | High Node Memory Request Commitment | Node | En nodes summerte minneforespørsler fra containere overstiger 90 % av det allokerbare minnet | Warning |

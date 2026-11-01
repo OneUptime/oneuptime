@@ -1445,9 +1445,9 @@ describe(`${KUBERNETES}: the template table`, () => {
 
   it("counts the templates in the card", () => {
     expect(englishPage(KUBERNETES)).toContain(
-      `(#pre-built-alert-templates): Eighteen ready-made alerts`,
+      `(#pre-built-alert-templates): Twenty-one ready-made alerts`,
     );
-    expect(templates).toHaveLength(18);
+    expect(templates).toHaveLength(21);
   });
 
   it("Cluster Stopped Reporting comes first and fires only when the agent sends nothing", () => {

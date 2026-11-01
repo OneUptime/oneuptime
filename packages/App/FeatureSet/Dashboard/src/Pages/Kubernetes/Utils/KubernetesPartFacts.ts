@@ -578,7 +578,7 @@ export const KUBERNETES_PART_ALERT_TEMPLATE_IDS: Record<
     "k8s-pod-cpu-limit-saturation",
   ],
   DaemonSet: [
-    "k8s-daemonset-pods-unavailable",
+    "k8s-daemonset-pods-not-ready",
     "k8s-daemonset-unavailable",
     "k8s-crashloopbackoff",
   ],

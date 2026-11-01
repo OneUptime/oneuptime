@@ -77,6 +77,24 @@ const EXPECTED_GROUP_BY: Array<TemplateGroupByCase> = [
     why: "cluster-wide count of unschedulable pods; pending pod names are ephemeral",
   },
   {
+    id: "k8s-node-pressure",
+    groupByKeys: ["resource.k8s.node.name"],
+    why: "pressure is a node's, and each node under it pages on its own",
+  },
+  {
+    id: "k8s-statefulset-replica-mismatch",
+    groupByKeys: [
+      "resource.k8s.namespace.name",
+      "resource.k8s.statefulset.name",
+    ],
+    why: "a shortfall belongs to one StatefulSet object, which is namespace-scoped",
+  },
+  {
+    id: "k8s-daemonset-pods-not-ready",
+    groupByKeys: ["resource.k8s.namespace.name", "resource.k8s.daemonset.name"],
+    why: "nodes without a ready pod belong to one DaemonSet object, which is namespace-scoped",
+  },
+  {
     id: "k8s-node-not-ready",
     groupByKeys: ["resource.k8s.node.name"],
     why: "one incident per NotReady node",
@@ -305,7 +323,7 @@ describe("KubernetesAlertTemplates - per-series group-by keys", () => {
      * single-query template silently reverts to whole-cluster alerting
      * and this count falls back toward four.
      */
-    expect(grouped).toBe(13);
+    expect(grouped).toBe(16);
     // The four cluster-scalar templates, and the whole-cluster heartbeat.
     expect(EXPECTED_GROUP_BY.length - grouped).toBe(5);
   });

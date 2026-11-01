@@ -5,7 +5,7 @@ Ein Kubernetes-Monitor warnt anhand der Metriken, die der OneUptime-Kubernetes-A
 :::cards
 - [Den Agent installieren](/docs/monitor/kubernetes-agent): Ein Helm-Befehl bringt den Cluster in OneUptime.
 - [Den Monitor erstellen](#einen-kubernetes-monitor-erstellen): Den Cluster wählen, dann eine Vorlage, eine Metrik oder eine Abfrage.
-- [Warnungsvorlagen](#fertige-warnungsvorlagen): Achtzehn fertige Warnungen, von einem verstummten Cluster bis etcd.
+- [Warnungsvorlagen](#fertige-warnungsvorlagen): Einundzwanzig fertige Warnungen, von einem verstummten Cluster bis etcd.
 - [Kriterien](#überwachungskriterien): Statische Schwellenwerte und Anomalieerkennung.
 :::
 
@@ -86,9 +86,9 @@ Der Tab **Custom Metric** bietet diese Metriken an, gruppiert nach Ressourcentyp
 | Kategorie | Metriken |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| Knoten | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| Knoten | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | Container | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| Workload | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | Steuerungsebene | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -138,14 +138,17 @@ Unter **Worüber benachrichtigt wird** stehen diese Vorlagen, gruppiert nach Kat
 | CrashLoopBackOff Detection | Workload | Ein Container innerhalb von 15 Minuten neu gestartet ist und weniger als die Hälfte davon bereit war | Kritisch |
 | Pod Stuck in Pending | Planung | Ein Pod in jedem Messwert eines 15-Minuten-Zeitfensters in der Phase Pending ist | Warnung |
 | Node Not Ready | Knoten | Ein Knoten NotReady meldet oder seinen Status nicht mehr meldet (Unknown) | Kritisch |
+| Node Under Pressure | Knoten | Ein Knoten 10 Minuten lang MemoryPressure, DiskPressure oder PIDPressure meldet | Warnung |
 | High Node CPU Utilization | Knoten | Die durchschnittliche CPU-Nutzung eines Knotens über 90 % seiner zuweisbaren CPU liegt | Warnung |
 | High Node Memory Utilization | Knoten | Das durchschnittliche Speicher-Working-Set eines Knotens über 85 % seines zuweisbaren Arbeitsspeichers liegt | Warnung |
 | Deployment Replica Mismatch | Workload | Ein Deployment 15 Minuten lang weniger verfügbare Replikate als gewünscht hat | Warnung |
+| StatefulSet Replica Mismatch | Workload | Ein StatefulSet 15 Minuten lang weniger bereite Replikate als gewünscht hat | Warnung |
 | Job Failures | Workload | Ein Pod eines Jobs innerhalb von 15 Minuten fehlgeschlagen ist | Warnung |
 | etcd No Leader | Steuerungsebene | etcd keinen gewählten Leader hat | Kritisch |
 | API Server Request Saturation | Steuerungsebene | Der API-Server während des gesamten Zeitfensters 200 oder mehr laufende Anfragen hält | Kritisch |
 | Scheduler Backlog | Planung | Die Warteschlange ausstehender Pods des Schedulers 5 Minuten lang nicht leer ist | Warnung |
 | High Node Disk Usage | Speicher | Das Dateisystem eines Knotens zu mehr als 90 % voll ist | Warnung |
+| DaemonSet Pods Not Ready | Workload | Ein DaemonSet 15 Minuten lang Knoten ohne einen bereiten Pod von ihm hat | Warnung |
 | DaemonSet Misscheduled Nodes | Workload | Ein DaemonSet Pods auf Knoten ausführt, die nicht mehr zu seinem Node-Selector, seiner Affinität oder seinen Tolerations passen | Warnung |
 | High Node CPU Request Commitment | Knoten | Die summierten CPU-Requests der Container eines Knotens 90 % seiner zuweisbaren CPU übersteigen | Warnung |
 | High Node Memory Request Commitment | Knoten | Die summierten Speicher-Requests der Container eines Knotens 90 % seines zuweisbaren Arbeitsspeichers übersteigen | Warnung |

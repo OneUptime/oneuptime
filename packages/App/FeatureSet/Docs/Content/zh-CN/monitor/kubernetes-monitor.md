@@ -5,7 +5,7 @@ Kubernetes 监视器根据 OneUptime Kubernetes 代理从集群发送的指标�
 :::cards
 - [安装代理](/docs/monitor/kubernetes-agent): 一条 Helm 命令即可把集群接入 OneUptime。
 - [创建监视器](#创建-kubernetes-监视器): 选择集群，然后选择模板、指标或查询。
-- [警报模板](#现成的警报模板): 十八个现成的警报，从停止报告的集群到 etcd。
+- [警报模板](#现成的警报模板): 二十一个现成的警报，从停止报告的集群到 etcd。
 - [条件](#监控条件): 静态阈值和异常检测。
 :::
 
@@ -86,9 +86,9 @@ flowchart TB
 | 类别 | 指标 |
 | --- | --- |
 | Pod | Pod CPU Usage, Pod Memory Usage, Pod Phase (Code), Pod Filesystem Usage, Pod Memory Limit Utilization, Pod CPU Limit Utilization, Pod Network I/O (Cumulative, Both Directions) |
-| 节点 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Filesystem Available |
+| 节点 | Node CPU Usage, Node Allocatable CPU, Node Memory Usage, Node Memory Working Set, Node Filesystem Usage, Node Allocatable Memory, Node Ready Condition, Node Memory Pressure Condition, Node Disk Pressure Condition, Node PID Pressure Condition, Node Filesystem Available |
 | 容器 | Container Restarts, Container Restarts (Increase), Container CPU Limit, Container CPU Request, Container Memory Limit, Container Memory Request, Container Ready |
-| 工作负载 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
+| 工作负载 | Deployment Available Replicas, Deployment Desired Replicas, DaemonSet Desired Nodes, DaemonSet Misscheduled Nodes, DaemonSet Ready Nodes, StatefulSet Desired Replicas, StatefulSet Ready Replicas, Job Failed Pods, Job Failed Pods (Increase), Job Successful Pods |
 | HPA | HPA Current Replicas, HPA Desired Replicas, HPA Max Replicas, HPA Min Replicas |
 | 控制平面 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
@@ -138,14 +138,17 @@ flowchart TB
 | CrashLoopBackOff Detection | 工作负载 | 某个容器在 15 分钟内重启，且其中不到一半的时间处于就绪状态 | 严重 |
 | Pod Stuck in Pending | 正在调度 | 在 15 分钟窗口的每个样本中，都有某个 Pod 处于 Pending 阶段 | Warning |
 | Node Not Ready | 节点 | 某个节点报告 NotReady，或不再报告其状态（Unknown） | 严重 |
+| Node Under Pressure | 节点 | 某个节点在 10 分钟内一直报告 MemoryPressure、DiskPressure 或 PIDPressure | Warning |
 | High Node CPU Utilization | 节点 | 节点的平均 CPU 使用量超过其可分配 CPU 的 90% | Warning |
 | High Node Memory Utilization | 节点 | 节点的平均内存工作集超过其可分配内存的 85% | Warning |
 | Deployment Replica Mismatch | 工作负载 | Deployment 的可用副本数在 15 分钟内一直少于期望值 | Warning |
+| StatefulSet Replica Mismatch | 工作负载 | StatefulSet 的就绪副本数在 15 分钟内一直少于期望值 | Warning |
 | Job Failures | 工作负载 | 某个 Job 的 Pod 在 15 分钟内失败 | Warning |
 | etcd No Leader | 控制平面 | etcd 没有选出的领导者 | 严重 |
 | API Server Request Saturation | 控制平面 | API 服务器在整个窗口内持有 200 个或更多正在处理的请求 | 严重 |
 | Scheduler Backlog | 正在调度 | 调度器的待处理 Pod 队列在 5 分钟内一直不为空 | Warning |
 | High Node Disk Usage | 存储 | 节点的文件系统使用率超过 90% | Warning |
+| DaemonSet Pods Not Ready | 工作负载 | DaemonSet 在 15 分钟内一直有节点上没有它的就绪 Pod | Warning |
 | DaemonSet Misscheduled Nodes | 工作负载 | DaemonSet 在不再匹配其节点选择器、亲和性或容忍度的节点上运行 Pod | Warning |
 | High Node CPU Request Commitment | 节点 | 节点上容器的 CPU 请求总和超过其可分配 CPU 的 90% | Warning |
 | High Node Memory Request Commitment | 节点 | 节点上容器的内存请求总和超过其可分配内存的 90% | Warning |
