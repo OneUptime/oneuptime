@@ -42,6 +42,7 @@
       "resources": "Resources",
       "infrastructure": "Infrastructure",
       "analyticsAutomation": "Dashboards & Automation",
+      "cloud": "Cloud",
       "settings": "Settings"
     },
     "items": {

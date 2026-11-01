@@ -42,6 +42,7 @@
       "resources": "Bronnen",
       "infrastructure": "Infrastructuur",
       "analyticsAutomation": "Dashboards & automatisering",
+      "cloud": "Cloud",
       "settings": "Instellingen"
     },
     "items": {

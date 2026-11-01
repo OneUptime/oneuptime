@@ -42,6 +42,7 @@
       "resources": "Ressources",
       "infrastructure": "Infrastructure",
       "analyticsAutomation": "Tableaux de bord et automatisation",
+      "cloud": "Cloud",
       "settings": "Paramètres"
     },
     "items": {

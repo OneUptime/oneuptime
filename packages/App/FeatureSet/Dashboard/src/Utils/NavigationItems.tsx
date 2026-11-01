@@ -39,6 +39,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     "navbar.categories.infrastructure",
     "Infrastructure",
   );
+  /*
+   * What a cloud runs for you: the accounts you connect and every resource
+   * in them, the apps on its managed app and container platforms, and its
+   * functions. Infrastructure keeps what you run yourself.
+   */
+  const cloudCategory: string = t("navbar.categories.cloud", "Cloud");
   const analyticsAutomationCategory: string = t(
     "navbar.categories.analyticsAutomation",
   );
@@ -619,104 +625,6 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
-      title: t("navbar.items.serverlessTitle"),
-      keywords: [
-        "lambda",
-        "aws lambda",
-        "cloud functions",
-        "azure functions",
-        "faas",
-      ],
-      description: t("navbar.items.serverlessDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SERVERLESS_FUNCTIONS],
-      icon: IconProp.Bolt,
-      iconColor: "blue",
-      category: infrastructureCategory,
-    },
-    /*
-     * The apps a managed app or container platform runs for you, found in
-     * their own OpenTelemetry. It was Cloud's "All Environments" until the
-     * two became products of their own: the platforms' names are its
-     * keywords, so a search for the one you deploy to finds it. Not "app
-     * runner": "runner" must find only Runbooks, where Runners are set up
-     * (RunnerProductSearch).
-     */
-    {
-      title: t("navbar.items.appPlatformsTitle", "App Platforms"),
-      keywords: [
-        "paas",
-        "platform as a service",
-        "app platform",
-        "ecs",
-        "aws ecs",
-        "fargate",
-        "elastic beanstalk",
-        "beanstalk",
-        "cloud run",
-        "app engine",
-        "container apps",
-        "container instances",
-        "app service",
-        "web apps",
-        "managed containers",
-      ],
-      description: t(
-        "navbar.items.appPlatformsDescription",
-        "Monitor the apps you run on ECS and Fargate, Cloud Run, App Service and other managed platforms.",
-      ),
-      /*
-       * Lands on the Overview; every page under /app-platforms (the
-       * environments, one environment, Archived, Settings) keeps it lit.
-       */
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.APP_PLATFORMS_OVERVIEW] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.APP_PLATFORMS_ROOT],
-      icon: IconProp.RocketLaunch,
-      iconColor: "blue",
-      category: infrastructureCategory,
-    },
-    /*
-     * The cloud accounts connected to OneUptime and every resource in them.
-     * It lands on the accounts; every page under /cloud keeps it lit.
-     */
-    {
-      title: t("navbar.items.cloudTitle"),
-      keywords: [
-        "aws",
-        "amazon web services",
-        "azure",
-        "gcp",
-        "google cloud",
-        "cloud resources",
-        "cloud accounts",
-        "azure subscriptions",
-        "iaas",
-        "cloudwatch",
-        "azure monitor",
-        "cloud monitoring",
-        "ec2",
-        "rds",
-        "s3",
-        "virtual machines",
-        "load balancers",
-      ],
-      description: t(
-        "navbar.items.cloudDescription",
-        "Connect your AWS, Azure and Google Cloud accounts and monitor every resource in them.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CLOUD_ACCOUNTS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.CLOUD_ROOT],
-      icon: IconProp.Cloud,
-      iconColor: "blue",
-      category: infrastructureCategory,
-    },
-    {
       title: t("navbar.items.proxmoxTitle", "Proxmox"),
       keywords: [
         "pve",
@@ -836,6 +744,105 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       icon: IconProp.IoT,
       iconColor: "blue",
       category: infrastructureCategory,
+    },
+    // Cloud: the accounts, the apps on the clouds' platforms, their functions.
+    /*
+     * The cloud accounts connected to OneUptime and every resource in them.
+     * It lands on the accounts; every page under /cloud keeps it lit.
+     */
+    {
+      title: t("navbar.items.cloudTitle"),
+      keywords: [
+        "aws",
+        "amazon web services",
+        "azure",
+        "gcp",
+        "google cloud",
+        "cloud resources",
+        "cloud accounts",
+        "azure subscriptions",
+        "iaas",
+        "cloudwatch",
+        "azure monitor",
+        "cloud monitoring",
+        "ec2",
+        "rds",
+        "s3",
+        "virtual machines",
+        "load balancers",
+      ],
+      description: t(
+        "navbar.items.cloudDescription",
+        "Connect your AWS, Azure and Google Cloud accounts and monitor every resource in them.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CLOUD_ACCOUNTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CLOUD_ROOT],
+      icon: IconProp.Cloud,
+      iconColor: "blue",
+      category: cloudCategory,
+    },
+    /*
+     * The apps a managed app or container platform runs for you, found in
+     * their own OpenTelemetry. It was Cloud's "All Environments" until the
+     * two became products of their own: the platforms' names are its
+     * keywords, so a search for the one you deploy to finds it. Not "app
+     * runner": "runner" must find only Runbooks, where Runners are set up
+     * (RunnerProductSearch).
+     */
+    {
+      title: t("navbar.items.appPlatformsTitle", "App Platforms"),
+      keywords: [
+        "paas",
+        "platform as a service",
+        "app platform",
+        "ecs",
+        "aws ecs",
+        "fargate",
+        "elastic beanstalk",
+        "beanstalk",
+        "cloud run",
+        "app engine",
+        "container apps",
+        "container instances",
+        "app service",
+        "web apps",
+        "managed containers",
+      ],
+      description: t(
+        "navbar.items.appPlatformsDescription",
+        "Monitor the apps you run on ECS and Fargate, Cloud Run, App Service and other managed platforms.",
+      ),
+      /*
+       * Lands on the Overview; every page under /app-platforms (the
+       * environments, one environment, Archived, Settings) keeps it lit.
+       */
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.APP_PLATFORMS_OVERVIEW] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.APP_PLATFORMS_ROOT],
+      icon: IconProp.RocketLaunch,
+      iconColor: "blue",
+      category: cloudCategory,
+    },
+    {
+      title: t("navbar.items.serverlessTitle"),
+      keywords: [
+        "lambda",
+        "aws lambda",
+        "cloud functions",
+        "azure functions",
+        "faas",
+      ],
+      description: t("navbar.items.serverlessDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SERVERLESS_FUNCTIONS],
+      icon: IconProp.Bolt,
+      iconColor: "blue",
+      category: cloudCategory,
     },
     // Dashboards & Automation
     {
