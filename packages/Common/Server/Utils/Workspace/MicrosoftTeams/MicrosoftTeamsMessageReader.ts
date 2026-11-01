@@ -1,6 +1,7 @@
 import { replaceHtmlMarkup } from "../../../../Types/HtmlMarkup";
 import { JSONObject } from "../../../../Types/JSON";
 import WorkspaceChannelLinkUtil from "../../../../Types/Workspace/WorkspaceChannelLink";
+import MicrosoftTeamsCloudUtil from "../../../../Types/Workspace/MicrosoftTeamsCloud";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import ArrayUtil from "../../../../Utils/Array";
 import {
@@ -84,9 +85,6 @@ const HEADING_TAGS: ReadonlySet<string> = new Set<string>([
   "h5",
   "h6",
 ]);
-
-// Where Graph keeps an image a message carries: readable with a token only.
-const GRAPH_HOST: string = "graph.microsoft.com";
 
 /*
  * A card or file attached to a Teams message, with what it holds: its text
@@ -663,8 +661,14 @@ class TeamsHtmlWalk {
       host = "";
     }
 
+    /*
+     * Where Graph keeps an image a message carries - Microsoft Graph, in any
+     * cloud - is readable with a token only: the message's own link instead.
+     */
     const url: string | null =
-      source && host && host !== GRAPH_HOST ? source : this.messageUrl;
+      source && host && !MicrosoftTeamsCloudUtil.isGraphHost(host)
+        ? source
+        : this.messageUrl;
 
     if (url) {
       this.inlines.push({

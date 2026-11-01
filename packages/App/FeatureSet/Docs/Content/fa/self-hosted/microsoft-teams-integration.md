@@ -194,6 +194,7 @@ microsoftTeamsApp:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | **Application (client) ID**. همین مقدار شناسهٔ ربات در بستهٔ برنامهٔ Teams هم هست، پس باید یک GUID باشد. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | **Value** رمز کلاینت، نه شناسهٔ آن. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | **Directory (tenant) ID**. ربات در این مستأجر به‌عنوان یک برنامهٔ تک‌مستأجری احراز هویت می‌کند، و افراد برای اتصال حساب Microsoft Teams خود به آن وارد می‌شوند. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | فقط برای مستأجر Microsoft 365 در یکی از ابرهای دولت آمریکا: `gcc`، `gcc-high` یا `dod`. برای ابر تجاری آن را خالی بگذارید. [ابرهای دولت آمریکا](#ابرهای-دولت-آمریکا) را ببینید. |
 | `HOST` | `host` | نام میزبان عمومی شما. نشانی‌های هدایت، نقطهٔ پایانی پیام‌رسانی و بستهٔ برنامهٔ Teams از روی آن ساخته می‌شوند. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. Azure Bot Service فقط نقطه‌های پایانی HTTPS را فرا می‌خواند. |
 
@@ -202,6 +203,21 @@ microsoftTeamsApp:
 - بدون شناسهٔ کلاینت، صفحهٔ Microsoft Teams به‌جای **اعطای رضایت مدیر** راهنمای راه‌اندازی را نشان می‌دهد.
 - بدون شناسهٔ کلاینت یا رمز، اتصال با پیام **"Microsoft Teams روی این سرور OneUptime راه‌اندازی نشده است."** پایان می‌یابد.
 - بدون شناسهٔ مستأجر، ربات نمی‌تواند احراز هویت کند، پس هم انتشار و هم نقطهٔ پایانی ربات شکست می‌خورند.
+
+## ابرهای دولت آمریکا
+
+اگر مستأجر Microsoft 365 شما در یکی از ابرهای دولت آمریکای Microsoft است، `MICROSOFT_TEAMS_CLOUD` (در Helm `microsoftTeamsApp.cloud`) را برابر همان ابر بگذارید. ربات، ورودهای Microsoft Teams و [برنامهٔ جلسه‌های Teams](/docs/workspace-connections/video-calls#اتصال-یککلیکی-روی-یک-سرور-خودمیزبان) آن‌گاه از میزبان‌های همان ابر استفاده می‌کنند:
+
+| `MICROSOFT_TEAMS_CLOUD` | ابر Microsoft 365 | ورود | Microsoft Graph |
+| --- | --- | --- | --- |
+| تنظیم‌نشده | تجاری | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+برای GCC High و DoD، ثبت برنامه و Azure Bot را در Azure Government بسازید: در گام‌های ۱ تا ۵ به‌جای درگاه Azure از [درگاه Azure Government](https://portal.azure.us) استفاده کنید. باقی کارها همان است. برای دیدن ابری که سرور به کار می‌برد، `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test` را اجرا کنید: نام ابر و میزبان‌هایش را می‌گوید.
+
+مقداری که نام هیچ ابری نیست، هر درخواست Microsoft Teams را با خطایی متوقف می‌کند که نام `MICROSOFT_TEAMS_CLOUD` را می‌برد، تا ورودهای مستأجر شما هرگز به ابر تجاری فرستاده نشوند. Microsoft Teams با گردانندگی 21Vianet در چین پشتیبانی نمی‌شود.
 
 ## دسترسی شبکه
 
@@ -237,7 +253,7 @@ flowchart TB
 
 ### دسترسی خروجی و محدودیت‌های IP
 
-تفکیک DNS و HTTPS خروجی را از برنامهٔ OneUptime مجاز کنید. از `graph.microsoft.com`، `login.microsoftonline.com`، نقطه‌های پایانی احراز هویت و کانال Bot Framework، و نشانی سرویس رابطی که برای هر گفت‌وگو داده می‌شود استفاده کنید. رابط جایگزین در ابر تجاری `https://smba.trafficmanager.net/teams/` است؛ نشانی‌های سرویس گفت‌وگوها ممکن است فرق کنند. [راهنمای دیوارهٔ آتش Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) را به کار ببرید و ترافیک مسدودشده را هنگام آزمایش بررسی کنید؛ این فهرست کاملی از نام‌های میزبان نیست.
+تفکیک DNS و HTTPS خروجی را از برنامهٔ OneUptime مجاز کنید. از `graph.microsoft.com`، `login.microsoftonline.com`، نقطه‌های پایانی احراز هویت و کانال Bot Framework، و نشانی سرویس رابطی که برای هر گفت‌وگو داده می‌شود استفاده کنید. رابط جایگزین در ابر تجاری `https://smba.trafficmanager.net/teams/` است؛ نشانی‌های سرویس گفت‌وگوها ممکن است فرق کنند. [راهنمای دیوارهٔ آتش Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) را به کار ببرید و ترافیک مسدودشده را هنگام آزمایش بررسی کنید؛ این فهرست کاملی از نام‌های میزبان نیست. در یکی از [ابرهای دولت آمریکا](#ابرهای-دولت-آمریکا)، این‌ها میزبان‌های خودِ همان ابرند.
 
 Microsoft از فهرست‌های ثابت IP مجاز برای ترافیک ورودی Bot Framework پشتیبانی نمی‌کند، چون نشانی‌های مبدأ آن تغییر می‌کنند. بازه‌های IP رسانه‌ای کلاینت‌های Teams مبدأ وب‌هوک‌های ربات را نشان نمی‌دهند. به‌جای اینکه IP مبدأ را دلیل هویت بدانید، احراز هویت Bot Framework را روشن نگه دارید.
 

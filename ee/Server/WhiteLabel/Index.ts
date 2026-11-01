@@ -30,6 +30,20 @@ export const getProductBranding: () => ProductBranding | null =
     }
   };
 
+/*
+ * The logo getProductBranding names, as bytes, for an email to carry
+ * (EnterpriseServerModule.getProductBrandingLogo): null unless the license
+ * allows white-labelling and a logo is set. Never throws.
+ */
+export const getProductBrandingLogo: () => Buffer | null =
+  (): Buffer | null => {
+    try {
+      return whiteLabelProvider.getProductBrandingLogo();
+    } catch {
+      return null;
+    }
+  };
+
 const WhiteLabelArea: EnterpriseArea = {
   name: "WhiteLabel",
   init: async (): Promise<void> => {

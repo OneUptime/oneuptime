@@ -33,9 +33,11 @@ import {
  * is escaped by the renderer, and a value placed into a template is escaped
  * unless it is HTML this code made.
  *
- * The email's own image - OneUptime's logo in its header (EmailLogo) - goes
- * out the same way, through attachImage: under a name of its own, outside
- * the limits above, and never replaced by a note.
+ * The email's own images - OneUptime's logo in its header (EmailLogo), and
+ * a logo an operator uploaded that it carries in place of the logo's
+ * address (EmailCarriedLogos) - go out the same way, through attachImage:
+ * under a name of their own, outside the limits above, and never replaced
+ * by a note.
  *
  * A mail service can still refuse an email for its images (MailService:
  * InlineImageRefusal). The email then goes once more without any: leaveOut
@@ -284,6 +286,45 @@ export default class EmailInlineImages {
       return getLeftOutImageNotice(
         findAttribute(tag, "alt")?.value || "",
         NOT_TAKEN_REASON,
+      );
+    });
+  }
+
+  /**
+   * `html` with the src of every <img> that `replace` answers for written
+   * as its answer, and every other tag as it was. `replace` is handed each
+   * src exactly as it is written - its character references not decoded -
+   * and answers null to leave the tag alone. The answer goes into the
+   * attribute as it is, so it must be a value an attribute holds as it is:
+   * an inline image's data: URL (InlineImageDataUri writes nothing else).
+   * HTML with no <img> comes back exactly as it was. For the images an
+   * email carries in place of an address (EmailCarriedLogos).
+   */
+  public static replaceImageSources(
+    html: string,
+    replace: (source: string) => string | null,
+  ): string {
+    if (!html || !IMAGE_TAG_START_PATTERN.test(html)) {
+      return html;
+    }
+
+    return html.replace(IMAGE_TAG_PATTERN, (tag: string): string => {
+      const source: TagAttribute | null = findAttribute(tag, "src");
+
+      if (!source) {
+        return tag;
+      }
+
+      const replacement: string | null = replace(source.value);
+
+      if (replacement === null) {
+        return tag;
+      }
+
+      return (
+        tag.slice(0, source.valueStart) +
+        replacement +
+        tag.slice(source.valueEnd)
       );
     });
   }

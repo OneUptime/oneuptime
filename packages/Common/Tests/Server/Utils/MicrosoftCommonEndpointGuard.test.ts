@@ -18,7 +18,9 @@ import path from "path";
  * them (SIGNS_IN_ANY_ACCOUNT). Everything else signs in at the tenant it
  * knows, or at `organizations` when it knows none and its app is documented
  * as multitenant - and the Teams sign-ins build Microsoft's URLs only through
- * MicrosoftTeamsSignInAuthority, which never names `common`.
+ * MicrosoftTeamsSignInAuthority, which never names `common`, on the sign-in
+ * host of the server's Microsoft cloud (MicrosoftTeamsHosts; the hosts are
+ * Types/Workspace/MicrosoftTeamsCloud.ts's, MicrosoftTeamsCloudHostsGuard).
  */
 
 // Microsoft's common endpoint, on its commercial and US Government sign-in hosts.
@@ -46,9 +48,8 @@ const SIGNS_IN_ANY_ACCOUNT: Record<string, string> = {
     "Sign in with Microsoft takes any Microsoft account",
 };
 
-// The one origin the Teams sign-ins name, as MicrosoftTeamsSignInAuthority declares it.
-const MICROSOFT_LOGIN_ORIGIN_DECLARATION: RegExp =
-  /export const MICROSOFT_LOGIN_ORIGIN: string =\s+"https:\/\/login\.microsoftonline\.com";/;
+// How MicrosoftTeamsSignInAuthority builds every authority: on the cloud's sign-in host.
+const CLOUD_SIGN_IN_ORIGIN: string = "MicrosoftTeamsHosts.getSignInOrigin()";
 
 const TEAMS_SIGN_IN_FILES: Array<string> = [
   "packages/Common/Server/API/MicrosoftTeamsAPI.ts",
@@ -87,10 +88,12 @@ describe("Microsoft's common endpoint in product code", () => {
       });
     }
 
-    // The Teams API builds every Microsoft sign-in URL through the one module.
+    /*
+     * The Teams API builds every Microsoft sign-in URL through the one
+     * module, which takes the sign-in host of the server's cloud (that it
+     * names no host itself, MicrosoftTeamsCloudHostsGuard holds).
+     */
     expect(read(TEAMS_SIGN_IN_FILES[0]!)).not.toMatch(MICROSOFT_LOGIN_HOST);
-    expect(read(TEAMS_SIGN_IN_FILES[1]!)).toMatch(
-      MICROSOFT_LOGIN_ORIGIN_DECLARATION,
-    );
+    expect(read(TEAMS_SIGN_IN_FILES[1]!)).toContain(CLOUD_SIGN_IN_ORIGIN);
   });
 });

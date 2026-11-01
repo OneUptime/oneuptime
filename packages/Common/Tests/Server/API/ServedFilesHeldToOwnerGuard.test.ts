@@ -117,6 +117,13 @@ const BYTE_READERS: Record<string, string> = {
    */
   "packages/Common/Server/API/CustomFieldFileAPI.ts":
     "FileOwnership.keepProjectFile",
+  /*
+   * A status page's logo, read just before an email that shows it is sent,
+   * to go inside that email (EmailCarriedLogos): as its logo route serves
+   * it - a page that is not archived, a file of the page's own project.
+   */
+  "packages/Common/Server/Utils/StatusPage/StatusPageCarriedLogo.ts":
+    "FileOwnership.keepProjectFile",
 };
 
 // A select of a stored file's bytes: `file: true`.

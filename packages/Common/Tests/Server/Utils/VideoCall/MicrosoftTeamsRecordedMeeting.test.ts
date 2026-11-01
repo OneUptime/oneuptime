@@ -1,5 +1,4 @@
 import MicrosoftTeamsMeetingClient, {
-  MICROSOFT_GRAPH_BASE_URL,
   MICROSOFT_TEAMS_MEETING_LOOKUP_ATTEMPTS,
   MICROSOFT_TEAMS_MEETING_LOOKUP_DELAY_IN_MS,
 } from "../../../../Server/Utils/VideoCall/Providers/MicrosoftTeamsMeetingClient";
@@ -46,6 +45,8 @@ const TENANT_ID: string = "11111111-2222-3333-4444-555555555555";
 const CLIENT_ID: string = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 const ORGANIZER_ID: string = "99999999-8888-7777-6666-555555555555";
 
+// Microsoft Graph of the commercial cloud, where no MICROSOFT_TEAMS_CLOUD is set.
+const MICROSOFT_GRAPH_BASE_URL: string = "https://graph.microsoft.com/v1.0";
 const GRAPH_ORGANIZER: string = `${MICROSOFT_GRAPH_BASE_URL}/users/${ORGANIZER_ID}`;
 
 // Graph's ids are base64: their "=" and "/" are sent encoded.

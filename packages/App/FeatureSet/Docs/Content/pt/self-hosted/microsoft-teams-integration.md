@@ -194,6 +194,7 @@ Observações:
 | `MICROSOFT_TEAMS_APP_CLIENT_ID` | `microsoftTeamsApp.clientId` | O **Application (client) ID**. Ele também é o ID do bot no pacote de app do Teams, então precisa ser um GUID. |
 | `MICROSOFT_TEAMS_APP_CLIENT_SECRET` | `microsoftTeamsApp.clientSecret` | O **Value** do segredo do cliente, não o ID dele. |
 | `MICROSOFT_TEAMS_APP_TENANT_ID` | `microsoftTeamsApp.tenantId` | O **Directory (tenant) ID**. O bot se autentica como um app de locatário único nesse locatário, e as pessoas entram nele para conectar a conta do Microsoft Teams. |
+| `MICROSOFT_TEAMS_CLOUD` | `microsoftTeamsApp.cloud` | Somente para um locatário do Microsoft 365 em uma nuvem do governo dos EUA: `gcc`, `gcc-high` ou `dod`. Deixe sem definir para a nuvem comercial. Veja [Nuvens do governo dos EUA](#nuvens-do-governo-dos-eua). |
 | `HOST` | `host` | O seu nome de host público. Os URIs de redirecionamento, o endpoint de mensagens e o pacote de app do Teams são montados a partir dele. |
 | `HTTP_PROTOCOL` | `httpProtocol` | `https`. O Azure Bot Service só chama endpoints HTTPS. |
 
@@ -202,6 +203,21 @@ Os três valores `MICROSOFT_TEAMS_APP_*` são obrigatórios:
 - Sem o ID de cliente, a página do Microsoft Teams mostra o guia de configuração em vez de **Conceder Consentimento de Administrador**.
 - Sem o ID de cliente ou o segredo, a conexão termina com **"O Microsoft Teams não está configurado neste servidor do OneUptime."**
 - Sem o ID do locatário, o bot não consegue se autenticar, então a publicação e o endpoint do bot falham.
+
+## Nuvens do governo dos EUA
+
+Se o seu locatário do Microsoft 365 estiver em uma das nuvens do governo dos EUA da Microsoft, defina `MICROSOFT_TEAMS_CLOUD` (Helm `microsoftTeamsApp.cloud`) com essa nuvem. O bot, os logins do Microsoft Teams e o [app de reuniões do Teams](/docs/workspace-connections/video-calls#conectar-com-um-clique-em-um-servidor-auto-hospedado) passam então a usar os hosts dela:
+
+| `MICROSOFT_TEAMS_CLOUD` | Nuvem | Login | Microsoft Graph |
+| --- | --- | --- | --- |
+| Não definida | Comercial | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc` | GCC | `login.microsoftonline.com` | `graph.microsoft.com` |
+| `gcc-high` | GCC High | `login.microsoftonline.us` | `graph.microsoft.us` |
+| `dod` | DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
+
+Para GCC High e DoD, crie o registro de app e o Azure Bot no Azure Government: nos passos 1 a 5, use o [portal do Azure Government](https://portal.azure.us) em vez do portal do Azure. Todo o resto é igual. Para conferir qual nuvem o servidor usa, execute `curl -sS https://your-oneuptime-domain.com/api/microsoft-bot/test`: ele informa a nuvem e os hosts dela.
+
+Um valor que não nomeia nenhuma nuvem interrompe cada solicitação do Microsoft Teams com um erro que nomeia `MICROSOFT_TEAMS_CLOUD`, para que os logins do seu locatário nunca sejam enviados à nuvem comercial. O Microsoft Teams operado pela 21Vianet, na China, não é compatível.
 
 ## Acesso de rede
 
@@ -237,7 +253,7 @@ As [configurações de acesso à rede privada](/docs/self-hosted/private-network
 
 ### Acesso de saída e restrições de IP
 
-Permita a resolução de DNS e o HTTPS de saída a partir do app do OneUptime. Use `graph.microsoft.com`, `login.microsoftonline.com`, os endpoints de autenticação e de canal do Bot Framework, e a URL do serviço conector fornecida para uma conversa. O conector de fallback da nuvem comercial é `https://smba.trafficmanager.net/teams/`; as URLs de serviço das conversas podem ser diferentes. Aplique as [orientações de firewall da Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) e inspecione o tráfego bloqueado durante os testes; esta não é uma lista completa de nomes de host.
+Permita a resolução de DNS e o HTTPS de saída a partir do app do OneUptime. Use `graph.microsoft.com`, `login.microsoftonline.com`, os endpoints de autenticação e de canal do Bot Framework, e a URL do serviço conector fornecida para uma conversa. O conector de fallback da nuvem comercial é `https://smba.trafficmanager.net/teams/`; as URLs de serviço das conversas podem ser diferentes. Aplique as [orientações de firewall da Microsoft](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0) e inspecione o tráfego bloqueado durante os testes; esta não é uma lista completa de nomes de host. Em uma [nuvem do governo dos EUA](#nuvens-do-governo-dos-eua), esses são os hosts da própria nuvem.
 
 A Microsoft não oferece suporte a listas fixas de IPs permitidos para o tráfego de entrada do Bot Framework, porque os endereços de origem dela mudam. As faixas de IP de mídia dos clientes do Teams não descrevem as origens dos webhooks de bots. Mantenha a autenticação do Bot Framework ativada em vez de tratar um IP de origem como prova de identidade.
 

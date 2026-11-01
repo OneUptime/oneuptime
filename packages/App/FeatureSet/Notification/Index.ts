@@ -12,9 +12,12 @@ import SMTPConfigAPI from "./API/SMTPConfig";
 import PhoneNumberAPI from "./API/PhoneNumber";
 import IncomingCallAPI from "./API/IncomingCall";
 import SubscriberNotificationPreviewAPI from "./API/SubscriberNotificationPreview";
+import MailService from "./Services/MailService";
 import "./Utils/Handlebars";
 import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import { CarriedLogo } from "Common/Server/Utils/Mail/EmailCarriedLogos";
+import StatusPageCarriedLogo from "Common/Server/Utils/StatusPage/StatusPageCarriedLogo";
 import SubscriberNotificationPreview from "Common/Types/StatusPage/SubscriberNotificationPreview";
 import "ejs";
 
@@ -22,6 +25,17 @@ const NotificationFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const APP_NAME: string = "api/notification";
     const app: ExpressApplication = Express.getExpressApp();
+
+    /*
+     * A status page's logo goes inside the emails that show it, read from
+     * the database (StatusPageCarriedLogo), rather than load from its
+     * address when the email is opened.
+     */
+    MailService.carryStatusPageLogosWith(
+      (address: string): Promise<CarriedLogo | null> => {
+        return StatusPageCarriedLogo.readAddress(address);
+      },
+    );
 
     app.use([`/${APP_NAME}/email`, "/email"], MailAPI);
     app.use([`/${APP_NAME}/sms`, "/sms"], SmsAPI);

@@ -1,3 +1,5 @@
+import MicrosoftTeamsCloudUtil from "../Workspace/MicrosoftTeamsCloud";
+
 /*
  * Where an incident or alert call is held. The value is stored on
  * VideoCallConnection.provider (a provider a project connects once) and on
@@ -138,11 +140,8 @@ export function detectVideoCallProviderFromUrl(
     return VideoCallProvider.GoogleMeet;
   }
 
-  if (
-    hostname === "teams.microsoft.com" ||
-    hostname === "teams.live.com" ||
-    hostname === "teams.cloud.microsoft"
-  ) {
+  // A Teams meeting's link, in any Microsoft cloud (GCC High and DoD too).
+  if (MicrosoftTeamsCloudUtil.isTeamsMeetingHost(hostname)) {
     return VideoCallProvider.MicrosoftTeams;
   }
 
