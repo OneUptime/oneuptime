@@ -1,4 +1,5 @@
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -229,9 +230,11 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
   /*
    * Where an app runs, under its name: its platform and region on All Apps,
    * where apps of every environment sit together, and the cluster or slot
-   * it is kept apart by.
+   * it is kept apart by. One part a string: the line wraps between parts.
    */
-  const getWhere: (app: CloudApp) => string = (app: CloudApp): string => {
+  const getWhere: (app: CloudApp) => Array<string> = (
+    app: CloudApp,
+  ): Array<string> => {
     const parts: Array<string> = [];
 
     if (!environmentId) {
@@ -264,7 +267,7 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
       );
     }
 
-    return parts.join(" · ");
+    return parts;
   };
 
   return (
@@ -337,7 +340,7 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-xs",
           getElement: (app: CloudApp): ReactElement => {
-            const where: string = getWhere(app);
+            const where: Array<string> = getWhere(app);
 
             return (
               <div className="flex min-w-0 items-start gap-2.5">
@@ -359,9 +362,27 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
                   >
                     {app.name || "—"}
                   </AppLink>
-                  {where ? (
+                  {where.length > 0 ? (
                     <div className="mt-0.5 text-xs text-gray-500">
-                      <bdi>{where}</bdi>
+                      {/*
+                       * Each part is kept whole where it fits - a region such
+                       * as europe-west1 never breaks at its hyphen - and the
+                       * dot stays with the part before it.
+                       */}
+                      <bdi>
+                        {where.map(
+                          (part: string, index: number): ReactElement => {
+                            return (
+                              <Fragment key={index}>
+                                {index > 0 ? "\u00a0· " : ""}
+                                <span className="inline-block max-w-full break-words">
+                                  {part}
+                                </span>
+                              </Fragment>
+                            );
+                          },
+                        )}
+                      </bdi>
                     </div>
                   ) : (
                     <></>
