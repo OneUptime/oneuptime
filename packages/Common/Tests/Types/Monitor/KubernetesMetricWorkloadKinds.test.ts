@@ -25,8 +25,10 @@ import {
 const EXPECTED_WORKLOAD_KINDS: Record<string, KubernetesWorkloadKind> = {
   "deployment-available-replicas": "deployment",
   "deployment-desired-replicas": "deployment",
+  "daemonset-desired-nodes": "daemonset",
   "daemonset-misscheduled-nodes": "daemonset",
   "daemonset-ready-nodes": "daemonset",
+  "statefulset-desired-replicas": "statefulset",
   "statefulset-ready-replicas": "statefulset",
   "job-failed-pods": "job",
   "job-failed-pods-increase": "job",

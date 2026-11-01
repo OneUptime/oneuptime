@@ -333,15 +333,21 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
       {
         title: "Start Time",
-        value: jobObject.status.startTime || "N/A",
+        value: KubernetesResourceUtils.formatTimestamp(
+          jobObject.status.startTime,
+        ),
       },
       {
         title: "Completion Time",
-        value: jobObject.status.completionTime || "N/A",
+        value: KubernetesResourceUtils.formatTimestamp(
+          jobObject.status.completionTime,
+        ),
       },
       {
         title: "Created",
-        value: jobObject.metadata.creationTimestamp || "N/A",
+        value: KubernetesResourceUtils.formatAge(
+          jobObject.metadata.creationTimestamp,
+        ),
       },
     );
   }

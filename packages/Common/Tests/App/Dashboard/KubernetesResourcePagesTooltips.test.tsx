@@ -129,6 +129,12 @@ jest.mock(
         formatAge: () => {
           return "3d";
         },
+        formatTimeAgo: () => {
+          return "an hour ago";
+        },
+        formatTimestamp: () => {
+          return "Nov 01 2026, 17:49";
+        },
         formatBytesForChart: (value: number) => {
           return `${value} B`;
         },

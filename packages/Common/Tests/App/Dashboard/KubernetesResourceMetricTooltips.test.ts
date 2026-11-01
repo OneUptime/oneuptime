@@ -348,9 +348,10 @@ describe("workload and namespace columns are sums over pods", () => {
   );
 
   test.each(WORKLOAD_SUMS)(
-    "%s is honest that same-named workloads in other namespaces are added in",
+    "%s counts its own namespace's pods, so it makes no same-name caveat",
     (key: KubernetesResourceMetric) => {
-      expect(D[key]).toMatch(/same-named \w+ in other namespaces/);
+      expect(D[key]).not.toContain("same-named");
+      expect(D[key]).toContain("reported in the last 15 minutes");
     },
   );
 

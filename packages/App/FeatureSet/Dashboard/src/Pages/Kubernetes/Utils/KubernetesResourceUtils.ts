@@ -310,6 +310,31 @@ export default class KubernetesResourceUtils {
     return `${diffMonths}mo`;
   }
 
+  /*
+   * When something happened, as a reader says it: "an hour ago", in their
+   * language - never the ISO string Kubernetes stores.
+   */
+  public static formatTimeAgo(timestamp: string | undefined): string {
+    const date: Date | null = KubernetesResourceUtils.toDate(timestamp);
+    return date ? OneUptimeDate.fromNow(date) : "N/A";
+  }
+
+  // A moment to line up with logs: "Nov 01 2026, 17:49", in the reader's zone.
+  public static formatTimestamp(timestamp: string | undefined): string {
+    const date: Date | null = KubernetesResourceUtils.toDate(timestamp);
+    return date
+      ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(date)
+      : "N/A";
+  }
+
+  private static toDate(timestamp: string | undefined): Date | null {
+    if (!timestamp) {
+      return null;
+    }
+    const date: Date = new Date(timestamp);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+
   public static formatCpuValue(value: number | null): string {
     if (value === null || value === undefined) {
       return "N/A";
@@ -693,9 +718,10 @@ export default class KubernetesResourceUtils {
   }
 
   /**
-   * Fetch CPU/memory aggregates by Pod ownerReferences[].name for a
-   * given owner kind (e.g. "Deployment"). Powers the corresponding
-   * list views.
+   * Fetch CPU/memory aggregates of a given owner kind's pods (e.g.
+   * "Deployment"), keyed `<namespace>/<name>` - so two same-named
+   * workloads of two namespaces each read their own pods. Powers the
+   * corresponding list views.
    */
   public static async fetchPodMetricsByOwner(
     kubernetesClusterId: ObjectID,
@@ -753,18 +779,20 @@ export default class KubernetesResourceUtils {
   }
 
   /**
-   * Apply pre-aggregated CPU/memory values onto the list resources by
-   * matching on resource.name. Used by Namespace/Deployment/etc. list
-   * views in place of the ClickHouse `enrichWithMetrics` path.
+   * Apply pre-aggregated CPU/memory values onto the list resources:
+   * a workload's by its namespace and name, a namespace's by its name
+   * (and a workload's by its name alone from a server that sent no
+   * namespace). Used by Namespace/Deployment/etc. list views in place of
+   * the ClickHouse `enrichWithMetrics` path.
    */
   public static applyAggregateMetrics(options: {
     resources: Array<KubernetesResource>;
     aggregates: Map<string, PodMetricAggregate>;
   }): void {
     for (const resource of options.resources) {
-      const agg: PodMetricAggregate | undefined = options.aggregates.get(
-        resource.name,
-      );
+      const agg: PodMetricAggregate | undefined =
+        options.aggregates.get(`${resource.namespace}/${resource.name}`) ||
+        options.aggregates.get(resource.name);
       if (!agg) {
         continue;
       }

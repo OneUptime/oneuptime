@@ -964,9 +964,13 @@ export class Service extends DatabaseService<Model> {
    * path — Pods don't directly own to those kinds, so we can't walk
    * ownerReferences for them.
    *
-   * Returns a Map keyed by owner name. Pods without recent metrics
-   * (metricsUpdatedAt past the staleness cutoff) are excluded so the
-   * sum reflects "right now," not "ever observed."
+   * Returns a Map keyed by namespace and owner name,
+   * `<namespace>/<name>`: a `checkout` Deployment in `shop` and one in
+   * `payments` are two workloads, and each list row reads its own pods
+   * (keyed by name alone, both rows read the two namespaces' pods added
+   * up). Pods without recent metrics (metricsUpdatedAt past the
+   * staleness cutoff) are excluded so the sum reflects "right now," not
+   * "ever observed."
    */
   @CaptureSpan()
   public async getLatestMetricsByOwner(data: {
@@ -981,6 +985,7 @@ export class Service extends DatabaseService<Model> {
     >
   > {
     let rows: Array<{
+      namespaceKey: string | null;
       ownerName: string;
       cpu: string | null;
       mem: string | null;
@@ -994,6 +999,7 @@ export class Service extends DatabaseService<Model> {
           : "controllerCronJobName";
       rows = await this.getRepository().manager.query(
         `SELECT
+           "namespaceKey",
            "${column}" AS "ownerName",
            SUM("latestCpuPercent")::text AS cpu,
            SUM("latestMemoryBytes")::text AS mem,
@@ -1006,7 +1012,7 @@ export class Service extends DatabaseService<Model> {
            AND "metricsUpdatedAt" IS NOT NULL
            AND "metricsUpdatedAt" >= $3
            AND "${column}" IS NOT NULL
-         GROUP BY "${column}"`,
+         GROUP BY "namespaceKey", "${column}"`,
         [
           data.projectId.toString(),
           data.kubernetesClusterId.toString(),
@@ -1022,6 +1028,7 @@ export class Service extends DatabaseService<Model> {
        */
       rows = await this.getRepository().manager.query(
         `SELECT
+           "namespaceKey",
            "labels"->>'deploymentconfig' AS "ownerName",
            SUM("latestCpuPercent")::text AS cpu,
            SUM("latestMemoryBytes")::text AS mem,
@@ -1034,7 +1041,7 @@ export class Service extends DatabaseService<Model> {
            AND "metricsUpdatedAt" IS NOT NULL
            AND "metricsUpdatedAt" >= $3
            AND "labels"->>'deploymentconfig' IS NOT NULL
-         GROUP BY "labels"->>'deploymentconfig'`,
+         GROUP BY "namespaceKey", "labels"->>'deploymentconfig'`,
         [
           data.projectId.toString(),
           data.kubernetesClusterId.toString(),
@@ -1044,6 +1051,7 @@ export class Service extends DatabaseService<Model> {
     } else {
       rows = await this.getRepository().manager.query(
         `SELECT
+           "namespaceKey",
            (owner->>'name') AS "ownerName",
            SUM("latestCpuPercent")::text AS cpu,
            SUM("latestMemoryBytes")::text AS mem,
@@ -1058,7 +1066,7 @@ export class Service extends DatabaseService<Model> {
            AND "metricsUpdatedAt" >= $3
            AND "ownerReferences" IS NOT NULL
            AND owner->>'kind' = $4
-         GROUP BY (owner->>'name')`,
+         GROUP BY "namespaceKey", (owner->>'name')`,
         [
           data.projectId.toString(),
           data.kubernetesClusterId.toString(),
@@ -1076,7 +1084,7 @@ export class Service extends DatabaseService<Model> {
       if (!row.ownerName) {
         continue;
       }
-      out.set(row.ownerName, {
+      out.set(`${row.namespaceKey || ""}/${row.ownerName}`, {
         cpuPercent: row.cpu ? parseFloat(row.cpu) || 0 : 0,
         memoryBytes: row.mem ? parseInt(row.mem, 10) || 0 : 0,
         memoryPercent: row.memPct ? parseFloat(row.memPct) || 0 : 0,

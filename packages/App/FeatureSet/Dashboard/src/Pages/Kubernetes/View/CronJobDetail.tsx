@@ -310,7 +310,9 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       },
       {
         title: "Last Schedule Time",
-        value: cronJobObject.status.lastScheduleTime || "N/A",
+        value: KubernetesResourceUtils.formatTimeAgo(
+          cronJobObject.status.lastScheduleTime,
+        ),
       },
       {
         title: "Active Jobs",
@@ -319,7 +321,9 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       },
       {
         title: "Created",
-        value: cronJobObject.metadata.creationTimestamp || "N/A",
+        value: KubernetesResourceUtils.formatAge(
+          cronJobObject.metadata.creationTimestamp,
+        ),
       },
     );
   }

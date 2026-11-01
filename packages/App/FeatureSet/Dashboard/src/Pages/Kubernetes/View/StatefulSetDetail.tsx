@@ -315,7 +315,9 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
       },
       {
         title: "Created",
-        value: objectData.metadata.creationTimestamp || "N/A",
+        value: KubernetesResourceUtils.formatAge(
+          objectData.metadata.creationTimestamp,
+        ),
       },
     );
   }

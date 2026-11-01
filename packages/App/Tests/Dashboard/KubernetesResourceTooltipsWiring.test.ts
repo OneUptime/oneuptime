@@ -755,28 +755,34 @@ describe("the texts match the computations behind the lists", () => {
     expect(table).toContain(compact("{Math.round(pct)}%"));
   });
 
-  test("workload sums are keyed by owner NAME only - the texts own up to it", () => {
+  test("workload sums are keyed by namespace and name - the texts make no same-name caveat", () => {
     /*
-     * Pinned so that the day the aggregate is keyed by namespace too, this
-     * fails and the "same-named ... in other namespaces" caveat is dropped
-     * from the texts.
+     * The server keys each owner's sum <namespace>/<name>
+     * (KubernetesResourceService.getLatestMetricsByOwner), so shop's
+     * checkout never counts payments' checkout pods, and the texts that
+     * owned up to it while it was keyed by name only say nothing of it.
      */
     expect(
       readCode("Pages/Kubernetes/Utils/KubernetesResourceUtils.ts"),
     ).toContain(
       compact(
-        "const agg: PodMetricAggregate | undefined = options.aggregates.get( resource.name, );",
+        "options.aggregates.get(`${resource.namespace}/${resource.name}`) ||",
       ),
     );
 
     for (const key of [
       "deploymentCpu",
+      "deploymentMemory",
       "statefulSetCpu",
+      "statefulSetMemory",
       "daemonSetCpu",
+      "daemonSetMemory",
       "jobCpu",
+      "jobMemory",
       "cronJobCpu",
+      "cronJobMemory",
     ] as Array<KubernetesResourceMetric>) {
-      expect(KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS[key]).toContain(
+      expect(KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS[key]).not.toContain(
         "same-named",
       );
     }

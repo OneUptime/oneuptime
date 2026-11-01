@@ -14,7 +14,7 @@
  *   - CPU and Memory on the workload and Namespaces lists are SUMS of those
  *     per-pod percentages, so they pass 100% with a few busy pods. Only pods
  *     that reported in the last 15 minutes count. Workloads are matched by
- *     name only, so a same-named workload in another namespace is added in.
+ *     namespace and name, so a same-named one elsewhere is never added in.
  *   - Memory on the Pods list is measured against the pod's container
  *     limits, falling back to the node's allocatable memory; on the
  *     Containers list against the container's own limit, or not at all.
@@ -122,34 +122,34 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
     "This container's most recent memory use, shown as a share of its memory limit (the most it may use before it is killed) when it has one, up to 100%. Without a limit only the amount is shown; N/A means no reading in the last 15 minutes.",
   ),
   deploymentCpu: translationKey(
-    "The latest CPU use of this deployment's pods added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100% (the bar stops there). Counts pods that reported in the last 15 minutes, including same-named deployments in other namespaces.",
+    "The latest CPU use of this deployment's pods added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100% (the bar stops there). Counts pods that reported in the last 15 minutes.",
   ),
   deploymentMemory: translationKey(
-    "The latest memory use of this deployment's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes, including same-named deployments in other namespaces.",
+    "The latest memory use of this deployment's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes.",
   ),
   statefulSetCpu: translationKey(
-    "The latest CPU use of this StatefulSet's pods added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100% (the bar stops there). Counts pods that reported in the last 15 minutes, including same-named StatefulSets in other namespaces.",
+    "The latest CPU use of this StatefulSet's pods added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100% (the bar stops there). Counts pods that reported in the last 15 minutes.",
   ),
   statefulSetMemory: translationKey(
-    "The latest memory use of this StatefulSet's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes, including same-named StatefulSets in other namespaces.",
+    "The latest memory use of this StatefulSet's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes.",
   ),
   daemonSetCpu: translationKey(
-    "The latest CPU use of this DaemonSet's pods (usually one per node) added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100%. Counts pods that reported in the last 15 minutes, including same-named DaemonSets in other namespaces.",
+    "The latest CPU use of this DaemonSet's pods (usually one per node) added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100%. Counts pods that reported in the last 15 minutes.",
   ),
   daemonSetMemory: translationKey(
-    "The latest memory use of this DaemonSet's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes, including same-named DaemonSets in other namespaces.",
+    "The latest memory use of this DaemonSet's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes.",
   ),
   jobCpu: translationKey(
-    "The latest CPU use of this job's pods added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100%. Counts pods that reported in the last 15 minutes (so N/A soon after the job ends), including same-named jobs in other namespaces.",
+    "The latest CPU use of this job's pods added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100%. Counts pods that reported in the last 15 minutes (so N/A soon after the job ends).",
   ),
   jobMemory: translationKey(
-    "The latest memory use of this job's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes (so N/A soon after the job ends), including same-named jobs in other namespaces.",
+    "The latest memory use of this job's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes (so N/A soon after the job ends).",
   ),
   cronJobCpu: translationKey(
-    "The latest CPU use of pods from this CronJob's runs that reported in the last 15 minutes, added up, each as a share of its node's allocatable CPU (what the node can hand out to pods), so it can pass 100%. N/A between runs; same-named CronJobs in other namespaces are added in too.",
+    "The latest CPU use of pods from this CronJob's runs that reported in the last 15 minutes, added up, each as a share of its node's allocatable CPU (what the node can hand out to pods), so it can pass 100%. N/A between runs.",
   ),
   cronJobMemory: translationKey(
-    "The latest memory use of pods from this CronJob's runs that reported in the last 15 minutes: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. N/A between runs; same-named CronJobs in other namespaces are added in too.",
+    "The latest memory use of pods from this CronJob's runs that reported in the last 15 minutes: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. N/A between runs.",
   ),
   namespaceCpu: translationKey(
     "The latest CPU use of every pod in this namespace added up, each as a share of its own node's allocatable CPU (what the node can hand out to pods), so it can pass 100% (the bar stops there). Only pods that reported in the last 15 minutes count.",
