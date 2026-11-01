@@ -19,6 +19,10 @@ import {
  * Pages travel as a dictionary: `pages` holds each distinct scrubbed URL
  * once and a journey is a list of indexes into it. A few thousand sessions
  * share a few dozen pages, so this is what keeps the response small.
+ *
+ * One thing is not a fold: `filters` narrows the read to one person or one
+ * session. The read takes the newest sessions in the window, so a person
+ * outside them could only be found by the server.
  */
 
 /*
@@ -59,6 +63,40 @@ export interface UserFlowSessionDto {
    * Pages with nothing to report are left out.
    */
   pageSignals: Array<[number, number, number]>;
+  /*
+   * The session went on past the pages sent, so the last of them is not
+   * where it ended. Left out when it did not.
+   */
+  isTruncated?: boolean | undefined;
+  /* Whether there is footage to watch. Sent on a narrowed read only. */
+  hasRecording?: boolean | undefined;
+}
+
+export type UserFlowScopeKind = "user" | "visitor" | "session";
+
+/*
+ * What the read was narrowed to, as the server applied it. The Dashboard
+ * checks it against what it asked for, so a filter that was not applied can
+ * never draw other people's journeys under one person's name.
+ *
+ * A reference someone typed comes back as its key, which is what lets the
+ * page write a link that does not carry the reference. A session comes back
+ * with whoever it belongs to, so the page can widen from it to the person.
+ */
+export interface UserFlowScopeDto {
+  kind: UserFlowScopeKind;
+  /* "" for a visitor, and for a session nobody identified. */
+  identifiedUserKey: string;
+  /* "" for a user, and for a session whose recorder sent none. */
+  visitorId: string;
+  /* "" unless kind is "session". */
+  sessionId: string;
+  /*
+   * Absent when the caller's role may not read it, so a missing label means
+   * "hidden from you", never "anonymous". "" when the role may, and no
+   * session in the window says who this is.
+   */
+  identifiedUserLabel?: string | undefined;
 }
 
 export interface UserFlowJourneysResponseDto {
@@ -73,7 +111,15 @@ export interface UserFlowJourneysResponseDto {
   maxSessions: number;
   startUnixMs: number;
   endUnixMs: number;
+  /* Null when the read covers everyone. */
+  scope: UserFlowScopeDto | null;
 }
+
+const USER_FLOW_SCOPE_KINDS: ReadonlyArray<string> = [
+  "user",
+  "visitor",
+  "session",
+];
 
 function readIndexArray(value: unknown, pageCount: number): Array<number> {
   if (!Array.isArray(value)) {
@@ -126,6 +172,29 @@ function readSignalTriples(
   return triples;
 }
 
+function readScope(value: unknown): UserFlowScopeDto | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const scope: Record<string, unknown> = value as Record<string, unknown>;
+  const kind: string = readDtoString(scope, "kind");
+
+  if (!USER_FLOW_SCOPE_KINDS.includes(kind)) {
+    return null;
+  }
+
+  const label: unknown = scope["identifiedUserLabel"];
+
+  return {
+    kind: kind as UserFlowScopeKind,
+    identifiedUserKey: readDtoString(scope, "identifiedUserKey"),
+    visitorId: readDtoString(scope, "visitorId"),
+    sessionId: readDtoString(scope, "sessionId"),
+    ...(typeof label === "string" ? { identifiedUserLabel: label } : {}),
+  };
+}
+
 /*
  * Parses the endpoint's JSON without trusting it: an index outside the
  * dictionary is dropped rather than rendered as "undefined", and every
@@ -171,6 +240,12 @@ export function readUserFlowJourneysResponse(
         frustrationCount: readDtoNumber(session, "frustrationCount"),
         pages: readIndexArray(session["pages"], pages.length),
         pageSignals: readSignalTriples(session["pageSignals"], pages.length),
+        ...(readDtoBoolean(session, "isTruncated")
+          ? { isTruncated: true }
+          : {}),
+        ...(typeof session["hasRecording"] === "boolean"
+          ? { hasRecording: session["hasRecording"] }
+          : {}),
       });
     }
   }
@@ -183,5 +258,6 @@ export function readUserFlowJourneysResponse(
     maxSessions: readDtoNumber(row, "maxSessions"),
     startUnixMs: readDtoNumber(row, "startUnixMs"),
     endUnixMs: readDtoNumber(row, "endUnixMs"),
+    scope: readScope(row["scope"]),
   };
 }

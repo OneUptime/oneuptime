@@ -218,7 +218,9 @@ import SessionReplayReadService, {
   SessionReplayUsersCursor,
   SessionReplayUsersResult,
 } from "../Utils/SessionReplay/SessionReplayReadService";
-import SessionReplayUserFlowReadService from "../Utils/SessionReplay/SessionReplayUserFlowReadService";
+import SessionReplayUserFlowReadService, {
+  UserFlowJourneysScope,
+} from "../Utils/SessionReplay/SessionReplayUserFlowReadService";
 import {
   USER_FLOW_DEFAULT_MAX_SESSIONS,
   USER_FLOW_MAX_SESSIONS,
@@ -6885,14 +6887,112 @@ router.post(
 );
 
 /*
+ * Who a User Flows read is narrowed to, from the body's `filters`, spelled as
+ * /list spells them. One at a time: the page shows one person or one session.
+ *
+ * Every filter /list allows is allowed here, and the reference has the same
+ * gate. What differs is the answer to a filter that cannot be applied. /list
+ * drops it and says so, because the rest of the list is worth reading. Here
+ * the filter IS the question, so it is a 400 instead - for a caller the
+ * identity permission denies as well, who would otherwise be shown everyone's
+ * journeys under one person's name. Not a 403: the Dashboard takes that for
+ * "no access to this page" and leaves it.
+ */
+type ReadUserFlowScopeFunction = (data: {
+  filters: JSONObject;
+  projectId: ObjectID;
+  canReadIdentity: boolean;
+}) => UserFlowJourneysScope | undefined;
+
+const USER_FLOW_SCOPE_FILTERS: Array<string> = [
+  "identifiedUserRef",
+  "identifiedUserKey",
+  "visitorId",
+  "sessionId",
+];
+
+const getUserFlowScopeFilters: (filters: JSONObject) => Array<string> = (
+  filters: JSONObject,
+): Array<string> => {
+  return USER_FLOW_SCOPE_FILTERS.filter((key: string): boolean => {
+    return filters[key] !== undefined && filters[key] !== null;
+  });
+};
+
+const readUserFlowScope: ReadUserFlowScopeFunction = (data: {
+  filters: JSONObject;
+  projectId: ObjectID;
+  canReadIdentity: boolean;
+}): UserFlowJourneysScope | undefined => {
+  const named: Array<string> = getUserFlowScopeFilters(data.filters);
+
+  if (named.length === 0) {
+    return undefined;
+  }
+
+  if (named.length > 1) {
+    throw new BadDataException(
+      `Narrow a user flow by one of ${USER_FLOW_SCOPE_FILTERS.join(", ")} at a time.`,
+    );
+  }
+
+  const value: unknown = data.filters[named[0] as string];
+
+  switch (named[0]) {
+    case "identifiedUserRef":
+      if (!SessionReplayIdentity.isUsableUserRef(value)) {
+        throw new BadDataException(
+          `identifiedUserRef must be a non-empty string of at most ${SESSION_REPLAY_MAX_USER_REF_LENGTH} characters.`,
+        );
+      }
+
+      if (!data.canReadIdentity) {
+        throw new BadDataException(
+          "Your role cannot read end-user identity, so it cannot look a user up by their reference. Pick them from the list of users instead, or ask a project admin for the session replay identity permission.",
+        );
+      }
+
+      return {
+        kind: "user",
+        identifiedUserKey: SessionReplayIdentity.buildUserKey({
+          projectId: data.projectId,
+          userRef: value,
+        }),
+      };
+    case "identifiedUserKey":
+      if (!SessionReplayIdentity.isUserKey(value)) {
+        throw new BadDataException(
+          "identifiedUserKey must be a 64-character lowercase hex key.",
+        );
+      }
+
+      return { kind: "user", identifiedUserKey: value };
+    case "visitorId":
+      if (!SessionIdentity.isVisitorId(value)) {
+        throw new BadDataException(
+          "visitorId must be a 32-character lowercase hex visitor id.",
+        );
+      }
+
+      return { kind: "visitor", visitorId: value };
+    default:
+      return {
+        kind: "session",
+        sessionId: readSessionIdFromBody(data.filters),
+      };
+  }
+};
+
+/*
  * User Flows: the ordered page journey of each recorded session in the
  * window, for the flow map, paths and drop-off views (see
  * SessionReplayUserFlowReadService for where the order comes from).
  *
  * Same guard, plan gate and label-scoped application check as /users: it
  * projects only manifest-level columns the session list already shows -
- * pages, device facts and signal counts - never a payload, and no
- * identity column at all.
+ * pages, device facts and signal counts - never a payload. A read over
+ * everyone names no identity column at all; one narrowed to a person or a
+ * session says who that is, deciding the label as /list does.
  */
 router.post(
   "/telemetry/rum/session-replay/user-flow",
@@ -6924,12 +7024,13 @@ router.post(
         "rumApplicationId",
       );
 
-      await assertSessionReplayApplicationAccess({
-        projectId: projectId,
-        rumApplicationId: rumApplicationId,
-        databaseProps: databaseProps,
-        permissions: SESSION_REPLAY_LIST_PERMISSIONS,
-      });
+      const application: RumApplication =
+        await assertSessionReplayApplicationAccess({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        });
 
       const startTime: Date =
         readOptionalDateFromBody(body, "startTime") ||
@@ -6947,6 +7048,26 @@ router.post(
         );
       }
 
+      const filters: JSONObject = (body["filters"] as JSONObject) || {};
+
+      /*
+       * Decided against the application the access check loaded, as on /list,
+       * and only when the read names a person or a session at all: a read
+       * over everyone has no use for the answer.
+       */
+      const canReadIdentity: boolean =
+        getUserFlowScopeFilters(filters).length > 0 &&
+        (await canReadIdentifiedUserLabel({
+          databaseProps: databaseProps,
+          application: application,
+        }));
+
+      const scope: UserFlowJourneysScope | undefined = readUserFlowScope({
+        filters: filters,
+        projectId: projectId,
+        canReadIdentity: canReadIdentity,
+      });
+
       /* `limit` caps the SESSIONS read, newest first. */
       const maxSessions: number = readLimitFromBody(
         body,
@@ -6961,6 +7082,8 @@ router.post(
           startTime: startTime,
           endTime: endTime,
           maxSessions: maxSessions,
+          scope: scope,
+          includeIdentifiedUserLabel: canReadIdentity,
         });
 
       return Response.sendJsonObjectResponse(

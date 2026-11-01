@@ -234,6 +234,8 @@ export interface UserFlowAnalysis {
   deviceTypes: Array<string>;
   /* Whether keys carry a host (the app spans several origins). */
   includesHost: boolean;
+  /* Every session the filters kept, newest first. */
+  journeys: Array<UserFlowJourney>;
 }
 
 /* A journey after grouping, hiding and collapsing. */
@@ -242,11 +244,37 @@ export interface UserFlowJourney {
   startUnixMs: number;
   durationMs: number;
   deviceType: string;
+  browserName: string;
+  countryCode: string;
   pages: Array<string>;
   errorPages: Set<string>;
   frustrationPages: Set<string>;
   hadErrors: boolean;
   hadFrustration: boolean;
+  errorCount: number;
+  frustrationCount: number;
+  /* The session went on past the last page here. */
+  isTruncated: boolean;
+  /* Undefined when the read did not say: only a narrowed read does. */
+  hasRecording: boolean | undefined;
+}
+
+/* One page of one session's journey, as the visitor lived it. */
+export interface UserFlowJourneyStep {
+  page: string;
+  /* 1 the first time the session reached the page, 2 when it came back... */
+  visit: number;
+  isLanding: boolean;
+  isExit: boolean;
+  /* Said per page, not per visit: see UserFlowSessionDto.pageSignals. */
+  hadError: boolean;
+  hadFrustration: boolean;
+}
+
+export interface UserFlowJourneySteps {
+  steps: Array<UserFlowJourneyStep>;
+  /* Steps that went back to a page the session had already seen. */
+  revisits: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -520,12 +548,51 @@ function toJourney(
     startUnixMs: session.startUnixMs,
     durationMs: session.durationMs,
     deviceType: session.deviceType,
+    browserName: session.browserName,
+    countryCode: session.countryCode,
     pages: pages,
     errorPages: errorPages,
     frustrationPages: frustrationPages,
     hadErrors: session.errorCount > 0 || errorPages.size > 0,
     hadFrustration: session.frustrationCount > 0 || frustrationPages.size > 0,
+    errorCount: session.errorCount,
+    frustrationCount: session.frustrationCount,
+    isTruncated: session.isTruncated === true,
+    hasRecording: session.hasRecording,
   };
+}
+
+/*
+ * A journey read page by page: where it landed, where it left, and each
+ * return to a page already seen. The last page of a journey that was cut is
+ * not where the session ended, so nothing is marked as the exit there.
+ */
+export function buildUserFlowJourneySteps(
+  journey: UserFlowJourney,
+): UserFlowJourneySteps {
+  const visits: Counter = new Counter();
+  let revisits: number = 0;
+
+  const steps: Array<UserFlowJourneyStep> = journey.pages.map(
+    (page: string, index: number): UserFlowJourneyStep => {
+      visits.add(page);
+
+      if (visits.get(page) > 1) {
+        revisits += 1;
+      }
+
+      return {
+        page: page,
+        visit: visits.get(page),
+        isLanding: index === 0,
+        isExit: index === journey.pages.length - 1 && !journey.isTruncated,
+        hadError: journey.errorPages.has(page),
+        hadFrustration: journey.frustrationPages.has(page),
+      };
+    },
+  );
+
+  return { steps: steps, revisits: revisits };
 }
 
 /* ------------------------------------------------------------------ */
@@ -1523,5 +1590,6 @@ export function analyzeUserFlow(
     }),
     deviceTypes: deviceTypes,
     includesHost: includesHost,
+    journeys: journeys,
   };
 }
