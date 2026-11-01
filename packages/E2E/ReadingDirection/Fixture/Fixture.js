@@ -75,7 +75,11 @@ const language = ["de", "fa"].includes(params.get("lang"))
   : "en";
 const isDialogOpen = params.get("dialog") === "open";
 const isDrawerOpen = params.get("drawer") === "open";
-const tableWidth = Number(params.get("width") || 560);
+/*
+ * The table's card: 800px, 48rem or wider, where a table too wide for it
+ * scrolls sideways - in a narrower one it is drawn as cards (TableFit).
+ */
+const tableWidth = Number(params.get("width") || 800);
 
 // The production helpers, handed the page's i18next instance before it starts.
 followLanguageForPage(i18next);
@@ -144,6 +148,9 @@ const ROWS = [
     region: "eu-west-1, eu-central-1",
     owner: "Payments team",
     description: "Watches the checkout endpoint every minute.",
+    createdAt: "2026-03-04T09:30:00.000Z",
+    checks: 43200,
+    lastCheckedAt: "2026-10-16T05:34:00.000Z",
   },
   {
     _id: "row-2",
@@ -152,6 +159,9 @@ const ROWS = [
     region: "me-central-1",
     owner: "Store team",
     description: "Watches the store's admin panel.",
+    createdAt: "2026-05-11T14:05:00.000Z",
+    checks: 1440,
+    lastCheckedAt: "2026-10-16T05:30:00.000Z",
   },
 ];
 
@@ -161,6 +171,14 @@ const COLUMNS = [
   { title: "Description", type: FieldType.Text, key: "description" },
   { title: "Regions", type: FieldType.Text, key: "region" },
   { title: "Owners", type: FieldType.Text, key: "owner" },
+  /*
+   * Values a table never cuts short - two dates and a count - so the rows
+   * run past their 800px card even given way, and scroll under the stuck
+   * Actions column.
+   */
+  { title: "Created", type: FieldType.Date, key: "createdAt" },
+  { title: "Checks", type: FieldType.Number, key: "checks" },
+  { title: "Last Checked", type: FieldType.DateTime, key: "lastCheckedAt" },
   // A row's View: the column that sticks at the table's end.
   { title: "Actions", type: FieldType.Actions },
 ];
