@@ -41,7 +41,7 @@ Klik onder **Monitortype** op **Meer monitortypen** en kies **Uitzonderingen** o
 
 ### Kiezen waarover de monitor u informeert
 
-Kies onder **Waarover moet deze monitor je informeren?** voor **Elke uitzondering** of **Te veel uitzonderingen**. Elke keuze vult de regel in, die u verderop kunt wijzigen. Kies **Iets anders** om hem zelf in te stellen. **Een nieuwe uitzondering**, **Een opgeloste uitzondering komt terug** en **Uitzonderingen pieken** waarschuwen bij een uitzondering die voor het eerst wordt gezien, bij een die terugkwam nadat u haar had opgelost, en bij een stijging ver boven het gewone.
+Kies onder **Waarover moet deze monitor je informeren?** voor **Elke uitzondering** of **Te veel uitzonderingen**. Elke keuze vult de regel in, die u verderop kunt wijzigen. Kies **Iets anders** om hem zelf in te stellen. **Een nieuwe uitzondering**, **Een opgeloste uitzondering komt terug** en **Uitzonderingen pieken** waarschuwen bij een uitzondering die voor het eerst wordt gezien, bij een die terugkwam nadat u haar had opgelost, en bij een stijging ver boven wat normaal is voor dat uur van de week.
 
 ### De te tellen uitzonderingen kiezen
 
@@ -53,7 +53,7 @@ Open **Meer velden** om te filteren op telemetrieservice of infrastructuurentite
 
 ### Zeggen wanneer er gewaarschuwd wordt
 
-Kies in **Wanneer waarschuwen** een **Voorwaarde**, het **Aantal uitzonderingen** en een **Tijdvenster**. De zin eronder zegt de regel in gewone woorden terug. De grafiek daaronder telt de overeenkomende uitzonderingen in elk venster van de afgelopen uren, tekent het getal van de regel als lijn en zegt hoe vaak de regel zou hebben gewaarschuwd. De knop ervan stelt een getal voor dat de regel in die tijd niet zou hebben overschreden. **Waarschuwen bij** kiest wat de regel vergelijkt: **Uitzonderingen**, **Nieuwe uitzonderingen**, **Teruggekomen uitzonderingen** of **Een stijging boven het gewone**. De grafiek wordt alleen voor **Uitzonderingen** getekend.
+Kies in **Wanneer waarschuwen** een **Voorwaarde**, het **Aantal uitzonderingen** en een **Tijdvenster**. De zin eronder zegt de regel in gewone woorden terug. De grafiek daaronder telt de overeenkomende uitzonderingen in elk venster van de afgelopen uren, tekent het getal van de regel als lijn en zegt hoe vaak de regel zou hebben gewaarschuwd. De knop ervan stelt een getal voor dat de regel in die tijd niet zou hebben overschreden. **Waarschuwen bij** kiest wat de regel vergelijkt: **Uitzonderingen**, **Nieuwe uitzonderingen**, **Teruggekomen uitzonderingen** of **Een stijging boven het gewone**. De grafiek wordt alleen voor **Uitzonderingen** getekend. Met **Ongewoon hoog**, zoals **Uitzonderingen pieken** instelt, valt er geen getal in te vullen: kies in plaats daarvan een **Gevoeligheid**.
 
 ### Kiezen wat er gebeurt
 
@@ -116,7 +116,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam, en **New Exceptions**, **Regressed Exceptions** en **Exception Increase (in %)**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens** of **Precies**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
+De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam, en **New Exceptions**, **Regressed Exceptions** en **Exception Increase (in %)**, die hieronder worden beschreven. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal uitzonderingen… |
 | --- | --- |
@@ -126,8 +126,11 @@ De criteria van een uitzonderingen-monitor hebben vier soorten **Filtertype**: *
 | **Kleiner dan of gelijk aan** | gelijk is aan de waarde of lager |
 | **Gelijk aan** | precies de waarde is |
 | **Niet gelijk aan** | alles behalve de waarde is |
+| **Anomalously High** | boven het verwachte bereik voor dit uur van de week ligt |
+| **Anomalously Low** | onder dat bereik ligt |
+| **Anomalous** | buiten dat bereik ligt, in welke richting ook |
 
-Aantallen uitzonderingen hebben geen anomaliecondities: er is geen baseline om ze mee te vergelijken.
+De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. Alleen **Exception Count** heeft ze: zie [Pieken ten opzichte van wat normaal is](#pieken-ten-opzichte-van-wat-normaal-is).
 
 Een uitzonderingen-monitor die in Monitor maken is aangemaakt, begint met de regel van wat u onder **Waarover moet deze monitor je informeren?** hebt gekozen:
 
@@ -137,7 +140,7 @@ Een uitzonderingen-monitor die in Monitor maken is aangemaakt, begint met de reg
 | **Te veel uitzonderingen** | **Meer dan** `20` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
 | **Een nieuwe uitzondering** | **Nieuwe uitzonderingen**: **Meer dan** `0` in **Laatste 10 minuten** | Maakt een waarschuwing, die zichzelf oplost |
 | **Een opgeloste uitzondering komt terug** | **Teruggekomen uitzonderingen**: **Meer dan** `0` in **Laatste 10 minuten** | Maakt een waarschuwing, die zichzelf oplost |
-| **Uitzonderingen pieken** | **Een stijging boven het gewone**: **Meer dan** `200` in **Laatste 15 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Uitzonderingen pieken** | **Ongewoon hoog** in **Laatste 15 minuten** | Maakt een waarschuwing, die zichzelf oplost |
 
 Een uitzonderingen-monitor die via de API of Terraform zonder criteria is aangemaakt, begint met deze criteria:
 
@@ -157,6 +160,22 @@ Naast hoeveel uitzonderingen er waren, kan een uitzonderingen-monitor waarschuwe
 | **Exception Increase (in %)** | Hoeveel het aantal overeenkomende uitzonderingen boven het gewone ligt: de dag voor het venster, per venster van dezelfde lengte, minstens één. Tien uitzonderingen na een rustige dag geven 900%. |
 
 Nieuwe en teruggekomen uitzonderingen worden gefilterd op service, uitzonderingstype, omgeving en bericht, en ook op infrastructuurentiteit: een uitzondering telt mee wanneer een van haar voorvallen in het venster van een van de gekozen entiteiten kwam.
+
+## Pieken ten opzichte van wat normaal is
+
+**Uitzonderingen pieken** vergelijkt het venster met dezelfde uren van de weken ervoor, niet met een vast getal. Een piek op maandagochtend is normaal op een maandagochtend, hetzelfde aantal om 3 uur op een zondag niet, en een trage stijging over meerdere dagen is te zien zodra die het bereik van vorige week verlaat.
+
+| Instelling | Wat het doet | Standaard |
+| --- | --- | --- |
+| **Gevoeligheid** | Hoe ver buiten het gebruikelijke bereik een venster moet liggen: 4 standaardafwijkingen bij Laag, 3 bij Gemiddeld, 2 bij Hoog. | Gemiddeld |
+| **Baseline-venster** (onder **Meer velden**) | Van hoeveel geschiedenis wordt geleerd: 14, 28, 60 of 90 dagen. | 14 dagen |
+| **Standaardafwijkingen** (onder **Meer velden**) | Een eigen getal in plaats van wat **Gevoeligheid** instelt. | Leeg |
+| **Minimum aantal uitzonderingen** (onder **Meer velden**) | Het kleinste aantal uitzonderingen in een venster dat kan waarschuwen: 20 bij Laag, 10 bij Gemiddeld, 5 bij Hoog. | Leeg |
+
+- **Het gebruikt uw filters.** De geschiedenis wordt gelezen met de filters van de monitor zelf, dus een monitor op één uitzonderingstype wordt vergeleken met de geschiedenis van dat type, en opgeloste en gearchiveerde uitzonderingen blijven bij beide buiten beschouwing.
+- **Rustige tijd telt mee.** Een venster zonder uitzonderingen hoort bij wat normaal is, dus het bereik van een rustige service blijft klein. De eerste paar uitzonderingen waarschuwen niet, door **Minimum aantal uitzonderingen**, en een echte uitbarsting wel.
+- **Een nieuwe service wacht.** Tot een service twee weken geschiedenis heeft, leert het criterium nog en gaat het niet af, hoeveel uitzonderingen er ook zijn. De geschiedenis gaat alleen zo ver terug als OneUptime uitzonderingen bewaart: 15 dagen tenzij u dat hebt gewijzigd, en een service die korter dan twee weken wordt bewaard, heeft nooit genoeg.
+- **De waarschuwing zegt waarom.** Ze noemt het verwachte bereik en hoe ver het venster daarbuiten lag. Elke controle schrijft hetzelfde op de **Statustijdlijn**, of dat ze nog leert.
 
 ## Uitgewerkt voorbeeld: alleen uitzonderingen uit productie
 
@@ -183,6 +202,10 @@ Dat is de bedoeling. Opgeloste uitzonderingen worden niet geteld, dus het aantal
 
 :::details Een filter op uitzonderingstype komt nergens mee overeen
 **Uitzonderingstypen** worden exact vergeleken met de typenaam waarmee de uitzondering is gemeld, zoals `TypeError`. Kopieer het type uit de uitzonderingenverkenner.
+:::
+
+:::details Een regel voor pieken in uitzonderingen waarschuwt nooit
+Kijk op de **Statustijdlijn**: daar staat het verwachte bereik, het aantal dat nodig is om te waarschuwen, of dat de regel nog leert. Een service heeft twee weken geschiedenis nodig, dus een bewaartermijn onder twee weken laat haar blijven leren. Blijft het aantal onder **Minimum aantal uitzonderingen**, verlaag dat dan onder **Meer velden** of kies een hogere **Gevoeligheid**.
 :::
 
 ## Volgende stappen

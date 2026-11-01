@@ -41,7 +41,7 @@ Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Undantag
 
 ### Välj vad monitorn ska berätta om
 
-Under **Vad ska den här övervakningen berätta om?** väljer du **Alla undantag** eller **För många undantag**. Varje val fyller i regeln, som du kan ändra längre ned. Välj **Något annat** för att ställa in den själv. **Ett nytt undantag**, **Ett löst undantag kommer tillbaka** och **Undantagen toppar** larmar vid ett undantag som ses för första gången, vid ett som kom tillbaka efter att du löste det, och vid en ökning långt över det vanliga.
+Under **Vad ska den här övervakningen berätta om?** väljer du **Alla undantag** eller **För många undantag**. Varje val fyller i regeln, som du kan ändra längre ned. Välj **Något annat** för att ställa in den själv. **Ett nytt undantag**, **Ett löst undantag kommer tillbaka** och **Undantagen toppar** larmar vid ett undantag som ses för första gången, vid ett som kom tillbaka efter att du löste det, och vid en ökning långt över vad som är normalt för den timmen i veckan.
 
 ### Välj vilka undantag som ska räknas
 
@@ -53,7 +53,7 @@ I **Undantag att bevaka** anger du **Meddelandet innehåller**, **Undantagstyper
 
 ### Säg när det ska larmas
 
-I **När det ska larmas** väljer du ett **Villkor**, **Antal undantag** och ett **Tidsfönster**. Meningen under dem upprepar regeln med vanliga ord. Diagrammet under den räknar de matchande undantagen i varje fönster under de senaste timmarna, ritar regelns tal som en linje och berättar hur ofta regeln skulle ha larmat. Dess knapp föreslår ett tal som regeln inte skulle ha passerat under den tiden. **Larma vid** väljer vad regeln jämför: **Undantag**, **Nya undantag**, **Undantag som kom tillbaka** eller **En ökning över det vanliga**. Diagrammet ritas bara för **Undantag**.
+I **När det ska larmas** väljer du ett **Villkor**, **Antal undantag** och ett **Tidsfönster**. Meningen under dem upprepar regeln med vanliga ord. Diagrammet under den räknar de matchande undantagen i varje fönster under de senaste timmarna, ritar regelns tal som en linje och berättar hur ofta regeln skulle ha larmat. Dess knapp föreslår ett tal som regeln inte skulle ha passerat under den tiden. **Larma vid** väljer vad regeln jämför: **Undantag**, **Nya undantag**, **Undantag som kom tillbaka** eller **En ökning över det vanliga**. Diagrammet ritas bara för **Undantag**. Med **Ovanligt hög**, som **Undantagen toppar** ställer in, finns det inget tal att ange: Välj en **Känslighet** i stället.
 
 ### Välj vad som händer
 
@@ -116,7 +116,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En undantagsmonitors kriterier har fyra sorters **Filtertyp**: **Exception Count**, antalet undantag som matchade i fönstret, samt **New Exceptions**, **Regressed Exceptions** och **Exception Increase (in %)**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst** eller **Exakt**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
+En undantagsmonitors kriterier har fyra sorters **Filtertyp**: **Exception Count**, antalet undantag som matchade i fönstret, samt **New Exceptions**, **Regressed Exceptions** och **Exception Increase (in %)**, som beskrivs nedan. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
 
 | Filtervillkor | Matchar när antalet undantag är… |
 | --- | --- |
@@ -126,8 +126,11 @@ En undantagsmonitors kriterier har fyra sorters **Filtertyp**: **Exception Count
 | **Mindre än eller lika med** | lika med värdet eller lägre |
 | **Lika med** | exakt värdet |
 | **Inte lika med** | allt utom värdet |
+| **Anomalously High** | över det förväntade intervallet för den här timmen i veckan |
+| **Anomalously Low** | under det intervallet |
+| **Anomalous** | utanför det intervallet, åt vilket håll som helst |
 
-Antal undantag har inga avvikelsevillkor: det finns ingen baslinje att jämföra dem med.
+Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Låg, Medel, som är standard, eller Hög) och, i de egna kriterierna, ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. Bara **Exception Count** har dem: se [Toppar jämfört med det normala](#toppar-jämfört-med-det-normala).
 
 En undantagsmonitor som skapats i Skapa monitor börjar med regeln för det du valde under **Vad ska den här övervakningen berätta om?**:
 
@@ -137,7 +140,7 @@ En undantagsmonitor som skapats i Skapa monitor börjar med regeln för det du v
 | **För många undantag** | **Fler än** `20` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
 | **Ett nytt undantag** | **Nya undantag**: **Fler än** `0` under **Senaste 10 minuterna** | Skapar ett larm, som löser sig själv |
 | **Ett löst undantag kommer tillbaka** | **Undantag som kom tillbaka**: **Fler än** `0` under **Senaste 10 minuterna** | Skapar ett larm, som löser sig själv |
-| **Undantagen toppar** | **En ökning över det vanliga**: **Fler än** `200` under **Senaste 15 minuterna** | Skapar ett larm, som löser sig själv |
+| **Undantagen toppar** | **Ovanligt hög** under **Senaste 15 minuterna** | Skapar ett larm, som löser sig själv |
 
 En undantagsmonitor som skapats via API:et eller Terraform utan kriterier börjar med dessa kriterier:
 
@@ -157,6 +160,22 @@ Utöver hur många undantag som inträffade kan en undantagsmonitor larma om det
 | **Exception Increase (in %)** | Hur långt antalet matchande undantag ligger över det vanliga: dagen före fönstret, per fönster av samma längd, minst ett. Tio undantag efter en lugn dag ger 900 %. |
 
 Nya och återkomna undantag filtreras på tjänst, undantagstyp, miljö och meddelande, och även på infrastrukturentitet: ett undantag räknas när en av dess förekomster i fönstret kom från en av de valda entiteterna.
+
+## Toppar jämfört med det normala
+
+**Undantagen toppar** jämför fönstret med samma timmar under veckorna innan, inte med ett fast tal. En topp på måndagsmorgonen är normal en måndagsmorgon, samma antal klockan 3 en söndag är det inte, och en långsam ökning över flera dagar syns så snart den lämnar förra veckans intervall.
+
+| Inställning | Vad den gör | Standard |
+| --- | --- | --- |
+| **Känslighet** | Hur långt utanför det vanliga intervallet ett fönster måste vara: 4 standardavvikelser vid Låg, 3 vid Medel, 2 vid Hög. | Medel |
+| **Baslinjefönster** (under **Fler fält**) | Hur mycket historik som används för att lära: 14, 28, 60 eller 90 dagar. | 14 dagar |
+| **Standardavvikelser** (under **Fler fält**) | Ett eget tal i stället för det **Känslighet** ställer in. | Tomt |
+| **Minsta antal undantag** (under **Fler fält**) | Det minsta antalet undantag i ett fönster som kan larma: 20 vid Låg, 10 vid Medel, 5 vid Hög. | Tomt |
+
+- **Den använder dina filter.** Historiken läses med monitorns egna filter, så en monitor på en undantagstyp jämförs med den typens historik, och lösta och arkiverade undantag hålls utanför båda.
+- **Lugn tid räknas.** Ett fönster utan undantag är en del av det normala, så en lugn tjänsts intervall förblir litet. Dess första undantag larmar inte, på grund av **Minsta antal undantag**, men en verklig skur gör det.
+- **En ny tjänst väntar.** Tills en tjänst har två veckors historik lär sig kriteriet fortfarande och utlöses inte, hur många undantag den än kastar. Historiken når bara så långt tillbaka som OneUptime sparar undantag: 15 dagar om du inte har ändrat det, och en tjänst som sparas kortare än två veckor har aldrig tillräckligt.
+- **Larmet säger varför.** Det anger det förväntade intervallet och hur långt utanför det fönstret var. Varje kontroll skriver detsamma i **Statustidslinje**, eller att den fortfarande lär sig.
 
 ## Genomgånget exempel: bara produktionsundantag
 
@@ -183,6 +202,10 @@ Det är förväntat. Lösta undantag räknas inte, så antalet sjönk och kriter
 
 :::details Ett filter på undantagstyp matchar ingenting
 **Undantagstyper** jämförs exakt med det typnamn som undantaget rapporterades med, som `TypeError`. Kopiera typen från undantagsutforskaren.
+:::
+
+:::details En regel för toppar i undantag larmar aldrig
+Titta i **Statustidslinje**: Där står det förväntade intervallet, antalet som krävs för att larma, eller att regeln fortfarande lär sig. En tjänst behöver två veckors historik, så en lagringstid under två veckor gör att den fortsätter lära sig. Om antalet håller sig under **Minsta antal undantag**, sänk det under **Fler fält** eller välj en högre **Känslighet**.
 :::
 
 ## Nästa steg
