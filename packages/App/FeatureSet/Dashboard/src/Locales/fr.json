@@ -39492,6 +39492,8 @@
   "Compact rows": "Lignes compactes",
   "Sort by": "Trier par",
   "Sorted by {{column}}": "Trié par {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "route",
   "{{name}} can reach {{count}} stores": "{{name}} peut atteindre {{count}} magasins de données",
   "{{name}} can reach {{count}} stores_one": "{{name}} peut atteindre {{count}} magasin de données",
   "Close a Data Exposure": "Fermer une exposition de données",

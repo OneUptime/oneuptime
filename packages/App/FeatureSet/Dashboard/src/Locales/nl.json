@@ -39492,6 +39492,8 @@
   "Compact rows": "Compacte rijen",
   "Sort by": "Sorteren op",
   "Sorted by {{column}}": "Gesorteerd op {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "route",
   "{{name}} can reach {{count}} stores": "{{name}} kan {{count}} gegevensopslagen bereiken",
   "{{name}} can reach {{count}} stores_one": "{{name}} kan {{count}} gegevensopslag bereiken",
   "Close a Data Exposure": "Een gegevenslek dichten",

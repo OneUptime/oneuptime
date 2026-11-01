@@ -39492,6 +39492,8 @@
   "Compact rows": "緊湊列",
   "Sort by": "排序依據",
   "Sorted by {{column}}": "依{{column}}排序",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "路由",
   "{{name}} can reach {{count}} stores": "{{name}} 可以存取 {{count}} 個資料儲存區",
   "{{name}} can reach {{count}} stores_one": "{{name}} 可以存取 {{count}} 個資料儲存區",
   "Close a Data Exposure": "封堵資料外洩",

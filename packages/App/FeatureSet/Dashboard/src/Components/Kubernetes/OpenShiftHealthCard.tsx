@@ -189,7 +189,7 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
       );
     }
 
-    return translator.translateText("No update running");
+    return translator.translateText("No update running") || "";
   };
 
   return (
@@ -260,7 +260,7 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
-        {(health.updateReason || health.updateMessage) && (
+        {health.updateReason || health.updateMessage ? (
           <p
             data-testid="openshift-update-message"
             className="mt-3 break-words rounded-md bg-gray-50 px-3 py-2 text-sm text-gray-700"
@@ -273,9 +273,11 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
             )}
             {health.updateMessage}
           </p>
+        ) : (
+          <></>
         )}
 
-        {operators.length > 0 && (
+        {operators.length > 0 ? (
           <ul className="mt-3 divide-y divide-gray-100 border-t border-gray-100">
             {operators.map(
               (operator: OpenShiftOperatorHealth): ReactElement => {
@@ -283,9 +285,11 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
               },
             )}
           </ul>
+        ) : (
+          <></>
         )}
 
-        {health.operators.length > health.operatorsToReview.length && (
+        {health.operators.length > health.operatorsToReview.length ? (
           <div className="mt-2">
             <Button
               title={
@@ -302,6 +306,8 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
               }}
             />
           </div>
+        ) : (
+          <></>
         )}
       </Card>
     </div>

@@ -39492,6 +39492,8 @@
   "Compact rows": "Righe compatte",
   "Sort by": "Ordina per",
   "Sorted by {{column}}": "Ordinato per {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "route",
   "{{name}} can reach {{count}} stores": "{{name}} può raggiungere {{count}} archivi dati",
   "{{name}} can reach {{count}} stores_one": "{{name}} può raggiungere {{count}} archivio dati",
   "Close a Data Exposure": "Chiudere un'esposizione di dati",

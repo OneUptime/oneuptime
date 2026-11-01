@@ -39492,6 +39492,8 @@
   "Compact rows": "Linhas compactas",
   "Sort by": "Ordenar por",
   "Sorted by {{column}}": "Ordenado por {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "rota",
   "{{name}} can reach {{count}} stores": "{{name}} pode alcançar {{count}} repositórios de dados",
   "{{name}} can reach {{count}} stores_one": "{{name}} pode alcançar {{count}} repositório de dados",
   "Close a Data Exposure": "Fechar uma exposição de dados",

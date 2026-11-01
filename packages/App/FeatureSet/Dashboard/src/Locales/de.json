@@ -39492,6 +39492,8 @@
   "Compact rows": "Kompakte Zeilen",
   "Sort by": "Sortieren nach",
   "Sorted by {{column}}": "Sortiert nach {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "Route",
   "{{name}} can reach {{count}} stores": "{{name}} kann {{count}} Datenspeicher erreichen",
   "{{name}} can reach {{count}} stores_one": "{{name}} kann {{count}} Datenspeicher erreichen",
   "Close a Data Exposure": "Eine Datenpanne schließen",

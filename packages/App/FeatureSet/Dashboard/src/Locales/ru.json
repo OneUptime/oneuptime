@@ -39492,6 +39492,8 @@
   "Compact rows": "Компактные строки",
   "Sort by": "Сортировать по",
   "Sorted by {{column}}": "Сортировка: {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "маршрут",
   "{{name}} can reach {{count}} stores": "{{name}} может добраться до хранилищ данных: {{count}}",
   "{{name}} can reach {{count}} stores_one": "{{name}} может добраться до {{count}} хранилища данных",
   "Close a Data Exposure": "Закрыть утечку данных",

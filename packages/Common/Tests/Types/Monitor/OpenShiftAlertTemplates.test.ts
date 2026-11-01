@@ -5,10 +5,12 @@ import {
 } from "../../../Types/Kubernetes/OpenShiftObjectAttributes";
 import { OpenShiftResourceType } from "../../../Types/Kubernetes/OpenShiftObjectParser";
 import ObjectID from "../../../Types/ObjectID";
+import { CriteriaAlert } from "../../../Types/Monitor/CriteriaAlert";
 import { CheckOn, FilterType } from "../../../Types/Monitor/CriteriaFilter";
+import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
 import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
 import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "../../../Types/Monitor/KubernetesEventAlertTemplates";
-import { LogMonitorGroupResult } from "../../../Types/Monitor/LogMonitor/LogMonitorResponse";
+import LogMonitorGroupResult from "../../../Types/Monitor/LogMonitor/LogMonitorGroupResult";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { MonitorStepLogMonitorUtil } from "../../../Types/Monitor/MonitorStepLogMonitor";
@@ -576,13 +578,8 @@ describe("what an alert says", () => {
       const unhealthy: MonitorCriteriaInstance = criteriaOf(
         stepFor(entry.id),
       )[0]!;
-      const alert: {
-        title: string;
-        description?: string;
-        autoResolveAlert?: boolean;
-      } = unhealthy.data!.alerts[0]!;
-      const incident: { title: string; autoResolveIncident?: boolean } =
-        unhealthy.data!.incidents[0]!;
+      const alert: CriteriaAlert = unhealthy.data!.alerts[0]!;
+      const incident: CriteriaIncident = unhealthy.data!.incidents[0]!;
 
       expect(alert.title).toContain("[OpenShift]");
       expect(alert.title).toContain("OpenShift Production");
@@ -676,7 +673,7 @@ describe("the recommendations", () => {
 
   test("the set everything else is checked against holds them", () => {
     const all: Array<string> = ids(
-      MonitorRecommendationCatalog.getAllRecommendations(
+      MonitorRecommendationCatalog.getAllPossibleRecommendations(
         MonitorRecommendationResourceType.Kubernetes,
       ),
     );

@@ -39492,6 +39492,8 @@
   "Compact rows": "संक्षिप्त पंक्तियाँ",
   "Sort by": "इसके अनुसार क्रमबद्ध करें",
   "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "रूट",
   "{{name}} can reach {{count}} stores": "{{name}} {{count}} डेटा स्टोर तक पहुंच सकती है",
   "{{name}} can reach {{count}} stores_one": "{{name}} {{count}} डेटा स्टोर तक पहुंच सकती है",
   "Close a Data Exposure": "डेटा एक्सपोज़र बंद करें",

@@ -39492,6 +39492,8 @@
   "Compact rows": "Kompakta rader",
   "Sort by": "Sortera efter",
   "Sorted by {{column}}": "Sorterat efter {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "route",
   "{{name}} can reach {{count}} stores": "{{name}} kan nå {{count}} datalager",
   "{{name}} can reach {{count}} stores_one": "{{name}} kan nå {{count}} datalager",
   "Close a Data Exposure": "Stäng en dataexponering",

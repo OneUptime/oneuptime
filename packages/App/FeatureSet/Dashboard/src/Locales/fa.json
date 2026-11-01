@@ -39492,6 +39492,8 @@
   "Compact rows": "سطرهای فشرده",
   "Sort by": "مرتب‌سازی بر اساس",
   "Sorted by {{column}}": "مرتب‌شده بر اساس {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "مسیر",
   "{{name}} can reach {{count}} stores": "{{name}} می‌تواند به {{count}} مخزن داده دسترسی داشته باشد",
   "{{name}} can reach {{count}} stores_one": "{{name}} می‌تواند به {{count}} مخزن داده دسترسی داشته باشد",
   "Close a Data Exposure": "بستن افشای داده",

@@ -39492,6 +39492,8 @@
   "Compact rows": "촘촘한 행",
   "Sort by": "정렬 기준",
   "Sorted by {{column}}": "{{column}} 기준 정렬",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "라우트",
   "{{name}} can reach {{count}} stores": "{{name}}은(는) 데이터 저장소 {{count}}개에 도달할 수 있음",
   "{{name}} can reach {{count}} stores_one": "{{name}}은(는) 데이터 저장소 {{count}}개에 도달할 수 있음",
   "Close a Data Exposure": "데이터 노출 차단",

@@ -39492,6 +39492,8 @@
   "Compact rows": "コンパクトな行",
   "Sort by": "並べ替えの基準",
   "Sorted by {{column}}": "{{column}}で並べ替え",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "ルート",
   "{{name}} can reach {{count}} stores": "{{name}} は {{count}} 件のデータストアに到達可能",
   "{{name}} can reach {{count}} stores_one": "{{name}} は {{count}} 件のデータストアに到達可能",
   "Close a Data Exposure": "データ漏えいを塞ぐ",

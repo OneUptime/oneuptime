@@ -39492,6 +39492,8 @@
   "Compact rows": "Compact rows",
   "Sort by": "Sort by",
   "Sorted by {{column}}": "Sorted by {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "route",
   "{{name}} can reach {{count}} stores": "{{name}} can reach {{count}} stores",
   "{{name}} can reach {{count}} stores_one": "{{name}} can reach {{count}} store",
   "Close a Data Exposure": "Close a Data Exposure",
