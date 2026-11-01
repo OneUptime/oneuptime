@@ -210,6 +210,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
       "packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
     kind: "keys",
   },
+  /*
+   * A Kubernetes object's status and what needs attention about it, by the
+   * cluster's own rules: the Overview's Needs attention, every part's page,
+   * the lists and the Topology say them in the reader's language. Only the
+   * words the file marks are read: Kubernetes' own reasons
+   * (CrashLoopBackOff, OOMKilled) are drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Kubernetes/KubernetesHealth.ts",
+    kind: "keys",
+  },
 ];
 
 /*
@@ -624,6 +635,59 @@ const getPropertyName: (name: ts.PropertyName) => string | undefined = (
   }
 
   return undefined;
+};
+
+/*
+ * The two sentences of { one: translationKey("..."), other:
+ * translationKey("...") }, when both are marked with a literal; undefined
+ * for any other object.
+ */
+const getMarkedPluralForms: (
+  node: ts.ObjectLiteralExpression,
+) => { one: string; other: string } | undefined = (
+  node: ts.ObjectLiteralExpression,
+): { one: string; other: string } | undefined => {
+  if (node.properties.length !== 2) {
+    return undefined;
+  }
+
+  const forms: Record<string, string> = {};
+
+  for (const property of node.properties) {
+    if (!ts.isPropertyAssignment(property)) {
+      return undefined;
+    }
+
+    const name: string | undefined = getPropertyName(property.name);
+    const value: ts.Expression = unwrap(property.initializer);
+
+    if (!name || !ts.isCallExpression(value)) {
+      return undefined;
+    }
+
+    const callee: string | undefined = getCalleeName(value.expression);
+    const argument: ts.Expression | undefined = value.arguments[0];
+    const literal: ts.Expression | undefined = argument
+      ? unwrap(argument)
+      : undefined;
+
+    if (
+      callee !== "translationKey" ||
+      !literal ||
+      !(
+        ts.isStringLiteral(literal) ||
+        ts.isNoSubstitutionTemplateLiteral(literal)
+      )
+    ) {
+      return undefined;
+    }
+
+    forms[name] = literal.text;
+  }
+
+  return forms["one"] !== undefined && forms["other"] !== undefined
+    ? { one: forms["one"], other: forms["other"] }
+    : undefined;
 };
 
 const getJsxAttributeName: (attribute: ts.JsxAttribute) => string = (
@@ -1313,6 +1377,24 @@ export const scanSourceText: (
    * hard-coded, since its other words are drawn as written on purpose.
    */
   const visitKeys: (node: ts.Node) => void = (node: ts.Node): void => {
+    /*
+     * { one: translationKey("..."), other: translationKey("...") }: a count's
+     * two sentences, both marked - one plural, its "one" sentence under the
+     * "other" sentence's key, as a PluralTemplate in a ui root gives it. Its
+     * two calls are the plural's, not keys of their own.
+     */
+    const markedPlural: { one: string; other: string } | undefined =
+      ts.isObjectLiteralExpression(node)
+        ? getMarkedPluralForms(node)
+        : undefined;
+
+    if (markedPlural) {
+      add(markedPlural.other, "plural", node, {
+        pluralOne: markedPlural.one,
+      });
+      return;
+    }
+
     if (ts.isCallExpression(node)) {
       const callee: string | undefined = getCalleeName(node.expression);
 
