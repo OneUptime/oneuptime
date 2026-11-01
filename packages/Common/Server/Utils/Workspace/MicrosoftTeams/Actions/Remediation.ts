@@ -25,8 +25,9 @@ import { MicrosoftTeamsRemediationActionType } from "./ActionTypes";
  * does and what it answers is WorkspaceRemediationActions', as in Slack;
  * a refusal (NotAuthorizedException) or a fix that changed
  * (BadDataException) is answered by the bot's own catch, where every other
- * press's refusal is. An approval needs no answer of its own: the record's
- * feed says who approved the fix, from Microsoft Teams, in the channel.
+ * press's refusal is. An approval is confirmed to the presser, and its card
+ * removed; the record's feed says who approved the fix, from Microsoft
+ * Teams, in its channels.
  */
 
 // A card's content type, as every card the bot sends names it.
@@ -66,10 +67,7 @@ export default class MicrosoftTeamsRemediationActions {
     if (!suggestion) {
       await MicrosoftTeamsActionAnswer.reply({
         turnContext: data.turnContext,
-        answer: {
-          markdown: WorkspaceRemediationActions.getNotFoundMessage(),
-          text: WorkspaceRemediationActions.getNotFoundMessage(),
-        },
+        answer: WorkspaceRemediationActions.getNotFoundAnswer(),
       });
       return;
     }
@@ -104,10 +102,7 @@ export default class MicrosoftTeamsRemediationActions {
       if (!dialog) {
         await MicrosoftTeamsActionAnswer.reply({
           turnContext: data.turnContext,
-          answer: {
-            markdown: WorkspaceRemediationActions.getNotFoundMessage(),
-            text: WorkspaceRemediationActions.getNotFoundMessage(),
-          },
+          answer: WorkspaceRemediationActions.getNotFoundAnswer(),
         });
         return;
       }
@@ -128,13 +123,22 @@ export default class MicrosoftTeamsRemediationActions {
       data.actionType ===
       MicrosoftTeamsRemediationActionType.SubmitApproveRemediation
     ) {
-      await WorkspaceRemediationActions.approve({
-        props,
-        value,
-        from: WorkspaceType.MicrosoftTeams,
-      });
+      const approved: WorkspaceAnswer =
+        await WorkspaceRemediationActions.approve({
+          props,
+          value,
+          from: WorkspaceType.MicrosoftTeams,
+        });
 
-      // The approval card has done its work; the feed says the rest.
+      /*
+       * Confirmed, then the approval card is removed - best-effort, as
+       * every submitted form is (MicrosoftTeamsReplies): it has done its
+       * work, and left on screen it would invite a second press.
+       */
+      await MicrosoftTeamsActionAnswer.reply({
+        turnContext: data.turnContext,
+        answer: approved,
+      });
       await MicrosoftTeamsReplies.deleteBestEffort(
         data.turnContext,
         data.turnContext.activity.replyToId,

@@ -547,9 +547,10 @@ describe("the upgrade guide's note on the removal", () => {
     expect(REMOVED_SSH_COMMAND_MESSAGE).toContain(
       "OneUptime AI no longer runs SSH commands",
     );
-    expect(source("Common/Server/API/AutoRemediationAPI.ts")).toContain(
-      "runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE}",
-    );
+    // Approved on the card or in a chat, a plan is approved here.
+    expect(
+      source("Common/Server/Utils/AutoRemediation/RemediationApproval.ts"),
+    ).toContain("runs over SSH. ${REMOVED_SSH_COMMAND_MESSAGE}");
 
     // A command queued with a credential fails when a Runner claims it.
     const ingress: string = source(

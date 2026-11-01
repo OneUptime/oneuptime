@@ -113,6 +113,110 @@ describe("a Ruled out section is a section of its own", () => {
   });
 });
 
+/*
+ * "Ruled out" is also how a model groups an Evidence section's findings.
+ * Nested so, it stays in that section, as it did before it was a section
+ * of its own; at the section level, it is one.
+ */
+describe("a Ruled out label nested in a section stays in it", () => {
+  function kinds(
+    report: ParsedInvestigationReport,
+  ): Array<InvestigationReportSectionKind> {
+    return report.sections.map((section: InvestigationReportSection) => {
+      return section.kind;
+    });
+  }
+
+  test("the first label under an Evidence label with no body is the group's", () => {
+    const report: ParsedInvestigationReport = parseInvestigationReport(
+      [
+        "**Summary** — A.",
+        "",
+        "**Evidence**",
+        "**Ruled out:**",
+        "- the database",
+        "**Supports:**",
+        "- pool 100%",
+      ].join("\n"),
+    );
+
+    expect(kinds(report)).toEqual([
+      InvestigationReportSectionKind.Summary,
+      InvestigationReportSectionKind.Evidence,
+    ]);
+    expect(report.ruledOut).toBeUndefined();
+    expect(report.evidence).toBe(
+      "**Ruled out:**\n- the database\n**Supports:**\n- pool 100%",
+    );
+  });
+
+  test("a sub-heading of the Evidence heading is the Evidence's", () => {
+    const report: ParsedInvestigationReport = parseInvestigationReport(
+      [
+        "## Summary",
+        "A.",
+        "",
+        "## Evidence",
+        "- p95 rose [C1]",
+        "### Ruled out",
+        "- the database [C2]",
+        "",
+        "## Suggested next steps",
+        "- Roll back.",
+      ].join("\n"),
+    );
+
+    expect(kinds(report)).toEqual([
+      InvestigationReportSectionKind.Summary,
+      InvestigationReportSectionKind.Evidence,
+      InvestigationReportSectionKind.NextSteps,
+    ]);
+    expect(report.evidence).toContain("### Ruled out\n- the database [C2]");
+  });
+
+  test("a peer heading, and a label after a section's own sub-labels, start the section", () => {
+    const headed: ParsedInvestigationReport = parseInvestigationReport(
+      [
+        "## Evidence",
+        "- p95 rose [C1]",
+        "",
+        "## Ruled out",
+        "- **The database:** CPU under 30% [C2]",
+      ].join("\n"),
+    );
+    const grouped: ParsedInvestigationReport = parseInvestigationReport(
+      [
+        "**Summary** — A.",
+        "",
+        "**Evidence**",
+        "**Metrics:**",
+        "- p95 rose [C1]",
+        "**Logs:**",
+        "- timeouts [C2]",
+        "",
+        "**Ruled out** —",
+        "- **The database:** CPU under 30% [C3]",
+      ].join("\n"),
+    );
+
+    expect(parseRuledOutCauses(headed.ruledOut)).toEqual([
+      {
+        causeMarkdown: "The database",
+        reasonMarkdown: "CPU under 30% [C2]",
+      },
+    ]);
+    expect(kinds(grouped)).toEqual([
+      InvestigationReportSectionKind.Summary,
+      InvestigationReportSectionKind.Evidence,
+      InvestigationReportSectionKind.RuledOut,
+    ]);
+    expect(grouped.evidence).toBe(
+      "**Metrics:**\n- p95 rose [C1]\n**Logs:**\n- timeouts [C2]",
+    );
+    expect(parseRuledOutCauses(grouped.ruledOut)).toHaveLength(1);
+  });
+});
+
 describe("its list reads as causes, one per bullet", () => {
   test("the bold label is the cause, without its colon; the rest is why", () => {
     const report: ParsedInvestigationReport =

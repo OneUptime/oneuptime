@@ -65,7 +65,6 @@ import {
 } from "../../../../Types/AI/AiContext";
 import AiContextReader from "../AiContext/AiContextReader";
 import { getAiContextEventSummary } from "../AiContext/AiContextPrompt";
-import { RULED_OUT_SECTION_TITLE } from "../../../../Utils/AI/InvestigationReport";
 
 /*
  * AI SRE — the shared autonomous-investigation engine.
@@ -159,6 +158,10 @@ export const AI_ROOT_CAUSE_REPORT_HEADING: string =
  * (InvestigationReport's RuledOut section). A responder trusts a cause they
  * can see was weighed against the others - the change, the database, the
  * cloud underneath - far more than one named alone.
+ *
+ * The persona below spells the section's title (RULED_OUT_SECTION_TITLE)
+ * and this number out: it is a prompt with no values in it, and a test
+ * holds the words to both (InvestigationPersonaRuledOut).
  */
 export const MAX_RULED_OUT_CAUSES: number = 5;
 
@@ -177,7 +180,7 @@ Write your final answer as a concise incident-response note with these sections,
 **Summary** — one or two sentences a paged engineer can read in five seconds.
 **Most likely root cause** — your hypothesis, with only the confidence the evidence actually supports, each factual claim carrying its [C#] citation. If you could not determine it, say so plainly and explain what is missing.
 **Evidence** — the key findings that support or rule out the hypothesis, each cited.
-**${RULED_OUT_SECTION_TITLE}** — the other likely causes you checked and the evidence that rules each one out: one bullet per cause, written "- **The cause:** why it is ruled out", each cited, at most ${MAX_RULED_OUT_CAUSES}, the most plausible first. Leave this section out when you checked no other cause.
+**Ruled out** — the other likely causes you checked and the evidence that rules each one out: one bullet per cause, written "- **The cause:** why it is ruled out", each cited, at most 5, the most plausible first. Leave this section out when you checked no other cause.
 **Suggested next steps** — concrete actions for the on-call engineer.
 
 Keep it tight and skimmable. You are read-only: never claim to have changed anything.`;

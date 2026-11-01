@@ -136,7 +136,10 @@ beforeEach(() => {
   } as RemediationApprovalDialog as never);
   approve = jest
     .spyOn(WorkspaceRemediationActions, "approve")
-    .mockResolvedValue(undefined as never) as AnySpy;
+    .mockResolvedValue({
+      markdown: "✅ You approved this fix.",
+      text: "You approved this fix",
+    } as never) as AnySpy;
   dismiss = jest
     .spyOn(WorkspaceRemediationActions, "dismiss")
     .mockResolvedValue({
@@ -280,7 +283,7 @@ describe("Review and approve", () => {
 });
 
 describe("Approve and run", () => {
-  test("approves as the member, from Microsoft Teams, and removes the approval card", async () => {
+  test("approves as the member, from Microsoft Teams, confirms it, then removes the approval card", async () => {
     const turn: FakeTurn = createTurn();
 
     await handle(
@@ -294,8 +297,9 @@ describe("Approve and run", () => {
     expect(args["from"]).toBe(WorkspaceType.MicrosoftTeams);
     expect((args["value"] as JSONObject)["fingerprint"]).toBe(FINGERPRINT);
     expect(turn.deleted).toEqual(["approval-card-activity"]);
-    // The record's feed says who approved it, in the channel.
-    expect(turn.replies).toEqual([]);
+    // Confirmed where they pressed; the record's feed says the rest.
+    expect(turn.replies).toHaveLength(1);
+    expect(replyText(turn.replies[0])).toContain("✅ You approved this fix.");
   });
 
   test("a refused approval is thrown for the bot to tell, and the card stays", async () => {
@@ -308,6 +312,7 @@ describe("Approve and run", () => {
       handle(MicrosoftTeamsRemediationActionType.SubmitApproveRemediation, turn),
     ).rejects.toThrow("This fix changed after the message you pressed was posted");
     expect(turn.deleted).toEqual([]);
+    expect(turn.replies).toEqual([]);
   });
 });
 

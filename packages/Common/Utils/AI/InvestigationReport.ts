@@ -1628,8 +1628,41 @@ function resolveSectionStarts(
   candidates.forEach((candidate: SectionCandidate, position: number): void => {
     const match: LabelLineMatch = candidate.match;
     const headingLevel: number = match.headingLevel || 0;
+    const open: SectionStart | undefined = starts[starts.length - 1];
 
-    if (match.kind !== null && match.kind !== "EvidenceChecked") {
+    // A sub-heading of the recognised heading that opened the section.
+    const isSubHeadingOfOpen: boolean = Boolean(
+      open &&
+        open.kind !== InvestigationReportSectionKind.Other &&
+        open.headingLevel > 0 &&
+        headingLevel > open.headingLevel,
+    );
+
+    // The first label under a label with no body of its own.
+    const isFirstUnderBodilessLabel: boolean = Boolean(
+      open &&
+        open.inlineBody === "" &&
+        !hasKeptContent(open.index + 1, candidate.index) &&
+        !isPeerHeading(open.headingLevel, match),
+    );
+
+    /*
+     * "Ruled out" is a section of its own (RULED_OUT_SECTION_TITLE) - and
+     * also how a model groups an Evidence section's findings ("**Evidence**"
+     * then "**Ruled out:**" and "**Supports:**", or "## Evidence" then
+     * "### Ruled out"). Nested so, it stays in the section it is in, as it
+     * did before it was a section; every other recognised label always
+     * starts one.
+     */
+    const isNestedRuledOut: boolean =
+      match.kind === InvestigationReportSectionKind.RuledOut &&
+      (isSubHeadingOfOpen || isFirstUnderBodilessLabel);
+
+    if (
+      match.kind !== null &&
+      match.kind !== "EvidenceChecked" &&
+      !isNestedRuledOut
+    ) {
       starts.push({
         index: candidate.index,
         kind: match.kind,
@@ -1640,8 +1673,6 @@ function resolveSectionStarts(
       return;
     }
 
-    const open: SectionStart | undefined = starts[starts.length - 1];
-
     // Before the first recognised section, labels are preamble content.
     if (!open) {
       return;
@@ -1649,21 +1680,12 @@ function resolveSectionStarts(
 
     const rank: number = getLabelRank(match);
 
-    // A sub-heading of the recognised heading that opened the section.
-    if (
-      open.kind !== InvestigationReportSectionKind.Other &&
-      open.headingLevel > 0 &&
-      headingLevel > open.headingLevel
-    ) {
+    if (isSubHeadingOfOpen) {
       return;
     }
 
     // The first label under a label with no body: that label is a group heading.
-    if (
-      open.inlineBody === "" &&
-      !hasKeptContent(open.index + 1, candidate.index) &&
-      !isPeerHeading(open.headingLevel, match)
-    ) {
+    if (isFirstUnderBodilessLabel) {
       open.subLabelRank = rank;
       return;
     }

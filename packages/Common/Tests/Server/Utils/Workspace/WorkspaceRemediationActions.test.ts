@@ -375,7 +375,7 @@ describe("approving and dismissing", () => {
       .spyOn(RemediationApproval, "approve")
       .mockResolvedValue({} as never) as AnySpy;
 
-    await WorkspaceRemediationActions.approve({
+    const answer: WorkspaceAnswer = await WorkspaceRemediationActions.approve({
       props: memberProps,
       value: { suggestionId: SUGGESTION_ID, fingerprint: "0123456789abcdef" },
       from: WorkspaceType.MicrosoftTeams,
@@ -386,6 +386,12 @@ describe("approving and dismissing", () => {
       suggestionId: SUGGESTION_ID.toString(),
       expectedPlanFingerprint: "0123456789abcdef",
       from: WorkspaceType.MicrosoftTeams,
+    });
+    // What the presser is told: it is being made, and where to follow it.
+    expect(answer).toEqual({
+      markdown:
+        "✅ You approved this fix: OneUptime AI is making it now. Its incident or alert in OneUptime shows how it goes.",
+      text: "You approved this fix",
     });
   });
 

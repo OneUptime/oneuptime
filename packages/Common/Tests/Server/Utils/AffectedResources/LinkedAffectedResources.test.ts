@@ -664,6 +664,10 @@ describe("reading a record's relations", () => {
         _id: true,
         name: true,
         projectId: true,
+        // A cloud row is read with its kind: which product it is in.
+        ...(relationKeys[0] === "cloudResources"
+          ? { cloudResourceKind: true }
+          : {}),
       });
       expect(args.select["projectId"]).toBe(true);
     }

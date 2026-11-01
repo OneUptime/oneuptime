@@ -75,6 +75,13 @@ export default class WorkspaceRemediationActions {
     return `This fix is no longer in ${ProductBrandingText.getProductName()}. It may have been deleted.`;
   }
 
+  // The same, as an answer: its words placed as text.
+  public static getNotFoundAnswer(): WorkspaceAnswer {
+    const message: string = WorkspaceRemediationActions.getNotFoundMessage();
+
+    return { markdown: mdText`${message}`.toString(), text: message };
+  }
+
   /*
    * The fix a press names, read as OneUptime, in the press's project only:
    * null when it is not there (gone, or another project's).
@@ -180,12 +187,12 @@ export default class WorkspaceRemediationActions {
         });
       case AutoRemediationSuggestionStatus.AutoExecuted:
         return {
-          markdown: `✅ ${ProductBrandingText.getProductName()} AI already made this fix on its own.`,
+          markdown: mdText`✅ ${ProductBrandingText.getProductName()} AI already made this fix on its own.`.toString(),
           text: `${ProductBrandingText.getProductName()} AI already made this fix on its own`,
         };
       default:
         return {
-          markdown: `This fix no longer waits for approval, so nothing was done. Its incident or alert in ${ProductBrandingText.getProductName()} says what came of it.`,
+          markdown: mdText`This fix no longer waits for approval, so nothing was done. Its incident or alert in ${ProductBrandingText.getProductName()} says what came of it.`.toString(),
           text: "This fix no longer waits for approval",
         };
     }
@@ -264,13 +271,29 @@ export default class WorkspaceRemediationActions {
     props: DatabaseCommonInteractionProps;
     value: RemediationActionValue;
     from: WorkspaceType;
-  }): Promise<void> {
+  }): Promise<WorkspaceAnswer> {
     await RemediationApproval.approve({
       props: data.props,
       suggestionId: data.value.suggestionId.toString(),
       expectedPlanFingerprint: data.value.fingerprint,
       from: data.from,
     });
+
+    return WorkspaceRemediationActions.getApprovedAnswer();
+  }
+
+  /*
+   * What the person who approved a fix is told where they pressed: it is
+   * being made, and where to follow it. The record's feed says the rest -
+   * who approved it, from which chat - in its channels.
+   */
+  public static getApprovedAnswer(): WorkspaceAnswer {
+    const product: string = ProductBrandingText.getProductName();
+
+    return {
+      markdown: mdText`✅ You approved this fix: ${product} AI is making it now. Its incident or alert in ${product} shows how it goes.`.toString(),
+      text: "You approved this fix",
+    };
   }
 
   /*
@@ -293,7 +316,7 @@ export default class WorkspaceRemediationActions {
     const product: string = ProductBrandingText.getProductName();
 
     return {
-      markdown: `You dismissed this fix: ${product} AI will not run it. Its incident or alert in ${product} keeps what it proposed.`,
+      markdown: mdText`You dismissed this fix: ${product} AI will not run it. Its incident or alert in ${product} keeps what it proposed.`.toString(),
       text: "You dismissed this fix",
     };
   }

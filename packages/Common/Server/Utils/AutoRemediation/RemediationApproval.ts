@@ -1660,14 +1660,16 @@ export default class RemediationApproval {
     } else if (
       suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
     ) {
-      dismissMarkdown = `⚡ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}: the fix through MCP servers will not be made.`;
+      dismissMarkdown =
+        mdText`⚡ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}: the fix through MCP servers will not be made.`.toString();
     } else if (alreadyExecutedCount > 0) {
       dismissMarkdown =
         mdText`⚠️ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}, but **${describeCommandCount(alreadyExecutedCount)} had ALREADY run.** No further commands will run and nothing was rolled back automatically. Review the executed commands and their output on the suggestion.`.toString();
     } else if (
       suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
     ) {
-      dismissMarkdown = `⚡ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}: the AI-composed command plan will not be run.`;
+      dismissMarkdown =
+        mdText`⚡ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}: the AI-composed command plan will not be run.`.toString();
     } else {
       dismissMarkdown =
         mdText`⚡ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}: runbook "${suggestion.runbookNameSnapshot || "(not yet picked)"}" will not be run.`.toString();
