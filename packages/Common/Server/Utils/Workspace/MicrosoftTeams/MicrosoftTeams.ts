@@ -133,12 +133,16 @@ import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 import {
+  FULL_WIDTH_COLON,
   MessageCardFact,
   MessageCardLink,
   findFact,
   findMessageCardLinks,
+  isOnlyLinks,
+  toLabelKey,
   withLinksAsText,
 } from "./MicrosoftTeamsMessageCardText";
+import { getEveryWordingOf } from "../../ServerTranslation";
 
 /*
  * AI Ops - observability assistant imports. These power the natural-language
@@ -175,6 +179,22 @@ const MARKDOWN_BACKSLASH_ESCAPE_PATTERN: RegExp = /\\([!-/:-@[-`{-~])/g;
  * one, so code that keeps its characters there is shown as code here.
  */
 const MESSAGE_CARD_FENCE_PATTERN: RegExp = /^(`{3,}|~{3,})/;
+
+/*
+ * The labels of a message's long text - its description and its note - as
+ * toLabelKey compares them: in English and in every language a status
+ * page's subscribers are written to in (Common/Server/Locales). A card
+ * shows such a line as text, never as a fact: a description that is a
+ * fact shows its first line among the facts and the rest of it apart,
+ * above them.
+ */
+const TEXT_LABEL_KEYS: ReadonlySet<string> = new Set<string>(
+  ["Description:", "Note:"]
+    .flatMap((label: string): Array<string> => {
+      return getEveryWordingOf(label);
+    })
+    .map(toLabelKey),
+);
 
 type GetMessageCardFenceOpeningFunction = (line: string) => string | null;
 
@@ -988,6 +1008,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       }
 
       /*
+       * A line of nothing but links - "[View Status Page](...) |
+       * [Unsubscribe](...)" - is the card's buttons: its words as text
+       * too would sit right above them, saying them twice.
+       */
+      if (isOnlyLinks(line, links)) {
+        continue;
+      }
+
+      /*
        * Replace the markdown link with just its text to preserve sentence
        * flow. The section is read as Markdown, so the text stays as it was
        * written, escapes and all: unescaped, a title's "[x](...)" would turn
@@ -1001,13 +1030,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       if (factMatch) {
         const name: string = factMatch.name.trim();
         const value: string = factMatch.value.trim();
-        if (
-          name.toLowerCase() === "description" ||
-          name.toLowerCase() === "note"
-        ) {
+
+        /*
+         * A description or a note, in any language, is text under its
+         * label; so is a label with nothing after it ("**Notiz:**" over the
+         * note's own lines), which as a fact is an empty row, its text apart
+         * from it above the facts.
+         */
+        if (TEXT_LABEL_KEYS.has(toLabelKey(name)) || !value) {
+          // The colon the label was written with: Chinese writes "：".
+          const colon: string = factMatch.isFullWidthColon
+            ? FULL_WIDTH_COLON
+            : ":";
+
           // Both parts come out of the Markdown line: they stay Markdown.
           bodyTextParts.push(
-            mdText`**${FeedMarkdown.asMarkdown(name)}:** ${FeedMarkdown.asMarkdown(value)}`.toString(),
+            mdText`**${FeedMarkdown.asMarkdown(name)}${FeedMarkdown.asMarkdown(colon)}** ${FeedMarkdown.asMarkdown(value)}`.toString(),
           );
         } else {
           facts.push({ name: name, value: value });

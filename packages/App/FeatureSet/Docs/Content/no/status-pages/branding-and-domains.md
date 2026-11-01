@@ -107,7 +107,7 @@ Hvor mange dager diagrammet dekker, angis ikke her. Det er **Oppetidshistorikk**
 
 | Felt | Hva det gjør |
 | ----- | ------------ |
-| **Standardspråk** | Språket førstegangsbesøkende ser, valgt fra en liste som nevner hvert språk på språket selv og på engelsk (`Deutsch (German)`). Standard er engelsk, og besøkende kan alltid bytte fra bunnteksten. |
+| **Standardspråk** | Språket førstegangsbesøkende ser, valgt fra en liste som nevner hvert språk på språket selv og på engelsk (`Deutsch (German)`). Standard er engelsk, og besøkende kan alltid bytte fra bunnteksten. Abonnenter får også meldingene sine på det, med mindre de leste siden på et annet språk da de abonnerte. |
 | **Aktiverte språk** | En flervalgsliste, plassholder `All languages`. La den stå tom, så tilbys alle støttede språk; velg noen få, så viser bunnteksten bare dem. |
 
 OneUptime leveres med sytten språk: engelsk, tysk, fransk, spansk, italiensk, portugisisk, nederlandsk, dansk, norsk, svensk, russisk, japansk, koreansk, kinesisk (forenklet), kinesisk (tradisjonell), hindi og persisk. Persisk leses fra høyre mot venstre, så en side som vises på persisk, er bygget opp fra høyre, fra første øyeblikk når persisk er standardspråket. Oppetidsstolpene begynner fortsatt til venstre med den eldste dagen.

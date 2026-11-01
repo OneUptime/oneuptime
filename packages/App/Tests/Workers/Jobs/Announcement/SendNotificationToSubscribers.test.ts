@@ -2714,3 +2714,64 @@ describe("Announcements of a blocked project", () => {
     expect(select["projectId"]).toBe(true);
   });
 });
+
+/*
+ * An announcement, posted or updated, is written in each subscriber's
+ * language (SubscriberLanguage): its subject, its text message and its chat
+ * messages. The announcement's own title and description read as written.
+ */
+describe("Announcement notifications, in the subscriber's language", () => {
+  function pageIn(language: string): StatusPage {
+    const page: StatusPage = statusPage();
+    page.defaultLanguage = language;
+    return page;
+  }
+
+  test("a posted announcement on an Italian page", async () => {
+    createdRows = [announcement()];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([pageIn("it")] as never);
+
+    await runJob(CREATED_JOB);
+
+    const mail: JSONObject = sentMail()[0]!.mail;
+
+    expect(mail["subject"]).toBe(`[Annuncio] ${TITLE}`);
+    expect(mail["language"]).toBe("it");
+    expect(sentSms()[0]).toBe(
+      `Annuncio ${TITLE} su Acme Status. Dettagli: ${DETAILS_URL}. Disiscriviti: ${SMS_UNSUBSCRIBE_URL}`,
+    );
+    expect(sentSlack()[0]).toContain(`## 📢 Annuncio - ${TITLE}`);
+    expect(sentSlack()[0]).toContain("Descrizione:");
+    expect(sentTeams()[0]).toContain("Visualizza la pagina di stato");
+  });
+
+  test("an updated announcement for a subscriber who reads the page in Korean", async () => {
+    updatedRows = [announcement()];
+    const korean: StatusPageSubscriber = subscriber();
+    korean.language = "ko";
+    mock(
+      StatusPageSubscriberService.getSubscribersByStatusPage,
+    ).mockResolvedValue([korean] as never);
+
+    await runJob(UPDATED_JOB);
+
+    expect(sentMail()[0]!.mail["subject"]).toBe(`[공지사항 업데이트] ${TITLE}`);
+    expect(sentSms()[0]).toContain("공지사항 업데이트:");
+    expect(sentSms()[0]).toContain(` ${DETAILS_URL}`);
+    expect(sentTeams()[0]).toContain(`공지사항 업데이트 - ${TITLE}`);
+  });
+
+  test("an English page sends what it always has", async () => {
+    createdRows = [announcement()];
+
+    await runJob(CREATED_JOB);
+
+    expect(sentMail()[0]!.mail["subject"]).toBe(`[Announcement] ${TITLE}`);
+    expect(Object.keys(sentMail()[0]!.mail)).not.toContain("language");
+    expect(sentSms()[0]).toBe(
+      `Announcement ${TITLE} on Acme Status. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    );
+  });
+});

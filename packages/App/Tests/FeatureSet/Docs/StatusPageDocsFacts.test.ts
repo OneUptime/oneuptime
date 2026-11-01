@@ -102,6 +102,9 @@ const RSS_FEED_SERVERS: ReadonlyArray<string> = [
 const STATUS_PAGE_API: string = "Common/Server/API/StatusPageAPI.ts";
 const SUBSCRIBER_SERVICE: string =
   "Common/Server/Services/StatusPageSubscriberService.ts";
+// The words of the messages to subscribers, in every language they are sent in.
+const SUBSCRIBER_MESSAGE_TEXT: string =
+  "Common/Server/Utils/StatusPage/SubscriberMessageText.ts";
 
 /*
  * The status page app's routes the overview does not list, and why. Every
@@ -1497,8 +1500,12 @@ describe("Subscribers & Announcements: a confirmation link works for a day", () 
         "App/FeatureSet/Notification/Templates/ConfirmStatusPageSubscription.hbs",
       ),
     ).toContain(`This link expires in ${hours} hours.`);
-    expect(service).toContain(
-      "by text message within ${StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS} hours.",
+    // The text message's sentence, written in the subscriber's language.
+    expect(readSource(SUBSCRIBER_MESSAGE_TEXT)).toContain(
+      "by text message within {{hours}} hours.",
+    );
+    expect(service).toMatch(
+      /hours: translator\.formatNumber\(\s*StatusPageSubscriberConfirmationCode\.VALID_FOR_HOURS,\s*\)/,
     );
   });
 

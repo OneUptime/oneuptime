@@ -1,8 +1,12 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import { describe, expect, test } from "@jest/globals";
 import EmailLogo from "Common/Server/Utils/Mail/EmailLogo";
+
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(Handlebars);
 
 const PARTIALS_DIR: string = Path.resolve(
   __dirname,

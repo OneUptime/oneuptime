@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -12,6 +13,9 @@ import {
   shift,
 } from "../../../Common/Tests/Types/OnCallDutyPolicy/CalendarFeedTestFixtures";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(Handlebars);
 
 /*
  * UserOnCallShiftReminder.hbs and UserOnCallShiftReassigned.hbs — the two
