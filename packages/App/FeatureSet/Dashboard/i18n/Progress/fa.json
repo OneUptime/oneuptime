@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 39103,
+    "keys": 39155,
     "untranslated": 13162
   },
   "sameAsEnglish": [
@@ -19,6 +19,7 @@
     "Datastore",
     "Deployment",
     "Docker Compose",
+    "Edge",
     "Google Calendar",
     "Google SecOps",
     "Hello world",
@@ -35,15 +36,20 @@
     "Namespace",
     "OK",
     "OSD",
+    "OpenShift",
     "PV",
     "PVC",
+    "Passthrough",
     "Pool",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Runner",
     "SLI %",
     "SLOs",
     "SNMP trap",
     "Slug",
+    "TLS",
     "Top P",
     "UTC",
     "VLAN",
