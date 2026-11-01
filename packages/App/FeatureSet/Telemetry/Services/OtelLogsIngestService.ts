@@ -113,6 +113,16 @@ import {
   getOpenShiftStatusLogAttributes,
   isOpenShiftStatusLogRecord,
 } from "Common/Types/Kubernetes/OpenShiftObjectAttributes";
+import {
+  ProxmoxBackupGuestResult,
+  ProxmoxNotificationStamp,
+  isProxmoxNotificationLogRecord,
+  stampProxmoxNotification,
+} from "Common/Utils/Proxmox/ProxmoxNotifications";
+import ProxmoxResourceService, {
+  ProxmoxGuestBackupResult,
+} from "Common/Server/Services/ProxmoxResourceService";
+import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -398,6 +408,17 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         string,
         Array<ParsedDockerSwarmResource>
       > = new Map();
+
+      /*
+       * Proxmox VE's own notifications (ProxmoxNotifications), keyed by
+       * cluster ID: each backup job's guests, written to the inventory as
+       * their last backup, and the newest notification's time.
+       */
+      const proxmoxBackupBuffer: Map<
+        string,
+        Array<ProxmoxGuestBackupResult>
+      > = new Map();
+      const proxmoxNotificationTimes: Map<string, Date> = new Map();
 
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
@@ -908,6 +929,36 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * A notification Proxmox VE sent through the webhook
+                   * target OneUptime's guide sets up: stored with the
+                   * severity Proxmox gave it (the template can only write
+                   * the word), and a backup job's guests remembered as each
+                   * guest's last backup. Any other log costs one attribute
+                   * lookup.
+                   */
+                  if (isProxmoxNotificationLogRecord(attributesObject)) {
+                    const proxmoxStamp: ProxmoxNotificationStamp | null =
+                      stampProxmoxNotification({
+                        attributes: attributesObject,
+                        body: body,
+                      });
+
+                    if (proxmoxStamp) {
+                      logSeverityNumber = proxmoxStamp.severityNumber;
+
+                      if (proxmoxClusterId) {
+                        this.bufferProxmoxNotification({
+                          clusterIdStr: proxmoxClusterId.toString(),
+                          stamp: proxmoxStamp,
+                          at: timeDate,
+                          backupBuffer: proxmoxBackupBuffer,
+                          notificationTimes: proxmoxNotificationTimes,
+                        });
+                      }
+                    }
+                  }
+
                   const severityText: LogSeverity =
                     this.getSeverityText(logSeverityNumber);
 
@@ -1352,6 +1403,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             ]
           : []),
       ]);
+
+      await this.flushProxmoxNotifications({
+        projectId: projectId,
+        backupBuffer: proxmoxBackupBuffer,
+        notificationTimes: proxmoxNotificationTimes,
+      });
 
       /*
        * Flush the k8s inventory buffer — one upsert per cluster. Failures
@@ -1830,6 +1887,88 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
    * stale value (a namespace the collector stamped from elsewhere) never
    * wins over it.
    */
+  /*
+   * Remembers what one Proxmox VE notification record says for the flush:
+   * the newest notification time per cluster, and each guest of a backup
+   * job with the job's time (the notification is sent when the job ends).
+   * A guest the job never got to is a failure: no backup was made.
+   */
+  public static bufferProxmoxNotification(data: {
+    clusterIdStr: string;
+    stamp: ProxmoxNotificationStamp;
+    at: Date;
+    backupBuffer: Map<string, Array<ProxmoxGuestBackupResult>>;
+    notificationTimes: Map<string, Date>;
+  }): void {
+    if (isNaN(data.at.getTime())) {
+      return;
+    }
+
+    const newest: Date | undefined = data.notificationTimes.get(
+      data.clusterIdStr,
+    );
+    if (!newest || data.at > newest) {
+      data.notificationTimes.set(data.clusterIdStr, data.at);
+    }
+
+    if (data.stamp.backupResults.length === 0) {
+      return;
+    }
+
+    const results: Array<ProxmoxGuestBackupResult> =
+      data.backupBuffer.get(data.clusterIdStr) || [];
+    const guests: Array<ProxmoxBackupGuestResult> = data.stamp.backupResults;
+    for (const guest of guests) {
+      results.push({
+        vmid: guest.vmid,
+        status: guest.status,
+        finishedAt: data.at,
+        bytes: guest.bytes,
+        durationSeconds: guest.durationSeconds,
+      });
+    }
+    data.backupBuffer.set(data.clusterIdStr, results);
+  }
+
+  /*
+   * Writes the batch's Proxmox VE notifications to Postgres: each guest's
+   * last backup, and when the cluster last sent a notification. Like every
+   * inventory write on this path, a failure is logged and never fails the
+   * batch: the logs are already stored.
+   */
+  public static async flushProxmoxNotifications(data: {
+    projectId: ObjectID;
+    backupBuffer: Map<string, Array<ProxmoxGuestBackupResult>>;
+    notificationTimes: Map<string, Date>;
+  }): Promise<void> {
+    for (const [clusterIdStr, results] of data.backupBuffer.entries()) {
+      try {
+        await ProxmoxResourceService.recordBackupResults({
+          projectId: data.projectId,
+          proxmoxClusterId: new ObjectID(clusterIdStr),
+          results: results,
+        });
+      } catch (err) {
+        logger.error(
+          `Error recording Proxmox backup results for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    for (const [clusterIdStr, receivedAt] of data.notificationTimes.entries()) {
+      try {
+        await ProxmoxClusterService.recordNotificationReceived({
+          proxmoxClusterId: new ObjectID(clusterIdStr),
+          receivedAt: receivedAt,
+        });
+      } catch (err) {
+        logger.error(
+          `Error recording a Proxmox notification for cluster ${clusterIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
   public static stampKubernetesEvent(data: {
     attributes: Dictionary<AttributeType | Array<AttributeType>>;
     body: string;

@@ -53,6 +53,7 @@ import {
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorStepLogMonitor from "Common/Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepDockerMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerMonitor";
 import { MonitorStepDockerSwarmMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
 import { MonitorStepHostMonitorUtil } from "Common/Types/Monitor/MonitorStepHostMonitor";
@@ -78,6 +79,7 @@ import {
   getAllPodmanMetrics,
 } from "Common/Types/Monitor/PodmanMetricCatalog";
 import {
+  PROXMOX_NODE_RESTARTED_UPTIME_SECONDS,
   ProxmoxAlertTemplate,
   getAllProxmoxAlertTemplates,
   getProxmoxAlertTemplateById,
@@ -87,6 +89,12 @@ import {
   ProxmoxMetricDefinition,
   getAllProxmoxMetrics,
 } from "Common/Types/Monitor/ProxmoxMetricCatalog";
+import {
+  PROXMOX_NODE_NAME_LOG_ATTRIBUTE,
+  ProxmoxNotificationAlertTemplate,
+  getAllProxmoxNotificationAlertTemplates,
+} from "Common/Types/Monitor/ProxmoxNotificationAlertTemplates";
+import { ProxmoxNotificationAttribute } from "Common/Utils/Proxmox/ProxmoxNotifications";
 import {
   DefaultRecoveryMarginFraction,
   SustainedEvaluation,
@@ -166,7 +174,15 @@ const RECEIVING_PAGE_LINK: string =
 const TABLE_DELIMITER_ROW: RegExp = /^\|\s*-/;
 const HEADING_MARKS: RegExp = /^(#{1,6}) /;
 const INLINE_CODE: RegExp = /`([^`\n]+)`/g;
-const PAST_WINDOW: RegExp = /\bpast (\d+) minutes?\b/;
+// "past 15 minutes", "past 6 hours".
+const PAST_WINDOW: RegExp = /\bpast (\d+) (minutes?|hours?)\b/;
+
+// The window a row's "past N minutes" or "past N hours" names, in minutes.
+function pastWindowMinutes(past: RegExpMatchArray): number {
+  const amount: number = parseInt(past[1] as string, 10);
+
+  return (past[2] as string).startsWith("hour") ? amount * 60 : amount;
+}
 const AGGREGATION_WORD: RegExp = /\b(Avg|Max|Min|Sum|Count)\b/;
 const KEY_EQUALS_VALUE: RegExp = /^([\w.]+) = (\S+)$/;
 const SAME_AS_ABOVE: string = "The same";
@@ -263,6 +279,7 @@ const WINDOW_MINUTES: Partial<Record<RollingTime, number>> = {
   [RollingTime.Past10Minutes]: 10,
   [RollingTime.Past15Minutes]: 15,
   [RollingTime.Past30Minutes]: 30,
+  [RollingTime.Past6Hours]: 360,
 };
 
 const AGGREGATION_OF_WORD: Record<string, MetricsAggregationType> = {
@@ -280,6 +297,7 @@ const NUMBER_WORDS: Record<number, string> = {
   7: "seven",
   11: "eleven",
   12: "twelve",
+  15: "fifteen",
   17: "seventeen",
   18: "eighteen",
 };
@@ -669,7 +687,7 @@ function describeTemplateTable(data: {
 
         const past: RegExpMatchArray | null = row.watches.match(PAST_WINDOW);
         const minutes: number | undefined = past
-          ? parseInt(past[1] as string, 10)
+          ? pastWindowMinutes(past)
           : data.defaultWindowMinutes;
 
         expect(minutes).toBe(WINDOW_MINUTES[template.rollingTime]);
@@ -842,7 +860,7 @@ describeTemplateTable({
   heading: "## Pre-built Alert Templates",
   templates: proxmoxTemplates,
   defaultWindowMinutes: 5,
-  specialRows: ["Cluster Stopped Reporting", "Guest Down"],
+  specialRows: ["Cluster Stopped Reporting", "Guest Down", "Node Restarted"],
 });
 
 describe("the Stopped Reporting template each page explains", () => {
@@ -1054,6 +1072,57 @@ describe("the Proxmox templates the page explains", () => {
     );
   });
 
+  it("Node Restarted pages for a node that is up with a short uptime, and recovers once it has run 16.5 minutes or goes down", () => {
+    const template: BuiltTemplate = named("Node Restarted");
+    const row: TemplateRow = templateRows(
+      PROXMOX,
+      "## Pre-built Alert Templates",
+    ).find((candidate: TemplateRow) => {
+      return candidate.name === "Node Restarted";
+    }) as TemplateRow;
+
+    expect(PROXMOX_NODE_RESTARTED_UPTIME_SECONDS).toBe(15 * 60);
+    expect(template.queries.map(metricNameOf)).toEqual([
+      "pve_uptime_seconds",
+      "pve_up",
+    ]);
+    expect(template.first.data!.filterCondition).toBe(FilterCondition.All);
+    expect(template.first.data!.filters.map(comparisonOf)).toEqual([
+      {
+        filterType: FilterType.LessThan,
+        value: PROXMOX_NODE_RESTARTED_UPTIME_SECONDS,
+      },
+      { filterType: FilterType.GreaterThan, value: 0 },
+    ]);
+    expect(template.last.data!.filterCondition).toBe(FilterCondition.Any);
+    expect(template.last.data!.filters.map(comparisonOf)).toEqual([
+      // 10% past the threshold, as every threshold criteria recovers.
+      {
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 990,
+      },
+      { filterType: FilterType.EqualTo, value: 0 },
+    ]);
+    expect(row.fires).toBe(
+      "`pve_uptime_seconds` is below 900 (15 minutes) while `pve_up` is 1",
+    );
+    expect(row.recovers).toBe(
+      "`pve_uptime_seconds` is at 990 or more, or `pve_up` is 0",
+    );
+  });
+
+  it("Backup Running Too Long reads the backup lock over six hours", () => {
+    const template: BuiltTemplate = named("Backup Running Too Long");
+
+    expect(template.rollingTime).toBe(RollingTime.Past6Hours);
+    expect(template.queries.map(attributesOf)).toEqual([
+      { "pve.scope": "guest", state: "backup" },
+    ]);
+    expect(englishPage(PROXMOX)).toContain(
+      "locked by a backup in every scrape of six hours",
+    );
+  });
+
   it("ratio formulas take the Sum of both sides and give a percentage", () => {
     for (const template of templates) {
       if (template.formulas.length === 0) {
@@ -1074,7 +1143,7 @@ describe("the Proxmox templates the page explains", () => {
   });
 
   it("the down templates use Minimum", () => {
-    for (const name of ["Node Offline", "Guest Down"]) {
+    for (const name of ["Node Offline", "Guest Down", "Storage Unavailable"]) {
       expect(named(name).queries.map(aggregationOf)).toEqual(
         named(name).queries.map((): MetricsAggregationType => {
           return MetricsAggregationType.Min;
@@ -1087,6 +1156,119 @@ describe("the Proxmox templates the page explains", () => {
     expect(
       named("Container Root Disk Near Full").queries.map(attributesOf),
     ).toEqual([{ "pve.type": "lxc" }, { "pve.type": "lxc" }]);
+  });
+});
+
+/*
+ * The two alerts on Proxmox VE's own notifications: Logs monitors the
+ * cluster's Recommendations offer (ProxmoxNotificationAlertTemplates), in
+ * a table of their own under the metric templates.
+ */
+describe("the Proxmox notification alerts the page explains", () => {
+  const HEADING: string = "### Alerts on Proxmox VE's notifications";
+  const templates: Array<ProxmoxNotificationAlertTemplate> =
+    getAllProxmoxNotificationAlertTemplates();
+  const rows: Array<TemplateRow> = templateRows(PROXMOX, HEADING);
+
+  function stepOf(template: ProxmoxNotificationAlertTemplate): MonitorStep {
+    return template.getMonitorStep({
+      ...IDS,
+      clusterIdentifier: "pve-prod",
+      monitorName: "pve-prod",
+    });
+  }
+
+  it("lists every notification template, in the Recommendations' order, with its severity", () => {
+    expect(
+      rows.map((row: TemplateRow): string => {
+        return row.name;
+      }),
+    ).toEqual(
+      templates.map((template: ProxmoxNotificationAlertTemplate): string => {
+        return template.name;
+      }),
+    );
+
+    for (const template of templates) {
+      expect(
+        (
+          rows.find((row: TemplateRow): boolean => {
+            return row.name === template.name;
+          }) as TemplateRow
+        ).severity,
+      ).toBe(template.severity);
+    }
+  });
+
+  it.each(
+    getAllProxmoxNotificationAlertTemplates().map(
+      (
+        template: ProxmoxNotificationAlertTemplate,
+      ): [string, ProxmoxNotificationAlertTemplate] => {
+        return [template.name, template];
+      },
+    ),
+  )(
+    "%s: the attributes it matches, its window and its group-by",
+    (_name: string, template: ProxmoxNotificationAlertTemplate) => {
+      const row: TemplateRow = rows.find((candidate: TemplateRow) => {
+        return candidate.name === template.name;
+      }) as TemplateRow;
+      const logMonitor: MonitorStepLogMonitor = stepOf(template).data!
+        .logMonitor as MonitorStepLogMonitor;
+      const code: Array<string> = inlineCodeIn(row.watches);
+
+      // Every notification attribute it matches, as `key = value`.
+      for (const [key, value] of Object.entries(logMonitor.attributes || {})) {
+        if (!key.startsWith("pve.notification.")) {
+          continue;
+        }
+        expect({ key, named: true }).toEqual({
+          key,
+          named: code.includes(`${key} = ${value}`),
+        });
+      }
+
+      const past: RegExpMatchArray | null = row.watches.match(PAST_WINDOW);
+      expect(past ? pastWindowMinutes(past) * 60 : null).toBe(
+        logMonitor.lastXSecondsOfLogs,
+      );
+
+      const groupBy: Array<string> = logMonitor.groupByAttributes || [];
+      expect(groupBy[0]).toBe(PROXMOX_NODE_NAME_LOG_ATTRIBUTE);
+      if (groupBy.includes(ProxmoxNotificationAttribute.JobId)) {
+        expect(row.watches).toContain("per node and job");
+      } else {
+        expect(row.watches).toContain("per node,");
+      }
+    },
+  );
+
+  it("a failed backup job stays open until a later run of the same job succeeds", () => {
+    const logMonitor: MonitorStepLogMonitor = stepOf(
+      templates.find((template: ProxmoxNotificationAlertTemplate) => {
+        return template.name === "Backup Job Failed";
+      }) as ProxmoxNotificationAlertTemplate,
+    ).data!.logMonitor as MonitorStepLogMonitor;
+
+    expect(logMonitor.resolvedByAttributes).toEqual(
+      expect.objectContaining({
+        [ProxmoxNotificationAttribute.Type]: "vzdump",
+        [ProxmoxNotificationAttribute.Severity]: "info",
+      }),
+    );
+    expect(englishPage(PROXMOX)).toContain(
+      "A failed backup job's alert stays open until a later run of the same job succeeds",
+    );
+  });
+
+  it("points at the agent page's section that sends the notifications", () => {
+    expect(sectionOf(PROXMOX, HEADING)).toContain(
+      "](/docs/telemetry/proxmox#send-proxmox-ves-notifications)",
+    );
+    expect(englishPage("telemetry/proxmox")).toContain(
+      "## Send Proxmox VE's notifications",
+    );
   });
 });
 

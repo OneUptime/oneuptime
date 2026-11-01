@@ -10,7 +10,6 @@ import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSett
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import LabelsElement from "Common/UI/Components/Label/Labels";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Link from "Common/UI/Components/Link/Link";
 import Card from "Common/UI/Components/Card/Card";
@@ -39,9 +38,6 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -108,6 +104,24 @@ import {
   displayNameForResource,
   METRIC_STALE_MS,
 } from "../Utils/ProxmoxResourceUtils";
+import {
+  PROXMOX_STORAGE_NEAR_FULL_PERCENT,
+  ProxmoxPartKind,
+  getProxmoxAttentionItems,
+  getProxmoxClusterHealth,
+  isProxmoxTemplate,
+} from "../Utils/ProxmoxHealth";
+import {
+  ProxmoxGuestSummary,
+  summarizeProxmoxGuests,
+} from "../Utils/ProxmoxPartFacts";
+import {
+  ResourceAttentionItem,
+  ResourceHealth,
+} from "../../../Components/ResourcePart/ResourceAttention";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import ProxmoxNodesCard from "../../../Components/Proxmox/ProxmoxNodesCard";
+import ProxmoxBackupsCard from "../../../Components/Proxmox/ProxmoxBackupsCard";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useResizableColumns, {
@@ -116,8 +130,6 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-
-type ClusterHealth = "Healthy" | "Degraded" | "Unhealthy";
 
 interface GoldenStats {
   cpuPercent: number | null;
@@ -136,34 +148,24 @@ interface TopGuestRow {
   memoryPercent: number | null;
 }
 
-interface DegradedItem {
-  kind: "Node" | "Guest" | "Storage" | "Replication";
-  /*
-   * Detail-page link target. For Replication rows this is the guest's
-   * externalId when the job's `guest` label resolved against the
-   * inventory — empty means "no detail page", the row renders
-   * unclickable.
-   */
-  externalId: string;
-  name: string;
-  reasons: Array<string>;
-  /* true = drives Unhealthy (red), false = drives Degraded (amber). */
-  isCritical: boolean;
-}
-
 interface InventorySummary {
+  /*
+   * The inventory itself: what needs attention (ProxmoxHealth), the Nodes
+   * card and the Backups card read it.
+   */
+  rows: Array<ProxmoxResourceModel>;
   nodesOnline: number;
   nodesTotal: number;
+  // Guests that can run: templates never do, so they are counted apart.
   guestsRunning: number;
   guestsTotal: number;
+  templatesTotal: number;
   storageCount: number;
   worstStoragePercent: number | null;
   worstStorageName: string;
   haStateCounts: Record<string, number>;
   topGuestsByCpu: Array<TopGuestRow>;
   topGuestsByMemory: Array<TopGuestRow>;
-  degradedItems: Array<DegradedItem>;
-  health: ClusterHealth;
   /*
    * WI-24 backup-job coverage, derived from ProxmoxResource.backedUp
    * (tri-state: unset until the cluster reports the backup-info
@@ -201,8 +203,6 @@ const formatPercent: (value: number | null) => string = (
 };
 
 const TILE_WINDOW_MINUTES: number = 5;
-
-const STORAGE_NEAR_FULL_PERCENT: number = 85;
 
 /*
  * WI-25: replication gauges are scraped every 30s — a 30-minute lookback
@@ -266,6 +266,9 @@ const ProxmoxClusterOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
   /*
@@ -352,9 +355,9 @@ const ProxmoxClusterOverview: FunctionComponent<
     });
 
   /*
-   * Inventory-derived summary — health, HA chips, top-5 guests, and
-   * the "why degraded?" drill-down all come from the ProxmoxResource
-   * Postgres table (instant; no ClickHouse).
+   * Inventory-derived summary: what needs attention (ProxmoxHealth), the
+   * HA chips, the Nodes and Backups cards and the top-5 guests all come
+   * from the ProxmoxResource table (instant; no ClickHouse).
    */
   const loadInventory: PromiseVoidFunction = async (): Promise<void> => {
     setInventoryError("");
@@ -369,14 +372,11 @@ const ProxmoxClusterOverview: FunctionComponent<
 
       let nodesOnline: number = 0;
       let nodesTotal: number = 0;
-      let guestsRunning: number = 0;
-      let guestsTotal: number = 0;
       let storageCount: number = 0;
       let worstStoragePercent: number | null = null;
       let worstStorageName: string = "";
       const haStateCounts: Record<string, number> = {};
       const guests: Array<TopGuestRow> = [];
-      const degradedItems: Array<DegradedItem> = [];
       let guestsWithBackupInfo: number = 0;
       let guestsNotBackedUp: number = 0;
       const guestsByVmid: Record<string, { name: string; externalId: string }> =
@@ -390,39 +390,19 @@ const ProxmoxClusterOverview: FunctionComponent<
           haStateCounts[row.haState] = (haStateCounts[row.haState] || 0) + 1;
         }
 
-        const haCritical: boolean =
-          row.haState === "error" || row.haState === "fence";
-
         if (row.kind === "Node") {
           nodesTotal++;
           if (row.isUp) {
             nodesOnline++;
-          } else if (row.isUp === false) {
-            degradedItems.push({
-              kind: "Node",
-              externalId,
-              name,
-              reasons: ["Offline"],
-              isCritical: true,
-            });
-          }
-          if (haCritical) {
-            degradedItems.push({
-              kind: "Node",
-              externalId,
-              name,
-              reasons: [`HA state: ${row.haState}`],
-              isCritical: true,
-            });
           }
         } else if (row.kind === "Guest") {
-          guestsTotal++;
-          if (row.isUp) {
-            guestsRunning++;
-          }
-
           if (row.vmid !== null && row.vmid !== undefined) {
             guestsByVmid[String(row.vmid)] = { name, externalId };
+          }
+
+          // A template never runs: no backup coverage, no usage to rank.
+          if (isProxmoxTemplate(row)) {
+            continue;
           }
 
           /*
@@ -436,29 +416,6 @@ const ProxmoxClusterOverview: FunctionComponent<
             if (row.isBackedUp === false) {
               guestsNotBackedUp++;
             }
-          }
-
-          const reasons: Array<string> = [];
-          let isCritical: boolean = false;
-          if (haCritical) {
-            reasons.push(`HA state: ${row.haState}`);
-            isCritical = true;
-          }
-          if (row.onboot && row.isUp === false) {
-            reasons.push("Stopped but configured to start on boot");
-          }
-          if (row.isBackedUp === false) {
-            // Coverage gap, not a failed backup — amber, never red.
-            reasons.push("Not covered by any backup job");
-          }
-          if (reasons.length > 0) {
-            degradedItems.push({
-              kind: "Guest",
-              externalId,
-              name,
-              reasons,
-              isCritical,
-            });
           }
 
           // Top-N source: stale metric values render as no-data.
@@ -509,15 +466,6 @@ const ProxmoxClusterOverview: FunctionComponent<
               worstStoragePercent = pct;
               worstStorageName = name;
             }
-            if (pct > STORAGE_NEAR_FULL_PERCENT) {
-              degradedItems.push({
-                kind: "Storage",
-                externalId,
-                name,
-                reasons: [`${pct.toFixed(1)}% used`],
-                isCritical: false,
-              });
-            }
           }
         }
       }
@@ -540,37 +488,21 @@ const ProxmoxClusterOverview: FunctionComponent<
         })
         .slice(0, 5);
 
-      /*
-       * Health (spec WI-8): Unhealthy when any node is offline or any
-       * HA resource sits in error/fence; Degraded when a storage is
-       * >85% used, a guest with onboot=1 is stopped, or some nodes
-       * are not online (the offline-node case already lands in
-       * Unhealthy above).
-       */
-      let health: ClusterHealth = "Healthy";
-      if (
-        degradedItems.some((item: DegradedItem) => {
-          return item.isCritical;
-        })
-      ) {
-        health = "Unhealthy";
-      } else if (degradedItems.length > 0 || nodesOnline < nodesTotal) {
-        health = "Degraded";
-      }
+      const guestSummary: ProxmoxGuestSummary = summarizeProxmoxGuests(rows);
 
       setInventory({
+        rows,
         nodesOnline,
         nodesTotal,
-        guestsRunning,
-        guestsTotal,
+        guestsRunning: guestSummary.running,
+        guestsTotal: guestSummary.total,
+        templatesTotal: guestSummary.templates,
         storageCount,
         worstStoragePercent,
         worstStorageName,
         haStateCounts,
         topGuestsByCpu,
         topGuestsByMemory,
-        degradedItems,
-        health,
         guestsWithBackupInfo,
         guestsNotBackedUp,
         guestsByVmid,
@@ -1218,6 +1150,8 @@ const ProxmoxClusterOverview: FunctionComponent<
           storageCount: true,
           guestsWithoutBackupCount: true,
           cephClusterId: true,
+          isQuorate: true,
+          lastNotificationAt: true,
         },
       });
       setCluster(item);
@@ -1315,75 +1249,30 @@ const ProxmoxClusterOverview: FunctionComponent<
     return <ErrorMessage message="Cluster not found." />;
   }
 
-  /*
-   * Quorum proxy — derived from node visibility (onlineNodeCount vs
-   * nodeCount; inventory first, snapshot columns as fallback).
-   * pve-exporter exposes no corosync metric, so this is the honest
-   * ceiling: at ≤50% nodes online the cluster has lost (or is about
-   * to lose) corosync quorum. Do NOT present it as a corosync read.
-   */
   const nodesTotal: number = inventory?.nodesTotal || cluster.nodeCount || 0;
   const nodesOnline: number = inventory
     ? inventory.nodesOnline
     : cluster.onlineNodeCount || 0;
-  const quorumAtRisk: boolean =
-    nodesTotal > 0 && nodesOnline / nodesTotal <= 0.5;
   const nodeAvailabilityPct: number | null =
     nodesTotal > 0 ? (nodesOnline / nodesTotal) * 100 : null;
 
-  const guestsTotal: number = inventory?.guestsTotal || cluster.guestCount || 0;
+  /*
+   * Whether Proxmox VE itself says the cluster is quorate (pve_up of the
+   * cluster, read from corosync) - null for a standalone node, an agent
+   * older than the reading, or the native push, which does not send it.
+   */
+  const isQuorate: boolean | null =
+    cluster.isQuorate === null || cluster.isQuorate === undefined
+      ? null
+      : Boolean(cluster.isQuorate);
+
+  const guestsTotal: number = inventory
+    ? inventory.guestsTotal
+    : cluster.guestCount || 0;
   const guestsRunning: number = inventory ? inventory.guestsRunning : 0;
+  const templatesTotal: number = inventory?.templatesTotal || 0;
   const storageCount: number =
     inventory?.storageCount || cluster.storageCount || 0;
-
-  /*
-   * WI-25: failing replication jobs feed the "Why degraded?" list.
-   * Amber (Degraded), not red — the documented Unhealthy drivers stay
-   * node-offline / HA error-fence only. The linked Ceph cluster's
-   * health (WI-28) deliberately does NOT feed this badge: separate
-   * products, separate alerting — the Ceph card carries its own pill.
-   */
-  const replicationDegradedItems: Array<DegradedItem> = (replicationJobs || [])
-    .filter((job: ReplicationJob) => {
-      return (job.failedSyncs ?? 0) > 0;
-    })
-    .map((job: ReplicationJob): DegradedItem => {
-      const guest: { name: string; externalId: string } | undefined =
-        inventory?.guestsByVmid[job.guestVmid];
-      const failed: number = job.failedSyncs ?? 0;
-      return {
-        kind: "Replication",
-        externalId: guest?.externalId || "",
-        name: guest
-          ? `Replication job ${job.jobId} (${guest.name})`
-          : `Replication job ${job.jobId}`,
-        reasons: [`${failed} failed sync${failed === 1 ? "" : "s"}`],
-        isCritical: false,
-      };
-    });
-
-  const allDegradedItems: Array<DegradedItem> = [
-    ...(inventory?.degradedItems || []),
-    ...replicationDegradedItems,
-  ];
-
-  const inventoryHealth: ClusterHealth = inventory?.health || "Healthy";
-  const clusterHealth: ClusterHealth =
-    inventoryHealth === "Healthy" && replicationDegradedItems.length > 0
-      ? "Degraded"
-      : inventoryHealth;
-
-  /*
-   * When the collector is disconnected the inventory snapshot is stale, so
-   * the derived health is no longer trustworthy. Surface "Unknown" instead
-   * of a misleading last-known status (mirrors the hero badge).
-   */
-  const isClusterConnected: boolean = ["connected", "active"].includes(
-    ((cluster?.otelCollectorStatus as string) || "").toLowerCase(),
-  );
-  const displayClusterHealth: string = isClusterConnected
-    ? clusterHealth
-    : "Unknown";
 
   const nodesRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_NODES] as Route,
@@ -1398,26 +1287,49 @@ const ProxmoxClusterOverview: FunctionComponent<
     { modelId: modelId },
   );
 
-  const navigateToDetail: (item: DegradedItem) => void = (
-    item: DegradedItem,
-  ): void => {
-    // Replication rows link to the replicated guest when resolvable.
-    if (!item.externalId) {
-      return;
-    }
+  const getPartRoute: (kind: ProxmoxPartKind, externalId: string) => Route = (
+    kind: ProxmoxPartKind,
+    externalId: string,
+  ): Route => {
     const pageMap: PageMap =
-      item.kind === "Node"
+      kind === "Node"
         ? PageMap.PROXMOX_CLUSTER_VIEW_NODE_DETAIL
-        : item.kind === "Guest" || item.kind === "Replication"
+        : kind === "Guest"
           ? PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL
           : PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL;
-    Navigation.navigate(
-      RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
-        modelId: modelId,
-        subModelId: routeParamFromExternalId(item.externalId),
-      }),
-    );
+    return RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
+      modelId: modelId,
+      subModelId: routeParamFromExternalId(externalId),
+    });
   };
+
+  /*
+   * What needs attention, most urgent first (ProxmoxHealth): the same
+   * rules the part pages and the Topology use, so the health pill, this
+   * list and a node's page can never disagree. Failing replication jobs
+   * join it as warnings; a linked Ceph cluster's health (WI-28) does not:
+   * separate products, separate alerting - its card carries its own pill.
+   */
+  const attentionItems: Array<ResourceAttentionItem> = inventory
+    ? getProxmoxAttentionItems({
+        rows: inventory.rows,
+        replicationJobs: replicationJobs,
+        isQuorate: isQuorate,
+        clusterName: (cluster.name as string | undefined) || "",
+        routeFor: getPartRoute,
+      })
+    : [];
+  const clusterHealth: ResourceHealth = getProxmoxClusterHealth(attentionItems);
+
+  /*
+   * When the collector is disconnected the inventory snapshot is stale, so
+   * the derived health is no longer trustworthy: the hero says "Health
+   * Unknown" instead of a misleading last-known status, and the attention
+   * list waits for fresh data.
+   */
+  const isClusterConnected: boolean = ["connected", "active"].includes(
+    ((cluster?.otelCollectorStatus as string) || "").toLowerCase(),
+  );
 
   const navigateToGuest: (externalId: string) => void = (
     externalId: string,
@@ -1512,26 +1424,37 @@ const ProxmoxClusterOverview: FunctionComponent<
           ? "bg-amber-500"
           : "bg-red-500";
 
+    /*
+     * The count chips open their list: the Overview's one step to the
+     * nodes, the guests and the storage (the side menu has the rest).
+     */
     const specChips: Array<{
       icon: IconProp;
       label: string;
+      route?: Route | undefined;
+      testId?: string | undefined;
     }> = [];
     if (nodesTotal > 0) {
       specChips.push({
         icon: IconProp.ServerStack,
+        route: nodesRoute,
+        testId: "proxmox-hero-nodes",
         label: translator.translatePlural(
           {
             one: "{{online}}/{{count}} node online",
             other: "{{online}}/{{count}} nodes online",
           },
           nodesTotal,
-          { online: nodesOnline },
+          // In the reader's digits, as the count beside it is.
+          { online: translator.formatNumber(nodesOnline) },
         ),
       });
     }
     if (guestsTotal > 0) {
       specChips.push({
         icon: IconProp.Cube,
+        route: guestsRoute,
+        testId: "proxmox-hero-guests",
         label: inventory
           ? translator.translatePlural(
               {
@@ -1539,7 +1462,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                 other: "{{running}}/{{count}} guests running",
               },
               guestsTotal,
-              { running: guestsRunning },
+              { running: translator.formatNumber(guestsRunning) },
             )
           : translator.translatePlural(
               { one: "{{count}} guest", other: "{{count}} guests" },
@@ -1547,9 +1470,22 @@ const ProxmoxClusterOverview: FunctionComponent<
             ),
       });
     }
+    if (templatesTotal > 0) {
+      specChips.push({
+        icon: IconProp.DocumentDuplicate,
+        route: guestsRoute,
+        testId: "proxmox-hero-templates",
+        label: translator.translatePlural(
+          { one: "{{count}} template", other: "{{count}} templates" },
+          templatesTotal,
+        ),
+      });
+    }
     if (storageCount > 0) {
       specChips.push({
         icon: IconProp.Database,
+        route: storageRoute,
+        testId: "proxmox-hero-storage",
         label: translator.translatePlural(
           {
             one: "{{count}} storage volume",
@@ -1634,24 +1570,45 @@ const ProxmoxClusterOverview: FunctionComponent<
                     <h1 className="text-xl font-semibold text-gray-900 truncate">
                       {displayName}
                     </h1>
-                    <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
-                    >
+                    <span className="inline-flex items-center gap-1">
                       <span
-                        className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
-                      />
-                      {connectionLabel}
-                    </span>
-                    {!isInventoryLoading && !inventoryError && (
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                        data-testid="proxmox-hero-connection"
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${connectionBadgeClass}`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                          className={`h-1.5 w-1.5 rounded-full ${connectionDotClass}`}
                         />
-                        {healthLabel}
+                        {connectionLabel}
                       </span>
-                    )}
+                      <InfoTooltip
+                        label="Agent Status"
+                        text={PROXMOX_METRIC_DESCRIPTIONS.agentStatus}
+                      />
+                    </span>
+                    {/*
+                     * A cluster that has reported no node, guest or storage
+                     * yet has no health to tell: "Healthy" there would be a
+                     * guess.
+                     */}
+                    {!isInventoryLoading &&
+                      !inventoryError &&
+                      (inventory?.rows.length ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1">
+                          <span
+                            data-testid="proxmox-hero-health"
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                            />
+                            {healthLabel}
+                          </span>
+                          <InfoTooltip
+                            label="Cluster Health"
+                            text={PROXMOX_METRIC_DESCRIPTIONS.clusterHealth}
+                          />
+                        </span>
+                      )}
                   </div>
                   <ResourceHeroDescription
                     text={cluster.description as string | undefined}
@@ -1673,19 +1630,41 @@ const ProxmoxClusterOverview: FunctionComponent<
               <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
-                    chip: { icon: IconProp; label: string },
+                    chip: {
+                      icon: IconProp;
+                      label: string;
+                      route?: Route | undefined;
+                      testId?: string | undefined;
+                    },
                     idx: number,
                   ): ReactElement => {
-                    return (
-                      <span
-                        key={`spec-${idx}`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                      >
+                    const content: ReactElement = (
+                      <>
                         <Icon
                           icon={chip.icon}
                           className="h-3 w-3 text-gray-500"
                         />
                         <span className="font-medium">{chip.label}</span>
+                      </>
+                    );
+                    if (chip.route) {
+                      return (
+                        <Link
+                          key={`spec-${idx}`}
+                          to={chip.route}
+                          dataTestId={chip.testId}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        >
+                          {content}
+                        </Link>
+                      );
+                    }
+                    return (
+                      <span
+                        key={`spec-${idx}`}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                      >
+                        {content}
                       </span>
                     );
                   },
@@ -1749,8 +1728,8 @@ const ProxmoxClusterOverview: FunctionComponent<
   const renderGoldenMetrics: () => ReactElement = (): ReactElement => {
     if (isGoldenLoading && !goldenStats) {
       return (
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {Array.from({ length: 6 }, (_: unknown, idx: number) => {
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {Array.from({ length: 5 }, (_: unknown, idx: number) => {
             return (
               <div
                 key={`golden-skeleton-${idx}`}
@@ -1788,56 +1767,52 @@ const ProxmoxClusterOverview: FunctionComponent<
     const guestsRunningPct: number | null =
       guestsTotal > 0 ? (guestsRunning / guestsTotal) * 100 : null;
 
-    /*
-     * WI-24 backup-JOB coverage. Tri-state by design: until the
-     * cluster reports pve_not_backed_up_* the tile reads "—", never
-     * "all covered". Inventory-derived counts win; the cluster
-     * snapshot column (guestsWithoutBackupCount, written by the same
-     * ingest scan) is the fallback while inventory is in flight.
-     * "Covered" means a backup job selects the guest — backup
-     * freshness/success is not expressible from pve-exporter (v4).
-     */
-    const backupInfoFromInventory: boolean =
-      (inventory?.guestsWithBackupInfo ?? 0) > 0;
-    const backupKnown: boolean =
-      backupInfoFromInventory ||
-      (cluster.guestsWithoutBackupCount !== null &&
-        cluster.guestsWithoutBackupCount !== undefined);
-    const guestsNotCovered: number = backupInfoFromInventory
-      ? inventory?.guestsNotBackedUp ?? 0
-      : Number(cluster.guestsWithoutBackupCount ?? 0);
-    const guestsCovered: number = Math.max(guestsTotal - guestsNotCovered, 0);
-    const backupCoveragePct: number | null =
-      backupKnown && guestsTotal > 0
-        ? (guestsCovered / guestsTotal) * 100
-        : null;
+    // Whether Proxmox reports the cluster quorate, under the node count.
+    const nodesSublabel: string =
+      isQuorate === true
+        ? tx("nodes online · quorate")
+        : isQuorate === false
+          ? tx("nodes online · not quorate")
+          : tx("nodes online");
 
+    /*
+     * Backups have a card of their own below the charts (ProxmoxBackupsCard):
+     * how each guest's last backup went, and which guests no job includes.
+     */
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <GoldenMetricTile
-          title="Node Availability"
+          title={tx("Node Availability")}
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={
             nodeAvailabilityPct === null ? "—" : `${nodesOnline}/${nodesTotal}`
           }
-          sublabel="nodes online"
+          sublabel={nodesSublabel}
           percent={nodeAvailabilityPct}
-          thresholds={{ warn: 99, danger: 51 }}
+          /*
+           * Not quorate is red whatever the count says: Proxmox stops
+           * starting guests and changing settings until quorum is back.
+           */
+          thresholds={
+            isQuorate === false
+              ? { warn: 101, danger: 101 }
+              : { warn: 99, danger: 51 }
+          }
           higherIsBetter={true}
           description={PROXMOX_METRIC_DESCRIPTIONS.nodeAvailability}
         />
         <GoldenMetricTile
-          title="CPU"
+          title={tx("CPU")}
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.cpuPercent)}
-          sublabel="capacity-weighted across nodes"
+          sublabel={tx("capacity-weighted across nodes")}
           percent={s.cpuPercent}
           description={PROXMOX_METRIC_DESCRIPTIONS.clusterCpu}
         />
         <GoldenMetricTile
-          title="Memory"
+          title={tx("Memory")}
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.memoryPercent)}
@@ -1847,14 +1822,14 @@ const ProxmoxClusterOverview: FunctionComponent<
                   used: formatBytes(s.memoryUsedBytes),
                   total: formatBytes(s.memorySizeBytes),
                 })
-              : "of node memory"
+              : tx("of node memory")
           }
           percent={s.memoryPercent}
           thresholds={{ warn: 80, danger: 95 }}
           description={PROXMOX_METRIC_DESCRIPTIONS.clusterMemory}
         />
         <GoldenMetricTile
-          title="Storage"
+          title={tx("Storage")}
           icon={IconProp.Database}
           iconColor="amber"
           value={formatPercent(inventory?.worstStoragePercent ?? null)}
@@ -1863,59 +1838,32 @@ const ProxmoxClusterOverview: FunctionComponent<
               ? translator.translateTemplate("fullest: {{storageName}}", {
                   storageName: inventory.worstStorageName,
                 })
-              : "fullest volume"
+              : tx("fullest volume")
           }
           percent={inventory?.worstStoragePercent ?? null}
-          thresholds={{ warn: 75, danger: STORAGE_NEAR_FULL_PERCENT }}
+          thresholds={{ warn: 75, danger: PROXMOX_STORAGE_NEAR_FULL_PERCENT }}
           description={PROXMOX_METRIC_DESCRIPTIONS.fullestStorage}
         />
         <GoldenMetricTile
-          title="Guests"
+          title={tx("Guests")}
           icon={IconProp.Cube}
           iconColor="sky"
-          value={guestsTotal > 0 ? `${guestsRunning}/${guestsTotal}` : "—"}
+          value={
+            inventory && guestsTotal > 0
+              ? `${guestsRunning}/${guestsTotal}`
+              : "—"
+          }
           sublabel={
             netTotal === null
-              ? "running"
+              ? tx("running")
               : translator.translateTemplate("running · net {{throughput}}", {
                   throughput: ValueFormatter.formatValue(netTotal, "By/s"),
                 })
           }
-          percent={guestsRunningPct}
+          percent={inventory ? guestsRunningPct : null}
           thresholds={{ warn: 99, danger: 50 }}
           higherIsBetter={true}
           description={PROXMOX_METRIC_DESCRIPTIONS.guestsRunning}
-        />
-        <GoldenMetricTile
-          title="Backup Coverage"
-          icon={IconProp.Archive}
-          iconColor="emerald"
-          value={
-            backupKnown && guestsTotal > 0
-              ? `${guestsCovered}/${guestsTotal}`
-              : "—"
-          }
-          sublabel={
-            backupKnown && guestsTotal > 0
-              ? guestsNotCovered > 0
-                ? translator.translatePlural(
-                    {
-                      one: "{{count}} guest not in any backup job",
-                      other: "{{count}} guests not in any backup job",
-                    },
-                    guestsNotCovered,
-                  )
-                : "guests in a backup job"
-              : "backup-info not reported yet"
-          }
-          percent={backupCoveragePct}
-          /*
-           * Red whenever any guest is uncovered (spec WI-24); green
-           * only at 100% coverage.
-           */
-          thresholds={{ warn: 100, danger: 100 }}
-          higherIsBetter={true}
-          description={PROXMOX_METRIC_DESCRIPTIONS.backupCoverage}
         />
       </div>
     );
@@ -2096,84 +2044,6 @@ const ProxmoxClusterOverview: FunctionComponent<
           })}
         </div>
       </div>
-    );
-  };
-
-  const renderWhyDegraded: () => ReactElement = (): ReactElement => {
-    if (clusterHealth === "Healthy" || allDegradedItems.length === 0) {
-      return <Fragment />;
-    }
-
-    return (
-      <Card
-        title="Why is this cluster degraded?"
-        description="Specific nodes, guests, storage volumes, and replication jobs that are driving the current health status. Click through to investigate."
-      >
-        <div className="divide-y divide-gray-100">
-          {allDegradedItems.map((item: DegradedItem, index: number) => {
-            const icon: IconProp =
-              item.kind === "Node"
-                ? IconProp.ServerStack
-                : item.kind === "Guest"
-                  ? IconProp.Cube
-                  : item.kind === "Replication"
-                    ? IconProp.ArrowPath
-                    : IconProp.Database;
-            const iconBgClass: string = item.isCritical
-              ? "bg-red-100"
-              : "bg-amber-100";
-            const iconColorClass: string = item.isCritical
-              ? "text-red-600"
-              : "text-amber-600";
-            const chipClass: string = item.isCritical
-              ? "bg-red-50 text-red-700 border-red-200"
-              : "bg-amber-50 text-amber-700 border-amber-200";
-            return (
-              <div
-                key={`degraded-${index}`}
-                onClick={() => {
-                  navigateToDetail(item);
-                }}
-                className={`flex items-start gap-3 px-5 py-3.5 transition-colors ${
-                  item.externalId ? "hover:bg-gray-50 cursor-pointer" : ""
-                }`}
-              >
-                <div
-                  className={`flex-shrink-0 mt-0.5 w-6 h-6 rounded-full ${iconBgClass} flex items-center justify-center`}
-                >
-                  <Icon
-                    icon={icon}
-                    className={`h-3.5 w-3.5 ${iconColorClass}`}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                    <span className="text-sm font-medium text-gray-900 truncate">
-                      {item.name}
-                    </span>
-                    <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">
-                      {item.kind}
-                    </span>
-                    {item.reasons.map((reason: string) => {
-                      return (
-                        <span
-                          key={reason}
-                          className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded border ${chipClass}`}
-                        >
-                          {reason}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-gray-400 font-mono">
-                    {item.externalId}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
     );
   };
 
@@ -2533,7 +2403,7 @@ const ProxmoxClusterOverview: FunctionComponent<
     return (
       <Card
         title="Top Resource Consumers"
-        description="Guests with the highest resource utilization in this cluster — read from the Postgres inventory, instant."
+        description="The guests using the most CPU and memory right now, each against what it was assigned."
       >
         {isInventoryLoading ? (
           <ComponentLoader />
@@ -2624,153 +2494,6 @@ const ProxmoxClusterOverview: FunctionComponent<
     );
   };
 
-  const renderResourceLinks: () => ReactElement = (): ReactElement => {
-    const links: Array<{
-      title: string;
-      description: string;
-      route: Route;
-      count: number | undefined;
-      icon: IconProp;
-      iconBgClass: string;
-      iconTextClass: string;
-    }> = [
-      {
-        title: "Nodes",
-        description: "Cluster nodes with status, CPU, memory, and uptime",
-        route: nodesRoute,
-        count: nodesTotal > 0 ? nodesTotal : undefined,
-        icon: IconProp.ServerStack,
-        iconBgClass: "bg-slate-100",
-        iconTextClass: "text-slate-600",
-      },
-      {
-        title: "Guests",
-        description: "QEMU VMs and LXC containers with live resource usage",
-        route: guestsRoute,
-        count: guestsTotal > 0 ? guestsTotal : undefined,
-        icon: IconProp.Cube,
-        iconBgClass: "bg-emerald-100",
-        iconTextClass: "text-emerald-600",
-      },
-      {
-        title: "Storage",
-        description: "Storage volumes with usage and capacity",
-        route: storageRoute,
-        count: storageCount > 0 ? storageCount : undefined,
-        icon: IconProp.Database,
-        iconBgClass: "bg-amber-100",
-        iconTextClass: "text-amber-600",
-      },
-    ];
-
-    return (
-      <Card
-        title="Resources"
-        description="Explore the resources in this cluster."
-      >
-        {isInventoryLoading ? (
-          <ComponentLoader />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4 pr-4 pl-1">
-            {links.map(
-              (link: {
-                title: string;
-                description: string;
-                route: Route;
-                count: number | undefined;
-                icon: IconProp;
-                iconBgClass: string;
-                iconTextClass: string;
-              }) => {
-                return (
-                  <div
-                    key={link.title}
-                    onClick={() => {
-                      Navigation.navigate(link.route);
-                    }}
-                    className="flex items-center gap-3 p-4 rounded-xl border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 group cursor-pointer"
-                  >
-                    <div
-                      className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center ${link.iconBgClass}`}
-                    >
-                      <Icon
-                        icon={link.icon}
-                        className={`h-5 w-5 ${link.iconTextClass}`}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 group-hover:text-indigo-700 flex items-center justify-between">
-                        <span>{link.title}</span>
-                        {link.count !== undefined && (
-                          <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">
-                            {link.count}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-0.5">
-                        {link.description}
-                      </div>
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-        )}
-      </Card>
-    );
-  };
-
-  const renderSummaryValue: (value: ReactElement) => ReactElement = (
-    value: ReactElement,
-  ): ReactElement => {
-    if (isInventoryLoading) {
-      return <span className="text-2xl font-semibold text-gray-300">…</span>;
-    }
-    if (inventoryError) {
-      return <span className="text-2xl font-semibold text-gray-300">—</span>;
-    }
-    return value;
-  };
-
-  /*
-   * The Nodes / Guests / Storage summary cards open their list. They are
-   * navigation, so a real link (with an href, which also allows "open in a
-   * new tab") is laid over a plain card rather than using InfoCard's
-   * onClick, and the card's (i) is lifted above the link so it stays a
-   * sibling of the link, never nested inside it.
-   */
-  const renderLinkedSummaryCard: (params: {
-    title: string;
-    description: string;
-    route: Route;
-    linkLabel: string;
-    value: ReactElement;
-  }) => ReactElement = (params: {
-    title: string;
-    description: string;
-    route: Route;
-    linkLabel: string;
-    value: ReactElement;
-  }): ReactElement => {
-    return (
-      <div className="group relative">
-        <Link
-          to={params.route}
-          className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-        >
-          <span className="sr-only">{params.linkLabel}</span>
-        </Link>
-        <InfoCard
-          title={params.title}
-          tooltip={params.description}
-          value={params.value}
-          className="h-full group-hover:shadow-md [&_button]:relative [&_button]:z-10"
-        />
-      </div>
-    );
-  };
-
   /*
    * Issue #4105: a drag on any chart sets the page's range to the window
    * dragged out (the charts and the CPU / Memory tiles reload for it); a
@@ -2796,122 +2519,65 @@ const ProxmoxClusterOverview: FunctionComponent<
         )}
       />
 
+      {/*
+       * What needs someone, most urgent first - while the agent reports: a
+       * disconnected cluster's last snapshot is no longer the truth, and the
+       * hero says Health Unknown instead.
+       */}
+      {isClusterConnected && !isInventoryLoading && !inventoryError && (
+        <NeedsAttentionCard
+          testId="proxmox-needs-attention"
+          items={attentionItems}
+        />
+      )}
+
+      {inventoryError && (
+        <div className="mb-6">
+          <ErrorMessage message={inventoryError} />
+        </div>
+      )}
+
       {/* Golden metrics — at-a-glance cluster health */}
       {renderGoldenMetrics()}
 
       {/* Golden charts — cluster resource usage (synced) */}
       {renderGoldenCharts()}
 
-      {/* Why is this cluster degraded? */}
-      {renderWhyDegraded()}
+      {/* Each node at a glance, one step from its page */}
+      {inventory && (
+        <ProxmoxNodesCard
+          rows={inventory.rows}
+          getNodeRoute={(externalId: string): Route => {
+            return getPartRoute("Node", externalId);
+          }}
+          nodesRoute={nodesRoute}
+          now={OneUptimeDate.getCurrentDate()}
+        />
+      )}
+
+      {/* How the last backups went, and which guests no job includes */}
+      {inventory && (
+        <ProxmoxBackupsCard
+          rows={inventory.rows}
+          lastNotificationAt={
+            cluster.lastNotificationAt
+              ? new Date(cluster.lastNotificationAt as Date)
+              : null
+          }
+          setupRoute={RouteUtil.populateRouteParams(
+            RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION] as Route,
+            { modelId: modelId },
+          )}
+          guestsRoute={guestsRoute}
+          now={OneUptimeDate.getCurrentDate()}
+        />
+      )}
 
       {/* Storage replication health (WI-25) */}
       {renderReplication()}
 
       {/* Linked Ceph cluster (WI-28) */}
       {renderCephStorage()}
-
-      {/* Summary InfoCards */}
-      {inventoryError && (
-        <div className="mb-5">
-          <ErrorMessage message={inventoryError} />
-        </div>
-      )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">
-        <InfoCard
-          title="Cluster Health"
-          tooltip={PROXMOX_METRIC_DESCRIPTIONS.clusterHealth}
-          value={renderSummaryValue(
-            <span
-              className={`text-2xl font-semibold ${
-                !isClusterConnected
-                  ? "text-gray-500"
-                  : clusterHealth === "Healthy"
-                    ? "text-emerald-600"
-                    : clusterHealth === "Degraded"
-                      ? "text-amber-600"
-                      : "text-red-600"
-              }`}
-            >
-              {displayClusterHealth}
-            </span>,
-          )}
-        />
-        <InfoCard
-          title="Quorum"
-          /*
-           * The (i) says this is derived from node visibility - pve-exporter
-           * exposes no corosync metric - so the value carries no native
-           * title tooltip of its own on top of it.
-           */
-          tooltip={PROXMOX_METRIC_DESCRIPTIONS.quorum}
-          value={renderSummaryValue(
-            <span
-              className={`text-2xl font-semibold ${
-                quorumAtRisk ? "text-red-600" : "text-gray-900"
-              }`}
-            >
-              {nodesTotal > 0 ? `${nodesOnline}/${nodesTotal}` : "—"}
-            </span>,
-          )}
-        />
-        {renderLinkedSummaryCard({
-          title: "Nodes",
-          description: PROXMOX_METRIC_DESCRIPTIONS.nodeCount,
-          route: nodesRoute,
-          linkLabel: "Open the node list",
-          value: renderSummaryValue(
-            <span className="text-2xl font-semibold">
-              {nodesTotal.toString()}
-              {nodesTotal > 0 && nodesOnline < nodesTotal && (
-                <span className="text-sm text-red-500 ml-1">
-                  ({nodesTotal - nodesOnline} offline)
-                </span>
-              )}
-            </span>,
-          ),
-        })}
-        {renderLinkedSummaryCard({
-          title: "Guests",
-          description: PROXMOX_METRIC_DESCRIPTIONS.guestCount,
-          route: guestsRoute,
-          linkLabel: "Open the guest list",
-          value: renderSummaryValue(
-            <span className="text-2xl font-semibold">
-              {guestsTotal.toString()}
-            </span>,
-          ),
-        })}
-        {renderLinkedSummaryCard({
-          title: "Storage",
-          description: PROXMOX_METRIC_DESCRIPTIONS.storageCount,
-          route: storageRoute,
-          linkLabel: "Open the storage list",
-          value: renderSummaryValue(
-            <span className="text-2xl font-semibold">
-              {storageCount.toString()}
-            </span>,
-          ),
-        })}
-        <InfoCard
-          title="Agent Status"
-          tooltip={PROXMOX_METRIC_DESCRIPTIONS.agentStatus}
-          value={
-            <StatusBadge
-              text={
-                cluster.otelCollectorStatus === "connected"
-                  ? "Connected"
-                  : "Disconnected"
-              }
-              type={
-                cluster.otelCollectorStatus === "connected"
-                  ? StatusBadgeType.Success
-                  : StatusBadgeType.Danger
-              }
-            />
-          }
-        />
-      </div>
 
       <ResourceActivityCards
         modelId={modelId}
@@ -2930,9 +2596,6 @@ const ProxmoxClusterOverview: FunctionComponent<
           { modelId: modelId },
         )}
       />
-
-      {/* Quick Navigation */}
-      {renderResourceLinks()}
 
       {/* Top Resource Consumers */}
       {renderTopGuests()}

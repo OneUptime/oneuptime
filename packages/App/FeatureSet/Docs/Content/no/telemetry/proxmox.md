@@ -5,6 +5,7 @@ OneUptime Proxmox-agenten overvåker en Proxmox VE-klynge: nodene, QEMU-VM-ene, 
 :::cards
 - [Velg hvordan du kobler til](#velg-hvordan-du-kobler-til): Agenten, eller den innebygde pushen i Proxmox VE 9.
 - [Installer agenten](#installer-agenten): Et API-token, deretter installasjonsskriptet eller Docker Compose.
+- [Sikkerhetskopiresultater](#send-notifikasjonene-fra-proxmox-ve): Notifikasjonene fra Proxmox VE selv, sendt med to kommandoer.
 - [Native push](#alternativ-uten-installasjon-native-opentelemetry-push-i-proxmox-ve-9): Proxmox VE 9 sender metrikkene sine selv.
 - [Feilsøking](#feilsøking): Et diagnoseskript, og de vanlige problemene.
 :::
@@ -33,9 +34,10 @@ Klyngen registrerer seg med de første dataene sine, under navnet agenten stempl
 | Å installere | Docker Compose på én maskin | Ingenting: en metrikkserver i Proxmox-webgrensesnittet |
 | Noder, gjester og lagring | Ja | Ja |
 | HA-tilstand, start ved oppstart, sikkerhetskopidekning og replikering | Ja | Nei |
+| Sikkerhetskopiresultater, isolerte noder og mislykket replikering, fra notifikasjonene i Proxmox VE (8.3 eller nyere) | Ja | Ja |
 | Proxmox-AI-agent | Ja | Nei |
 
-Malene **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** og **Replication Failing** trenger agenten. Bruk det ene eller det andre for en klynge: å kjøre begge rapporterer hver ressurs to ganger.
+Malene **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** trenger agenten. Bruk det ene eller det andre for en klynge: å kjøre begge rapporterer hver ressurs to ganger.
 
 ## Før du begynner
 
@@ -185,6 +187,44 @@ Monitorkriterier og attributtfiltre samsvarer på likhet, ikke på et prefiks, s
 
 Den opprinnelige `id`-etiketten beholdes som den er.
 
+## Send notifikasjonene fra Proxmox VE
+
+pve-exporter sier hvilke gjester en sikkerhetskopijobb omfatter, men ikke hvordan en sikkerhetskopi gikk. Det sier Proxmox VE selv, i notifikasjonene sine: resultatet av hver sikkerhetskopijobb, en isolert node, en mislykket replikering, ventende oppdateringer. På Proxmox VE 8.3 eller nyere sender to kommandoer, kjørt som root på en hvilken som helst node, hver notifikasjon til OneUptime som en logg fra klyngen, uten å installere noe, ved siden av agenten eller native push. Klyngens oppsettsveiledning viser dem med URL-en din, nøkkelen din og klyngenavnet ditt fylt inn.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+Den første kommandoen legger til et webhook-mål kalt `oneuptime`, som holder nøkkelen og klyngens navn i sine secrets; den andre legger til en matcher uten regler, som Proxmox VE leser som hver notifikasjon. Bruk klyngens navn slik OneUptime viser det: agentens `PROXMOX_CLUSTER_NAME`, eller med native push Proxmox-klyngens eget navn.
+
+Hver notifikasjon kommer med disse attributtene:
+
+| Attributt | Verdi |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (en sikkerhetskopijobb), `replication`, `fencing`, `package-updates` eller `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` eller `unknown` |
+| `pve.notification.title` | Tittelen på notifikasjonen |
+| `pve.notification.job_id` | ID-en til sikkerhetskopijobben, for en sikkerhetskopijobb |
+| `proxmox.node.name` | Noden som sendte den |
+
+Fra notifikasjonen til en sikkerhetskopijobb registrerer OneUptime hver gjests siste sikkerhetskopi: om den lyktes, når den ble ferdig, hvor stor den var og hvor lang tid den tok. Siden til en gjest viser den, listen **Gjester** har den i kolonnen Sikkerhetskopi, klyngens **Oversikt** teller resultatene, og en mislykket blir stående under **Krever oppmerksomhet** til en senere sikkerhetskopi av den gjesten lykkes. Varslene **Backup Job Failed** og **Node Fenced** leser de samme loggene.
+
+Slik slutter du å sende dem:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## Valgfritt — Send Proxmox-tjenestelogger
 
 Som standard sender agenten bare metrikker, så klyngens side **Logger** forblir tom. Proxmox VE-tjenestene logger til systemd-journalen under åtte enheter: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` og `qmeventd`. Den medfølgende `otel-collector-config.yaml` har en utkommentert `journald`-receiver for nøyaktig disse enhetene, koblet til en utkommentert `logs`-pipeline som stempler `proxmox.cluster.name`, slik at loggene havner på klyngen din.
@@ -269,7 +309,7 @@ Det dette ikke kan dekke:
 
 - En frittstående vert, eller en hel klynge som blir stille på én gang: det er ingen igjen til å rapportere det, så ingen varsler per node utløses. Klyngen blir i stedet **Frakoblet**, som når agenten stopper.
 - En node som har vært stille i mer enn 7 dager, rapporteres ikke lenger: varselet løses, og den forsvinner fra nodesiden. En selvhostet OneUptime endrer de 7 dagene med `PVE_SILENT_NODE_RETENTION_HOURS`.
-- En node du tar ut av klyngen, ser lik ut som en død node. Bruk **Remove Node** på siden dens: den forsvinner, og varselet løses. Ellers forblir den Frakoblet i opptil 7 dager.
+- En node du tar ut av klyngen, ser lik ut som en død node. Bruk **Fjern node** på siden dens: den forsvinner, og varselet løses. Ellers forblir den Frakoblet i opptil 7 dager.
 - Nodens gjester og lagring: bare selve noden beholdes som Frakoblet. VM-ene, containerne og lagringen forsvinner fra sidene sine omtrent 15 minutter etter den siste rapporten, og gjester som HA starter på nytt på en annen node, kommer tilbake under den noden.
 
 Etter et inntaksbrudd i OneUptime rapporteres en node som nylig ble stille, først når en av de andre har pushet igjen i 2 minutter, så selve bruddet varsler aldri for hver node. En node som allerede var Frakoblet, forblir Frakoblet gjennom et kort brudd og beholder varselet sitt; etter et brudd på mer enn 5 minutter rapporteres den igjen når de andre har pushet i 2 minutter.
@@ -284,9 +324,11 @@ Native push sender bare det hver node vet om seg selv, så en del av det agenten
 | --- | --- |
 | HA-tilstand | Pushes ikke: malen **HA Resource in Error State** trenger agenten. |
 | Flagg for start ved oppstart | Pushes ikke: **Guest Down**, som bare varsler for gjester satt til å starte ved oppstart, trenger agenten. |
-| Sikkerhetskopidekning og replikering | Pushes ikke: **Guest Not Backed Up** og **Replication Failing** trenger agenten. |
+| Sikkerhetskopidekning og replikering | Pushes ikke: **Guest Not Backed Up**, **Backup Running Too Long** og **Replication Failing** trenger agenten. |
 
 Hvis du trenger disse, kjør agenten i stedet, og fjern metrikkserveren: å kjøre begge rapporterer hver ressurs to ganger.
+
+Sikkerhetskopiresultater, isolerte noder og mislykkede replikeringer når likevel OneUptime: [send notifikasjonene fra Proxmox VE](#send-notifikasjonene-fra-proxmox-ve), som også virker med native push.
 
 ## Kjør som en systemd-tjeneste
 
@@ -375,11 +417,18 @@ OneUptime registrerer en Proxmox-klynge etter sitt `proxmox.cluster.name`, som a
 :::
 
 :::details Med native push vises en node som Frakoblet
-Den sluttet å rapportere: en node som er nede, en `pvestatd` som henger, en stoppet `pmxcfs` eller et brutt nettverk til OneUptime ser like ut. Neste rapport bringer den tilbake. Hvis du tok noden ut av klyngen, bruk **Remove Node** på siden dens; ellers forblir den Frakoblet i opptil 7 dager. Se [Når en node slutter å rapportere](#når-en-node-slutter-å-rapportere).
+Den sluttet å rapportere: en node som er nede, en `pvestatd` som henger, en stoppet `pmxcfs` eller et brutt nettverk til OneUptime ser like ut. Neste rapport bringer den tilbake. Hvis du tok noden ut av klyngen, bruk **Fjern node** på siden dens; ellers forblir den Frakoblet i opptil 7 dager. Se [Når en node slutter å rapportere](#når-en-node-slutter-å-rapportere).
 :::
 
 :::details Med native push utløses aldri Guest Down-, HA- eller sikkerhetskopivarsler
 Native push sender ikke HA-tilstand, start ved oppstart, sikkerhetskopidekning eller replikering. [Installer agenten](#installer-agenten) for dem, og fjern metrikkserveren: å kjøre begge rapporterer hver ressurs to ganger.
+:::
+
+:::details Sikkerhetskopiresultater dukker aldri opp
+1. Sjekk Proxmox VE-utgivelsen: webhook-mål krever 8.3 eller nyere (`pveversion`).
+2. Sjekk at målet og matcheren finnes: `pvesh get /cluster/notifications/endpoints/webhook` og `pvesh get /cluster/notifications/matchers` viser begge `oneuptime`.
+3. Send en testnotifikasjon med `pvesh create /cluster/notifications/targets/oneuptime/test`. Den vises på klyngens side **Logger** innen et minutt; gjør den ikke det, er nøkkelen eller URL-en i målet feil.
+4. Sjekk klyngens navn i målets secrets: et navn OneUptime ikke kjenner, registrerer en ny klynge.
 :::
 
 ## Neste trinn

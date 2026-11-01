@@ -4,7 +4,7 @@ Um monitor de Proxmox acompanha um cluster Proxmox VE – seus nós, VMs e cont�
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-proxmox): Seis passos no painel.
-- [Modelos](#modelos-de-alerta-prontos): Doze alertas prontos, um incidente por nó, convidado ou volume.
+- [Modelos](#modelos-de-alerta-prontos): Quinze alertas prontos, um incidente por nó, convidado ou volume, e dois sobre as próprias notificações do Proxmox VE.
 - [Identidade dos recursos](#identidade-dos-recursos): Como mirar um único nó, convidado ou volume de armazenamento.
 - [Métricas](#métricas-coletadas): Todas as séries `pve_*` com que o monitor pode alertar.
 :::
@@ -109,7 +109,7 @@ Filtre por `pve.scope` ou `pve.type` para um tipo de recurso, por `pve.id` ou `i
 
 ## Modelos de alerta prontos
 
-A lista de **Sobre o que alertar** oferece 12 modelos. Cada um monta um monitor completo – consultas, filtros de atributos, um agrupamento, um critério que dispara e outro que se recupera. A maioria agrupa por `id`, então cada nó, convidado, volume ou job recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
+A lista de **Sobre o que alertar** oferece 15 modelos. Cada um monta um monitor completo – consultas, filtros de atributos, um agrupamento, um critério que dispara e outro que se recupera. A maioria agrupa por `id`, então cada nó, convidado, volume ou job recebe seu próprio incidente e seu próprio alerta. Os limites são pontos de partida que você pode editar.
 
 Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. Um critério só dispara quando a condição vale em todos os minutos da sua janela, e um critério de limite se recupera 10% além do seu limite para que um valor oscilando na linha não fique mudando de estado.
 
@@ -119,13 +119,16 @@ Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. U
 | Node Offline | Crítico | `pve_up` para `pve.scope = node`, Min por `id` | Abaixo de 1 | Em 1 |
 | Guest Down | Warning | `pve_up` e `pve_onboot_status` para `pve.scope = guest`, Min por `id` | `pve_up` está abaixo de 1 enquanto `pve_onboot_status` é 1 | `pve_up` volta a 1, ou a inicialização no boot é desativada |
 | Cluster Quorum at Risk | Crítico | `pve_up` ÷ `pve_node_info` × 100 para `pve.scope = node` (ambos Soma): a parcela de nós online | 50% ou menos | Acima de 55% |
+| Node Restarted | Warning | `pve_uptime_seconds` e `pve_up` para `pve.scope = node`, Min por `id` | `pve_uptime_seconds` está abaixo de 900 (15 minutos) enquanto `pve_up` é 1 | `pve_uptime_seconds` está em 990 ou mais, ou `pve_up` é 0 |
 | High Node CPU Usage | Warning | `pve_cpu_usage_ratio` para `pve.scope = node`, Avg por `id` | Acima de 0,9 (90% dos núcleos do nó) | Em 0,81 ou menos |
 | High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 para `pve.scope = node`, por `id` | Acima de 85% | Em 76,5% ou menos |
 | High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` para `pve.scope = guest`, Avg por `id`, últimos 15 minutos | Acima de 0,95 (95% das suas vCPUs) durante os 15 minutos | Em 0,855 ou menos |
+| Storage Unavailable | Crítico | `pve_up` para `pve.scope = storage`, Min por `id` | Abaixo de 1 | Em 1 |
 | Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 para `pve.scope = storage`, por `id` | Acima de 85% | Em 76,5% ou menos |
 | Container Root Disk Near Full | Warning | A mesma razão de disco para `pve.type = lxc`, por `id` | Acima de 90% | Em 81% ou menos |
 | HA Resource in Error State | Crítico | `pve_ha_state` para `state = error`, Max por `id` | Acima de 0 | Em 0 |
 | Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (uma única série do cluster) | Acima de 0 | Em 0 |
+| Backup Running Too Long | Warning | `pve_lock_state` para `pve.scope = guest` e `state = backup`, Min por `id`, últimas 6 horas | Acima de 0 | Em 0 |
 | Replication Failing | Crítico | `pve_replication_failed_syncs`, Max por `id` (o id do job) | Acima de 0 | Em 0 |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
@@ -134,17 +137,31 @@ Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. U
 - **Os modelos de queda usam Mínimo**, então uma única coleta em que o recurso estava fora do ar já os dispara, em vez de ficar escondida pelas coletas em que ele estava no ar.
 - **Guest Down** só olha os convidados configurados para iniciar no boot: se você parar um deles de propósito, ele aciona alguém mesmo assim, então desative antes o início no boot.
 - **Cluster Quorum at Risk** conta os nós online. O pve-exporter também informa o próprio quórum, como `pve_up` de `cluster/<name>`: 1 enquanto o cluster tem quórum.
+- **Node Restarted** dispara para um nó que está no ar, mas roda há menos de 15 minutos: ele reiniciou, ou travou e voltou. Ele se resolve quando o nó completa 16,5 minutos no ar, 10% além do limite; um nó fora do ar dispara **Node Offline** no lugar.
 - **High Guest CPU Usage** é mais alto e mais lento que o modelo de nós: um convidado deve usar suas vCPUs, então só aciona um que nunca baixa.
 - **As fórmulas de razão** usam a **Soma** dos dois lados. Os dois vêm da mesma coleta, então o resultado é uma porcentagem real.
 - **Container Root Disk Near Full** deixa as VMs QEMU de fora: o uso de disco delas marca 0 sem o agente convidado do QEMU.
+- **Storage Unavailable** dispara quando um armazenamento que o Proxmox VE lista para um nó deixa de estar disponível: um compartilhamento que não monta, um Proxmox Backup Server inacessível, um pool que sumiu. Os convidados com discos nele travam ou não iniciam, e os backups para ele falham.
 - **Guest Not Backed Up** cobre só a participação em jobs de backup. O pve-exporter não informa se os backups rodaram ou deram certo; agrupe `pve_not_backed_up_info` por `id` para listar os convidados.
+- **Backup Running Too Long** dispara quando uma VM ou um contêiner fica bloqueado por um backup em todas as coletas de seis horas: um backup travado, ou um destino lento demais para o convidado. Enquanto o bloqueio dura, o convidado não pode ser migrado, ganhar um snapshot nem passar por outro backup.
 - **A defasagem da replicação** (agora menos a última sincronização) não pode gerar alerta, porque os critérios não fazem aritmética com o relógio. A página **Visão geral** do cluster a mostra; alerte com **Replication Failing** no lugar.
+
+### Alertas sobre as notificações do Proxmox VE
+
+Mais dois alertas leem as próprias notificações do Proxmox VE, que o cluster envia como logs assim que você [as envia ao OneUptime](/docs/telemetry/proxmox#envie-as-notificações-do-proxmox-ve). Eles são monitores de logs, oferecidos na página **Recomendações** do cluster, e funcionam tanto com o agente quanto com o envio nativo.
+
+| Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | Warning | Logs de notificação com `pve.notification.type = vzdump` e `pve.notification.severity = error`, por nó e job, últimos 60 minutos | Um job de backup informa uma falha | A próxima execução do mesmo job dá certo |
+| Node Fenced | Crítico | Logs de notificação com `pve.notification.type = fencing`, por nó, últimos 30 minutos | O Proxmox VE isola um nó (fencing) | Esse nó não é isolado de novo por 30 minutos |
+
+Cada nó e cada job de backup recebe seu próprio incidente e seu próprio alerta. O alerta de um job de backup que falhou continua aberto até que uma execução posterior do mesmo job dê certo, por mais tempo que isso leve.
 
 ### O envio nativo do Proxmox VE
 
 O Proxmox VE 9 e versões posteriores podem enviar métricas pelo servidor de métricas OpenTelemetry integrado, sem instalar nada – consulte o [guia do agente Proxmox](/docs/telemetry/proxmox). O OneUptime transforma esse envio nas mesmas séries `pve_*`, então o catálogo e os modelos de CPU, memória e armazenamento funcionam com ele.
 
-**Node Offline** e **Cluster Quorum at Risk** também funcionam: cada nó envia só o próprio status, então um nó que para de informar é dado como fora do ar (`pve_up` = 0) pelos nós que continuam vivos – consulte [Quando um nó para de informar](/docs/telemetry/proxmox#quando-um-nó-para-de-reportar). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** e **Replication Failing** precisam de dados que só o agente coleta.
+**Node Offline** e **Cluster Quorum at Risk** também funcionam: cada nó envia só o próprio status, então um nó que para de informar é dado como fora do ar (`pve_up` = 0) pelos nós que continuam vivos – consulte [Quando um nó para de informar](/docs/telemetry/proxmox#quando-um-nó-para-de-reportar). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up**, **Backup Running Too Long** e **Replication Failing** precisam de dados que só o agente coleta. Os dois [alertas sobre notificações](#alertas-sobre-as-notificações-do-proxmox-ve) também funcionam com o envio nativo: o Proxmox VE envia as notificações por conta própria.
 
 ## Métricas coletadas
 
@@ -180,6 +197,7 @@ As séries de CPU e memória também são informadas para cada convidado, nos id
 | `pve_disk_read_bytes` | bytes | Bytes lidos do disco pelo convidado. Um contador de toda a vida útil. |
 | `pve_disk_write_bytes` | bytes | Bytes gravados no disco pelo convidado. Um contador de toda a vida útil. |
 | `pve_onboot_status` | count | 1 quando o convidado inicia no boot do nó. Um convidado parado com essa configuração geralmente é uma queda não planejada. |
+| `pve_lock_state` | — | O bloqueio que o Proxmox VE mantém em um convidado enquanto uma tarefa o altera, uma série por bloqueio (`backup`, `migrate`, `snapshot`, …), com 1 no que está ativo. Filtre pelo rótulo `state`. |
 
 ### Armazenamento
 
@@ -187,6 +205,7 @@ As séries de CPU e memória também são informadas para cada convidado, nos id
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Bytes usados no disco ou no armazenamento. Para um convidado QEMU, marca 0 a menos que o agente convidado do QEMU esteja instalado. |
 | `pve_disk_size_bytes` | bytes | Tamanho total do disco ou do armazenamento. |
+| `pve_storage_shared` | count | 1 quando todos os nós do cluster podem usar o armazenamento, como NFS ou Ceph; 0 quando só o próprio nó dele pode. |
 | `pve_storage_info` | count | Metadados do armazenamento, sempre 1 enquanto ele existe. Uma soma junta cada coleta de um minuto, então não conta volumes. |
 
 ### HA
@@ -262,7 +281,7 @@ O modelo calcula a média de `pve_cpu_usage_ratio` por `id`, então cada nó é 
 :::
 
 :::details Node Offline continua disparando para um nó que você removeu do cluster
-No envio nativo do Proxmox VE, um nó retirado do cluster parece igual a um que caiu: ele parou de informar, então os nós que continuam vivos continuam dando-o como fora do ar. Abra a página do nó e clique em **Remove Node** – o nó some e o alerta dele é resolvido. Caso contrário, ele fica Offline por até 7 dias. O agente não tem esse problema: ele consulta o cluster, que não lista mais o nó.
+No envio nativo do Proxmox VE, um nó retirado do cluster parece igual a um que caiu: ele parou de informar, então os nós que continuam vivos continuam dando-o como fora do ar. Abra a página do nó e clique em **Remover nó** – o nó some e o alerta dele é resolvido. Caso contrário, ele fica Offline por até 7 dias. O agente não tem esse problema: ele consulta o cluster, que não lista mais o nó.
 :::
 
 :::details Faltam as métricas de backup ou de replicação

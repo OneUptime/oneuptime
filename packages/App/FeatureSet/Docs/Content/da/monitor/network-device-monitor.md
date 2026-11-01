@@ -747,7 +747,7 @@ OneUptime holder derefter én netværksenheds-monitor pr. matchende enhed, lavet
 > [!IMPORTANT]
 > Hver monitor, en politik opretter, tæller med i dit abonnement. En politik over et stort miljø er mange monitorer fra én gemning, så bekræftelsen af den anbefalede politik nævner projektets antal enheder, før den opretter noget.
 
-Tabellens kolonne **Covered Devices** viser **Endnu ikke talt** indtil politikkens første synkronisering, og **Last Sync** siger, hvornår det var, eller hvorfor den fejlede.
+Tabellens kolonne **Covered Devices** viser **Endnu ikke talt** indtil politikkens første synkronisering, og **Seneste synkronisering** siger, hvornår det var, eller hvorfor den fejlede.
 
 Uden politikker endnu tilbyder siden **Create the recommended policy**: en monitorskabelon **Network device alert pack (recommended)**, der bærer den [anbefalede advarselspakke](#anbefalet-advarselspakke), og en politik **Alert on every device**, der anvender den på hele projektet. Skabelonen findes igen ved en markør i dens beskrivelse, så handlingen aldrig opretter en ekstra kopi, og den er en monitorskabelon, du også kan bruge til monitorer, du selv opretter. Indsnævr politikkens omfang bagefter, hvis hele projektet er for meget.
 

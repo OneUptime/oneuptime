@@ -9,6 +9,7 @@ import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterServic
 import ProxmoxResourceService, {
   ParsedProxmoxResource,
   ProxmoxInventorySummary,
+  ProxmoxGuestBackupResult,
   ProxmoxRemoveNodeResult,
   ProxmoxResourceLatestMetric,
 } from "../../../Server/Services/ProxmoxResourceService";
@@ -1328,6 +1329,348 @@ describePostgres("Proxmox inventory SQL against a migrated Postgres", () => {
         await database.destroy();
       }
     }
+  });
+
+  /*
+   * The facts a node's, guest's and storage's page reads beyond a name and
+   * a status (AddProxmoxInventoryFactsAndBackups1808770000000), and each
+   * guest's last backup as the cluster's backup notifications report it.
+   */
+  describe("inventory facts and backups from notifications", () => {
+    interface FactsRow {
+      externalId: string;
+      isTemplate: boolean | null;
+      tags: string | null;
+      lockState: string | null;
+      cpuCount: number | null;
+      storageType: string | null;
+      storageContent: string | null;
+      isShared: boolean | null;
+      subscriptionLevel: string | null;
+      lastBackupAt: Date | null;
+      lastBackupStatus: string | null;
+      lastSuccessfulBackupAt: Date | null;
+      lastBackupBytes: string | null;
+      lastBackupDurationSeconds: number | null;
+    }
+
+    async function factsOf(
+      kind: string,
+      externalId: string,
+      proxmoxClusterId: ObjectID = CLUSTER_ID,
+    ): Promise<FactsRow> {
+      const rows: Array<FactsRow> = await database.query(
+        `SELECT "externalId", "isTemplate", "tags", "lockState", "cpuCount",
+                "storageType", "storageContent", "isShared", "subscriptionLevel",
+                "lastBackupAt", "lastBackupStatus", "lastSuccessfulBackupAt",
+                "lastBackupBytes", "lastBackupDurationSeconds"
+         FROM "${schema}"."${TABLE}"
+         WHERE "projectId" = $1 AND "proxmoxClusterId" = $2
+           AND "kind" = $3 AND "externalId" = $4`,
+        [PROJECT_ID.toString(), proxmoxClusterId.toString(), kind, externalId],
+      );
+      expect(rows).toHaveLength(1);
+      return rows[0]!;
+    }
+
+    async function recordBackups(
+      results: Array<ProxmoxGuestBackupResult>,
+      proxmoxClusterId: ObjectID = CLUSTER_ID,
+    ): Promise<number> {
+      return ProxmoxResourceService.recordBackupResults({
+        projectId: PROJECT_ID,
+        proxmoxClusterId: proxmoxClusterId,
+        results: results,
+      });
+    }
+
+    function backup(
+      vmid: number,
+      status: "ok" | "failed",
+      finishedAt: Date,
+      overrides: Partial<ProxmoxGuestBackupResult> = {},
+    ): ProxmoxGuestBackupResult {
+      return {
+        vmid: vmid,
+        status: status,
+        finishedAt: finishedAt,
+        bytes: status === "ok" ? 19_756_849_561 : 0,
+        durationSeconds: 212,
+        ...overrides,
+      };
+    }
+
+    test("the new columns are nullable with no default, in the migrated table and the clone", async () => {
+      const expected: Record<string, string> = {
+        isTemplate: "boolean",
+        tags: "character varying",
+        lockState: "character varying",
+        cpuCount: "integer",
+        storageType: "character varying",
+        storageContent: "character varying",
+        isShared: "boolean",
+        subscriptionLevel: "character varying",
+        lastBackupAt: "timestamp with time zone",
+        lastBackupStatus: "character varying",
+        lastSuccessfulBackupAt: "timestamp with time zone",
+        lastBackupBytes: "bigint",
+        lastBackupDurationSeconds: "integer",
+      };
+      for (const tableSchema of ["public", schema]) {
+        const columns: Array<{
+          column_name: string;
+          data_type: string;
+          is_nullable: string;
+          column_default: string | null;
+        }> = await database.query(
+          `SELECT column_name, data_type, is_nullable, column_default
+           FROM information_schema.columns
+           WHERE table_schema = $1 AND table_name = $2 AND column_name = ANY($3)`,
+          [tableSchema, TABLE, Object.keys(expected)],
+        );
+        expect(columns).toHaveLength(Object.keys(expected).length);
+        for (const column of columns) {
+          expect(column.data_type).toBe(expected[column.column_name]);
+          expect(column.is_nullable).toBe("YES");
+          expect(column.column_default).toBeNull();
+        }
+      }
+
+      const clusterColumns: Array<{
+        column_name: string;
+        data_type: string;
+        is_nullable: string;
+      }> = await database.query(
+        `SELECT column_name, data_type, is_nullable
+         FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = 'ProxmoxCluster'
+           AND column_name = ANY($1)
+         ORDER BY column_name`,
+        [["isQuorate", "lastNotificationAt"]],
+      );
+      expect(clusterColumns).toEqual([
+        { column_name: "isQuorate", data_type: "boolean", is_nullable: "YES" },
+        {
+          column_name: "lastNotificationAt",
+          data_type: "timestamp with time zone",
+          is_nullable: "YES",
+        },
+      ]);
+    });
+
+    test("bulkUpsert writes a guest's template flag, tags, lock and vCPUs, a storage's type, content and sharing, a node's subscription", async () => {
+      await upsert([
+        node("pve1", { cpuCount: 64, subscriptionLevel: "c" }),
+        guest(100, "pve1", {
+          isTemplate: false,
+          tags: "prod;web",
+          lockState: "backup",
+          cpuCount: 4,
+        }),
+        guest(9000, "pve1", { isTemplate: true, tags: "", lockState: "" }),
+        storage("pve1", "ceph-vm", {
+          storageType: "rbd",
+          storageContent: "images,rootdir",
+          isShared: true,
+        }),
+      ]);
+
+      expect(await factsOf("Node", "node/pve1")).toMatchObject({
+        cpuCount: 64,
+        subscriptionLevel: "c",
+      });
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        isTemplate: false,
+        tags: "prod;web",
+        lockState: "backup",
+        cpuCount: 4,
+      });
+      expect(await factsOf("Guest", "qemu/9000")).toMatchObject({
+        isTemplate: true,
+        tags: "",
+        lockState: "",
+      });
+      expect(await factsOf("Storage", "storage/pve1/ceph-vm")).toMatchObject({
+        storageType: "rbd",
+        storageContent: "images,rootdir",
+        isShared: true,
+      });
+    });
+
+    test("a newer batch without a fact keeps it, an empty reading clears it, an older batch changes nothing", async () => {
+      await upsert([
+        guest(100, "pve1", {
+          tags: "prod;web",
+          lockState: "migrate",
+          cpuCount: 4,
+          lastSeenAt: at(-MINUTE_MS),
+        }),
+      ]);
+
+      // A newer batch that read none of them: every fact stays.
+      await upsert([guest(100, "pve1", { lastSeenAt: at(-30 * SECOND_MS) })]);
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        tags: "prod;web",
+        lockState: "migrate",
+        cpuCount: 4,
+      });
+
+      // The lock released and the tags removed: empty readings clear them.
+      await upsert([
+        guest(100, "pve1", { tags: "", lockState: "", lastSeenAt: NOW }),
+      ]);
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        tags: "",
+        lockState: "",
+        cpuCount: 4,
+      });
+
+      // A late, older batch holding the old lock never brings it back.
+      await upsert([
+        guest(100, "pve1", {
+          tags: "prod;web",
+          lockState: "migrate",
+          lastSeenAt: at(-2 * MINUTE_MS),
+        }),
+      ]);
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        tags: "",
+        lockState: "",
+      });
+    });
+
+    test("an oversized tags value is clamped to the column, never failing the batch", async () => {
+      await upsert([
+        guest(100, "pve1", { tags: "t".repeat(800) }),
+        guest(101, "pve1", { tags: "prod" }),
+      ]);
+      expect((await factsOf("Guest", "qemu/100")).tags).toHaveLength(500);
+      expect((await factsOf("Guest", "qemu/101")).tags).toBe("prod");
+    });
+
+    test("recordBackupResults writes each guest's last run by VMID, and nothing else", async () => {
+      await upsert([
+        node("pve1"),
+        guest(100, "pve1"),
+        guest(102, "pve1"),
+        storage("pve1", "local"),
+      ]);
+      await upsert([guest(100, "pve9")], {
+        proxmoxClusterId: OTHER_CLUSTER_ID,
+      });
+
+      const finishedAt: Date = at(-7 * HOUR_MS);
+      const written: number = await recordBackups([
+        backup(100, "ok", finishedAt),
+        backup(102, "failed", finishedAt, { durationSeconds: 41 }),
+        // A VMID with no row: skipped.
+        backup(555, "ok", finishedAt),
+      ]);
+
+      expect(written).toBe(2);
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        lastBackupAt: finishedAt,
+        lastBackupStatus: "ok",
+        lastSuccessfulBackupAt: finishedAt,
+        lastBackupBytes: "19756849561",
+        lastBackupDurationSeconds: 212,
+      });
+      expect(await factsOf("Guest", "qemu/102")).toMatchObject({
+        lastBackupAt: finishedAt,
+        lastBackupStatus: "failed",
+        lastSuccessfulBackupAt: null,
+        lastBackupBytes: "0",
+        lastBackupDurationSeconds: 41,
+      });
+      // Another cluster's guest 100, the node and the storage: untouched.
+      expect(
+        await factsOf("Guest", "qemu/100", OTHER_CLUSTER_ID),
+      ).toMatchObject({ lastBackupAt: null, lastBackupStatus: null });
+      expect(await factsOf("Node", "node/pve1")).toMatchObject({
+        lastBackupAt: null,
+      });
+      expect(await factsOf("Storage", "storage/pve1/local")).toMatchObject({
+        lastBackupAt: null,
+      });
+    });
+
+    test("a failed run keeps the last success; a newer success moves it; an older run changes nothing but an older success it never saw", async () => {
+      await upsert([guest(100, "pve1")]);
+      const night1: Date = at(-2 * DAY_MS);
+      const night2: Date = at(-DAY_MS);
+      const night3: Date = at(-HOUR_MS);
+
+      await recordBackups([backup(100, "ok", night1)]);
+      await recordBackups([backup(100, "failed", night2)]);
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        lastBackupAt: night2,
+        lastBackupStatus: "failed",
+        lastSuccessfulBackupAt: night1,
+      });
+
+      await recordBackups([backup(100, "ok", night3)]);
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        lastBackupAt: night3,
+        lastBackupStatus: "ok",
+        lastSuccessfulBackupAt: night3,
+      });
+
+      // A late notification of the second night: neither column goes back.
+      await recordBackups([backup(100, "failed", night2)]);
+      await recordBackups([backup(100, "ok", night1)]);
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        lastBackupAt: night3,
+        lastBackupStatus: "ok",
+        lastSuccessfulBackupAt: night3,
+      });
+    });
+
+    test("a success that arrives after a newer failure still counts as the last success", async () => {
+      await upsert([guest(100, "pve1")]);
+      const earlierOk: Date = at(-2 * HOUR_MS);
+      const laterFailure: Date = at(-HOUR_MS);
+
+      await recordBackups([backup(100, "failed", laterFailure)]);
+      await recordBackups([backup(100, "ok", earlierOk)]);
+
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        lastBackupAt: laterFailure,
+        lastBackupStatus: "failed",
+        lastSuccessfulBackupAt: earlierOk,
+      });
+    });
+
+    test("one call naming a guest twice keeps its newest run and its newest success", async () => {
+      await upsert([guest(100, "pve1")]);
+      const first: Date = at(-3 * HOUR_MS);
+      const second: Date = at(-2 * HOUR_MS);
+
+      expect(
+        await recordBackups([
+          backup(100, "failed", second),
+          backup(100, "ok", first),
+        ]),
+      ).toBe(1);
+      expect(await factsOf("Guest", "qemu/100")).toMatchObject({
+        lastBackupAt: second,
+        lastBackupStatus: "failed",
+        lastSuccessfulBackupAt: first,
+      });
+    });
+
+    test("nothing to write - an empty list, or only VMIDs that are no VMID - runs no statement", async () => {
+      const query: jest.SpyInstance = jest.spyOn(database, "query");
+      expect(await recordBackups([])).toBe(0);
+      expect(
+        await recordBackups([
+          backup(0, "ok", NOW),
+          backup(-5, "ok", NOW),
+          backup(1.5, "ok", NOW),
+          backup(100, "ok", new Date("not a date")),
+        ]),
+      ).toBe(0);
+      expect(query).not.toHaveBeenCalled();
+    });
   });
 
   describe("the migrated table", () => {

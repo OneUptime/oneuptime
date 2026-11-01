@@ -747,7 +747,7 @@ OneUptime mantiene quindi un monitor del dispositivo di rete per ogni dispositiv
 > [!IMPORTANT]
 > Ogni monitor creato da una policy conta per il tuo piano. Una policy su un parco grande sono molti monitor da un solo salvataggio, quindi la conferma della policy consigliata indica il numero di dispositivi del progetto prima di creare qualsiasi cosa.
 
-La colonna **Covered Devices** della tabella riporta **Non ancora conteggiato** fino alla prima sincronizzazione della policy, e **Last Sync** dice quando è avvenuta, o perché è fallita.
+La colonna **Covered Devices** della tabella riporta **Non ancora conteggiato** fino alla prima sincronizzazione della policy, e **Ultima sincronizzazione** dice quando è avvenuta, o perché è fallita.
 
 Finché non ci sono policy, la pagina offre **Create the recommended policy**: un modello di monitor **Network device alert pack (recommended)**, che contiene il [pacchetto di avvisi consigliato](#pacchetto-di-avvisi-consigliato), e una policy **Alert on every device** che lo applica all'intero progetto. Il modello viene ritrovato grazie a un marcatore nella sua descrizione, quindi l'azione non crea mai una seconda copia, ed è un modello di monitor che puoi usare anche per i monitor che crei tu. Restringi poi l'ambito della policy se l'intero progetto è troppo.
 

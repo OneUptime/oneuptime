@@ -1,4 +1,5 @@
 import {
+  PROXMOX_NODE_RESTARTED_UPTIME_SECONDS,
   ProxmoxAlertTemplate,
   ProxmoxAlertTemplateArgs,
   getAllProxmoxAlertTemplates,
@@ -400,6 +401,88 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
   },
   {
     /*
+     * Uptime qualified by the node being up: Proxmox reports an offline
+     * node's uptime as 0, so without the second query a down node would
+     * read as just restarted. Both share the `id` group-by (see Guest Down).
+     */
+    id: "pve-node-restarted",
+    category: "Node",
+    severity: "Warning",
+    rollingTime: RollingTime.Past5Minutes,
+    queries: [
+      {
+        metricName: "pve_uptime_seconds",
+        aggregation: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "node" },
+      },
+      {
+        metricName: "pve_up",
+        aggregation: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "node" },
+      },
+    ],
+    groupBy: "id",
+    formula: null,
+    fire: { alias: "node_uptime", filterType: FilterType.LessThan, value: 900 },
+    recover: {
+      alias: "node_uptime",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 900,
+    },
+  },
+  {
+    // A storage Proxmox lists for a node and no longer finds available.
+    id: "pve-storage-unavailable",
+    category: "Storage",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    queries: [
+      {
+        metricName: "pve_up",
+        aggregation: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "storage" },
+      },
+    ],
+    groupBy: "id",
+    formula: null,
+    fire: { alias: "storage_up", filterType: FilterType.LessThan, value: 1 },
+    recover: {
+      alias: "storage_up",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 1,
+    },
+  },
+  {
+    /*
+     * The backup lock's own series (pve_lock_state is an enum series),
+     * held in every scrape of six hours: Min > 0.
+     */
+    id: "pve-backup-running-too-long",
+    category: "Backup",
+    severity: "Warning",
+    rollingTime: RollingTime.Past6Hours,
+    queries: [
+      {
+        metricName: "pve_lock_state",
+        aggregation: MetricsAggregationType.Min,
+        attributes: { "pve.scope": "guest", state: "backup" },
+      },
+    ],
+    groupBy: "id",
+    formula: null,
+    fire: {
+      alias: "backup_lock",
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    },
+    recover: {
+      alias: "backup_lock",
+      filterType: FilterType.EqualTo,
+      value: 0,
+    },
+  },
+  {
+    /*
      * V3 WI-25: replication series are labeled `id` with the replication
      * JOB id (e.g. 100-0) — not a node/qemu/lxc resource id, so no
      * pve.scope filter; groupBy `id` fires one incident per job.
@@ -502,6 +585,7 @@ function getReferencableAliases(
 const BINARY_METRIC_ALIASES: Set<string> = new Set<string>([
   "node_up",
   "guest_up",
+  "storage_up",
 ]);
 
 /*
@@ -877,6 +961,7 @@ describe("ProxmoxAlertTemplates - binary up-metric recovery (regression)", () =>
   test.each([
     ["pve-node-offline", "node_up"],
     ["pve-guest-down", "guest_up"],
+    ["pve-storage-unavailable", "storage_up"],
   ])(
     "%s recovers at exactly 1, never at the unreachable 1.1 dead band",
     (id: string, alias: string) => {
@@ -896,6 +981,83 @@ describe("ProxmoxAlertTemplates - binary up-metric recovery (regression)", () =>
       expect(findFilterByAlias(instances[0]!, alias).value).toBe(1);
     },
   );
+});
+
+describe("ProxmoxAlertTemplates - the templates of block 39", () => {
+  test("Node Restarted fires for a node that is up with a short uptime, never for a node that is down", () => {
+    const step: MonitorStep =
+      getTemplate("pve-node-restarted").getMonitorStep(buildArgs());
+    const instances: Array<MonitorCriteriaInstance> =
+      getCriteriaInstances(step);
+    const fire: MonitorCriteriaInstance = instances[0]!;
+    const recover: MonitorCriteriaInstance = instances[instances.length - 1]!;
+
+    // The same node: short uptime AND up in every scrape.
+    expect(fire.data?.filterCondition).toBe(FilterCondition.All);
+    expect(findFilterByAlias(fire, "node_uptime").value).toBe(
+      PROXMOX_NODE_RESTARTED_UPTIME_SECONDS,
+    );
+    expect(findFilterByAlias(fire, "node_is_up").filterType).toBe(
+      FilterType.GreaterThan,
+    );
+    expect(findFilterByAlias(fire, "node_is_up").value).toBe(0);
+
+    // Either clears it: 15 minutes up, or the node went down again.
+    expect(recover.data?.filterCondition).toBe(FilterCondition.Any);
+    expect(findFilterByAlias(recover, "node_is_up").filterType).toBe(
+      FilterType.EqualTo,
+    );
+    expect(findFilterByAlias(recover, "node_is_up").value).toBe(0);
+    expect(PROXMOX_NODE_RESTARTED_UPTIME_SECONDS).toBe(15 * 60);
+
+    for (const queryConfig of getProxmoxMonitor(step).metricViewConfig
+      .queryConfigs as Array<any>) {
+      expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual(["id"]);
+    }
+  });
+
+  test("Storage Unavailable recovers at exactly 1, never at the unreachable dead band", () => {
+    const step: MonitorStep = getTemplate(
+      "pve-storage-unavailable",
+    ).getMonitorStep(buildArgs());
+    const instances: Array<MonitorCriteriaInstance> =
+      getCriteriaInstances(step);
+    const recover: any = findFilterByAlias(
+      instances[instances.length - 1]!,
+      "storage_up",
+    );
+
+    expect(recover.filterType).toBe(FilterType.GreaterThanOrEqualTo);
+    expect(recover.value).toBe(1);
+  });
+
+  test("Backup Running Too Long reads only the backup lock, over six hours", () => {
+    const template: ProxmoxAlertTemplate = getTemplate(
+      "pve-backup-running-too-long",
+    );
+    const monitor: MonitorStepProxmoxMonitor = getProxmoxMonitor(
+      template.getMonitorStep(buildArgs()),
+    );
+    const query: any = (monitor.metricViewConfig.queryConfigs as Array<any>)[0];
+
+    expect(monitor.rollingTime).toBe(RollingTime.Past6Hours);
+    // A suspended or migrating guest is locked too: only the backup lock.
+    expect(query.metricQueryData.filterData.attributes).toEqual({
+      "pve.scope": "guest",
+      state: "backup",
+    });
+    expect(template.summary).toContain("6 hours");
+  });
+
+  test("every new template's metric is in the catalog the picker offers", () => {
+    for (const metricName of [
+      "pve_uptime_seconds",
+      "pve_up",
+      "pve_lock_state",
+    ]) {
+      expect(getProxmoxMetricByMetricName(metricName)).toBeDefined();
+    }
+  });
 });
 
 describe("ProxmoxAlertTemplates - pve-guest-down onboot qualifier (regression)", () => {

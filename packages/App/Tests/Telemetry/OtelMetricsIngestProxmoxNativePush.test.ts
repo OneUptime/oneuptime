@@ -1499,6 +1499,12 @@ describe("Proxmox VE native OTLP push — ingest (issue #4101)", () => {
       request([nodePush(), qemuPush(), storagePush()]),
     );
 
+    /*
+     * The inventory facts the agent's pve-exporter adds - a template, tags, a
+     * lock, a storage's type, content and sharing, a node's subscription -
+     * are not in the native push: null, so a push never clears what an
+     * agent once reported. A node's cores are (its CPU limit).
+     */
     expect(upserted(spies)).toEqual([
       {
         kind: "Node",
@@ -1513,6 +1519,14 @@ describe("Proxmox VE native OTLP push — ingest (issue #4101)", () => {
         isBackedUp: null,
         uptimeSeconds: 86400,
         lastSeenAt: OBSERVED_AT,
+        cpuCount: 16,
+        isTemplate: null,
+        tags: null,
+        lockState: null,
+        storageType: null,
+        storageContent: null,
+        isShared: null,
+        subscriptionLevel: null,
       },
       {
         kind: "Guest",
@@ -1527,6 +1541,14 @@ describe("Proxmox VE native OTLP push — ingest (issue #4101)", () => {
         isBackedUp: null,
         uptimeSeconds: 3600,
         lastSeenAt: OBSERVED_AT,
+        cpuCount: null,
+        isTemplate: null,
+        tags: null,
+        lockState: null,
+        storageType: null,
+        storageContent: null,
+        isShared: null,
+        subscriptionLevel: null,
       },
       {
         kind: "Storage",
@@ -1541,6 +1563,14 @@ describe("Proxmox VE native OTLP push — ingest (issue #4101)", () => {
         isBackedUp: null,
         uptimeSeconds: null,
         lastSeenAt: OBSERVED_AT,
+        cpuCount: null,
+        isTemplate: null,
+        tags: null,
+        lockState: null,
+        storageType: null,
+        storageContent: null,
+        isShared: null,
+        subscriptionLevel: null,
       },
     ]);
 

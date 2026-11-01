@@ -4,6 +4,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { InfrastructureResource } from "../../../Components/Infrastructure/ResourceTable";
+import { getProxmoxPartStatus } from "./ProxmoxPartFacts";
 
 /*
  * Shared helpers for the Proxmox list/detail pages. The pages read the
@@ -115,19 +116,14 @@ export function displayNameForResource(row: ProxmoxResourceModel): string {
  * Components/Infrastructure/ResourceTable.getStatusBadgeClass.
  */
 export function displayStatusForResource(row: ProxmoxResourceModel): string {
+  if (row.kind === "Node" || row.kind === "Guest" || row.kind === "Storage") {
+    // A template is a Template, never Stopped (ProxmoxPartFacts).
+    return getProxmoxPartStatus(row)?.label || "";
+  }
   if (row.isUp === undefined || row.isUp === null) {
     return "";
   }
-  switch (row.kind) {
-    case "Node":
-      return row.isUp ? "Online" : "Offline";
-    case "Guest":
-      return row.isUp ? "Running" : "Stopped";
-    case "Storage":
-      return row.isUp ? "Available" : "Unavailable";
-    default:
-      return row.isUp ? "Up" : "Down";
-  }
+  return row.isUp ? "Up" : "Down";
 }
 
 const INVENTORY_SELECT: Record<string, boolean> = {
@@ -151,6 +147,19 @@ const INVENTORY_SELECT: Record<string, boolean> = {
   metricsUpdatedAt: true,
   lastSeenAt: true,
   isNativePush: true,
+  isTemplate: true,
+  tags: true,
+  lockState: true,
+  cpuCount: true,
+  storageType: true,
+  storageContent: true,
+  isShared: true,
+  subscriptionLevel: true,
+  lastBackupAt: true,
+  lastBackupStatus: true,
+  lastSuccessfulBackupAt: true,
+  lastBackupBytes: true,
+  lastBackupDurationSeconds: true,
 };
 
 /**
@@ -175,6 +184,36 @@ export async function fetchProxmoxInventoryRows(options: {
     await ModelAPI.getList<ProxmoxResourceModel>({
       modelType: ProxmoxResourceModel,
       query: query,
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      select: INVENTORY_SELECT,
+      sort: {
+        externalId: SortOrder.Ascending,
+      },
+    });
+
+  return result.data;
+}
+
+/**
+ * The guests and storage one node reports, in one read: a node's page
+ * lists them, and what needs attention on the node includes them.
+ */
+export async function fetchProxmoxRowsOnNode(options: {
+  proxmoxClusterId: ObjectID;
+  nodeName: string;
+}): Promise<Array<ProxmoxResourceModel>> {
+  if (!options.nodeName) {
+    return [];
+  }
+
+  const result: ListResult<ProxmoxResourceModel> =
+    await ModelAPI.getList<ProxmoxResourceModel>({
+      modelType: ProxmoxResourceModel,
+      query: {
+        proxmoxClusterId: options.proxmoxClusterId,
+        parentNodeName: options.nodeName,
+      },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
       select: INVENTORY_SELECT,
@@ -335,5 +374,6 @@ export default {
   fetchProxmoxInventoryRows,
   fetchProxmoxInventoryResources,
   fetchProxmoxInventoryRow,
+  fetchProxmoxRowsOnNode,
   toInfrastructureResource,
 };
