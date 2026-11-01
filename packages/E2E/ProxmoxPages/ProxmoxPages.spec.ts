@@ -1036,3 +1036,224 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
     await screenshot(page, "persian-phone-guest");
   });
 });
+
+/*
+ * The cluster's side menu beside a part's own page, and beside a tablet's
+ * narrow menu.
+ *
+ * A node's, a guest's and a storage's page is one of the rows its list
+ * shows, but the menu has an entry for the list only: nothing in it was lit
+ * there, and a phone's menu button read the trail's last crumb. The shared
+ * menu now lights the list a page is one row of (Common's SideMenuRowPage),
+ * telling a screen reader it holds the page (aria-current="true").
+ *
+ * Beside the 224 pixel menu of a 768 to 1023 pixel window, a count leaves a
+ * title some 120 pixels, and "Recommendations" (131) broke there as
+ * "Recommendatio / ns", with no hyphen. Its count now moves under it, to the
+ * row's end, and the word stays whole; from 1024 it shares the line again.
+ */
+
+const PART_PAGES: Array<{
+  part: string;
+  list: string;
+  listPath: string;
+  open: (page: Page) => Promise<void>;
+}> = [
+  {
+    part: "a node",
+    list: "Nodes",
+    listPath: `${CLUSTER_PATH}/nodes`,
+    open: async (page: Page): Promise<void> => {
+      await openNode(page, "pve2");
+    },
+  },
+  {
+    part: "a guest",
+    list: "Guests",
+    listPath: `${CLUSTER_PATH}/guests`,
+    open: async (page: Page): Promise<void> => {
+      await openGuest(page, "qemu/102", "db-01");
+    },
+  },
+  {
+    part: "a storage",
+    list: "Storage",
+    listPath: `${CLUSTER_PATH}/storage`,
+    open: async (page: Page): Promise<void> => {
+      await openStorage(page, "pve2", "local-zfs");
+    },
+  },
+];
+
+function desktopMenu(page: Page): Locator {
+  return page.locator("aside[role='navigation']");
+}
+
+// A menu row by its title, as the menu draws it.
+function menuRow(menu: Locator, title: string): Locator {
+  return menu.locator("a").filter({
+    has: menu.page().getByTestId("side-menu-item-title").getByText(title, {
+      exact: true,
+    }),
+  });
+}
+
+interface RowLayout {
+  // The lines the title's words take, and whether a word broke across two.
+  titleLines: number;
+  brokenWord: boolean;
+  // Where the count sits: on the title's line, or on the line below.
+  badgeBelowTitle: boolean;
+  // The gap between the count's end and the row's end, in pixels.
+  badgeEndGap: number;
+}
+
+async function rowLayout(row: Locator): Promise<RowLayout> {
+  return await row.evaluate((anchor: Element): RowLayout => {
+    const title: Element = anchor.querySelector(
+      '[data-testid="side-menu-item-title"]',
+    )!;
+    const badges: Element = anchor.querySelector(
+      '[data-testid="side-menu-item-badges"]',
+    )!;
+    const text: Node = title.firstChild!;
+    const words: Array<string> = (text.textContent || "").split(" ");
+    let start: number = 0;
+    let brokenWord: boolean = false;
+    const lineTops: Set<number> = new Set<number>();
+
+    for (const word of words) {
+      const range: Range = document.createRange();
+      range.setStart(text, start);
+      range.setEnd(text, start + word.length);
+      const tops: Set<number> = new Set<number>(
+        Array.from(range.getClientRects())
+          .filter((rect: DOMRect): boolean => {
+            return rect.width > 0;
+          })
+          .map((rect: DOMRect): number => {
+            return Math.round(rect.top);
+          }),
+      );
+      brokenWord = brokenWord || tops.size > 1;
+      tops.forEach((top: number) => {
+        lineTops.add(top);
+      });
+      start += word.length + 1;
+    }
+
+    const titleBox: DOMRect = title.getBoundingClientRect();
+    const badgeBox: DOMRect = badges.getBoundingClientRect();
+    const rowBox: DOMRect = anchor.getBoundingClientRect();
+    const rowEnd: number =
+      rowBox.right - parseFloat(getComputedStyle(anchor).paddingRight);
+
+    return {
+      titleLines: lineTops.size,
+      brokenWord,
+      badgeBelowTitle: badgeBox.top >= titleBox.bottom - 1,
+      badgeEndGap: Math.round(rowEnd - badgeBox.right),
+    };
+  });
+}
+
+test.describe("the cluster's side menu", () => {
+  for (const { part, list, listPath, open } of PART_PAGES) {
+    test(`on ${part}'s page, ${list} is lit: the one current entry, holding the page and leading to the list`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page);
+
+      const current: Locator = desktopMenu(page).locator("a[aria-current]");
+      await expect(current).toHaveCount(1);
+      await expect(current).toHaveAttribute("aria-current", "true");
+      await expect(current.getByTestId("side-menu-item-title")).toHaveText(
+        list,
+      );
+      await expect(current).toHaveAttribute("href", listPath);
+    });
+  }
+
+  test("on a phone, a guest's page names Resources / Guests on the menu's button, and the opened menu lights Guests", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openGuest(page, "qemu/102", "db-01");
+
+    const toggle: Locator = page.getByTestId("mobile-sidemenu-toggle");
+    await expect(toggle).toContainText("Resources / Guests");
+    await expect(toggle).not.toContainText("Navigation");
+
+    await toggle.click();
+    // The menu the button opens, by the id it names.
+    const opened: string = (await toggle.getAttribute("aria-controls")) || "";
+    expect(opened).not.toBe("");
+    const current: Locator = page
+      .locator(`[id="${opened}"]`)
+      .locator("a[aria-current]");
+    await expect(current).toHaveCount(1);
+    await expect(current).toHaveAttribute("aria-current", "true");
+    await expect(current.getByTestId("side-menu-item-title")).toHaveText(
+      "Guests",
+    );
+  });
+
+  test("Recommendations keeps its whole word beside a tablet's menu: its count moves under it, to the row's end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+    const menu: Locator = desktopMenu(page);
+    const row: Locator = menuRow(menu, "Recommendations");
+    // The count of what still needs doing, once it is read.
+    await expect(row.getByTestId("side-menu-item-badges")).toHaveText(/\d+/);
+
+    for (const width of [768, 900, 1023]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(async (): Promise<RowLayout> => {
+          return await rowLayout(row);
+        })
+        .toEqual({
+          titleLines: 1,
+          brokenWord: false,
+          badgeBelowTitle: true,
+          badgeEndGap: 0,
+        });
+    }
+
+    // Beside the 256 pixel menu the count shares the title's line again.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect
+      .poll(async (): Promise<RowLayout> => {
+        return await rowLayout(row);
+      })
+      .toEqual({
+        titleLines: 1,
+        brokenWord: false,
+        badgeBelowTitle: false,
+        badgeEndGap: 0,
+      });
+
+    // Every other row with a count keeps it beside its title, at the end.
+    await page.setViewportSize({ width: 768, height: 900 });
+    for (const title of ["Nodes", "Guests", "Storage"]) {
+      await expect
+        .poll(async (): Promise<RowLayout> => {
+          return await rowLayout(menuRow(menu, title));
+        })
+        .toEqual({
+          titleLines: 1,
+          brokenWord: false,
+          badgeBelowTitle: false,
+          badgeEndGap: 0,
+        });
+    }
+    await screenshot(page, "menu-recommendations-768");
+  });
+});
