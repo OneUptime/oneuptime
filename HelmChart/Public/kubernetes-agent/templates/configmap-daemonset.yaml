@@ -531,6 +531,9 @@ data:
             - tag_name: k8s.pod.label.app.kubernetes.io/name
               key: app.kubernetes.io/name
               from: pod
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            {{- include "kubernetes-agent.deploymentConfigPodLabel" . | nindent 12 }}
+            {{- end }}
         pod_association:
           - sources:
               - from: resource_attribute

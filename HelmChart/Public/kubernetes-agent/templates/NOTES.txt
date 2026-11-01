@@ -42,7 +42,7 @@ The agent is now collecting:
   - Cluster-level metrics: deployments, replicas, pod phases (k8s_cluster)
   - Kubernetes events (k8sobjects)
 {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
-  - OpenShift's cluster operators and version, Routes and DeploymentConfigs (k8sobjects/openshift)
+  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services (k8sobjects/openshift)
 {{- end }}
 {{- if .Values.kubeStateMetrics.enabled }}
 {{- if eq .Values.kubeStateMetrics.mode "bundled" }}
