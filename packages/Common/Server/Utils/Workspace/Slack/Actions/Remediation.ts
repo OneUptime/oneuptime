@@ -124,19 +124,16 @@ export default class SlackRemediationActions {
       return;
     }
 
-    // Who may press it, before anything about the fix is shown or done.
+    /*
+     * Who may press it, before anything about the fix is shown or done:
+     * WorkspaceRemediationActions' rule, refused where they pressed in
+     * the chat's own words (SlackActionAuthorization).
+     */
     const props: DatabaseCommonInteractionProps | null =
-      await SlackActionAuthorization.runForRequester({
+      await SlackActionAuthorization.authorize({
         requester: slackRequest,
         action: action,
-        run: async (): Promise<DatabaseCommonInteractionProps> => {
-          return await WorkspaceRemediationActions.authorize({
-            userId: slackRequest.userId!,
-            projectId: slackRequest.projectId!,
-            suggestion,
-            action,
-          });
-        },
+        ...WorkspaceRemediationActions.getAuthorizationScope(suggestion),
       });
 
     if (!props) {

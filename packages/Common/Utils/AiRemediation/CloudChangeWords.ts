@@ -237,7 +237,7 @@ function describeParsedChange(
 
   const name: string = getCloudResourceShortName(resource);
   const values: { kind: TranslatableTerm; name: string } = {
-    kind: translatableTerm(kindName, { inSentence: true }),
+    kind: translatableTerm(kindName),
     name,
   };
   const flags: Record<string, unknown> = command.flags || {};

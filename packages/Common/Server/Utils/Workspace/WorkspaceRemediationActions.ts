@@ -22,7 +22,10 @@ import { REMEDIATION_CHAT_WORDS } from "../AutoRemediation/RemediationChatWords"
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { WorkspaceAnswer } from "./WorkspaceActionAnswers";
-import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
+import WorkspaceActionAuthorization, {
+  WorkspaceActionResource,
+} from "./WorkspaceActionAuthorization";
+import { DatabaseBaseModelType } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import WorkspaceMessageTime from "./WorkspaceMessageTime";
 import ProductBrandingText from "../ProductBrandingText";
 
@@ -125,15 +128,30 @@ export default class WorkspaceRemediationActions {
     return await WorkspaceActionAuthorization.authorize({
       userId: data.userId,
       projectId: data.projectId,
-      // What the Dashboard's Approve asks for (assertCanExecuteRunbooks).
-      modelType: RunbookExecution,
       action: data.action,
-      resources: data.suggestion.incidentId
-        ? [{ service: IncidentService, id: data.suggestion.incidentId }]
-        : data.suggestion.alertId
-          ? [{ service: AlertService, id: data.suggestion.alertId }]
-          : [],
+      ...WorkspaceRemediationActions.getAuthorizationScope(data.suggestion),
     });
+  }
+
+  /*
+   * What pressing a fix's button asks of the member (authorize): to create
+   * a runbook execution - the Dashboard's Approve asks the same
+   * (assertCanExecuteRunbooks) - and to read the incident or alert the fix
+   * is for. Slack asks it through its own refusal-in-place
+   * (SlackActionAuthorization).
+   */
+  public static getAuthorizationScope(suggestion: AutoRemediationSuggestion): {
+    modelType: DatabaseBaseModelType;
+    resources: Array<WorkspaceActionResource>;
+  } {
+    return {
+      modelType: RunbookExecution,
+      resources: suggestion.incidentId
+        ? [{ service: IncidentService, id: suggestion.incidentId }]
+        : suggestion.alertId
+          ? [{ service: AlertService, id: suggestion.alertId }]
+          : [],
+    };
   }
 
   /*

@@ -72,19 +72,20 @@ function getKubectlChangeKey(
     return null;
   }
 
+  // The argv without "kubectl", which the model may or may not write.
   const tokens: KubectlTokenizeResult = KubectlPolicy.tokenize(
     command.command,
   );
 
-  if (!tokens.args || tokens.args.length < 2 || tokens.args[0] !== "kubectl") {
+  if (!tokens.args || tokens.args.length === 0) {
     return null;
   }
 
-  const args: Array<string> = tokens.args.slice(1);
+  const args: Array<string> = tokens.args;
   const named: KubectlNamedObject | null = KubectlPolicy.getNamedObject(args);
 
   if (!named) {
-    const words: string | null = wordsOf(tokens.args);
+    const words: string | null = wordsOf(args);
 
     return words ? capped(`kubectl|${cluster}|${words}`) : null;
   }
