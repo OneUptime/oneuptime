@@ -453,6 +453,8 @@ describePostgres("a device's discovered details merged on Postgres", () => {
 
   async function insertCandidate(data: {
     projectId?: ObjectID;
+    name?: string;
+    sysName?: string;
     hostname?: string;
     serialNumber?: string;
     macAddress?: string;
@@ -464,14 +466,16 @@ describePostgres("a device's discovered details merged on Postgres", () => {
     const id: ObjectID = ObjectID.generate();
     await database.query(
       `INSERT INTO "${schema}"."NetworkDevice"
-         ("_id", "projectId", "name", "hostname", "serialNumber", "macAddress",
+         ("_id", "projectId", "name", "sysName", "hostname", "serialNumber", "macAddress",
           "discoveredDetails", "isArchived", "deletedAt", "refreshRequestedAt",
           "createdAt", "updatedAt", "version")
-       VALUES ($1, $2, 'device', $3, $4, $5, $6::jsonb, $7, $8, $9,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11,
                '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z', 1)`,
       [
         id.toString(),
         (data.projectId || PROJECT_ID).toString(),
+        data.name || "device",
+        data.sysName || null,
         data.hostname || null,
         data.serialNumber || null,
         data.macAddress || null,

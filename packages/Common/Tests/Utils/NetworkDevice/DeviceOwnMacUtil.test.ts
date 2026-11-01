@@ -124,9 +124,9 @@ describe("which port", () => {
   });
 
   test("a device that is only Wi-Fi gives its radio's address", () => {
-    expect(
-      pickDeviceOwnMac([port(1, "6c:c3:b2:4f:cd:e7", IEEE_80211)]),
-    ).toBe("6c:c3:b2:4f:cd:e7");
+    expect(pickDeviceOwnMac([port(1, "6c:c3:b2:4f:cd:e7", IEEE_80211)])).toBe(
+      "6c:c3:b2:4f:cd:e7",
+    );
   });
 
   test("a virtual machine's only NIC has a made-up address, and that is its address", () => {

@@ -506,7 +506,7 @@ En undersøkelse fra OneUptime AI av en hendelse eller et varsel fra en nettverk
 
 ### Enhetsidentitet
 
-Etter det første vellykkede walket leser OneUptime SNMPv2-systemgruppen og, der enheten støtter det, ENTITY-MIB, og fyller ut enhetens oppføring: systemnavn, beskrivelse, plassering, kontakt, oppetid, produsent, modell, serienummer og fastvareversjon. Produsentens enterprise-OID (`sysObjectID`) er enhetens fingeravtrykk: den navngir produsenten og velger den tilsvarende produsentmalen. De samme opplysningene vises i [inventaret](/docs/inventory/cmdb-sync#eiendelsattributter-for-nettverksenheter) sammen med alle de andre ressursene dine.
+Etter det første vellykkede walket leser OneUptime SNMPv2-systemgruppen og, der enheten støtter det, ENTITY-MIB, og fyller ut enhetens oppføring: systemnavn, beskrivelse, plassering, kontakt, oppetid, produsent, modell, serienummer og fastvareversjon. På FortiGate-, Juniper-, MikroTik- og Sophos-enheter leser én forespørsel til det ENTITY-MIB lar stå tomt, fra produsentens egen MIB. Produsentens enterprise-OID (`sysObjectID`) er enhetens fingeravtrykk: den navngir produsenten og velger den tilsvarende produsentmalen. De samme opplysningene vises i [inventaret](/docs/inventory/cmdb-sync#eiendelsattributter-for-nettverksenheter) sammen med alle de andre ressursene dine.
 
 En enhet med bare ping beholder navnet og adressen du, eller en discovery-skanning, ga den. Det dens egen polling ikke har lest, henter den fra discovery:
 
@@ -516,7 +516,7 @@ En enhet med bare ping beholder navnet og adressen du, eller en discovery-skanni
 
 Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver skanning, ruter-walk eller polling som leser en av dem på nytt, oppdaterer den. Enhetens oversikt og elementet i inventaret viser hvilken skanning, ruter eller sonde som leste hver verdi, og når. En verdi du har lagret på enheten, erstattes aldri. Når en skanning finner en annen maskin på enhetens adresse, for eksempel en DHCP-leie som har flyttet seg, sier oversikten det, og ingenting av det den skanningen leste der, brukes.
 
-En Meraki-svitsj, et Meraki-tilgangspunkt eller en Meraki-appliance gir verken serienummer, modell eller fastvare over SNMP: Meraki implementerer ingen ENTITY-MIB. Når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens, henter enheten disse, og alt annet pollingen lar stå tomt, fra Meraki-dashbordet, og kortet **Inventar** nevner tilkoblingen i en rad **Meraki**.
+En Meraki-svitsj, et Meraki-tilgangspunkt eller en Meraki-appliance gir verken serienummer eller fastvare over SNMP: når enheten polles direkte, svarer den på systemgruppen og grensesnittabellene, som gir modellen og MAC-adressen, og ikke noe mer. Når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens, henter enheten disse, og alt annet pollingen lar stå tomt, fra Meraki-dashbordet, og kortet **Inventar** nevner tilkoblingen i en rad **Meraki**.
 
 For å lese en enhet på nytt nå trykker du på **Oppdater** på kortet **Inventar**. Sonden poller den innen et minutt, og Meraki-tilkoblingen leser organisasjonen på nytt. Kortet sier når den nye avlesningen er kommet inn, eller at sonden ikke nådde enheten. **Oppdater** finnes for dem som kan redigere nettverksenheter, på en enhet som en sonde poller eller som en Meraki-tilkobling beskriver.
 

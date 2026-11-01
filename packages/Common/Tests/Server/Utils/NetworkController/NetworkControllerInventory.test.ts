@@ -420,10 +420,8 @@ describe("4. its name and a MAC of the same box, the name held once on both side
 
   test("until a poll has read its ports, it stays unmatched", () => {
     expect(
-      match(
-        [{ ...ISSUE_DEVICE, discoveredDetails: undefined }],
-        [ISSUE_MX],
-      ).size,
+      match([{ ...ISSUE_DEVICE, discoveredDetails: undefined }], [ISSUE_MX])
+        .size,
     ).toBe(0);
   });
 
@@ -524,10 +522,7 @@ describe("4. its name and a MAC of the same box, the name held once on both side
   test("one device whose name and system name are the same counts once", () => {
     expect(
       ruleOf(
-        match(
-          [{ ...ISSUE_DEVICE, name: "UN0362WANRTR01" }],
-          [ISSUE_MX],
-        ),
+        match([{ ...ISSUE_DEVICE, name: "UN0362WANRTR01" }], [ISSUE_MX]),
         id(1),
       ),
     ).toBe("nameAndMacBlock:Q2XX-5384-0001");
@@ -535,34 +530,26 @@ describe("4. its name and a MAC of the same box, the name held once on both side
 
   test("not when its serial number says it is another box", () => {
     expect(
-      match(
-        [{ ...ISSUE_DEVICE, serialNumber: "FOC1840X0AB" }],
-        [ISSUE_MX],
-      ).size,
+      match([{ ...ISSUE_DEVICE, serialNumber: "FOC1840X0AB" }], [ISSUE_MX])
+        .size,
     ).toBe(0);
   });
 
   test("not when a typed MAC says it is another box, whatever its ports say", () => {
     expect(
-      match(
-        [{ ...ISSUE_DEVICE, macAddress: "00:1b:54:c2:7a:01" }],
-        [ISSUE_MX],
-      ).size,
+      match([{ ...ISSUE_DEVICE, macAddress: "00:1b:54:c2:7a:01" }], [ISSUE_MX])
+        .size,
     ).toBe(0);
   });
 
   test("a controller device that lists no MAC gives the rule nothing to hold it to", () => {
-    expect(
-      match([ISSUE_DEVICE], [{ ...ISSUE_MX, mac: "" }]).size,
-    ).toBe(0);
+    expect(match([ISSUE_DEVICE], [{ ...ISSUE_MX, mac: "" }]).size).toBe(0);
   });
 
   test("a device with no name of its own is matched by nothing", () => {
     expect(
-      match(
-        [{ id: id(1), discoveredDetails: ownMac(FIRST_PORT) }],
-        [ISSUE_MX],
-      ).size,
+      match([{ id: id(1), discoveredDetails: ownMac(FIRST_PORT) }], [ISSUE_MX])
+        .size,
     ).toBe(0);
   });
 

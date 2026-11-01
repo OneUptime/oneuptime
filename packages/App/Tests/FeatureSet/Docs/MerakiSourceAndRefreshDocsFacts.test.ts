@@ -417,9 +417,9 @@ describe("Exporting to a CMDB: what the Meraki dashboard fills in", () => {
         ],
       });
 
-    expect(
-      matches.get("40000000-0000-4000-8000-000000000001")?.rule,
-    ).toBe(ControllerMatchRule.NameAndMacBlock);
+    expect(matches.get("40000000-0000-4000-8000-000000000001")?.rule).toBe(
+      ControllerMatchRule.NameAndMacBlock,
+    );
     expect(networkAttributes()).toContain(
       "Meraki lists no such address for an MX, and the MAC it lists is on none of the MX's ports, so an MX is matched by its name and a port MAC just above that MAC.",
     );

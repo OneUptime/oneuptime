@@ -181,6 +181,32 @@ function mirroredItem(attributes: JSONObject = {}): InventoryItem {
   return model;
 }
 
+// The Meraki MX of issue #5384, as a successful walk leaves it.
+function walkedMx(fields: Record<string, unknown> = {}): NetworkDevice {
+  const device: NetworkDevice = new NetworkDevice();
+  device.id = new ObjectID(DEVICE_ID);
+  Object.assign(device, {
+    name: "UN0362WANRTR01",
+    hostname: "10.241.124.1",
+    sysName: "UN0362WANRTR01",
+    sysDescr: "Meraki MX85",
+    sysObjectId: "1.3.6.1.4.1.29671.2.500",
+    vendor: "Cisco Meraki",
+    lastSnmpSeenAt: ago(3 * MINUTE),
+    site: { name: "WB Unit 0362" },
+    discoveredDetails: {
+      ownMacAddress: {
+        value: "aa:bb:cc:06:25:ed",
+        method: "snmp",
+        readBy: { type: "probe", id: DEVICE_ID },
+        readAt: ago(40 * HOUR),
+      },
+    },
+    ...fields,
+  });
+  return device;
+}
+
 function textOf(testId: string): string {
   return screen.getByTestId(testId).textContent || "";
 }
@@ -985,5 +1011,120 @@ describe("the device's own Inventory card says where each value came from (issue
         selected: true,
       });
     }
+  });
+});
+
+/*
+ * Issue #5384: "Indicate when a field is unavailable through SNMP or
+ * unsupported by the device." A gap in a device nothing has read and a gap in
+ * one that answered its poll read the same on the card, so nobody could tell
+ * which one was still waiting for something.
+ */
+describe("why a device's details are unknown", () => {
+  test("the MX in the issue: its MAC and its OS are there, the rest is the dashboard's", async () => {
+    serveDevice(walkedMx());
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(textOf("inventory-asset-macAddress-value")).toContain(
+        "AA-BB-CC-06-25-ED",
+      );
+    });
+
+    expect(textOf("inventory-asset-operatingSystem-value")).toContain(
+      "Meraki MX firmware",
+    );
+
+    /*
+     * Its own poll, said once: the time of the walk, not of the day the port
+     * was first read, and nothing under the MAC.
+     */
+    expect(textOf("inventory-asset-details-source")).toContain(
+      "Read over SNMP by its probe, 3 minutes ago.",
+    );
+    expect(
+      screen.queryByTestId("inventory-asset-macAddress-value-source"),
+    ).not.toBeInTheDocument();
+
+    expect(textOf("inventory-asset-details-unknown")).toContain(
+      "3 details are unknown: a Cisco Meraki device reports them only to the Meraki dashboard, not over SNMP.",
+    );
+
+    const link: HTMLElement = screen.getByRole("link", {
+      name: "Connect the Meraki dashboard",
+    });
+
+    expect(link).toHaveAttribute(
+      "href",
+      "/docs/monitor/network-traffic#cisco-meraki-without-netflow",
+    );
+    expect(link).toHaveAttribute("target", "_blank");
+  });
+
+  test("a device that answered its poll reports no more: nothing is waiting to read it", async () => {
+    serveDevice(
+      walkedSwitch({
+        serialNumber: undefined,
+        firmwareVersion: undefined,
+      }),
+    );
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(textOf("inventory-asset-details-unknown")).toContain(
+        "this device does not report them over SNMP, and no discovery scan has found them.",
+      );
+    });
+
+    expect(textOf("inventory-asset-details-unknown")).not.toContain("Meraki");
+    expect(
+      screen.getByRole("link", { name: "Where each detail comes from" }),
+    ).toHaveAttribute(
+      "href",
+      "/docs/inventory/cmdb-sync#network-device-asset-attributes",
+    );
+  });
+
+  test("one such detail is spoken of in the singular", async () => {
+    serveDevice(
+      walkedSwitch({
+        serialNumber: undefined,
+        macAddress: "00:1b:54:c2:7a:01",
+      }),
+    );
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(textOf("inventory-asset-details-unknown")).toContain(
+        "1 detail is unknown: this device does not report it over SNMP, and no discovery scan has found it.",
+      );
+    });
+  });
+
+  test("a device no poll has read keeps the line that says so", async () => {
+    serveDevice(pingOnlySwitch());
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(textOf("inventory-asset-details-unknown")).toContain(
+        "neither this device's SNMP poll nor a discovery scan has found them.",
+      );
+    });
+  });
+
+  test("a device that cannot be read gives no reason: the item's facts alone cannot say", async () => {
+    getItemMock.mockRejectedValue(new Error("Permission denied") as never);
+
+    render(<InventoryAssetDetailsCard item={mirroredItem()} />);
+
+    await waitFor((): void => {
+      expect(textOf("inventory-asset-details-unknown")).toContain(
+        "neither this device's SNMP poll nor a discovery scan has found them.",
+      );
+    });
   });
 });

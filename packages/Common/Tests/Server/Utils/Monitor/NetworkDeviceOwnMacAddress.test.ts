@@ -7,10 +7,12 @@ import NetworkEndpointService from "../../../../Server/Services/NetworkEndpointS
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import SnmpInterface from "../../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
-import { NetworkDeviceDiscoveredValue } from "../../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import {
+  NetworkDeviceDiscoveredValue,
+  readNetworkDeviceDiscoveredDetails,
+} from "../../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
-import { readNetworkDeviceDiscoveredDetails } from "../../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 
 /*
  * The MAC of a device's own port, recorded from its walk (issue #5384). A
@@ -94,7 +96,9 @@ function mockPollServices(owned: NetworkDevice): void {
     .mockResolvedValue(undefined as never);
 }
 
-function walk(overrides: Partial<SnmpMonitorResponse> = {}): SnmpMonitorResponse {
+function walk(
+  overrides: Partial<SnmpMonitorResponse> = {},
+): SnmpMonitorResponse {
   return {
     isOnline: true,
     responseTimeInMs: 12,

@@ -1740,7 +1740,8 @@ export default class SnmpMonitor {
     const filled: SnmpEntityInfo = { ...entityInfo };
 
     for (const read of reads) {
-      const varbind: snmp.Varbind | undefined = varbinds[oids.indexOf(read.oid)];
+      const varbind: snmp.Varbind | undefined =
+        varbinds[oids.indexOf(read.oid)];
       const value: unknown =
         varbind && !snmp.isVarbindError(varbind) ? varbind.value : undefined;
 
@@ -1749,9 +1750,7 @@ export default class SnmpMonitor {
       }
 
       const text: string = value.toString("utf8").trim();
-      const fieldValue: string | undefined = read.read
-        ? read.read(text)
-        : text;
+      const fieldValue: string | undefined = read.read ? read.read(text) : text;
 
       if (fieldValue) {
         filled[read.field] = fieldValue;

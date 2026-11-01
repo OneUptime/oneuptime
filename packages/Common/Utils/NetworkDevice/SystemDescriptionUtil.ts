@@ -303,9 +303,7 @@ export function getMerakiOperatingSystem(
     (model || "").trim(),
   )?.[0];
 
-  return line
-    ? MERAKI_FIRMWARE_BY_PRODUCT_LINE[line.toUpperCase()]
-    : undefined;
+  return line ? MERAKI_FIRMWARE_BY_PRODUCT_LINE[line.toUpperCase()] : undefined;
 }
 
 /**

@@ -44,12 +44,9 @@ describe("which devices have a vendor identity to read", () => {
     ["a Juniper switch", "1.3.6.1.4.1.2636.1.1.1.4.131.2", undefined],
     ["a MikroTik router", MIKROTIK, "RouterOS"],
     ["a Sophos firewall", SOPHOS_FIREWALL, "Sophos Firewall OS"],
-  ])(
-    "%s",
-    (_name: string, sysObjectId: string, operatingSystem?: string) => {
-      expect(identityOf(sysObjectId).operatingSystem).toBe(operatingSystem);
-    },
-  );
+  ])("%s", (_name: string, sysObjectId: string, operatingSystem?: string) => {
+    expect(identityOf(sysObjectId).operatingSystem).toBe(operatingSystem);
+  });
 
   test("a leading dot, as some agents and tools spell an OID, changes nothing", () => {
     expect(getSnmpVendorIdentity(`.${FORTIGATE_60F}`)).toBe(
@@ -198,9 +195,7 @@ describe("the OIDs themselves, as each vendor's MIB defines them", () => {
   });
 
   test("MikroTik: mtxrSerialNumber, mtxrFirmwareVersion, mtxrLicVersion, mtxrBoardName", () => {
-    expect(oidOf(MIKROTIK, "serialNumber")).toBe(
-      "1.3.6.1.4.1.14988.1.1.7.3.0",
-    );
+    expect(oidOf(MIKROTIK, "serialNumber")).toBe("1.3.6.1.4.1.14988.1.1.7.3.0");
     expect(oidOf(MIKROTIK, "firmwareVersion")).toBe(
       "1.3.6.1.4.1.14988.1.1.7.4.0",
     );

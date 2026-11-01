@@ -1385,8 +1385,16 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
     const ownPort: Record<string, unknown> = {
       ownMacAddress: {
         value: pickDeviceOwnMac([
-          { interfaceIndex: 2, macAddress: "aa:bb:cc:06:25:ee", interfaceType: 6 },
-          { interfaceIndex: 1, macAddress: "aa:bb:cc:06:25:ed", interfaceType: 6 },
+          {
+            interfaceIndex: 2,
+            macAddress: "aa:bb:cc:06:25:ee",
+            interfaceType: 6,
+          },
+          {
+            interfaceIndex: 1,
+            macAddress: "aa:bb:cc:06:25:ed",
+            interfaceType: 6,
+          },
         ]),
         method: "snmp",
         readBy: { type: "probe", id: "probe-1" },

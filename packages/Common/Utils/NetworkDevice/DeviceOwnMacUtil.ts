@@ -11,8 +11,8 @@ import { normalizeMac } from "../Monitor/EndpointAttachmentUtil";
  * walked sits in front of it. Yet its poll reads ifPhysAddress on every
  * interface it has, every time, and kept it only on each interface's own row.
  * IF-MIB is one of the two MIBs a Meraki device answers, and the rows really
- * do hold its MAC: an MR28 reports its wired0 as 6c:c3:b2:4f:cd:e7, and all
- * zeros for its radios.
+ * do hold a MAC: an MR28 reports its wired port's, and all zeros for its
+ * radios.
  *
  * WHICH ONE. A device has a MAC per port, and one line in a CMDB. This picks
  * the same port every time from what does not change between polls - never
