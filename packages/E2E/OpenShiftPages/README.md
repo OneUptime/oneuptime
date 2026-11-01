@@ -2,8 +2,8 @@
 
 An offline harness for OpenShift in the Kubernetes product (issue #5477): the
 **Routes**, **Services** and **DeploymentConfigs** lists and detail pages, what
-the cluster's side menu and Overview add for them, and a pod's link back to its
-DeploymentConfig - each inside the production cluster layout and side menu
+the cluster's side menu and Overview add for them, the Overview's OpenShift card,
+and a pod's link back to its DeploymentConfig - each inside the production cluster layout and side menu
 (`packages/App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/*`). It bundles
 the production pages with esbuild, replaces only the `ModelAPI` /
 `AnalyticsModelAPI` / `API` / `Realtime` data boundary, and serves them on
@@ -30,7 +30,9 @@ a list view could get wrong:
 - DeploymentConfigs available, mid-rollout and scaled to zero;
 - `legacy-web` and a neighbour, `legacy-web-api`, whose name starts the same and
   whose pod's warning must never show on `legacy-web`'s page;
-- a pod of `legacy-web`, owned by the ReplicationController of rollout 7.
+- a pod of `legacy-web`, owned by the ReplicationController of rollout 7;
+- a dozen ClusterOperators and the ClusterVersion, for the Overview's OpenShift
+  card, which `health` below turns unhealthy.
 
 Any route not listed above renders a "Not modelled" stub
 (`data-testid="stub-page"`).
@@ -42,6 +44,7 @@ Query parameters on any page:
 | Parameter | Values                                                                                       |
 | --------- | -------------------------------------------------------------------------------------------- |
 | `cluster` | `openshift` (default), `plain`: an EKS cluster, with none of OpenShift's objects             |
+| `health`  | `healthy` (default), `degraded`, `down` (an operator not Available), `updating`, `failing`    |
 | `lang`    | `de` reads the German locale file                                                            |
 | `theme`   | `dark` adds `html.dark`                                                                      |
 

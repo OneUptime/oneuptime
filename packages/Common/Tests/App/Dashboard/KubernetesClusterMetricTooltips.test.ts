@@ -117,6 +117,7 @@ describe("the Kubernetes cluster description records read well", () => {
         "availability",
         "availabilityChart",
         "clusterHealth",
+        "clusterHealthOpenShift",
         "cpu",
         "cpuChart",
         "diskPressure",
@@ -227,6 +228,7 @@ const TITLED: Array<[string, string]> = [
   ["Failed", CLUSTER.podsFailed],
   ["Nodes Not Ready", CLUSTER.nodesNotReady],
   ["Cluster Health", CLUSTER.clusterHealth],
+  ["Cluster Health", CLUSTER.clusterHealthOpenShift],
   ["Nodes", CLUSTER.nodes],
   ["Pods", CLUSTER.pods],
   ["Namespaces", CLUSTER.namespaces],
@@ -476,6 +478,20 @@ describe("accuracy: inventory-snapshot numbers ignore the time range", () => {
       "Degraded if any pod is pending or a node reports memory, disk or process pressure",
     );
     expect(CLUSTER.clusterHealth).toContain("otherwise Healthy");
+  });
+
+  test("on OpenShift, the rule says what the operators and the update add", () => {
+    const rule: string = CLUSTER.clusterHealthOpenShift;
+
+    expect(rule).toContain("latest inventory");
+    expect(rule).toContain("not the selected range");
+    expect(rule).toContain(
+      "Unhealthy if a pod failed, a node is not ready or an operator is unavailable",
+    );
+    expect(rule).toContain(
+      "Degraded if a pod is pending, a node is under pressure, an operator is degraded or an update fails",
+    );
+    expect(rule).toContain("otherwise Healthy");
   });
 
   test("the chips that feed the health rule say which state they cause", () => {

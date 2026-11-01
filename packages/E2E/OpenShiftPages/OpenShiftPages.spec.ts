@@ -621,6 +621,279 @@ test.describe("a DeploymentConfig's page", () => {
   });
 });
 
+test.describe("the Overview's OpenShift card", () => {
+  function card(page: Page): Locator {
+    return page.getByTestId("openshift-health-card");
+  }
+
+  function operators(page: Page): Locator {
+    return card(page).getByTestId("openshift-operator");
+  }
+
+  // The hero's health pill: the first thing the page says about the cluster.
+  function heroHealth(page: Page, words: string): Locator {
+    return page.locator("span.rounded-full").filter({ hasText: words }).first();
+  }
+
+  test("a healthy cluster's card is one row, with nothing to review", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(CLUSTER_PATH);
+
+    await expect(card(page).getByTestId("openshift-version")).toContainText(
+      "4.16.12",
+    );
+    await expect(card(page).getByTestId("openshift-version")).toContainText(
+      "stable-4.16",
+    );
+    await expect(card(page).getByTestId("openshift-update")).toContainText(
+      "Available",
+    );
+    await expect(card(page).getByTestId("openshift-update")).toContainText(
+      "2 updates available",
+    );
+    await expect(card(page).getByTestId("openshift-operators")).toContainText(
+      "12 of 12 healthy",
+    );
+    await expect(operators(page)).toHaveCount(0);
+    await expect(heroHealth(page, "Healthy")).toBeVisible();
+
+    await screenshot(page, "overview-healthy");
+  });
+
+  test("every operator is one press away, with its three conditions and version", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(CLUSTER_PATH);
+
+    await card(page)
+      .getByRole("button", { name: "Show all 12 operators" })
+      .click();
+
+    await expect(operators(page)).toHaveCount(12);
+
+    const first: Locator = operators(page).first();
+
+    await expect(first).toContainText("authentication");
+    await expect(first).toContainText("Available True");
+    await expect(first).toContainText("Progressing False");
+    await expect(first).toContainText("Degraded False");
+    await expect(first).toContainText("4.16.12");
+
+    await card(page)
+      .getByRole("button", { name: "Show only those to review" })
+      .click();
+
+    await expect(operators(page)).toHaveCount(0);
+  });
+
+  test("a degraded operator comes first, says why, and turns the cluster Degraded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}?health=degraded`);
+
+    await expect(card(page).getByTestId("openshift-operators")).toContainText(
+      "11 of 12 healthy",
+    );
+    await expect(operators(page)).toHaveCount(2);
+
+    const first: Locator = operators(page).first();
+
+    await expect(first).toContainText("authentication");
+    await expect(first).toContainText("Degraded True");
+    await expect(first).toContainText(
+      "OAuthServerRouteEndpointAccessibleController_SyncError",
+    );
+    await expect(first).toContainText("the OAuth server's route answers 503");
+    await expect(operators(page).nth(1)).toContainText("monitoring");
+    await expect(operators(page).nth(1)).toContainText("Progressing True");
+
+    await expect(heroHealth(page, "Degraded")).toBeVisible();
+
+    await screenshot(page, "overview-degraded");
+  });
+
+  test("an unavailable operator turns the cluster Unhealthy", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}?health=down`);
+
+    await expect(operators(page).first()).toContainText("ingress");
+    await expect(operators(page).first()).toContainText("Unavailable");
+    await expect(operators(page).first()).toContainText("Available False");
+    await expect(heroHealth(page, "Unhealthy")).toBeVisible();
+  });
+
+  test("an update under way says where to and since when, and is no failure", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}?health=updating`);
+
+    const update: Locator = card(page).getByTestId("openshift-update");
+
+    await expect(update).toContainText("Updating");
+    await expect(update).toContainText("Moving to 4.16.14");
+    await expect(update).toContainText("Started");
+    await expect(card(page).getByTestId("openshift-version")).toContainText(
+      "4.16.12",
+    );
+    await expect(
+      card(page).getByTestId("openshift-update-message"),
+    ).toContainText("642 of 829 done");
+    await expect(operators(page).first()).toContainText("machine-config");
+    await expect(heroHealth(page, "Healthy")).toBeVisible();
+
+    await screenshot(page, "overview-updating");
+  });
+
+  test("a failing update says why, and turns the cluster Degraded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}?health=failing`);
+
+    await expect(card(page).getByTestId("openshift-update")).toContainText(
+      "Failing",
+    );
+    await expect(
+      card(page).getByTestId("openshift-update-message"),
+    ).toContainText("ClusterOperatorDegraded");
+    await expect(
+      card(page).getByTestId("openshift-update-message"),
+    ).toContainText("Cluster operator authentication is degraded");
+    await expect(heroHealth(page, "Degraded")).toBeVisible();
+  });
+
+  test("the card reads this cluster's operators and version", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(CLUSTER_PATH);
+    await expect(card(page)).toBeVisible();
+
+    const kinds: Array<unknown> = (await recordedBy(page)).listRequests
+      .filter((request: ListRequest): boolean => {
+        return request.modelName === "KubernetesResource";
+      })
+      .map((request: ListRequest): unknown => {
+        return request.query["kind"];
+      });
+
+    expect(kinds).toContain("ClusterOperator");
+    expect(kinds).toContain("ClusterVersion");
+  });
+
+  test("the words on the Overview stay inside their cards", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}?health=degraded`);
+
+    // One line: the longest word the tile says, at a laptop's width.
+    const health: Locator = page.getByText("Degraded", { exact: true }).filter({
+      has: page.locator("xpath=self::*[contains(@class, 'text-xl')]"),
+    });
+
+    await expect(health).toBeVisible();
+
+    const lineHeight: number = await health.evaluate(
+      (element: Element): number => {
+        return parseFloat(getComputedStyle(element).lineHeight);
+      },
+    );
+
+    expect((await health.boundingBox())!.height).toBeLessThanOrEqual(
+      lineHeight + 1,
+    );
+
+    // The longest title of the quick links, and its count beside it.
+    const link: Locator = page
+      .getByText("OpenShift's older way to roll out pods", { exact: true })
+      .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+    const count: Locator = link.locator("span.rounded-full");
+
+    const linkBox: { x: number; width: number } = (await link.boundingBox())!;
+    const countBox: { x: number; width: number } = (await count.boundingBox())!;
+
+    expect(countBox.x + countBox.width).toBeLessThanOrEqual(
+      linkBox.x + linkBox.width,
+    );
+  });
+
+  test("the cluster's Platform reads OpenShift", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(CLUSTER_PATH);
+
+    await expect(
+      page.getByText("OpenShift", { exact: true }).last(),
+    ).toBeVisible();
+  });
+
+  test("any other cluster has no card, and pays for no read of one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(`${CLUSTER_PATH}?cluster=plain`);
+
+    await expect(heroHealth(page, "Healthy")).toBeVisible();
+    await expect(card(page)).toHaveCount(0);
+
+    const kinds: Array<unknown> = (await recordedBy(page)).listRequests.map(
+      (request: ListRequest): unknown => {
+        return request.query["kind"];
+      },
+    );
+
+    expect(kinds).not.toContain("ClusterOperator");
+    expect(kinds).not.toContain("ClusterVersion");
+  });
+
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("nothing scrolls sideways, however long the operator's message", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.goto(`${CLUSTER_PATH}?health=degraded`);
+      await expect(operators(page)).toHaveCount(2);
+
+      await expectNoSidewaysScroll(page);
+      await card(page).scrollIntoViewIfNeeded();
+      await card(page).screenshot({
+        path: path.join(SCREENSHOTS, "overview-card-phone-synthetic.png"),
+      });
+    });
+  });
+
+  test("dark mode", async ({ page }: { page: Page }) => {
+    await page.goto(`${CLUSTER_PATH}?health=degraded&theme=dark`);
+    await expect(operators(page)).toHaveCount(2);
+
+    await card(page).screenshot({
+      path: path.join(SCREENSHOTS, "overview-card-dark-synthetic.png"),
+    });
+  });
+});
+
 test("a pod of a DeploymentConfig is owned by it, not by a rollout's controller", async ({
   page,
 }: {
