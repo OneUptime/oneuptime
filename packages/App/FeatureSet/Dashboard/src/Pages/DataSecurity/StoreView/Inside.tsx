@@ -203,7 +203,7 @@ const DataStoreInside: FunctionComponent<
               return {
                 title: "Confirm This Finding",
                 description: item.isAiSuggested
-                  ? "You confirm this field holds this kind of data. It then counts toward this store's sensitivity and its checks as High confidence, as if a detector had found it."
+                  ? "You confirm this field holds this kind of data. It then counts toward this store's sensitivity and its checks as High confidence."
                   : "You confirm this location holds this kind of data. It then counts toward this store's sensitivity and its checks as High confidence.",
                 submitButtonText: "Confirm",
               };
@@ -382,9 +382,15 @@ const DataStoreInside: FunctionComponent<
                 item.dataTypeId ||
                 "";
 
+              /*
+               * The name and its category wrap at a space when the table is
+               * short of room, as the pills under them do, rather than set
+               * the column's width: a busy project's German must fit a
+               * laptop's card.
+               */
               return (
                 <div className="min-w-0 space-y-1">
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="whitespace-normal text-sm font-medium text-gray-900">
                     {translator.translateText(name) || "—"}
                   </div>
                   <div className="flex flex-wrap items-center gap-1">
@@ -399,9 +405,14 @@ const DataStoreInside: FunctionComponent<
                      * to judge, and they do not count toward the store's
                      * sensitivity until someone does.
                      */}
+                    {/*
+                     * These pills wrap rather than set the column's width:
+                     * in German they are longer than any data type's name.
+                     */}
                     {item.confidence &&
                     item.confidence !== DataConfidence.High ? (
                       <Pill
+                        isWrapping={true}
                         text={translator.translateTemplate(
                           CONFIDENCE_BELOW_HIGH,
                           {
@@ -416,17 +427,25 @@ const DataStoreInside: FunctionComponent<
                       <></>
                     )}
                     {item.isAiSuggested ? (
-                      <Pill text={SUGGESTED_BY_AI} color={Purple500} />
+                      <Pill
+                        text={SUGGESTED_BY_AI}
+                        color={Purple500}
+                        isWrapping={true}
+                      />
                     ) : (
                       <></>
                     )}
                     {item.isConfirmed ? (
-                      <Pill text={CONFIRMED} color={Green500} />
+                      <Pill
+                        text={CONFIRMED}
+                        color={Green500}
+                        isWrapping={true}
+                      />
                     ) : (
                       <></>
                     )}
                     {item.dataCategory ? (
-                      <span className="text-xs text-gray-500">
+                      <span className="whitespace-normal text-xs text-gray-500">
                         {translator.translateText(item.dataCategory)}
                       </span>
                     ) : (

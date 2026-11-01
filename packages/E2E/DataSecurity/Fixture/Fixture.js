@@ -334,7 +334,8 @@ const STORES = [
     contentScannedAt: ago(5 * HOUR),
     contentScanStatus: "Succeeded",
     findingCount: 2,
-    openIssueCount: 4,
+    // Its open issues: public-read, access-not-logged, deleted-data-not-recoverable.
+    openIssueCount: 3,
     highestIssueSeverity: SecuritySeverity.Critical,
     riskScore: 92,
     isArchived: false,
