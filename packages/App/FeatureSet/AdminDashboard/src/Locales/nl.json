@@ -1560,5 +1560,12 @@
     "note": "Opmerking",
     "tip": "Tip",
     "warning": "Waarschuwing"
-  }
+  },
+  "Compact rows": "Compacte rijen",
+  "Sort by": "Sorteren op",
+  "Sorted by {{column}}": "Gesorteerd op {{column}}",
+  "Sort": "Sorteren",
+  "Ascending": "Oplopend",
+  "Descending": "Aflopend",
+  "Select all items": "Alle items selecteren"
 }

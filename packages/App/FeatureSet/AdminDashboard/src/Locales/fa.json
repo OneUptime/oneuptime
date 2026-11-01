@@ -1560,5 +1560,12 @@
     "note": "نکته",
     "tip": "نکته کاربردی",
     "warning": "هشدار"
-  }
+  },
+  "Compact rows": "سطرهای فشرده",
+  "Sort by": "مرتب‌سازی بر اساس",
+  "Sorted by {{column}}": "مرتب‌شده بر اساس {{column}}",
+  "Sort": "مرتب‌سازی",
+  "Ascending": "صعودی",
+  "Descending": "نزولی",
+  "Select all items": "انتخاب همه موردها"
 }

@@ -1560,5 +1560,12 @@
     "note": "참고",
     "tip": "팁",
     "warning": "경고"
-  }
+  },
+  "Compact rows": "촘촘한 행",
+  "Sort by": "정렬 기준",
+  "Sorted by {{column}}": "{{column}} 기준 정렬",
+  "Sort": "정렬",
+  "Ascending": "오름차순",
+  "Descending": "내림차순",
+  "Select all items": "모든 항목 선택"
 }

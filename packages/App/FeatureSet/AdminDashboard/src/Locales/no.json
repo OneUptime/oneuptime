@@ -1560,5 +1560,12 @@
     "note": "Merk",
     "tip": "Tips",
     "warning": "Advarsel"
-  }
+  },
+  "Compact rows": "Kompakte rader",
+  "Sort by": "Sorter etter",
+  "Sorted by {{column}}": "Sortert etter {{column}}",
+  "Sort": "Sorter",
+  "Ascending": "Stigende",
+  "Descending": "Synkende",
+  "Select all items": "Velg alle elementer"
 }

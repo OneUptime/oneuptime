@@ -740,6 +740,21 @@ export interface BaseTableProps<
     | undefined;
 }
 
+/*
+ * The header's buttons that read the list's rows - Filter, and the Columns
+ * the rows are drawn with: left out of a list nobody may read
+ * (isNoAccessShown).
+ */
+const LIST_READ_BUTTONS: WeakSet<CardButtonSchema | ReactElement> =
+  new WeakSet<CardButtonSchema | ReactElement>();
+
+const ofListRead: (button: CardButtonSchema) => CardButtonSchema = (
+  button: CardButtonSchema,
+): CardButtonSchema => {
+  LIST_READ_BUTTONS.add(button);
+  return button;
+};
+
 export interface ComponentProps<
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 > extends BaseTableProps<TBaseModel> {
@@ -3259,7 +3274,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
 
     if (showFilterButton) {
-      headerbuttons.push({
+      headerbuttons.push(ofListRead({
         title: "",
         buttonStyle: ButtonStyleType.ICON,
         buttonSize: ButtonSize.Small,
@@ -3276,7 +3291,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
         disabled: isFilterFetchLoading,
         icon: IconProp.Filter,
-      });
+      }));
     }
 
     /*
@@ -3284,7 +3299,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * table has nothing to hide and nothing to reorder.
      */
     if (isColumnCustomizationEnabled && allColumns.length > 1) {
-      headerbuttons.push({
+      headerbuttons.push(ofListRead({
         title: "",
         buttonStyle: ButtonStyleType.ICON,
         buttonSize: ButtonSize.Small,
@@ -3293,7 +3308,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           setShowColumnCustomizationModal(true);
         },
         icon: IconProp.TableCells,
-      });
+      }));
     }
 
     setCardButtons(headerbuttons);
@@ -5498,14 +5513,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         ? getSaveFilterDropdown()
         : null;
 
-    if (cardButtons.length === 0 && !hasSearch) {
-      return savedViewsElement ? [savedViewsElement] : cardButtons;
+    /*
+     * Nothing to filter, and no columns to choose, in a list nobody may
+     * read: its ⋯ offered Filter and Columns over "You don't have access to
+     * this list". Refresh stays - a person granted access reads it again.
+     */
+    const headerButtons: Array<CardButtonSchema | ReactElement> =
+      isNoAccessShown
+        ? cardButtons.filter(
+            (button: CardButtonSchema | ReactElement): boolean => {
+              return !LIST_READ_BUTTONS.has(button);
+            },
+          )
+        : cardButtons;
+
+    if (headerButtons.length === 0 && !hasSearch) {
+      return savedViewsElement ? [savedViewsElement] : headerButtons;
     }
 
     if (!hasSearch) {
       // Without search, just split into [Saved Views] [main] [⋯]; no special wrapping.
       const { main, rest }: TableHeaderButtonSplit =
-        splitTableHeaderButtons(cardButtons);
+        splitTableHeaderButtons(headerButtons);
       const composed: Array<ReactElement> = [];
       if (savedViewsElement) {
         composed.push(savedViewsElement);
@@ -5525,7 +5554,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       isSearchExpanded || trimmedActive.length > 0 || selectedLabels.length > 0;
 
     const { main, rest }: TableHeaderButtonSplit =
-      splitTableHeaderButtons(cardButtons);
+      splitTableHeaderButtons(headerButtons);
     const moreMenu: ReactElement | null = renderTableHeaderMoreMenu(rest);
 
     /*

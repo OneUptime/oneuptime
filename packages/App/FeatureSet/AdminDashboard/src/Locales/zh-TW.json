@@ -1560,5 +1560,12 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "Compact rows": "緊湊列",
+  "Sort by": "排序依據",
+  "Sorted by {{column}}": "依{{column}}排序",
+  "Sort": "排序",
+  "Ascending": "遞增",
+  "Descending": "遞減",
+  "Select all items": "選取所有項目"
 }

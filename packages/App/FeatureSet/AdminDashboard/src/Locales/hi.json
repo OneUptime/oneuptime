@@ -1560,5 +1560,12 @@
     "note": "नोट",
     "tip": "सुझाव",
     "warning": "चेतावनी"
-  }
+  },
+  "Compact rows": "संक्षिप्त पंक्तियाँ",
+  "Sort by": "इसके अनुसार क्रमबद्ध करें",
+  "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध",
+  "Sort": "क्रमबद्ध करें",
+  "Ascending": "आरोही",
+  "Descending": "अवरोही",
+  "Select all items": "सभी आइटम चुनें"
 }

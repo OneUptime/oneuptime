@@ -1560,5 +1560,12 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "Compact rows": "Kompakta rader",
+  "Sort by": "Sortera efter",
+  "Sorted by {{column}}": "Sorterat efter {{column}}",
+  "Sort": "Sortera",
+  "Ascending": "Stigande",
+  "Descending": "Fallande",
+  "Select all items": "Markera alla objekt"
 }

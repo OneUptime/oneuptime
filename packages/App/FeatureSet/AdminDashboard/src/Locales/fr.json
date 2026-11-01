@@ -1560,5 +1560,12 @@
     "note": "Remarque",
     "tip": "Astuce",
     "warning": "Avertissement"
-  }
+  },
+  "Compact rows": "Lignes compactes",
+  "Sort by": "Trier par",
+  "Sorted by {{column}}": "Trié par {{column}}",
+  "Sort": "Trier",
+  "Ascending": "Croissant",
+  "Descending": "Décroissant",
+  "Select all items": "Sélectionner tous les éléments"
 }
