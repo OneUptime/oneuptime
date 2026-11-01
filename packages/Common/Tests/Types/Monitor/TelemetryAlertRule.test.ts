@@ -341,12 +341,91 @@ describe("The comparisons the rule editor offers", () => {
         monitorType: MonitorType.Metrics,
       }),
     ).toEqual([...threshold, ...anomaly]);
-    // ExceptionMonitorCriteria has no baseline to compare with.
+    // The count against its own earlier weeks (ExceptionLearnedBaseline).
     expect(
       TelemetryAlertRuleUtil.getComparisons({
         monitorType: MonitorType.Exceptions,
       }),
-    ).toEqual(threshold);
+    ).toEqual([...threshold, ...anomaly]);
+    expect(
+      TelemetryAlertRuleUtil.getComparisons({
+        monitorType: MonitorType.Exceptions,
+        measure: CheckOn.ExceptionCount,
+      }),
+    ).toEqual([...threshold, ...anomaly]);
+  });
+
+  test.each([
+    CheckOn.NewExceptionCount,
+    CheckOn.RegressedExceptionCount,
+    CheckOn.ExceptionCountIncreasePercent,
+  ])("%s has no baseline, so a rule on it has no anomaly condition", (measure: CheckOn) => {
+    expect(
+      TelemetryAlertRuleUtil.getComparisons({
+        monitorType: MonitorType.Exceptions,
+        measure,
+      }),
+    ).toEqual([
+      FilterType.GreaterThan,
+      FilterType.GreaterThanOrEqualTo,
+      FilterType.LessThan,
+      FilterType.LessThanOrEqualTo,
+      FilterType.EqualTo,
+    ]);
+    expect(
+      TelemetryAlertRuleUtil.supportsAnomaly(MonitorType.Exceptions, measure),
+    ).toBe(false);
+  });
+
+  test("an anomaly condition on the exception count reads as a rule, and one on another measure does not", () => {
+    const step: MonitorStep = defaultStep(MonitorType.Exceptions);
+    const rule: TelemetryAlertRule = ruleOf(MonitorType.Exceptions, step);
+    const written: MonitorStep = TelemetryAlertRuleUtil.write({
+      monitorType: MonitorType.Exceptions,
+      monitorStep: step,
+      rule: {
+        ...rule,
+        filterType: FilterType.AnomalouslyHigh,
+        threshold: undefined,
+        anomalyDetection: {
+          sensitivity: AnomalyDetectionSensitivity.High,
+          windowDays: 28,
+          sigmaCount: 2.5,
+          minimumCount: 3,
+        },
+      },
+    });
+
+    expect(ruleOf(MonitorType.Exceptions, written)).toMatchObject({
+      filterType: FilterType.AnomalouslyHigh,
+      threshold: undefined,
+      anomalyDetection: {
+        sensitivity: AnomalyDetectionSensitivity.High,
+        windowDays: 28,
+        sigmaCount: 2.5,
+        minimumCount: 3,
+      },
+    });
+
+    const filter: CriteriaFilter =
+      written.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0]!
+        .data!.filters[0]!;
+
+    expect(filter.value).toBeUndefined();
+
+    // Written by hand on a measure with no baseline: shown in the full editor.
+    filter.checkOn = CheckOn.ExceptionCountIncreasePercent;
+
+    expect(
+      TelemetryAlertRuleUtil.read({
+        monitorType: MonitorType.Exceptions,
+        monitorStep: written,
+        defaultMonitorStatusId: undefined,
+      }),
+    ).toEqual({
+      rule: null,
+      problem: TelemetryAlertRuleShapeProblem.UnsupportedCondition,
+    });
   });
 
   test("a rule holding Not Equal To is offered it back, and nobody else is", () => {

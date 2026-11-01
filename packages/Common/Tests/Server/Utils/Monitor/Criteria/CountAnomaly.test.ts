@@ -77,7 +77,7 @@ describe("CountAnomaly.evaluate", () => {
 
   test("AnomalouslyHigh breaches above mean + kσ and reports signed sigma", () => {
     const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute: 45,
+      observed: 45,
       stats: baseline,
       sigmaCount: 3,
       method: AnomalyDetectionMethod.MeanStddev,
@@ -95,7 +95,7 @@ describe("CountAnomaly.evaluate", () => {
 
   test("AnomalouslyHigh does not breach inside the band", () => {
     const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute: 30,
+      observed: 30,
       stats: baseline,
       sigmaCount: 3,
       method: AnomalyDetectionMethod.MeanStddev,
@@ -106,7 +106,7 @@ describe("CountAnomaly.evaluate", () => {
 
   test("AnomalouslyHigh ignores a low breach", () => {
     const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute: 0,
+      observed: 0,
       stats: baseline,
       sigmaCount: 3,
       method: AnomalyDetectionMethod.MeanStddev,
@@ -117,7 +117,7 @@ describe("CountAnomaly.evaluate", () => {
 
   test("AnomalouslyLow breaches below mean - kσ", () => {
     const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute: 0,
+      observed: 0,
       stats: baseline,
       sigmaCount: 3,
       method: AnomalyDetectionMethod.MeanStddev,
@@ -129,14 +129,14 @@ describe("CountAnomaly.evaluate", () => {
 
   test("Anomalous breaches in either direction", () => {
     const high: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute: 45,
+      observed: 45,
       stats: baseline,
       sigmaCount: 3,
       method: AnomalyDetectionMethod.MeanStddev,
       filterType: FilterType.Anomalous,
     });
     const low: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute: 0,
+      observed: 0,
       stats: baseline,
       sigmaCount: 3,
       method: AnomalyDetectionMethod.MeanStddev,
@@ -147,10 +147,10 @@ describe("CountAnomaly.evaluate", () => {
   });
 
   test("sigmaCount widens the band (Low sensitivity = 4σ does not fire where 2σ does)", () => {
-    const observedPerMinute: number = 38; // 3.6σ above the mean of 20
+    const observed: number = 38; // 3.6σ above the mean of 20
     const highSensitivity: CountAnomalyEvaluation | null =
       CountAnomaly.evaluate({
-        observedPerMinute,
+        observed,
         stats: baseline,
         sigmaCount: 2,
         method: AnomalyDetectionMethod.MeanStddev,
@@ -158,7 +158,7 @@ describe("CountAnomaly.evaluate", () => {
       });
     const lowSensitivity: CountAnomalyEvaluation | null = CountAnomaly.evaluate(
       {
-        observedPerMinute,
+        observed,
         stats: baseline,
         sigmaCount: 4,
         method: AnomalyDetectionMethod.MeanStddev,
@@ -171,7 +171,7 @@ describe("CountAnomaly.evaluate", () => {
 
   test("MedianMad method compares against median and MAD-sigma", () => {
     const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute: 31, // > 18 + 3×4 = 30
+      observed: 31, // > 18 + 3×4 = 30
       stats: baseline,
       sigmaCount: 3,
       method: AnomalyDetectionMethod.MedianMad,
@@ -190,7 +190,7 @@ describe("CountAnomaly.evaluate", () => {
     };
     expect(
       CountAnomaly.evaluate({
-        observedPerMinute: 100,
+        observed: 100,
         stats: flat,
         sigmaCount: 3,
         method: AnomalyDetectionMethod.MeanStddev,
@@ -199,7 +199,7 @@ describe("CountAnomaly.evaluate", () => {
     ).toBeNull();
     expect(
       CountAnomaly.evaluate({
-        observedPerMinute: 100,
+        observed: 100,
         stats: flat,
         sigmaCount: 3,
         method: AnomalyDetectionMethod.MedianMad,
@@ -210,12 +210,79 @@ describe("CountAnomaly.evaluate", () => {
 
   test("non-anomaly filter type never breaches", () => {
     const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute: 1000,
+      observed: 1000,
       stats: baseline,
       sigmaCount: 3,
       method: AnomalyDetectionMethod.MeanStddev,
       filterType: FilterType.GreaterThan,
     });
     expect(evaluation!.breaches).toBe(false);
+  });
+});
+
+describe("CountAnomaly.withCountingNoise", () => {
+  const stats: (counts: Array<number>) => CountBaselineStats = (
+    counts: Array<number>,
+  ): CountBaselineStats => {
+    return CountAnomaly.computeStats(counts)!;
+  };
+
+  test("a flat history is as noisy as chance makes a count", () => {
+    const widened: CountBaselineStats = CountAnomaly.withCountingNoise(
+      stats([25, 25, 25, 25]),
+    );
+
+    expect(widened.stddev).toBe(5);
+    expect(widened.madSigma).toBe(5);
+  });
+
+  test("a spread wider than chance is kept", () => {
+    const original: CountBaselineStats = stats([0, 100, 0, 100]);
+    const widened: CountBaselineStats =
+      CountAnomaly.withCountingNoise(original);
+
+    expect(widened.stddev).toBe(original.stddev);
+    expect(widened.madSigma).toBe(original.madSigma);
+  });
+
+  test("the mean, median and extremes are left as they were", () => {
+    const original: CountBaselineStats = stats([3, 3, 3, 3]);
+
+    expect(CountAnomaly.withCountingNoise(original)).toMatchObject({
+      sampleCount: original.sampleCount,
+      mean: original.mean,
+      median: original.median,
+      minObserved: original.minObserved,
+      maxObserved: original.maxObserved,
+    });
+  });
+
+  test("a history of nothing has a spread of one, not none", () => {
+    const widened: CountBaselineStats = CountAnomaly.withCountingNoise(
+      stats([0, 0, 0, 0]),
+    );
+
+    expect(widened.stddev).toBe(1);
+    expect(
+      CountAnomaly.evaluate({
+        observed: 50,
+        stats: widened,
+        sigmaCount: 3,
+        method: AnomalyDetectionMethod.MeanStddev,
+        filterType: FilterType.AnomalouslyHigh,
+      })?.breaches,
+    ).toBe(true);
+  });
+
+  test("without it a flat history is skipped, as spans and logs read one", () => {
+    expect(
+      CountAnomaly.evaluate({
+        observed: 50,
+        stats: stats([0, 0, 0, 0]),
+        sigmaCount: 3,
+        method: AnomalyDetectionMethod.MeanStddev,
+        filterType: FilterType.AnomalouslyHigh,
+      }),
+    ).toBeNull();
   });
 });

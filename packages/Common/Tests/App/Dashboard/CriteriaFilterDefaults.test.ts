@@ -413,9 +413,15 @@ describe("Criteria filter defaults", () => {
      * Exception Count and Profile Count used to be two of those fall-throughs.
      * Both are decided by CompareCriteria.compareCriteriaNumbers - via
      * ExceptionMonitorCriteria and ProfileMonitorCriteria - which recognises
-     * these six conditions and nothing else.
+     * these six conditions and nothing else. The exception count also has
+     * the anomaly conditions, judged against its own earlier weeks.
      */
-    test.each([CheckOn.ExceptionCount, CheckOn.ProfileCount])(
+    test.each([
+      CheckOn.ProfileCount,
+      CheckOn.NewExceptionCount,
+      CheckOn.RegressedExceptionCount,
+      CheckOn.ExceptionCountIncreasePercent,
+    ])(
       "%s offers exactly the six numeric comparators the server evaluates",
       (checkOn: CheckOn) => {
         expect(filterTypeOptionsFor(checkOn)).toEqual([
@@ -428,6 +434,20 @@ describe("Criteria filter defaults", () => {
         ]);
       },
     );
+
+    test("Exception Count offers those six and the anomaly conditions", () => {
+      expect(filterTypeOptionsFor(CheckOn.ExceptionCount)).toEqual([
+        FilterType.EqualTo,
+        FilterType.NotEqualTo,
+        FilterType.GreaterThan,
+        FilterType.LessThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThanOrEqualTo,
+        FilterType.AnomalouslyHigh,
+        FilterType.AnomalouslyLow,
+        FilterType.Anomalous,
+      ]);
+    });
 
     /*
      * Spelled out because these are the ones the enum-wide list used to offer
@@ -460,13 +480,18 @@ describe("Criteria filter defaults", () => {
     );
 
     /*
-     * Log and span counts get the anomaly conditions because a baseline
-     * exists to compare against (LogCountBaseline / SpanCountBaseline).
-     * Exceptions and profiles have no such baseline and no anomaly branch in
-     * their evaluators, so an anomaly rule saved against them could never
-     * fire.
+     * Log, span and exception counts get the anomaly conditions because a
+     * baseline exists to compare against (LogCountBaseline /
+     * SpanCountBaseline / ExceptionLearnedBaseline). Profiles and the other
+     * exception measures have no such baseline and no anomaly branch in their
+     * evaluators, so an anomaly rule saved against them could never fire.
      */
-    test.each([CheckOn.ExceptionCount, CheckOn.ProfileCount])(
+    test.each([
+      CheckOn.ProfileCount,
+      CheckOn.NewExceptionCount,
+      CheckOn.RegressedExceptionCount,
+      CheckOn.ExceptionCountIncreasePercent,
+    ])(
       "%s offers no anomaly condition, having no baseline behind it",
       (checkOn: CheckOn) => {
         const offered: Array<string> = filterTypeOptionsFor(checkOn);
@@ -482,7 +507,11 @@ describe("Criteria filter defaults", () => {
     );
 
     test("the counts that do have a baseline keep their anomaly conditions", () => {
-      for (const checkOn of [CheckOn.LogCount, CheckOn.SpanCount]) {
+      for (const checkOn of [
+        CheckOn.LogCount,
+        CheckOn.SpanCount,
+        CheckOn.ExceptionCount,
+      ]) {
         expect(filterTypeOptionsFor(checkOn)).toContain(
           FilterType.AnomalouslyHigh.toString(),
         );
