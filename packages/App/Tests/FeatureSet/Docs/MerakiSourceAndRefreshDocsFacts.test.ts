@@ -176,6 +176,8 @@ describe("Exporting to a CMDB: what the Meraki dashboard fills in", () => {
     "management address": "ipAddress",
     "street address": "location",
     type: "deviceType",
+    "operating system": "operatingSystem",
+    "OS version": "osVersion",
   };
 
   it("lists every detail the dashboard fills in where the device's own poll left it empty, and no other", () => {
@@ -192,6 +194,8 @@ describe("Exporting to a CMDB: what the Meraki dashboard fills in", () => {
         "macAddress",
         "manufacturer",
         "model",
+        "operatingSystem",
+        "osVersion",
         "serialNumber",
       ].sort(),
     );
@@ -364,16 +368,95 @@ describe("Exporting to a CMDB: what the Meraki dashboard fills in", () => {
       ],
     ]);
 
-    // The three rules the page names, and no other.
+    // The four rules the page names, and no other.
     expect(Object.values(ControllerMatchRule).sort()).toEqual(
       [
         ControllerMatchRule.AddressAndName,
         ControllerMatchRule.MacAddress,
+        ControllerMatchRule.NameAndMacBlock,
         ControllerMatchRule.SerialNumber,
       ].sort(),
     );
     expect(networkAttributes()).toContain(
       "A device is one of the organization's devices when its serial number or MAC address is the Meraki device's, or when OneUptime polls it at the Meraki device's management address and it has the same name.",
+    );
+  });
+
+  // Issue #5384: an MX, which no other rule can match.
+  it("matches an MX by its name and a port MAC just above the one Meraki lists", () => {
+    const matches: Map<string, ControllerInventoryMatch> =
+      matchControllerDevices({
+        candidates: [
+          {
+            id: "40000000-0000-4000-8000-000000000001",
+            name: "UN0362WANRTR01",
+            hostname: "10.241.124.1",
+            discoveredDetails: {
+              ownMacAddress: {
+                value: "aa:bb:cc:06:25:ed",
+                method: "snmp",
+                readBy: { type: "probe", id: "probe-1" },
+                readAt: "2026-10-28T09:00:00.000Z",
+              },
+            },
+          } as ControllerInventoryCandidate,
+        ],
+        devices: [
+          {
+            serial: "Q2XX-5384-0001",
+            name: "UN0362WANRTR01",
+            model: "MX85",
+            mac: "aa:bb:cc:06:25:e8",
+            lanIp: "",
+            firmware: "wired-18-211-2",
+            productType: "appliance",
+            controllerNetworkId: "L_1000",
+            networkName: "Unit 0362",
+            address: "",
+          },
+        ],
+      });
+
+    expect(
+      matches.get("40000000-0000-4000-8000-000000000001")?.rule,
+    ).toBe(ControllerMatchRule.NameAndMacBlock);
+    expect(networkAttributes()).toContain(
+      "Meraki lists no such address for an MX, and the MAC it lists is on none of the MX's ports, so an MX is matched by its name and a port MAC just above that MAC.",
+    );
+  });
+
+  it("gives the dashboard's MAC ahead of one read from the device's own port, as the page says", () => {
+    const details: NetworkDeviceFactDetails = getNetworkDeviceFactDetails(
+      pingedGateway({
+        lastSnmpSeenAt: "2026-10-28T09:00:00.000Z",
+        discoveredDetails: {
+          ...(pingedGateway().discoveredDetails as Record<string, unknown>),
+          ownMacAddress: {
+            value: "aa:bb:cc:06:25:ed",
+            method: "snmp",
+            readBy: { type: "probe", id: "probe-1" },
+            readAt: "2026-10-28T09:00:00.000Z",
+          },
+        },
+      }),
+    );
+
+    expect(details.facts.macAddress.source?.kind).toBe(
+      AssetFactSourceKind.Controller,
+    );
+    expect(networkAttributes()).toContain(
+      "The one exception is the MAC address: Meraki's, the one on the box's label, comes before one read from the device's own port.",
+    );
+  });
+
+  it("takes a device's operating system and OS version from its model and its firmware", () => {
+    const facts: NetworkDeviceFactDetails["facts"] =
+      getNetworkDeviceFactDetails(pingedGateway()).facts;
+
+    expect(facts.operatingSystem.value).toBe("Meraki MG firmware");
+    expect(facts.osVersion.value).toBe("2.1");
+    expect(networkAttributes()).toContain(
+      "Its model and firmware also give its operating system and OS version.",
     );
   });
 });
