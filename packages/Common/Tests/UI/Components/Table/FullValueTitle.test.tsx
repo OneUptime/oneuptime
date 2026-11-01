@@ -138,7 +138,7 @@ describe("a cell with other columns' values folded under its own", () => {
     expect(screen.getAllByTestId(TABLE_FOLDED_VALUE_TEST_ID)).toHaveLength(2);
   });
 
-  test("its own value cut short: the tooltip is that value in full - not its labels and owners after it", () => {
+  test("its own value cut short: the tooltip is that value in full, over its line - not its labels and owners after it, nor over them", () => {
     render(FOLDED);
 
     const value: HTMLElement = screen.getByTestId("value");
@@ -146,12 +146,19 @@ describe("a cell with other columns' values folded under its own", () => {
       `[${TABLE_FOLDED_MAIN_ATTRIBUTE}]`,
     ) as Element;
 
+    // A title the cell had before it was folded is not left on it.
+    value.title = "stale";
+
     // The cell's lines each fit their box; the title's line is cut.
     size(value, { scrollWidth: 320, clientWidth: 320 });
     size(main, { scrollWidth: 903, clientWidth: 320 });
     fireEvent.mouseEnter(value);
 
-    expect(value).toHaveAttribute("title", TITLE);
+    expect(main).toHaveAttribute("title", TITLE);
+    expect(value).not.toHaveAttribute("title");
+    for (const line of screen.getAllByTestId(TABLE_FOLDED_VALUE_TEST_ID)) {
+      expect(line).not.toHaveAttribute("title");
+    }
   });
 
   test("its own value whole: no tooltip, however long the folded lines run", () => {
@@ -170,9 +177,11 @@ describe("a cell with other columns' values folded under its own", () => {
       clientHeight: 80,
     });
     size(main, { scrollWidth: 300, clientWidth: 320 });
+    (main as HTMLElement).title = "stale";
     fireEvent.mouseEnter(value);
 
     expect(value).not.toHaveAttribute("title");
+    expect(main).not.toHaveAttribute("title");
   });
 
   test("a cell whose folded values all have nothing to say is drawn as its value alone, its tooltip as any other's", () => {

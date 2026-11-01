@@ -17,9 +17,9 @@ export const FULL_VALUE_TITLE_MAX_LENGTH: number = 1000;
 /*
  * The part of a cell that is its own value, where the values of other
  * columns are folded under it (TableFoldedValues): what the cell's tooltip
- * names. The folded values are on lines of their own, wrapped rather than
- * cut, so an incident's title cut short showed, under the pointer, its
- * labels and its owners after it.
+ * names, shown over that line. The folded values are on lines of their
+ * own, wrapped rather than cut, so an incident's title cut short showed,
+ * under the pointer, its labels and its owners after it - over them too.
  */
 export const TABLE_FOLDED_MAIN_ATTRIBUTE: string = "data-table-folded-main";
 
@@ -67,10 +67,18 @@ export const showFullValueWhenCutShort: (
 ) => void = (event: React.MouseEvent<HTMLElement>): void => {
   const element: HTMLElement = event.currentTarget;
 
-  // The cell's own value: all of it, or the line above what is folded under it.
-  const value: HTMLElement =
-    element.querySelector<HTMLElement>(`[${TABLE_FOLDED_MAIN_ATTRIBUTE}]`) ||
-    element;
+  /*
+   * The cell's own value: all of it, or the line above what is folded under
+   * it - which carries the tooltip then, and the cell none.
+   */
+  const main: HTMLElement | null = element.querySelector<HTMLElement>(
+    `[${TABLE_FOLDED_MAIN_ATTRIBUTE}]`,
+  );
+  const value: HTMLElement = main || element;
+
+  if (main) {
+    element.removeAttribute("title");
+  }
 
   /*
    * Cut short on its line (an ellipsis at the column's end), after its
@@ -90,10 +98,10 @@ export const showFullValueWhenCutShort: (
       .slice(0, FULL_VALUE_TITLE_MAX_LENGTH);
 
     if (fullValue) {
-      element.title = fullValue;
+      value.title = fullValue;
       return;
     }
   }
 
-  element.removeAttribute("title");
+  value.removeAttribute("title");
 };

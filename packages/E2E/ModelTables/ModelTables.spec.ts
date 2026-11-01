@@ -1952,14 +1952,15 @@ test.describe("a value too long for its column", () => {
     expect(measure.textOverflow).toBe("ellipsis");
 
     /*
-     * Under the pointer: the title in full - not its labels and owners
-     * after it, which are on lines of their own already.
+     * Under the pointer, over its line: the title in full - not its labels
+     * and owners after it, which are on lines of their own already.
      */
     await title.hover();
-    await expect(value).toHaveAttribute(
+    await expect(title).toHaveAttribute(
       "title",
       "Checkout requests time out for customers in every EU region while the payments gateway retries callbacks against the primary database",
     );
+    await expect(value).not.toHaveAttribute("title", /.+/);
 
     await screenshot(page, "incidents-long-1280");
   });
