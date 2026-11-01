@@ -125,6 +125,7 @@ import {
   describeSessionUser,
   SessionUserDescription,
 } from "./SessionReplayUserIdentity";
+import { buildUserFlowScopeRoute } from "../UserFlow/UserFlowScopeRoute";
 import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
 import SessionReplayIdentityNudge, {
   hasAnyVisitorId,
@@ -1438,6 +1439,8 @@ interface SessionReplayTableRow extends SessionReplaySummary {
   cells: Array<ReactElement>;
   /* See getSessionReplayFirstErrorRoute; null keeps the action off the row. */
   firstErrorRoute: Route | null;
+  /* This session on the User Flows page. */
+  journeyRoute: Route | null;
 }
 
 /*
@@ -1451,7 +1454,9 @@ interface SessionReplayTableRow extends SessionReplaySummary {
  * Every row's menu also has Show ID - the session's whole ID, to copy into a
  * ticket or the search box's id: - as every model table's rows have. So every
  * row carries a ⋯, and the rows' Watch buttons line up in one column: a row
- * without one used to draw its Watch where the others' ⋯ was.
+ * without one used to draw its Watch where the others' ⋯ was. View journey
+ * sits there too: the session's pages in order, which a row's route list,
+ * sorted and cut short, cannot say.
  *
  * The one thing given up: menu items are buttons, and a row action never sees
  * the click event, so Cmd/Ctrl-click and middle-click cannot open this jump in
@@ -1482,6 +1487,26 @@ function getSessionReplayRowActions(
          */
         if (row.firstErrorRoute) {
           openSession(row.firstErrorRoute, false);
+        }
+
+        onCompleteAction();
+      },
+    },
+    {
+      title: "View journey",
+      icon: IconProp.Share,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      placement: ActionButtonPlacement.MoreMenu,
+      tooltip: "See this session's pages in order, on User Flows",
+      isVisible: (row: SessionReplayTableRow): boolean => {
+        return Boolean(row.journeyRoute);
+      },
+      onClick: (
+        row: SessionReplayTableRow,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        if (row.journeyRoute) {
+          openSession(row.journeyRoute, false);
         }
 
         onCompleteAction();
@@ -2241,9 +2266,23 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             rumApplicationId: rumApplicationIdString,
             nowUnixMs,
           }),
+          journeyRoute: buildUserFlowScopeRoute({
+            rumApplicationId: rumApplicationIdString,
+            scope: row.sessionId
+              ? { kind: "session", sessionId: row.sessionId }
+              : null,
+            timeRange: timeRange,
+          }),
         };
       });
-    }, [rows, rumApplicationIdString, nowUnixMs, openSession, filterByUser]);
+    }, [
+      rows,
+      rumApplicationIdString,
+      nowUnixMs,
+      openSession,
+      filterByUser,
+      timeRange,
+    ]);
 
   const rowActions: Array<ActionButtonSchema<SessionReplayTableRow>> =
     useMemo((): Array<ActionButtonSchema<SessionReplayTableRow>> => {
