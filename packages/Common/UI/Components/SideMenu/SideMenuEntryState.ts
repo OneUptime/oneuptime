@@ -2,6 +2,11 @@ import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
 import Navigation from "../../Utils/Navigation";
 import type { LinkAriaCurrent } from "../Link/Link";
+import {
+  getDrawnWords,
+  LongWordHyphenation,
+  WORDS_BREAK_CLASS_NAME,
+} from "../HyphenatedWords/LongWords";
 
 /*
  * Which entry of a side menu is the page the user is on, and how that is
@@ -21,6 +26,13 @@ import type { LinkAriaCurrent } from "../Link/Link";
  * started to wrap instead of being cut short.)
  */
 export const SIDE_MENU_ITEM_TITLE_TEST_ID: string = "side-menu-item-title";
+
+/*
+ * ...and of the parts beside it: the icon and title together, and the badge
+ * with its indicators. Tests read where a badge sits by them.
+ */
+export const SIDE_MENU_ITEM_CONTENT_TEST_ID: string = "side-menu-item-content";
+export const SIDE_MENU_ITEM_BADGES_TEST_ID: string = "side-menu-item-badges";
 
 export type MenuEntryRoute = Link["to"];
 
@@ -59,52 +71,48 @@ export function getDrawnLanguage(data: {
  */
 export const SIDE_MENU_HYPHENATED_WORD_LENGTH: number = 14;
 
-// Where a title's words end: spaces, and the hyphens inside a compound.
-const WORD_SEPARATOR: RegExp = /[\s\-\u{2010}]+/u;
-
 // A word longer than the line breaks at the line's edge rather than spill.
-export const SIDE_MENU_WORDS_CLASS_NAME: string = "break-words";
+export const SIDE_MENU_WORDS_CLASS_NAME: string = WORDS_BREAK_CLASS_NAME;
 
 /*
- * ...and one that may be hyphenated: in its language (hyphens: auto), and
- * only inside a word SIDE_MENU_HYPHENATED_WORD_LENGTH letters long or more,
- * five of them either side of the hyphen (hyphenate-limit-chars, which
- * Safari does not read yet).
+ * A long word's own classes: hyphenated in its language (hyphens: auto),
+ * five letters either side of the hyphen - hyphenate-limit-chars for Chrome
+ * and Firefox, -webkit-hyphenate-limit-before and -after for Safari, which
+ * does not read hyphenate-limit-chars.
  */
-export const SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME: string =
-  "break-words hyphens-auto [hyphenate-limit-chars:14_5_5]";
+export const SIDE_MENU_LONG_WORD_CLASS_NAME: string =
+  "hyphens-auto [hyphenate-limit-chars:14_5_5] [-webkit-hyphenate-limit-before:5] [-webkit-hyphenate-limit-after:5]";
+
+// A title whose every word is that long: the title itself may be hyphenated.
+export const SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME: string = `${SIDE_MENU_WORDS_CLASS_NAME} ${SIDE_MENU_LONG_WORD_CLASS_NAME}`;
 
 /*
  * How a menu's words may break when a title or a section heading does not
- * fit on one line. Between words always, and inside a word only when the
- * title is in the reader's language (`lang`: getDrawnLanguage) and holds a
- * word SIDE_MENU_HYPHENATED_WORD_LENGTH letters long or more - and then only
- * inside such a word (hyphenate-limit-chars).
+ * fit on one line (HyphenatedWords). Between words always, and inside a word
+ * only when the title is in the reader's language (`lang`: getDrawnLanguage)
+ * and the word is SIDE_MENU_HYPHENATED_WORD_LENGTH letters long or more.
  *
  * Chrome hyphenates only a word that does not fit a line of its own, but
  * Firefox and Safari hyphenate whatever word ends a line: the French Burn
  * Rate Rules read "Règles de taux de consom- / mation" in Firefox, and the
  * German Incoming Call Policies "Richtlinien für einge- / hende Anrufe",
- * where the word fits whole on the next line. English, the words the page
- * itself is in, is never hyphenated: its titles were written to fit.
+ * where the word fits whole on the next line. So the long words alone may
+ * be hyphenated, each in a span of its own when shorter words are beside it
+ * - Safari reads no hyphenate-limit-chars to keep it to them. English, the
+ * words the page itself is in, is never hyphenated: its titles were
+ * written to fit.
  */
+export const SIDE_MENU_LONG_WORDS: LongWordHyphenation = {
+  minimumWordLength: SIDE_MENU_HYPHENATED_WORD_LENGTH,
+  longWordClassName: SIDE_MENU_LONG_WORD_CLASS_NAME,
+};
+
+// The classes of the element that holds a menu's words (see above).
 export function getMenuWordsBreakClassName(data: {
   text: string | undefined;
   lang: string | undefined;
 }): string {
-  if (!data.lang || !data.text) {
-    return SIDE_MENU_WORDS_CLASS_NAME;
-  }
-
-  const hasLongWord: boolean = data.text
-    .split(WORD_SEPARATOR)
-    .some((word: string): boolean => {
-      return Array.from(word).length >= SIDE_MENU_HYPHENATED_WORD_LENGTH;
-    });
-
-  return hasLongWord
-    ? SIDE_MENU_HYPHENATED_WORDS_CLASS_NAME
-    : SIDE_MENU_WORDS_CLASS_NAME;
+  return getDrawnWords({ ...data, rule: SIDE_MENU_LONG_WORDS }).className;
 }
 
 /*

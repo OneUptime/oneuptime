@@ -20,10 +20,11 @@ import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
  * the maintainer's own example, French Burn Rate Rules, as "Règles de taux
  * de consom- / mation", and "Paramètres des abon- / nés", "JOURNAUX DE
  * NOTIFI- / CATION", where each word fits whole on the next line. Only a
- * title holding a word of 14 letters or more is hyphenated now, and only
- * inside such words (getMenuWordsBreakClassName in Common's
- * SideMenuEntryState). jsdom lays nothing out, so the jest suite can only
- * pin the classes: here every word is measured where it is drawn.
+ * word of 14 letters or more may be hyphenated now - the long word alone,
+ * in a span of its own beside shorter words (Common's HyphenatedWords),
+ * so Safari, which reads no hyphenate-limit-chars, keeps to it too. jsdom
+ * lays nothing out, so the jest suite can only pin the classes: here every
+ * word is measured where it is drawn, in Chromium, Firefox and WebKit.
  */
 
 const PORT: string = process.env["RULES_MENU_SECTION_FIXTURE_PORT"] || "4385";
@@ -269,5 +270,171 @@ test.describe("where a side menu's words break", () => {
         return title.hyphens === "auto";
       }),
     ).toEqual([]);
+  });
+});
+
+/*
+ * Safari does not read hyphenate-limit-chars (WebKit has
+ * -webkit-hyphenate-limit-before and -after instead), and like Firefox it
+ * hyphenates whatever word ends a line. A title that carried hyphens: auto
+ * because one word in it was long - German Custom Domains,
+ * "Benutzerdefinierte Domains" - could have its short words hyphenated
+ * there: "Benutzerdefinierte Do- / mains". The long word alone carries it
+ * now, in a span of its own (Common's HyphenatedWords).
+ *
+ * Playwright's WebKit on Linux has no hyphenation dictionaries, so where
+ * Safari breaks words cannot be measured in it (and the browser jobs'
+ * image installs Chromium and Firefox only: Tests/Ops'
+ * ContainerImageHardening). Firefox hyphenates as Safari does, so here
+ * Firefox is made to read no hyphenate-limit-chars either, and the menu is
+ * drawn at every width from 176 to 320 pixels: no word that fits a line of
+ * its own breaks at any of them. What Safari itself is told - hyphens on
+ * the long words only, and -webkit-hyphenate-limit-before and -after - is
+ * pinned by the jest suites (SideMenuDrawnLanguage, HyphenatedWords).
+ */
+
+// The menu pages whose German titles hold a long word beside short ones.
+const MIXED_TITLE_PAGES: Array<{ address: string; title: string }> = [
+  {
+    address: `${STATUS_PAGE_PATH}/domains?lang=de`,
+    title: "Benutzerdefinierte Domains",
+  },
+  {
+    address: `${STATUS_PAGE_PATH}/custom-fields?lang=de`,
+    title: "Benutzerdefinierte Felder",
+  },
+];
+
+interface HyphenatedElement {
+  text: string;
+  hyphens: string;
+  limitChars: string;
+}
+
+// Every element in the menu that may be hyphenated, with how it is limited.
+async function hyphenatedElements(
+  menu: Locator,
+): Promise<Array<HyphenatedElement>> {
+  return await menu.evaluate((root: Element): Array<HyphenatedElement> => {
+    return Array.from(root.querySelectorAll("*"))
+      .filter((element: Element): boolean => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+        const parent: Element | null = element.parentElement;
+
+        // Where hyphens: auto starts, not every element that inherits it.
+        return (
+          style.visibility === "visible" &&
+          style.hyphens === "auto" &&
+          (!parent || getComputedStyle(parent).hyphens !== "auto")
+        );
+      })
+      .map((element: Element): HyphenatedElement => {
+        const style: CSSStyleDeclaration = getComputedStyle(element);
+
+        return {
+          text: element.textContent || "",
+          hyphens: style.hyphens,
+          limitChars: style.getPropertyValue("hyphenate-limit-chars"),
+        };
+      });
+  });
+}
+
+// Where words end: spaces, hyphens, and the phone button's slash.
+const WORD_END: RegExp = /[\s\-\u{2010}/]+/u;
+// A word has a letter in it.
+const LETTER: RegExp = /\p{L}/u;
+// hyphenate-limit-chars: 14 5 5, which Firefox writes "14 5".
+const LIMIT_CHARS: RegExp = /^14 5( 5)?$/;
+
+// The lettered words of a text, by how many letters each has.
+function lettersOfWords(text: string): Array<number> {
+  return text
+    .split(WORD_END)
+    .filter((word: string): boolean => {
+      return LETTER.test(word);
+    })
+    .map((word: string): number => {
+      return Array.from(word).length;
+    });
+}
+
+test.describe("only long words are hyphenated, in every engine", () => {
+  for (const { address, title } of MIXED_TITLE_PAGES) {
+    test(`de ${title}: the long word alone may be hyphenated, five letters either side`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, address);
+      const menu: Locator = desktopMenu(page);
+      await expect(menu.getByText(title)).toBeVisible();
+
+      const elements: Array<HyphenatedElement> = await hyphenatedElements(menu);
+
+      // The long word of this title is one of them, alone.
+      expect(
+        elements.map((element: HyphenatedElement): string => {
+          return element.text;
+        }),
+      ).toContain(title.split(" ")[0]);
+
+      for (const element of elements) {
+        // Every word an element that may be hyphenated holds is a long one.
+        expect({
+          text: element.text,
+          shortWords: lettersOfWords(element.text).filter(
+            (letters: number): boolean => {
+              return letters < 14;
+            },
+          ),
+        }).toEqual({ text: element.text, shortWords: [] });
+
+        expect(element.hyphens).toBe("auto");
+        expect(element.limitChars).toMatch(LIMIT_CHARS);
+      }
+    });
+  }
+
+  test("a browser that reads no hyphenate-limit-chars, as Safari, breaks no word that fits a line of its own, at any menu width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const { address, title } of MIXED_TITLE_PAGES) {
+      await page.setViewportSize({ width: 1280, height: 1100 });
+      await open(page, address);
+      const menu: Locator = desktopMenu(page);
+      await expect(menu.getByText(title)).toBeVisible();
+
+      await page.addStyleTag({
+        content:
+          "* { hyphenate-limit-chars: auto !important; -webkit-hyphenate-limit-before: auto !important; -webkit-hyphenate-limit-after: auto !important; }",
+      });
+
+      const broken: Array<{ width: number; words: Array<BrokenWord> }> = [];
+
+      for (let width: number = 176; width <= 320; width += 4) {
+        await menu.evaluate((root: Element, menuWidth: number): void => {
+          (root as HTMLElement).style.setProperty(
+            "width",
+            `${menuWidth}px`,
+            "important",
+          );
+        }, width);
+
+        const words: Array<BrokenWord> = (
+          await wordsBrokenAcrossLines(menu)
+        ).filter((word: BrokenWord): boolean => {
+          return Array.from(word.word).length <= LONGEST_WORD_KEPT_WHOLE;
+        });
+
+        if (words.length > 0) {
+          broken.push({ width, words });
+        }
+      }
+
+      expect({ address, broken }).toEqual({ address, broken: [] });
+    }
   });
 });

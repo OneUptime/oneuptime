@@ -20,7 +20,9 @@ import {
 import {
   getDrawnLanguage,
   getMenuWordsBreakClassName,
+  SIDE_MENU_LONG_WORDS,
 } from "./SideMenuEntryState";
+import HyphenatedWords from "../HyphenatedWords/HyphenatedWords";
 import useSideMenuHiddenEdges from "./UseSideMenuHiddenEdges";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -783,8 +785,8 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
              * whole when the two do not fit together - the section and the
              * page each keep together while they fit a line - and a word
              * longer than the line is hyphenated in its language
-             * (getDrawnLanguage, getMenuWordsBreakClassName), or else breaks
-             * at its edge.
+             * (getDrawnLanguage, HyphenatedWords), or else breaks at its
+             * edge.
              */}
             <div className="min-w-0 text-start">
               <p className="text-xs text-gray-400 font-medium">
@@ -802,7 +804,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                       )}`}
                       lang={summarySectionLanguage}
                     >
-                      {`${summarySection} /`}
+                      <HyphenatedWords
+                        text={`${summarySection} /`}
+                        lang={summarySectionLanguage}
+                        rule={SIDE_MENU_LONG_WORDS}
+                      />
                     </span>{" "}
                     <span
                       className={`inline-block max-w-full ${getMenuWordsBreakClassName(
@@ -813,7 +819,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                       )}`}
                       lang={summaryPageLanguage}
                     >
-                      {summaryPage}
+                      <HyphenatedWords
+                        text={summaryPage}
+                        lang={summaryPageLanguage}
+                        rule={SIDE_MENU_LONG_WORDS}
+                      />
                     </span>
                   </>
                 ) : (
@@ -824,7 +834,11 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     })}
                     lang={summaryPageLanguage}
                   >
-                    {summaryPage}
+                    <HyphenatedWords
+                      text={summaryPage}
+                      lang={summaryPageLanguage}
+                      rule={SIDE_MENU_LONG_WORDS}
+                    />
                   </span>
                 )}
               </h3>
