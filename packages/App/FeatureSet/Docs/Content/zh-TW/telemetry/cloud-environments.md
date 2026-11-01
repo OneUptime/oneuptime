@@ -2,7 +2,7 @@
 
 **雲端環境** 是你的容器在受控雲端平台上執行的地方：ECS 叢集所在的帳戶與區域、Cloud Run 的專案與區域、Container Apps 的訂用帳戶與區域。當你的遙測資料第一次帶著正確的資源屬性送達時，OneUptime 就會建立一個環境，並彙整在其中執行的每個工作負載。不需要手動註冊任何東西。
 
-環境列在 應用程式平台 中，這是一個獨立的產品：**應用程式平台 → 概覽** 依平台將環境分組，並把已停止回報的環境排在最前面，**應用程式平台 → 所有環境** 列出所有環境。雲端帳戶中的資源，例如虛擬機器、儲存貯體和受管理的資料庫，位於 雲端 中：請參閱 [雲端資源](/docs/telemetry/cloud-resources)。
+環境列在 應用程式平台 中，這是一個獨立的產品：**應用程式平台 → 概覽** 依平台將環境分組，並把已停止回報的環境排在最前面，**應用程式平台 → 所有應用程式** 列出環境中執行的每個應用程式，**應用程式平台 → 所有環境** 列出所有環境。雲端帳戶中的資源，例如虛擬機器、儲存貯體和受管理的資料庫，位於 雲端 中：請參閱 [雲端資源](/docs/telemetry/cloud-resources)。
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Fargate 或 EC2 上的任務，以及每個任務的 CPU 與記憶體。
@@ -31,6 +31,7 @@ flowchart TB
 - **資源偵測器會說明工作負載在哪裡執行。** SDK 或 Collector 中的 OpenTelemetry 資源偵測器會讀取平台的中繼資料，並在工作負載傳送的所有資料上設定 `cloud.platform`、`cloud.account.id` 與 `cloud.region`。沒有偵測器的地方，就由你自己設定。
 - **環境負責彙整。** 平台、帳戶與區域都相同的工作負載會進入同一個環境。各個服務仍在 **服務** 中保有各自的列。
 - **每個執行中的任務都是一個執行個體。** 環境的 **執行個體** 分頁會列出執行中的任務、執行個體或複本，並在平台能提供時顯示即時的 CPU 與記憶體。
+- **每個服務都是一個應用程式。** ECS 服務、Cloud Run 服務或 Container App 都是其環境的一個應用程式，OneUptime 會記錄它執行的修訂版本：請參閱 [應用程式與部署](#應用程式與部署)。
 
 ## 開始之前
 
@@ -94,6 +95,32 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 ### 新增環境
 
 擷取流程會為你建立環境，因此不需要填寫任何內容。開啟 **應用程式平台 → 所有環境** 並按一下 **新增雲端環境**：選擇你的應用程式在哪裡執行，指南就會顯示該平台的 OpenTelemetry 設定，並已填好你的 OneUptime URL 與擷取金鑰。指南的最後一步 **等待連線** 會在環境的第一批資料送達時告訴你，並提供指向它的連結。若要顯示其他名稱，請在環境的 **設定** 頁面上，於 **環境詳細資料** 卡片中選擇 **編輯詳細資料**，然後填入 **顯示名稱**。
+
+## 應用程式與部署
+
+環境執行的每個服務都是該環境的一個應用程式，名稱與平台主控台中的名稱相同。**應用程式平台 → 所有應用程式** 列出每個應用程式及其正在執行的修訂版本，以及過去一小時的請求、錯誤率與 p95 延遲；環境的 **應用程式** 分頁列出該環境自己的應用程式。
+
+| 平台 | 應用程式 | 區分依據 | 修訂版本 |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`，否則 `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`，否則 `service.version` 或 `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`，否則 `container.image.tag` |
+| Google Cloud Run | `faas.name`，否則 `service.name` | — | `faas.version`，否則 `service.version` |
+| Google App Engine | `faas.name`，否則 `service.name` | — | `faas.version`，否則 `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`，否則 `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`，否則 `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+遙測資料攜帶的第一個屬性就是應用程式的名稱，因此沒有資源偵測器的平台上的應用程式仍然是應用程式，名稱取自它的 `service.name`。未設定 `service.name` 時 SDK 回報的 `unknown_service` 不會成為任何應用程式的名稱。
+
+- **應用程式從未執行過的修訂版本就是一次部署。** OneUptime 會記錄它取代了哪個修訂版本，以及取代的時間。OneUptime 看到的第一個修訂版本是應用程式歷史的起點，而不是一次部署。
+- **退回就是回復。** 當應用程式正在執行的修訂版本 15 分鐘內沒有任何回報，而它先前執行過的某個修訂版本仍在執行時，OneUptime 會記錄一次回復到該修訂版本。
+- **兩者都是變更。** 每一次都會成為應用程式與環境圖表上的一條虛線、環境 **動態** 中的一列，以及 OneUptime AI 調查該環境的事件時會讀取的一筆 [變更事件](/docs/telemetry/change-events)。**應用程式平台 → 概覽** 上的 **近期部署** 列出最新的幾次。
+- **每個應用程式每小時最多記錄 12 個新修訂版本。** 否則，隨每次建置變化的 `service.version` 會變成每分鐘一次部署。
+
+應用程式的頁面有顯示其請求、錯誤、延遲、執行個體與目前執行之修訂版本的 **概覽**、顯示每個修訂版本數據的 **修訂版本** 分頁，以及篩選到該應用程式的 **執行個體**、**日誌** 與 **追蹤** 分頁。**設定警示** 會開啟 **服務** 中該應用程式所屬服務的建議監視器。
+
+30 天內沒有傳送任何資料的應用程式會連同其修訂版本一起被移除；30 天內沒有任何執行個體回報的修訂版本也會被移除，除非應用程式仍在執行它。在自行託管的 OneUptime 上，可以用 `CLOUD_APP_RETENTION_DAYS` 設定這個 30。
 
 ## 哪些不是雲端環境
 
@@ -182,12 +209,13 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 環境的 **概覽** 會顯示：
 
-- 根據追蹤計算的 **請求**、**錯誤率** 與 **p95 延遲**，以及你所選時間範圍內的請求、錯誤與記憶體圖表。
+- 根據請求進入服務的 span 計算的 **請求**、**錯誤率** 與 **p95 延遲**，以及你所選時間範圍內的請求、錯誤與記憶體圖表，每次部署處都有一條虛線。
 - 所有線上執行個體的 **CPU** 與 **記憶體**，以及 **依 CPU 排序的前幾名執行個體** 清單。這些資料來自帶有執行個體識別的 `container.cpu.utilization` 與 `container.memory.usage` 指標；在 ECS 上則來自 `awsecscontainermetrics` 接收器的 `ecs.task.cpu.utilized` 與 `ecs.task.memory.utilized`。
 - **執行個體**：最近 15 分鐘內回報過的執行個體數量。**執行個體** 分頁中每個執行個體一列。
+- **應用程式**：環境執行的應用程式，需要留意的排在前面，並顯示它們過去一小時的請求與錯誤。
 - 依環境篩選的 **日誌**、**追蹤** 與 **指標** 分頁。
 
-遙測資料中斷 15 分鐘的環境會顯示 **已中斷**，下一個 span、日誌或指標送達後會恢復為 **已連線**。OneUptime 本身停機或追趕積壓資料的時間不計入這 15 分鐘。
+尚未傳送任何資料的環境會顯示 **等待中**。遙測資料中斷 15 分鐘的環境會顯示 **已中斷**，下一個 span、日誌或指標送達後會恢復為 **已連線**。OneUptime 本身停機或追趕積壓資料的時間不計入這 15 分鐘。
 
 ### 標籤與擁有者
 

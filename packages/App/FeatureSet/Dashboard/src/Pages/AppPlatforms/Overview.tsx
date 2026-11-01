@@ -3,6 +3,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../../Components/AppLink/AppLink";
 import CloudFleetSummary from "../../Components/Cloud/CloudFleetSummary";
+import RecentDeploysCard from "../../Components/AppPlatforms/RecentDeploysCard";
 import CloudConnectionLogo from "../../Components/Cloud/Connect/CloudConnectionLogo";
 import CLOUD_ENVIRONMENT_ONBOARDING from "../../Components/Cloud/CloudEnvironmentOnboarding";
 import CLOUD_ENVIRONMENT_SHOWCASE from "../../Components/Cloud/CloudEnvironmentShowcase";
@@ -24,7 +25,7 @@ import {
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
@@ -57,8 +58,12 @@ import React, {
  * App Platforms' Overview, the page the product opens on: how the apps on
  * every managed app and container platform are doing, at a glance.
  *
- *   - The strip on top counts the environments, how many are connected and
- *     how many instances are live (CloudFleetSummary).
+ *   - The strip on top counts the apps and how many run, the environments,
+ *     the deploys of the last day and how many instances are live
+ *     (CloudFleetSummary).
+ *   - "Recent deploys" lists the newest revisions the apps started running,
+ *     each opening its app's Revisions: what changed, before anything else
+ *     is asked.
  *   - "Platforms" has one group per platform the apps run on - AWS ECS /
  *     Fargate, Google Cloud Run, Azure App Service and the rest - each with
  *     its environments: the ones that went quiet first, with when they were
@@ -95,6 +100,10 @@ export const ENVIRONMENT_LAST_SEEN: string =
 export const ENVIRONMENT_NEVER_SEEN: string = translationKey(
   "Waiting for its first data",
 );
+// A platform none of whose environments has sent anything yet.
+export const GROUP_NEVER_SEEN: string = translationKey(
+  "Waiting for first data",
+);
 export const UNKNOWN_PLATFORM: string = translationKey(
   "Platform not reported yet",
 );
@@ -111,6 +120,7 @@ const TONE_COLORS: Readonly<Record<AppPlatformGroupTone, Color>> = {
   [AppPlatformGroupTone.Healthy]: Green,
   [AppPlatformGroupTone.Partial]: Yellow,
   [AppPlatformGroupTone.Silent]: Red,
+  [AppPlatformGroupTone.Waiting]: Gray500,
 };
 
 function toRow(item: CloudResource): AppPlatformEnvironmentRow {
@@ -186,10 +196,12 @@ const PlatformGroupRows: FunctionComponent<{
       ? translator.translateText(ALL_CONNECTED) || ALL_CONNECTED
       : tone === AppPlatformGroupTone.Silent
         ? translator.translateText(NONE_CONNECTED) || NONE_CONNECTED
-        : translator.translatePlural(
-            SOME_DISCONNECTED,
-            total - group.connected,
-          );
+        : tone === AppPlatformGroupTone.Waiting
+          ? translator.translateText(GROUP_NEVER_SEEN) || GROUP_NEVER_SEEN
+          : translator.translatePlural(
+              SOME_DISCONNECTED,
+              total - group.connected,
+            );
 
   return (
     <li
@@ -435,6 +447,11 @@ const AppPlatformsOverview: FunctionComponent<
       <CloudFleetSummary
         refreshToken={(firstRecordWatch.count || 0) + connectedCount}
       />
+      <div className="mb-6">
+        <RecentDeploysCard
+          refreshToken={(firstRecordWatch.count || 0) + connectedCount}
+        />
+      </div>
       <Card
         id="platforms"
         title={PLATFORMS_CARD_TITLE}

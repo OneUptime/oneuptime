@@ -9,8 +9,9 @@ by `cloudResourceKind` (`environment` or `resource`).
 
 It bundles the production route group
 (`packages/App/FeatureSet/Dashboard/src/Routes/AppPlatformsRoutes.tsx`: its
-layout and side menus, Overview, All Environments, an environment's pages, the
-rules and Archived) and Cloud's resource view layout
+layout and side menus, Overview, All Apps, All Environments, an environment's
+pages and its apps' pages, the rules and Archived) and Cloud's resource view
+layout
 (`Pages/Cloud/View/Layout.tsx`, which forwards an environment to App
 Platforms), under their real `RouteMap` patterns, with esbuild. It replaces
 only the `ModelAPI` / `AnalyticsModelAPI` / `API` / `Realtime` data boundary
@@ -31,6 +32,21 @@ never sent anything. `checkout` runs three tasks (30, 36 and 42% CPU; 256, 512
 and 768 MiB), and its spans and memory come back as smooth series over the last
 half hour (about 1,300 requests, a 1.5% error rate, a p95 of about 120 ms).
 
+Six apps run in them: `checkout-api` and `inventory` in `checkout`'s
+`production` cluster (`checkout-api` on task definition revision 43 for 25
+minutes, after 42 and 41, with two tasks on 43 and one still on 42;
+`inventory` quiet for two hours), `billing-api` (quiet for three hours),
+`api` and `worker` on Cloud Run (`api` deployed from `api-00041-abc` to
+`api-00042-xyz` an hour ago) and `reports` on Container Apps (rolled back 40
+minutes ago from `reports--v12abc`, deployed two days ago, to the
+`reports--v11def` it ran before). Their requests,
+errors and p95 over the last hour, and `checkout-api`'s per revision, come
+back from `/telemetry/traces/analytics` (`APP_SIGNALS`, `REVISION_SIGNALS`).
+The service `checkout-api`'s telemetry is under is in Services, so its app page
+offers **Set up alerts**. `checkout`'s feed holds the line `checkout-api`'s
+deploy of 43 wrote, and `reports`' environment's the line of its rollback
+(`CloudResourceFeed`, as `CloudAppChangeRecorder` writes them).
+
 One row is a resource of a connected Azure account, `vm-prod-01`: Cloud's,
 never listed in App Platforms. Its App Platforms address forwards to Cloud.
 
@@ -38,8 +54,9 @@ Owner and label rules come in each kind: App Platforms' own, Cloud's own
 (never listed here), and one made before the split, for both, which wears the
 **Also in Cloud** pill.
 
-Lists are filtered on the query's plain values, `Includes`, `EqualToOrNull`
-and ids, and sorted as the server sorts them. The telemetry explorers (an
+Lists are filtered on the query's plain values, `Includes`, `EqualToOrNull`,
+`NotNull`, `InBetween`, `GreaterThan` and ids, and sorted as the server sorts
+them, dates and numbers by value. The telemetry explorers (an
 environment's Metrics, Logs and Traces) read an environment that has sent no
 logs or spans in the range. Any route not listed above renders a "Not
 modelled" stub (`data-testid="stub-page"`).
@@ -48,16 +65,17 @@ modelled" stub (`data-testid="stub-page"`).
 
 Query parameters on any page:
 
-| Parameter | Values                                                       |
-| --------- | ------------------------------------------------------------ |
-| `state`   | `empty`: no environment yet (the Overview's first-run guide) |
-| `lang`    | `de` or `fa` (Persian, laid out right to left)               |
-| `theme`   | `dark` adds `html.dark` (server.js)                          |
+| Parameter | Values                                                                                                                                          |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `state`   | `empty`: no environment yet (the Overview's first-run guide); `connected`: every environment connected (the strip breaks them down by provider) |
+| `lang`    | `de` or `fa` (Persian, laid out right to left)                                                                                                  |
+| `theme`   | `dark` adds `html.dark` (server.js)                                                                                                             |
 
 ## What the fixture records
 
 `window.__appPlatformsFixture` holds every read: `listRequests`,
-`countRequests`, `itemRequests`, `aggregateRequests`, `apiRequests` and
+`countRequests`, `itemRequests`, `aggregateRequests`, `apiRequests`,
+`analyticsRequests` (the grouped trace reads, with their bodies) and
 `unhandled` - anything the fixture does not model. Every test fails on a page
 error, on a request that leaves `127.0.0.1`, and on anything in `unhandled`.
 

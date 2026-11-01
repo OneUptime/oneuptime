@@ -77,12 +77,20 @@ describe("each kind's pages are in its own product", () => {
   });
 
   test("every tab page of each product is in its map, so a new tab cannot be left out", () => {
+    /*
+     * The pages under a row that are not its tabs are the pages of its own
+     * records - an environment's app (…/:id/apps/:appId) - and end in
+     * _DETAIL, as a cluster's pod's page does.
+     */
     const routed: (prefix: string) => Array<string> = (
       prefix: string,
     ): Array<string> => {
       return Object.keys(RouteMap)
         .filter((key: string): boolean => {
-          return key === prefix || key.startsWith(`${prefix}_`);
+          return (
+            (key === prefix || key.startsWith(`${prefix}_`)) &&
+            !key.endsWith("_DETAIL")
+          );
         })
         .sort();
     };
