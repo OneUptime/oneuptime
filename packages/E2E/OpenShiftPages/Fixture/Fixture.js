@@ -1268,7 +1268,10 @@ async function handleApi(method, options) {
     );
   }
 
-  // A DeploymentConfig's pods, added up by their label.
+  /*
+   * A DeploymentConfig's pods, added up by their label in their namespace,
+   * keyed <namespace>/<name> as the server keys them.
+   */
   if (
     method === "POST" &&
     parsed.pathname.includes(
@@ -1278,7 +1281,7 @@ async function handleApi(method, options) {
     return ok({
       aggregates: parsed.pathname.endsWith("/DeploymentConfig")
         ? {
-            "legacy-web": {
+            "shop/legacy-web": {
               cpuPercent: 12.5,
               memoryBytes: String(512 * 1024 * 1024),
               memoryPercent: 6.25,

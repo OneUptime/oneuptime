@@ -354,6 +354,13 @@ jobs:
           # Escape tests joined it later that day (4 tests, about 12 seconds
           # locally: the help and an option's sentence put away by Escape,
           # pointed at, reached with Tab and tapped).
+          # Kubernetes Pages (23 tests, 1.8 minutes locally plus its bundle,
+          # Chromium only: a cluster's Overview - what needs attention first,
+          # each a step to its page in its namespace - and the pages of a
+          # Deployment, a pod, a node, a StatefulSet, a DaemonSet, a CronJob
+          # and a Job, Turn on N alerts into Recommendations, the Deployments
+          # and Pods lists, at 1280 and 390 pixels, dark, German and Persian)
+          # joined them on 2026-11-01, the lightest group: about 21.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -364,6 +371,7 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-runbook-steps-ui
+              test-kubernetes-pages-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -1351,4 +1359,6 @@ jobs:
             output/playwright/resource-overviews-ui/test-results
             output/playwright/proxmox-pages-ui/*.png
             output/playwright/proxmox-pages-ui/test-results
+            output/playwright/kubernetes-pages-ui/*.png
+            output/playwright/kubernetes-pages-ui/test-results
           retention-days: 7
