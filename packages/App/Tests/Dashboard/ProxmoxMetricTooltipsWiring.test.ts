@@ -10,24 +10,35 @@ import { escapeRegExp } from "Common/Utils/RegExpEscape";
 /*
  * Every metric on the Proxmox pages carries an (i) that explains it. The
  * App suite runs in plain Node with no renderer, so this pins the JSX wiring
- * by reading the sources: each title is paired with its own description, no
- * tile, chart card, summary field or column is left without one, and the
- * metadata fields (names, IDs, timestamps) are left alone. Comments are
- * stripped and whitespace squashed so Prettier reflows and rationale
- * comments cannot make a test pass or fail. The Common suite renders the
- * same pages for real (ProxmoxOverviewTooltips / ProxmoxResourcePageTooltips).
+ * by reading the sources - the cluster's pages and the parts they are built
+ * from (a node's, guest's and storage's Overview, their hero, the Backups
+ * card and the list columns): each title is paired with its own
+ * description, no tile, chart card, stat, row or column that shows a reading
+ * is left without one, and the metadata (names, IDs, timestamps) is left
+ * alone. Comments are stripped and whitespace squashed so Prettier reflows
+ * and rationale comments cannot make a test pass or fail. The Common suite
+ * renders the same pages for real (ProxmoxOverviewTooltips /
+ * ProxmoxResourcePageTooltips / ProxmoxPartPages).
  */
 
-const PROXMOX_VIEW: string = path.join(
+const DASHBOARD_SRC: string = path.join(
   __dirname,
   "..",
   "..",
   "FeatureSet",
   "Dashboard",
   "src",
+);
+const PROXMOX_VIEW: string = path.join(
+  DASHBOARD_SRC,
   "Pages",
   "Proxmox",
   "View",
+);
+const PROXMOX_COMPONENTS: string = path.join(
+  DASHBOARD_SRC,
+  "Components",
+  "Proxmox",
 );
 
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
@@ -37,15 +48,34 @@ const DESCRIPTION_REFERENCE: RegExp = /PROXMOX_METRIC_DESCRIPTIONS\.(\w+)/g;
 const COLUMN_HEADING: RegExp = /heading: "([^"]+)"/;
 const RECORD_IMPORT: string =
   'import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";';
+const COMPONENT_RECORD_IMPORT: RegExp =
+  /import \{ PROXMOX_METRIC_DESCRIPTIONS \} from "(\.\.\/)+MetricDescriptions\/ProxmoxMetricDescriptions";/;
 const TOOLTIP_IMPORT: string =
   'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";';
 
+// A tile as the parts and the Overview write it: its title, then its description.
+const DESCRIBED_TILE: RegExp =
+  /<GoldenMetricTile title=\{tx\("([^"]+)"\)\}(?:(?!<GoldenMetricTile ).)*?description=\{PROXMOX_METRIC_DESCRIPTIONS\.(\w+)\}/g;
+// A details row with a description, before the next row's label.
+const DESCRIBED_ROW: RegExp =
+  /label: "([^"]+)",(?:(?!label: ").)*?description: PROXMOX_METRIC_DESCRIPTIONS\.(\w+),/g;
+const ROW_LABEL: RegExp =
+  /detailRows\.push\(\{ key: "[^"]+", label: "([^"]+)",/g;
+
 function readCode(file: string): string {
   return fs
-    .readFileSync(path.join(PROXMOX_VIEW, file), "utf8")
+    .readFileSync(file, "utf8")
     .replace(BLOCK_COMMENT, " ")
     .replace(LINE_COMMENT, "$1")
     .replace(WHITESPACE, " ");
+}
+
+function view(file: string): string {
+  return readCode(path.join(PROXMOX_VIEW, file));
+}
+
+function component(file: string): string {
+  return readCode(path.join(PROXMOX_COMPONENTS, file));
 }
 
 function between(source: string, from: string, to: string): string {
@@ -97,24 +127,77 @@ function referencedKeys(source: string): Array<string> {
   );
 }
 
-const OVERVIEW: string = readCode("Index.tsx");
-const NODE_DETAIL: string = readCode("NodeDetail.tsx");
-const GUEST_DETAIL: string = readCode("GuestDetail.tsx");
-const STORAGE_DETAIL: string = readCode("StorageDetail.tsx");
-const NODES: string = readCode("Nodes.tsx");
-const GUESTS: string = readCode("Guests.tsx");
-const STORAGE: string = readCode("Storage.tsx");
-const INSIGHTS: string = readCode("Insights.tsx");
+// Each tile's title and the description it carries, in page order.
+function describedTiles(source: string): Array<[string, string]> {
+  return Array.from(source.matchAll(DESCRIBED_TILE)).map(
+    (match: RegExpMatchArray): [string, string] => {
+      return [match[1]!, match[2]!];
+    },
+  );
+}
 
-const ALL_PAGES: Record<string, string> = {
+// Each details row that carries a description, and which one.
+function describedRows(source: string): Array<[string, string]> {
+  return Array.from(source.matchAll(DESCRIBED_ROW)).map(
+    (match: RegExpMatchArray): [string, string] => {
+      return [match[1]!, match[2]!];
+    },
+  );
+}
+
+function rowLabels(source: string): Array<string> {
+  return Array.from(source.matchAll(ROW_LABEL)).map(
+    (match: RegExpMatchArray): string => {
+      return match[1]!;
+    },
+  );
+}
+
+const OVERVIEW: string = view("Index.tsx");
+const NODE_DETAIL: string = view("NodeDetail.tsx");
+const GUEST_DETAIL: string = view("GuestDetail.tsx");
+const STORAGE_DETAIL: string = view("StorageDetail.tsx");
+const NODES: string = view("Nodes.tsx");
+const GUESTS: string = view("Guests.tsx");
+const STORAGE: string = view("Storage.tsx");
+const INSIGHTS: string = view("Insights.tsx");
+
+const BACKUPS_CARD: string = component("ProxmoxBackupsCard.tsx");
+const COLUMNS: string = component("ProxmoxResourceColumns.ts");
+const PART_HERO: string = component(path.join("Part", "ProxmoxPartHero.tsx"));
+const NODE_OVERVIEW: string = component(
+  path.join("Part", "ProxmoxNodeOverview.tsx"),
+);
+const GUEST_OVERVIEW: string = component(
+  path.join("Part", "ProxmoxGuestOverview.tsx"),
+);
+const STORAGE_OVERVIEW: string = component(
+  path.join("Part", "ProxmoxStorageOverview.tsx"),
+);
+
+const PAGES: Record<string, string> = {
   "Index.tsx": OVERVIEW,
   "NodeDetail.tsx": NODE_DETAIL,
   "GuestDetail.tsx": GUEST_DETAIL,
-  "StorageDetail.tsx": STORAGE_DETAIL,
   "Nodes.tsx": NODES,
   "Guests.tsx": GUESTS,
   "Storage.tsx": STORAGE,
   "Insights.tsx": INSIGHTS,
+};
+
+const COMPONENTS: Record<string, string> = {
+  "ProxmoxBackupsCard.tsx": BACKUPS_CARD,
+  "ProxmoxResourceColumns.ts": COLUMNS,
+  "Part/ProxmoxPartHero.tsx": PART_HERO,
+  "Part/ProxmoxNodeOverview.tsx": NODE_OVERVIEW,
+  "Part/ProxmoxGuestOverview.tsx": GUEST_OVERVIEW,
+  "Part/ProxmoxStorageOverview.tsx": STORAGE_OVERVIEW,
+};
+
+const ALL_SOURCES: Record<string, string> = {
+  ...PAGES,
+  "StorageDetail.tsx": STORAGE_DETAIL,
+  ...COMPONENTS,
 };
 
 /*
@@ -143,31 +226,38 @@ function replicationColumns(): Map<string, string> {
 }
 
 describe("the Proxmox pages read their words from one record", () => {
-  test.each(Object.keys(ALL_PAGES))(
+  test.each(Object.keys(PAGES))(
     "%s imports PROXMOX_METRIC_DESCRIPTIONS",
     (file: string) => {
-      expect(ALL_PAGES[file]).toContain(RECORD_IMPORT);
+      expect(PAGES[file]).toContain(RECORD_IMPORT);
     },
   );
 
-  test("every description in the record is shown on a Proxmox page", () => {
-    const shown: Set<string> = new Set(
-      Object.values(ALL_PAGES).flatMap(referencedKeys),
+  test.each(Object.keys(COMPONENTS))(
+    "%s imports PROXMOX_METRIC_DESCRIPTIONS",
+    (file: string) => {
+      expect(COMPONENTS[file]).toMatch(COMPONENT_RECORD_IMPORT);
+    },
+  );
+
+  test("every description in the record is shown on a Proxmox page or part", () => {
+    const shownKeys: Set<string> = new Set(
+      Object.values(ALL_SOURCES).flatMap(referencedKeys),
     );
 
     expect(
       Object.keys(PROXMOX_METRIC_DESCRIPTIONS).filter((key: string) => {
-        return !shown.has(key);
+        return !shownKeys.has(key);
       }),
     ).toEqual([]);
   });
 
-  test("no page points at a description the record does not have", () => {
+  test("no page or part points at a description the record does not have", () => {
     const known: Set<string> = new Set(
       Object.keys(PROXMOX_METRIC_DESCRIPTIONS),
     );
 
-    for (const [file, source] of Object.entries(ALL_PAGES)) {
+    for (const [file, source] of Object.entries(ALL_SOURCES)) {
       expect({
         file,
         unknown: referencedKeys(source).filter((key: string) => {
@@ -177,8 +267,8 @@ describe("the Proxmox pages read their words from one record", () => {
     }
   });
 
-  test("no page writes its explanation inline instead of using the record", () => {
-    for (const [file, source] of Object.entries(ALL_PAGES)) {
+  test("no page or part writes its explanation inline instead of using the record", () => {
+    for (const [file, source] of Object.entries(ALL_SOURCES)) {
       const inlineTooltip: RegExp = /<InfoTooltip[^>]*text="/;
       const inlineCardTooltip: RegExp = /tooltip="/;
 
@@ -195,41 +285,16 @@ describe("the Proxmox pages read their words from one record", () => {
 });
 
 describe("cluster overview: golden tiles", () => {
-  const TILES: Array<[string, ProxmoxMetric]> = [
-    ["Node Availability", "nodeAvailability"],
-    ["CPU", "clusterCpu"],
-    ["Memory", "clusterMemory"],
-    ["Storage", "fullestStorage"],
-    ["Guests", "guestsRunning"],
-    ["Backup Coverage", "backupCoverage"],
-  ];
-
-  test("every GoldenMetricTile on the page has a description", () => {
-    const tiles: Array<string> = OVERVIEW.split("<GoldenMetricTile ").slice(1);
-
-    expect(tiles).toHaveLength(TILES.length);
-
-    for (const tile of tiles) {
-      const props: string = tile.slice(0, tile.indexOf("/>"));
-
-      expect(props).toMatch(/description=\{PROXMOX_METRIC_DESCRIPTIONS\.\w+\}/);
-    }
+  test("every tile carries its own description", () => {
+    expect(describedTiles(OVERVIEW)).toEqual([
+      ["Node Availability", "nodeAvailability"],
+      ["CPU", "clusterCpu"],
+      ["Memory", "clusterMemory"],
+      ["Storage", "fullestStorage"],
+      ["Guests", "guestsRunning"],
+    ]);
+    expect(count(OVERVIEW, "<GoldenMetricTile ")).toBe(5);
   });
-
-  test.each(TILES)(
-    "the %s tile carries %s",
-    (title: string, key: ProxmoxMetric) => {
-      const tile: string = between(
-        OVERVIEW,
-        `<GoldenMetricTile title="${title}"`,
-        "/>",
-      );
-
-      expect(tile).toContain(
-        `description={PROXMOX_METRIC_DESCRIPTIONS.${key}}`,
-      );
-    },
-  );
 });
 
 describe("cluster overview: chart cards", () => {
@@ -316,6 +381,26 @@ describe("cluster overview: hero, cards and tables", () => {
     expect(OVERVIEW).toContain(TOOLTIP_IMPORT);
   });
 
+  test("the hero's Connected pill says when it turns Disconnected, and its health pill why", () => {
+    const connection: string = between(
+      OVERVIEW,
+      'data-testid="proxmox-hero-connection"',
+      'data-testid="proxmox-hero-health"',
+    );
+
+    expect(connection).toMatch(tooltipPattern("Agent Status", "agentStatus"));
+    expect(count(connection, "<InfoTooltip")).toBe(1);
+
+    const health: string = between(
+      OVERVIEW,
+      'data-testid="proxmox-hero-health"',
+      "<ResourceHeroDescription",
+    );
+
+    expect(health).toMatch(tooltipPattern("Cluster Health", "clusterHealth"));
+    expect(count(health, "<InfoTooltip")).toBe(1);
+  });
+
   test("the hero's count chips carry one (i), and only when a count chip is shown", () => {
     const chips: string = between(
       OVERVIEW,
@@ -366,6 +451,22 @@ describe("cluster overview: hero, cards and tables", () => {
 
     expect(chips).toMatch(
       tooltipPattern("High-availability states", "haStates"),
+    );
+  });
+
+  test("the Backups card's stats each carry their own description", () => {
+    expect(describedRows(BACKUPS_CARD)).toEqual([
+      ["Last backup OK", "backupsLastOk"],
+      ["Last backup failed", "backupsLastFailed"],
+      ["In no backup job", "backupsNotInJob"],
+      ["Newest backup", "backupsNewest"],
+    ]);
+  });
+
+  test("the Backups card draws each stat's (i) beside its label", () => {
+    expect(BACKUPS_CARD).toContain(TOOLTIP_IMPORT);
+    expect(BACKUPS_CARD).toContain(
+      "<span>{tx(stat.label)}</span> <InfoTooltip label={stat.label} text={stat.description} />",
     );
   });
 
@@ -439,121 +540,6 @@ describe("cluster overview: hero, cards and tables", () => {
   );
 });
 
-describe("cluster overview: summary strip", () => {
-  const strip: string = between(
-    OVERVIEW,
-    '<InfoCard title="Cluster Health"',
-    "<ResourceActivityCards",
-  );
-
-  test.each([
-    ["Cluster Health", "clusterHealth"],
-    ["Quorum", "quorum"],
-    ["Agent Status", "agentStatus"],
-  ] as Array<[string, ProxmoxMetric]>)(
-    "the %s card carries %s",
-    (title: string, key: ProxmoxMetric) => {
-      expect(strip).toContain(
-        `<InfoCard title="${title}" tooltip={PROXMOX_METRIC_DESCRIPTIONS.${key}}`,
-      );
-    },
-  );
-
-  test.each([
-    ["Nodes", "nodeCount", "nodesRoute", "Open the node list"],
-    ["Guests", "guestCount", "guestsRoute", "Open the guest list"],
-    ["Storage", "storageCount", "storageRoute", "Open the storage list"],
-  ] as Array<[string, ProxmoxMetric, string, string]>)(
-    "the linked %s card carries %s and still opens its list",
-    (title: string, key: ProxmoxMetric, route: string, label: string) => {
-      expect(strip).toContain(
-        `{renderLinkedSummaryCard({ title: "${title}", description: PROXMOX_METRIC_DESCRIPTIONS.${key}, route: ${route}, linkLabel: "${label}",`,
-      );
-    },
-  );
-
-  test("every InfoCard on the page has a tooltip", () => {
-    const cards: Array<string> = OVERVIEW.split("<InfoCard ").slice(1);
-
-    expect(cards.length).toBeGreaterThanOrEqual(4);
-
-    for (const card of cards) {
-      expect(card.slice(0, card.indexOf("value="))).toMatch(/tooltip=\{/);
-    }
-  });
-
-  test("no summary card is itself a button around its (i)", () => {
-    /*
-     * The summary cards that open a list are navigation, so they use an
-     * overlay link with a real href instead of InfoCard's onClick.
-     */
-    const cards: Array<string> = OVERVIEW.split("<InfoCard ").slice(1);
-
-    for (const card of cards) {
-      expect(card.slice(0, card.indexOf("/>"))).not.toContain("onClick=");
-    }
-  });
-
-  test("the linked card lays a real link over a plain card and lifts the (i) above it", () => {
-    const helper: string = between(
-      OVERVIEW,
-      "const renderLinkedSummaryCard:",
-      "return ( <Fragment>",
-    );
-
-    expect(helper).toContain('<div className="group relative">');
-    expect(helper).toContain("<Link to={params.route}");
-    expect(helper).toContain("absolute inset-0");
-    expect(helper).toContain(
-      '<span className="sr-only">{params.linkLabel}</span>',
-    );
-    expect(helper).toContain("tooltip={params.description}");
-    expect(helper).toContain("[&_button]:relative [&_button]:z-10");
-    // The link is closed before the card opens: the (i) is not inside it.
-    expect(helper.indexOf("</Link>")).toBeLessThan(helper.indexOf("<InfoCard"));
-    expect(OVERVIEW).toContain(
-      'import Link from "Common/UI/Components/Link/Link";',
-    );
-  });
-
-  test("the Quorum value no longer carries a second, native tooltip", () => {
-    const quorum: string = between(
-      strip,
-      '<InfoCard title="Quorum"',
-      "{renderLinkedSummaryCard(",
-    );
-
-    const value: string = between(quorum, "value={renderSummaryValue(", "/>");
-
-    expect(value).not.toContain("title=");
-    expect(OVERVIEW).not.toContain("Derived from node visibility");
-  });
-});
-
-/*
- * Detail pages build their summary fields as { title, value, description }.
- * Pairs a field title with the description it must carry.
- */
-function expectField(source: string, title: string, key: ProxmoxMetric): void {
-  const field: string = between(source, `title: "${title}",`, "});");
-
-  expect({ title, field }).toEqual({
-    title,
-    field: expect.stringContaining(
-      `description: PROXMOX_METRIC_DESCRIPTIONS.${key},`,
-    ),
-  });
-}
-
-function expectPlainField(source: string, title: string): void {
-  const field: string = between(source, `title: "${title}",`, "}");
-
-  expect({ title, hasDescription: field.includes("description:") }).toEqual({
-    title,
-    hasDescription: false,
-  });
-}
-
 /*
  * Each rate chart's heading ends with the drag-to-zoom hint (issue #4105),
  * after its (i).
@@ -582,26 +568,35 @@ function expectThroughputHeaders(
   }
 }
 
-describe("node detail", () => {
-  test.each([
-    ["Status", "nodeStatus"],
-    ["Uptime", "nodeUptime"],
-    ["CPU", "nodeCpu"],
-    ["Memory (Used / Total)", "nodeMemory"],
-    ["HA State", "nodeHaState"],
-  ] as Array<[string, ProxmoxMetric]>)(
-    "the %s field carries %s",
-    (title: string, key: ProxmoxMetric) => {
-      expectField(NODE_DETAIL, title, key);
-    },
-  );
+describe("a part's hero", () => {
+  test("its status pill says what each status means, for a node, a guest and a storage", () => {
+    expect(PART_HERO).toContain(
+      "const STATUS_DESCRIPTIONS: Record<ProxmoxPartKind, string> = { Node: PROXMOX_METRIC_DESCRIPTIONS.nodeStatus, Guest: PROXMOX_METRIC_DESCRIPTIONS.guestStatus, Storage: PROXMOX_METRIC_DESCRIPTIONS.storageStatus, };",
+    );
+    expect(PART_HERO).toContain("description: STATUS_DESCRIPTIONS[props.kind]");
+  });
+});
 
-  test.each(["Node Name", "Cluster", "External ID", "Last Seen"])(
-    "the %s field is metadata and has no (i)",
-    (title: string) => {
-      expectPlainField(NODE_DETAIL, title);
-    },
-  );
+describe("a node's page", () => {
+  test("its tiles each carry their own description", () => {
+    expect(describedTiles(NODE_OVERVIEW)).toEqual([
+      ["CPU", "nodeCpu"],
+      ["Memory", "nodeMemory"],
+      ["Root Disk", "nodeRootDisk"],
+      ["Guests", "nodeGuests"],
+    ]);
+    expect(count(NODE_OVERVIEW, "<GoldenMetricTile ")).toBe(4);
+  });
+
+  test("its details explain the readings, and leave the metadata alone", () => {
+    expect(describedRows(NODE_OVERVIEW)).toEqual([
+      ["Uptime", "nodeUptime"],
+      ["HA state", "nodeHaState"],
+    ]);
+    expect(rowLabels(NODE_OVERVIEW)).toEqual(
+      expect.arrayContaining(["Uptime", "CPU cores", "Memory", "HA state"]),
+    );
+  });
 
   test("each throughput chart has an (i) on its header", () => {
     expectThroughputHeaders(NODE_DETAIL, [
@@ -610,45 +605,35 @@ describe("node detail", () => {
     ]);
     expect(NODE_DETAIL).toContain(TOOLTIP_IMPORT);
   });
+
+  test("its Guests and Storage tabs explain their columns as the lists do", () => {
+    expect(NODE_DETAIL).toContain(
+      "builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.guestsTableStatus, cpu: PROXMOX_METRIC_DESCRIPTIONS.guestsTableCpu, memory: PROXMOX_METRIC_DESCRIPTIONS.guestsTableMemory, age: PROXMOX_METRIC_DESCRIPTIONS.guestsTableUptime, }}",
+    );
+    expect(NODE_DETAIL).toContain(
+      "builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus, age: PROXMOX_METRIC_DESCRIPTIONS.storageTableAge, }}",
+    );
+  });
 });
 
-describe("guest detail", () => {
-  test.each([
-    ["Status", "guestStatus"],
-    ["HA State", "guestHaState"],
-    ["Start on Boot", "guestStartOnBoot"],
-    ["Backup Job Coverage", "guestBackupCoverage"],
-    ["Uptime", "guestUptime"],
-    ["CPU", "guestCpu"],
-    ["Memory (Used / Max)", "guestMemory"],
-    ["Disk (Used / Max)", "guestDisk"],
-  ] as Array<[string, ProxmoxMetric]>)(
-    "the %s field carries %s",
-    (title: string, key: ProxmoxMetric) => {
-      expectField(GUEST_DETAIL, title, key);
-    },
-  );
-
-  test("both Disk branches - measured and 'install the guest agent' - carry the (i)", () => {
-    expect(count(GUEST_DETAIL, 'title: "Disk (Used / Max)",')).toBe(2);
-    expect(
-      count(
-        GUEST_DETAIL,
-        "description: PROXMOX_METRIC_DESCRIPTIONS.guestDisk,",
-      ),
-    ).toBe(2);
+describe("a guest's page", () => {
+  test("its tiles each carry their own description", () => {
+    expect(describedTiles(GUEST_OVERVIEW)).toEqual([
+      ["CPU", "guestCpu"],
+      ["Memory", "guestMemory"],
+      ["Disk", "guestDisk"],
+      ["Last Backup", "guestLastBackup"],
+    ]);
+    expect(count(GUEST_OVERVIEW, "<GoldenMetricTile ")).toBe(4);
   });
 
-  test.each([
-    "Guest Name",
-    "Cluster",
-    "VMID",
-    "Type",
-    "Node",
-    "External ID",
-    "Last Seen",
-  ])("the %s field is metadata and has no (i)", (title: string) => {
-    expectPlainField(GUEST_DETAIL, title);
+  test("its details explain the readings, and leave the metadata alone", () => {
+    expect(describedRows(GUEST_OVERVIEW)).toEqual([
+      ["Start on boot", "guestStartOnBoot"],
+      ["HA state", "guestHaState"],
+      ["Backup job", "guestBackupCoverage"],
+      ["Uptime", "guestUptime"],
+    ]);
   });
 
   test("each throughput chart has an (i) on its header", () => {
@@ -660,32 +645,30 @@ describe("guest detail", () => {
   });
 });
 
-describe("storage detail", () => {
-  test.each([
-    ["Status", "storageStatus"],
-    ["Used", "storageUsed"],
-    ["Total", "storageTotal"],
-    ["Used %", "storageUsedPercent"],
-    ["Growth Forecast", "storageGrowthForecast"],
-  ] as Array<[string, ProxmoxMetric]>)(
-    "the %s field carries %s",
-    (title: string, key: ProxmoxMetric) => {
-      expectField(STORAGE_DETAIL, title, key);
-    },
-  );
+describe("a storage's page", () => {
+  test("its tiles each carry their own description", () => {
+    expect(describedTiles(STORAGE_OVERVIEW)).toEqual([
+      ["Used", "storageUsedPercent"],
+      ["Free", "storageFree"],
+      ["Growth Forecast", "storageGrowthForecast"],
+    ]);
+    expect(count(STORAGE_OVERVIEW, "<GoldenMetricTile ")).toBe(3);
+  });
 
-  test.each(["Storage Name", "Cluster", "Node", "External ID", "Last Seen"])(
-    "the %s field is metadata and has no (i)",
-    (title: string) => {
-      expectPlainField(STORAGE_DETAIL, title);
-    },
-  );
+  test("its details explain whether it is shared, and leave the metadata alone", () => {
+    expect(describedRows(STORAGE_OVERVIEW)).toEqual([
+      ["Shared", "storageShared"],
+    ]);
+  });
 });
 
 describe("list pages", () => {
-  test("Nodes explains its built-in Status, CPU, Memory and Age columns", () => {
+  test("Nodes explains its built-in Status, CPU, Memory and Age columns, and its Guests column", () => {
     expect(NODES).toContain(
       "builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.nodesTableStatus, cpu: PROXMOX_METRIC_DESCRIPTIONS.nodesTableCpu, memory: PROXMOX_METRIC_DESCRIPTIONS.nodesTableMemory, age: PROXMOX_METRIC_DESCRIPTIONS.nodesTableUptime, }}",
+    );
+    expect(COLUMNS).toContain(
+      'title: "Guests", key: "guests", description: PROXMOX_METRIC_DESCRIPTIONS.nodesTableGuests,',
     );
   });
 
@@ -697,26 +680,31 @@ describe("list pages", () => {
 
   test.each([
     ["HA State", "haState", "guestsTableHaState"],
-    ["Backup", "backedUp", "guestsTableBackup"],
+    ["Backup", "backup", "guestsTableBackup"],
   ] as Array<[string, string, ProxmoxMetric]>)(
     "the Guests column %s carries %s",
     (title: string, columnKey: string, key: ProxmoxMetric) => {
-      expect(GUESTS).toContain(
+      expect(COLUMNS).toContain(
         `title: "${title}", key: "${columnKey}", description: PROXMOX_METRIC_DESCRIPTIONS.${key},`,
       );
     },
   );
 
   test("the Guests identity columns have no (i)", () => {
-    expect(GUESTS).toContain('{ title: "VMID", key: "vmid", }');
-    expect(GUESTS).toContain('{ title: "Type", key: "guestType", }');
+    expect(COLUMNS).toContain('{ title: "VMID", key: "vmid", }');
+    expect(
+      between(COLUMNS, '{ title: "Type", key: "guestKind",', "}, }"),
+    ).not.toContain("description:");
   });
 
-  test("Storage explains its Status and Age columns, and the usage column", () => {
+  test("Storage explains its Status and Age columns, whether a storage is shared, and its usage", () => {
     expect(STORAGE).toContain(
       "builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus, age: PROXMOX_METRIC_DESCRIPTIONS.storageTableAge, }}",
     );
-    expect(STORAGE).toContain(
+    expect(COLUMNS).toContain(
+      'title: "Shared", key: "shared", description: PROXMOX_METRIC_DESCRIPTIONS.storageShared,',
+    );
+    expect(COLUMNS).toContain(
       'title: "Used / Total", key: "diskBytes", description: PROXMOX_METRIC_DESCRIPTIONS.storageTableUsage,',
     );
     // Storage has no CPU or memory columns, so it must not describe them.
