@@ -160,8 +160,20 @@ const PlatformGroupRows: FunctionComponent<{
           <div className="text-sm font-semibold text-gray-900 break-words">
             {group.title || translator.translateText(UNKNOWN_PLATFORM)}
           </div>
+          {/*
+           * The provider's name is isolated (bdi): in a Persian line the
+           * count after it would otherwise join it, "AWS · ۲" drawn as
+           * one left-to-right run before the word it counts.
+           */}
           <div className="mt-0.5 text-xs text-gray-500">
-            {group.providerLabel ? `${group.providerLabel} · ` : ""}
+            {group.providerLabel ? (
+              <>
+                <bdi>{group.providerLabel}</bdi>
+                {" · "}
+              </>
+            ) : (
+              <></>
+            )}
             {translator.translatePlural(PLATFORM_ENVIRONMENT_COUNT, total)}
           </div>
         </div>

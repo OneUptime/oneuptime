@@ -260,13 +260,14 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
                 {/*
                  * Wraps rather than cuts: the providers' breakdown (2 AWS · 2
                  * Azure · 2 Google Cloud) is longer than a quarter of a laptop's
-                 * row, and the row's tiles grow together.
+                 * row, and the row's tiles grow together. Isolated (bdi), the
+                 * breakdown keeps its order on a right-to-left page.
                  */}
                 <div
                   data-testid="cloud-fleet-summary-tile-sublabel"
                   className="mt-1 break-words text-xs text-gray-500"
                 >
-                  {sublabel}
+                  <bdi>{sublabel}</bdi>
                 </div>
               </div>
             );
