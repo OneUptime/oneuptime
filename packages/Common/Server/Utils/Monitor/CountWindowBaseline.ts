@@ -2,6 +2,7 @@ import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
 import { EXCEPTION_BASELINE_MINIMUM_WEEKS } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import { MetricBaselineService } from "../../Services/MetricBaselineService";
+import MetricHourBaseline from "./MetricHourBaseline";
 import CountAnomaly, {
   CountBaselineStats,
   CountBaselineSummary,
@@ -49,7 +50,13 @@ import CountAnomaly, {
  * The result stays a per-minute rate, the unit the criteria judge and word an
  * alert in. Hours and days are read as the rollups hold them: ingest writes
  * UTC text the ClickHouse server stores as written, whatever its zone, so
- * they are UTC hours (MetricBaselineService.computeHourOfWeek).
+ * they are UTC hours (MetricBaselineService.computeHourOfWeek). The rollups'
+ * views number the week a day behind the code (MetricHourBaseline
+ * .toStoredHour), as MetricBaselineHourly's does, so the read names each
+ * hour as stored and works a row's hour of the day back from its number.
+ * Asked for in the code's numbers, a window found the next weekday's rows,
+ * which fall outside it, so its baseline was all zeros, and a Sunday's found
+ * no rows at all.
  */
 
 const MINUTE_IN_MS: number = 60 * 1000;
@@ -409,18 +416,23 @@ export default class CountWindowBaseline {
   }): string {
     /*
      * A rollup row's minute since the epoch, so a window is the same one here
-     * as in the plan. toDate: `day` is stored as a DateTime.
+     * as in the plan. toDate: `day` is stored as a DateTime. The hour of the
+     * day is the stored number's, translated: Monday's are stored past 231.
      */
     return `
       SELECT
         intDiv(
-          toUInt32(toDate(day)) * 1440 + (hourOfWeek % 24) * 60 + minuteOfHour,
+          toUInt32(toDate(day)) * 1440 + (${MetricHourBaseline.fromStoredHourSql("hourOfWeek")} % 24) * 60 + minuteOfHour,
           ${data.plan.windowMinutes}
         ) AS windowIndex,
         ${data.countExpression} AS c
       FROM ${data.tableName}
       WHERE ${data.scopeClause}
-        AND hourOfWeek IN (${data.plan.hoursOfWeek.join(", ")})
+        AND hourOfWeek IN (${data.plan.hoursOfWeek
+          .map((hour: number): number => {
+            return MetricHourBaseline.toStoredHour(hour);
+          })
+          .join(", ")})
         AND day >= toDate('${data.plan.firstDay}')
         AND day <= toDate('${data.plan.lastDay}')
       GROUP BY windowIndex

@@ -188,6 +188,29 @@ describe("MetricHourBaseline.toStoredHour", () => {
   });
 });
 
+describe("MetricHourBaseline.fromStoredHourSql", () => {
+  /*
+   * The same translation in ClickHouse, for a read that works a row's hour out
+   * in SQL (CountWindowBaseline). That ClickHouse makes of it what this says is
+   * in MonitorCountBaselineClickhouse.test.ts.
+   */
+  test("adds a day and keeps what a UInt8 holds, as fromStoredHour does", () => {
+    expect(MetricHourBaseline.fromStoredHourSql("hourOfWeek")).toBe(
+      "((hourOfWeek + 24) % 256)",
+    );
+  });
+
+  test("every stored number comes back as its hour of the week, Monday's included", () => {
+    for (let hour: number = 0; hour < 168; hour++) {
+      const stored: number = MetricHourBaseline.toStoredHour(hour);
+
+      // The SQL's arithmetic, on the number the view stored.
+      expect((stored + 24) % 256).toBe(hour);
+      expect(MetricHourBaseline.fromStoredHour(stored)).toBe(hour);
+    }
+  });
+});
+
 describe("MetricHourBaseline.getHourStarts", () => {
   test("the hour on each day of the window, the day judged last", () => {
     const starts: Array<string> = MetricHourBaseline.getHourStarts({
