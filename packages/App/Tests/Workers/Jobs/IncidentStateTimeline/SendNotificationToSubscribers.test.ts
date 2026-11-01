@@ -2860,3 +2860,56 @@ describe("IncidentStateTimeline:SendNotificationToSubscribers subscribers who pi
     expect(emailsSentTo()).toEqual(page.told);
   });
 });
+
+/*
+ * A state change is written in each subscriber's language (SubscriberLanguage):
+ * its subject and heading, its text message and chat messages, with
+ * OneUptime's default state names in that language and a project's own as
+ * written.
+ */
+describe("IncidentStateTimeline, in the subscriber's language", () => {
+  function pageIn(language: string): StatusPage {
+    const page: StatusPage = statusPage();
+    page.defaultLanguage = language;
+    return page;
+  }
+
+  test("a German page: German subject, heading, text and chat, the state in German", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "Resolved" })];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([pageIn("de")] as never);
+
+    await runJob();
+
+    const email: JSONObject = sentMail()[0]!;
+
+    expect(email["subject"]).toBe(`[Vorfall: Behoben] ${INCIDENT_TITLE}`);
+    expect(email["language"]).toBe("de");
+    expect((email["vars"] as JSONObject)["incidentState"]).toBe("Behoben");
+    expect(String((email["vars"] as JSONObject)["emailTitle"])).toContain(
+      ": Behoben",
+    );
+    expect(sentSms()[0]).toBe(
+      `Vorfall ${INCIDENT_TITLE} auf Acme Status: Behoben. Details: ${DETAILS_URL}. Abbestellen: ${SMS_UNSUBSCRIBE_URL}`,
+    );
+    expect(sentSlack()[0]).toContain("**Status:** Behoben");
+    expect(sentSlack()[0]).toContain(`Vorfall - ${INCIDENT_TITLE}`);
+    expect(sentTeams()[0]).toContain("Statusseite ansehen");
+  });
+
+  test("a state the project named itself reads as written, in a translated sentence", async () => {
+    pendingTimelines = [stateTimeline({ stateName: "Monitoring the fix" })];
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([pageIn("ja")] as never);
+
+    await runJob();
+
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[インシデント Monitoring the fix] ${INCIDENT_TITLE}`,
+    );
+    expect(sentSms()[0]).toContain("Monitoring the fix");
+    expect(sentSms()[0]).toContain("インシデント");
+  });
+});
