@@ -31,17 +31,19 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * alerts) baselines error volume only — not total traffic. Read-side
  * queries that don't filter on it simply merge across the values.
  *
- * Read access goes through `SpanCountBaselineService`, which fetches the
- * per-minute counts for one `hourOfWeek` across a rolling window
- * (default 14 days, max 90 — capped by the table's `day + INTERVAL 90
- * DAY` TTL) and computes mean/stddev/median/MAD in app code. The 168
+ * Read access goes through `SpanCountBaselineService`, which folds the
+ * per-minute counts around the same time of the earlier weeks of a rolling
+ * window (default 14 days, max 90 — capped by the table's `day + INTERVAL
+ * 90 DAY` TTL) into windows of the monitor's length and computes
+ * mean/stddev/median/MAD in app code (CountWindowBaseline). The 168
  * hour-of-week buckets capture daily and weekly seasonality (Mon 09:00
  * → 8, Sun 23:00 → 167) using ISO week numbering.
  *
- * Cold start: the evaluator refuses to fire while a baseline cell has
- * fewer than `minSamples` samples (default 5) — the "Learning" state.
- * Minutes with zero spans produce no rows (nothing inserts), so sparse
- * streams stay in Learning rather than fabricating a zero-heavy band.
+ * Cold start: the evaluator refuses to fire on fewer than two weeks of the
+ * services' history, or fewer than `minSamples` samples (default 5) — the
+ * "Learning" state. Minutes with zero spans produce no rows (nothing
+ * inserts): the read counts those it knows the services were reporting
+ * through, so a sparse stream has a baseline of mostly nothing.
  *
  * No CRUD API is exposed (`crudApiPath` and `enableMCP` are unset);
  * this is read-only baseline storage.

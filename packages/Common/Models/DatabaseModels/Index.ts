@@ -186,6 +186,7 @@ import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import DataStore from "./DataStore";
 import DataStoreFinding from "./DataStoreFinding";
 import DataStoreAccess from "./DataStoreAccess";
+import DataSecurityIdentity from "./DataSecurityIdentity";
 import DataStoreFeed from "./DataStoreFeed";
 import DataStoreOwnerUser from "./DataStoreOwnerUser";
 import DataStoreOwnerTeam from "./DataStoreOwnerTeam";
@@ -649,6 +650,7 @@ const AllModelTypes: Array<{
   DataStore,
   DataStoreFinding,
   DataStoreAccess,
+  DataSecurityIdentity,
   DataStoreFeed,
   DataStoreOwnerUser,
   DataStoreOwnerTeam,

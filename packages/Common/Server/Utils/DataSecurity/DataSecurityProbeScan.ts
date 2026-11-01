@@ -11,6 +11,7 @@ import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier
 import { MAX_MASKED_SAMPLES } from "../../../Utils/DataSecurity/FindingTally";
 import { MAX_MASKED_SAMPLE_LENGTH } from "../../../Utils/DataSecurity/Masking";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
+import { readUnplacedFields } from "../../../Utils/DataSecurity/UnplacedFields";
 import type { DatabaseEngine } from "./Content/DatabaseSampler";
 import {
   ContentScanOptions,
@@ -545,5 +546,12 @@ export function readProbeScanResult(
         ? Math.min(Math.round(estimatedRecords), Number.MAX_SAFE_INTEGER)
         : undefined,
     isComplete: raw["isComplete"] === true,
+    // Shapes and names only: each shape is read again (isValueShape).
+    unplacedFields: readUnplacedFields(
+      raw["unplacedFields"],
+      (kind: string): boolean => {
+        return LOCATION_KINDS.has(kind);
+      },
+    ),
   };
 }

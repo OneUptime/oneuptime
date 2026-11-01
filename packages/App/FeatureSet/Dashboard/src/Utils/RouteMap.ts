@@ -922,6 +922,7 @@ export const DataSecurityRoutePath: Dictionary<string> = {
   [PageMap.DATA_SECURITY_TELEMETRY]: "telemetry",
   [PageMap.DATA_SECURITY_FLOWS]: "flows",
   [PageMap.DATA_SECURITY_ACCESS]: "access",
+  [PageMap.DATA_SECURITY_IDENTITY_VIEW]: `access/${RouteParams.ModelID}`,
   [PageMap.DATA_SECURITY_COMPLIANCE]: "compliance",
   [PageMap.DATA_SECURITY_SCANS]: "scans",
   [PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES]: "settings/data-types",
@@ -7605,6 +7606,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATA_SECURITY_ACCESS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-security/${
       DataSecurityRoutePath[PageMap.DATA_SECURITY_ACCESS]
+    }`,
+  ),
+
+  [PageMap.DATA_SECURITY_IDENTITY_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-security/${
+      DataSecurityRoutePath[PageMap.DATA_SECURITY_IDENTITY_VIEW]
     }`,
   ),
 

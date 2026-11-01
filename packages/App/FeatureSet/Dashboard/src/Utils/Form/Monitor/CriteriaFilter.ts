@@ -940,9 +940,9 @@ export default class CriteriaFilterUtil {
       /*
        * Span/log counts also support the baseline anomaly filters — the
        * server evaluators (TraceMonitorCriteria / LogMonitorCriteria)
-       * compare the observed per-minute rate to the monitor's scope in
-       * the same-hour-of-week SpanCountBaseline / LogCountBaseline,
-       * mirroring the Metric monitor path. Security events have no
+       * compare the observed per-minute rate to windows around the same
+       * time of the earlier weeks, read from the monitor's scope in
+       * SpanCountBaseline / LogCountBaseline (CountWindowBaseline). Security events have no
        * volume baseline yet, so they keep the static comparators only.
        */
       const allowAnomaly: boolean =

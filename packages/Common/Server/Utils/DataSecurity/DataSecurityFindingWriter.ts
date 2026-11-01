@@ -4,7 +4,12 @@ import DataSecurityScan from "../../../Models/DatabaseModels/DataSecurityScan";
 import DataStoreFindingService from "../../Services/DataStoreFindingService";
 import DataStoreService from "../../Services/DataStoreService";
 import DataSecurityScanService from "../../Services/DataSecurityScanService";
-import { queueDataSecurityEvaluation } from "./DataSecurityJobs";
+import AIService from "../../Services/AIService";
+import {
+  queueDataSecurityEvaluation,
+  queueDataSecurityFieldSuggestions,
+} from "./DataSecurityJobs";
+import { withPendingFields } from "./FieldSuggestionState";
 import {
   ContentScanResult,
   LocationFindings,
@@ -37,6 +42,13 @@ import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier
  * A finding a scan no longer sees is kept: a sample can miss what is still
  * there. The evaluator counts only findings seen in the last
  * FINDING_FRESHNESS_IN_DAYS days, and older ones are pruned here.
+ *
+ * The fields a scan could not place are kept on the store for OneUptime AI
+ * (DataStore.fieldSuggestionState) when the project's Enable AI is on, and
+ * the suggestion job is queued; its suggestions come back through
+ * recordFieldSuggestions. A suggestion never takes the place of a
+ * detector's finding, and a finding a person confirmed keeps its High
+ * confidence whatever a later scan is sure of.
  */
 
 // How long a finding counts toward its store after a scan last saw it.
@@ -121,18 +133,54 @@ export default class DataSecurityFindingWriter {
       findingsFound: findingsWritten,
     });
 
+    const hasUnplacedFields: boolean =
+      (result.unplacedFields || []).length > 0 &&
+      (await AIService.isProjectAIEnabled(input.projectId));
+
     await this.updateStore({
       dataStoreId: input.dataStoreId,
       status,
       result,
       now,
       contentScanIntervalInHours: input.contentScanIntervalInHours,
+      keepUnplacedFields: hasUnplacedFields,
     });
 
     await this.pruneOldFindings(input.dataStoreId, now);
     await queueDataSecurityEvaluation(input.projectId);
 
+    if (hasUnplacedFields) {
+      await queueDataSecurityFieldSuggestions({
+        projectId: input.projectId,
+        dataStoreId: input.dataStoreId,
+      });
+    }
+
     return { scanId, findingsWritten };
+  }
+
+  /*
+   * OneUptime AI's suggestions for a store's unplaced fields
+   * (Server/Utils/AI/DataSecurity/FieldSuggestion): written as Low
+   * confidence findings marked as its own, with no masked sample, never
+   * over a detector's finding.
+   */
+  public static async recordFieldSuggestions(data: {
+    projectId: ObjectID;
+    dataStoreId: ObjectID;
+    locations: Array<LocationFindings>;
+    customDataTypes?: ReadonlyMap<string, CustomDataTypeSummary> | undefined;
+    now: Date;
+  }): Promise<number> {
+    return await this.writeFindings({
+      projectId: data.projectId,
+      dataStoreId: data.dataStoreId,
+      locations: data.locations,
+      keepMaskedSamples: false,
+      customDataTypes: data.customDataTypes,
+      now: data.now,
+      isSuggestion: true,
+    });
   }
 
   // A scan that could not run at all: recorded, so the store says why.
@@ -224,6 +272,8 @@ export default class DataSecurityFindingWriter {
     keepMaskedSamples: boolean;
     customDataTypes?: ReadonlyMap<string, CustomDataTypeSummary> | undefined;
     now: Date;
+    // OneUptime AI's suggestions: never written over a detector's finding.
+    isSuggestion?: boolean | undefined;
   }): Promise<number> {
     const wanted: Map<
       string,
@@ -257,7 +307,12 @@ export default class DataSecurityFindingWriter {
             dataStoreId: data.dataStoreId,
             findingKey: new Includes(keys.slice(start, start + 500)),
           },
-          select: { _id: true, findingKey: true },
+          select: {
+            _id: true,
+            findingKey: true,
+            isConfirmed: true,
+            isAiSuggested: true,
+          },
           skip: 0,
           limit: 500,
           props: { isRoot: true },
@@ -295,7 +350,14 @@ export default class DataSecurityFindingWriter {
         isFoundByName: classification.foundByName,
         locationKind: location.locationKind,
         lastSeenAt: data.now,
+        isAiSuggested: classification.isAiSuggested === true,
       };
+
+      if (classification.isAiSuggested !== true) {
+        columns["aiReason"] = null;
+      } else if (classification.aiReason !== undefined) {
+        columns["aiReason"] = classification.aiReason.slice(0, 500);
+      }
 
       if (description.category) {
         columns["dataCategory"] = description.category;
@@ -307,6 +369,16 @@ export default class DataSecurityFindingWriter {
 
       try {
         const row: DataStoreFinding | undefined = existing.get(key);
+
+        // A detector's finding is never replaced by a suggestion.
+        if (data.isSuggestion && row && !row.isAiSuggested) {
+          continue;
+        }
+
+        // A person confirmed it: it stays High, whatever this scan is sure of.
+        if (row?.isConfirmed) {
+          delete columns["confidence"];
+        }
 
         if (row?.id) {
           await DataStoreFindingService.updateColumnsByIdWithoutHooks({
@@ -404,10 +476,16 @@ export default class DataSecurityFindingWriter {
     result: ContentScanResult;
     now: Date;
     contentScanIntervalInHours: number;
+    // Keep the fields the scan could not place, for OneUptime AI.
+    keepUnplacedFields?: boolean | undefined;
   }): Promise<void> {
     const store: DataStore | null = await DataStoreService.findOneById({
       id: data.dataStoreId,
-      select: { _id: true, fingerprints: true },
+      select: {
+        _id: true,
+        fingerprints: true,
+        fieldSuggestionState: data.keepUnplacedFields === true,
+      },
       props: { isRoot: true },
     });
 
@@ -438,6 +516,14 @@ export default class DataSecurityFindingWriter {
 
     if (typeof data.result.estimatedRecords === "number") {
       columns["estimatedRecords"] = Math.round(data.result.estimatedRecords);
+    }
+
+    if (data.keepUnplacedFields) {
+      columns["fieldSuggestionState"] = withPendingFields({
+        previous: store.fieldSuggestionState,
+        pending: data.result.unplacedFields || [],
+        scannedAt: data.now,
+      });
     }
 
     await DataStoreService.updateColumnsByIdWithoutHooks({

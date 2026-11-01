@@ -6,8 +6,8 @@ Het beantwoordt vier vragen:
 
 :::cards
 - [Waar staan onze gevoelige gegevens?](/docs/data-security/data-types): 143 gegevenstypen, van kaartnummers en nationale identiteitsnummers tot API-sleutels, gevonden in buckets, tabellen en telemetrie.
-- [Is het blootgesteld?](/docs/data-security/checks-and-issues): 32 controles van elke opslag: openbare toegang, versleuteling, back-ups, logging, geheimen en kopieën.
-- [Wie kan erbij, en waar gaat het heen?](/docs/data-security/flows-access-residency): Wie elke opslag kan lezen, welke services hem gebruiken, en welke AI-providers en hosts zijn gegevens bereiken.
+- [Is het blootgesteld?](/docs/data-security/checks-and-issues): 33 controles van elke opslag: openbare toegang, versleuteling, back-ups, logging, geheimen en kopieën.
+- [Wie kan erbij, en waar gaat het heen?](/docs/data-security/flows-access-residency): Elke identiteit die bij elke opslag kan, de riskantste eerst, welke services hem gebruiken, en welke AI-providers en hosts zijn gegevens bereiken.
 - [Voldoet het aan onze regels?](/docs/data-security/compliance): Residentieregels, en negen kaders gescoord op wat de scans vonden.
 :::
 
@@ -35,10 +35,11 @@ flowchart TB
 
 - **Je telemetrie is een gegevensopslag.** De logs, traces, uitzonderingen, sessieherhalingen en AI-gesprekken van elke service worden elk uur gecontroleerd zoals een bucket. Een e-mailadres in een logregel is een bevinding, en **Opschonen** maskeert het vanaf dan al bij de inname. Zie [Gevoelige gegevens in telemetrie](/docs/data-security/telemetry).
 - **Stromen komen uit echt verkeer.** De servicekaart zegt welke service welke database gebruikt, AI-aanroepen noemen de provider die ze bereiken, en kopieën van productiegegevens worden gevonden door vingerafdrukken te vergelijken. Zie [Gegevensstromen, toegang en residentie](/docs/data-security/flows-access-residency).
+- **Toegang wordt van twee kanten gelezen.** Gegevensbeveiliging leest wie de eigen instellingen van elke opslag binnenlaten, en op AWS wat elke rol en elke gebruiker via zijn IAM-beleid mag bereiken, en wanneer elk voor het laatst is gebruikt. **Toegang** rangschikt elke identiteit naar de schade die ze kan aanrichten, en toegang tot gevoelige gegevens die 90 dagen niet is gebruikt, is een probleem. Zie [Wie bij een opslag kan](/docs/data-security/flows-access-residency#wie-bij-een-opslag-kan).
 - **Bewijs wordt altijd gemaskeerd.** Een bevinding bewaart tellingen en hoogstens drie gemaskeerde voorbeelden, zoals `j***@e******.com`, gemaskeerd in de scanner voordat er iets uit vertrekt. Zet je voorbeelden uit, dan bewaart ze alleen tellingen.
 - **De scanner is open source.** Het patroon, de controlesom, de contextwoorden en de testwaarden van elk gegevenstype staan in de broncode van OneUptime, zodat je precies kunt lezen wat een bevinding oplevert. Dezelfde code draait op de workers van OneUptime, op een sonde en in het vak **Testen**.
-- **Het werkt samen met de rest van OneUptime.** Een kritiek probleem opent een beveiligingszaak op de opslag, zodat [Security Operations](/docs/telemetry/security-cases) het afhandelt zoals elke andere dreiging. Het kan een waarschuwing aanmaken die de dienstdoende oproept, en het mailt de eigenaren van de opslag. Zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations).
-- **OneUptime AI helpt het op te lossen.** **Uitleggen met AI** vertelt de eigenaar van een opslag wat er mis is en hoe dat in de eigen cloud op te lossen is, en **Oplossen met AI** opent een pull request in je infrastructuurcode.
+- **Het werkt samen met de rest van OneUptime.** Een kritiek probleem opent een beveiligingszaak op de opslag, zodat [Security Operations](/docs/telemetry/security-cases) het afhandelt zoals elke andere dreiging, en elke beveiligingszaak toont de gevoelige gegevens die haar gebruikers en rollen kunnen bereiken. Het kan een waarschuwing aanmaken die de dienstdoende oproept, en het mailt de eigenaren van de opslag. Zie [Integraties van Gegevensbeveiliging](/docs/data-security/integrations).
+- **OneUptime AI helpt het op te lossen.** **Uitleggen met AI** vertelt de eigenaar van een opslag wat er mis is en hoe dat in de eigen cloud op te lossen is, **Oplossen met AI** opent een pull request in je infrastructuurcode, en OneUptime AI stelt voor wat een veld bevat dat geen detector kon plaatsen, zodat een mens het bevestigt.
 
 ## Voordat je begint
 
@@ -75,7 +76,7 @@ Elke opslag krijgt de controles die bij zijn soort horen. Een opslag waarvan de 
 
 Een opslag wordt met zijn geschiedenis gearchiveerd zodra zijn bron hem niet meer vermeldt, en zijn openstaande problemen worden opgelost: **Gearchiveerde opslagen**, aan het eind van het menu van Gegevensbeveiliging, bewaart hem. Hij komt vanzelf terug als zijn bron hem weer vermeldt, en een probleem waarvan de controle nog steeds faalt, opent opnieuw.
 
-De **Tijdlijn** van een opslag zegt wat ermee gebeurde, en wie het deed: wanneer hij werd gevonden of toegevoegd, elke wijziging aan zijn instellingen en eigenaren, wanneer hij werd gearchiveerd of terugkwam, en elke blootstelling die vanuit een probleem of een playbook werd gesloten.
+De **Tijdlijn** van een opslag zegt wat ermee gebeurde, en wie het deed: wanneer hij werd gevonden of toegevoegd, elke wijziging aan zijn instellingen en eigenaren, wanneer hij werd gearchiveerd of terugkwam, en elke wijziging via zijn cloudkoppeling, vanuit een probleem of een playbook.
 
 ## Hoe vaak het draait
 

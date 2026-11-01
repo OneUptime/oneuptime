@@ -6,8 +6,8 @@ Sie beantwortet vier Fragen:
 
 :::cards
 - [Wo sind unsere sensiblen Daten?](/docs/data-security/data-types): 143 Datentypen, von Kartennummern und nationalen Ausweisnummern bis zu API-Schlüsseln, gefunden in Buckets, Tabellen und Telemetrie.
-- [Sind sie exponiert?](/docs/data-security/checks-and-issues): 32 Prüfungen jedes Datenspeichers: öffentlicher Zugriff, Verschlüsselung, Backups, Protokollierung, Geheimnisse und Kopien.
-- [Wer kann sie erreichen, und wohin gelangen sie?](/docs/data-security/flows-access-residency): Wer jeden Datenspeicher lesen kann, welche Dienste ihn nutzen und welche KI-Anbieter und Hosts seine Daten erreichen.
+- [Sind sie exponiert?](/docs/data-security/checks-and-issues): 33 Prüfungen jedes Datenspeichers: öffentlicher Zugriff, Verschlüsselung, Backups, Protokollierung, Geheimnisse und Kopien.
+- [Wer kann sie erreichen, und wohin gelangen sie?](/docs/data-security/flows-access-residency): Jede Identität, die einen Datenspeicher erreichen kann, die riskanteste zuerst, welche Dienste ihn nutzen und welche KI-Anbieter und Hosts seine Daten erreichen.
 - [Entsprechen sie unseren Regeln?](/docs/data-security/compliance): Residenzregeln und neun Compliance-Rahmenwerke, bewertet anhand dessen, was die Scans gefunden haben.
 :::
 
@@ -35,10 +35,11 @@ flowchart TB
 
 - **Ihre Telemetrie ist ein Datenspeicher.** Die Logs, Traces, Ausnahmen, Sitzungswiedergaben und KI-Unterhaltungen jedes Dienstes werden wie ein Bucket geprüft, jede Stunde. Eine E-Mail-Adresse in einer Logzeile ist ein Fund, und **Bereinigen** maskiert sie von da an bei der Aufnahme. Siehe [Sensible Daten in der Telemetrie](/docs/data-security/telemetry).
 - **Datenflüsse stammen aus echtem Verkehr.** Die Dienstkarte sagt, welcher Dienst welche Datenbank nutzt, KI-Aufrufe nennen den Anbieter, den sie erreichen, und Kopien von Produktionsdaten werden durch den Vergleich von Fingerabdrücken gefunden. Siehe [Datenflüsse, Zugriff und Residenz](/docs/data-security/flows-access-residency).
+- **Zugriff wird von beiden Seiten gelesen.** Datensicherheit liest, wen die eigenen Einstellungen jedes Datenspeichers hereinlassen, und bei AWS, was jede Rolle und jeder Benutzer über die eigenen IAM-Richtlinien erreichen darf und wann sie zuletzt verwendet wurden. **Zugriff** ordnet jede Identität nach dem Schaden, den sie anrichten könnte, und Zugriff auf sensible Daten, der seit 90 Tagen nicht verwendet wurde, ist ein Problem. Siehe [Wer einen Datenspeicher erreichen kann](/docs/data-security/flows-access-residency#wer-einen-datenspeicher-erreichen-kann).
 - **Belege werden immer maskiert.** Ein Fund behält Zählungen und höchstens drei maskierte Stichproben, etwa `j***@e******.com`, maskiert im Scanner, bevor irgendetwas ihn verlässt. Schalten Sie Stichproben aus, und er behält nur Zählungen.
 - **Der Scanner ist Open Source.** Muster, Prüfsumme, Kontextwörter und Testwerte jedes Datentyps stehen im Quellcode von OneUptime, sodass Sie genau nachlesen können, was einen Fund ausmacht. Derselbe Code läuft auf den Workern von OneUptime, auf einer Sonde und im Feld **Testen**.
-- **Sie arbeitet mit dem Rest von OneUptime zusammen.** Ein kritisches Problem eröffnet einen Sicherheitsfall zum Datenspeicher, sodass [Security Operations](/docs/telemetry/security-cases) ihn wie jede andere Bedrohung bearbeitet. Sie kann eine Warnung auslösen, die alarmiert, wer gerade Bereitschaft hat, und sie schickt den Eigentümern des Datenspeichers eine E-Mail. Siehe [Integrationen der Datensicherheit](/docs/data-security/integrations).
-- **OneUptime AI hilft beim Beheben.** **Mit KI erklären** sagt dem Eigentümer eines Datenspeichers, was nicht stimmt und wie er es in seiner Cloud behebt, und **Mit KI beheben** öffnet einen Pull Request in Ihrem Infrastrukturcode.
+- **Sie arbeitet mit dem Rest von OneUptime zusammen.** Ein kritisches Problem eröffnet einen Sicherheitsfall zum Datenspeicher, sodass [Security Operations](/docs/telemetry/security-cases) ihn wie jede andere Bedrohung bearbeitet, und jeder Sicherheitsfall zeigt die sensiblen Daten, die seine Benutzer und Rollen erreichen können. Sie kann eine Warnung auslösen, die alarmiert, wer gerade Bereitschaft hat, und sie schickt den Eigentümern des Datenspeichers eine E-Mail. Siehe [Integrationen der Datensicherheit](/docs/data-security/integrations).
+- **OneUptime AI hilft beim Beheben.** **Mit KI erklären** sagt dem Eigentümer eines Datenspeichers, was nicht stimmt und wie er es in seiner Cloud behebt, **Mit KI beheben** öffnet einen Pull Request in Ihrem Infrastrukturcode, und OneUptime AI schlägt vor, was ein Feld enthält, das kein Detektor zuordnen konnte, damit ein Mensch es bestätigt.
 
 ## Bevor Sie beginnen
 
@@ -75,7 +76,7 @@ Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten. Ein Daten
 
 Ein Datenspeicher wird mit seinem Verlauf archiviert, sobald seine Quelle ihn nicht mehr aufführt, und seine offenen Probleme werden behoben: **Archivierte Datenspeicher**, am Ende des Menüs der Datensicherheit, bewahrt ihn auf. Er kehrt von selbst zurück, wenn seine Quelle ihn wieder aufführt, und ein Problem, dessen Prüfung noch fehlschlägt, öffnet sich erneut.
 
-Die **Zeitachse** eines Datenspeichers sagt, was mit ihm geschah und wer es getan hat: wann er gefunden oder hinzugefügt wurde, jede Änderung seiner Einstellungen und Eigentümer, wann er archiviert wurde oder zurückkam, und jede Exponierung, die über ein Problem oder ein Playbook geschlossen wurde.
+Die **Zeitachse** eines Datenspeichers sagt, was mit ihm geschah und wer es getan hat: wann er gefunden oder hinzugefügt wurde, jede Änderung seiner Einstellungen und Eigentümer, wann er archiviert wurde oder zurückkam, und jede Änderung über seine Cloud-Verbindung, aus einem Problem oder einem Playbook.
 
 ## Wie oft sie läuft
 

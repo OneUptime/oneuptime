@@ -1,6 +1,8 @@
 import CountAnomaly, {
   CountAnomalyEvaluation,
   CountBaselineStats,
+  CountBaselineSummary,
+  CountWindowBreach,
   MAD_TO_SIGMA,
 } from "../../../../../Server/Utils/Monitor/Criteria/CountAnomaly";
 import {
@@ -281,6 +283,214 @@ describe("CountAnomaly.withCountingNoise", () => {
         stats: stats([0, 0, 0, 0]),
         sigmaCount: 3,
         method: AnomalyDetectionMethod.MeanStddev,
+        filterType: FilterType.AnomalouslyHigh,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("CountAnomaly.findBreach", () => {
+  const busy: CountBaselineSummary = {
+    sampleCount: 120,
+    mean: 100,
+    stddev: 10,
+    median: 98,
+    madSigma: 8,
+    minObserved: 70,
+    maxObserved: 130,
+    isReliable: true,
+    windowDays: 14,
+    hourOfWeek: 8,
+  };
+
+  // Two runs of a job an hour: most windows empty, the rest about 100.
+  const sparse: CountBaselineSummary = {
+    ...busy,
+    sampleCount: 360,
+    mean: 1.1,
+    stddev: 7.8,
+    median: 0,
+    madSigma: 1.05,
+    minObserved: 0,
+    nonEmpty: {
+      sampleCount: 4,
+      mean: 100,
+      stddev: 10,
+      median: 100,
+      madSigma: 10,
+      minObserved: 90,
+      maxObserved: 110,
+    },
+  };
+
+  const find: (input: {
+    observed: number;
+    baseline?: CountBaselineSummary;
+    filterType: FilterType;
+    count?: number;
+    minimumCount?: number;
+    method?: AnomalyDetectionMethod;
+  }) => CountWindowBreach | null = (input: {
+    observed: number;
+    baseline?: CountBaselineSummary;
+    filterType: FilterType;
+    count?: number;
+    minimumCount?: number;
+    method?: AnomalyDetectionMethod;
+  }): CountWindowBreach | null => {
+    return CountAnomaly.findBreach({
+      observed: input.observed,
+      count: input.count ?? input.observed,
+      baseline: input.baseline || busy,
+      sigmaCount: 3,
+      method: input.method || AnomalyDetectionMethod.MeanStddev,
+      filterType: input.filterType,
+      minimumCount: input.minimumCount ?? 10,
+    });
+  };
+
+  test("a busy baseline is judged as CountAnomaly.evaluate judges it", () => {
+    expect(
+      find({ observed: 131, filterType: FilterType.AnomalouslyHigh }),
+    ).toMatchObject({
+      breaches: true,
+      center: 100,
+      spread: 10,
+      observedSigma: 3.1,
+      sampleCount: 120,
+    });
+    expect(
+      find({ observed: 130, filterType: FilterType.AnomalouslyHigh }),
+    ).toBeNull();
+    expect(
+      find({ observed: 69, filterType: FilterType.AnomalouslyLow }),
+    ).toMatchObject({ breaches: true, observedSigma: -3.1 });
+    expect(
+      find({ observed: 70, filterType: FilterType.AnomalouslyLow }),
+    ).toBeNull();
+  });
+
+  test("each filter only breaches its own way", () => {
+    expect(
+      find({ observed: 200, filterType: FilterType.AnomalouslyLow }),
+    ).toBeNull();
+    expect(
+      find({ observed: 0, filterType: FilterType.AnomalouslyHigh }),
+    ).toBeNull();
+    expect(
+      find({ observed: 200, filterType: FilterType.Anomalous }),
+    ).not.toBeNull();
+    expect(
+      find({ observed: 0, filterType: FilterType.Anomalous }),
+    ).not.toBeNull();
+  });
+
+  test("a filter that is not an anomaly filter never breaches", () => {
+    expect(
+      find({ observed: 200, filterType: FilterType.GreaterThan }),
+    ).toBeNull();
+  });
+
+  test("a window of a job's usual size is not unusually high, though most windows are empty", () => {
+    expect(
+      find({
+        observed: 105,
+        baseline: sparse,
+        filterType: FilterType.AnomalouslyHigh,
+      }),
+    ).toBeNull();
+    expect(
+      find({
+        observed: 105,
+        baseline: sparse,
+        filterType: FilterType.Anomalous,
+      }),
+    ).toBeNull();
+  });
+
+  test("a window past the job's usual size is, and says what it was judged by", () => {
+    expect(
+      find({
+        observed: 300,
+        baseline: sparse,
+        filterType: FilterType.AnomalouslyHigh,
+      }),
+    ).toMatchObject({ center: 100, spread: 10, sampleCount: 4 });
+  });
+
+  test("an empty window of such a scope is not unusually low", () => {
+    expect(
+      find({
+        observed: 0,
+        baseline: sparse,
+        filterType: FilterType.AnomalouslyLow,
+      }),
+    ).toBeNull();
+    expect(
+      find({ observed: 0, baseline: sparse, filterType: FilterType.Anomalous }),
+    ).toBeNull();
+  });
+
+  test("a window between a job's runs and its usual size is neither", () => {
+    expect(
+      find({
+        observed: 50,
+        baseline: sparse,
+        filterType: FilterType.Anomalous,
+      }),
+    ).toBeNull();
+  });
+
+  test("the median method reads each side's median and MAD", () => {
+    expect(
+      find({
+        observed: 300,
+        baseline: sparse,
+        filterType: FilterType.AnomalouslyHigh,
+        method: AnomalyDetectionMethod.MedianMad,
+      }),
+    ).toMatchObject({ center: 100, spread: 10 });
+  });
+
+  test("a count under the minimum is never unusually high, whatever its rate", () => {
+    expect(
+      find({
+        observed: 500,
+        count: 9,
+        filterType: FilterType.AnomalouslyHigh,
+      }),
+    ).toBeNull();
+    expect(
+      find({
+        observed: 500,
+        count: 10,
+        filterType: FilterType.AnomalouslyHigh,
+      }),
+    ).not.toBeNull();
+  });
+
+  test("the minimum is the caller's", () => {
+    expect(
+      find({
+        observed: 500,
+        count: 9,
+        minimumCount: 5,
+        filterType: FilterType.AnomalouslyHigh,
+      }),
+    ).not.toBeNull();
+  });
+
+  test("the minimum does not stop a window reading as unusually low", () => {
+    expect(
+      find({ observed: 0, count: 0, filterType: FilterType.AnomalouslyLow }),
+    ).not.toBeNull();
+  });
+
+  test("a baseline with no spread is still skipped", () => {
+    expect(
+      find({
+        observed: 500,
+        baseline: { ...busy, stddev: 0 },
         filterType: FilterType.AnomalouslyHigh,
       }),
     ).toBeNull();

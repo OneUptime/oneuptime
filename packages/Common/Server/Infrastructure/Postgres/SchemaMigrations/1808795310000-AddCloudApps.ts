@@ -10,11 +10,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * existing instance keeps its row as it is and is linked the next time it
  * reports. The index and the foreign key on CloudResourceInstance, which
  * ingest writes all the time, are built online by
- * AddCloudResourceInstanceAppIndexAndKey1808784000000. Generated with
+ * AddCloudResourceInstanceAppIndexAndKey1808795320000. Generated with
  * npm run generate-postgres-migration.
  */
-export class AddCloudApps1808783000000 implements MigrationInterface {
-  public name: string = "AddCloudApps1808783000000";
+export class AddCloudApps1808795310000 implements MigrationInterface {
+  public name: string = "AddCloudApps1808795310000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

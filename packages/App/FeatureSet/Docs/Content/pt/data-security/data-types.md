@@ -35,7 +35,7 @@ Toda varredura - uma linha de log, uma célula de CSV, uma linha de banco de dad
 | **Médio** | O valor passou no seu validador sem nada ao redor que o confirme, ou o nome do campo diz o que ele contém e alguns valores concordam. |
 | **Baixo** | O formato corresponde, mas nada o confirma. |
 
-Só as descobertas com confiança Alto e Médio contam: elas tornam um repositório sensível e podem abrir um problema. As descobertas com confiança Baixo são listadas no repositório, recolhidas, para que uma pessoa as avalie.
+Só as descobertas com confiança Alto e Médio contam: elas tornam um repositório sensível e podem abrir um problema. As descobertas com confiança Baixo são listadas no repositório, recolhidas, para que uma pessoa as avalie: **Confirmar** em uma que está certa a torna Alto, e ela continua Alto nas varreduras seguintes.
 
 Quando dois tipos de dados reivindicam os mesmos caracteres, vence a descoberta mais certa: a de maior confiança, depois a do detector cujas próprias regras provam mais, depois a correspondência mais longa.
 
@@ -58,6 +58,12 @@ O nome de um campo é dividido em palavras - `customerEmail`, `customer_email` e
 Alguns tipos de dados não podem ser identificados pelos valores: nenhum padrão distingue o nome de uma pessoa do nome de uma rua, ou uma religião de qualquer outra palavra. Esses tipos são encontrados só pelo nome do campo, quando o campo tem valores: Nome de pessoa, Nome de usuário, Gênero, Nacionalidade, Informações de saúde, Origem racial ou étnica, Crença religiosa, Orientação sexual, Opinião política, Filiação sindical, Dados biométricos, Dados genéticos e Antecedentes criminais. Um nome, um nome de usuário, um gênero ou uma nacionalidade é então Alto quando 60% ou mais dos valores se parecem com um, e Médio caso contrário.
 
 Um campo cujo nome diz que contém uma senha - `password`, `passwordHash`, `pwd`, não `password_changed_at` - deveria conter um hash: bcrypt, argon2, scrypt, PBKDF2 ou outro esquema que um repositório provavelmente usa. Valores vazios, valores fictícios como `********` e valores criptografados são deixados de lado. Quando, no resto, há mais valores que não são hashes do que valores que são, o campo contém as próprias senhas, que nenhum padrão consegue ver, e o repositório falha em [Há senhas armazenadas em texto simples](/docs/data-security/checks-and-issues#higiene-de-dados).
+
+### Campos que nenhum detector conseguiu classificar
+
+Uma coluna ou um campo cujo nome não aponta para nenhum tipo de dado, e cujos valores não correspondem a nenhum detector, não é conhecido como seguro: pode ser o seu próprio número de cliente, ou uma coluna com nome em outro idioma. Com **Habilitar IA** ativado no projeto, uma varredura de conteúdo guarda esses campos, no máximo 200 por varredura, e o OneUptime AI é perguntado sobre qual dos tipos de dados do projeto cada um contém, no máximo 40 campos de um repositório por vez. Ele recebe o nome do campo, os nomes dos campos ao lado e as formas dos seus valores - cada letra escrita como `a` ou `A` e cada dígito como `9`, então `AB-1234` vira `AA-9999` - nunca um valor. Texto livre, campos com menos de 5 valores, números inteiros pequenos e campos com nome de ID, de horário ou de status não são perguntados.
+
+Cada tipo que o OneUptime AI nomeia é uma descoberta com confiança Baixo, marcada como **Sugerido pela OneUptime AI** com o motivo. Como qualquer descoberta com confiança Baixo, ela não conta para nada até uma pessoa escolher **Confirmar** na página **Conteúdo** do repositório; **Marcar como não sensível** a recusa. Um campo que já teve resposta não é perguntado de novo por 30 dias, e um campo que uma pessoa avaliou nunca mais é perguntado.
 
 ## Sensibilidade
 

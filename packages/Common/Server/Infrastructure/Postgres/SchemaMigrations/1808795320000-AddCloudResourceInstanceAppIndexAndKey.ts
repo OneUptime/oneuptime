@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddCloudApps1808783000000, and moved into a migration of its own:
+ * AddCloudApps1808795310000, and moved into a migration of its own:
  * CloudResourceInstance already exists and the telemetry ingest writes it
  * all the time, so the index on its new "cloudAppId" column is built online,
  * and the foreign key to "CloudApp" is added NOT VALID and then validated,
@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * after a stop part way: an index or key that is already there is left as
  * it is.
  */
-export class AddCloudResourceInstanceAppIndexAndKey1808784000000
+export class AddCloudResourceInstanceAppIndexAndKey1808795320000
   implements MigrationInterface
 {
-  public name: string = "AddCloudResourceInstanceAppIndexAndKey1808784000000";
+  public name: string = "AddCloudResourceInstanceAppIndexAndKey1808795320000";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

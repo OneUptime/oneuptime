@@ -980,6 +980,25 @@ async function handleApi(method, options) {
     });
   }
 
+  /*
+   * The fingerprints an exception's occurrences carry (#5468): this one's
+   * own, as nothing is merged into it here. The security events above the
+   * overview read them here, not off the exception.
+   */
+  if (url.includes("/telemetry-exception/group-fingerprints")) {
+    const asked = Array.isArray(body.telemetryExceptionIds)
+      ? body.telemetryExceptionIds
+      : [];
+    return ok({
+      exceptions: asked
+        .filter((id) => id === EXCEPTION_ID)
+        .map((id) => ({
+          telemetryExceptionId: id,
+          fingerprints: [FINGERPRINT],
+        })),
+    });
+  }
+
   return ok({ data: [], count: 0 });
 }
 

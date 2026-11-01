@@ -330,10 +330,7 @@ describe("SubnetScanner - nothing the read does makes a host read as not answeri
       poll();
     });
 
-    const first: DiscoveredHost | undefined = hostAt(
-      snapshots[0]!,
-      "10.0.0.1",
-    );
+    const first: DiscoveredHost | undefined = hostAt(snapshots[0]!, "10.0.0.1");
     const responderCount: number = snapshots[0]!.snmpResponderCount;
 
     // Before any assertion, so that a failing one leaves no sweep running.

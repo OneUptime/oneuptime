@@ -114,7 +114,7 @@ Os critérios de um monitor de traces têm um único **Tipo de filtro**: **Span 
 | **Anomalously Low** | abaixo dessa faixa |
 | **Anomalous** | fora dessa faixa, em qualquer direção |
 
-As condições de anomalia não têm **Valor**. Escolha uma **Sensibilidade** (Baixo, Médio, a padrão, ou Alto) e, nos critérios personalizados, uma **Janela de linha de base** de 14 (a padrão), 28, 60 ou 90 dias. O OneUptime transforma a contagem em uma taxa por minuto e a compara com a mesma hora da semana ao longo dessa janela. A linha de base cobre apenas os serviços e os status de span do monitor: seus filtros de nome de span e de atributos não fazem parte dela. Até que essa hora da semana tenha histórico suficiente, o critério ainda está aprendendo e não dispara.
+As condições de anomalia não têm **Valor**. Escolha uma **Sensibilidade** (Baixo, Médio, a padrão, ou Alto) e, nos critérios personalizados, uma **Janela de linha de base** de 14 (a padrão), 28, 60 ou 90 dias. O OneUptime transforma a contagem em uma taxa por minuto e a compara com janelas do mesmo tamanho em torno da mesma hora de semanas anteriores, até onde alcança a **Janela de linha de base**; o que está acontecendo agora nunca entra nessa comparação. A linha de base cobre apenas os serviços e os status de span do monitor: seus filtros de nome de span e de atributos não fazem parte dela. Os minutos sem spans também contam, então um serviço que costuma ficar em silêncio não é visto como incomumente baixo por estar em silêncio. Uma janela só é vista como incomumente alta em relação às janelas que tiveram spans, e apenas com pelo menos 20, 10 ou 5 spans na sensibilidade Baixo, Médio ou Alto, de modo que nem o pico habitual de um job nem os primeiros spans de um serviço silencioso o disparam. Até que os serviços do monitor tenham duas semanas de histórico, o critério ainda está aprendendo e não dispara.
 
 Um monitor de traces criado em Criar monitor começa com a regra do que você escolheu em **Sobre o que este monitor deve avisar você?**:
 
@@ -166,7 +166,7 @@ Registrar uma exceção não altera o status de um span. Filtre por **Erro**, ou
 :::
 
 :::details Um critério de anomalia nunca dispara
-Ele ainda está aprendendo: a hora da semana com que compara ainda não tem histórico suficiente dentro da **Janela de linha de base**.
+Ele ainda está aprendendo: os serviços do monitor ainda não têm duas semanas de histórico dentro da **Janela de linha de base**.
 :::
 
 ## Próximos passos

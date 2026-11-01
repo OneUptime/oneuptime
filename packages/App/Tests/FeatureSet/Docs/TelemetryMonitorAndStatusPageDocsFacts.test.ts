@@ -1514,7 +1514,8 @@ describe("criteria", () => {
       "projectId",
       "telemetryServiceIds",
       "severityTexts",
-      "hourOfWeek",
+      "windowEnd",
+      "windowSeconds",
       "windowDays",
       "minSamples",
     ]);
@@ -1524,7 +1525,8 @@ describe("criteria", () => {
       "projectId",
       "telemetryServiceIds",
       "spanStatusCodes",
-      "hourOfWeek",
+      "windowEnd",
+      "windowSeconds",
       "windowDays",
       "minSamples",
     ]);
@@ -1553,7 +1555,44 @@ describe("criteria", () => {
 
     for (const markdown of [LOGS, TRACES]) {
       expect(markdown).toContain(
-        "OneUptime turns the count into a per-minute rate and compares it with the same hour of the week over that window.",
+        "OneUptime turns the count into a per-minute rate and compares it with windows of the same length around the same time in earlier weeks, as far back as the **Baseline Window** goes; what is happening now is never part of that comparison.",
+      );
+    }
+  });
+
+  it("the pages say what it takes for a log or span count to read as unusually high, and to stop learning", () => {
+    const minimum: Record<AnomalyDetectionSensitivity, number> =
+      EXCEPTION_ANOMALY_MINIMUM_COUNT;
+    const counts: string = `${minimum[AnomalyDetectionSensitivity.Low]}, ${minimum[AnomalyDetectionSensitivity.Medium]} or ${minimum[AnomalyDetectionSensitivity.High]}`;
+
+    expect(LOGS).toContain(
+      `only with at least ${counts} logs in it at Low, Medium or High sensitivity`,
+    );
+    expect(TRACES).toContain(
+      `only with at least ${counts} spans in it at Low, Medium or High sensitivity`,
+    );
+
+    expect(EXCEPTION_BASELINE_MINIMUM_WEEKS).toBe(2);
+
+    for (const markdown of [LOGS, TRACES]) {
+      expect(markdown).toContain(
+        "Until the monitor's services have two weeks of history, the criteria is still learning and does not fire.",
+      );
+      expect(markdown).toContain(
+        "It is still learning: the monitor's services do not have two weeks of history yet",
+      );
+    }
+
+    expect(
+      readSource("Common/Server/Utils/Monitor/CountWindowBaseline.ts"),
+    ).toContain("EXCEPTION_BASELINE_MINIMUM_WEEKS");
+
+    for (const file of [
+      "Common/Server/Utils/Monitor/Criteria/LogMonitorCriteria.ts",
+      "Common/Server/Utils/Monitor/Criteria/TraceMonitorCriteria.ts",
+    ]) {
+      expect(oneLine(readSource(file))).toContain(
+        "minimumCount: getExceptionAnomalySettings(",
       );
     }
   });

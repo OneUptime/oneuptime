@@ -7,7 +7,7 @@ Data Security reads only what you let it. Each cloud connection is read at one o
 - [What each level grants](#what-each-level-grants): The AWS actions, and the Azure and Google Cloud roles.
 - [Scan a database you run](#scan-a-database-you-run): A read-only connection string, or a probe in your network.
 - [What OneUptime keeps](#what-oneuptime-keeps): Counts, locations and masked samples, never a value.
-- [Let Data Security close an exposure](#let-data-security-close-an-exposure): The one write a connection can be given, off until you turn it on.
+- [Let Data Security close an exposure](#let-data-security-close-an-exposure): The only writes a connection can be given, off until you turn them on.
 :::
 
 ## Choose a level for each connection
@@ -48,6 +48,9 @@ The configuration level puts a second inline policy, `OneUptimeDataSecurity`, on
 | Read how the databases are reached, encrypted and backed up, and whom their manual snapshots are shared with | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | Read how the search domains, caches and file systems are set up | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | Tell AWS's own keys (alias/aws/...) from the keys you manage | `kms:ListAliases` |
+| Read which users and roles reach each bucket and table through their own IAM policies, who may assume each role, and when each was last used | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+The IAM actions let **Access** name every role and user that reaches a store through its own policies, and when each was last used. The credential report IAM makes for them holds dates and flags, never a password or a key. A connection set up before Data Security read IAM reads only each store's own policies until its command is run again.
 
 The content level adds three actions to the same policy, each on its own resources:
 
@@ -95,7 +98,10 @@ With an **Access key** instead of a role, the policy goes on a group, `OneUptime
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@ The configuration level adds nothing: the connection's **Cloud Asset Viewer** ro
 
 ## Let Data Security close an exposure
 
-Reading is all a connection does until you choose otherwise. **Data security response**, under **More fields** beside **Data security**, also lets Data Security block a store's public access and stop sharing its snapshots: from the store's issue, with **Fix it from here** (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues#fix-it-from-here)), and from Security Operations playbooks. It is **Off** until you pick **Block public access and sharing**, and the command the form shows then grants one narrow write, on its own:
+Reading is all a connection does until you choose otherwise. **Data security response**, under **More fields** beside **Data security**, also lets Data Security change a store's settings through the connection: block its public access and stop sharing its snapshots, from the store's issue with **Fix it from here** (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues#fix-it-from-here)) and from Security Operations playbooks, and turn on a setting that protects it, such as versioning or secure transfer, from its issue. It is **Off** until you pick **Close exposures and fix settings**, and the command the form shows then grants these narrow writes, on their own:
 
 | Cloud | What the command adds | What it may do |
 | --- | --- | --- |
-| AWS | A third inline policy, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` and `rds:ModifyDBClusterSnapshotAttribute`: a bucket's Block Public Access, and whom a manual snapshot is shared with |
-| Azure | A custom role, `OneUptime Data Security Response`, on the connection's scope | `Microsoft.Storage/storageAccounts/read` and `Microsoft.Storage/storageAccounts/write`: a storage account's settings, such as anonymous blob access, never its keys |
-| Google Cloud | A custom role, `oneuptimeDataSecurityResponse` | `storage.buckets.get` and `storage.buckets.update`: a bucket's settings, such as public access prevention |
+| AWS | A third inline policy, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` and `dynamodb:UpdateContinuousBackups`: a bucket's Block Public Access, versioning and object ownership, whom a manual snapshot is shared with, and a table's point-in-time recovery |
+| Azure | A custom role, `OneUptime Data Security Response`, on the connection's scope | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` and `Microsoft.Storage/storageAccounts/blobServices/write`: a storage account's settings, such as anonymous blob access and secure transfer, and its blobs' soft delete, never its keys |
+| Google Cloud | A custom role, `oneuptimeDataSecurityResponse` | `storage.buckets.get` and `storage.buckets.update`: a bucket's settings, such as public access prevention, uniform access and versioning |
 
 Nothing it grants reads data, deletes anything or changes who may sign in. Set it back to **Off** and Data Security stops using it at once. To take the access away as well on AWS, delete the policy with `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse`.
+
+A connection that turned it on earlier needs its command run again for these settings: until then the cloud refuses the change, and the panel says which permission is missing.
 
 ## Why content samples are optional
 

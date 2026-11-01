@@ -6,8 +6,8 @@ Risponde a quattro domande:
 
 :::cards
 - [Dove sono i nostri dati sensibili?](/docs/data-security/data-types): 143 tipi di dati, dai numeri di carta e dai codici identificativi nazionali alle chiavi API, trovati in bucket, tabelle e telemetria.
-- [Sono esposti?](/docs/data-security/checks-and-issues): 32 controlli su ogni archivio: accesso pubblico, cifratura, backup, logging, segreti e copie.
-- [Chi può raggiungerli, e dove vanno?](/docs/data-security/flows-access-residency): Chi può leggere ogni archivio, quali servizi lo usano e quali provider di IA e host raggiungono i suoi dati.
+- [Sono esposti?](/docs/data-security/checks-and-issues): 33 controlli su ogni archivio: accesso pubblico, cifratura, backup, logging, segreti e copie.
+- [Chi può raggiungerli, e dove vanno?](/docs/data-security/flows-access-residency): Ogni identità che può raggiungere ciascun archivio, la più rischiosa per prima, quali servizi lo usano e quali provider di IA e host raggiungono i suoi dati.
 - [Rispettano le nostre regole?](/docs/data-security/compliance): Regole di residenza, e nove framework valutati in base a ciò che hanno trovato le scansioni.
 :::
 
@@ -35,10 +35,11 @@ flowchart TB
 
 - **La tua telemetria è un archivio dati.** I log, le tracce, le eccezioni, i replay di sessione e le conversazioni IA di ogni servizio vengono controllati come un bucket, ogni ora. Un indirizzo email in una riga di log è un risultato, e **Ripulisci** lo maschera all'ingestione da quel momento in poi. Vedi [Dati sensibili nella telemetria](/docs/data-security/telemetry).
 - **I flussi vengono dal traffico reale.** La mappa dei servizi dice quale servizio usa quale database, le chiamate IA nominano il provider che raggiungono, e le copie dei dati di produzione si trovano confrontando le impronte. Vedi [Flussi di dati, accesso e residenza](/docs/data-security/flows-access-residency).
+- **L'accesso si legge da entrambi i lati.** Sicurezza dei dati legge chi fanno entrare le impostazioni proprie di ogni archivio e, su AWS, cosa può raggiungere ogni ruolo e ogni utente tramite le sue policy IAM, e quando ciascuno è stato usato l'ultima volta. **Accesso** ordina ogni identità per il danno che potrebbe fare, e un accesso a dati sensibili inutilizzato da 90 giorni è un problema. Vedi [Chi può raggiungere un archivio](/docs/data-security/flows-access-residency#chi-può-raggiungere-un-archivio).
 - **Le prove sono sempre mascherate.** Un risultato conserva conteggi e al massimo tre campioni mascherati, come `j***@e******.com`, mascherati all'interno dello scanner prima che qualcosa ne esca. Disattiva i campioni e conserva solo i conteggi.
 - **Lo scanner è open source.** Il pattern, il checksum, le parole di contesto e i valori di test di ogni tipo di dati si trovano nel codice sorgente di OneUptime, così puoi leggere esattamente cosa produce un risultato. Lo stesso codice gira sui worker di OneUptime, su una sonda e nella casella **Testalo**.
-- **Funziona con il resto di OneUptime.** Un problema Critico apre un caso di sicurezza sull'archivio, così [Security Operations](/docs/telemetry/security-cases) lo gestisce come qualsiasi altra minaccia. Può generare un avviso che chiama chi è di reperibilità, e invia un'email ai proprietari dell'archivio. Vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations).
-- **OneUptime AI aiuta a correggerlo.** **Spiega con l'IA** dice al proprietario di un archivio cosa non va e come correggerlo sul suo cloud, e **Correggi con l'IA** apre una pull request nel tuo codice di infrastruttura.
+- **Funziona con il resto di OneUptime.** Un problema Critico apre un caso di sicurezza sull'archivio, così [Security Operations](/docs/telemetry/security-cases) lo gestisce come qualsiasi altra minaccia, e ogni caso di sicurezza mostra i dati sensibili che i suoi utenti e ruoli possono raggiungere. Può generare un avviso che chiama chi è di reperibilità, e invia un'email ai proprietari dell'archivio. Vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations).
+- **OneUptime AI aiuta a correggerlo.** **Spiega con l'IA** dice al proprietario di un archivio cosa non va e come correggerlo sul suo cloud, **Correggi con l'IA** apre una pull request nel tuo codice di infrastruttura, e OneUptime AI suggerisce cosa contiene un campo che nessun rilevatore ha saputo collocare, perché una persona lo confermi.
 
 ## Prima di iniziare
 
@@ -75,7 +76,7 @@ Ogni archivio riceve i controlli che si applicano al suo tipo. Un archivio il cu
 
 Un archivio viene archiviato, con la sua cronologia, quando la sua origine non lo elenca più, e i suoi problemi aperti vengono risolti: **Archivi dati archiviati**, in fondo al menu di Sicurezza dei dati, lo conserva. Torna da solo se la sua origine lo elenca di nuovo, e un problema il cui controllo continua a non essere superato si riapre.
 
-La **Cronologia** di un archivio dice cosa gli è successo, e chi l'ha fatto: quando è stato trovato o aggiunto, ogni modifica alle sue impostazioni e ai suoi proprietari, quando è stato archiviato o è tornato, e ogni esposizione chiusa da un problema o da un playbook.
+La **Cronologia** di un archivio dice cosa gli è successo, e chi l'ha fatto: quando è stato trovato o aggiunto, ogni modifica alle sue impostazioni e ai suoi proprietari, quando è stato archiviato o è tornato, e ogni modifica fatta tramite la sua connessione cloud, da un problema o da un playbook.
 
 ## Ogni quanto viene eseguito
 

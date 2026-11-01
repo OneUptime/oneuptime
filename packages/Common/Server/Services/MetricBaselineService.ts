@@ -540,12 +540,18 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * `(toDayOfWeek(time, 1) - 1) * 24 + toHour(time)` with ISO week
    * numbering (Monday = 1, Sunday = 7). Pure function — kept here so
    * the eval-time anomaly check and the band query agree.
+   *
+   * In UTC, whatever zone this process or the ClickHouse server runs in.
+   * Ingest writes a time as UTC text without a zone, which ClickHouse
+   * reads and hands back in the same zone, so `toHour(time)` is the hour
+   * of that text on any server. Local time here only ever agreed with it
+   * by this process also being in UTC.
    */
   public static computeHourOfWeek(date: Date): number {
-    // JS getDay(): Sun=0..Sat=6. Convert to ISO 1..7 (Mon..Sun).
-    const jsDow: number = date.getDay();
+    // JS getUTCDay(): Sun=0..Sat=6. Convert to ISO 1..7 (Mon..Sun).
+    const jsDow: number = date.getUTCDay();
     const isoDow: number = jsDow === 0 ? 7 : jsDow;
-    const hour: number = date.getHours();
+    const hour: number = date.getUTCHours();
     return (isoDow - 1) * 24 + hour;
   }
 

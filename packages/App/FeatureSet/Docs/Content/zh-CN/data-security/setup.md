@@ -48,6 +48,9 @@
 | 读取数据库如何被访问、加密和备份，以及它们的手动快照共享给了谁 | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | 读取搜索域、缓存和文件系统的设置方式 | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | 区分 AWS 自己的密钥（alias/aws/...）和你管理的密钥 | `kms:ListAliases` |
+| 读取哪些用户和角色通过自己的 IAM 策略访问每个存储桶和每张表、谁可以代入每个角色，以及各自上次使用的时间 | `iam:GetAccountAuthorizationDetails`、`iam:GenerateCredentialReport`、`iam:GetCredentialReport` |
+
+借助这些 IAM 操作，**访问** 可以列出通过自身策略访问数据存储的每个角色和每个用户，以及各自上次使用的时间。IAM 为此生成的凭证报告只包含日期和标志，从不包含密码或密钥。在数据安全开始读取 IAM 之前设置的连接，在再次运行其命令之前，只会读取每个数据存储自身的策略。
 
 内容级别会向同一个策略添加三个操作，每个操作只作用于各自的资源：
 
@@ -95,7 +98,10 @@
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@
 
 ## 让数据安全关闭暴露
 
-除非你另行选择，否则连接只会读取。**更多字段** 下 **数据安全** 旁边的 **数据安全响应** 还能让数据安全阻止数据存储的公开访问并停止共享其快照：可以在数据存储的问题中通过 **在此修复** 来做（请参阅 [数据安全检查与问题](/docs/data-security/checks-and-issues#在此修复)），也可以通过安全运营的剧本来做。在你选择 **阻止公开访问和共享** 之前，它一直是 **关闭**；选择之后，表单显示的命令会单独授予一项范围很窄的写入权限：
+除非你另行选择，否则连接只会读取。**更多字段** 下 **数据安全** 旁边的 **数据安全响应** 还能让数据安全通过连接更改数据存储的设置：阻止其公开访问并停止共享其快照，可以在数据存储的问题中通过 **在此修复** 来做（请参阅 [数据安全检查与问题](/docs/data-security/checks-and-issues#在此修复)），也可以通过安全运营的剧本来做；开启保护它的设置，例如版本控制或安全传输，则在其问题中进行。在你选择 **关闭暴露并修正设置** 之前，它一直是 **关闭**；选择之后，表单显示的命令会单独授予这些范围很窄的写入权限：
 
 | 云 | 命令添加的内容 | 它可以做什么 |
 | --- | --- | --- |
-| AWS | 第三个内联策略 `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` 和 `rds:ModifyDBClusterSnapshotAttribute`：存储桶的 Block Public Access，以及手动快照共享给了谁 |
-| Azure | 连接范围上的自定义角色 `OneUptime Data Security Response` | `Microsoft.Storage/storageAccounts/read` 和 `Microsoft.Storage/storageAccounts/write`：存储账户的设置，例如匿名 Blob 访问，从不涉及其密钥 |
-| Google Cloud | 自定义角色 `oneuptimeDataSecurityResponse` | `storage.buckets.get` 和 `storage.buckets.update`：存储桶的设置，例如禁止公开访问 |
+| AWS | 第三个内联策略 `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` 和 `dynamodb:UpdateContinuousBackups`：存储桶的 Block Public Access、版本控制和对象所有权，手动快照共享给了谁，以及表的时间点恢复 |
+| Azure | 连接范围上的自定义角色 `OneUptime Data Security Response` | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` 和 `Microsoft.Storage/storageAccounts/blobServices/write`：存储账户的设置，例如匿名 Blob 访问和安全传输，以及其 Blob 的软删除，从不涉及其密钥 |
+| Google Cloud | 自定义角色 `oneuptimeDataSecurityResponse` | `storage.buckets.get` 和 `storage.buckets.update`：存储桶的设置，例如禁止公开访问、统一访问和版本控制 |
 
 它授予的任何权限都不会读取数据、删除任何内容或更改谁可以登录。把它改回 **关闭**，数据安全就会立即停止使用它。如果还要在 AWS 上收回访问权限，请用 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse` 删除该策略。
+
+之前已开启它的连接需要为这些设置再次运行其命令：在此之前，云会拒绝该更改，面板会说明缺少哪项权限。
 
 ## 为什么内容样本是可选的
 

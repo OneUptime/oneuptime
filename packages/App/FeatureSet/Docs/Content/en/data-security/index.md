@@ -6,8 +6,8 @@ It answers four questions:
 
 :::cards
 - [Where is our sensitive data?](/docs/data-security/data-types): 143 data types, from card numbers and national IDs to API keys, found in buckets, tables and telemetry.
-- [Is it exposed?](/docs/data-security/checks-and-issues): 32 checks of each store: public access, encryption, backups, logging, secrets and copies.
-- [Who can reach it, and where does it go?](/docs/data-security/flows-access-residency): Who can read each store, which services use it, and which AI providers and hosts its data reaches.
+- [Is it exposed?](/docs/data-security/checks-and-issues): 33 checks of each store: public access, encryption, backups, logging, secrets and copies.
+- [Who can reach it, and where does it go?](/docs/data-security/flows-access-residency): Every identity that can reach each store, the riskiest first, which services use it, and which AI providers and hosts its data reaches.
 - [Does it meet our rules?](/docs/data-security/compliance): Residency rules, and nine frameworks scored from what the scans found.
 :::
 
@@ -35,10 +35,11 @@ flowchart TB
 
 - **Your telemetry is a data store.** Each service's logs, traces, exceptions, session replays and AI conversations are checked like a bucket, every hour. An email address in a log line is a finding, and **Scrub It** masks it at ingest from then on. See [Sensitive Data in Telemetry](/docs/data-security/telemetry).
 - **Flows come from real traffic.** The service map says which service uses which database, AI calls name the provider they reach, and copies of production data are found by comparing fingerprints. See [Data Flows, Access and Residency](/docs/data-security/flows-access-residency).
+- **Access is read from both sides.** Data Security reads what each store's own settings let in, and on AWS what every role and user may reach through its IAM policies, and when each was last used. **Access** ranks every identity by the harm it could do, and access to sensitive data unused for 90 days is an issue. See [Who can reach a store](/docs/data-security/flows-access-residency#who-can-reach-a-store).
 - **Evidence is masked, always.** A finding keeps counts and at most three masked samples, such as `j***@e******.com`, masked inside the scanner before anything leaves it. Turn samples off and it keeps counts only.
 - **The scanner is open source.** Every data type's pattern, checksum, context words and test values are in OneUptime's source code, so you can read exactly what makes a finding. The same code runs on OneUptime's workers, on a probe, and in the **Test It** box.
-- **It works with the rest of OneUptime.** A Critical issue opens a security case on the store, so [Security Operations](/docs/telemetry/security-cases) works it like any other threat. It can raise an alert that pages whoever is on call, and it emails the store's owners. See [Data Security Integrations](/docs/data-security/integrations).
-- **OneUptime AI helps fix it.** **Explain with AI** tells a store's owner what is wrong and how to fix it on their cloud, and **Fix with AI** opens a pull request in your infrastructure code.
+- **It works with the rest of OneUptime.** A Critical issue opens a security case on the store, so [Security Operations](/docs/telemetry/security-cases) works it like any other threat, and any security case shows the sensitive data its users and roles can reach. It can raise an alert that pages whoever is on call, and it emails the store's owners. See [Data Security Integrations](/docs/data-security/integrations).
+- **OneUptime AI helps fix it.** **Explain with AI** tells a store's owner what is wrong and how to fix it on their cloud, **Fix with AI** opens a pull request in your infrastructure code, and OneUptime AI suggests what a field no detector could place holds, for a person to confirm.
 
 ## Before you begin
 
@@ -75,7 +76,7 @@ Every store gets the checks that apply to its kind. A store whose content cannot
 
 A store is archived, with its history, once its source no longer lists it, and its open issues are resolved: **Archived Stores**, at the end of Data Security's menu, keeps it. It comes back by itself if its source lists it again, and an issue whose check still fails opens again.
 
-A store's **Timeline** says what happened to it, and who did it: when it was found or added, each change to its settings and owners, when it was archived or came back, and each exposure closed from an issue or a playbook.
+A store's **Timeline** says what happened to it, and who did it: when it was found or added, each change to its settings and owners, when it was archived or came back, and each change made through its cloud connection, from an issue or a playbook.
 
 ## How often it runs
 

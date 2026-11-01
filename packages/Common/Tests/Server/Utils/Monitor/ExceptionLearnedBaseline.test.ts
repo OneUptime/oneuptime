@@ -1137,7 +1137,10 @@ describe("read: from the monitor's own query", () => {
   }): Service => {
     const row: Service = new Service();
     row.createdAt = data.createdAt;
-    row.retainTelemetryDataForDays = data.retainTelemetryDataForDays;
+    // Left unset, not set to undefined, under exactOptionalPropertyTypes.
+    if (data.retainTelemetryDataForDays !== undefined) {
+      row.retainTelemetryDataForDays = data.retainTelemetryDataForDays;
+    }
     return row;
   };
 

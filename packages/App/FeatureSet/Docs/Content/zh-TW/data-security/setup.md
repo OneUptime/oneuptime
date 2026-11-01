@@ -48,6 +48,9 @@
 | 讀取資料庫的存取、加密和備份方式，以及其手動快照與誰共用 | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | 讀取搜尋網域、快取和檔案系統的設定方式 | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | 區分 AWS 自有的金鑰（alias/aws/...）和你管理的金鑰 | `kms:ListAliases` |
+| 讀取哪些使用者和角色透過自己的 IAM 政策存取每個儲存貯體和每個資料表、誰可以擔任每個角色，以及各自上次使用的時間 | `iam:GetAccountAuthorizationDetails`、`iam:GenerateCredentialReport`、`iam:GetCredentialReport` |
+
+透過這些 IAM 動作，**存取** 可以列出透過自身政策存取資料儲存區的每個角色和每個使用者，以及各自上次使用的時間。IAM 為此產生的認證報告只包含日期和旗標，從不包含密碼或金鑰。在資料安全開始讀取 IAM 之前設定的連線，在再次執行其指令之前，只會讀取每個資料儲存區自身的政策。
 
 內容層級會在同一個政策中新增三個動作，每個動作各自作用於其資源：
 
@@ -95,7 +98,10 @@
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@
 
 ## 讓資料安全關閉暴露
 
-除非你另行選擇，否則連線只會讀取。**更多欄位** 下位於 **資料安全** 旁的 **資料安全回應**，還能讓資料安全封鎖資料儲存區的公開存取並停止共用其快照：可以在資料儲存區的問題中透過 **在此修正** 執行（請參閱 [資料安全檢查與問題](/docs/data-security/checks-and-issues#在此修正)），也可以透過 Security Operations 劇本執行。在你選擇 **封鎖公開存取和共用** 之前，它都是 **關閉**，選擇之後，表單顯示的指令會單獨授予一項範圍很窄的寫入權限：
+除非你另行選擇，否則連線只會讀取。**更多欄位** 下位於 **資料安全** 旁的 **資料安全回應**，還能讓資料安全透過連線變更資料儲存區的設定：封鎖其公開存取並停止共用其快照，可以在資料儲存區的問題中透過 **在此修正** 執行（請參閱 [資料安全檢查與問題](/docs/data-security/checks-and-issues#在此修正)），也可以透過 Security Operations 劇本執行；開啟保護它的設定，例如版本控制或安全傳輸，則在其問題中進行。在你選擇 **關閉暴露並修正設定** 之前，它都是 **關閉**，選擇之後，表單顯示的指令會單獨授予這些範圍很窄的寫入權限：
 
 | 雲端 | 指令新增的內容 | 它可以做什麼 |
 | --- | --- | --- |
-| AWS | 第三個內嵌政策 `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` 和 `rds:ModifyDBClusterSnapshotAttribute`：儲存貯體的封鎖公開存取設定，以及手動快照與誰共用 |
-| Azure | 位於連線範圍上的自訂角色 `OneUptime Data Security Response` | `Microsoft.Storage/storageAccounts/read` 和 `Microsoft.Storage/storageAccounts/write`：儲存體帳戶的設定，例如匿名 Blob 存取，從不涉及其金鑰 |
-| Google Cloud | 自訂角色 `oneuptimeDataSecurityResponse` | `storage.buckets.get` 和 `storage.buckets.update`：儲存貯體的設定，例如禁止公開存取 |
+| AWS | 第三個內嵌政策 `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` 和 `dynamodb:UpdateContinuousBackups`：儲存貯體的封鎖公開存取設定、版本控制和物件擁有權，手動快照與誰共用，以及資料表的時間點復原 |
+| Azure | 位於連線範圍上的自訂角色 `OneUptime Data Security Response` | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` 和 `Microsoft.Storage/storageAccounts/blobServices/write`：儲存體帳戶的設定，例如匿名 Blob 存取和安全傳輸，以及其 Blob 的虛刪除，從不涉及其金鑰 |
+| Google Cloud | 自訂角色 `oneuptimeDataSecurityResponse` | `storage.buckets.get` 和 `storage.buckets.update`：儲存貯體的設定，例如禁止公開存取、統一存取和版本控制 |
 
 它授予的權限都不會讀取資料、刪除任何內容或變更誰可以登入。將它設回 **關閉**，資料安全就會立即停止使用它。若要在 AWS 上同時收回存取權，請使用 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse` 刪除該政策。
+
+先前已開啟它的連線需要為這些設定再次執行其指令：在此之前，雲端會拒絕該變更，面板會說明缺少哪項權限。
 
 ## 為什麼內容樣本是選用的
 
