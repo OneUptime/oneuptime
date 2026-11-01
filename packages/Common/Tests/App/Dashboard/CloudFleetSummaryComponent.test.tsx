@@ -42,6 +42,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import CloudFleetSummary from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudFleetSummary";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 
 /*
@@ -244,5 +247,69 @@ describe("CloudFleetSummary", () => {
     });
 
     expect(mockCountCalls.length).toBeGreaterThan(callsAfterFirstLoad);
+  });
+});
+
+/*
+ * The strip is App Platforms' first card, and a German reader read it in
+ * English: its titles were drawn as the summary names them, never looked
+ * up. Drawn here with the Dashboard's own German words, through the same
+ * i18next instance the page's sentences go through. Last in the file: it
+ * sets the global instance's language.
+ */
+describe("CloudFleetSummary in the reader's language", () => {
+  test("draws every title and line under it in German, each title saying its language", async () => {
+    await i18next.use(initReactI18next).init({
+      lng: "de",
+      fallbackLng: false,
+      resources: { de: { translation: germanLocale } },
+      keySeparator: false,
+      nsSeparator: false,
+      interpolation: { escapeValue: false },
+    });
+
+    mockCountResponse = fleet({
+      total: 6,
+      connected: 4,
+      byProvider: { aws: 2, gcp: 2, azure: 2 },
+      liveInstances: 3,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("cloud-fleet-summary-tile")).toHaveLength(4);
+    });
+
+    const tiles: Array<HTMLElement> = screen.getAllByTestId(
+      "cloud-fleet-summary-tile",
+    );
+    const titles: Array<string> = tiles.map((tile: HTMLElement): string => {
+      return tile.querySelector("span")!.textContent || "";
+    });
+
+    expect(titles).toEqual([
+      "Umgebungen",
+      "Verbunden",
+      "Getrennt",
+      "Aktive Instanzen",
+    ]);
+    tiles.forEach((tile: HTMLElement): void => {
+      expect(tile.querySelector("span")).toHaveAttribute("lang", "de");
+    });
+
+    const sublabels: Array<string> = screen
+      .getAllByTestId("cloud-fleet-summary-tile-sublabel")
+      .map((line: HTMLElement): string => {
+        return line.textContent || "";
+      });
+
+    expect(sublabels).toEqual([
+      // Provider names are names, in every language.
+      "2 AWS · 2 Azure · 2 Google Cloud",
+      "67 % der Umgebungen",
+      "in letzter Zeit keine Telemetrie",
+      "in den letzten 15 Min. gesehen",
+    ]);
   });
 });
