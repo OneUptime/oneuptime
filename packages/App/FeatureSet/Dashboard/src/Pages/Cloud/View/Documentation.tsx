@@ -14,10 +14,12 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import CloudDocumentationCard from "../../../Components/Cloud/CloudDocumentationCard";
 import CloudMonitoringDocumentationCard from "../../../Components/Cloud/CloudMonitoringDocumentationCard";
-import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 
+/*
+ * A cloud resource's Documentation: how resources are discovered from its
+ * cloud's monitoring, opened on its own provider's guide.
+ */
 const CloudResourceDocumentation: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -37,14 +39,7 @@ const CloudResourceDocumentation: FunctionComponent<
         id: modelId,
         select: {
           name: true,
-          /*
-           * Pre-selects the guide's platform picker with the platform this
-           * environment was discovered on, so the reader lands on the ECS
-           * steps for an ECS environment rather than on the default.
-           */
-          cloudPlatform: true,
-          // A resource's tab opens on its own provider's guide.
-          cloudResourceKind: true,
+          // The tab opens on the resource's own provider's guide.
           cloudProvider: true,
         },
       });
@@ -73,24 +68,12 @@ const CloudResourceDocumentation: FunctionComponent<
     return <ErrorMessage message="Cloud resource not found." />;
   }
 
-  if (isCloudResourceKindResource(cloudResource.cloudResourceKind)) {
-    return (
-      <Fragment>
-        <CloudMonitoringDocumentationCard
-          title="Discover your cloud resources"
-          description="How resources are discovered: an OpenTelemetry Collector with read-only access to your cloud's monitoring API reads the metrics it publishes about every resource and sends them to OneUptime."
-          initialOption={cloudResource.cloudProvider}
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
-      <CloudDocumentationCard
-        title="Connect a cloud environment"
-        description="Where the OpenTelemetry settings go on this platform — console steps, the collector or SDK configuration, the IAM and networking that has to be in place, and how to verify."
-        initialPlatform={cloudResource.cloudPlatform}
+      <CloudMonitoringDocumentationCard
+        title="Discover your cloud resources"
+        description="How resources are discovered: an OpenTelemetry Collector with read-only access to your cloud's monitoring API reads the metrics it publishes about every resource and sends them to OneUptime."
+        initialOption={cloudResource.cloudProvider}
       />
     </Fragment>
   );

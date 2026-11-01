@@ -54,6 +54,8 @@ const CATEGORIES: Array<string> = [
   "Code",
   "Resources",
   "Infrastructure",
+  // Cloud, App Platforms and Serverless: what a cloud runs for you.
+  "Cloud",
   "Dashboards & Automation",
   "Settings",
 ];

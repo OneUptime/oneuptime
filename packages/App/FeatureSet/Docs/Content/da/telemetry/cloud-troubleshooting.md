@@ -29,7 +29,7 @@ Hvis du selv hoster OneUptime, så brug `https://YOUR-ONEUPTIME-HOST/otlp/v1/val
 
 ## Miljøet vises ikke
 
-Intet under **Cloud → All Environments** et minut efter den første anmodning. Tjek disse tre, i denne rækkefølge.
+Intet under **App-platforme → Alle miljøer** et minut efter den første anmodning. Tjek disse tre, i denne rækkefølge.
 
 **`cloud.platform` mangler eller er ikke en administreret værdi.** OneUptime arkiverer kun telemetri under Cloud-miljøer, når ressourcen bærer en af disse værdier: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` eller `azure_app_service`. De almindelige årsager:
 

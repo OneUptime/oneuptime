@@ -7,14 +7,12 @@ import Link from "Common/Types/Link";
  * Every routed CLOUD_* page needs a trail here: a page without one renders
  * with no breadcrumbs at all, silently. App/Tests/Dashboard/
  * CloudResourcePages.test.ts enumerates the routed keys and fails by name
- * when one is missing.
+ * when one is missing. The environments that used to be Cloud's have their
+ * trails in App Platforms (AppPlatformsBreadcrumbs).
  */
 export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
   const breadcrumpLinksMap: Dictionary<Link[]> = {
-    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCES, [
-      "Project",
-      "Cloud",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_HOME, ["Project", "Cloud"]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_MONITORED_RESOURCES, [
       "Project",
       "Cloud",
@@ -68,24 +66,6 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Cloud",
       "View Resource",
       "Metrics",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_LOGS, [
-      "Project",
-      "Cloud",
-      "View Resource",
-      "Logs",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_TRACES, [
-      "Project",
-      "Cloud",
-      "View Resource",
-      "Traces",
-    ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES, [
-      "Project",
-      "Cloud",
-      "View Resource",
-      "Instances",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_FEED, [
       "Project",

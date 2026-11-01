@@ -2,6 +2,8 @@
 
 Eine **Cloud-Umgebung** ist der Ort, an dem Ihre Container auf einer verwalteten Cloud-Plattform laufen: Konto und Region eines ECS-Clusters, Projekt und Region von Cloud Run, Abonnement und Region von Container Apps. OneUptime legt sie an, sobald Ihre Telemetrie zum ersten Mal mit den passenden Ressourcenattributen eintrifft, und fasst jeden Workload zusammen, der dort läuft. Sie müssen nichts von Hand registrieren.
 
+Umgebungen stehen in App-Plattformen, einem eigenen Produkt: **App-Plattformen → Übersicht** gruppiert sie nach Plattform und zeigt die zuerst, die verstummt sind, und **App-Plattformen → Alle Umgebungen** listet alle auf. Die Ressourcen in Ihren Cloud-Konten, etwa virtuelle Maschinen, Buckets und verwaltete Datenbanken, finden Sie in Cloud: siehe [Cloud-Ressourcen](/docs/telemetry/cloud-resources).
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tasks auf Fargate oder EC2, mit CPU und Arbeitsspeicher pro Task.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Dienste und Jobs, auch als Serverless-Funktionen aufgeführt.
@@ -91,7 +93,7 @@ Die eigene Identität der Plattform steht absichtlich an erster Stelle. Ein Side
 
 ### Eine Umgebung hinzufügen
 
-Die Erfassung legt Umgebungen für Sie an, Sie müssen also nichts eintippen. Öffnen Sie **Cloud → Alle Umgebungen** und klicken Sie auf **Cloud-Umgebung hinzufügen**: Wählen Sie, wo Ihre App läuft, und die Anleitung zeigt die OpenTelemetry-Einstellungen dieser Plattform, mit Ihrer OneUptime-URL und Ihrem Ingestion-Schlüssel bereits eingesetzt. Der letzte Schritt, **Auf die Verbindung warten**, meldet, wann die ersten Daten der Umgebung eingetroffen sind, und verlinkt auf sie. Für einen anderen Namen wählen Sie auf der Karte **Ressourcendetails** der Seite **Einstellungen** der Umgebung **Details bearbeiten** und tragen ihn unter **Anzeigename** ein.
+Die Erfassung legt Umgebungen für Sie an, Sie müssen also nichts eintippen. Öffnen Sie **App-Plattformen → Alle Umgebungen** und klicken Sie auf **Cloud-Umgebung hinzufügen**: Wählen Sie, wo Ihre App läuft, und die Anleitung zeigt die OpenTelemetry-Einstellungen dieser Plattform, mit Ihrer OneUptime-URL und Ihrem Ingestion-Schlüssel bereits eingesetzt. Der letzte Schritt, **Auf die Verbindung warten**, meldet, wann die ersten Daten der Umgebung eingetroffen sind, und verlinkt auf sie. Für einen anderen Namen wählen Sie auf der Karte **Umgebungsdetails** der Seite **Einstellungen** der Umgebung **Details bearbeiten** und tragen ihn unter **Anzeigename** ein.
 
 ## Was keine Cloud-Umgebung ist
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` mit `"valid": true` bedeutet, dass das Token angenommen wird. `401` bedeutet, dass es unbekannt, widerrufen, deaktiviert oder abgelaufen ist, und die `message` der Antwort sagt, was davon. Innerhalb einer Minute nach dem ersten Span, Log oder der ersten Metrik erscheint die Umgebung unter **Cloud → Alle Umgebungen**.
+`200` mit `"valid": true` bedeutet, dass das Token angenommen wird. `401` bedeutet, dass es unbekannt, widerrufen, deaktiviert oder abgelaufen ist, und die `message` der Antwort sagt, was davon. Innerhalb einer Minute nach dem ersten Span, Log oder der ersten Metrik erscheint die Umgebung unter **App-Plattformen → Alle Umgebungen**.
 :::
 
 > [!TIP]
-> Dieselben Schritte stehen auch im Dashboard, mit Ihrem Token bereits eingesetzt: unter **Cloud → Alle Umgebungen** über **Cloud-Umgebung hinzufügen**. Der Tab **Dokumentation** jeder Umgebung zeigt sie ebenfalls.
+> Dieselben Schritte stehen auch im Dashboard, mit Ihrem Token bereits eingesetzt: unter **App-Plattformen → Alle Umgebungen** über **Cloud-Umgebung hinzufügen**. Der Tab **Dokumentation** jeder Umgebung zeigt sie ebenfalls.
 
 ## Was Sie erhalten
 
@@ -190,7 +192,7 @@ Eine Umgebung, deren Telemetrie 15 Minuten lang ausbleibt, zeigt **Getrennt**, u
 ### Beschriftungen und Eigentümer
 
 - **Aus Ihrer Telemetrie:** Ein Ressourcenattribut wie `oneuptime.label.team=payments` fügt der Umgebung die Beschriftung `team:payments` hinzu.
-- **Aus Regeln:** **Cloud → Einstellungen → Beschriftungsregeln** und **Eigentümerregeln** fügen passenden Umgebungen Beschriftungen und Eigentümer hinzu. Siehe [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules).
+- **Aus Regeln:** **App-Plattformen → Einstellungen → Beschriftungsregeln** und **Eigentümerregeln** fügen passenden Umgebungen Beschriftungen und Eigentümer hinzu. Die Regeln in Cloud gelten für die Ressourcen in Ihren Cloud-Konten, und eine Regel, die vor der Trennung der beiden angelegt wurde, gilt für beide. Siehe [Beschriftungs- und Eigentümerregeln](/docs/configuration/label-and-owner-rules).
 
 ## Fehlerbehebung
 

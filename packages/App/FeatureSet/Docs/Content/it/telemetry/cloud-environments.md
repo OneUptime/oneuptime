@@ -1,6 +1,8 @@
 # Ambienti cloud
 
-Un **Cloud Environment** è il luogo in cui i tuoi container girano su una piattaforma cloud gestita: l'account e la regione di un cluster ECS, il progetto e la regione di Cloud Run, la sottoscrizione e la regione di Container Apps. OneUptime lo crea la prima volta che la tua telemetria arriva con gli attributi di risorsa giusti, e raggruppa ogni carico di lavoro che vi gira. Non c'è niente da registrare a mano.
+Un **Ambiente cloud** è il luogo in cui i tuoi container girano su una piattaforma cloud gestita: l'account e la regione di un cluster ECS, il progetto e la regione di Cloud Run, la sottoscrizione e la regione di Container Apps. OneUptime lo crea la prima volta che la tua telemetria arriva con gli attributi di risorsa giusti, e raggruppa ogni carico di lavoro che vi gira. Non c'è niente da registrare a mano.
+
+Gli ambienti sono elencati in Piattaforme applicative, un prodotto a sé: **Piattaforme applicative → Panoramica** li raggruppa per piattaforma e mostra per primi quelli che hanno smesso di inviare dati, e **Piattaforme applicative → Tutti gli ambienti** li elenca tutti. Le risorse dei tuoi account cloud, come macchine virtuali, bucket e database gestiti, sono in Cloud: vedi [Risorse cloud](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Task su Fargate o EC2, con CPU e memoria di ogni task.
@@ -91,7 +93,7 @@ L'identità propria della piattaforma viene prima di proposito. Un collector sid
 
 ### Aggiungere un ambiente
 
-L'acquisizione crea gli ambienti per te, quindi non c'è nulla da inserire. Apri **Cloud → All Environments** e fai clic su **Aggiungi ambiente cloud**: scegli dove gira la tua app, e la guida mostra le impostazioni OpenTelemetry di quella piattaforma, con il tuo URL di OneUptime e la tua chiave di acquisizione già inseriti. Il suo ultimo passaggio, **Attendi che si connetta**, indica quando sono arrivati i primi dati dell'ambiente e ne mostra il link. Per mostrare un altro nome, scegli **Modifica dettagli** nella scheda **Dettagli della risorsa** della pagina **Impostazioni** dell'ambiente e inseriscilo in **Nome visualizzato**.
+L'acquisizione crea gli ambienti per te, quindi non c'è nulla da inserire. Apri **Piattaforme applicative → Tutti gli ambienti** e fai clic su **Aggiungi ambiente cloud**: scegli dove gira la tua app, e la guida mostra le impostazioni OpenTelemetry di quella piattaforma, con il tuo URL di OneUptime e la tua chiave di acquisizione già inseriti. Il suo ultimo passaggio, **Attendi che si connetta**, indica quando sono arrivati i primi dati dell'ambiente e ne mostra il link. Per mostrare un altro nome, scegli **Modifica dettagli** nella scheda **Dettagli dell'ambiente** della pagina **Impostazioni** dell'ambiente e inseriscilo in **Nome visualizzato**.
 
 ## Che cosa non è un ambiente cloud
 
@@ -103,7 +105,7 @@ L'acquisizione crea gli ambienti per te, quindi non c'è nulla da inserire. Apri
 | Load balancer, bucket, database gestiti e altre risorse IaaS o PaaS | **Cloud Resources** | Scoperte dalle metriche che pubblicano Azure Monitor, CloudWatch e Cloud Monitoring. Vedi [Risorse cloud](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
-> Cloud Run e App Engine compaiono in due posti di proposito. Il loro rilevatore imposta sia una `cloud.platform` gestita sia `faas.name`, quindi ogni servizio è anche una **Funzione serverless** a sé, mentre il **Cloud Environment** raggruppa ogni servizio di quel progetto e di quella regione. La stessa telemetria viene archiviata in entrambi.
+> Cloud Run e App Engine compaiono in due posti di proposito. Il loro rilevatore imposta sia una `cloud.platform` gestita sia `faas.name`, quindi ogni servizio è anche una **Funzione serverless** a sé, mentre l'**Ambiente cloud** raggruppa ogni servizio di quel progetto e di quella regione. La stessa telemetria viene archiviata in entrambi.
 
 ## Collegare un carico di lavoro
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` con `"valid": true` significa che il token è accettato. `401` significa che è sconosciuto, revocato, disattivato o scaduto, e il `message` della risposta dice quale. Entro un minuto dal primo span, log o metrica, l'ambiente compare in **Cloud → All Environments**.
+`200` con `"valid": true` significa che il token è accettato. `401` significa che è sconosciuto, revocato, disattivato o scaduto, e il `message` della risposta dice quale. Entro un minuto dal primo span, log o metrica, l'ambiente compare in **Piattaforme applicative → Tutti gli ambienti**.
 :::
 
 > [!TIP]
-> Gli stessi passaggi sono nella dashboard, con il tuo token già inserito: in **Cloud → All Environments**, fai clic su **Aggiungi ambiente cloud**. Anche la scheda **Documentazione** di ogni ambiente li mostra.
+> Gli stessi passaggi sono nella dashboard, con il tuo token già inserito: in **Piattaforme applicative → Tutti gli ambienti**, fai clic su **Aggiungi ambiente cloud**. Anche la scheda **Documentazione** di ogni ambiente li mostra.
 
 ## Che cosa ottieni
 
@@ -190,7 +192,7 @@ Un ambiente la cui telemetria si ferma per 15 minuti mostra **Disconnesso**, e l
 ### Etichette e proprietari
 
 - **Dalla tua telemetria:** un attributo di risorsa come `oneuptime.label.team=payments` aggiunge l'etichetta `team:payments` all'ambiente.
-- **Dalle regole:** **Cloud → Impostazioni → Regole etichette** e **Regole del proprietario** aggiungono etichette e proprietari agli ambienti corrispondenti. Vedi [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules).
+- **Dalle regole:** **Piattaforme applicative → Impostazioni → Regole etichette** e **Regole del proprietario** aggiungono etichette e proprietari agli ambienti corrispondenti. Le regole di Cloud sono per le risorse dei tuoi account cloud, e una regola creata prima che i due venissero separati vale per entrambi. Vedi [Regole per etichette e proprietari](/docs/configuration/label-and-owner-rules).
 
 ## Risoluzione dei problemi
 

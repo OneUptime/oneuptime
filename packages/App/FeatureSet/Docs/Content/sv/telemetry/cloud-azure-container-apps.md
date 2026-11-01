@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-Skicka spår, loggar och mätvärden från dina Azure Container Apps till OneUptime. Varje replik som rapporterar `cloud.platform=azure_container_apps` hamnar i en **Cloud Environment** per Azure-prenumeration och region, till exempel _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, med replikerna som körs listade under **Instanser**.
+Skicka spår, loggar och mätvärden från dina Azure Container Apps till OneUptime. Varje replik som rapporterar `cloud.platform=azure_container_apps` hamnar i en **Molnmiljö** per Azure-prenumeration och region, till exempel _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, med replikerna som körs listade under **Instanser**.
 
 :::cards
 - [Så fungerar det](#så-fungerar-det): Vad detektorerna sätter, och de två attribut som du sätter själv.
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-Leta efter `Everything is ready`, och inga `401` eller `connection refused`. Inom en minut efter det första spannet, den första loggen eller det första mätvärdet visas miljön under **Moln → All Environments** som _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
+Leta efter `Everything is ready`, och inga `401` eller `connection refused`. Inom en minut efter det första spannet, den första loggen eller det första mätvärdet visas miljön under **Appplattformar → Alla miljöer** som _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
 :::
 
 ## Använd miljöns hanterade OpenTelemetry-agent

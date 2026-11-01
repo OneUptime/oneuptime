@@ -1,6 +1,8 @@
 # Cloud-miljøer
 
-Et **Cloud Environment** er stedet, hvor dine containere kører på en administreret cloudplatform: et ECS-clusters konto og region, et Cloud Run-projekt og dets region, et Container Apps-abonnement og dets region. OneUptime opretter et, første gang din telemetri ankommer med de rigtige ressourceattributter, og samler hver workload, der kører der. Der er intet at registrere i hånden.
+Et **Cloud-miljø** er stedet, hvor dine containere kører på en administreret cloudplatform: et ECS-clusters konto og region, et Cloud Run-projekt og dets region, et Container Apps-abonnement og dets region. OneUptime opretter et, første gang din telemetri ankommer med de rigtige ressourceattributter, og samler hver workload, der kører der. Der er intet at registrere i hånden.
+
+Miljøer vises i App-platforme, et produkt for sig: **App-platforme → Oversigt** grupperer dem efter platform og viser dem, der er blevet stille, først, og **App-platforme → Alle miljøer** viser dem alle. Ressourcerne i dine cloudkonti, såsom virtuelle maskiner, buckets og administrerede databaser, findes i Cloud: se [Cloud-ressourcer](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Opgaver på Fargate eller EC2, med CPU og hukommelse pr. opgave.
@@ -91,7 +93,7 @@ Platformens egen identitet kommer først med vilje. En sidecar-collector og appl
 
 ### Tilføj et miljø
 
-Indtagelsen opretter miljøer for dig, så der er intet at indtaste. Åbn **Cloud → All Environments**, og klik på **Tilføj cloud-miljø**: vælg, hvor din applikation kører, og vejledningen viser platformens OpenTelemetry-indstillinger med din OneUptime-URL og indtagelsesnøgle udfyldt. Dens sidste trin, **Vent på forbindelse**, fortæller, hvornår miljøets første data er kommet ind, og linker til det. For at vise et andet navn skal du vælge **Rediger detaljer** på kortet **Ressourcedetaljer** på miljøets side **Indstillinger** og skrive et **Visningsnavn**.
+Indtagelsen opretter miljøer for dig, så der er intet at indtaste. Åbn **App-platforme → Alle miljøer**, og klik på **Tilføj cloud-miljø**: vælg, hvor din applikation kører, og vejledningen viser platformens OpenTelemetry-indstillinger med din OneUptime-URL og indtagelsesnøgle udfyldt. Dens sidste trin, **Vent på forbindelse**, fortæller, hvornår miljøets første data er kommet ind, og linker til det. For at vise et andet navn skal du vælge **Rediger detaljer** på kortet **Miljødetaljer** på miljøets side **Indstillinger** og skrive et **Visningsnavn**.
 
 ## Hvad der ikke er et cloud-miljø
 
@@ -103,7 +105,7 @@ Indtagelsen opretter miljøer for dig, så der er intet at indtaste. Åbn **Clou
 | Load balancere, buckets, administrerede databaser og andre IaaS- eller PaaS-ressourcer | **Cloud Resources** | Opdaget ud fra de metrikker, som Azure Monitor, CloudWatch og Cloud Monitoring udgiver. Se [Cloud-ressourcer](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
-> Cloud Run og App Engine vises med vilje to steder. Deres detektor sætter både en administreret `cloud.platform` og `faas.name`, så hver tjeneste er også sin egen **Serverløs funktion**, mens **Cloud Environment** samler alle tjenester i det projekt og den region. Den samme telemetri arkiveres under begge.
+> Cloud Run og App Engine vises med vilje to steder. Deres detektor sætter både en administreret `cloud.platform` og `faas.name`, så hver tjeneste er også sin egen **Serverløs funktion**, mens **Cloud-miljø** samler alle tjenester i det projekt og den region. Den samme telemetri arkiveres under begge.
 
 ## Forbind en workload
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyder, at tokenet er accepteret. `401` betyder, at det er ukendt, tilbagekaldt, deaktiveret eller udløbet, og svarets `message` siger hvilket. Inden for et minut efter det første span, den første log eller metrik vises miljøet under **Cloud → All Environments**.
+`200` med `"valid": true` betyder, at tokenet er accepteret. `401` betyder, at det er ukendt, tilbagekaldt, deaktiveret eller udløbet, og svarets `message` siger hvilket. Inden for et minut efter det første span, den første log eller metrik vises miljøet under **App-platforme → Alle miljøer**.
 :::
 
 > [!TIP]
-> De samme trin findes i dashboardet med dit token udfyldt: under **Cloud → All Environments**, klik på **Tilføj cloud-miljø**. Hvert miljøs fane **Dokumentation** har dem også.
+> De samme trin findes i dashboardet med dit token udfyldt: under **App-platforme → Alle miljøer**, klik på **Tilføj cloud-miljø**. Hvert miljøs fane **Dokumentation** har dem også.
 
 ## Hvad du får
 
@@ -190,7 +192,7 @@ Et miljø, hvis telemetri stopper i 15 minutter, viser **Afbrudt**, og det næst
 ### Etiketter og ejere
 
 - **Fra din telemetri:** en ressourceattribut som `oneuptime.label.team=payments` tilføjer etiketten `team:payments` til miljøet.
-- **Fra regler:** **Cloud → Indstillinger → Etiketregler** og **Ejerregler** tilføjer etiketter og ejere til de miljøer, der matcher. Se [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules).
+- **Fra regler:** **App-platforme → Indstillinger → Etiketregler** og **Ejerregler** tilføjer etiketter og ejere til de miljøer, der matcher. Reglerne i Cloud gælder for ressourcerne i dine cloudkonti, og en regel, der blev oprettet, før de to blev adskilt, gælder for begge. Se [Etiket- og ejerregler](/docs/configuration/label-and-owner-rules).
 
 ## Fejlfinding
 

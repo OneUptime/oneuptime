@@ -7,13 +7,9 @@ import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Route as PageRoute, Routes } from "react-router-dom";
 
-import CloudResources from "../Pages/Cloud/CloudResources";
-import CloudResourceOverview from "../Pages/Cloud/View/Overview";
+import CloudResourceOverview from "../Pages/Cloud/View/MonitoredResourceOverview";
 import CloudResourceSettings from "../Pages/Cloud/View/Settings";
 import CloudResourceMetrics from "../Pages/Cloud/View/Metrics";
-import CloudResourceLogs from "../Pages/Cloud/View/Logs";
-import CloudResourceTraces from "../Pages/Cloud/View/Traces";
-import CloudResourceInstances from "../Pages/Cloud/View/Instances";
 import CloudResourceFeed from "../Pages/Cloud/View/Feed";
 import CloudResourceOwners from "../Pages/Cloud/View/Owners";
 import CloudResourceDocumentation from "../Pages/Cloud/View/Documentation";
@@ -42,23 +38,49 @@ import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLa
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { getDeveloperDocsRoutes } from "../Components/DeveloperDocs/DeveloperDocsRoutes";
-import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPages";
+import {
+  DEVELOPER_DOCS_PAGES,
+  DeveloperDocsPageDefinition,
+  DeveloperDocsScope,
+  getDeveloperDocsPageKey,
+  getDeveloperDocsRelativePath,
+} from "../Components/DeveloperDocs/DeveloperDocsPages";
+import MovedPageRedirect from "../Components/Routing/MovedPageRedirect";
+import PageNotFound from "../Pages/PageNotFound/PageNotFound";
 
+/*
+ * Cloud, mounted at …/cloud/*: its accounts, every resource in them and the
+ * way to connect one.
+ *
+ * Its environments - the apps on ECS and Fargate, Cloud Run, App Service
+ * and the other managed app and container platforms - moved to App
+ * Platforms (AppPlatformsRoutes, …/app-platforms/), and every old address
+ * still arrives:
+ *
+ *   - the environments list was Cloud's own address (…/cloud), which stays
+ *     the product's: it forwards to Cloud > Accounts;
+ *   - an environment's pages (…/cloud/:id/…) forward to the same tab in App
+ *     Platforms, keeping the id, the query string and the hash - the view
+ *     reads the row's kind first (Pages/Cloud/View/Layout,
+ *     Utils/CloudResourceViewPages), since a resource keeps those addresses;
+ *   - the list's Developer pages (…/cloud/developer/…) moved under All
+ *     Resources (…/cloud/resources/developer/…).
+ */
 const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <Routes>
       <PageRoute path="/" element={<CloudLayout {...props} />}>
+        {/*
+         * Cloud's own address opens it on its accounts. It used to open the
+         * environments list, which moved to App Platforms.
+         */}
         <PageRoute
-          path=""
-          element={
-            <CloudResources
-              {...props}
-              pageRoute={RouteMap[PageMap.CLOUD_RESOURCES] as Route}
-            />
-          }
+          index
+          element={<MovedPageRedirect pageMap={PageMap.CLOUD_ACCOUNTS} />}
         />
+        {/* CLOUD_HOME is this address: the same forward. */}
         <PageRoute
           path={CloudRoutePath[PageMap.CLOUD_SETTINGS_LABEL_RULES] || ""}
           element={
@@ -143,7 +165,31 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           scope: DeveloperDocsScope.List,
           props,
           mountPageKey: PageMap.CLOUD_ROOT,
+          parentPageKey: PageMap.CLOUD_MONITORED_RESOURCES,
         })}
+
+        {/*
+         * The list's Developer pages hung under the environments list, at
+         * …/cloud/developer/…; they are All Resources' now.
+         */}
+        {DEVELOPER_DOCS_PAGES.map(
+          (page: DeveloperDocsPageDefinition): ReactElement => {
+            return (
+              <PageRoute
+                key={`moved-${page.type}`}
+                path={getDeveloperDocsRelativePath(page.type)}
+                element={
+                  <MovedPageRedirect
+                    pageMap={getDeveloperDocsPageKey(
+                      PageMap.CLOUD_MONITORED_RESOURCES,
+                      page.type,
+                    )}
+                  />
+                }
+              />
+            );
+          },
+        )}
       </PageRoute>
 
       {/*
@@ -298,40 +344,6 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_LOGS)}
-          element={
-            <CloudResourceLogs
-              {...props}
-              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_LOGS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.CLOUD_RESOURCE_VIEW_TRACES)}
-          element={
-            <CloudResourceTraces
-              {...props}
-              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW_TRACES] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.CLOUD_RESOURCE_VIEW_INSTANCES,
-          )}
-          element={
-            <CloudResourceInstances
-              {...props}
-              pageRoute={
-                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES] as Route
-              }
-            />
-          }
-        />
-
-        <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS,
           )}
@@ -417,7 +429,23 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           modelType: CloudResource,
           scope: DeveloperDocsScope.View,
           props,
+          parentPageKey: PageMap.CLOUD_RESOURCE_VIEW,
         })}
+
+        {/*
+         * A tab a cloud resource does not have says so under the resource's
+         * own menu. An environment's (its Logs, Traces and Instances) never
+         * gets here: the layout forwards an environment to App Platforms.
+         */}
+        <PageRoute
+          path="*"
+          element={
+            <PageNotFound
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route}
+            />
+          }
+        />
       </PageRoute>
     </Routes>
   );

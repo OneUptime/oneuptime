@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-ترِیس‌ها، لاگ‌ها و متریک‌های Azure Container Apps خود را به OneUptime بفرستید. هر رپلیکایی که `cloud.platform=azure_container_apps` را گزارش کند، برای هر اشتراک Azure و منطقه در یک **Cloud Environment** قرار می‌گیرد، مانند _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_، و رپلیکاهای در حال اجرا در **نمونه‌ها** فهرست می‌شوند.
+ترِیس‌ها، لاگ‌ها و متریک‌های Azure Container Apps خود را به OneUptime بفرستید. هر رپلیکایی که `cloud.platform=azure_container_apps` را گزارش کند، برای هر اشتراک Azure و منطقه در یک **محیط ابری** قرار می‌گیرد، مانند _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_، و رپلیکاهای در حال اجرا در **نمونه‌ها** فهرست می‌شوند.
 
 :::cards
 - [چگونه کار می‌کند](#چگونه-کار-میکند): تشخیص‌دهنده‌ها چه چیزی را تنظیم می‌کنند، و دو ویژگی‌ای که خودتان تنظیم می‌کنید.
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-دنبال `Everything is ready` بگردید، و این‌که هیچ `401` یا `connection refused` نباشد. ظرف یک دقیقه پس از نخستین اسپن، لاگ یا متریک، محیط در **ابر** > **All Environments** با نام _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ نمایش داده می‌شود.
+دنبال `Everything is ready` بگردید، و این‌که هیچ `401` یا `connection refused` نباشد. ظرف یک دقیقه پس از نخستین اسپن، لاگ یا متریک، محیط در **بسترهای برنامه** > **همه محیط‌ها** با نام _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ نمایش داده می‌شود.
 :::
 
 ## استفاده از عامل مدیریت‌شدهٔ OpenTelemetry محیط

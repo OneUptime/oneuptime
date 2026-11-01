@@ -101,11 +101,14 @@ function platformTableRows(markdown: string): Array<string> {
   });
 }
 
-// The Cloud pages have a sidebar group of their own, in Observability.
+/*
+ * The environment pages have a sidebar group of their own, in
+ * Observability: App Platforms, the product the Dashboard shows them in.
+ */
 function cloudGroup(): NavGroup {
   const group: NavGroup | undefined = DocsNav.find(
     (item: NavGroup): boolean => {
-      return item.title === "Cloud";
+      return item.title === "App Platforms";
     },
   );
 
@@ -172,7 +175,7 @@ describe("Cloud Environments docs", (): void => {
   });
 
   describe("navigation", (): void => {
-    it("lists the hub, the platform pages and troubleshooting in order, in the Cloud group", (): void => {
+    it("lists the hub, the platform pages and troubleshooting in order, in the App Platforms group", (): void => {
       const urls: Array<string> = cloudGroup().links.map(
         (link: NavLink): string => {
           return link.url;
@@ -206,7 +209,25 @@ describe("Cloud Environments docs", (): void => {
       );
     });
 
-    it("resolves every Cloud-group URL to an English page on disk", (): void => {
+    it("is the group just before Cloud's, which holds the accounts and their resources", (): void => {
+      const titles: Array<string> = DocsNav.map((group: NavGroup): string => {
+        return group.title;
+      });
+
+      expect(titles.indexOf("Cloud")).toBe(titles.indexOf("App Platforms") + 1);
+      expect(
+        DocsNav.find((group: NavGroup): boolean => {
+          return group.title === "Cloud";
+        })!.links.map((link: NavLink): string => {
+          return link.url;
+        }),
+      ).toEqual([
+        "/docs/telemetry/cloud-accounts",
+        "/docs/telemetry/cloud-resources",
+      ]);
+    });
+
+    it("resolves every App Platforms-group URL to an English page on disk", (): void => {
       for (const link of cloudGroup().links) {
         expect({
           url: link.url,

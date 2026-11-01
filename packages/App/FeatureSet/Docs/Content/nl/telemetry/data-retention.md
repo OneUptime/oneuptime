@@ -79,7 +79,7 @@ Een leeg veld valt terug op de volgende instelling in de volgorde hierboven, dus
 
 Open de pagina **Instellingen** van de service of resource, en dan **Meer instellingen**. De kaart **Bewaartermijn telemetriegegevens** bevat **Telemetriegegevens bewaren gedurende (dagen)**, één getal voor alles wat hij stuurt, en de kaart **Bewaring per telemetrietype** heeft dezelfde velden als die van het project. Laat een veld leeg om de instellingen van het project te gebruiken.
 
-Services, hosts, Kubernetes-clusters, Docker- en Podman-hosts, Docker Swarm-, Proxmox- en Ceph-clusters, opslagarrays, vCenters, databases, serverless functies, cloudresources, RUM-applicaties en IoT-vloten hebben allemaal deze kaarten. Zie de [Servicecatalogus](/docs/telemetry/services#een-service-wijzigen) voor de pagina **Instellingen** van een service.
+Services, hosts, Kubernetes-clusters, Docker- en Podman-hosts, Docker Swarm-, Proxmox- en Ceph-clusters, opslagarrays, vCenters, databases, serverless functies, cloud-omgevingen, RUM-applicaties en IoT-vloten hebben allemaal deze kaarten. Zie de [Servicecatalogus](/docs/telemetry/services#een-service-wijzigen) voor de pagina **Instellingen** van een service.
 
 ### Als het abonnement of de licentie geen overschrijvingen meer omvat
 

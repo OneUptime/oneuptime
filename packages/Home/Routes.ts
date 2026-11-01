@@ -69,6 +69,7 @@ import {
 } from "./Utils/AirGappedPages";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
+import { getAppPlatformsPageContent } from "./Utils/AppPlatforms";
 import { getCliPageContent } from "./Utils/CliPage";
 import { getResellersPageContent } from "./Utils/Resellers";
 import { getCloudMarketplacesContent } from "./Utils/CloudMarketplaces";
@@ -1267,6 +1268,25 @@ const HomeFeatureSet: FeatureSet = {
         res.render(`${ViewsPath}/serverless`, {
           enableGoogleTagManager: GoogleTagManagerEnabled,
           seo,
+        });
+      },
+    );
+
+    /*
+     * The apps managed app and container platforms run, which were Cloud's
+     * environments: the platforms it lists are the product's own catalog.
+     */
+    app.get(
+      "/product/app-platforms",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/app-platforms",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/app-platforms`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          appPlatforms: getAppPlatformsPageContent(),
         });
       },
     );

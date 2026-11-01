@@ -29,7 +29,7 @@ Se ospiti OneUptime in autonomia, usa `https://YOUR-ONEUPTIME-HOST/otlp/v1/valid
 
 ## L'ambiente non compare
 
-Niente in **Cloud → All Environments** un minuto dopo la prima richiesta. Controlla questi tre punti, in quest'ordine.
+Niente in **Piattaforme applicative → Tutti gli ambienti** un minuto dopo la prima richiesta. Controlla questi tre punti, in quest'ordine.
 
 **`cloud.platform` manca, o non è un valore gestito.** OneUptime archivia la telemetria in Ambienti cloud solo quando la risorsa porta uno di questi valori: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` o `azure_app_service`. Le cause abituali:
 

@@ -430,7 +430,7 @@ describe("Serverless function overview tooltips", () => {
 });
 
 describe("Cloud environment overview tooltips", () => {
-  const code: string = readCode("Pages/Cloud/View/Overview.tsx");
+  const code: string = readCode("Pages/AppPlatforms/View/Overview.tsx");
   const tilesBlock: string = between(
     code,
     "const tiles: Array<ResourceOverviewTile> = [",
@@ -502,7 +502,7 @@ describe("Cloud environment overview tooltips", () => {
     const title: string = between(
       code,
       "export const TopInstancesByCpuTitle: FunctionComponent",
-      "const CloudResourceOverview",
+      "const CloudEnvironmentOverview",
     );
 
     expect(code).toContain(
@@ -526,7 +526,7 @@ describe("Cloud environment overview tooltips", () => {
 
   test("the live-snapshot texts match the live window the page filters on", () => {
     const scope: string = readCode(
-      "Pages/Cloud/Utils/CloudResourceTelemetryScope.ts",
+      "Pages/AppPlatforms/Utils/CloudResourceTelemetryScope.ts",
     );
     const minutes: RegExpMatchArray | null = scope.match(
       /CLOUD_INSTANCE_LIVE_WINDOW_MINUTES: number = (\d+);/,
@@ -564,7 +564,9 @@ describe("Cloud environment overview tooltips", () => {
 });
 
 describe("Cloud fleet summary tooltips", () => {
-  const util: string = readCode("Pages/Cloud/Utils/CloudFleetSummary.ts");
+  const util: string = readCode(
+    "Pages/AppPlatforms/Utils/CloudFleetSummary.ts",
+  );
   const component: string = readCode("Components/Cloud/CloudFleetSummary.tsx");
 
   const EXPECTED: Record<string, string> = {
@@ -670,7 +672,7 @@ describe("Cloud fleet summary tooltips", () => {
 });
 
 describe("Cloud Instances tab tooltips", () => {
-  const code: string = readCode("Pages/Cloud/View/Instances.tsx");
+  const code: string = readCode("Pages/AppPlatforms/View/Instances.tsx");
   const columnsBlock: string = between(code, "columns={[", "]} />");
 
   // Column title -> description key, or null for a column with no metric.

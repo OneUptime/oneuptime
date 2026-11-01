@@ -1,6 +1,6 @@
 # AWS ECS / Fargate
 
-Amazon ECS 태스크의 트레이스, 로그, 메트릭을 OneUptime으로 보냅니다. Fargate와 EC2 시작 유형 모두에서 동작합니다. `cloud.platform=aws_ecs`를 보고하는 모든 태스크는 서비스를 하나 실행하든 쉰 개 실행하든 AWS 계정과 리전마다 하나의 **Cloud Environment**(예: _AWS ECS · us-east-1 · 123456789012_)에 들어갑니다.
+Amazon ECS 태스크의 트레이스, 로그, 메트릭을 OneUptime으로 보냅니다. Fargate와 EC2 시작 유형 모두에서 동작합니다. `cloud.platform=aws_ecs`를 보고하는 모든 태스크는 서비스를 하나 실행하든 쉰 개 실행하든 AWS 계정과 리전마다 하나의 **클라우드 환경**(예: _AWS ECS · us-east-1 · 123456789012_)에 들어갑니다.
 
 :::cards
 - [작동 방식](#작동-방식): ECS 감지기와 사이드카 Collector가 하는 일.
@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-Collector의 CloudWatch 로그 스트림(`otel/otel-collector/...`)에 `Everything is ready`가 보이고 `401`이나 `connection refused` 줄이 없어야 합니다. 첫 스팬, 로그 또는 메트릭이 도착하고 1분 안에 환경이 **클라우드 → All Environments**에 _AWS ECS · us-east-1 · 123456789012_ 라는 이름으로 나타납니다.
+Collector의 CloudWatch 로그 스트림(`otel/otel-collector/...`)에 `Everything is ready`가 보이고 `401`이나 `connection refused` 줄이 없어야 합니다. 첫 스팬, 로그 또는 메트릭이 도착하고 1분 안에 환경이 **앱 플랫폼 → 모든 환경**에 _AWS ECS · us-east-1 · 123456789012_ 라는 이름으로 나타납니다.
 :::
 
 ## 전체 태스크 정의

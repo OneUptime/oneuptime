@@ -29,7 +29,12 @@ const RESOURCE_ROUTES: Array<[AIResourceType, string]> = [
   [AIResourceType.CephCluster, "ceph"],
   [AIResourceType.StorageArray, "storage-arrays"],
   [AIResourceType.ServerlessFunction, "serverless"],
-  [AIResourceType.CloudResource, "cloud"],
+  /*
+   * The environments the AI reads telemetry from are App Platforms'. A cloud
+   * account's resource cited by id opens there too, and its page forwards it
+   * to Cloud (Pages/AppPlatforms/View/Layout).
+   */
+  [AIResourceType.CloudResource, "app-platforms"],
   [AIResourceType.IoTFleet, "iot"],
   [AIResourceType.NetworkDevice, "network-devices"],
 ];

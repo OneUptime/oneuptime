@@ -130,6 +130,23 @@ const ruleModelNames: Array<string> = fs
   })
   .sort();
 
+/*
+ * Rule models whose rows two products list, each product with a rules page
+ * of its own: CloudResource's environments are App Platforms', the other
+ * resources of a cloud account Cloud's, and a rule names the kind of row it
+ * is for (Components/Cloud/CloudRuleKind). One form on each product's page.
+ */
+const PAGES_PER_SHARED_RULE_MODEL: Record<string, Array<string>> = {
+  CloudResourceLabelRule: [
+    `${DASHBOARD}/Pages/AppPlatforms/Settings/LabelRules.tsx`,
+    `${DASHBOARD}/Pages/Cloud/Settings/LabelRules.tsx`,
+  ],
+  CloudResourceOwnerRule: [
+    `${DASHBOARD}/Pages/AppPlatforms/Settings/OwnerRules.tsx`,
+    `${DASHBOARD}/Pages/Cloud/Settings/OwnerRules.tsx`,
+  ],
+};
+
 type LoadModelFunction = (form: FormFacts) => BaseModel;
 
 const loadModel: LoadModelFunction = (form: FormFacts): BaseModel => {
@@ -348,7 +365,39 @@ describe("every label and owner rule form", () => {
       })
       .sort();
 
-    expect(formModels).toEqual(ruleModelNames);
+    // Once - or once on each product's page, for a model two products share.
+    expect(formModels).toEqual(
+      ruleModelNames
+        .flatMap((name: string): Array<string> => {
+          return (PAGES_PER_SHARED_RULE_MODEL[name] || [""]).map(() => {
+            return name;
+          });
+        })
+        .sort(),
+    );
+  });
+
+  test("a model two products share has its form on each product's rules page", () => {
+    for (const [model, pages] of Object.entries(PAGES_PER_SHARED_RULE_MODEL)) {
+      expect(ruleModelNames).toContain(model);
+      expect({
+        model: model,
+        files: ruleForms
+          .filter((form: FormFacts): boolean => {
+            return form.modelType!.name === model;
+          })
+          .map((form: FormFacts): string => {
+            return path
+              .relative(
+                REPOSITORY_ROOT,
+                path.resolve(REPOSITORY_ROOT, form.file),
+              )
+              .split(path.sep)
+              .join("/");
+          })
+          .sort(),
+      }).toEqual({ model: model, files: [...pages].sort() });
+    }
   });
 
   test("walks Match, then what the rule adds - no Basic Info step", () => {

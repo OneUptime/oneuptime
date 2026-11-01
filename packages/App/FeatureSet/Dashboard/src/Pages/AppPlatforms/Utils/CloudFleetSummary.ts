@@ -1,7 +1,10 @@
 import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "./CloudResourceTelemetryScope";
 import { CLOUD_FLEET_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getGlobalTranslator,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The numbers behind the stat strip at the top of the Cloud Environments
@@ -27,6 +30,13 @@ export interface CloudFleetSummaryTile {
   title: string;
   value: string;
   sublabel: string;
+  /*
+   * The line under the number, as the parts it is made of, when it is a
+   * list: the providers' breakdown ("2 AWS", "2 Azure", "2 Google Cloud").
+   * The strip keeps each part whole and wraps between them, so a narrow
+   * tile never breaks "Google Cloud" across two lines.
+   */
+  sublabelParts?: Array<string> | undefined;
   // What the number counts, shown in the (i) tooltip beside the title.
   description: string;
 }
@@ -36,11 +46,15 @@ interface ProviderCount {
   count: number;
 }
 
+/*
+ * A count as the reader's language writes it - 1,284 in English, 1.284 in
+ * German, ۱٬۲۸۴ in Persian - as the sentences beside it write theirs
+ * (translatePlural formats its count). Never negative, never a fraction.
+ */
 function formatCount(n: number): string {
-  if (!Number.isFinite(n) || n < 0) {
-    return "0";
-  }
-  return String(Math.round(n));
+  const count: number = !Number.isFinite(n) || n < 0 ? 0 : Math.round(n);
+
+  return getGlobalTranslator().formatNumber(count);
 }
 
 /*
@@ -51,6 +65,13 @@ function formatCount(n: number): string {
 export function describeProviderBreakdown(
   byProvider: Record<string, number>,
 ): string {
+  return getProviderBreakdownParts(byProvider).join(" · ");
+}
+
+// The same breakdown, one part per provider: "3 AWS", "1 Google Cloud".
+export function getProviderBreakdownParts(
+  byProvider: Record<string, number>,
+): Array<string> {
   const entries: Array<ProviderCount> = Object.keys(byProvider)
     .map((provider: string): ProviderCount => {
       return { provider, count: byProvider[provider] || 0 };
@@ -67,11 +88,9 @@ export function describeProviderBreakdown(
       );
     });
 
-  return entries
-    .map((entry: ProviderCount): string => {
-      return `${formatCount(entry.count)} ${getCloudProviderLabel(entry.provider)}`;
-    })
-    .join(" · ");
+  return entries.map((entry: ProviderCount): string => {
+    return `${formatCount(entry.count)} ${getCloudProviderLabel(entry.provider)}`;
+  });
 }
 
 export function summarizeCloudFleet(
@@ -80,12 +99,15 @@ export function summarizeCloudFleet(
   const total: number = Math.max(0, counts.total);
   const connected: number = Math.min(total, Math.max(0, counts.connected));
   const disconnected: number = Math.max(0, counts.disconnected);
-  const breakdown: string = describeProviderBreakdown(counts.byProvider);
+  const breakdownParts: Array<string> = getProviderBreakdownParts(
+    counts.byProvider,
+  );
+  const breakdown: string = breakdownParts.join(" · ");
 
   const connectedShare: string =
     total > 0
       ? translateTemplate("{{percent}}% of environments", {
-          percent: Math.round((connected / total) * 100),
+          percent: formatCount((connected / total) * 100),
         })
       : "";
 
@@ -94,6 +116,7 @@ export function summarizeCloudFleet(
       title: "Environments",
       value: formatCount(total),
       sublabel: breakdown || "none discovered yet",
+      ...(breakdownParts.length > 1 ? { sublabelParts: breakdownParts } : {}),
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.environments,
     },
     {
@@ -117,7 +140,7 @@ export function summarizeCloudFleet(
       title: "Live instances",
       value: formatCount(counts.liveInstances),
       sublabel: translateTemplate("seen in the last {{minutes}} min", {
-        minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
+        minutes: formatCount(CLOUD_INSTANCE_LIVE_WINDOW_MINUTES),
       }),
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.liveInstances,
     },

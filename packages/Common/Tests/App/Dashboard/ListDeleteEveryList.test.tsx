@@ -228,7 +228,7 @@ import DatabasesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Databa
 import DatabasesArchived from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Archived";
 import MessageQueuesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/MessageQueues";
 import MessageQueuesArchived from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/Archived";
-import CloudResourcesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/CloudResources";
+import CloudResourcesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Environments";
 import MonitoredResourcesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/MonitoredResources";
 import CloudArchived from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Archived";
 import RumApplicationsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/RumApplications";

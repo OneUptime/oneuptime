@@ -1,6 +1,8 @@
 # Skymiljøer
 
-Et **Cloud Environment** er stedet der containerne dine kjører på en administrert skyplattform: kontoen og regionen til et ECS-cluster, prosjektet og regionen til Cloud Run, abonnementet og regionen til Container Apps. OneUptime oppretter et første gang telemetrien din kommer frem med de riktige ressursattributtene, og samler hver arbeidsbelastning som kjører der. Det er ingenting å registrere for hånd.
+Et **Skymiljø** er stedet der containerne dine kjører på en administrert skyplattform: kontoen og regionen til et ECS-cluster, prosjektet og regionen til Cloud Run, abonnementet og regionen til Container Apps. OneUptime oppretter et første gang telemetrien din kommer frem med de riktige ressursattributtene, og samler hver arbeidsbelastning som kjører der. Det er ingenting å registrere for hånd.
+
+Miljøer vises i App-plattformer, et eget produkt: **App-plattformer → Oversikt** grupperer dem etter plattform og viser de som har blitt stille først, og **App-plattformer → Alle miljøer** viser alle. Ressursene i skykontoene dine, som virtuelle maskiner, bøtter og administrerte databaser, finnes i Sky: se [Skyressurser](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Oppgaver på Fargate eller EC2, med CPU og minne per oppgave.
@@ -91,7 +93,7 @@ Plattformens egen identitet kommer først med vilje. En sidecar-collector og app
 
 ### Legg til et miljø
 
-Inntaket oppretter miljøer for deg, så det er ingenting å skrive inn. Åpne **Sky → All Environments** og klikk **Legg til skymiljø**: velg hvor applikasjonen din kjører, så viser veiledningen OpenTelemetry-innstillingene for den plattformen, med OneUptime-URL-en og inntaksnøkkelen din allerede fylt ut. Det siste trinnet, **Vent på tilkobling**, sier fra når de første dataene for miljøet har kommet inn, og lenker til det. For å vise et annet navn velger du **Rediger detaljer** på kortet **Ressursdetaljer** på miljøets side **Innstillinger** og skriver et **Visningsnavn**.
+Inntaket oppretter miljøer for deg, så det er ingenting å skrive inn. Åpne **App-plattformer → Alle miljøer** og klikk **Legg til skymiljø**: velg hvor applikasjonen din kjører, så viser veiledningen OpenTelemetry-innstillingene for den plattformen, med OneUptime-URL-en og inntaksnøkkelen din allerede fylt ut. Det siste trinnet, **Vent på tilkobling**, sier fra når de første dataene for miljøet har kommet inn, og lenker til det. For å vise et annet navn velger du **Rediger detaljer** på kortet **Miljødetaljer** på miljøets side **Innstillinger** og skriver et **Visningsnavn**.
 
 ## Det som ikke er et skymiljø
 
@@ -103,7 +105,7 @@ Inntaket oppretter miljøer for deg, så det er ingenting å skrive inn. Åpne *
 | Lastbalanserere, bøtter, administrerte databaser og andre IaaS- eller PaaS-ressurser | **Cloud Resources** | Oppdaget fra metrikkene som Azure Monitor, CloudWatch og Cloud Monitoring publiserer. Se [Skyressurser](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
-> Cloud Run og App Engine vises med vilje på to steder. Detektoren deres setter både en administrert `cloud.platform` og `faas.name`, så hver tjeneste er også sin egen **Serverløs funksjon**, mens **Cloud Environment** samler alle tjenestene i det prosjektet og den regionen. Den samme telemetrien arkiveres under begge.
+> Cloud Run og App Engine vises med vilje på to steder. Detektoren deres setter både en administrert `cloud.platform` og `faas.name`, så hver tjeneste er også sin egen **Serverløs funksjon**, mens **Skymiljø** samler alle tjenestene i det prosjektet og den regionen. Den samme telemetrien arkiveres under begge.
 
 ## Koble til en arbeidsbelastning
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyr at tokenet er godtatt. `401` betyr at det er ukjent, tilbakekalt, deaktivert eller utløpt, og svarets `message` sier hvilket. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **Sky → All Environments**.
+`200` med `"valid": true` betyr at tokenet er godtatt. `401` betyr at det er ukjent, tilbakekalt, deaktivert eller utløpt, og svarets `message` sier hvilket. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **App-plattformer → Alle miljøer**.
 :::
 
 > [!TIP]
-> De samme stegene finnes i dashbordet, med tokenet ditt fylt ut: under **Sky → All Environments**, klikk **Legg til skymiljø**. Fanen **Dokumentasjon** i hvert miljø har dem også.
+> De samme stegene finnes i dashbordet, med tokenet ditt fylt ut: under **App-plattformer → Alle miljøer**, klikk **Legg til skymiljø**. Fanen **Dokumentasjon** i hvert miljø har dem også.
 
 ## Hva du får
 
@@ -190,7 +192,7 @@ Et miljø der telemetrien stopper i 15 minutter, viser **Frakoblet**, og det nes
 ### Etiketter og eiere
 
 - **Fra telemetrien din:** et ressursattributt som `oneuptime.label.team=payments` legger til etiketten `team:payments` på miljøet.
-- **Fra regler:** **Sky → Innstillinger → Etikettregler** og **Eierregler** legger til etiketter og eiere på miljøer som samsvarer. Se [Etikett- og eierregler](/docs/configuration/label-and-owner-rules).
+- **Fra regler:** **App-plattformer → Innstillinger → Etikettregler** og **Eierregler** legger til etiketter og eiere på miljøer som samsvarer. Reglene i Sky gjelder for ressursene i skykontoene dine, og en regel som ble laget før de to ble delt, gjelder for begge. Se [Etikett- og eierregler](/docs/configuration/label-and-owner-rules).
 
 ## Feilsøking
 

@@ -260,6 +260,9 @@ const HostRoutes: LazyRoutes = lazy(() => {
 const ServerlessRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/ServerlessRoutes");
 });
+const AppPlatformsRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/AppPlatformsRoutes");
+});
 const CloudResourceRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/CloudResourceRoutes");
 });
@@ -948,7 +951,13 @@ const App: () => JSX.Element = () => {
               element={<ServerlessRoutes {...commonPageProps} />}
             />
 
-            {/* Cloud Resources */}
+            {/* App Platforms: the apps on ECS, Cloud Run, App Service and the like */}
+            <PageRoute
+              path={RouteMap[PageMap.APP_PLATFORMS_ROOT]?.toString() || ""}
+              element={<AppPlatformsRoutes {...commonPageProps} />}
+            />
+
+            {/* Cloud: accounts and every resource in them */}
             <PageRoute
               path={RouteMap[PageMap.CLOUD_ROOT]?.toString() || ""}
               element={<CloudResourceRoutes {...commonPageProps} />}

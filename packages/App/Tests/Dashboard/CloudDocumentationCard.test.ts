@@ -47,7 +47,17 @@ const GUIDE_PATH: string = path.join(
   "CloudSetupGuide.ts",
 );
 
+// An environment's Documentation tab, in App Platforms.
 const DOCUMENTATION_PAGE_PATH: string = path.join(
+  DASHBOARD_SRC,
+  "Pages",
+  "AppPlatforms",
+  "View",
+  "Documentation.tsx",
+);
+
+// A cloud resource's, in Cloud.
+const RESOURCE_DOCUMENTATION_PAGE_PATH: string = path.join(
   DASHBOARD_SRC,
   "Pages",
   "Cloud",
@@ -174,24 +184,27 @@ describe("Cloud environment Documentation page", () => {
     expect(code).toContain(
       'import CloudDocumentationCard from "../../../Components/Cloud/CloudDocumentationCard";',
     );
-    expect(code).toContain(
-      "select: { name: true, cloudPlatform: true, cloudResourceKind: true, cloudProvider: true, }",
-    );
+    expect(code).toContain("select: { name: true, cloudPlatform: true, }");
     expect(code).toContain("initialPlatform={cloudResource.cloudPlatform}");
-  });
-
-  test("a discovered resource gets the cloud monitoring guide, opened on its own provider", () => {
-    expect(code).toContain(
-      'import CloudMonitoringDocumentationCard from "../../../Components/Cloud/CloudMonitoringDocumentationCard";',
-    );
-    expect(code).toContain(
-      "if (isCloudResourceKindResource(cloudResource.cloudResourceKind)) {",
-    );
-    expect(code).toContain("initialOption={cloudResource.cloudProvider}");
+    // An environment's guide only: the cloud monitoring one is Cloud's.
+    expect(code).not.toContain("CloudMonitoringDocumentationCard");
   });
 
   test("no longer renders the platform-less guide directly", () => {
     expect(code).not.toContain("getCloudDocMarkdown");
     expect(code).not.toContain("<ResourceDocumentationCard");
+  });
+});
+
+describe("Cloud resource Documentation page", () => {
+  const code: string = readCode(RESOURCE_DOCUMENTATION_PAGE_PATH);
+
+  test("a resource in a cloud account gets the cloud monitoring guide, opened on its own provider", () => {
+    expect(code).toContain(
+      'import CloudMonitoringDocumentationCard from "../../../Components/Cloud/CloudMonitoringDocumentationCard";',
+    );
+    expect(code).toContain("select: { name: true, cloudProvider: true, }");
+    expect(code).toContain("initialOption={cloudResource.cloudProvider}");
+    expect(code).not.toContain("<CloudDocumentationCard");
   });
 });

@@ -61,7 +61,8 @@ La documentation est organisée comme la barre latérale, en neuf sections. Choi
 :::cards
 - [Télémétrie](/docs/telemetry/open-telemetry): Envoyer des journaux, des métriques et des traces avec OpenTelemetry, et les rechercher.
 - [Agents d'infrastructure](/docs/telemetry/hosts): Ajouter un hôte en une commande, et installer les agents pour Kubernetes, Docker, Proxmox, VMware et plus encore.
-- [Cloud](/docs/telemetry/cloud-environments): Observer ECS, Cloud Run, Azure Container Apps et d'autres plateformes gérées.
+- [Plateformes d'applications](/docs/telemetry/cloud-environments): Surveiller les applications que vous exécutez sur ECS et Fargate, Cloud Run, App Service et d'autres plateformes gérées.
+- [Cloud](/docs/telemetry/cloud-accounts): Connecter vos comptes AWS, Azure et Google Cloud et surveiller chaque ressource qu'ils contiennent.
 - [Observabilité de l'IA](/docs/telemetry/ai-llm-observability): Suivre les conversations de votre IA, et être prévenu quand elle répond mal.
 - [Sécurité](/docs/telemetry/security-events): Collecter des événements de sécurité et du renseignement sur les menaces.
 - [Sécurité des données](/docs/data-security/index): Trouver les données sensibles dans vos buckets, bases de données et votre télémétrie, et corriger la façon dont elles sont conservées.

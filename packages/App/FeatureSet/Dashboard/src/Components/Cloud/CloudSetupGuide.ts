@@ -359,7 +359,7 @@ function verifyStep(context: CloudGuideContext): SetupGuideStep {
   -H "x-oneuptime-token: ${context.apiKey}"`,
       ),
       '`200` with `"valid": true` means the token resolves to this project; `401` means it is unknown, revoked or mistyped. Run it from inside the workload when you can, so it proves egress from where the exporter runs.',
-      "Then send one request: the environment appears at **Cloud → All Environments** within a minute of the first span, log or metric.",
+      "Then send one request: the environment appears at **App Platforms → All Environments** within a minute of the first span, log or metric.",
     ]),
   };
 }

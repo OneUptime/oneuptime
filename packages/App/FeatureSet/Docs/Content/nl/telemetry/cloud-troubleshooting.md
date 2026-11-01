@@ -29,7 +29,7 @@ Als je OneUptime zelf host, gebruik dan `https://YOUR-ONEUPTIME-HOST/otlp/v1/val
 
 ## De omgeving verschijnt niet
 
-Niets onder **Cloud → All Environments** een minuut na de eerste aanvraag. Controleer deze drie punten, in deze volgorde.
+Niets onder **App-platforms → Alle omgevingen** een minuut na de eerste aanvraag. Controleer deze drie punten, in deze volgorde.
 
 **`cloud.platform` ontbreekt, of is geen beheerde waarde.** OneUptime archiveert telemetrie alleen onder Cloud-omgevingen als de resource een van deze waarden draagt: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` of `azure_app_service`. De gebruikelijke oorzaken:
 

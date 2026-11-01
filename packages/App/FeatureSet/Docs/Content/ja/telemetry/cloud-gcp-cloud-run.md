@@ -159,7 +159,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` と `"valid": true` が返れば、トークンは受け付けられています。`401` は、トークンが不明、失効、無効、または期限切れであることを意味します。次にサービスにリクエストを一つ送り、Cloud Logging で Collector のログ (`otel-collector` コンテナで絞り込み) に `401`、`connection refused`、`context deadline exceeded` がないか確認します。1 分以内に、環境が **クラウド → すべての環境** に _GCP Cloud Run · us-central1 · my-project_ として表示され、サービスが **サーバーレス関数** に表示されます。
+`200` と `"valid": true` が返れば、トークンは受け付けられています。`401` は、トークンが不明、失効、無効、または期限切れであることを意味します。次にサービスにリクエストを一つ送り、Cloud Logging で Collector のログ (`otel-collector` コンテナで絞り込み) に `401`、`connection refused`、`context deadline exceeded` がないか確認します。1 分以内に、環境が **アプリプラットフォーム → すべての環境** に _GCP Cloud Run · us-central1 · my-project_ として表示され、サービスが **サーバーレス関数** に表示されます。
 :::
 
 ## サイドカー付きのサービス YAML

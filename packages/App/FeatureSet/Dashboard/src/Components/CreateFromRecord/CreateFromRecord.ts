@@ -58,7 +58,10 @@ export enum CreateFromRecordKind {
   DockerSwarmCluster = "DockerSwarmCluster",
   IoTFleet = "IoTFleet",
   DatabaseServer = "DatabaseServer",
+  // A cloud resource, on Cloud's pages.
   CloudResource = "CloudResource",
+  // A cloud environment (a CloudResource row too), on App Platforms' pages.
+  CloudEnvironment = "CloudEnvironment",
   NetworkSite = "NetworkSite",
   Service = "Service",
   StatusPage = "StatusPage",
@@ -439,7 +442,7 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
       queryParam: "cloudResourceId",
       // The resource's own trail: Project > Cloud > View Resource.
       listTitle: "Cloud",
-      listPage: PageMap.CLOUD_RESOURCES,
+      listPage: PageMap.CLOUD_HOME,
       viewTitle: "View Resource",
       viewPage: PageMap.CLOUD_RESOURCE_VIEW,
       field: namedRecords("cloudResources"),
@@ -450,6 +453,30 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
         },
         [CreatedRecordKind.Alert]: {
           page: PageMap.CLOUD_RESOURCE_VIEW_ALERTS,
+          title: ALERTS_TAB_TITLE,
+        },
+      },
+    },
+    /*
+     * An environment is a row of the same table, picked in the same
+     * relation, but its tabs are App Platforms': Project > App Platforms >
+     * View Environment.
+     */
+    {
+      kind: CreateFromRecordKind.CloudEnvironment,
+      queryParam: "cloudEnvironmentId",
+      listTitle: "App Platforms",
+      listPage: PageMap.APP_PLATFORMS_OVERVIEW,
+      viewTitle: "View Environment",
+      viewPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+      field: namedRecords("cloudResources"),
+      tabs: {
+        [CreatedRecordKind.Incident]: {
+          page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS,
+          title: INCIDENTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.Alert]: {
+          page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS,
           title: ALERTS_TAB_TITLE,
         },
       },

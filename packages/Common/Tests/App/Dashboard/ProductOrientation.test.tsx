@@ -316,6 +316,7 @@ describe("Products menu sections", () => {
       "Code",
       "Resources",
       "Infrastructure",
+      "Cloud",
       "Dashboards & Automation",
       "Settings",
     ]);
@@ -361,9 +362,11 @@ describe("Products menu sections", () => {
     openProductsMenu();
 
     /*
-     * Infrastructure lists one product per platform and is the longest
-     * section: 13 since Storage Arrays joined Ceph there. Past that, split
-     * it rather than raising this again.
+     * Infrastructure lists one product per platform and was the longest
+     * section: 13 since Storage Arrays joined Ceph there. App Platforms
+     * would have made it 14, so what a cloud runs for you - Cloud, App
+     * Platforms and Serverless - became a section of its own. Past 13,
+     * split again rather than raising this.
      */
     for (const section of readMenuSections()) {
       expect(section.items.length).toBeLessThanOrEqual(13);
@@ -387,7 +390,7 @@ describe("Products menu sections", () => {
     });
   });
 
-  test("every per-platform product is under Infrastructure, most common first", () => {
+  test("Infrastructure lists what you run yourself, most common first", () => {
     openProductsMenu();
 
     const infrastructure: MenuSection = readMenuSections().find(
@@ -402,8 +405,6 @@ describe("Products menu sections", () => {
       "Docker",
       "Docker Swarm",
       "Podman",
-      "Serverless",
-      "Cloud",
       "Proxmox",
       "VMware",
       "Ceph",
@@ -411,6 +412,18 @@ describe("Products menu sections", () => {
       "Network",
       "IoT",
     ]);
+  });
+
+  test("Cloud lists what a cloud runs for you: its accounts, the apps on its platforms, its functions", () => {
+    openProductsMenu();
+
+    const cloud: MenuSection = readMenuSections().find(
+      (section: MenuSection): boolean => {
+        return section.heading === "Cloud";
+      },
+    )!;
+
+    expect(cloud.items).toEqual(["Cloud", "App Platforms", "Serverless"]);
   });
 
   test("Resources keeps only the catalogs that span every platform", () => {
@@ -431,7 +444,7 @@ describe("Products menu sections", () => {
     ]);
   });
 
-  test("regrouping lost no product: all 44 are still listed exactly once", () => {
+  test("regrouping lost no product: all 45 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -440,12 +453,14 @@ describe("Products menu sections", () => {
       },
     );
     /*
-     * 44: Code Repositories became a page of Tasks, Forms (which replaced
+     * 45: Code Repositories became a page of Tasks, Forms (which replaced
      * Incidents > Settings > Forms) became a product, Storage Arrays
-     * joined Infrastructure, and Data Security joined Observability.
+     * joined Infrastructure, Data Security joined Observability, and App
+     * Platforms took Cloud's environments.
      */
-    expect(titles).toHaveLength(44);
-    expect(new Set(titles).size).toBe(44);
+    expect(titles).toHaveLength(45);
+    expect(new Set(titles).size).toBe(45);
+    expect(titles).toContain("App Platforms");
     expect(titles).not.toContain("Code Repositories");
     expect(titles).toContain("Forms");
   });
@@ -470,6 +485,7 @@ describe("the Products menu opens on the essentials", () => {
       "Code",
       "Resources",
       "Infrastructure",
+      "Cloud",
       "Dashboards & Automation",
       "Settings",
     ]);
@@ -500,7 +516,12 @@ describe("the Products menu opens on the essentials", () => {
 
     expect(infrastructure).toHaveAttribute("aria-expanded", "false");
     expect(infrastructure).toHaveAccessibleDescription(
-      "13 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Serverless, Cloud, Proxmox, VMware, Ceph, Storage Arrays, Network, IoT",
+      "11 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, VMware, Ceph, Storage Arrays, Network, IoT",
+    );
+    expect(
+      within(productsMenu()).getByRole("button", { name: "Cloud" }),
+    ).toHaveAccessibleDescription(
+      "3 products Cloud, App Platforms, Serverless",
     );
     expect(
       within(productsMenu()).getByRole("button", { name: "Code" }),
@@ -606,6 +627,8 @@ describe("Products menu descriptions say what each product is for", () => {
       lookupNested(DE, "navbar.categories.analyticsAutomation"),
     );
     expect(headings).toContain(lookupNested(DE, "navbar.categories.code"));
+    expect(headings).toContain(lookupNested(DE, "navbar.categories.cloud"));
+    expect(headings).not.toContain("navbar.categories.cloud");
     expect(headings).not.toContain("navbar.categories.infrastructure");
     expect(headings).not.toContain("navbar.categories.code");
   });

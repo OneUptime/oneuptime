@@ -1,6 +1,6 @@
 # Google Cloud Run
 
-Cloud Run 서비스와 작업의 트레이스, 로그, 메트릭을 OneUptime으로 보냅니다. `cloud.platform=gcp_cloud_run`을 보고하는 모든 것은 Google Cloud 프로젝트와 리전마다 하나의 **Cloud Environment**(예: _GCP Cloud Run · us-central1 · my-project_)에 들어가며, 각 서비스는 **서버리스 함수**에도 나타납니다.
+Cloud Run 서비스와 작업의 트레이스, 로그, 메트릭을 OneUptime으로 보냅니다. `cloud.platform=gcp_cloud_run`을 보고하는 모든 것은 Google Cloud 프로젝트와 리전마다 하나의 **클라우드 환경**(예: _GCP Cloud Run · us-central1 · my-project_)에 들어가며, 각 서비스는 **서버리스 함수**에도 나타납니다.
 
 :::cards
 - [작동 방식](#작동-방식): GCP 감지기가 설정하는 것과 서비스가 두 곳에 나타나는 이유.
@@ -33,7 +33,7 @@ OpenTelemetry GCP 리소스 감지기는 메타데이터 서버와 환경 변수
 | `faas.instance` | 인스턴스 ID | 실행 중인 인스턴스 하나의 이름이 되어 **인스턴스**에 각각 한 행으로 표시됩니다 |
 
 > [!NOTE]
-> Cloud Run은 의도적으로 두 곳에 나타납니다. 감지기가 `faas.name`을 설정하므로 각 서비스는 자체 호출 수, 오류율, 실행 시간을 가진 **서버리스 함수**이기도 합니다. **Cloud Environment**는 그 프로젝트와 리전의 모든 서비스를 묶은 것입니다. 두 번 저장되는 것은 없으며, 같은 텔레메트리가 두 곳 모두에 기록됩니다.
+> Cloud Run은 의도적으로 두 곳에 나타납니다. 감지기가 `faas.name`을 설정하므로 각 서비스는 자체 호출 수, 오류율, 실행 시간을 가진 **서버리스 함수**이기도 합니다. **클라우드 환경**은 그 프로젝트와 리전의 모든 서비스를 묶은 것입니다. 두 번 저장되는 것은 없으며, 같은 텔레메트리가 두 곳 모두에 기록됩니다.
 
 환경 키는 `gcp_cloud_run|my-project|us-central1`입니다.
 
@@ -159,7 +159,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200`과 `"valid": true`는 토큰이 받아들여졌다는 뜻입니다. `401`은 토큰을 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻입니다. 그런 다음 서비스에 요청을 하나 보내고, Cloud Logging에서 Collector 로그(`otel-collector` 컨테이너로 필터링)에 `401`, `connection refused`, `context deadline exceeded`가 있는지 확인합니다. 1분 안에 환경이 **클라우드 → All Environments**에 _GCP Cloud Run · us-central1 · my-project_ 라는 이름으로 나타나고, 서비스는 **서버리스 함수**에 나타납니다.
+`200`과 `"valid": true`는 토큰이 받아들여졌다는 뜻입니다. `401`은 토큰을 알 수 없거나, 취소되었거나, 비활성화되었거나, 만료되었다는 뜻입니다. 그런 다음 서비스에 요청을 하나 보내고, Cloud Logging에서 Collector 로그(`otel-collector` 컨테이너로 필터링)에 `401`, `connection refused`, `context deadline exceeded`가 있는지 확인합니다. 1분 안에 환경이 **앱 플랫폼 → 모든 환경**에 _GCP Cloud Run · us-central1 · my-project_ 라는 이름으로 나타나고, 서비스는 **서버리스 함수**에 나타납니다.
 :::
 
 ## 사이드카가 있는 서비스 YAML
