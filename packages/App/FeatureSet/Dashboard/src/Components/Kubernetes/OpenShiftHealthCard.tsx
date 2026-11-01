@@ -207,9 +207,7 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
               dir="ltr"
               className="mt-1 text-start text-lg font-semibold text-gray-900"
             >
-              {health.version ||
-                translator.translateText("Not reported") ||
-                "Not reported"}
+              {health.version || translator.translateText("Not reported") || ""}
             </div>
             {health.channel && (
               <div dir="ltr" className="text-start text-xs text-gray-500">

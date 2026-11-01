@@ -39494,6 +39494,7 @@
   "Sorted by {{column}}": "مرتب‌شده بر اساس {{column}}",
   "DeploymentConfig": "DeploymentConfig",
   "route": "مسیر",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "این خوشه OpenShift را اجرا می‌کند، بنابراین توصیه‌های زیر هشدارهایی درباره اپراتورهای خوشه و به‌روزرسانی‌های خوشه آن را نیز شامل می‌شوند.",
   "{{name}} can reach {{count}} stores": "{{name}} می‌تواند به {{count}} مخزن داده دسترسی داشته باشد",
   "{{name}} can reach {{count}} stores_one": "{{name}} می‌تواند به {{count}} مخزن داده دسترسی داشته باشد",
   "Close a Data Exposure": "بستن افشای داده",

@@ -39494,6 +39494,7 @@
   "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध",
   "DeploymentConfig": "DeploymentConfig",
   "route": "रूट",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "यह क्लस्टर OpenShift चलाता है, इसलिए नीचे दिए गए सुझावों में इसके क्लस्टर ऑपरेटरों और क्लस्टर अपडेट पर अलर्ट भी शामिल हैं।",
   "{{name}} can reach {{count}} stores": "{{name}} {{count}} डेटा स्टोर तक पहुंच सकती है",
   "{{name}} can reach {{count}} stores_one": "{{name}} {{count}} डेटा स्टोर तक पहुंच सकती है",
   "Close a Data Exposure": "डेटा एक्सपोज़र बंद करें",

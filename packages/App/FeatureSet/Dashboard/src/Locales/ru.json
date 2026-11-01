@@ -39494,6 +39494,7 @@
   "Sorted by {{column}}": "Сортировка: {{column}}",
   "DeploymentConfig": "DeploymentConfig",
   "route": "маршрут",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "Этот кластер работает на OpenShift, поэтому рекомендации ниже включают оповещения об операторах кластера и его обновлениях.",
   "{{name}} can reach {{count}} stores": "{{name}} может добраться до хранилищ данных: {{count}}",
   "{{name}} can reach {{count}} stores_one": "{{name}} может добраться до {{count}} хранилища данных",
   "Close a Data Exposure": "Закрыть утечку данных",

@@ -39494,6 +39494,7 @@
   "Sorted by {{column}}": "Ordinato per {{column}}",
   "DeploymentConfig": "DeploymentConfig",
   "route": "route",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "Questo cluster esegue OpenShift, quindi le raccomandazioni qui sotto includono anche avvisi sui suoi operatori del cluster e sugli aggiornamenti del cluster.",
   "{{name}} can reach {{count}} stores": "{{name}} può raggiungere {{count}} archivi dati",
   "{{name}} can reach {{count}} stores_one": "{{name}} può raggiungere {{count}} archivio dati",
   "Close a Data Exposure": "Chiudere un'esposizione di dati",

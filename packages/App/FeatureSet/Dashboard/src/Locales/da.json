@@ -39494,6 +39494,7 @@
   "Sorted by {{column}}": "Sorteret efter {{column}}",
   "DeploymentConfig": "DeploymentConfig",
   "route": "rute",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "Denne klynge kører OpenShift, så anbefalingerne nedenfor omfatter også advarsler om dens klyngeoperatorer og klyngeopdateringer.",
   "{{name}} can reach {{count}} stores": "{{name}} kan nå {{count}} datalagre",
   "{{name}} can reach {{count}} stores_one": "{{name}} kan nå {{count}} datalager",
   "Close a Data Exposure": "Luk en dataeksponering",

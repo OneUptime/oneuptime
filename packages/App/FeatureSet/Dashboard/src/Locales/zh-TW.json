@@ -39494,6 +39494,7 @@
   "Sorted by {{column}}": "依{{column}}排序",
   "DeploymentConfig": "DeploymentConfig",
   "route": "路由",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "此叢集執行 OpenShift，因此下方的建議也包含針對其叢集 Operator 與叢集更新的警示。",
   "{{name}} can reach {{count}} stores": "{{name}} 可以存取 {{count}} 個資料儲存區",
   "{{name}} can reach {{count}} stores_one": "{{name}} 可以存取 {{count}} 個資料儲存區",
   "Close a Data Exposure": "封堵資料外洩",

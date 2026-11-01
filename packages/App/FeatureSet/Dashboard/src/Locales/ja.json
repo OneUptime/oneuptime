@@ -39494,6 +39494,7 @@
   "Sorted by {{column}}": "{{column}}で並べ替え",
   "DeploymentConfig": "DeploymentConfig",
   "route": "ルート",
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "このクラスターは OpenShift で動作しているため、以下の推奨事項には、クラスターオペレーターとクラスター更新に関するアラートも含まれます。",
   "{{name}} can reach {{count}} stores": "{{name}} は {{count}} 件のデータストアに到達可能",
   "{{name}} can reach {{count}} stores_one": "{{name}} は {{count}} 件のデータストアに到達可能",
   "Close a Data Exposure": "データ漏えいを塞ぐ",
