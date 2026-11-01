@@ -1181,10 +1181,16 @@ export class Service extends ProjectReferencesService<Model> {
    * writes in ("de-AT" is "de"), or none - the status page's default
    * language - for an empty one. A language OneUptime does not write in is
    * refused, so a subscriber is never written to in English by mistake.
-   * Left alone when the data does not name one.
+   * Left alone when the data does not name one: only what the write itself
+   * carries is rewritten, so the caller is held to their own permission to
+   * write it (HookWritesCallersMayMake).
    */
   private normalizeLanguage(data: JSONObject | undefined): void {
-    if (!data || !Object.prototype.hasOwnProperty.call(data, "language")) {
+    if (!data) {
+      return;
+    }
+
+    if (data["language"] === undefined) {
       return;
     }
 

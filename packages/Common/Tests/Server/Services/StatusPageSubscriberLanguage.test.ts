@@ -105,6 +105,15 @@ describe("a subscriber's language, as it is stored", () => {
     normalizeLanguage(undefined);
 
     expect(data).toEqual({ subscriberEmail: "a@example.com" });
+
+    // A language left undefined is not one sent: it is not cleared.
+    const unsent: JSONObject = {
+      language: undefined as unknown as JSONObject["language"],
+    };
+
+    normalizeLanguage(unsent);
+
+    expect(unsent["language"]).toBeUndefined();
   });
 
   test("both a create and a change are held to it", () => {

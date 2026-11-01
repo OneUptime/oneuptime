@@ -18,8 +18,9 @@ report - is still English.
 ## Which language a message is written in
 
 A subscriber is written to in the language they read the status page in when
-they signed up, when that was not the page's default language, and otherwise
-in the page's **Default Language** (its Branding page). A subscriber the team
+they signed up, or last changed their subscription there, when that was not
+the page's default language, and otherwise in the page's **Default Language**
+(its Branding page). A subscriber the team
 added, and one who signed up before this, has no language of their own and
 follows the page's default - also when the team changes it.
 `Common/Server/Utils/StatusPage/SubscriberLanguage.ts` decides it; the status

@@ -14,8 +14,9 @@ import {
  * maintenance, announcements, postmortems - and the messages about a
  * subscription (the link to confirm it, the welcome, the link to manage
  * it) are written in the subscriber's language: the one they read the
- * page in when they signed up, when that was not the page's default, and
- * otherwise the page's default language. A subscriber the team added, and
+ * page in when they signed up, or last changed their subscription there,
+ * when that was not the page's default, and otherwise the page's default
+ * language. A subscriber the team added, and
  * one who signed up before this, has none of their own, and follows the
  * page's default language - also when it changes. The uptime report is
  * still written in English.

@@ -177,3 +177,110 @@ describe("a visitor's sign-up keeps the language they read the page in", () => {
     expect(select["defaultLanguage"]).toBe(true);
   });
 });
+
+/*
+ * A subscriber who opens their manage link and changes their subscription
+ * keeps the language they read the page in now: their notifications are
+ * written in it from then on. A request that names no language OneUptime
+ * writes in leaves their language as it was.
+ */
+describe("a subscriber's change keeps the language they read the page in now", () => {
+  const SUBSCRIBER_ID: ObjectID = new ObjectID(
+    "30000000-0000-4000-8000-000000000003",
+  );
+
+  let api: StatusPageAPI;
+  let changes: Array<JSONObject> = [];
+
+  beforeAll(() => {
+    api = new StatusPageAPI();
+  });
+
+  beforeEach(() => {
+    changes = [];
+
+    jest
+      .spyOn(StatusPageService, "hasReadAccess")
+      .mockResolvedValue({ hasReadAccess: true });
+    jest
+      .spyOn(StatusPageSubscriberService, "updateFromManageSubscriptionPage")
+      .mockImplementation(
+        async (data: {
+          subscriberId: ObjectID;
+          data: unknown;
+        }): Promise<number> => {
+          changes.push(data.data as JSONObject);
+          return 1;
+        },
+      );
+
+    const existing: StatusPageSubscriber = new StatusPageSubscriber();
+    existing._id = SUBSCRIBER_ID.toString();
+    existing.statusPageId = STATUS_PAGE_ID;
+    existing.projectId = PROJECT_ID;
+    existing.language = "it";
+
+    jest
+      .spyOn(
+        api as unknown as {
+          findSubscriberForManageLink: () => Promise<StatusPageSubscriber>;
+        },
+        "findSubscriberForManageLink",
+      )
+      .mockResolvedValue(existing);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function change(data: {
+    pageLanguage?: string;
+    acceptLanguage?: string;
+  }): Promise<JSONObject> {
+    jest
+      .spyOn(StatusPageService, "findOneBy")
+      .mockResolvedValue(statusPage(data.pageLanguage));
+
+    const request: ExpressRequest = signUpRequest(data.acceptLanguage);
+    (request.params as JSONObject)["subscriberId"] = SUBSCRIBER_ID.toString();
+    request.body = {
+      data: {
+        isSubscribedToAllResources: true,
+        isSubscribedToAllEventTypes: true,
+      },
+    };
+
+    await api.subscribeToStatusPage(request);
+
+    expect(changes).toHaveLength(1);
+
+    return changes[0]!;
+  }
+
+  test("an Italian subscriber who now reads the page in Korean is written Korean", async () => {
+    expect(
+      (await change({ pageLanguage: "de", acceptLanguage: "ko" }))["language"],
+    ).toBe("ko");
+  });
+
+  test("one who now reads it in the page's default follows the page again", async () => {
+    const changed: JSONObject = await change({
+      pageLanguage: "de",
+      acceptLanguage: "de-DE,de;q=0.9",
+    });
+
+    expect(Object.keys(changed)).toContain("language");
+    expect(changed["language"]).toBeNull();
+  });
+
+  test("a request that names no language OneUptime writes in leaves it as it was", async () => {
+    expect(
+      Object.keys(await change({ pageLanguage: "de", acceptLanguage: "xx" })),
+    ).not.toContain("language");
+    changes = [];
+    expect(Object.keys(await change({ pageLanguage: "de" }))).not.toContain(
+      "language",
+    );
+  });
+});
