@@ -9,7 +9,7 @@ import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import { NetworkTrafficUsageStoredEnds } from "../../../Server/Utils/NetworkController/NetworkControllerTypes";
 import { getWindowKey } from "../../../Server/Utils/NetworkController/NetworkTrafficUsageRows";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import {
   NETWORK_TRAFFIC_USAGE_TOP_LIMIT,
   NetworkTrafficUsageKind,
@@ -997,7 +997,7 @@ describe("the page's uplinks, side by side", () => {
 
   test.each([[null], [undefined], [""], ["nan"], ["NaN"], [Number.NaN]])(
     "ClickHouse's %p for an average of nothing is null",
-    (value: unknown) => {
+    (value: JSONValue) => {
       const rows: ReturnType<typeof service.readUplinkInterfaces> =
         service.readUplinkInterfaces(
           [{ uplinkKey: "wan1" }],

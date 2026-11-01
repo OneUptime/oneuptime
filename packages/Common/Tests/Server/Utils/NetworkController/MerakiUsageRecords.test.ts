@@ -333,7 +333,7 @@ describe("a measurement", () => {
     [0.0001, 0.0001],
   ])(
     "%p is read as %p: a 0 that Meraki sent is a real 0",
-    (value, expected) => {
+    (value: unknown, expected: number) => {
       expect(readMeasurement(value, 100)).toBe(expected);
     },
   );
@@ -349,7 +349,7 @@ describe("a measurement", () => {
     [-1],
     [{}],
     [[]],
-  ])("%p is no measurement: unknown, never a perfect 0", (value) => {
+  ])("%p is no measurement: unknown, never a perfect 0", (value: unknown) => {
     expect(readMeasurement(value, 100)).toBeNull();
   });
 

@@ -119,7 +119,7 @@ const UplinkStat: FunctionComponent<{
         {props.value}
       </span>
       {props.detail ? (
-        <span className="block truncate text-xs tabular-nums text-gray-500">
+        <span className="block text-xs tabular-nums text-gray-500">
           {props.detail}
         </span>
       ) : (
