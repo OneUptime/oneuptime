@@ -1367,9 +1367,9 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
           } as FormValues<CustomDomainModel>),
         ).toBe(false);
         expect(
-          (field.required as (values: FormValues<CustomDomainModel>) => boolean)(
-            { isCustomCertificate: true } as FormValues<CustomDomainModel>,
-          ),
+          (
+            field.required as (values: FormValues<CustomDomainModel>) => boolean
+          )({ isCustomCertificate: true } as FormValues<CustomDomainModel>),
         ).toBe(true);
       }
 

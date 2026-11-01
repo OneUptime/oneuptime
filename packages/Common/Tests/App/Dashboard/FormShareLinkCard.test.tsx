@@ -689,9 +689,7 @@ describe("a form that is turned off", () => {
     await renderLoadedCard();
 
     await waitFor(() => {
-      expect(
-        screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row).length,
-      ).toBe(3);
+      expect(screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row).length).toBe(3);
     });
 
     const notice: HTMLElement = screen.getByTestId(
@@ -945,9 +943,7 @@ describe("Reset Link", () => {
     await renderLoadedCard();
 
     await waitFor(() => {
-      expect(
-        screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row).length,
-      ).toBe(3);
+      expect(screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row).length).toBe(3);
     });
 
     await act(async (): Promise<void> => {

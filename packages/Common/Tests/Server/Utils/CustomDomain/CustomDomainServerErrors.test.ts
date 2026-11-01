@@ -21,7 +21,10 @@ import path from "path";
  * fails instead, naming the words to update.
  */
 
-const SERVICES_DIR: string = path.resolve(__dirname, "../../../../Server/Services");
+const SERVICES_DIR: string = path.resolve(
+  __dirname,
+  "../../../../Server/Services",
+);
 
 // The services whose create a Custom Domains page sends a new domain to.
 const DOMAIN_SERVICES: Array<string> = [
@@ -61,7 +64,9 @@ describe("the server's words the dialog knows a refusal by", () => {
     "%s refuses a name in use through CustomDomainConflicts",
     (service: string) => {
       expect(
-        serviceSource(service).indexOf("CustomDomainConflicts.assertNameIsFree"),
+        serviceSource(service).indexOf(
+          "CustomDomainConflicts.assertNameIsFree",
+        ),
       ).not.toBe(-1);
     },
   );
@@ -79,7 +84,11 @@ describe("Subdomain owns", () => {
   });
 
   test("a subdomain that is not a plain label, whatever was typed", () => {
-    for (const typed of ["a/b", "169.254.169.254/latest/meta-data/#", "x:8080"]) {
+    for (const typed of [
+      "a/b",
+      "169.254.169.254/latest/meta-data/#",
+      "x:8080",
+    ]) {
       const message: string = `Subdomain ${typed} is not valid. Use a plain subdomain such as "report" — schemes, ports, paths and "/" are not allowed.`;
 
       expect(isSubdomainServerError(message)).toBe(true);

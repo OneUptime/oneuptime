@@ -386,7 +386,7 @@ export const PublicAddressCopy: {
  * cut at its start: a phone showed the last characters of a form's key, and
  * no host at all.
  */
-export const PUBLIC_ADDRESS_TEXT_DIRECTION: "ltr" = "ltr";
+export const PUBLIC_ADDRESS_TEXT_DIRECTION: string = "ltr";
 
 // data-testids of the list and its rows.
 export const PUBLIC_ADDRESS_TEST_IDS: {
