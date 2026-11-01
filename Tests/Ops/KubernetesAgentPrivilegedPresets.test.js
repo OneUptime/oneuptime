@@ -305,7 +305,7 @@ describe("the README and values.yaml say what the presets do", () => {
 
   test("values.yaml names the one exception to 'explicit values win over the preset'", () => {
     expect(values).toContain(
-      "# still be overridden explicitly — they always win over preset defaults.\n# The one exception is the privileged pods: on gke-autopilot, eks-fargate and\n# openshift-restricted, ebpf.enabled and profiling.enabled cannot turn eBPF or\n# the profiler back on, because those platforms cannot run them.\npreset: \"\"",
+      '# still be overridden explicitly — they always win over preset defaults.\n# The one exception is the privileged pods: on gke-autopilot, eks-fargate and\n# openshift-restricted, ebpf.enabled and profiling.enabled cannot turn eBPF or\n# the profiler back on, because those platforms cannot run them.\npreset: ""',
     );
   });
 });
