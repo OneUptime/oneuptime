@@ -36,6 +36,7 @@
  *                          only, or with logos for light and dark ones
  */
 import API from "Common/UI/Utils/API/API";
+import User from "Common/UI/Utils/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import {
@@ -104,6 +105,20 @@ const record = {
 };
 
 window.__accountsThemeFixture = record;
+
+/*
+ * The two ways a session ends, for the spec to run on an open page: the real
+ * User.logout() the Dashboard's Log out runs, and the real client answering
+ * the 401 of a session that lapsed, which goes to the sign-in page by itself.
+ */
+window.__accountsThemeSession = {
+  logOut: () => {
+    User.logout();
+  },
+  lapse: () => {
+    API.handleError(new HTTPErrorResponse(401, {}, {}));
+  },
+};
 
 const ok = (data) => {
   // A copy each time: a page is free to change what it is handed.
@@ -243,6 +258,11 @@ const answer = (method, apiPath, data) => {
 
   if (apiPath === "/identity/login") {
     return answerPasswordSignIn();
+  }
+
+  // What a session ending tells the server.
+  if (apiPath === "/identity/logout") {
+    return ok({});
   }
 
   if (apiPath === "/identity/signup") {
