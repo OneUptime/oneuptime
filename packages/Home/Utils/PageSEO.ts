@@ -526,8 +526,31 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
         "DaemonSet deployment",
         "Kubelet stats receiver",
         "Logs and traces correlation",
+        "OpenShift Container Platform, ROSA, ARO and OKD clusters",
       ],
     },
+  },
+
+  /*
+   * The Kubernetes product monitors OpenShift; there is no OpenShift product.
+   * So this page is a solution that leads into /product/kubernetes: its page
+   * type keeps it out of the products in llms.txt and products.json, and it
+   * has no softwareApplication. Its address sits with the other infrastructure
+   * pages' and its trail runs through Kubernetes.
+   */
+  "/product/openshift": {
+    title: "OpenShift Monitoring | ROSA, ARO & OKD | OneUptime",
+    description:
+      "Monitor OpenShift beside your EKS, AKS and GKE clusters in the OneUptime Kubernetes product. One helm install with the openshift preset, no oc adm policy step.",
+    canonicalPath: "/product/openshift",
+    twitterCard: "summary_large_image",
+    pageType: "solutions",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "Kubernetes", url: "/product/kubernetes" },
+      { name: "OpenShift", url: "/product/openshift" },
+    ],
   },
 
   "/product/docker": {
