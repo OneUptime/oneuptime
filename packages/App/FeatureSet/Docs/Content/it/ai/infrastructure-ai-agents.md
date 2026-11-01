@@ -402,6 +402,8 @@ Una modifica nomina una risorsa tramite il suo ID, come una lettura, e viene ese
 
 Prima che qualcuno approvi una correzione che modifica un account cloud, OneUptime simula ogni modifica proposta, e la scheda della correzione sull'incidente o sull'avviso mostra la risposta sotto la modifica: verrebbe eseguita, con la chiamata che farebbe e come annullarla; verrebbe rifiutata, e perché; oppure la simulazione non è riuscita a terminare. **Ripeti la simulazione** verifica di nuovo. Una simulazione non modifica nulla: l'agente si ferma prima della chiamata che farebbe la modifica, e su AWS la sessione del ruolo di scrittura che usa può solo leggere.
 
+Sulla scheda della correzione e nel suo messaggio Slack e Microsoft Teams, una modifica cloud dice anche in parole semplici che cosa fa, sopra il suo comando esatto: «Servizio ECS web: aumentare a 4 task». Le parole sono lette dal comando con la grammatica del catalogo, mai da ciò che ha scritto OneUptime AI. Quando OneUptime AI pianifica una correzione per un account, gli viene detto a che cosa è collegato lì l'incidente o l'avviso: le sue risorse Cloud, tramite gli ID con cui una modifica le nomina, e i suoi ambienti App Platforms, dove una correzione modifica i servizi che vi girano.
+
 ### L'elenco dei comandi consentiti
 
 In modalità **Automatico**, l'**Elenco dei comandi consentiti** della risorsa, nella pagina dell'agente IA, permette ai comandi più rischiosi che indichi di essere eseguiti senza approvazione. Viene confrontato parola per parola con il comando, non come testo:

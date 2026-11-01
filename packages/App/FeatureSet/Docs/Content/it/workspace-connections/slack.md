@@ -278,6 +278,10 @@ Anche i pulsanti dei messaggi Slack di OneUptime agiscono a tuo nome: come l'acc
 - **Dove ricevi la risposta.** Sotto il messaggio con il pulsante, in un messaggio che vedi solo tu; in un messaggio diretto solo se Slack lo rifiuta. Un pulsante premuto troppo tardi dice chi è arrivato prima, e quando, per esempio "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Se il tuo account Slack non è collegato.** La risposta ti chiede di collegarlo, con un pulsante **Connect Slack account**. Il pulsante apre le tue impostazioni Slack in OneUptime e collega il tuo account in un solo passaggio, dopo che hai effettuato l'accesso a OneUptime se serve. Poi OneUptime completa ciò che hai premuto, a tuo nome, e risponde sotto lo stesso messaggio; per un pulsante che apre un modulo, o un comando, ti chiede di premerlo o di eseguirlo di nuovo. Il pulsante funziona una volta, per 30 minuti, e solo per l'account Slack che lo ha premuto: con l'accesso a Slack di un'altra persona, non collega nulla.
 
+## Approvare una correzione proposta da OneUptime AI
+
+Una correzione che OneUptime AI propone per l'approvazione viene pubblicata nei canali dell'incidente o dell'avviso con le sue modifiche e tre pulsanti. **Review and approve** apre tutto ciò che la correzione esegue, con **Approve and run**, che esegue esattamente quello, a tuo nome. **Dismiss** rifiuta la correzione, e **View in OneUptime** apre l'incidente o l'avviso. Agiscono a tuo nome, come ogni pulsante dei messaggi Slack di OneUptime: l'approvazione richiede il permesso di approvare correzioni nel progetto e, per una correzione su un cluster o una risorsa, di modificarli. Una correzione che è cambiata dopo la pubblicazione del suo messaggio viene rifiutata, e non viene eseguito nulla. Vedi [Approvare o rifiutare una correzione da Slack o Microsoft Teams](/docs/ai/ai-sre#approvare-o-rifiutare-una-correzione-da-slack-o-microsoft-teams).
+
 ## Scollegare
 
 - **Disconnetti** scollega solo il tuo account Slack, e rimuove con esso il tuo metodo di notifica Slack.

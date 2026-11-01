@@ -264,6 +264,10 @@ Los botones de las tarjetas de OneUptime actúan como la persona que los pulsa, 
 - **Dónde recibe la respuesta.** En una respuesta en la misma conversación, el hilo de la tarjeta en un canal, que menciona a la persona, para que Microsoft Teams le avise. Un botón pulsado demasiado tarde dice quién llegó primero, y cuándo, por ejemplo "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Si su cuenta no está conectada.** La respuesta le pide conectarla, con un botón **Connect Microsoft Teams account**. El botón abre sus propios ajustes de Microsoft Teams en OneUptime y conecta su cuenta en un solo paso, después de iniciar sesión en OneUptime si hace falta. Después, OneUptime termina lo que pulsó, como esa persona, y responde en la misma conversación; para un botón que abre un formulario, o un comando, le pide que lo pulse o lo escriba de nuevo. El botón funciona una vez, durante 30 minutos, y solo para la cuenta de Microsoft que lo pulsó.
 
+## Aprobar una corrección que propone OneUptime AI
+
+Una corrección que OneUptime AI propone para su aprobación se publica en los canales del incidente o la alerta como una tarjeta con sus cambios y tres botones. **Review and approve** responde con una tarjeta con todo lo que ejecuta la corrección y **Approve and run**, que ejecuta exactamente eso, como la persona que lo pulsa; una vez aprobada, esa tarjeta se retira y se le dice que la corrección se está aplicando. **Dismiss** descarta la corrección, y **View in OneUptime** abre el incidente o la alerta. Actúan como la persona que los pulsa, como cada botón de las tarjetas de OneUptime: aprobar requiere permiso para aprobar correcciones en el proyecto y, para una corrección en un clúster o recurso, para editarlo. Una corrección que cambió después de publicarse su tarjeta se rechaza, y no se ejecuta nada. Consulta [Aprobar o descartar una corrección desde Slack o Microsoft Teams](/docs/ai/ai-sre#aprobar-o-descartar-una-corrección-desde-slack-o-microsoft-teams).
+
 ## Desconectar
 
 - **Desconectar** desvincula solo tu propia cuenta de Microsoft Teams, y elimina con ella tu método de notificación de Microsoft Teams.

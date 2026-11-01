@@ -402,6 +402,8 @@ Uma mudança nomeia um recurso pelo id dele, como faz uma leitura, e só roda em
 
 Antes que alguém aprove uma correção que altera uma conta de nuvem, a OneUptime simula cada mudança proposta, e o cartão da correção no incidente ou alerta mostra a resposta abaixo da mudança: ela seria executada, com a chamada que faria e como desfazê-la; seria recusada, e por quê; ou a simulação não pôde ser concluída. **Repetir a simulação** verifica de novo. Uma simulação não altera nada: o agente para antes da chamada que faria a mudança, e na AWS a sessão da função de escrita que ele usa só pode ler.
 
+No cartão da correção e na mensagem dela no Slack e no Microsoft Teams, uma mudança na nuvem também diz o que faz em palavras simples, acima do seu comando exato: "Serviço ECS web: aumentar para 4 tarefas". As palavras são lidas do comando com a gramática do catálogo, nunca do que a OneUptime AI escreveu. Quando a OneUptime AI planeja uma correção para uma conta, ela é informada do que o incidente ou alerta tem vinculado ali: os recursos do Cloud, pelos IDs com que uma mudança os nomeia, e os ambientes do App Platforms, onde uma correção muda os serviços que rodam neles.
+
 ### A lista de comandos permitidos
 
 No modo **Automático**, a **Lista de comandos permitidos** do recurso, na página do agente de IA, deixa que os comandos mais arriscados que você nomear rodem sem aprovação. Ela é comparada palavra por palavra com o comando, não como texto:

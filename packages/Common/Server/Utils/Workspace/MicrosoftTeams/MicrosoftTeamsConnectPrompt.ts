@@ -32,6 +32,10 @@ import {
   MicrosoftTeamsScheduledMaintenanceActionType,
 } from "./Actions/ActionTypes";
 import MicrosoftTeamsActionAnswer from "./MicrosoftTeamsActionAnswer";
+import {
+  REMEDIATION_PRESSES,
+  RemediationPress,
+} from "../../AutoRemediation/RemediationChatWords";
 import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 
 /*
@@ -445,6 +449,24 @@ export default class MicrosoftTeamsConnectPrompt {
             ? WorkspaceConnectRequestAgainKind.MenuItem
             : WorkspaceConnectRequestAgainKind.Button,
           label: form.button,
+        },
+      };
+    }
+
+    /*
+     * A fix OneUptime AI proposes: never approved or dismissed for somebody
+     * once they connect - they read what it runs and press again.
+     */
+    const fixPress: RemediationPress | undefined = REMEDIATION_PRESSES.get(
+      data.actionType,
+    );
+
+    if (fixPress) {
+      return {
+        purpose: fixPress.purpose,
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Button,
+          label: fixPress.button,
         },
       };
     }

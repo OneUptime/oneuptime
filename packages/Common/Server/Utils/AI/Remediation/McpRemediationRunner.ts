@@ -69,6 +69,8 @@ import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
 import RemediationExecutionRunner from "./RemediationExecutionRunner";
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
 import logger from "../../Logger";
+import RemediationChatMessage from "../../AutoRemediation/RemediationChatMessage";
+import { MessageBlocksByWorkspaceType } from "../../../Services/WorkspaceNotificationRuleService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import ProductBrandingText from "../../ProductBrandingText";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
@@ -736,6 +738,11 @@ export default class McpRemediationRunner {
           mdText`⚡ **${getAiName()} proposes a fix through ${servers}** (${ExternalMcpToolCallPlanUtil.describeChangeCount(proposed.length)}). Review it on the Remediation card: nothing changes until someone approves it.`.toString(),
         pingWorkspace: true,
         displayColor: Indigo500,
+        // Approve it, or dismiss it, from the channel.
+        appendMessageBlocks: await RemediationChatMessage.getProposalBlocks({
+          suggestion,
+          mcpToolCallPlan: plan,
+        }),
       });
       return;
     }
@@ -1097,6 +1104,8 @@ export default class McpRemediationRunner {
     markdown: string;
     pingWorkspace: boolean;
     displayColor: Color;
+    // A fix that waits for approval: its changes and buttons, in the chats.
+    appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
   }): Promise<void> {
     try {
       if (data.suggestion.incidentId && data.suggestion.projectId) {
@@ -1108,6 +1117,9 @@ export default class McpRemediationRunner {
           feedInfoInMarkdown: data.markdown,
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
+            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
+              ? { appendMessageBlocks: data.appendMessageBlocks }
+              : {}),
           },
         });
       } else if (data.suggestion.alertId && data.suggestion.projectId) {
@@ -1119,6 +1131,9 @@ export default class McpRemediationRunner {
           feedInfoInMarkdown: data.markdown,
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
+            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
+              ? { appendMessageBlocks: data.appendMessageBlocks }
+              : {}),
           },
         });
       }

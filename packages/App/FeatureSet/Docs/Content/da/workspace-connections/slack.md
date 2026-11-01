@@ -278,6 +278,10 @@ Knapperne i OneUptimes Slack-beskeder handler også som dig: som den OneUptime-k
 - **Hvor du får svar.** Under beskeden med knappen, i en besked kun du kan se; i en direkte besked kun hvis Slack afviser det. En knap, der trykkes for sent, fortæller, hvem der kom først, og hvornår, for eksempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Hvis din Slack-konto ikke er forbundet.** Svaret beder dig forbinde den, med en knap **Connect Slack account**. Knappen åbner dine egne Slack-indstillinger i OneUptime og forbinder din konto i ét trin, efter at du har logget ind i OneUptime, hvis det er nødvendigt. Derefter gør OneUptime færdigt, hvad du trykkede på, som dig, og svarer under den samme besked; for en knap, der åbner en formular, eller en kommando beder det dig trykke på den eller køre den igen. Knappen virker én gang, i 30 minutter, og kun for den Slack-konto, der trykkede på den: logget ind i Slack som en anden forbinder den intet.
 
+## Godkend en rettelse, som OneUptime AI foreslår
+
+En rettelse, som OneUptime AI foreslår til godkendelse, sendes til hændelsens eller advarslens kanaler med dens ændringer og tre knapper. **Review and approve** åbner alt, hvad rettelsen kører, med **Approve and run**, som kører præcis det, som dig. **Dismiss** afviser rettelsen, og **View in OneUptime** åbner hændelsen eller advarslen. De handler som dig, ligesom hver knap på OneUptimes Slack-beskeder: en godkendelse kræver tilladelse til at godkende rettelser i projektet og, for en rettelse på en klynge eller ressource, til at redigere den. En rettelse, der ændrede sig, efter dens besked blev sendt, afvises, og intet køres. Se [Godkend eller afvis en rettelse fra Slack eller Microsoft Teams](/docs/ai/ai-sre#godkend-eller-afvis-en-rettelse-fra-slack-eller-microsoft-teams).
+
 ## Afbryd forbindelsen
 
 - **Afbryd forbindelse** fjerner kun tilknytningen af din egen Slack-konto og fjerner samtidig din Slack-notifikationsmetode.
