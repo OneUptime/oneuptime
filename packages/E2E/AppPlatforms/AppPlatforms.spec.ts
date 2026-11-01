@@ -279,6 +279,61 @@ function fleetTiles(page: Page): Locator {
   return page.getByTestId("cloud-fleet-summary-tile");
 }
 
+const TABLET: { width: number; height: number } = { width: 768, height: 900 };
+
+// How many lines an element's text takes: one box per line it runs over.
+async function lineCountOf(locator: Locator): Promise<number> {
+  return await locator.evaluate((element: Element): number => {
+    const range: Range = document.createRange();
+    range.selectNodeContents(element);
+    const tops: Set<number> = new Set<number>();
+    for (const rect of Array.from(range.getClientRects())) {
+      if (rect.width > 0) {
+        tops.add(Math.round(rect.top));
+      }
+    }
+    return tops.size;
+  });
+}
+
+/*
+ * Where an environment's state is drawn, against its name: "end" when it
+ * ends the row (its right edge on the row's), "under" when it starts its
+ * own line where the name starts, "hidden" when it is read out only.
+ */
+async function environmentStatePlaces(page: Page): Promise<Array<string>> {
+  return await page
+    .getByTestId("app-platforms-environment")
+    .evaluateAll((rows: Array<Element>): Array<string> => {
+      return rows.map((row: Element): string => {
+        const status: Element = row.querySelector(
+          "[data-testid='app-platforms-environment-status']",
+        )!;
+        const name: Element = row.querySelector("a")!;
+        const statusBox: DOMRect = status.getBoundingClientRect();
+        const nameBox: DOMRect = name.getBoundingClientRect();
+        const rowBox: DOMRect = row.getBoundingClientRect();
+
+        if (statusBox.width <= 1 && statusBox.height <= 1) {
+          return "hidden";
+        }
+        if (
+          Math.abs(statusBox.right - rowBox.right) <= 1 &&
+          Math.abs(statusBox.top - nameBox.top) <= 4
+        ) {
+          return "end";
+        }
+        if (
+          statusBox.top >= nameBox.bottom - 1 &&
+          Math.abs(statusBox.left - nameBox.left) <= 1
+        ) {
+          return "under";
+        }
+        return `elsewhere ${JSON.stringify([statusBox, nameBox, rowBox])}`;
+      });
+    });
+}
+
 function platformGroups(page: Page): Locator {
   return page.getByTestId("app-platforms-platform");
 }
@@ -470,6 +525,146 @@ test.describe("the Overview", () => {
     await expect(panel.locator("[aria-current='page']")).toHaveText("Overview");
     await sideMenuAtRest(page);
     await screenshot(page, "app-platforms-overview-390-menu");
+  });
+
+  /*
+   * The healthy rows stay quiet - their dot says it, and the word is read
+   * out only - so the rows that need a look are the ones with words. Laid
+   * out by the room the card gives each platform: at a laptop's width an
+   * environment's state ends its row, in one column down the card; beside
+   * the side menu at 768 and on a phone it goes under the name, the same
+   * way on every row - never beside one name and under the next.
+   */
+  test("only the rows that need a look say so, at the end of the row or under the name, the same on every row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, APP_PLATFORMS);
+    await expect(page.getByTestId("app-platforms-environment")).toHaveCount(6);
+
+    const states: Array<string> = await page
+      .getByTestId("app-platforms-environment")
+      .evaluateAll((rows: Array<Element>): Array<string> => {
+        return rows.map((row: Element): string => {
+          return row.getAttribute("data-state") || "";
+        });
+      });
+    expect(states.sort()).toEqual([
+      "connected",
+      "connected",
+      "connected",
+      "connected",
+      "quiet",
+      "waiting",
+    ]);
+
+    const atLaptop: Array<string> = await environmentStatePlaces(page);
+    expect(
+      atLaptop.filter((place: string) => {
+        return place === "hidden";
+      }),
+    ).toHaveLength(4);
+    expect(
+      atLaptop.filter((place: string) => {
+        return place === "end";
+      }),
+    ).toHaveLength(2);
+
+    for (const size of [TABLET, PHONE]) {
+      await page.setViewportSize(size);
+      await expect
+        .poll(async (): Promise<Array<string>> => {
+          return (await environmentStatePlaces(page)).filter(
+            (place: string): boolean => {
+              return place !== "hidden";
+            },
+          );
+        })
+        .toEqual(["under", "under"]);
+    }
+
+    // The dot is the colour of the words beside it.
+    const quiet: Locator = page
+      .getByTestId("app-platforms-environment")
+      .filter({ hasText: "billing" });
+    const dotColour: string = await quiet
+      .getByTestId("app-platforms-environment-dot")
+      .evaluate((dot: Element): string => {
+        return getComputedStyle(dot).backgroundColor;
+      });
+    const wordsColour: string = await quiet
+      .getByTestId("app-platforms-environment-status")
+      .evaluate((words: Element): string => {
+        return getComputedStyle(words).color;
+      });
+    // Both amber: red well above blue.
+    for (const colour of [dotColour, wordsColour]) {
+      const [red, , blue] = (colour.match(/\d+/g) || []).map(Number) as [
+        number,
+        number,
+        number,
+      ];
+      expect(red - blue).toBeGreaterThan(100);
+    }
+
+    await screenshot(page, "app-platforms-overview-390-rows");
+  });
+
+  test("on a phone, a platform keeps its name on one line: its state goes under it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await open(page, APP_PLATFORMS);
+    await expect(platformGroups(page)).toHaveCount(4);
+
+    for (const group of await platformGroups(page).all()) {
+      const title: Locator = group.locator(".font-semibold").first();
+      expect(await lineCountOf(title)).toBe(1);
+      const titleBox: Box = await boxOf(title);
+      const stateBox: Box = await boxOf(
+        group.getByTestId("app-platforms-platform-status"),
+      );
+      expect(stateBox.y).toBeGreaterThanOrEqual(titleBox.y + titleBox.height);
+      expect(Math.abs(stateBox.x - titleBox.x)).toBeLessThanOrEqual(1);
+    }
+
+    // At a laptop's width the state is back beside the name.
+    await page.setViewportSize(LAPTOP);
+    const ecs: Locator = platformGroups(page).first();
+    await expect
+      .poll(async (): Promise<boolean> => {
+        const titleBox: Box = await boxOf(
+          ecs.locator(".font-semibold").first(),
+        );
+        const stateBox: Box = await boxOf(
+          ecs.getByTestId("app-platforms-platform-status"),
+        );
+        return stateBox.y < titleBox.y + titleBox.height;
+      })
+      .toBe(true);
+  });
+
+  test("the providers' breakdown wraps between providers, never inside one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [LAPTOP, TABLET, PHONE]) {
+      await page.setViewportSize(size);
+      await open(page, APP_PLATFORMS);
+
+      const parts: Locator = page.getByTestId(
+        "cloud-fleet-summary-tile-sublabel-part",
+      );
+      await expect(parts).toHaveText(["2 AWS", "2 Azure", "2 Google Cloud"]);
+      for (const part of await parts.all()) {
+        expect(await lineCountOf(part)).toBe(1);
+      }
+    }
   });
 
   test("dark: the strip, the platforms and the menu are drawn on dark surfaces, at both widths", async ({
@@ -705,6 +900,41 @@ test.describe("an environment's pages", () => {
  * The lists
  * ---------------------------------------------------------------------------
  */
+test.describe("the Developer pages", () => {
+  /*
+   * One table holds App Platforms' environments and Cloud's resources:
+   * App Platforms' Terraform page imports its environments only, so
+   * following both products' pages never gives one row two resources.
+   */
+  test("Terraform imports the environments, never a cloud resource", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${APP_PLATFORMS}/environments/developer/terraform`);
+
+    await expect(
+      page.getByText("Bring in the cloud environments you already have"),
+    ).toBeVisible();
+    await expect(
+      page.getByText("71000000-0000-4000-8000-000000000001").first(),
+    ).toBeVisible();
+    await expect(page.getByText(RESOURCE_ID)).toHaveCount(0);
+
+    const imports: Array<ListRequest> = (
+      await recorded(page)
+    ).listRequests.filter((request: ListRequest): boolean => {
+      return request.modelName === "CloudResource";
+    });
+    expect(imports.length).toBeGreaterThan(0);
+    for (const request of imports) {
+      expect(request.query).toMatchObject({ cloudResourceKind: "environment" });
+    }
+    await screenshot(page, "app-platforms-developer-terraform-1280");
+  });
+});
+
 test.describe("All Environments and Archived", () => {
   test("All Environments lists the six environments, counted as cloud environments", async ({
     page,
@@ -824,6 +1054,66 @@ test.describe("the rules", () => {
     }
 
     await screenshot(page, "app-platforms-owner-rules-1280");
+  });
+
+  /*
+   * The rule model is Cloud's (Cloud Resource Owner Rule); App Platforms'
+   * pages say what its rules are for everywhere a rule is read, changed or
+   * run - and a rule made before the split says, on its own page too, that
+   * it applies in Cloud as well, and runs over both products' rows.
+   */
+  test("a rule's own page names it, its records and its run as App Platforms does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(
+      page,
+      `${APP_PLATFORMS}/settings/owner-rules/74000000-0000-4000-8000-000000000003`,
+    );
+
+    await expect(
+      page.getByRole("button", { name: "Edit Cloud Environment Owner Rule" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Delete Cloud Environment Owner Rule" }),
+    ).toBeVisible();
+    await expect(page.getByText("Cloud Resource Owner Rule")).toHaveCount(0);
+    await expect(page.getByTestId("cloud-rule-also-applies-in")).toHaveText(
+      "Also in Cloud",
+    );
+    await expect(
+      page.getByText(
+        "This rule runs only when a cloud resource or environment is created. Run it now for the cloud resources and environments that already exist.",
+      ),
+    ).toBeVisible();
+    await screenshot(page, "app-platforms-owner-rule-both-1280");
+
+    // A rule of App Platforms' own: no pill, and it runs over environments.
+    await open(
+      page,
+      `${APP_PLATFORMS}/settings/owner-rules/74000000-0000-4000-8000-000000000001`,
+    );
+    await expect(page.getByTestId("cloud-rule-also-applies-in")).toHaveCount(0);
+    await expect(
+      page.getByText(
+        "This rule runs only when a cloud environment is created. Run it now for the cloud environments that already exist.",
+      ),
+    ).toBeVisible();
+
+    // Its edit form asks about environments.
+    await page
+      .getByRole("button", { name: "Edit Cloud Environment Owner Rule" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText("Edit Cloud Environment Owner Rule");
+    await expect(dialog.getByText("All cloud environments")).toBeVisible();
+    await expect(
+      dialog.getByText("Only cloud environments that match conditions"),
+    ).toBeVisible();
+    await expect(dialog.getByText("All cloud resources")).toHaveCount(0);
+    await screenshot(page, "app-platforms-owner-rule-edit-1280");
   });
 
   test("Label Rules likewise: its own and the one for both", async ({
@@ -995,12 +1285,59 @@ test.describe("in the reader's language", () => {
      */
     const breakdown: Array<number> = await wordLefts(
       page.getByTestId("cloud-fleet-summary-tile-sublabel").first(),
-      // The first 2 is AWS's count: drawn before it, not after Google.
-      ["2", "AWS", "Azure", "Google"],
+      /*
+       * The first 2 - a Persian two, as every number on the page is
+       * written - is AWS's count: drawn before it, not after it.
+       */
+      ["\u06f2", "AWS"],
     );
     expect(breakdown[0]!).toBeLessThan(breakdown[1]!);
-    expect(breakdown[1]!).toBeLessThan(breakdown[2]!);
-    expect(breakdown[2]!).toBeLessThan(breakdown[3]!);
+    /*
+     * The providers read in order, AWS, Azure, Google Cloud: left to right
+     * on a line, and a line that wraps goes on under the one before - each
+     * provider whole on its line.
+     */
+    const parts: Array<{ text: string; top: number; left: number }> = await page
+      .getByTestId("cloud-fleet-summary-tile-sublabel-part")
+      .evaluateAll(
+        (
+          elements: Array<Element>,
+        ): Array<{ text: string; top: number; left: number }> => {
+          return elements.map(
+            (element: Element): { text: string; top: number; left: number } => {
+              const box: DOMRect = element.getBoundingClientRect();
+              return {
+                text: element.textContent || "",
+                top: Math.round(box.top),
+                left: box.left,
+              };
+            },
+          );
+        },
+      );
+    expect(
+      parts.map((part: { text: string }): string => {
+        return part.text.replace(/^\S+ /, "");
+      }),
+    ).toEqual(["AWS", "Azure", "Google Cloud"]);
+    for (let index: number = 1; index < parts.length; index++) {
+      const before: { top: number; left: number } = parts[index - 1]!;
+      const part: { top: number; left: number } = parts[index]!;
+      if (part.top === before.top) {
+        expect(part.left).toBeGreaterThan(before.left);
+      } else {
+        expect(part.top).toBeGreaterThan(before.top);
+      }
+    }
+    // The strip's numbers in the reader's digits, as the platforms' counts.
+    const values: Array<string> = await fleetTiles(page).evaluateAll(
+      (tiles: Array<Element>): Array<string> => {
+        return tiles.map((tile: Element): string => {
+          return (tile.querySelector(".text-2xl")?.textContent || "").trim();
+        });
+      },
+    );
+    expect(values).toEqual(["\u06f6", "\u06f4", "\u06f2", "\u06f3"]);
     const ecs: Locator = platformGroups(page).first();
     await expect(ecs.locator("bdi")).toHaveText("AWS");
     const provider: Box = await boxOf(ecs.locator("bdi"));
