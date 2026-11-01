@@ -29,7 +29,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## محیط نمایش داده نمی‌شود
 
-یک دقیقه پس از نخستین درخواست، چیزی در **ابر** > **All Environments** نیست. این سه مورد را به همین ترتیب بررسی کنید.
+یک دقیقه پس از نخستین درخواست، چیزی در **بسترهای برنامه** > **همه محیط‌ها** نیست. این سه مورد را به همین ترتیب بررسی کنید.
 
 **`cloud.platform` وجود ندارد، یا مقدار مدیریت‌شده‌ای نیست.** OneUptime تله‌متری را فقط وقتی در محیط‌های ابری بایگانی می‌کند که منبع یکی از این مقدارها را داشته باشد: `aws_ecs`، `aws_elastic_beanstalk`، `aws_app_runner`، `gcp_cloud_run`، `gcp_app_engine`، `azure_container_apps`، `azure_container_instances` یا `azure_app_service`. علت‌های رایج:
 

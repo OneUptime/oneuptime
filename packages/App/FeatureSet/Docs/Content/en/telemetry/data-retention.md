@@ -79,7 +79,7 @@ A field left blank falls back to the next setting in the order above, so a sever
 
 Open the service's or resource's **Settings** page, then **More settings**. Its **Telemetry Data Retention** card holds **Retain Telemetry Data For (Days)**, one number for everything it sends, and its **Retention by Telemetry Type** card has the same fields as the project's. Leave a field blank to use the project's settings.
 
-Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud resources, RUM applications and IoT fleets all have these cards. See the [Service Catalog](/docs/telemetry/services#change-a-service) for a service's **Settings** page.
+Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud environments, RUM applications and IoT fleets all have these cards. See the [Service Catalog](/docs/telemetry/services#change-a-service) for a service's **Settings** page.
 
 ### When the plan or license no longer includes overrides
 

@@ -61,7 +61,8 @@ flowchart TB
 :::cards
 - [تله‌متری](/docs/telemetry/open-telemetry): لاگ‌ها، متریک‌ها و ترِیس‌ها را با OpenTelemetry بفرستید و در آن‌ها جستجو کنید.
 - [ایجنت‌های زیرساخت](/docs/telemetry/hosts): میزبان‌ها را با یک فرمان اضافه کنید و ایجنت‌ها را برای Kubernetes، Docker، Proxmox، VMware و موارد دیگر نصب کنید.
-- [ابر](/docs/telemetry/cloud-environments): ECS، Cloud Run، Azure Container Apps و دیگر پلتفرم‌های مدیریت‌شده را مشاهده کنید.
+- [بسترهای برنامه](/docs/telemetry/cloud-environments): برنامه‌هایی را که روی ECS و Fargate، Cloud Run، App Service و دیگر بسترهای مدیریت‌شده اجرا می‌کنید پایش کنید.
+- [ابر](/docs/telemetry/cloud-accounts): حساب‌های AWS، Azure و Google Cloud خود را متصل کنید و همه منابع آن‌ها را پایش کنید.
 - [مشاهده‌پذیری هوش مصنوعی](/docs/telemetry/ai-llm-observability): گفتگوهای هوش مصنوعی خود را دنبال کنید و وقتی بد پاسخ می‌دهد باخبر شوید.
 - [امنیت](/docs/telemetry/security-events): رویدادهای امنیتی و اطلاعات تهدید را جمع‌آوری کنید.
 - [امنیت داده](/docs/data-security/index): داده‌های حساس را در باکت‌ها، پایگاه‌های داده و تله‌متری خود پیدا کنید، و شیوهٔ نگهداری آن‌ها را اصلاح کنید.

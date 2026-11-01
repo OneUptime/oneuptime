@@ -34,7 +34,7 @@ flowchart TB
 
 | 你运行的内容 | 出现的位置 | 方式 |
 | --- | --- | --- |
-| ECS、Cloud Run、Container Apps、App Service 等上的容器 | **云 → All Environments** | 工作负载自身的遥测数据，按其 `cloud.platform` 区分。参见 [云环境](/docs/telemetry/cloud-environments) |
+| ECS、Cloud Run、Container Apps、App Service 等上的容器 | **应用平台 → 所有环境** | 工作负载自身的遥测数据，按其 `cloud.platform` 区分。参见 [云环境](/docs/telemetry/cloud-environments) |
 | 提供商监控的任何 IaaS 或 PaaS 资源 | **云 → 所有资源** | 由 Collector 读取的提供商监控 API：即本页 |
 | 装有 OpenTelemetry Collector 的虚拟机 | **主机** | 主机自身的指标和日志。参见 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | 你的应用使用的队列和主题 | **Queues** | span，以及相同的云指标。参见 [队列](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ stateDiagram-v2
 ## 资产清单和规则
 
 - **资产清单：** 云资源会以 **云资源** 条目列在 [资产清单](/docs/inventory/overview) 中，提供商的 ID 为 `cloud.resource.id`，类型为 `cloud.resource.type`。AI 代理的资源工具也会列出它们。
-- **规则：** **云 → 设置 → 标签规则** 和 **所有者规则** 对它们的作用与对云环境的作用相同。
+- **规则：** **云 → 设置 → 标签规则** 和 **所有者规则** 适用于它们。应用平台 为云环境提供自己的规则，在两者拆分之前创建的规则对两者都适用。
 
 ## 故障排除
 

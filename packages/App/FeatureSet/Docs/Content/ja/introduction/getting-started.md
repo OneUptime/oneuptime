@@ -61,7 +61,8 @@ flowchart TB
 :::cards
 - [テレメトリ](/docs/telemetry/open-telemetry): OpenTelemetry でログ、メトリクス、トレースを送信し、検索します。
 - [インフラストラクチャエージェント](/docs/telemetry/hosts): 1 つのコマンドでホストを追加し、Kubernetes、Docker、Proxmox、VMware などのエージェントをインストールします。
-- [クラウド](/docs/telemetry/cloud-environments): ECS、Cloud Run、Azure Container Apps などのマネージドプラットフォームを観測します。
+- [アプリプラットフォーム](/docs/telemetry/cloud-environments): ECS と Fargate、Cloud Run、App Service などのマネージドプラットフォームで実行しているアプリを監視します。
+- [クラウド](/docs/telemetry/cloud-accounts): AWS、Azure、Google Cloud のアカウントを接続し、その中のすべてのリソースを監視します。
 - [AI オブザーバビリティ](/docs/telemetry/ai-llm-observability): AI の会話を追い、回答の質が悪いときに知らせを受けます。
 - [セキュリティ](/docs/telemetry/security-events): セキュリティイベントと脅威インテリジェンスを収集します。
 - [データセキュリティ](/docs/data-security/index): バケット、データベース、テレメトリにある機密データを見つけ、その保管のしかたを改善します。

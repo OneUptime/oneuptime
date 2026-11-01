@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` con `"valid": true` significa que el token se acepta. `401` significa que es desconocido, revocado, desactivado o caducado. Al minuto del primer span, registro o métrica, el entorno aparece en **Nube → Todos los entornos**, con el nombre de la plataforma, la región y la cuenta.
+`200` con `"valid": true` significa que el token se acepta. `401` significa que es desconocido, revocado, desactivado o caducado. Al minuto del primer span, registro o métrica, el entorno aparece en **Plataformas de aplicaciones → Todos los entornos**, con el nombre de la plataforma, la región y la cuenta.
 
 ## Solución de problemas
 

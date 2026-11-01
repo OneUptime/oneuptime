@@ -2,6 +2,8 @@
 
 A **Cloud Environment** is the place your containers run on a managed cloud platform: an ECS cluster's account and region, a Cloud Run project and region, a Container Apps subscription and region. OneUptime creates one the first time your telemetry arrives with the right resource attributes, and rolls up every workload that runs there. There is nothing to register by hand.
 
+Environments are listed in App Platforms, a product of their own: **App Platforms → Overview** groups them by platform and puts the ones that went quiet first, and **App Platforms → All Environments** lists every one. The resources in your cloud accounts, such as virtual machines, buckets and managed databases, are in Cloud: see [Cloud Resources](/docs/telemetry/cloud-resources).
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tasks on Fargate or EC2, with per-task CPU and memory.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Services and jobs, also listed as serverless functions.
@@ -91,7 +93,7 @@ The platform's own identity comes first on purpose. A sidecar collector and the 
 
 ### Add an environment
 
-Ingest creates environments for you, so there is nothing to type in. Open **Cloud → All Environments** and click **Add Cloud Environment**: pick where your app runs, and the guide shows that platform's OpenTelemetry settings, with your OneUptime URL and ingestion key filled in. Its last step, **Wait for it to connect**, says when the environment's first data has arrived and links to it. To show another name, choose **Edit Details** on the **Resource Details** card of the environment's **Settings** page and type a **Display Name**.
+Ingest creates environments for you, so there is nothing to type in. Open **App Platforms → All Environments** and click **Add Cloud Environment**: pick where your app runs, and the guide shows that platform's OpenTelemetry settings, with your OneUptime URL and ingestion key filled in. Its last step, **Wait for it to connect**, says when the environment's first data has arrived and links to it. To show another name, choose **Edit Details** on the **Environment Details** card of the environment's **Settings** page and type a **Display Name**.
 
 ## What is not a cloud environment
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` with `"valid": true` means the token is accepted. `401` means it is unknown, revoked, disabled or expired, and the answer's `message` says which. Within a minute of the first span, log or metric, the environment appears under **Cloud → All Environments**.
+`200` with `"valid": true` means the token is accepted. `401` means it is unknown, revoked, disabled or expired, and the answer's `message` says which. Within a minute of the first span, log or metric, the environment appears under **App Platforms → All Environments**.
 :::
 
 > [!TIP]
-> The same steps are in the dashboard, with your token filled in: under **Cloud → All Environments**, click **Add Cloud Environment**. Every environment's **Documentation** tab has them too.
+> The same steps are in the dashboard, with your token filled in: under **App Platforms → All Environments**, click **Add Cloud Environment**. Every environment's **Documentation** tab has them too.
 
 ## What you get
 
@@ -190,7 +192,7 @@ An environment whose telemetry stops for 15 minutes shows **Disconnected**, and 
 ### Labels and owners
 
 - **From your telemetry:** a resource attribute such as `oneuptime.label.team=payments` adds the label `team:payments` to the environment.
-- **From rules:** **Cloud → Settings → Label Rules** and **Owner Rules** add labels and owners to matching environments. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
+- **From rules:** **App Platforms → Settings → Label Rules** and **Owner Rules** add labels and owners to matching environments. Cloud's own rules are for the resources in your cloud accounts, and a rule made before the two were split applies to both. See [Label and Owner Rules](/docs/configuration/label-and-owner-rules).
 
 ## Troubleshooting
 

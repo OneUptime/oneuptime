@@ -238,7 +238,11 @@ describe("card icons", () => {
     expect(findDocsNavGroupForUrl("/docs/monitor/no-such-page")).toBe(
       groupOf("Monitor"),
     );
+    // A platform's page is App Platforms', an account's page Cloud's.
     expect(findDocsNavGroupForUrl("/docs/telemetry/cloud-aws-ecs#x")).toBe(
+      groupOf("App Platforms"),
+    );
+    expect(findDocsNavGroupForUrl("/docs/telemetry/cloud-accounts")).toBe(
       groupOf("Cloud"),
     );
     expect(

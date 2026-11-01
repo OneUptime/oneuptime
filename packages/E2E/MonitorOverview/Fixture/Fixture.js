@@ -837,6 +837,8 @@ const CLOUD_RESOURCES = {
   cdn: insert(CloudResource, {
     _id: ID.cloudResource(1),
     name: "storefront-cdn",
+    // A resource in a cloud account: its page is Cloud's.
+    cloudResourceKind: "resource",
     cloudProvider: "aws",
     cloudResourceType: "AWS::CloudFront::Distribution",
     isArchived: false,
@@ -844,6 +846,7 @@ const CLOUD_RESOURCES = {
   loadBalancer: insert(CloudResource, {
     _id: ID.cloudResource(2),
     name: "storefront-alb",
+    cloudResourceKind: "resource",
     cloudProvider: "aws",
     cloudResourceType: "AWS::ElasticLoadBalancingV2::LoadBalancer",
     isArchived: false,

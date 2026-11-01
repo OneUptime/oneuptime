@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` avec `"valid": true` signifie que le jeton est accepté. `401` signifie qu'il est inconnu, révoqué, désactivé ou expiré. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Cloud → Tous les environnements**, nommé d'après la plateforme, la région et le compte.
+`200` avec `"valid": true` signifie que le jeton est accepté. `401` signifie qu'il est inconnu, révoqué, désactivé ou expiré. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Plateformes d'applications → Tous les environnements**, nommé d'après la plateforme, la région et le compte.
 
 ## Dépannage
 

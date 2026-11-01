@@ -34,7 +34,7 @@ Cloud-resources zijn een van de plekken waar je cloud verschijnt:
 
 | Je draait | Waar het verschijnt | Hoe |
 | --- | --- | --- |
-| Containers op ECS, Cloud Run, Container Apps, App Service, … | **Cloud → All Environments** | De eigen telemetrie van je workloads, op basis van hun `cloud.platform`. Zie [Cloud-omgevingen](/docs/telemetry/cloud-environments) |
+| Containers op ECS, Cloud Run, Container Apps, App Service, … | **App-platforms → Alle omgevingen** | De eigen telemetrie van je workloads, op basis van hun `cloud.platform`. Zie [Cloud-omgevingen](/docs/telemetry/cloud-environments) |
 | Elke IaaS- of PaaS-resource die de provider monitort | **Cloud → Alle resources** | De monitoring-API van de provider, gelezen door een collector: deze pagina |
 | Virtuele machines met een OpenTelemetry Collector erop | **Hosts** | De eigen metrieken en logs van de host. Zie [OpenTelemetry-collector op de host](/docs/telemetry/host-otel-collector) |
 | Wachtrijen en topics die je applicaties gebruiken | **Queues** | Spans, en dezelfde cloudmetrieken. Zie [Wachtrijen](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Zelf gehoste installaties kunnen dit wijzigen met omgevingsvariabelen op de app:
 ## Inventaris en regels
 
 - **Inventaris:** cloud-resources staan in de [Inventaris](/docs/inventory/overview) als items van het type **Cloud-resource**, met het ID van de provider als `cloud.resource.id` en het type als `cloud.resource.type`. De resourcetools van de AI-agent tonen ze ook.
-- **Regels:** **Cloud → Instellingen → Labelregels** en **Eigenaarsregels** gelden voor ze zoals voor cloud-omgevingen.
+- **Regels:** **Cloud → Instellingen → Labelregels** en **Eigenaarsregels** gelden voor ze. App-platforms heeft eigen regels voor cloud-omgevingen, en een regel die is gemaakt voordat de twee werden gesplitst, geldt voor beide.
 
 ## Problemen oplossen
 

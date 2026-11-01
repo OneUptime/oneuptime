@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-Busque `Everything is ready`, y que no haya `401` ni `connection refused`. Al minuto del primer span, registro o métrica, el entorno aparece en **Nube → Todos los entornos** como _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
+Busque `Everything is ready`, y que no haya `401` ni `connection refused`. Al minuto del primer span, registro o métrica, el entorno aparece en **Plataformas de aplicaciones → Todos los entornos** como _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
 :::
 
 ## Usar el agente de OpenTelemetry administrado del entorno

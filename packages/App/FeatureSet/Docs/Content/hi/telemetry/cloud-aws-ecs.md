@@ -1,6 +1,6 @@
 # AWS ECS / Fargate
 
-अपने Amazon ECS टास्क के ट्रेस, लॉग और मेट्रिक्स OneUptime पर भेजें, Fargate और EC2 दोनों लॉन्च टाइप पर। `cloud.platform=aws_ecs` रिपोर्ट करने वाला हर टास्क हर AWS खाते और क्षेत्र के लिए एक **Cloud Environment** में आता है, जैसे _AWS ECS · us-east-1 · 123456789012_, चाहे उसमें एक सेवा चले या पचास।
+अपने Amazon ECS टास्क के ट्रेस, लॉग और मेट्रिक्स OneUptime पर भेजें, Fargate और EC2 दोनों लॉन्च टाइप पर। `cloud.platform=aws_ecs` रिपोर्ट करने वाला हर टास्क हर AWS खाते और क्षेत्र के लिए एक **क्लाउड परिवेश** में आता है, जैसे _AWS ECS · us-east-1 · 123456789012_, चाहे उसमें एक सेवा चले या पचास।
 
 :::cards
 - [यह कैसे काम करता है](#यह-कैसे-काम-करता-है): ECS डिटेक्टर और sidecar कलेक्टर क्या करते हैं।
@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-कलेक्टर की CloudWatch लॉग स्ट्रीम (`otel/otel-collector/...`) में `Everything is ready` दिखना चाहिए, और `401` या `connection refused` वाली कोई पंक्ति नहीं होनी चाहिए। पहला स्पैन, लॉग या मेट्रिक आने के एक मिनट के भीतर परिवेश **क्लाउड → All Environments** में _AWS ECS · us-east-1 · 123456789012_ के रूप में दिखता है।
+कलेक्टर की CloudWatch लॉग स्ट्रीम (`otel/otel-collector/...`) में `Everything is ready` दिखना चाहिए, और `401` या `connection refused` वाली कोई पंक्ति नहीं होनी चाहिए। पहला स्पैन, लॉग या मेट्रिक आने के एक मिनट के भीतर परिवेश **ऐप प्लेटफ़ॉर्म → सभी परिवेश** में _AWS ECS · us-east-1 · 123456789012_ के रूप में दिखता है।
 :::
 
 ## पूरी टास्क परिभाषा

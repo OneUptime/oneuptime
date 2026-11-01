@@ -1,6 +1,6 @@
 # Altre piattaforme cloud
 
-Configura le piattaforme gestite che non hanno una pagina propria: AWS Elastic Beanstalk, AWS App Runner, Google App Engine, Azure App Service e Azure Container Instances. La regola è quella di ogni piattaforma: la telemetria che porta una `cloud.platform` gestita, con `cloud.account.id` e `cloud.region`, entra in un **Cloud Environment** per piattaforma, account e regione, e un'identità dell'istanza dà a ogni istanza in esecuzione una riga in **Istanze**.
+Configura le piattaforme gestite che non hanno una pagina propria: AWS Elastic Beanstalk, AWS App Runner, Google App Engine, Azure App Service e Azure Container Instances. La regola è quella di ogni piattaforma: la telemetria che porta una `cloud.platform` gestita, con `cloud.account.id` e `cloud.region`, entra in un **Ambiente cloud** per piattaforma, account e regione, e un'identità dell'istanza dà a ogni istanza in esecuzione una riga in **Istanze**.
 
 :::cards
 - [AWS Elastic Beanstalk](#aws-elastic-beanstalk): Un collector su ogni istanza, con i rilevatori Beanstalk ed EC2.
@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` con `"valid": true` significa che il token è accettato. `401` significa che è sconosciuto, revocato, disattivato o scaduto. Entro un minuto dal primo span, log o metrica, l'ambiente compare in **Cloud → All Environments**, con il nome della piattaforma, della regione e dell'account.
+`200` con `"valid": true` significa che il token è accettato. `401` significa che è sconosciuto, revocato, disattivato o scaduto. Entro un minuto dal primo span, log o metrica, l'ambiente compare in **Piattaforme applicative → Tutti gli ambienti**, con il nome della piattaforma, della regione e dell'account.
 
 ## Risoluzione dei problemi
 

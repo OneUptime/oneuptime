@@ -29,7 +29,7 @@ Si vous hébergez OneUptime vous-même, utilisez `https://YOUR-ONEUPTIME-HOST/ot
 
 ## L'environnement n'apparaît pas
 
-Rien sous **Cloud → Tous les environnements** une minute après la première requête. Vérifiez ces trois points, dans cet ordre.
+Rien sous **Plateformes d'applications → Tous les environnements** une minute après la première requête. Vérifiez ces trois points, dans cet ordre.
 
 **`cloud.platform` manque, ou n'est pas une valeur managée.** OneUptime ne classe la télémétrie sous Environnements cloud que lorsque la ressource porte l'une de ces valeurs : `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` ou `azure_app_service`. Les causes habituelles :
 

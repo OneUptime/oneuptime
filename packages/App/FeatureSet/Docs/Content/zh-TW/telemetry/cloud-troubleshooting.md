@@ -29,7 +29,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## 環境沒有出現
 
-第一個請求送出 1 分鐘後，**雲端 → All Environments** 下仍然什麼都沒有。請依序檢查以下三點。
+第一個請求送出 1 分鐘後，**應用程式平台 → 所有環境** 下仍然什麼都沒有。請依序檢查以下三點。
 
 **`cloud.platform` 缺少，或不是受控值。** 只有當資源帶有下列其中一個值時，OneUptime 才會把遙測資料歸檔到雲端環境下：`aws_ecs`、`aws_elastic_beanstalk`、`aws_app_runner`、`gcp_cloud_run`、`gcp_app_engine`、`azure_container_apps`、`azure_container_instances` 或 `azure_app_service`。常見原因：
 

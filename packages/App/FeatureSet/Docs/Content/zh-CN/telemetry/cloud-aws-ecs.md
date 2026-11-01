@@ -1,6 +1,6 @@
 # AWS ECS / Fargate
 
-将 Amazon ECS 任务的追踪、日志和指标发送到 OneUptime，Fargate 和 EC2 启动类型均适用。每个上报 `cloud.platform=aws_ecs` 的任务都会进入按 AWS 账户和区域划分的一个 **Cloud Environment**（例如 _AWS ECS · us-east-1 · 123456789012_），无论其中运行一个服务还是五十个服务。
+将 Amazon ECS 任务的追踪、日志和指标发送到 OneUptime，Fargate 和 EC2 启动类型均适用。每个上报 `cloud.platform=aws_ecs` 的任务都会进入按 AWS 账户和区域划分的一个 **云环境**（例如 _AWS ECS · us-east-1 · 123456789012_），无论其中运行一个服务还是五十个服务。
 
 :::cards
 - [工作原理](#工作原理): ECS 检测器和 sidecar Collector 各自做什么。
@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-Collector 的 CloudWatch 日志流（`otel/otel-collector/...`）中应出现 `Everything is ready`，并且没有包含 `401` 或 `connection refused` 的行。在第一个 span、日志或指标到达后的 1 分钟内，环境就会以 _AWS ECS · us-east-1 · 123456789012_ 的名称出现在 **云 → All Environments** 中。
+Collector 的 CloudWatch 日志流（`otel/otel-collector/...`）中应出现 `Everything is ready`，并且没有包含 `401` 或 `connection refused` 的行。在第一个 span、日志或指标到达后的 1 分钟内，环境就会以 _AWS ECS · us-east-1 · 123456789012_ 的名称出现在 **应用平台 → 所有环境** 中。
 :::
 
 ## 完整的任务定义

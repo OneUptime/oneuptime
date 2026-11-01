@@ -1313,7 +1313,8 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "VMware",
       "Database",
       "Serverless",
-      "Cloud",
+      // A cloud environment's, in App Platforms: a resource in Cloud has none.
+      "AppPlatforms",
       "Rum",
       "IoT",
     ];
@@ -1352,12 +1353,12 @@ describe("Data Retention (telemetry/data-retention)", () => {
       "vCenter",
       "database",
       "serverless function",
-      "cloud resource",
+      "cloud environment",
       "RUM application",
       "IoT fleet",
     ]);
     expect(page).toContain(
-      "Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud resources, RUM applications and IoT fleets all have these cards.",
+      "Services, hosts, Kubernetes clusters, Docker and Podman hosts, Docker Swarm, Proxmox and Ceph clusters, storage arrays, vCenters, databases, serverless functions, cloud environments, RUM applications and IoT fleets all have these cards.",
     );
     // And says where they wait: folded under the page's More settings.
     expect(page).toContain(
