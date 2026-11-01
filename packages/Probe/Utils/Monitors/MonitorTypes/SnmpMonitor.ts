@@ -716,7 +716,8 @@ export default class SnmpMonitor {
    * A sweep pays for this once per host that answers, so it stays small: at
    * most two GETBULKs for each of two interface columns and for entPhysicalClass,
    * a GET of the chassis row when there is one, and a GET of the vendor's scalars
-   * for a listed platform. A device with neither costs three requests.
+   * for a listed platform. A device with neither costs three requests. SNMP v1
+   * has no GETBULK, so its walks are a request per row, which the budget bounds.
    *
    * In that order because an agent asked for an object it lacks may not answer
    * at all ("the MS/MR fails to respond", Meraki's SNMP guide), and IF-MIB is

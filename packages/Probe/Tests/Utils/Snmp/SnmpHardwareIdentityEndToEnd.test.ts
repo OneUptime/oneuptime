@@ -66,6 +66,8 @@ let agentPort: number = 0;
 
 let relay: dgram.Socket | undefined = undefined;
 let relayPort: number = 0;
+// Requests for ENTITY-MIB the relay has dropped.
+let droppedRequests: number = 0;
 
 let silentSocket: dgram.Socket | undefined = undefined;
 let silentPort: number = 0;
@@ -262,6 +264,7 @@ beforeAll(async () => {
     }
 
     if (message.includes(ENTITY_MIB_ON_THE_WIRE)) {
+      droppedRequests++;
       return;
     }
 
@@ -338,7 +341,7 @@ describe("a real agent answering a scan's follow-up read", () => {
 
 describe("a real session when a device stops answering", () => {
   test("a device that fails to respond about ENTITY-MIB keeps the MAC it gave", async () => {
-    const startedAt: number = Date.now();
+    droppedRequests = 0;
 
     await expect(
       SnmpMonitor.probeHardwareIdentity(
@@ -347,8 +350,8 @@ describe("a real session when a device stops answering", () => {
       ),
     ).resolves.toEqual({ scannedMacAddress: "70:4c:a5:12:34:56" });
 
-    // One timeout: ENTITY-MIB's. Nothing else was silent.
-    expect(Date.now() - startedAt).toBeLessThan(TIMEOUT_IN_MS * 3);
+    // One timeout, not one per column: silence ends the ENTITY-MIB part.
+    expect(droppedRequests).toBe(1);
   });
 
   test("the same device on a listed platform still answers its vendor's MIB", async () => {

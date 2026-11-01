@@ -11,7 +11,6 @@ import {
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import SnmpHardwareIdentity from "Common/Types/Monitor/SnmpMonitor/SnmpHardwareIdentity";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
-import snmp from "net-snmp";
 import SnmpMonitor from "../../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
 
 /*
@@ -600,6 +599,21 @@ describe("a device that stops answering", () => {
     expect(world.closes).toBe(1);
   });
 
+  test("a vendor's MIB that never answers cannot lose what ENTITY-MIB said", async () => {
+    addPorts([{ index: 1, type: ETHERNET, mac: "70:4c:a5:12:34:56" }]);
+    addEntityRow(1, CLASS_CHASSIS, { serial: "FG100FTK20012345" });
+    world.device.silentUnder = [FG_SYS_VERSION];
+    world.device.hangs = true;
+
+    const { identity, tookInMs } = await read(FORTIGATE_SYS_OBJECT_ID);
+
+    expect(identity).toEqual({
+      scannedMacAddress: "70:4c:a5:12:34:56",
+      serialNumber: "FG100FTK20012345",
+    });
+    expect(tookInMs).toBeLessThanOrEqual(BUDGET_IN_MS + 100);
+  });
+
   test("a request that fails after the budget ran out changes nothing", async () => {
     addPorts([{ index: 1, type: ETHERNET, mac: "00:1b:54:c2:7a:01" }]);
     world.device.silentUnder = [ENTITY_MIB];
@@ -690,17 +704,32 @@ describe("the scan's abort", () => {
   test("a read that finishes leaves no listener on the scan's signal", async () => {
     const controller: AbortController = new AbortController();
     const added: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      AbortSignal.prototype,
+      EventTarget.prototype,
       "addEventListener",
     );
     const removed: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      AbortSignal.prototype,
+      EventTarget.prototype,
       "removeEventListener",
     );
 
     await read(CISCO_SYS_OBJECT_ID, controller.signal);
 
-    expect(added.mock.calls.length).toBe(removed.mock.calls.length);
+    const abortListeners: (spy: ReturnType<typeof jest.spyOn>) => number = (
+      spy: ReturnType<typeof jest.spyOn>,
+    ): number => {
+      return spy.mock.calls.filter((call: Array<unknown>): boolean => {
+        return call[0] === "abort";
+      }).length;
+    };
+
+    const addedCount: number = abortListeners(added);
+    const removedCount: number = abortListeners(removed);
+
+    added.mockRestore();
+    removed.mockRestore();
+
+    expect(addedCount).toBeGreaterThan(0);
+    expect(removedCount).toBe(addedCount);
   });
 });
 
@@ -711,6 +740,5 @@ describe("the varbinds it reads", () => {
     const { identity } = await read(CISCO_SYS_OBJECT_ID);
 
     expect(identity).toEqual({ model: "C9300-24T" });
-    expect(snmp.ObjectType.NoSuchInstance).toBeDefined();
   });
 });

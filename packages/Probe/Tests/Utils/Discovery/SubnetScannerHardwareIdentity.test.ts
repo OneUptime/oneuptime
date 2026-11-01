@@ -330,16 +330,20 @@ describe("SubnetScanner - nothing the read does makes a host read as not answeri
       poll();
     });
 
-    const first: DiscoveredHost | undefined = hostAt(snapshots[0]!, "10.0.0.1");
+    const first: DiscoveredHost | undefined = hostAt(
+      snapshots[0]!,
+      "10.0.0.1",
+    );
+    const responderCount: number = snapshots[0]!.snmpResponderCount;
 
-    expect(first?.snmpReachable).toBe(true);
-    expect(first?.serialNumber).toBeUndefined();
-    expect(snapshots[0]!.snmpResponderCount).toBe(1);
-
+    // Before any assertion, so that a failing one leaves no sweep running.
     finishRead(IDENTITY);
 
     const result: SubnetScanResult = await scanning;
 
+    expect(first?.snmpReachable).toBe(true);
+    expect(first?.serialNumber).toBeUndefined();
+    expect(responderCount).toBe(1);
     expect(hostAt(result, "10.0.0.1")?.serialNumber).toBe("FOC1932X0K1");
     // A copy: the read finishing does not reach into what was already reported.
     expect(first?.serialNumber).toBeUndefined();
