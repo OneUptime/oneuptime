@@ -85,6 +85,9 @@ const AppPlatformsArchivedPage: FunctionComponent<
           buttons: [...unarchiveBulkActions],
         }}
         name="Archived Cloud Environments"
+        // The model's nouns are Cloud's (cloud resources): these are environments.
+        singularName="Cloud Environment"
+        pluralName="Cloud Environments"
         cardProps={{
           title: "Archived Cloud Environments",
           description:

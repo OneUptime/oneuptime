@@ -205,6 +205,9 @@ const AppPlatformEnvironments: FunctionComponent<
         showViewIdButton={true}
         name="Cloud Environments"
         searchableFields={["name", "description"]}
+        // The model's nouns are Cloud's (cloud resources): these are environments.
+        singularName="Cloud Environment"
+        pluralName="Cloud Environments"
         selectMoreFields={{
           cloudPlatform: true,
           cloudProvider: true,

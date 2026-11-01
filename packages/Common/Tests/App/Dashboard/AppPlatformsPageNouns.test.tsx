@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -47,6 +47,10 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 import AppPlatformEnvironmentDelete from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Delete";
 import AppPlatformEnvironmentInstances from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Instances";
+import AppPlatformEnvironments from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Environments";
+import AppPlatformsArchived from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Archived";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { getJestSpyOn } from "../../Spy";
 import CloudResourceDelete from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Delete";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
@@ -132,4 +136,62 @@ describe("an environment's Instances page", () => {
     expect(props["cardProps"]["title"]).toBe("Instances");
     expect(new CloudResourceInstance().pluralName).not.toBe("Instances");
   });
+});
+
+describe("App Platforms' lists", () => {
+  beforeEach(() => {
+    getJestSpyOn(ModelAPI, "count").mockResolvedValue(0 as never);
+    getJestSpyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 10,
+    } as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    {
+      name: "All Environments",
+      Page: AppPlatformEnvironments,
+      url: `/dashboard/${PROJECT_ID}/app-platforms/environments`,
+      archived: false,
+    },
+    {
+      name: "Archived",
+      Page: AppPlatformsArchived,
+      url: `/dashboard/${PROJECT_ID}/app-platforms/archived`,
+      archived: true,
+    },
+  ])(
+    "$name lists environments and calls them cloud environments",
+    async ({
+      Page,
+      url,
+      archived,
+    }: {
+      Page: React.FunctionComponent<PageComponentProps>;
+      url: string;
+      archived: boolean;
+    }) => {
+      renderPage(Page, url);
+
+      // All Environments draws its table once it knows whether any exist.
+      await waitFor(() => {
+        expect(modelTableMock).toHaveBeenCalled();
+      });
+
+      const props: Props = lastProps(modelTableMock);
+      expect(props["modelType"]).toBe(CloudResource);
+      expect(props["query"]["cloudResourceKind"]).toBe("environment");
+      expect(props["query"]["isArchived"]).toBe(archived);
+      // "Showing 1-6 of 6 cloud environments", a row's "Delete Cloud Environment".
+      expect(props["singularName"]).toBe("Cloud Environment");
+      expect(props["pluralName"]).toBe("Cloud Environments");
+      expect(new CloudResource().pluralName).toBe("Cloud Resources");
+    },
+  );
 });
