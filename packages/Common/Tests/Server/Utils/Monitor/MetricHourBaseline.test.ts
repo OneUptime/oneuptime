@@ -1,5 +1,8 @@
 import MetricHourBaseline, {
   MetricBaselineDayRow,
+  MetricBaselineSource,
+  MetricDataPointCell,
+  MetricDataPointDayRow,
   MetricHourReading,
 } from "../../../../Server/Utils/Monitor/MetricHourBaseline";
 import {
@@ -21,7 +24,9 @@ import { describe, expect, jest, test } from "@jest/globals";
  * (packages/App).
  *
  * The traffic is simulated, so trust the shape of these numbers more than the
- * numbers. Nothing here has been measured on real metrics.
+ * numbers. Nothing here has been measured on real metrics, and a simulation
+ * only shows what it was told: the rollup's hours went wrong on a real server
+ * for as long as nothing ran there.
  */
 
 jest.setTimeout(120000);
@@ -130,6 +135,249 @@ describe("MetricHourBaseline.getHoursOfDay", () => {
   test("the last hour of the week is in it", () => {
     expect(MetricHourBaseline.getHoursOfDay(167)).toContain(167);
     expect(MetricHourBaseline.getHoursOfDay(0)).toContain(0);
+  });
+});
+
+describe("MetricHourBaseline.toStoredHour", () => {
+  /*
+   * What a real server stores, seen on one: Tuesday 0..23 up to Sunday
+   * 120..143, Monday 232..255, and nothing at all from 144 to 231.
+   */
+  test("Tuesday is stored first, and Monday wraps past the end of the week", () => {
+    expect(MetricHourBaseline.toStoredHour(0)).toBe(232);
+    expect(MetricHourBaseline.toStoredHour(9)).toBe(241);
+    expect(MetricHourBaseline.toStoredHour(23)).toBe(255);
+    expect(MetricHourBaseline.toStoredHour(24)).toBe(0);
+    expect(MetricHourBaseline.toStoredHour(167)).toBe(143);
+  });
+
+  test("it is the view's arithmetic, at any moment", () => {
+    const random: SeededRandom = seededRandom(9417);
+
+    for (let index: number = 0; index < 2000; index++) {
+      const time: Date = new Date(
+        MONDAY + random(52 * MINUTES_PER_WEEK) * 60000,
+      );
+      // toDayOfWeek(time, 1): Monday is 0.
+      const dayOfWeek: number = (time.getUTCDay() + 6) % 7;
+      const stored: number =
+        (((dayOfWeek - 1) * 24 + time.getUTCHours()) % 256 + 256) % 256;
+
+      expect(
+        MetricHourBaseline.toStoredHour(
+          MetricBaselineService.computeHourOfWeek(time),
+        ),
+      ).toBe(stored);
+    }
+  });
+
+  test("every hour of the week has a number of its own, and comes back from it", () => {
+    const stored: Set<number> = new Set<number>();
+
+    for (let hour: number = 0; hour < 168; hour++) {
+      stored.add(MetricHourBaseline.toStoredHour(hour));
+
+      expect(
+        MetricHourBaseline.fromStoredHour(MetricHourBaseline.toStoredHour(hour)),
+      ).toBe(hour);
+    }
+
+    expect(stored.size).toBe(168);
+  });
+});
+
+describe("MetricHourBaseline.getHourStarts", () => {
+  test("the hour on each day of the window, the day judged last", () => {
+    const starts: Array<string> = MetricHourBaseline.getHourStarts({
+      hourOfWeek: 9,
+      judgedDay: "2026-11-30",
+      windowDays: 14,
+    });
+
+    expect(starts).toHaveLength(15);
+    expect(starts[0]).toBe("2026-11-16 09:00:00");
+    expect(starts[14]).toBe("2026-11-30 09:00:00");
+  });
+
+  test("across the end of a month and of the week", () => {
+    expect(
+      MetricHourBaseline.getHourStarts({
+        hourOfWeek: 167,
+        judgedDay: "2026-12-01",
+        windowDays: 2,
+      }),
+    ).toEqual([
+      "2026-11-29 23:00:00",
+      "2026-11-30 23:00:00",
+      "2026-12-01 23:00:00",
+    ]);
+  });
+});
+
+describe("MetricHourBaseline.getSource", () => {
+  const plain: Parameters<typeof MetricHourBaseline.getSource>[0] = {
+    isTotal: false,
+    isPercentile: false,
+    isDistribution: false,
+    isNarrowedByAttributes: false,
+    bucketInMinutes: 1,
+  };
+
+  test("what is on its samples' scale keeps the hourly rollup's 90 days", () => {
+    expect(MetricHourBaseline.getSource(plain)).toBe(
+      MetricBaselineSource.Samples,
+    );
+    expect(
+      MetricHourBaseline.getSource({ ...plain, isPercentile: true }),
+    ).toBe(MetricBaselineSource.Samples);
+  });
+
+  test("so does one narrowed by an attribute, which no table can do better for", () => {
+    expect(
+      MetricHourBaseline.getSource({ ...plain, isNarrowedByAttributes: true }),
+    ).toBe(MetricBaselineSource.Samples);
+  });
+
+  test("a total of a plain metric is in the minute rollup", () => {
+    expect(MetricHourBaseline.getSource({ ...plain, isTotal: true })).toBe(
+      MetricBaselineSource.MinuteRollup,
+    );
+  });
+
+  test.each([
+    ["an average", { isDistribution: true }],
+    ["a total", { isDistribution: true, isTotal: true }],
+  ])("%s of a histogram is in its rows", (_: string, data: object) => {
+    expect(MetricHourBaseline.getSource({ ...plain, ...data })).toBe(
+      MetricBaselineSource.Rows,
+    );
+  });
+
+  test.each([
+    ["a total narrowed by an attribute", { isTotal: true, isNarrowedByAttributes: true }],
+    [
+      "a histogram narrowed by an attribute",
+      { isDistribution: true, isNarrowedByAttributes: true },
+    ],
+    ["a percentile of a histogram", { isDistribution: true, isPercentile: true }],
+    ["a total of more than an hour", { isTotal: true, bucketInMinutes: 1440 }],
+    [
+      "a histogram's data point of more than an hour",
+      { isDistribution: true, bucketInMinutes: 1440 },
+    ],
+  ])("%s has none", (_: string, data: object) => {
+    expect(MetricHourBaseline.getSource({ ...plain, ...data })).toBeNull();
+  });
+
+  test("a data point of an hour is still inside its hour", () => {
+    expect(
+      MetricHourBaseline.getSource({
+        ...plain,
+        isTotal: true,
+        bucketInMinutes: 60,
+      }),
+    ).toBe(MetricBaselineSource.MinuteRollup);
+  });
+});
+
+describe("MetricHourBaseline.fold", () => {
+  const momentsOf: (values: Array<number>) => {
+    mean: number;
+    variance: number;
+  } = (values: Array<number>): { mean: number; variance: number } => {
+    const mean: number =
+      values.reduce((sum: number, value: number): number => {
+        return sum + value;
+      }, 0) / values.length;
+
+    return {
+      mean,
+      variance:
+        values.reduce((sum: number, value: number): number => {
+          return sum + Math.pow(value - mean, 2);
+        }, 0) / values.length,
+    };
+  };
+
+  const rowFrom: (day: number, values: Array<number>) => MetricDataPointDayRow =
+    (day: number, values: Array<number>): MetricDataPointDayRow => {
+      const { mean, variance } = momentsOf(values);
+
+      return {
+        ...rowOf({
+          day,
+          mean,
+          sampleCount: values.length,
+          low: Math.min(...values),
+          high: Math.max(...values),
+        }),
+        variance,
+        median: mean,
+        p95: Math.max(...values),
+      };
+    };
+
+  test("days merge as the states of a cell do, whatever their sizes", () => {
+    const random: SeededRandom = seededRandom(7741);
+
+    for (let round: number = 0; round < 200; round++) {
+      const first: Array<number> = new Array<number>(1 + random(60))
+        .fill(0)
+        .map((): number => {
+          return 100 + 40 * random();
+        });
+      const second: Array<number> = new Array<number>(1 + random(60))
+        .fill(0)
+        .map((): number => {
+          return 300 + 40 * random();
+        });
+      const cell: MetricDataPointCell = MetricHourBaseline.fold({
+        rows: [rowFrom(7, first), rowFrom(14, second)],
+        hourOfWeek: HOUR,
+        judgedDay: JUDGED_DAY,
+      })!;
+      const all: { mean: number; variance: number } = momentsOf([
+        ...first,
+        ...second,
+      ]);
+
+      expect(cell.sampleCount).toBe(first.length + second.length);
+      expect(cell.mean).toBeCloseTo(all.mean, 9);
+      expect(cell.stddev).toBeCloseTo(Math.sqrt(all.variance), 9);
+      expect(cell.minObserved).toBe(Math.min(...first, ...second));
+      expect(cell.maxObserved).toBe(Math.max(...first, ...second));
+    }
+  });
+
+  test("what is judged is not what it is judged against", () => {
+    const cell: MetricDataPointCell = MetricHourBaseline.fold({
+      rows: [rowFrom(14, [100, 100]), rowFrom(21, [9000, 9000])],
+      hourOfWeek: HOUR,
+      judgedDay: JUDGED_DAY,
+    })!;
+
+    expect(cell.mean).toBe(100);
+    expect(cell.sampleCount).toBe(2);
+  });
+
+  test("other hours of the day are only for the level", () => {
+    expect(
+      MetricHourBaseline.fold({
+        rows: [{ ...rowFrom(13, [100]), hourOfWeek: HOUR + 144 }],
+        hourOfWeek: HOUR,
+        judgedDay: JUDGED_DAY,
+      }),
+    ).toBeNull();
+  });
+
+  test("nothing earlier is nothing", () => {
+    expect(
+      MetricHourBaseline.fold({
+        rows: [],
+        hourOfWeek: HOUR,
+        judgedDay: JUDGED_DAY,
+      }),
+    ).toBeNull();
   });
 });
 
@@ -1392,6 +1640,868 @@ const overSeeds: (
     return total + measure(gaugeOf({ ...shape, seed }));
   }, 0);
 };
+
+/*
+ * A band from one traffic and data points from another: what a query's value
+ * is compared with, when it is not on the scale of what it is compared with.
+ */
+const bandFrom: (cell: Traffic, read: Read) => Read = (
+  cell: Traffic,
+  read: Read,
+): Read => {
+  return (data: Parameters<Read>[0]): BaselineBand | null => {
+    return read({ ...data, traffic: cell });
+  };
+};
+
+// One data point a minute, as a traffic of its own: a cell of those points.
+const pointsOf: (values: Float64Array) => Traffic = (
+  values: Float64Array,
+): Traffic => {
+  return trafficOf({ series: [values], samplesPerMinute: 1 });
+};
+
+const foldEachMinute: (
+  traffic: Traffic,
+  fold: (minute: number) => number,
+) => Float64Array = (
+  traffic: Traffic,
+  fold: (minute: number) => number,
+): Float64Array => {
+  return new Float64Array(traffic.series[0]!.length).map(
+    (_: number, minute: number): number => {
+      return fold(minute);
+    },
+  );
+};
+
+// Alerts a day and the share of checks firing, over a week of checks.
+const rateOf: (data: {
+  points: Traffic;
+  read: Read;
+  direction?: Direction;
+}) => { perDay: number; firing: number } = (data: {
+  points: Traffic;
+  read: Read;
+  direction?: Direction;
+}): { perDay: number; firing: number } => {
+  const reading: Read = remembering(data.read);
+  const verdicts: Array<boolean> = minutesToCheck({ days: 7 }).map(
+    (now: number): boolean => {
+      return fires({
+        traffic: data.points,
+        now,
+        read: reading,
+        ...(data.direction ? { direction: data.direction } : {}),
+      });
+    },
+  );
+
+  return { perDay: alertsAmong(verdicts) / 7, firing: shareOf(verdicts) };
+};
+
+// The mean of a measure over every seed.
+const meanOverSeeds: (measure: (seed: number) => number) => number = (
+  measure: (seed: number) => number,
+): number => {
+  return (
+    SEEDS.reduce((total: number, seed: number): number => {
+      return total + measure(seed);
+    }, 0) / SEEDS.length
+  );
+};
+
+/*
+ * What every check read until the rollup's hours were translated. The number a
+ * check asked for was stored by the next weekday, so its cell and its rows were
+ * that weekday's. A Sunday's number was never stored, and neither the hour's
+ * own rows nor any Monday were ever read.
+ */
+const readNextWeekday: Read = (data: {
+  traffic: Traffic;
+  hourOfWeek: number;
+  judgedDay: number;
+  now: number;
+  sigmaCount: number;
+  windowDays: number;
+}): BaselineBand | null => {
+  const firstDay: number = data.judgedDay - data.windowDays;
+  const hourOfDay: number = data.hourOfWeek % 24;
+  const rows: Array<MetricBaselineDayRow> = [];
+  const cell: Array<HourMoments> = [];
+
+  for (let day: number = firstDay; day <= data.judgedDay; day++) {
+    const start: number = day * MINUTES_PER_DAY + hourOfDay * MINUTES_PER_HOUR;
+    const storedAs: number = hourOfWeekOf(start) - 24;
+
+    if (start < 0 || start > data.now || storedAs < 0) {
+      continue;
+    }
+
+    const moments: HourMoments =
+      start + MINUTES_PER_HOUR <= data.now
+        ? hourMoments(data.traffic, start)
+        : momentsBetween(data.traffic, start, data.now);
+
+    rows.push({
+      day: dayText(day),
+      hourOfWeek: storedAs,
+      sampleCount: moments.count,
+      mean: moments.sum / moments.count,
+      minObserved: moments.low,
+      maxObserved: moments.high,
+    });
+
+    if (storedAs === data.hourOfWeek && day < data.judgedDay) {
+      cell.push(moments);
+    }
+  }
+
+  const earlier: { count: number; mean: number; variance: number } =
+    merge(cell);
+
+  if (earlier.count === 0) {
+    return null;
+  }
+
+  const reading: MetricHourReading = MetricHourBaseline.read({
+    rows,
+    hourOfWeek: data.hourOfWeek,
+    judgedDay: dayText(data.judgedDay),
+    stddev: Math.sqrt(earlier.variance),
+    windowDays: data.windowDays,
+    minSamples: MetricBaselineService.DEFAULT_MIN_SAMPLES,
+  });
+
+  return reading.isReliable
+    ? bandOf({
+        mean: earlier.mean,
+        variance: reading.stddev * reading.stddev,
+        sigmaCount: data.sigmaCount,
+      })
+    : null;
+};
+
+describe("the rollup's hours", () => {
+  const WEEKLY: Shape = {
+    rhythm: 0.4,
+    weekend: true,
+    wobble: 0.03,
+    drift: 0.04,
+    noise: 0.03,
+  };
+
+  const onDay: (day: number) => number = (day: number): number => {
+    return 3 * MINUTES_PER_WEEK + day * MINUTES_PER_DAY;
+  };
+
+  // How many of a day's checks fire, on traffic with nothing wrong with it.
+  const firingOn: (read: Read, day: number) => number = (
+    read: Read,
+    day: number,
+  ): number => {
+    const reading: Read = remembering(read);
+
+    return meanOverSeeds((seed: number): number => {
+      const traffic: Traffic = gaugeOf({ ...WEEKLY, seed });
+      const checks: Array<number> = [];
+
+      for (let minute: number = 0; minute < MINUTES_PER_DAY; minute += 7) {
+        checks.push(onDay(day) + minute);
+      }
+
+      return shareOf(
+        checks.map((now: number): boolean => {
+          return fires({ traffic, now, read: reading });
+        }),
+      );
+    });
+  };
+
+  /*
+   * The last weekday was judged by the first day of the weekend, when a metric
+   * with a weekend is at half of it. Nothing was wrong with those Fridays.
+   */
+  test("a Friday was judged by a Saturday, and fired for most of the day", () => {
+    expect(firingOn(readNextWeekday, 4)).toBeGreaterThan(0.5);
+    expect(firingOn(readNow, 4)).toBeLessThan(0.1);
+  });
+
+  test("so was the first Monday of it: a Sunday's hours were never there", () => {
+    const traffic: Traffic = gaugeOf({ ...WEEKLY, seed: 2718 });
+    const sunday: number = onDay(6) + 9 * MINUTES_PER_HOUR;
+
+    expect(
+      readNextWeekday({
+        traffic,
+        hourOfWeek: hourOfWeekOf(sunday),
+        judgedDay: dayOf(sunday),
+        now: sunday,
+        sigmaCount: 3,
+        windowDays: 14,
+      }),
+    ).toBeNull();
+    expect(
+      readNow({
+        traffic,
+        hourOfWeek: hourOfWeekOf(sunday),
+        judgedDay: dayOf(sunday),
+        now: sunday,
+        sigmaCount: 3,
+        windowDays: 14,
+      }),
+    ).not.toBeNull();
+  });
+
+  test("a metric with a weekend alerts less over a week than it did, and sees Sundays", () => {
+    const week: (read: Read) => number = (read: Read): number => {
+      return meanOverSeeds((seed: number): number => {
+        return rateOf({ points: gaugeOf({ ...WEEKLY, seed }), read }).firing;
+      });
+    };
+
+    expect(week(readNow)).toBeLessThan(0.3 * week(readNextWeekday));
+  });
+});
+
+describe("a monitor on one service of a project", () => {
+  const fleetOf: (data: {
+    shape: Shape;
+    seed: number;
+    bases: Array<number>;
+  }) => { fleet: Traffic; watched: Traffic } = (data: {
+    shape: Shape;
+    seed: number;
+    bases: Array<number>;
+  }): { fleet: Traffic; watched: Traffic } => {
+    const parts: Array<Traffic> = data.bases.map(
+      (base: number, index: number): Traffic => {
+        return gaugeOf({
+          ...data.shape,
+          base,
+          seed: data.seed + 101 * index,
+        });
+      },
+    );
+
+    return {
+      watched: parts[0]!,
+      fleet: trafficOf({
+        series: parts.flatMap((part: Traffic): Array<Float64Array> => {
+          return part.series;
+        }),
+        withinMinute: parts.flatMap((part: Traffic): Array<Float64Array> => {
+          return part.withinMinute;
+        }),
+      }),
+    };
+  };
+
+  const SMALL_AMONG_BIG: Array<number> = [10, 100, 120, 80];
+  const PEERS: Array<number> = [100, 70, 130, 110];
+
+  /*
+   * The spread of a project's cell is mostly the spread between its services,
+   * and a small one's value sits far inside it: doubled or halved, it stays in.
+   */
+  test.each(SHAPES)(
+    "$name: a small service was blind in a project of big ones, and sees now",
+    (scenario: { shape: Shape }) => {
+      const { fleet, watched } = fleetOf({
+        shape: scenario.shape,
+        seed: 2718,
+        bases: SMALL_AMONG_BIG,
+      });
+
+      expect(
+        caughtOf({
+          traffic: fleet,
+          read: readNow,
+          series: [0],
+          query: { series: [0] },
+          minutes: 30,
+          factor: 2,
+          direction: "High",
+        }),
+      ).toBe(0);
+      expect(
+        caughtOf({
+          traffic: watched,
+          read: readNow,
+          minutes: 30,
+          factor: 2,
+          direction: "High",
+        }),
+      ).toBeGreaterThan(0.95);
+    },
+  );
+
+  test.each(SHAPES)(
+    "$name: a service among its peers sees a halving it could not",
+    (scenario: { shape: Shape }) => {
+      const { fleet, watched } = fleetOf({
+        shape: scenario.shape,
+        seed: 3141,
+        bases: PEERS,
+      });
+      const change: { minutes: number; factor: number; direction: Direction } =
+        { minutes: 30, factor: 0.5, direction: "Low" };
+
+      expect(
+        caughtOf({
+          traffic: fleet,
+          read: readNow,
+          series: [0],
+          query: { series: [0] },
+          ...change,
+        }),
+      ).toBeLessThan(0.1);
+      expect(
+        caughtOf({ traffic: watched, read: readNow, ...change }),
+      ).toBeGreaterThan(0.9);
+    },
+  );
+
+  /*
+   * What it costs. A band that no longer holds the other services alerts as
+   * often as a project with one service always did: no more, and not none.
+   */
+  test.each(SHAPES)(
+    "$name alerts as a project of one service does",
+    (scenario: { shape: Shape }) => {
+      const alone: number = meanOverSeeds((seed: number): number => {
+        return alertsOf(gaugeOf({ ...scenario.shape, seed }), readNow) / 7;
+      });
+      const scoped: number = meanOverSeeds((seed: number): number => {
+        const { watched } = fleetOf({
+          shape: scenario.shape,
+          seed,
+          bases: PEERS,
+        });
+
+        return alertsOf(watched, readNow) / 7;
+      });
+
+      expect(scoped).toBeLessThan(5);
+      expect(Math.abs(scoped - alone)).toBeLessThan(2);
+    },
+  );
+});
+
+/*
+ * What the rollup cannot be narrowed to. It knows the service and no attribute,
+ * so a filter on a host is still judged against every host's samples. It stays
+ * quiet, and sees little: this is what that costs, and why the docs say so.
+ */
+describe("a query narrowed by an attribute", () => {
+  const hostsOf: (seed: number) => Array<Traffic> = (
+    seed: number,
+  ): Array<Traffic> => {
+    const random: SeededRandom = seededRandom(seed);
+
+    return new Array<number>(12).fill(0).map((_: number, index: number) => {
+      return gaugeOf({
+        ...FLAT,
+        base: 100 * Math.exp(0.5 * normal(random)),
+        seed: seed + 101 * index,
+      });
+    });
+  };
+
+  const fleetOf: (hosts: Array<Traffic>) => Traffic = (
+    hosts: Array<Traffic>,
+  ): Traffic => {
+    return trafficOf({
+      series: hosts.flatMap((host: Traffic): Array<Float64Array> => {
+        return host.series;
+      }),
+      withinMinute: hosts.flatMap((host: Traffic): Array<Float64Array> => {
+        return host.withinMinute;
+      }),
+    });
+  };
+
+  test("is quiet: a fleet's cell is wide enough for any of its hosts", () => {
+    for (const seed of SEEDS) {
+      const hosts: Array<Traffic> = hostsOf(seed);
+      const read: Read = bandFrom(fleetOf(hosts), readNow);
+
+      for (const host of hosts) {
+        expect(
+          rateOf({
+            points: pointsOf(
+              foldEachMinute(host, (minute: number): number => {
+                return host.sums[minute]! / host.counts[minute]!;
+              }),
+            ),
+            read,
+          }).firing,
+        ).toBeLessThan(0.05);
+      }
+    }
+  });
+
+  test("and sees little: a middling host doubles inside it", () => {
+    const seed: number = 2718;
+    const hosts: Array<Traffic> = hostsOf(seed);
+    const levels: Array<number> = hosts.map((host: Traffic): number => {
+      return host.sums[0]! / host.counts[0]!;
+    });
+    const middle: number = levels.indexOf(
+      [...levels].sort((a: number, b: number): number => {
+        return a - b;
+      })[6]!,
+    );
+
+    expect(
+      caughtOf({
+        traffic: fleetOf(hosts),
+        read: readNow,
+        series: [middle],
+        query: { series: [middle] },
+        minutes: 30,
+        factor: 2,
+        direction: "High",
+      }),
+    ).toBeLessThan(0.2);
+  });
+});
+
+describe("a query's Sum or Count", () => {
+  const FLEETS: Array<{
+    name: string;
+    seriesCount: number;
+    seriesSpread: number;
+  }> = [
+    { name: "one series reporting twice a minute", seriesCount: 1, seriesSpread: 0 },
+    { name: "ten series alike", seriesCount: 10, seriesSpread: 0 },
+    { name: "ten series far apart", seriesCount: 10, seriesSpread: 0.3 },
+  ];
+
+  const sumOf: (traffic: Traffic) => Traffic = (traffic: Traffic): Traffic => {
+    return pointsOf(
+      foldEachMinute(traffic, (minute: number): number => {
+        return traffic.sums[minute]!;
+      }),
+    );
+  };
+
+  describe.each(FLEETS)(
+    "$name",
+    (fleet: { seriesCount: number; seriesSpread: number }) => {
+      const build: (shape: Shape, seed: number) => Traffic = (
+        shape: Shape,
+        seed: number,
+      ): Traffic => {
+        return gaugeOf({ ...shape, ...fleet, seed });
+      };
+
+      test.each(SHAPES)(
+        "$name: a Sum fired on every check against raw samples",
+        (scenario: { shape: Shape }) => {
+          const traffic: Traffic = build(scenario.shape, 2718);
+
+          expect(
+            rateOf({
+              points: sumOf(traffic),
+              read: bandFrom(traffic, readNow),
+            }).firing,
+          ).toBe(1);
+        },
+      );
+
+      test.each(SHAPES)(
+        "$name: read from its own data points it alerts like any metric",
+        (scenario: { shape: Shape }) => {
+          const rate: number = meanOverSeeds((seed: number): number => {
+            return rateOf({
+              points: sumOf(build(scenario.shape, seed)),
+              read: readNow,
+            }).perDay;
+          });
+
+          expect(rate).toBeLessThan(5);
+        },
+      );
+
+      test.each(SHAPES)(
+        "$name: and it catches a doubling and a halving",
+        (scenario: { shape: Shape }) => {
+          const traffic: Traffic = sumOf(build(scenario.shape, 3141));
+
+          expect(
+            caughtOf({
+              traffic,
+              read: readNow,
+              minutes: 30,
+              factor: 2,
+              direction: "High",
+            }),
+          ).toBeGreaterThan(0.95);
+          expect(
+            caughtOf({
+              traffic,
+              read: readNow,
+              minutes: 30,
+              factor: 0.5,
+              direction: "Low",
+            }),
+          ).toBeGreaterThan(0.75);
+        },
+      );
+    },
+  );
+
+  /*
+   * What was tried first. The cell scaled by how many samples a minute holds
+   * needs no other table, and it is only right for series that are alike: their
+   * spread between series is in the cell, and it scales with them. Scaled by
+   * the root of that instead, as chance would, a fleet that moves together
+   * floods.
+   */
+  describe("the samples' cell, scaled", () => {
+    const readScaled: (data: { cell: Traffic; power: number }) => Read =
+      (data: { cell: Traffic; power: number }): Read => {
+        return (input: Parameters<Read>[0]): BaselineBand | null => {
+          const samples: number =
+            data.cell.samplesPerMinute * data.cell.series.length;
+          const band: BaselineBand | null = readNow({
+            ...input,
+            traffic: data.cell,
+          });
+
+          if (!band) {
+            return null;
+          }
+
+          const middle: number = (band.expectedHigh + band.expectedLow) / 2;
+          const half: number = (band.expectedHigh - band.expectedLow) / 2;
+
+          return {
+            expectedHigh:
+              middle * samples + half * Math.pow(samples, data.power),
+            expectedLow:
+              middle * samples - half * Math.pow(samples, data.power),
+          };
+        };
+      };
+
+    test("by how many there are, it cannot see a doubling of series far apart", () => {
+      const cell: Traffic = gaugeOf({
+        ...DAILY,
+        seed: 2718,
+        seriesCount: 10,
+        seriesSpread: 0.3,
+      });
+      const sum: Traffic = sumOf(cell);
+      const fresh: {
+        traffic: Traffic;
+        minutes: number;
+        factor: number;
+        direction: Direction;
+      } = { traffic: sum, minutes: 3, factor: 1.3, direction: "High" };
+
+      expect(
+        caughtOf({
+          ...fresh,
+          read: readScaled({ cell, power: 1 }),
+        }),
+      ).toBe(0);
+      expect(caughtOf({ ...fresh, read: readNow })).toBeGreaterThan(0.5);
+    });
+
+    test("by its root, ten series that move together flood", () => {
+      const cell: Traffic = gaugeOf({ ...DAILY, seed: 2718, seriesCount: 10 });
+
+      expect(
+        rateOf({
+          points: sumOf(cell),
+          read: readScaled({ cell, power: 0.5 }),
+        }).firing,
+      ).toBeGreaterThan(0.4);
+    });
+  });
+
+  /*
+   * A Count is how many samples a minute holds: flat on a steady fleet, and
+   * nothing to do with the values in the cell.
+   */
+  describe("a Count", () => {
+    const countOf: (traffic: Traffic) => Traffic = (
+      traffic: Traffic,
+    ): Traffic => {
+      return pointsOf(
+        foldEachMinute(traffic, (minute: number): number => {
+          return traffic.counts[minute]!;
+        }),
+      );
+    };
+
+    test.each(SHAPES)(
+      "$name fired on every check against raw samples",
+      (scenario: { shape: Shape }) => {
+        const traffic: Traffic = gaugeOf({
+          ...scenario.shape,
+          seed: 2718,
+          seriesCount: 10,
+        });
+
+        expect(
+          rateOf({
+            points: countOf(traffic),
+            read: bandFrom(traffic, readNow),
+          }).firing,
+        ).toBeGreaterThan(0.9);
+      },
+    );
+
+    test("a steady fleet's is flat, and is left alone", () => {
+      const points: Traffic = countOf(
+        gaugeOf({ ...FLAT, seed: 2718, seriesCount: 10 }),
+      );
+
+      expect(rateOf({ points, read: readNow }).firing).toBe(0);
+    });
+
+    test("and fires when a series goes away", () => {
+      const points: Traffic = countOf(
+        gaugeOf({ ...FLAT, seed: 2718, seriesCount: 10 }),
+      );
+
+      expect(
+        caughtOf({
+          traffic: points,
+          read: readNow,
+          minutes: 3,
+          factor: 0.9,
+          direction: "Low",
+        }),
+      ).toBeGreaterThan(0.95);
+    });
+  });
+});
+
+/*
+ * A histogram's datapoint holds `count` observations and their sum. The cell
+ * folds the sums, and a query's average is sum(sum) / sum(count).
+ */
+describe("a histogram", () => {
+  interface Histogram {
+    // The cell: each datapoint's sum.
+    sums: Traffic;
+    average: Traffic;
+    observations: Traffic;
+  }
+
+  const histogramOf: (data: {
+    shape: Shape;
+    seed: number;
+    seriesCount?: number;
+    latencySpread?: number;
+  }) => Histogram = (data: {
+    shape: Shape;
+    seed: number;
+    seriesCount?: number;
+    latencySpread?: number;
+  }): Histogram => {
+    const seriesCount: number = data.seriesCount ?? 1;
+    const latency: Traffic = gaugeOf({
+      ...data.shape,
+      seed: data.seed,
+      base: 250,
+      seriesCount,
+      seriesSpread: data.latencySpread ?? 0,
+    });
+    const rate: Traffic = gaugeOf({
+      rhythm: 0.4,
+      weekend: true,
+      wobble: 0.03,
+      drift: 0.05,
+      noise: 0.02,
+      seed: data.seed + 7,
+      base: 300,
+      seriesCount,
+      seriesSpread: 0.5,
+    });
+    const sums: Array<Float64Array> = latency.series.map(
+      (values: Float64Array, index: number): Float64Array => {
+        return values.map((value: number, minute: number): number => {
+          return value * rate.series[index]![minute]!;
+        });
+      },
+    );
+    const total: (series: Array<Float64Array>, minute: number) => number = (
+      series: Array<Float64Array>,
+      minute: number,
+    ): number => {
+      return series.reduce((sum: number, values: Float64Array): number => {
+        return sum + values[minute]!;
+      }, 0);
+    };
+
+    return {
+      sums: trafficOf({ series: sums, samplesPerMinute: 1 }),
+      average: pointsOf(
+        foldEachMinute(latency, (minute: number): number => {
+          return total(sums, minute) / total(rate.series, minute);
+        }),
+      ),
+      observations: pointsOf(
+        foldEachMinute(rate, (minute: number): number => {
+          return total(rate.series, minute);
+        }),
+      ),
+    };
+  };
+
+  describe("one series", () => {
+    /*
+     * The band sits at a sum of hundreds of observations, far above any one of
+     * them, and its spread is the traffic's.
+     */
+    test.each(SHAPES)(
+      "$name: Anomalous fired on nearly every check, and Anomalously High on none",
+      (scenario: { shape: Shape }) => {
+        const histogram: Histogram = histogramOf({
+          shape: scenario.shape,
+          seed: 2718,
+        });
+        const read: Read = bandFrom(histogram.sums, readNow);
+
+        expect(
+          rateOf({ points: histogram.average, read }).firing,
+        ).toBeGreaterThan(0.9);
+        expect(
+          caughtOf({
+            traffic: histogram.average,
+            read,
+            minutes: 30,
+            factor: 2,
+            direction: "High",
+          }),
+        ).toBe(0);
+      },
+    );
+
+    test("so did its Count", () => {
+      const histogram: Histogram = histogramOf({ shape: FLAT, seed: 2718 });
+
+      expect(
+        rateOf({
+          points: histogram.observations,
+          read: bandFrom(histogram.sums, readNow),
+        }).firing,
+      ).toBeGreaterThan(0.9);
+    });
+  });
+
+  describe("routes far apart", () => {
+    const routes: { seriesCount: number; latencySpread: number } = {
+      seriesCount: 6,
+      latencySpread: 0.6,
+    };
+
+    /*
+     * The cell of sums, or of each datapoint's mean, is mostly the spread
+     * between routes. So the one thing a rollup could be changed to fold does
+     * not help here, and the average of a service is not its routes' average.
+     */
+    test.each(SHAPES)(
+      "$name: nothing moved it out of the cell",
+      (scenario: { shape: Shape }) => {
+        const histogram: Histogram = histogramOf({
+          shape: scenario.shape,
+          seed: 2718,
+          ...routes,
+        });
+
+        expect(
+          caughtOf({
+            traffic: histogram.average,
+            read: bandFrom(histogram.sums, readNow),
+            minutes: 30,
+            factor: 2,
+            direction: "High",
+          }),
+        ).toBe(0);
+      },
+    );
+  });
+
+  describe.each([
+    { name: "one series", seriesCount: 1, latencySpread: 0 },
+    { name: "routes far apart", seriesCount: 6, latencySpread: 0.6 },
+  ])(
+    "read from its own data points, $name",
+    (fleet: { seriesCount: number; latencySpread: number }) => {
+      test.each(SHAPES)(
+        "$name alerts like any metric",
+        (scenario: { shape: Shape }) => {
+          const rate: number = meanOverSeeds((seed: number): number => {
+            return rateOf({
+              points: histogramOf({ shape: scenario.shape, seed, ...fleet })
+                .average,
+              read: readNow,
+            }).perDay;
+          });
+
+          expect(rate).toBeLessThan(6);
+        },
+      );
+
+      test.each(SHAPES)(
+        "$name catches its latency doubling, and halving",
+        (scenario: { shape: Shape }) => {
+          const { average } = histogramOf({
+            shape: scenario.shape,
+            seed: 3141,
+            ...fleet,
+          });
+
+          expect(
+            caughtOf({
+              traffic: average,
+              read: readNow,
+              minutes: 30,
+              factor: 2,
+              direction: "High",
+            }),
+          ).toBeGreaterThan(0.95);
+          expect(
+            caughtOf({
+              traffic: average,
+              read: readNow,
+              minutes: 30,
+              factor: 0.5,
+              direction: "Low",
+            }),
+          ).toBeGreaterThan(0.75);
+        },
+      );
+
+      test("its Count alerts like any metric, and sees traffic halve", () => {
+        const { observations } = histogramOf({
+          shape: FLAT,
+          seed: 3141,
+          ...fleet,
+        });
+
+        expect(
+          rateOf({ points: observations, read: readNow }).perDay,
+        ).toBeLessThan(5);
+        expect(
+          caughtOf({
+            traffic: observations,
+            read: readNow,
+            minutes: 30,
+            factor: 0.5,
+            direction: "Low",
+          }),
+        ).toBeGreaterThan(0.75);
+      });
+    },
+  );
+});
 
 describe("the blind spot", () => {
   /*

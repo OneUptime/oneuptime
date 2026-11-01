@@ -1,4 +1,5 @@
 import { MetricService } from "../../../Server/Services/MetricService";
+import { getDistributionAwareAggregationExpression } from "../../../Server/Utils/AnalyticsDatabase/DistributionAggregation";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 
@@ -38,8 +39,8 @@ export function isPresent(value: number | null | undefined): value is number {
 
 /*
  * How the metric engine folds one bucket of rows for a scalar aggregation:
- * a port of MetricService.getDistributionAwareAggregationExpression, which
- * every template query compiles to (its attribute filter keeps it off the
+ * a port of getDistributionAwareAggregationExpression, which every template
+ * query compiles to (its attribute filter keeps it off the
  * rollups).
  */
 export function engineFold(
@@ -143,12 +144,5 @@ export const METRIC_ENGINE: MetricService = new MetricService();
 export function engineExpression(
   aggregationType: MetricsAggregationType,
 ): string {
-  return (
-    METRIC_ENGINE as unknown as {
-      getDistributionAwareAggregationExpression: (
-        aggregationType: AggregationType,
-        column: string,
-      ) => string;
-    }
-  ).getDistributionAwareAggregationExpression(aggregationType, "value");
+  return getDistributionAwareAggregationExpression(aggregationType, "value");
 }
