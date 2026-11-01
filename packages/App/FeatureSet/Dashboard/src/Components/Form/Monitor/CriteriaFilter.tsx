@@ -48,6 +48,7 @@ import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { getNoDataPolicyMoreFieldsItems } from "./MonitorMoreFields";
+import { TelemetryRuleCopy } from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleText";
 import FieldLabelElement from "Common/UI/Components/Detail/FieldLabel";
 import Dropdown, {
   ComponentProps as DropdownProps,
@@ -1444,6 +1445,7 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
         {(criteriaFilter?.checkOn === CheckOn.MetricValue ||
           criteriaFilter?.checkOn === CheckOn.SpanCount ||
           criteriaFilter?.checkOn === CheckOn.LogCount ||
+          criteriaFilter?.checkOn === CheckOn.ExceptionCount ||
           criteriaFilter?.checkOn ===
             CheckOn.SnmpInterfaceUtilizationPercent) &&
           CriteriaFilterUtil.isAnomalyFilterType(
@@ -1558,7 +1560,9 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
               </div>
               <p className="mt-2 text-xs text-gray-500">
                 {translator.translateText(
-                  'Anomaly detection requires at least the chosen window of telemetry history before firing — until then the rule sits in "Learning" state and produces no alerts.',
+                  criteriaFilter?.checkOn === CheckOn.ExceptionCount
+                    ? TelemetryRuleCopy.exceptionAnomalyHint
+                    : 'Anomaly detection requires at least the chosen window of telemetry history before firing — until then the rule sits in "Learning" state and produces no alerts.',
                 )}
               </p>
             </div>

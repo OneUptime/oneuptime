@@ -351,7 +351,11 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
                   }),
                   translator,
                 })
-              : translator.translateText(TelemetryRuleCopy.anomalyHint)}
+              : translator.translateText(
+                  props.monitorType === MonitorType.Exceptions
+                    ? TelemetryRuleCopy.exceptionAnomalyHint
+                    : TelemetryRuleCopy.anomalyHint,
+                )}
           </span>
         </div>
         {summary.hasData ? (

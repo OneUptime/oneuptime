@@ -38,6 +38,7 @@ import {
   getGeneratedTitle,
   getLegacyRuleNames,
   getLegacyTitles,
+  getMeasureChange,
   getRuleKind,
   opensAlert,
   opensIncident,
@@ -50,6 +51,7 @@ import {
   TelemetryRuleSeeds,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
 import {
+  CheckOn,
   EvaluateOverTimeType,
   FilterType,
 } from "../../../Types/Monitor/CriteriaFilter";
@@ -279,9 +281,17 @@ describe("the conditions a rule offers", () => {
     ).toEqual(labels(getComparisonChoices({ monitorType: MonitorType.Logs })));
   });
 
-  test("exceptions have no baseline, so no 'unusually'", () => {
+  test("the exception count has a baseline; a measure without one has no 'unusually'", () => {
     expect(
       labels(getComparisonChoices({ monitorType: MonitorType.Exceptions })),
+    ).toEqual(labels(getComparisonChoices({ monitorType: MonitorType.Logs })));
+    expect(
+      labels(
+        getComparisonChoices({
+          monitorType: MonitorType.Exceptions,
+          measure: CheckOn.NewExceptionCount,
+        }),
+      ),
     ).toEqual(["More than", "At least", "Fewer than", "At most", "Exactly"]);
   });
 
@@ -1100,6 +1110,108 @@ describe("a rule's name and titles follow an edit while OneUptime wrote them", (
 
     expect(edited.name).toBe("Checkout errors (page Dana)");
     expect(edited.alert?.title).toBe("Checkout is throwing");
+  });
+
+  test("an unusual rule is a kind of its own: a percent or a number is another", () => {
+    expect(
+      getRuleKind({
+        monitorType: MonitorType.Exceptions,
+        rule: { filterType: FilterType.AnomalouslyHigh, threshold: undefined },
+      }),
+    ).toBe(FilterType.AnomalouslyHigh);
+  });
+
+  test("the spike pick's title is the pick's, and follows when the rule stops being one", () => {
+    const spike: TelemetryAlertRule = buildRecipeRule({
+      recipe: getRecipe(TelemetryRuleRecipeKey.ExceptionRise)!,
+      seeds: SEEDS,
+      translator: ENGLISH,
+    });
+
+    expect(spike.alert?.title).toBe("Checkout: exceptions spiked");
+    expect(
+      getGeneratedTitle({
+        monitorType: MonitorType.Exceptions,
+        rule: spike,
+        monitorName: "Checkout",
+        translator: ENGLISH,
+      }),
+    ).toBe("Checkout: exceptions spiked");
+
+    // A new window is still a spike rule, and keeps its title.
+    expect(
+      applyConditionChange({
+        monitorType: MonitorType.Exceptions,
+        previous: spike,
+        next: { ...spike, windowInSeconds: 300 },
+        monitorName: "Checkout",
+        translator: ENGLISH,
+      }).alert?.title,
+    ).toBe("Checkout: exceptions spiked");
+
+    // A number is another kind of rule.
+    expect(
+      applyConditionChange({
+        monitorType: MonitorType.Exceptions,
+        previous: spike,
+        next: { ...spike, filterType: FilterType.GreaterThan, threshold: 20 },
+        monitorName: "Checkout",
+        translator: ENGLISH,
+      }).alert?.title,
+    ).not.toBe("Checkout: exceptions spiked");
+  });
+
+  describe("what a rule's measure takes with it", () => {
+    const unusual: Pick<TelemetryAlertRule, "filterType"> = {
+      filterType: FilterType.AnomalouslyHigh,
+    };
+    const above: Pick<TelemetryAlertRule, "filterType"> = {
+      filterType: FilterType.GreaterThan,
+    };
+
+    test("an unusual rule moved to new or regressed exceptions starts on any", () => {
+      for (const measure of [
+        CheckOn.NewExceptionCount,
+        CheckOn.RegressedExceptionCount,
+      ]) {
+        expect(getMeasureChange({ rule: unusual, measure })).toEqual({
+          measure,
+          filterType: FilterType.GreaterThan,
+          threshold: 0,
+        });
+      }
+    });
+
+    test("an unusual rule moved to the rise over the usual starts on its 200%", () => {
+      expect(
+        getMeasureChange({
+          rule: unusual,
+          measure: CheckOn.ExceptionCountIncreasePercent,
+        }),
+      ).toEqual({
+        measure: CheckOn.ExceptionCountIncreasePercent,
+        filterType: FilterType.GreaterThan,
+        threshold: 200,
+      });
+    });
+
+    test("an unusual rule on the count stays unusual, with no measure of its own", () => {
+      expect(
+        getMeasureChange({ rule: unusual, measure: CheckOn.ExceptionCount }),
+      ).toEqual({ measure: undefined });
+    });
+
+    test("a rule with a number keeps it, whatever it moves to", () => {
+      expect(
+        getMeasureChange({
+          rule: above,
+          measure: CheckOn.NewExceptionCount,
+        }),
+      ).toEqual({ measure: CheckOn.NewExceptionCount });
+      expect(
+        getMeasureChange({ rule: above, measure: CheckOn.ExceptionCount }),
+      ).toEqual({ measure: undefined });
+    });
   });
 
   test("a rule's kind is what it is about, whatever its number", () => {

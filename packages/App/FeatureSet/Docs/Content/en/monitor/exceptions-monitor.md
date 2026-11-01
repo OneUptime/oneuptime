@@ -41,7 +41,7 @@ Under **Monitor Type**, click **More monitor types** and pick **Exceptions** und
 
 ### Pick what the monitor tells you about
 
-Under **What should this monitor tell you about?**, pick **Any exception** or **Too many exceptions**. Each fills in the rule, which you can change below. Pick **Something else** to set it up yourself. **A new exception**, **A resolved exception comes back** and **Exceptions spike** alert on an exception seen for the first time, on one that came back after you resolved it, and on a rise to well above the usual.
+Under **What should this monitor tell you about?**, pick **Any exception** or **Too many exceptions**. Each fills in the rule, which you can change below. Pick **Something else** to set it up yourself. **A new exception**, **A resolved exception comes back** and **Exceptions spike** alert on an exception seen for the first time, on one that came back after you resolved it, and on a rise to well above what is normal for that hour of the week.
 
 ### Choose the exceptions to count
 
@@ -53,7 +53,7 @@ Open **More fields** to filter by telemetry service or infrastructure entity, or
 
 ### Say when to alert
 
-In **When to alert**, pick a **Condition**, the **Number of exceptions** and a **Time window**. The sentence under them says the rule back in plain words. The chart under it counts the matching exceptions in each window over the last hours, draws the rule's number as a line, and says how often the rule would have alerted. Its button offers a number the rule would not have passed in that time. **Alert on** picks what the rule compares: **Exceptions**, **New exceptions**, **Exceptions that came back** or **A rise over the usual**. The chart is drawn for **Exceptions** only.
+In **When to alert**, pick a **Condition**, the **Number of exceptions** and a **Time window**. The sentence under them says the rule back in plain words. The chart under it counts the matching exceptions in each window over the last hours, draws the rule's number as a line, and says how often the rule would have alerted. Its button offers a number the rule would not have passed in that time. **Alert on** picks what the rule compares: **Exceptions**, **New exceptions**, **Exceptions that came back** or **A rise over the usual**. The chart is drawn for **Exceptions** only. With **Unusually high**, as **Exceptions spike** sets up, there is no number to enter: pick a **Sensitivity** instead.
 
 ### Choose what happens
 
@@ -116,7 +116,7 @@ Each status change, with the reason for it, is recorded on the monitor's **Statu
 
 ## Criteria
 
-An Exceptions monitor's criteria have four kinds of **Filter Type**: **Exception Count**, the number of exceptions that matched in the window, and **New Exceptions**, **Regressed Exceptions** and **Exception Increase (in %)**, described below. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most** or **Exactly**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and a **Value**.
+An Exceptions monitor's criteria have four kinds of **Filter Type**: **Exception Count**, the number of exceptions that matched in the window, and **New Exceptions**, **Regressed Exceptions** and **Exception Increase (in %)**, described below. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and a **Value**.
 
 | Filter Condition | Matches when the exception count is… |
 | --- | --- |
@@ -126,8 +126,11 @@ An Exceptions monitor's criteria have four kinds of **Filter Type**: **Exception
 | **Less Than Or Equal To** | the value or below |
 | **Equal To** | exactly the value |
 | **Not Equal To** | anything but the value |
+| **Anomalously High** | above the range expected for this hour of the week |
+| **Anomalously Low** | below that range |
+| **Anomalous** | outside that range, either way |
 
-Exception counts have no anomaly conditions: there is no baseline to compare them with.
+The anomaly conditions take no **Value**. Pick a **Sensitivity** — Low, Medium (the default) or High — and, in the custom criteria, a **Baseline Window** of 14 (the default), 28, 60 or 90 days. Only **Exception Count** has them: see [Spikes against what is normal](#spikes-against-what-is-normal).
 
 An Exceptions monitor made in Create Monitor starts on the rule of what you picked under **What should this monitor tell you about?**:
 
@@ -137,7 +140,7 @@ An Exceptions monitor made in Create Monitor starts on the rule of what you pick
 | **Too many exceptions** | **More than** `20` in **Last 5 minutes** | Creates an alert, which resolves itself |
 | **A new exception** | **New exceptions**: **More than** `0` in **Last 10 minutes** | Creates an alert, which resolves itself |
 | **A resolved exception comes back** | **Exceptions that came back**: **More than** `0` in **Last 10 minutes** | Creates an alert, which resolves itself |
-| **Exceptions spike** | **A rise over the usual**: **More than** `200` in **Last 15 minutes** | Creates an alert, which resolves itself |
+| **Exceptions spike** | **Unusually high** in **Last 15 minutes** | Creates an alert, which resolves itself |
 
 An Exceptions monitor created through the API or Terraform without criteria starts with these criteria:
 
@@ -157,6 +160,22 @@ Besides how many exceptions happened, an Exceptions monitor can alert on what an
 | **Exception Increase (in %)** | How far the number of matching exceptions is above the usual one: the day before the window, per window of its length, taken as at least one. Ten exceptions after a quiet day read 900%. |
 
 New and regressed exceptions are matched by service, exception type, environment and message, and by the infrastructure entity filter too: an exception counts when one of its occurrences in the window came from one of the chosen entities.
+
+## Spikes against what is normal
+
+**Exceptions spike** compares the window with the same hours of the weeks before, not with a fixed number. A Monday-morning peak is normal on a Monday morning, the same count at 3am on a Sunday is not, and a slow climb over several days shows as soon as it leaves last week's range.
+
+| Setting | What it does | Default |
+| --- | --- | --- |
+| **Sensitivity** | How far outside the usual range a window must be: 4 standard deviations at Low, 3 at Medium, 2 at High. | Medium |
+| **Baseline Window** (under **More fields**) | How much history to learn from: 14, 28, 60 or 90 days. | 14 days |
+| **Standard deviations** (under **More fields**) | A number of your own in place of what **Sensitivity** sets. | Empty |
+| **Minimum exceptions** (under **More fields**) | The fewest exceptions in a window that can alert: 20 at Low, 10 at Medium, 5 at High. | Empty |
+
+- **It uses your filters.** History is read with the monitor's own filters, so a monitor on one exception type is compared with that type's history, and resolved and archived exceptions are left out of both.
+- **Quiet time counts.** A window with no exceptions is part of what is normal, so a quiet service's range stays small. Its first few exceptions do not alert, because of **Minimum exceptions**, and a real burst does.
+- **A new service waits.** Until a service has two weeks of history, the criteria is still learning and does not fire, however many exceptions it throws. History only reaches as far back as OneUptime keeps exceptions: 15 days unless you changed it, and a service kept for less than two weeks never has enough.
+- **The alert says why.** It names the range expected and how far outside it the window was. Every check writes the same on the **Status Timeline**, or that it is still learning.
 
 ## Worked example: production exceptions only
 
@@ -183,6 +202,10 @@ That is expected. Resolved exceptions are not counted, so the count dropped and 
 
 :::details An exception type filter matches nothing
 **Exception Types** are matched exactly, against the type name the exception was reported with, such as `TypeError`. Copy the type from the Exceptions explorer.
+:::
+
+:::details An Exceptions spike rule never alerts
+Check the **Status Timeline**: it says the range expected, the count it takes to alert, or that the rule is still learning. A service needs two weeks of history, so a retention under two weeks keeps it learning. If the count stays under **Minimum exceptions**, lower it under **More fields**, or pick a higher **Sensitivity**.
 :::
 
 ## Next steps

@@ -35,6 +35,8 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
       method: Zod.string().optional(),
       windowDays: Zod.number().optional(),
       minSamples: Zod.number().optional(),
+      sigmaCount: Zod.number().optional(),
+      minimumCount: Zod.number().optional(),
     }).optional(),
   }).optional(),
   snmpMonitorOptions: Zod.object({
