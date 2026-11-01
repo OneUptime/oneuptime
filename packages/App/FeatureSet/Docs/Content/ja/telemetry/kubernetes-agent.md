@@ -5,6 +5,7 @@ OneUptime の Kubernetes エージェントは Helm チャートで、クラス�
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): Helm で 4 ステップ。
 - [Amazon EKS アドオンとしてインストールする](#amazon-eks-アドオンとしてインストールする): EKS コンソールから、Helm なしで。
+- [OpenShift](#openshift): プリセット、プリセットが作成する Security Context Constraints、OpenShift 自身のアラート。
 - [設定オプション](#設定オプション): フィルター、サンプリング、コントロールプレーン、サービスメッシュ、コスト、ラベル。
 - [Kubernetes AI エージェント](#kubernetes-ai-エージェント): OneUptime AI 用の読み取り専用の `kubectl` と、許可した場合の修正。
 - [送信量を減らす](#収集するデータ量を減らす): 効果の大きい順に並べた調整手段。
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,25 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `standard` (既定) | セルフマネージドのクラスター、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | ノード Collector が `hostPath` 経由で `/var/log/pods` を読む (オーバーヘッドが最小) | kubelet、cAdvisor、ノードの OS メトリクス |
 | `gke-autopilot` | **GKE Autopilot** | ログテーラーが Kubernetes API 経由で読む (`hostPath` なし、ホストへのアクセスなし) | kubelet と cAdvisor (`hostPath` なし) |
 | `eks-fargate` | **EKS Fargate** | ログテーラーが Kubernetes API 経由で読む (`hostPath` なし、ホストへのアクセスなし) | なし: Fargate は DaemonSet を実行しない |
+| `openshift` | **OpenShift**: OpenShift Container Platform、ROSA、ARO、OKD | ノード Collector が、チャートが作成する Security Context Constraints のもとで `hostPath` 経由で `/var/log/pods` を読む | kubelet、cAdvisor、ノードの OS メトリクス |
 
-迷ったら `standard` から始めてください。インストールが `hostPath` を挙げた Pod Security エラーで失敗する場合は、`preset=gke-autopilot` (Fargate では `eks-fargate`) で再インストールします。GKE Autopilot と EKS Fargate は、eBPF とプロファイラーが必要とする特権 Pod も拒否するため、この 2 つのプリセットではどちらも除外されます。
+迷ったら `standard` から始めてください。インストールが `hostPath` を挙げた Pod Security エラーで失敗する場合は、`preset=gke-autopilot` (Fargate では `eks-fargate`) で再インストールします。GKE Autopilot と EKS Fargate は、eBPF とプロファイラーが必要とする特権 Pod も拒否するため、この 2 つのプリセットではどちらも除外されます。OpenShift では `openshift` を使います。[OpenShift](#openshift) を参照してください。
+
+## OpenShift
+
+上の **OpenShift** タブのとおり、`--set preset=openshift` を付けてインストールします。OpenShift は、Pod のサービスアカウントが使用を許可されている Security Context Constraints (SCC) のもとでしか Pod を受け入れません。管理者が追加で許可しない限り、適用されるのは `restricted-v2` (OpenShift 4.11 以降) で、`hostPath` ボリュームも特権コンテナも使えず、ユーザー ID は namespace 独自の範囲から割り当てられます。そのため、このプリセットは次のことを行います:
+
+- SCC を 2 つ作成します。それぞれを使えるのは、その Pod 自身のサービスアカウントだけです:
+  - ノード Collector 用: 読み取り専用の `hostPath` マウント、SELinux タイプ `spc_t` での root 実行、非特権、すべての capability を削除。
+  - eBPF インストルメンテーションとプロファイラー用: 特権、ホストの PID namespace で実行。どちらかが有効な間だけ作成されます。
+- それ以外のすべての Pod のユーザー ID は OpenShift に選ばせます。それらの Pod は `restricted-v2` のもとで実行されます。
+- エージェントのテレメトリに `oneuptime.kubernetes.distribution=openshift` を付けるため、クラスターの **プラットフォーム** は **OpenShift** と表示されます。クラスターがクラウド上で動いている場合は、そのクラウド (`cloud.provider`、`cloud.platform`) も付けます。
+
+SCC の作成には cluster-admin 権限が必要です。プリセットなしでもリリースはインストールされますが、OpenShift はエージェントのノード Collector と eBPF の Pod を起動せず、インストール後に Helm が表示するノートでもそのことが示されます。
+
+**OpenShift 自身のアラート**。OpenShift には Prometheus と Alertmanager が付属しており、Operator、etcd、ノードに関するアラートが用意されています。それぞれについて OneUptime でインシデントを作成するには、Web コンソールの **Administration → Cluster Settings → Configuration → Alertmanager** で OneUptime 用の Webhook レシーバーを追加します。手順は [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) を参照してください。
+
+**コードからのトレース**。eBPF インストルメンテーションは、コードを変更せずに HTTP、gRPC、SQL をトレースします。OpenTelemetry SDK や Red Hat build of OpenTelemetry からトレースを送信するには、それらの OTLP エクスポーターの送信先を OneUptime にします。手順は [OpenTelemetry](/docs/telemetry/open-telemetry) を参照してください。
 
 ## 収集されるもの
 

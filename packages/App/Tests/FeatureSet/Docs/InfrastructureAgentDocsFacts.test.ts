@@ -957,6 +957,7 @@ describe("the Kubernetes agent page, against the setup guide and the chart", () 
       ["standard", ""],
       ["gke-autopilot", "--set preset=gke-autopilot"],
       ["eks-fargate", "--set preset=eks-fargate"],
+      ["openshift", "--set preset=openshift"],
     ];
     const installs: Array<string> = codesOf(KUBERNETES_PAGE).filter(
       (code: string): boolean => {
