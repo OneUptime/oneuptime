@@ -6,7 +6,11 @@ import {
   CardMenuExtrasContext,
   useCardMenuExtrasState,
 } from "./CardMenuExtras";
-import { useCardPlaceFromTitle, useIsCardSection } from "./CardSurface";
+import {
+  useCardPlaceFromTitle,
+  useIsCardSection,
+  useIsCardSectionOnPhones,
+} from "./CardSurface";
 import IconProp from "../../../Types/Icon/IconProp";
 import {
   PAGE_ANCHOR_SCROLL_MARGIN_TOP,
@@ -468,6 +472,30 @@ export const CARD_PADDING_CLASS_NAME: string = "py-6 px-5 md:px-6";
 export const CARD_HEADERLESS_PADDING_CLASS_NAME: string = "pb-6 px-5 md:px-6";
 
 /*
+ * A card drawn in CardSectionsOnPhones: on a phone one section of the card
+ * or dialog it is in, and from sm up the card above, class for class.
+ *
+ * On a phone it has no frame but a rule above it, no side padding (the card
+ * or dialog around it pads it) and no gap under it: what holds the cards
+ * spaces them (MonitorStep's space-y-6), so the rule sits 24px under what
+ * is above it, and the card's title 24px under the rule. Its ground is
+ * white at every width, as the card it is in is: a light colour given from
+ * sm up only (sm:bg-white) would have no dark theme - Theme.css remaps
+ * bg-white itself.
+ */
+export const CARD_SECTION_ON_PHONES_FRAME_CLASS_NAME: string =
+  "bg-white border-t border-gray-200 overflow-visible sm:border sm:rounded-xl sm:shadow-sm";
+
+export const CARD_SECTION_ON_PHONES_PADDING_CLASS_NAME: string =
+  "pt-6 sm:pb-6 sm:px-5 md:px-6";
+
+export const CARD_SECTION_ON_PHONES_HEADERLESS_PADDING_CLASS_NAME: string =
+  "sm:pb-6 sm:px-5 md:px-6";
+
+// The gap a card leaves under itself (mb-5), from sm up only.
+export const CARD_SECTION_ON_PHONES_GAP_CLASS_NAME: string = "sm:mb-5";
+
+/*
  * What fillHeight adds, exported so the tests read the same strings: the
  * card and its frame take the box's height, the frame and the padding are
  * columns, and the body grows into what the header leaves.
@@ -529,12 +557,26 @@ export const CARD_TITLE_CLASS_NAME: string =
 export const CARD_SECTION_TITLE_CLASS_NAME: string =
   "text-base font-semibold leading-6 text-gray-900 text-balance break-words";
 
+/*
+ * A section's title on a phone, a card's from sm up (CardSectionsOnPhones).
+ * sm:text-lg brings its own line height (28px), which would win over
+ * leading-6 from sm up: sm:leading-6 keeps the card's 24px.
+ */
+export const CARD_SECTION_ON_PHONES_TITLE_CLASS_NAME: string = `${CARD_SECTION_TITLE_CLASS_NAME} sm:text-lg sm:leading-6`;
+
 const Card: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
   const isSection: boolean = useIsCardSection();
   const isGridCell: boolean = useIsCardGridCell();
+  /*
+   * In CardSectionsOnPhones: a section of the card or dialog it is in on a
+   * phone, a card from sm up - unless it fills a box (fillHeight, a
+   * CardGrid cell), where it keeps the frame of the cards beside it.
+   */
+  const isSectionOnPhones: boolean =
+    useIsCardSectionOnPhones() && !(props.fillHeight ?? isGridCell);
   /*
    * The options what the card holds adds to its ⋯ (CardMenuExtras): a
    * table's Reset column widths. A section of a card is part of the card it
@@ -622,7 +664,11 @@ const Card: FunctionComponent<ComponentProps> = (
         data-testid="card-details-heading"
         id="card-details-heading"
         className={
-          isSection ? CARD_SECTION_TITLE_CLASS_NAME : CARD_TITLE_CLASS_NAME
+          isSection
+            ? CARD_SECTION_TITLE_CLASS_NAME
+            : isSectionOnPhones
+              ? CARD_SECTION_ON_PHONES_TITLE_CLASS_NAME
+              : CARD_TITLE_CLASS_NAME
         }
       >
         {translatedTitle}
@@ -906,8 +952,12 @@ const Card: FunctionComponent<ComponentProps> = (
     : props.bodyClassName ||
       (isInRow ? CARD_IN_ROW_BODY_OFFSET_CLASS_NAME : "mt-4");
   const paddingClassName: string = isHeaderHidden
-    ? CARD_HEADERLESS_PADDING_CLASS_NAME
-    : CARD_PADDING_CLASS_NAME;
+    ? isSectionOnPhones
+      ? CARD_SECTION_ON_PHONES_HEADERLESS_PADDING_CLASS_NAME
+      : CARD_HEADERLESS_PADDING_CLASS_NAME
+    : isSectionOnPhones
+      ? CARD_SECTION_ON_PHONES_PADDING_CLASS_NAME
+      : CARD_PADDING_CLASS_NAME;
 
   const getFilledClassName: (
     own: string,
@@ -986,7 +1036,9 @@ const Card: FunctionComponent<ComponentProps> = (
     ? [props.className, CARD_IN_ROW_CLASS_NAME].filter(Boolean).join(" ")
     : fillsHeight
       ? [props.className, CARD_FILL_HEIGHT_CLASS_NAME].filter(Boolean).join(" ")
-      : `mb-5 ${props.className || ""}`;
+      : `${
+          isSectionOnPhones ? CARD_SECTION_ON_PHONES_GAP_CLASS_NAME : "mb-5"
+        } ${props.className || ""}`;
 
   return (
     <React.Fragment>
@@ -994,13 +1046,16 @@ const Card: FunctionComponent<ComponentProps> = (
         id={props.id}
         style={getCardAnchorStyle(props.id, false)}
         data-testid="card"
+        data-card-surface={isSectionOnPhones ? "section-on-phones" : undefined}
         data-fill-height={fillsHeight ? "true" : undefined}
         data-in-row={isInRow ? "true" : undefined}
         className={frameBoxClassName}
       >
         <div
           className={getFilledClassName(
-            CARD_FRAME_CLASS_NAME,
+            isSectionOnPhones
+              ? CARD_SECTION_ON_PHONES_FRAME_CLASS_NAME
+              : CARD_FRAME_CLASS_NAME,
             CARD_IN_ROW_FRAME_CLASS_NAME,
             CARD_FILL_HEIGHT_FRAME_CLASS_NAME,
           )}

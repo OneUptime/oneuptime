@@ -411,6 +411,18 @@ html.dark [class~="!border-gray-300"] {
 }
 
 /*
+ * A grey accent bar at the start of a box (border-l-4), important so it
+ * wins over the box's own border colour - a monitor criteria turned off
+ * (CriteriaEditorLayout's CRITERIA_DISABLED_ACCENT_CLASS_NAME). The bar is
+ * drawn at the start of the line (TailwindReadingDirection), so both its
+ * physical and its logical side take the colour.
+ */
+html.dark [class~="!border-l-gray-300"] {
+  border-left-color: var(--ou-border-strong) !important;
+  border-inline-start-color: var(--ou-border-strong) !important;
+}
+
+/*
  * A box's border while it has the focus - a table's opened search - is the
  * strong border the hover rule below draws, not Tailwind's light gray-400.
  */
@@ -525,8 +537,12 @@ html.dark .stroke-gray-500 {
   stroke: var(--ou-chart-series-neutral);
 }
 
-/* Tailwind's light shadows disappear against dark surfaces. */
-html.dark .shadow-sm {
+/*
+ * Tailwind's light shadows disappear against dark surfaces. A shadow given
+ * from sm up only - a card that is a section on a phone
+ * (CARD_SECTION_ON_PHONES_FRAME_CLASS_NAME) - is a token of its own.
+ */
+html.dark :is(.shadow-sm, [class~="sm:shadow-sm"]) {
   --tw-shadow: var(--ou-shadow-sm);
 }
 
