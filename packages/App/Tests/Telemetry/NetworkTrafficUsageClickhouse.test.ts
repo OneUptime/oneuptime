@@ -912,9 +912,9 @@ integration("Meraki traffic reads against ClickHouse", () => {
     expect(Array.from(freshness.uplinkEnds.keys())).toEqual([
       CONNECTION.toString(),
     ]);
-    expect(
-      freshness.uplinkEnds.get(CONNECTION.toString())?.toISOString(),
-    ).toBe("2026-10-24T11:55:00.000Z");
+    expect(freshness.uplinkEnds.get(CONNECTION.toString())?.toISOString()).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
   });
 
   test("the runner's own reads: which windows are stored, and where they end", async () => {
