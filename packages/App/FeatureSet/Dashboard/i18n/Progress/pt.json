@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 13078
+    "keys": 39414,
+    "untranslated": 13052
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -26,6 +26,7 @@
     "Bytes",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "Chat",
     "Chats",
     "Cluster",
     "Clusters",
@@ -114,6 +115,7 @@
     "Pull request {{label}}",
     "Pull requests",
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
+    "Push",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Runbook",

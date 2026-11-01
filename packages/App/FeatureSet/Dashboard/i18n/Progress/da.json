@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 13114
+    "keys": 39414,
+    "untranslated": 13088
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -33,6 +33,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Canada (+1)",
+    "Chat",
     "Chats",
     "Cloud",
     "CloudWatch Metric Streams",
@@ -141,6 +142,7 @@
     "Pull request #{{number}}",
     "Pull request {{label}}",
     "Pull requests",
+    "Push",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Reference",

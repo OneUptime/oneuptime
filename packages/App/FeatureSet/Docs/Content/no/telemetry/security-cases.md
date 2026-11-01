@@ -29,7 +29,7 @@ flowchart TB
     work --> close["Lukket med en konklusjon"]
 ```
 
-Åpne **Produkter → Security Events → Sikkerhetssaker → Åpne saker** for køen. **Tildelt meg**, **Ikke tildelt**, **Lukkede saker** og **Alle saker** er egne sider ved siden av, og hver viser sakene navnet sier.
+Åpne **Produkter → Sikkerhetshendelser → Sikkerhetssaker → Åpne saker** for køen. **Tildelt meg**, **Ikke tildelt**, **Lukkede saker** og **Alle saker** er egne sider ved siden av, og hver viser sakene navnet sier.
 
 ## Før du begynner
 
@@ -142,7 +142,7 @@ En sak som er åpnet fra Google SecOps-varsler, lukker dem også i Google SecOps
 
 ## Saksprioriteter og saksstatuser
 
-Hvert prosjekt har sine egne saksprioriteter og saksstatuser, under **Produkter → Security Events → Innstillinger → Saksprioriteter** og **Saksstatuser**. Gi dem nye navn og farger, dra dem i en annen rekkefølge, og legg til dine egne, for eksempel en status «Triage» eller en prioritet «Nødsituasjon» over **Kritisk**. Et nytt navn vises overalt med én gang: i køen, på sakssidene og oversikten, i varslinger, i Slack og Microsoft Teams og i playbook-meldinger.
+Hvert prosjekt har sine egne saksprioriteter og saksstatuser, under **Produkter → Sikkerhetshendelser → Innstillinger → Saksprioriteter** og **Saksstatuser**. Gi dem nye navn og farger, dra dem i en annen rekkefølge, og legg til dine egne, for eksempel en status «Triage» eller en prioritet «Nødsituasjon» over **Kritisk**. Et nytt navn vises overalt med én gang: i køen, på sakssidene og oversikten, i varslinger, i Slack og Microsoft Teams og i playbook-meldinger.
 
 Noen er innebygde, fordi OneUptime leser hva de betyr. De kan få nytt navn og ny farge, men ikke slettes eller arkiveres, og de beholder rekkefølgen sin:
 
@@ -161,7 +161,7 @@ For å slutte å bruke en egen status eller prioritet bruker du **Arkiver** i ra
 
 ## Responsmål
 
-Et responsmål er hvor raskt en sak må behandles: **Bekreft innen**, hvor lenge en ny sak kan vente på at noen tar den, og **Begrens innen**, hvor lang tid det kan ta før den er begrenset eller lukket. Hver saksprioritet har sine egne, under **Produkter → Security Events → Innstillinger → Responsmål**: med **Rediger** på raden til en prioritet setter du de to målene, i minutter, timer eller dager, opptil ett år, og et tomt mål betyr ingen mål. Prioritetene i et nytt prosjekt starter med disse:
+Et responsmål er hvor raskt en sak må behandles: **Bekreft innen**, hvor lenge en ny sak kan vente på at noen tar den, og **Begrens innen**, hvor lang tid det kan ta før den er begrenset eller lukket. Hver saksprioritet har sine egne, under **Produkter → Sikkerhetshendelser → Innstillinger → Responsmål**: med **Rediger** på raden til en prioritet setter du de to målene, i minutter, timer eller dager, opptil ett år, og et tomt mål betyr ingen mål. Prioritetene i et nytt prosjekt starter med disse:
 
 | Prioritet | Bekreft innen | Begrens innen |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ Det sendes ikke WhatsApp-meldinger for sikkerhetssaker. Et push-varsel åpner sa
 
 ### Legg ut i Slack- og Microsoft Teams-kanaler
 
-For å legge ut i en kanal legger du til en regel under **Produkter → Security Events → Arbeidsområde → Slack** (eller **Microsoft Teams**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til Slack eller Teams**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
+For å legge ut i en kanal legger du til en regel under **Produkter → Sikkerhetshendelser → Arbeidsområde → Slack** (eller **Microsoft Teams**). Er ingen av dem koblet til, er seksjonens eneste oppføring **Koble til Slack eller Teams**. En regel angir kanalene den legger ut i (og i Microsoft Teams chattene) og, om du vil, sakene den gjelder for:
 
 | Betingelse | Treffer på |
 | --- | --- |
@@ -236,7 +236,7 @@ Alle varslinger unntatt en oppgaves legges ut i kanalene til hver regel saken tr
 
 ## Playbooks
 
-En playbook er en liste med steg som kjører på en sak. Opprett en under **Produkter → Security Events → Playbooks**, fra en mal eller fra bunnen av, og legg til stegene på siden dens. Et prosjekt uten playbooks ser malene i stedet for en tom liste; når det finnes playbooks, åpner **Opprett fra mal** ved listen dem, med **Lagt til** ved dem prosjektet allerede har.
+En playbook er en liste med steg som kjører på en sak. Opprett en under **Produkter → Sikkerhetshendelser → Playbooks**, fra en mal eller fra bunnen av, og legg til stegene på siden dens. Et prosjekt uten playbooks ser malene i stedet for en tom liste; når det finnes playbooks, åpner **Opprett fra mal** ved listen dem, med **Lagt til** ved dem prosjektet allerede har.
 
 ### Når en playbook kjører
 
@@ -375,7 +375,7 @@ En e-post eller et innlegg uten egen melding sender en oppsummering av saken.
 
 ### Kjøringer og godkjenninger
 
-Hver kjøring vises på saken sin og under **Produkter → Security Events → Playbooks → Playbook-kjøringer**, steg for steg:
+Hver kjøring vises på saken sin og under **Produkter → Sikkerhetshendelser → Playbooks → Playbook-kjøringer**, steg for steg:
 
 | Kjøringsstatus | Betyr |
 | --- | --- |
@@ -392,7 +392,7 @@ En kjøring som slutter å høre fra workeren sin, for eksempel etter en omstart
 
 ## Oversikten
 
-**Produkter → Security Events → Oversikt** er der produktet åpner:
+**Produkter → Sikkerhetshendelser → Oversikt** er der produktet åpner:
 
 - De åpne sakene som er tildelt deg, de åpne sakene ingen har tatt, og playbook-stegene som venter på godkjenning; hvert tall åpner siden som viser dem.
 - **Gjennomsnittlig tid til kvittering**, **Gjennomsnittlig tid til begrensning** og **Gjennomsnittlig tid til lukking**, over sakene som er åpnet de siste 30 dagene: fra en sak åpnes til noen tar den (tildeler en person eller flytter den til en status som teller som kvittert), til en status som teller som begrenset, og til en som teller som lukket. En sak som fortsatt venter, telles ikke med i et gjennomsnitt.

@@ -60,7 +60,7 @@ Anslutningen signerar sina begäranden med en IAM-åtkomstnyckel. Nyckelns ident
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **AWS Security Hub** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemligheten i **Hemlig åtkomstnyckel**.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **AWS Security Hub** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemligheten i **Hemlig åtkomstnyckel**.
 
 ### Testa den innan du sparar
 

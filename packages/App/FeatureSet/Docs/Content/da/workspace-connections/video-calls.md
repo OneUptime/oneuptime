@@ -117,7 +117,7 @@ Inden for et minut eller to viser hændelsens kort **OneUptime AI** den **Foresl
 
 ### Brug den, eller afvis den
 
-**Brug som grundårsag** åbner forslaget med citater og det hele i grundårsagens editor. Ret det, du har brug for, og gem: Det bliver hændelsens grundårsag som din egen ændring, noteret i dens feed. **Luk** lægger forslaget til side, og **Fortryd** henter det tilbage.
+**Brug som grundårsag** åbner forslaget med citater og det hele i grundårsagens editor. Ret det, du har brug for, og gem: Det bliver hændelsens grundårsag som din egen ændring, noteret i dens feed. **Skjul** lægger forslaget til side, og **Fortryd** henter det tilbage.
 :::
 
 OneUptime AI foreslår kun en årsag, når opkaldet nævner en, med de linjer, der siger det, og citerer de linjer, som transskriptionen har dem. Når opkaldet ikke fik afklaret årsagen, siger kortet **Der blev ikke sagt nok i opkaldet til at foreslå en grundårsag** i stedet for at gætte.

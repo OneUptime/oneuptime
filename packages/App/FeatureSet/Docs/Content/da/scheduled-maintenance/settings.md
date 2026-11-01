@@ -84,7 +84,7 @@ Under **Påmindelser** indstiller du **Påmindelsesinterval (minutter)**, hvor o
 
 API'en og Terraform afviser en regel, der ville vente på, at begivenheden starter, og stoppe, når den starter: Den ville aldrig sende en påmindelse. En ældre regel, der er gemt sådan, er markeret med **Påminder aldrig** i listen, og dens formular beder dig vælge, hvornår der skal sendes påmindelser.
 
-Ejerne får hver påmindelse som **Maintenance reminder**, som er slået til via e-mail for hvert nyt medlem. At gemme, ændre eller slette en påmindelsesregel matcher hver begivenhed, der ikke er fuldført, igen. For at stoppe påmindelserne for én begivenhed slår du **Send påmindelser** fra på dens side **Indstillinger**; den gemmer, så snart du slår den om.
+Ejerne får hver påmindelse som **Påmindelse om vedligeholdelse**, som er slået til via e-mail for hvert nyt medlem. At gemme, ændre eller slette en påmindelsesregel matcher hver begivenhed, der ikke er fuldført, igen. For at stoppe påmindelserne for én begivenhed slår du **Send påmindelser** fra på dens side **Indstillinger**; den gemmer, så snart du slår den om.
 
 Disse påmindelser er til dit team. De påmindelser, dine statussideabonnenter får, før en begivenhed starter, indstilles på selve begivenheden under **Påmindelser før begivenheden**.
 
@@ -132,7 +132,7 @@ Regler, brugerdefinerede felter og målinger kræver **Projektejer** eller **Pro
 :::
 
 :::details Ejerne fik ingen påmindelse
-Kontrollér, at en påmindelsesregel matcher begivenhedens etiketter, at begivenhedens **Send påmindelser** er slået til, og at **Maintenance reminder** er slået til i ejernes notifikationsindstillinger. En regel med **Mens den er i gang** sender intet, før begivenheden starter.
+Kontrollér, at en påmindelsesregel matcher begivenhedens etiketter, at begivenhedens **Send påmindelser** er slået til, og at **Påmindelse om vedligeholdelse** er slået til i ejernes notifikationsindstillinger. En regel med **Mens den er i gang** sender intet, før begivenheden starter.
 :::
 
 ## Næste skridt

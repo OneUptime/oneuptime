@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Open **Producten → Security Events**, onder **Observability**. Het menu heeft een sectie voor elk deel van beveiliging, en een eigen pagina voor alles daarin:
+Open **Producten → Beveiligingsgebeurtenissen**, onder **Observability**. Het menu heeft een sectie voor elk deel van beveiliging, en een eigen pagina voor alles daarin:
 
 | Pagina | Sectie | Waarvoor het dient |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ Het endpoint antwoordt `200` zodra de gebeurtenissen in de wachtrij staan. Een g
 
 ### Vind ze in Gebeurtenissen
 
-Open **Producten → Security Events → Gebeurtenissen**. De gebeurtenissen verschijnen binnen een paar seconden, met hun ernst, klasse, gebruiker, host en IP-adressen ingevuld.
+Open **Producten → Beveiligingsgebeurtenissen → Gebeurtenissen**. De gebeurtenissen verschijnen binnen een paar seconden, met hun ernst, klasse, gebruiker, host en IP-adressen ingevuld.
 :::
 
 ### Formaten
@@ -327,7 +327,7 @@ flowchart TB
 ### Een regel aanmaken
 
 :::steps
-1. Open **Producten → Security Events → Detecties → Detectieregels** en klik op **Detectieregel aanmaken**.
+1. Open **Producten → Beveiligingsgebeurtenissen → Detecties → Detectieregels** en klik op **Detectieregel aanmaken**.
 2. Plak in **Sigma-regel** de YAML van de regel in **Sigma-regel (YAML)**. Die wordt bij het opslaan geparst, dus een fout verschijnt in het formulier.
 3. De **Naam** vult zich met de `title` van de regel: typ eroverheen om de regel anders te noemen. Een nieuwe regel draait; **Ingeschakeld** staat in zijn bewerkformulier.
 4. Laat in **Bij overeenkomst** de optie **Zaak openen bij overeenkomst** aan staan om de matches van de regel te bundelen tot zaken, op de waarde waarop de regel groepeert.
@@ -492,7 +492,7 @@ Bevindingen zijn gewone gebeurtenissen: doorzoek ze in **Gebeurtenissen** en dra
 
 ### Uitzonderingen
 
-Een uitzondering is iets dat een regel overslaat omdat je het verwacht, zoals een kwetsbaarheidsscanner, een nachtelijke back-uptaak of een geplande penetratietest. Ze maakt de regel stil voor dat ene ding zonder hem uit te zetten, en de andere treffers van de regel gaan nog steeds af. Elke uitzondering staat onder **Producten → Security Events → Detecties → Regeluitzonderingen**: voeg er daar een toe met **Regeluitzondering toevoegen**, met **Uitzondering toevoegen** in de rij van een regel, of met **Uitzondering toevoegen** in de rij van een detectie op een zaak, die begint met de regel van de detectie en waarvoor die afging.
+Een uitzondering is iets dat een regel overslaat omdat je het verwacht, zoals een kwetsbaarheidsscanner, een nachtelijke back-uptaak of een geplande penetratietest. Ze maakt de regel stil voor dat ene ding zonder hem uit te zetten, en de andere treffers van de regel gaan nog steeds af. Elke uitzondering staat onder **Producten → Beveiligingsgebeurtenissen → Detecties → Regeluitzonderingen**: voeg er daar een toe met **Regeluitzondering toevoegen**, met **Uitzondering toevoegen** in de rij van een regel, of met **Uitzondering toevoegen** in de rij van een detectie op een zaak, die begint met de regel van de detectie en waarvoor die afging.
 
 | Wat de regel overslaat | Waarmee het overeenkomt |
 | --- | --- |
@@ -508,7 +508,7 @@ Een uitzondering is iets dat een regel overslaat omdat je het verwacht, zoals ee
 
 ### Volglijsten
 
-Een volglijst is een lijst die je team één keer bijhoudt en die elke regel kan lezen, zoals VIP-gebruikers, kritieke hosts, bekende kwaadaardige bestandshashes of de adressen waarvandaan beheerders mogen inloggen. Elke lijst staat onder **Producten → Security Events → Detecties → Volglijsten**: maak er daar een met **Volglijst aanmaken**, dat om de naam en de inhoud vraagt, of voeg een veelgebruikte toe via **Begin met een veelgebruikte lijst**. De pagina van een lijst toont de waarden, en **Gebruiken in een regel** geeft een selectie die de lijst leest, om in een regel te kopiëren.
+Een volglijst is een lijst die je team één keer bijhoudt en die elke regel kan lezen, zoals VIP-gebruikers, kritieke hosts, bekende kwaadaardige bestandshashes of de adressen waarvandaan beheerders mogen inloggen. Elke lijst staat onder **Producten → Beveiligingsgebeurtenissen → Detecties → Volglijsten**: maak er daar een met **Volglijst aanmaken**, dat om de naam en de inhoud vraagt, of voeg een veelgebruikte toe via **Begin met een veelgebruikte lijst**. De pagina van een lijst toont de waarden, en **Gebruiken in een regel** geeft een selectie die de lijst leest, om in een regel te kopiëren.
 
 Een regel leest een lijst met `expand` en de naam van de lijst tussen twee `%`-tekens. Deze regel gaat af wanneer een beheerder inlogt vanaf een adres dat niet op de toegestane lijst staat:
 

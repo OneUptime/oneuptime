@@ -48,7 +48,7 @@ x-oneuptime-token: <your telemetry ingestion key>
 
 ### 檢查警示是否到達
 
-執行該 playbook。它的警示會在幾秒內出現在 **產品 → Security Events** 中。
+執行該 playbook。它的警示會在幾秒內出現在 **產品 → 安全事件** 中。
 :::
 
 ## 轉發 UDM 事件
@@ -97,7 +97,7 @@ OneUptime 按間隔輪詢你租用戶的偵測和警示，無需任何 SOAR 設�
 
 ### 新增連線
 
-開啟 **產品 → Security Events → 連線**（`/dashboard/{projectId}/security-events/connections`），選擇 **新增連線**，選擇 **Google SecOps**，並用下表中的設定填寫表單。
+開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），選擇 **新增連線**，選擇 **Google SecOps**，並用下表中的設定填寫表單。
 
 ### 儲存之前先測試
 
@@ -247,7 +247,7 @@ OneUptime 也可以把找到的內容傳送到 Google SecOps，讓您的團隊�
 
 ### 新增目標
 
-開啟 **產品 → Security Events → 連線**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Google SecOps，然後按一下 **下一步**。選擇 **地區**，像上方的連接器一樣填寫 **執行個體資源名稱**，並把金鑰貼到 **服務帳戶 JSON** 中。
+開啟 **產品 → 安全事件 → 連線**。在 **傳送到你的 SIEM** 下按一下 **新增目的地**，在 **SIEM** 下選擇 Google SecOps，然後按一下 **下一步**。選擇 **地區**，像上方的連接器一樣填寫 **執行個體資源名稱**，並把金鑰貼到 **服務帳戶 JSON** 中。
 
 ### 傳送測試事件
 
@@ -321,7 +321,7 @@ OneUptime 也可以把找到的內容傳送到 Google SecOps，讓您的團隊�
 1. 檢查 **正在執行的應用程式和工作程序映像版本**。更新本地的連接器原始檔或重新上傳服務帳號 JSON，都不會更新已部署的容器。請把包含連接器修正的映像部署到每個執行輪詢作業的應用程式或專用工作程序。如果你自己建置映像，請用修正後的原始碼重新建置，並部署一個新的、不可變的標籤；用舊映像重新啟動 pod 是不夠的。
 2. 對照 [Google API 參考](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView) 核實警示檢視請求。它使用 `timeRange.startTime`、`timeRange.endTime`、`snapshotQuery=`（空值包括所有警示狀態）、`alertListOptions.maxReturnedAlerts`，以及根據已儲存的 **Data to import** 選擇顯式設定的 `includeNonAlertingDetections`。它不得在該端點上傳送 `pageSize` 或 `pageToken`。兩個按建立時間的讀取過程使用 [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections) 和 `legacySearchCuratedDetections`，它們記錄的參數是 `ruleId`、`listBasis`、`alertState`、`pageSize` 和 `pageToken`，它們的失敗帶有的是偵測搜尋字首。`legacySearchCuratedDetections` 總是接收一個精選規則 ID，從不接收 `-`。不要改用排除已關閉警示的篩選器，那樣會遺失偵測。
 3. 把完整的 `projects/{project}/locations/{location}/instances/{instance}` 資源與你的 Google SecOps 租用戶設定中的值進行比較。instance 部分必須是 SecOps 執行個體 ID；連線的顯示名稱或服務帳號名稱不能替代它。確認地區端點與執行個體位置相符合。
-4. 發布完成後，等待下一個設定的輪詢間隔。在一次完整輪詢後，**最近輪詢** 應當前進，**最近的錯誤** 應當被清除。如果時間窗中有偵測，它們應當出現在 **產品 → Security Events** 下；一個安靜的時間窗擷取零個事件也完全正常。
+4. 發布完成後，等待下一個設定的輪詢間隔。在一次完整輪詢後，**最近輪詢** 應當前進，**最近的錯誤** 應當被清除。如果時間窗中有偵測，它們應當出現在 **產品 → 安全事件** 下；一個安靜的時間窗擷取零個事件也完全正常。
 
 如果同樣的錯誤仍然存在，請從連線的 **操作** 欄開啟 **檢視錯誤**，在對話方塊中使用 **複製錯誤**，並把該訊息、映像標籤或摘要、地區和執行個體資源名稱提供給支援人員。記錄的訊息中的認證資訊已被隱去；請不要另外發送服務帳號私密金鑰、JWT 斷言或存取權杖。升級之前記錄的錯誤可能已被截斷；之後失敗的輪詢會記錄完整的訊息。失敗的輪詢會保留它的時間窗以便重試，而部分完成的輪詢會縮小下一個時間窗，或越過它在 Last Error 中指明的單獨一分鐘。排程的追趕每次執行最多處理 24 小時。
 
@@ -332,7 +332,7 @@ Google SecOps 過去有自己的連線卡片、API 和輪詢器。現在它是 S
 - **連線會自動移轉。** 升級後的版本執行資料移轉時，每個 Google SecOps 連線都會以提供者 `google-secops` 複製到 Security Event Connections 中。它會保留自己的 ID、名稱、**地區**、**執行個體資源名稱**、服務帳號金鑰、**已啟用** 狀態、輪詢間隔、**Data to import** 選擇、輪詢游標、Last Polled、Last Successful Poll、Last Event Imported 和 Last Error，所以輪詢會從停下的地方繼續。連接器保留了早期連接器匯入時使用的 `Google` / `Google SecOps` 身分，所以已匯入的偵測會被計為 **Already imported**，而不會被儲存兩次。
 - **最近的執行歷史也會一起移轉。** 每個連線最近的 500 次執行會被複制到 **診斷** 中它的執行歷史裡。仍在排入佇列或執行中的執行會以失敗狀態複製，並附帶 `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`
 - **早期的資料列會被停用，而不是刪除。** 因此，在滾動部署期間仍在執行的舊工作程序無法再次輪詢同一個執行個體。還原到帶有早期連接器的版本時，需要重新啟用這些資料列。
-- **無法移轉的連線會留在原處。** 沒有儲存金鑰的連線，或者其金鑰無法用這臺伺服器的 `ENCRYPTION_SECRET` 解密的連線，會被跳過，並在工作程序日誌中列出名稱；請在 **產品 → Security Events → 連線** 下重新新增它。儲存的設定已無法通過當前驗證的連線仍會被移轉，但在你編輯它之前，它的輪詢會失敗，並帶有指明相應欄位的訊息。因臨時資料庫錯誤而中斷的連線，會在下一次工作程序啟動、移轉再次執行時被移轉，輪詢會從複製過來的游標處繼續。
+- **無法移轉的連線會留在原處。** 沒有儲存金鑰的連線，或者其金鑰無法用這臺伺服器的 `ENCRYPTION_SECRET` 解密的連線，會被跳過，並在工作程序日誌中列出名稱；請在 **產品 → 安全事件 → 連線** 下重新新增它。儲存的設定已無法通過當前驗證的連線仍會被移轉，但在你編輯它之前，它的輪詢會失敗，並帶有指明相應欄位的訊息。因臨時資料庫錯誤而中斷的連線，會在下一次工作程序啟動、移轉再次執行時被移轉，輪詢會從複製過來的游標處繼續。
 - **API 路由已更改。** `/google-secops-connection` 和 `/google-secops-connection-run` 路由（包括 `/google-secops-connection/test` 和 `/google-secops-connection/:connectionId/run`）被提供者為 `google-secops` 的 `/security-event-connection` 和 `/security-event-connection-run` 取代；對應的操作是 `/security-event-connection/test` 和 `/security-event-connection/:connectionId/run`。早期的頂層欄位移入 `config` 和 `secrets`：
 
   ```json

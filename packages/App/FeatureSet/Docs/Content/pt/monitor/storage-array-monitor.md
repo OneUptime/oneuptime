@@ -32,7 +32,7 @@ flowchart TB
 ## Antes de começar
 
 - **Instale o Storage Array Agent** onde ele alcance o array via HTTPS, com o token de API de um usuário que tenha o papel **readonly** do array. O [guia do Storage Array Agent](/docs/telemetry/storage-arrays) cobre o usuário, o token e a instalação, por meio de `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, e o endereço e o token do array (`PURE_FA_ENDPOINT` e `PURE_FA_API_TOKEN`, ou `PURE_FB_ENDPOINT` e `PURE_FB_API_TOKEN`).
-- **Verifique se o array está registrado.** Ele aparece em **Produtos → Infraestrutura → Storage Arrays → All Storage Arrays**, com o nome do `STORAGE_ARRAY_NAME` do agente, cerca de um minuto depois da primeira leitura.
+- **Verifique se o array está registrado.** Ele aparece em **Produtos → Infraestrutura → Arrays de armazenamento → All Storage Arrays**, com o nome do `STORAGE_ARRAY_NAME` do agente, cerca de um minuto depois da primeira leitura.
 
 ## Criar um monitor de array de armazenamento
 
@@ -67,7 +67,7 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 :::
 
 > [!TIP]
-> Para configurar vários modelos de uma vez, abra o array em **Produtos → Infraestrutura → Storage Arrays** e vá em **Recomendações**. Escolha os modelos que quiser, decida quem é acionado, e o OneUptime cria um monitor por modelo.
+> Para configurar vários modelos de uma vez, abra o array em **Produtos → Infraestrutura → Arrays de armazenamento** e vá em **Recomendações**. Escolha os modelos que quiser, decida quem é acionado, e o OneUptime cria um monitor por modelo.
 
 ## Configurações do monitor
 

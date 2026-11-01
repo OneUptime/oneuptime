@@ -60,7 +60,7 @@ Nella [console IAM](https://console.aws.amazon.com/iam/), apri **Policies → Cr
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **AWS Security Hub** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il segreto in **Chiave di accesso segreta**.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **AWS Security Hub** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il segreto in **Chiave di accesso segreta**.
 
 ### Provarla prima di salvare
 

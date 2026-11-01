@@ -48,7 +48,7 @@ Skicka larmets JSON som **Body**. En identifiering, regeluppgifter med de matcha
 
 ### Kontrollera att larm kommer fram
 
-Kör playbooken. Dess larm visas i **Produkter → Security Events** inom några sekunder.
+Kör playbooken. Dess larm visas i **Produkter → Säkerhetshändelser** inom några sekunder.
 :::
 
 ## Vidarebefordra UDM-händelser
@@ -97,7 +97,7 @@ Lägg till en nyckel av typen **JSON** på tjänstkontots flik **Keys** och ladd
 
 ### Lägg till anslutningen
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), välj **Lägg till anslutning**, välj **Google SecOps** och fyll i formuläret med inställningarna i tabellen nedan.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), välj **Lägg till anslutning**, välj **Google SecOps** och fyll i formuläret med inställningarna i tabellen nedan.
 
 ### Testa innan du sparar
 
@@ -247,7 +247,7 @@ Skapa i Google Cloud ett tjänstkonto i projektet som din SecOps-instans är kop
 
 ### Lägg till målet
 
-Öppna **Produkter → Security Events → Anslutningar**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Google SecOps under **SIEM** och klicka på **Nästa**. Välj **Region**, fyll i **Instansens resursnamn** som för anslutningen ovan och klistra in nyckeln i **Tjänstkontots JSON**.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Google SecOps under **SIEM** och klicka på **Nästa**. Välj **Region**, fyll i **Instansens resursnamn** som för anslutningen ovan och klistra in nyckeln i **Tjänstkontots JSON**.
 
 ### Skicka en testhändelse
 
@@ -321,7 +321,7 @@ Upstream-versionen **13.0.0** använder redan `alertListOptions.maxReturnedAlert
 1. Kontrollera **versionerna av de körande app- och worker-avbildningarna**. Att uppdatera en lokal källfil för anslutningen eller att ladda upp tjänstkontots JSON igen uppdaterar inte en distribuerad container. Distribuera en avbildning som innehåller anslutningens rättelse på varje app eller dedikerad worker som kör avsökningsjobbet. Om du bygger din egen avbildning bygger du om den med den rättade källan och distribuerar en ny, oföränderlig tagg; att starta om en pod med den gamla avbildningen räcker inte.
 2. Kontrollera begäran till larmvyn mot [Googles API-referens](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView). Den använder `timeRange.startTime`, `timeRange.endTime`, `snapshotQuery=` (ett tomt värde tar med alla larmstatusar), `alertListOptions.maxReturnedAlerts` och `includeNonAlertingDetections`, uttryckligen satt utifrån det sparade valet **Data to import**. Den får inte skicka `pageSize` eller `pageToken` till den slutpunkten. De två genomgångarna efter skapandetid använder [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections) och `legacySearchCuratedDetections`, där `ruleId`, `listBasis`, `alertState`, `pageSize` och `pageToken` är de dokumenterade parametrarna, och deras fel har i stället prefixet för identifieringssökningen. `legacySearchCuratedDetections` får alltid ett ID för en kurerad regel, aldrig `-`. Ersätt det inte med ett filter som utesluter stängda larm, eftersom identifieringar då går förlorade.
 3. Jämför hela resursen `projects/{project}/locations/{location}/instances/{instance}` med värdena i inställningarna för din Google SecOps-klientorganisation. Instansdelen måste vara SecOps-instansens ID; ett visningsnamn för en anslutning eller namnet på ett tjänstkonto kan inte användas i stället. Bekräfta att den regionala slutpunkten matchar instansens plats.
-4. Vänta på nästa konfigurerade avsökningsintervall efter att distributionen är klar. **Senast hämtad** bör flyttas framåt och **Senaste fel** bör rensas vid en slutförd avsökning. Om fönstret innehåller identifieringar bör de visas under **Produkter → Security Events**; ett lugnt fönster kan med rätta mata in noll händelser.
+4. Vänta på nästa konfigurerade avsökningsintervall efter att distributionen är klar. **Senast hämtad** bör flyttas framåt och **Senaste fel** bör rensas vid en slutförd avsökning. Om fönstret innehåller identifieringar bör de visas under **Produkter → Säkerhetshändelser**; ett lugnt fönster kan med rätta mata in noll händelser.
 
 Om samma fel kvarstår öppnar du **Visa fel** från anslutningens kolumn **Åtgärder**, använder **Kopiera fel** i dialogrutan och ger supporten det meddelandet, avbildningens tagg eller digest, regionen och instansens resursnamn. Autentiseringsuppgifter i det registrerade meddelandet är maskerade; skicka inte tjänstkontots privata nyckel, JWT-intyget eller åtkomsttoken separat. Fel som registrerades före uppgraderingen kan redan vara avkortade; en senare misslyckad avsökning registrerar hela meddelandet. En misslyckad avsökning behåller sitt fönster för ett nytt försök, och en avsökning som är Partial smalnar av sitt nästa fönster eller går förbi en enda minut som den namnger i Last Error. Schemalagd ikappkörning bearbetar upp till 24 timmar per körning.
 
@@ -332,7 +332,7 @@ Google SecOps hade tidigare ett eget anslutningskort, ett eget API och en egen a
 - **Anslutningar flyttas automatiskt.** När den uppgraderade versionen kör sina datamigreringar kopieras varje Google SecOps-anslutning till Security Event Connections med leverantören `google-secops`. Den behåller sitt ID, sitt namn, sin **Region**, sitt **Instansens resursnamn**, sin tjänstkontonyckel, sitt tillstånd **Aktiverad**, sitt avsökningsintervall, sitt val **Data to import**, sin avsökningsmarkör, Last Polled, Last Successful Poll, Last Event Imported och Last Error, så att avsökningen fortsätter där den slutade. Anslutningen behåller identiteten `Google` / `Google SecOps` som den tidigare importerade under, så identifieringar som redan har importerats räknas som **Already imported** i stället för att sparas två gånger.
 - **Den senaste körningshistoriken följer med.** De 500 senaste körningarna för varje anslutning kopieras till dess körningshistorik i **Diagnostik**. En körning som fortfarande var köad eller pågick kopieras som misslyckad med `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`
 - **De tidigare raderna inaktiveras, de tas inte bort.** En gammal worker som fortfarande körs under en löpande distribution kan därför inte avsöka samma instans en andra gång. Att återgå till en version med den tidigare anslutningen kräver att du aktiverar de raderna igen.
-- **En anslutning som inte kan flyttas stannar där den var.** En utan sparad nyckel, eller vars nyckel inte kan dekrypteras med den här serverns `ENCRYPTION_SECRET`, hoppas över och namnges i worker-loggen; lägg till den igen under **Produkter → Security Events → Anslutningar**. En vars sparade inställningar inte längre klarar dagens validering flyttas ändå, och dess avsökningar misslyckas med ett meddelande som namnger fältet tills du redigerar den. En som ett tillfälligt databasfel avbröt flyttas när migreringen körs igen vid nästa start av en worker, och avsökningen fortsätter från dess kopierade markör.
+- **En anslutning som inte kan flyttas stannar där den var.** En utan sparad nyckel, eller vars nyckel inte kan dekrypteras med den här serverns `ENCRYPTION_SECRET`, hoppas över och namnges i worker-loggen; lägg till den igen under **Produkter → Säkerhetshändelser → Anslutningar**. En vars sparade inställningar inte längre klarar dagens validering flyttas ändå, och dess avsökningar misslyckas med ett meddelande som namnger fältet tills du redigerar den. En som ett tillfälligt databasfel avbröt flyttas när migreringen körs igen vid nästa start av en worker, och avsökningen fortsätter från dess kopierade markör.
 - **API-routerna har ändrats.** Routerna `/google-secops-connection` och `/google-secops-connection-run`, inklusive `/google-secops-connection/test` och `/google-secops-connection/:connectionId/run`, ersätts av `/security-event-connection` och `/security-event-connection-run` med leverantören `google-secops`; åtgärderna är `/security-event-connection/test` och `/security-event-connection/:connectionId/run`. De tidigare fälten på översta nivån flyttas in i `config` och `secrets`:
 
   ```json

@@ -39440,5 +39440,17 @@
   "Standard deviations": "Standard deviations",
   "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.": "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.",
   "route": "route",
-  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates."
+  "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.": "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.",
+  "Notify me about AI agents I own.": "Notify me about AI agents I own.",
+  "Notify me about SLOs I own.": "Notify me about SLOs I own.",
+  "Notify me about activity on alert episodes I own.": "Notify me about activity on alert episodes I own.",
+  "Notify me about activity on incident episodes I own.": "Notify me about activity on incident episodes I own.",
+  "Notify me about alerts on resources I own.": "Notify me about alerts on resources I own.",
+  "Notify me about custom probes I own.": "Notify me about custom probes I own.",
+  "Notify me about incidents on resources I own.": "Notify me about incidents on resources I own.",
+  "Notify me about monitors I own.": "Notify me about monitors I own.",
+  "Notify me about my on-call schedule and policy membership.": "Notify me about my on-call schedule and policy membership.",
+  "Notify me about scheduled maintenance events I own.": "Notify me about scheduled maintenance events I own.",
+  "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.": "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.",
+  "Notify me about status pages I own.": "Notify me about status pages I own."
 }

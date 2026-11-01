@@ -60,7 +60,7 @@ Forbindelsen signerer sine anmodninger med en IAM-adgangsnøgle. Nøglens identi
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **AWS Security Hub**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmeligheden i **Hemmelig adgangsnøgle**.
+Åbn **Produkter → Sikkerhedshændelser → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **AWS Security Hub**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmeligheden i **Hemmelig adgangsnøgle**.
 
 ### Test den, før du gemmer
 

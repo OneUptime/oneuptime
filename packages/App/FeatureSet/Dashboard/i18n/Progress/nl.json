@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 13164
+    "keys": 39414,
+    "untranslated": 13139
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -41,6 +41,7 @@
     "CPU Ready {{percent}}",
     "Canada (+1)",
     "Capture",
+    "Chat",
     "Chats",
     "Client",
     "Cloud",
@@ -177,6 +178,7 @@
     "Pull request {{label}}",
     "Pull requests",
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
+    "Push",
     "Query",
     "Re-encrypt",
     "Record",

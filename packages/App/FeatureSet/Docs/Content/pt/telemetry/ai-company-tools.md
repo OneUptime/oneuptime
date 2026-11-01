@@ -38,7 +38,7 @@ Os chats chegam do mesmo jeito que as chamadas de IA das suas aplicações, ent�
 :::steps
 ### Abra Conectar
 
-Abra **Produtos → AI / LLM → Conectar**. Em **As ferramentas de IA da sua empresa**, clique no bloco da ferramenta.
+Abra **Produtos → IA / LLM → Conectar**. Em **As ferramentas de IA da sua empresa**, clique no bloco da ferramenta.
 
 ### Cole a credencial
 

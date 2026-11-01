@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 13097
+    "keys": 39414,
+    "untranslated": 13072
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -114,6 +114,7 @@
     "Prompt",
     "Pull request",
     "Pull requests",
+    "Push",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Region",

@@ -49,7 +49,7 @@ Falcon이 보여 준 기본 URL로 CID가 속한 클라우드를 알 수 있습�
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **CrowdStrike Falcon**을 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿을 **클라이언트 시크릿**에 붙여 넣습니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **CrowdStrike Falcon**을 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 시크릿을 **클라이언트 시크릿**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 

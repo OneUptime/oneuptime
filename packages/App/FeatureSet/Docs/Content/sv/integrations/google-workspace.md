@@ -48,7 +48,7 @@ Anslutningen loggar in med ett tjänstkontos nyckel och [domänomfattande delege
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Google Workspace** under **Identitet** och klicka på **Nästa**. Ange **Administrator email**, klicka på **Nästa** och klistra in nyckelfilens innehåll i **Tjänstkontots JSON**. Slå på **Drive-aktivitet** i steget **Hämtning** för att läsa Drive också.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Google Workspace** under **Identitet** och klicka på **Nästa**. Ange **Administrator email**, klicka på **Nästa** och klistra in nyckelfilens innehåll i **Tjänstkontots JSON**. Slå på **Drive-aktivitet** i steget **Hämtning** för att läsa Drive också.
 
 ### Testa den innan du sparar
 

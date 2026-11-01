@@ -32,7 +32,7 @@ flowchart TB
 ## Voordat je begint
 
 - **Installeer de Storage Array Agent** waar hij de array via HTTPS kan bereiken, met het API-token van een gebruiker die de rol **readonly** van de array heeft. De [handleiding van de Storage Array Agent](/docs/telemetry/storage-arrays) behandelt de gebruiker, het token en de installatie, via `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, en het adres en het token van de array (`PURE_FA_ENDPOINT` en `PURE_FA_API_TOKEN`, of `PURE_FB_ENDPOINT` en `PURE_FB_API_TOKEN`).
-- **Controleer of de array geregistreerd is.** Hij verschijnt onder **Producten → Infrastructuur → Storage Arrays → All Storage Arrays**, genoemd naar de `STORAGE_ARRAY_NAME` van de agent, ongeveer een minuut na de eerste uitlezing.
+- **Controleer of de array geregistreerd is.** Hij verschijnt onder **Producten → Infrastructuur → Opslagarrays → All Storage Arrays**, genoemd naar de `STORAGE_ARRAY_NAME` van de agent, ongeveer een minuut na de eerste uitlezing.
 
 ## Een opslagarray-monitor maken
 
@@ -67,7 +67,7 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 :::
 
 > [!TIP]
-> Om meerdere templates tegelijk in te stellen, open je de array via **Producten → Infrastructuur → Storage Arrays** en ga je naar **Aanbevelingen**. Kies de templates die je wilt, kies wie wordt opgeroepen, en OneUptime maakt één monitor per template.
+> Om meerdere templates tegelijk in te stellen, open je de array via **Producten → Infrastructuur → Opslagarrays** en ga je naar **Aanbevelingen**. Kies de templates die je wilt, kies wie wordt opgeroepen, en OneUptime maakt één monitor per template.
 
 ## Monitorinstellingen
 

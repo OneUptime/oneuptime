@@ -120,7 +120,7 @@ Klik på **Opret Alert Reminder Rule**. Under **Match** lader du **Alle advarsle
 Under **Påmindelser** indstiller du **Påmindelsesinterval (minutter)**, hvor ofte ejere påmindes, og **Stop påmindelser, når**: **Løst**, standarden, eller **Bekræftet**. Dens **Navn** følger begge dele, for eksempel "Påmind hver 30 minutter, indtil løst", indtil du skriver dit eget. Opret derefter reglen.
 :::
 
-Ejere får hver påmindelse som **Alert reminder**, som er slået til via e-mail som standard. En advarsels regel matches igen, når dens alvorsgrad eller etiketter ændres. For at stoppe påmindelserne for én advarsel slår du **Send påmindelser** fra på dens side **Indstillinger**; den gemmer i det øjeblik, du slår den om.
+Ejere får hver påmindelse som **Påmindelse om advarsel**, som er slået til via e-mail som standard. En advarsels regel matches igen, når dens alvorsgrad eller etiketter ændres. For at stoppe påmindelserne for én advarsel slår du **Send påmindelser** fra på dens side **Indstillinger**; den gemmer i det øjeblik, du slår den om.
 
 ## Indstillinger
 

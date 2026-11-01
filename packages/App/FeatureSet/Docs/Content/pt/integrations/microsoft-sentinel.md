@@ -60,7 +60,7 @@ Abra o workspace do Log Analytics no portal do Azure. A página **Overview** del
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Microsoft Sentinel** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o valor do segredo em **Segredo do cliente**.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Microsoft Sentinel** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o valor do segredo em **Segredo do cliente**.
 
 ### Testar antes de salvar
 
@@ -174,7 +174,7 @@ Registre um aplicativo e dê a ele um segredo do cliente, como em [Registrar um 
 
 ### Adicione o destino
 
-Abra **Produtos → Security Events → Conexões**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Microsoft Sentinel em **SIEM** e clique em **Próximo**. Preencha o **ID do diretório (tenant)**, o **ID do aplicativo (cliente)** e o **Segredo do cliente**, o **Endpoint de ingestão de logs** da página **Overview** do endpoint de coleta de dados (ou da regra), e o **ID imutável da regra de coleta de dados** da **JSON View** da regra. **Fluxo** é opcional: vazio, ele é `Custom-OneUptimeSecurityEvents_CL`.
+Abra **Produtos → Eventos de segurança → Conexões**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Microsoft Sentinel em **SIEM** e clique em **Próximo**. Preencha o **ID do diretório (tenant)**, o **ID do aplicativo (cliente)** e o **Segredo do cliente**, o **Endpoint de ingestão de logs** da página **Overview** do endpoint de coleta de dados (ou da regra), e o **ID imutável da regra de coleta de dados** da **JSON View** da regra. **Fluxo** é opcional: vazio, ele é `Custom-OneUptimeSecurityEvents_CL`.
 
 ### Envie um evento de teste e comece a enviar
 

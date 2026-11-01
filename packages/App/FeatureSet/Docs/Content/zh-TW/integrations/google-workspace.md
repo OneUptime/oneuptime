@@ -48,7 +48,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → Security Events → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，在 **身分** 下選擇 **Google Workspace**，然後點選 **下一步**。填寫 **Administrator email**，點選 **下一步**，並把金鑰檔案的內容貼上到 **服務帳戶 JSON** 中。在 **輪詢** 步驟中開啟 **雲端硬碟活動**，即可同時讀取雲端硬碟。
+開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，在 **身分** 下選擇 **Google Workspace**，然後點選 **下一步**。填寫 **Administrator email**，點選 **下一步**，並把金鑰檔案的內容貼上到 **服務帳戶 JSON** 中。在 **輪詢** 步驟中開啟 **雲端硬碟活動**，即可同時讀取雲端硬碟。
 
 ### 儲存之前先測試
 

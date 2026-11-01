@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 13048
+    "keys": 39414,
+    "untranslated": 13021
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -42,6 +42,7 @@
     "PVC",
     "Passthrough",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Push",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Runner",

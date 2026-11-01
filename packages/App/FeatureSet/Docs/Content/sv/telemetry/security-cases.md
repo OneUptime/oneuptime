@@ -29,7 +29,7 @@ flowchart TB
     work --> close["Stängs med en bedömning"]
 ```
 
-Öppna **Produkter → Security Events → Säkerhetsärenden → Öppna ärenden** för kön. **Tilldelade mig**, **Ej tilldelad**, **Stängda ärenden** och **Alla ärenden** är egna sidor bredvid, och var och en listar de ärenden som namnet säger.
+Öppna **Produkter → Säkerhetshändelser → Säkerhetsärenden → Öppna ärenden** för kön. **Tilldelade mig**, **Ej tilldelad**, **Stängda ärenden** och **Alla ärenden** är egna sidor bredvid, och var och en listar de ärenden som namnet säger.
 
 ## Innan du börjar
 
@@ -142,7 +142,7 @@ Ett ärende som öppnats från Google SecOps-larm stänger dem också i Google S
 
 ## Ärendeprioriteter och ärendestatusar
 
-Varje projekt har sina egna ärendeprioriteter och ärendestatusar, under **Produkter → Security Events → Inställningar → Ärendeprioriteter** och **Ärendestatusar**. Byt namn och färg på dem, dra dem i en annan ordning och lägg till egna, till exempel en status "Triage" eller en prioritet "Nödläge" ovanför **Kritisk**. Ett nytt namn syns överallt på en gång: i kön, på ärendesidorna och översikten, i aviseringar, i Slack och Microsoft Teams och i playbook-meddelanden.
+Varje projekt har sina egna ärendeprioriteter och ärendestatusar, under **Produkter → Säkerhetshändelser → Inställningar → Ärendeprioriteter** och **Ärendestatusar**. Byt namn och färg på dem, dra dem i en annan ordning och lägg till egna, till exempel en status "Triage" eller en prioritet "Nödläge" ovanför **Kritisk**. Ett nytt namn syns överallt på en gång: i kön, på ärendesidorna och översikten, i aviseringar, i Slack och Microsoft Teams och i playbook-meddelanden.
 
 Några är inbyggda, eftersom OneUptime läser vad de betyder. De kan byta namn och färg men inte tas bort eller arkiveras, och de behåller sin ordning:
 
@@ -161,7 +161,7 @@ För att sluta använda en egen status eller prioritet använder du **Arkivera**
 
 ## Svarsmål
 
-Ett svarsmål är hur snabbt ett ärende måste hanteras: **Bekräfta inom**, hur länge ett nytt ärende får vänta på att någon tar det, och **Begränsa inom**, hur lång tid det får ta innan det är begränsat eller stängt. Varje ärendeprioritet har sina egna, under **Produkter → Security Events → Inställningar → Svarsmål**: med **Redigera** på en prioritets rad ställer du in dess två mål, i minuter, timmar eller dagar, upp till ett år, och ett tomt mål betyder inget mål. Ett nytt projekts prioriteter börjar med dessa:
+Ett svarsmål är hur snabbt ett ärende måste hanteras: **Bekräfta inom**, hur länge ett nytt ärende får vänta på att någon tar det, och **Begränsa inom**, hur lång tid det får ta innan det är begränsat eller stängt. Varje ärendeprioritet har sina egna, under **Produkter → Säkerhetshändelser → Inställningar → Svarsmål**: med **Redigera** på en prioritets rad ställer du in dess två mål, i minuter, timmar eller dagar, upp till ett år, och ett tomt mål betyder inget mål. Ett nytt projekts prioriteter börjar med dessa:
 
 | Prioritet | Bekräfta inom | Begränsa inom |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ WhatsApp-meddelanden skickas inte för säkerhetsärenden. En push-avisering öp
 
 ### Posta i kanaler i Slack och Microsoft Teams
 
-För att posta i en kanal lägger du till en regel under **Produkter → Security Events → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut Slack eller Teams**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
+För att posta i en kanal lägger du till en regel under **Produkter → Säkerhetshändelser → Arbetsyta → Slack** (eller **Microsoft Teams**). När inget av dem är anslutet är avsnittets enda post **Anslut Slack eller Teams**. En regel anger vilka kanaler den postar i (och, i Microsoft Teams, vilka chattar) och, om du vill, vilka ärenden den gäller:
 
 | Villkor | Matchar på |
 | --- | --- |
@@ -236,7 +236,7 @@ Varje avisering utom en uppgifts postas i kanalerna för varje regel som ärende
 
 ## Playbooks
 
-En playbook är en lista med steg som körs på ett ärende. Skapa en under **Produkter → Security Events → Playbooks**, från en mall eller tom, och lägg till dess steg på dess sida. Ett projekt utan playbooks ser mallarna i stället för en tom lista; när det finns playbooks öppnar **Skapa från mall** vid listan dem, med **Tillagd** vid de som projektet redan har.
+En playbook är en lista med steg som körs på ett ärende. Skapa en under **Produkter → Säkerhetshändelser → Playbooks**, från en mall eller tom, och lägg till dess steg på dess sida. Ett projekt utan playbooks ser mallarna i stället för en tom lista; när det finns playbooks öppnar **Skapa från mall** vid listan dem, med **Tillagd** vid de som projektet redan har.
 
 ### När en playbook körs
 
@@ -375,7 +375,7 @@ Ett mejl eller ett inlägg utan eget meddelande skickar en sammanfattning av är
 
 ### Körningar och godkännanden
 
-Varje körning listas, steg för steg, i sitt ärende och under **Produkter → Security Events → Playbooks → Playbook-körningar**:
+Varje körning listas, steg för steg, i sitt ärende och under **Produkter → Säkerhetshändelser → Playbooks → Playbook-körningar**:
 
 | Körningsstatus | Betyder |
 | --- | --- |
@@ -392,7 +392,7 @@ En körning vars worker slutar höra av sig, till exempel efter en omstart, tas 
 
 ## Översikten
 
-**Produkter → Security Events → Översikt** är där produkten öppnas:
+**Produkter → Säkerhetshändelser → Översikt** är där produkten öppnas:
 
 - De öppna ärenden som är tilldelade dig, de öppna ärenden som ingen har tagit sig an, och playbook-stegen som väntar på godkännande; varje tal öppnar sidan som listar dem.
 - **Genomsnittlig tid till kvittering**, **Genomsnittlig tid till begränsning** och **Genomsnittlig tid till stängning**, över ärendena som öppnats under de senaste 30 dagarna: från att ett ärende öppnas till att någon tar sig an det (en person tilldelas, eller det flyttas till en status som räknas som kvitterad), till en status som räknas som begränsad och till en som räknas som stängd. Ett ärende som fortfarande väntar räknas inte in i något medelvärde.

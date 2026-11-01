@@ -142,7 +142,7 @@ Due cose da sapere prima di leggere i numeri:
 
 ## La scheda Utilizzo
 
-Apri **Prodotti → AI / LLM** e vai su **Utilizzo**. Ordina **Dipendente**, **Team**, **Modello**, **Provider** e **Applicazione / Servizio** per spesa, negli ultimi 7 giorni se non scegli un altro intervallo. Le chiamate che non nominano nessuno vengono contate in **Non attribuito**: una grande riga **Non attribuito** ti dice quale strumento ha ancora bisogno della sua identità.
+Apri **Prodotti → IA / LLM** e vai su **Utilizzo**. Ordina **Dipendente**, **Team**, **Modello**, **Provider** e **Applicazione / Servizio** per spesa, negli ultimi 7 giorni se non scegli un altro intervallo. Le chiamate che non nominano nessuno vengono contate in **Non attribuito**: una grande riga **Non attribuito** ti dice quale strumento ha ancora bisogno della sua identità.
 
 ### Le metriche degli assistenti di programmazione sono un ripiego, non un'aggiunta
 

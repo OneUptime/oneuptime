@@ -29,7 +29,7 @@ flowchart TB
     work --> close["Chiuso con un verdetto"]
 ```
 
-Apri **Prodotti → Security Events → Casi di sicurezza → Casi aperti** per la coda. **Assegnati a me**, **Non assegnato**, **Casi chiusi** e **Tutti i casi** sono pagine a sé accanto, ognuna con i casi che il suo nome indica.
+Apri **Prodotti → Eventi di sicurezza → Casi di sicurezza → Casi aperti** per la coda. **Assegnati a me**, **Non assegnato**, **Casi chiusi** e **Tutti i casi** sono pagine a sé accanto, ognuna con i casi che il suo nome indica.
 
 ## Prima di iniziare
 
@@ -142,7 +142,7 @@ Un caso aperto da avvisi di Google SecOps li chiude anche in Google SecOps, con 
 
 ## Priorità e stati dei casi
 
-Ogni progetto ha le sue priorità e i suoi stati dei casi, in **Prodotti → Security Events → Impostazioni → Priorità dei casi** e **Stati dei casi**. Rinominali, cambiane il colore, trascinali in un altro ordine e aggiungi i tuoi, come uno stato «Triage» o una priorità «Emergenza» sopra **Critico**. Un nuovo nome compare ovunque subito: nella coda, nelle pagine dei casi e nella panoramica, nelle notifiche, in Slack e Microsoft Teams e nei messaggi dei playbook.
+Ogni progetto ha le sue priorità e i suoi stati dei casi, in **Prodotti → Eventi di sicurezza → Impostazioni → Priorità dei casi** e **Stati dei casi**. Rinominali, cambiane il colore, trascinali in un altro ordine e aggiungi i tuoi, come uno stato «Triage» o una priorità «Emergenza» sopra **Critico**. Un nuovo nome compare ovunque subito: nella coda, nelle pagine dei casi e nella panoramica, nelle notifiche, in Slack e Microsoft Teams e nei messaggi dei playbook.
 
 Alcuni sono predefiniti, perché OneUptime legge cosa significano. Si possono rinominare e ricolorare, ma non eliminare né archiviare, e mantengono il loro ordine:
 
@@ -161,7 +161,7 @@ Per smettere di usare uno stato o una priorità tuoi, usa **Archivia** sulla sua
 
 ## Obiettivi di risposta
 
-Un obiettivo di risposta dice quanto in fretta va lavorato un caso: **Riconoscere entro**, quanto un nuovo caso può attendere che qualcuno se ne faccia carico, e **Contenere entro**, quanto può richiedere per essere contenuto o chiuso. Ogni priorità dei casi ha i propri, in **Prodotti → Security Events → Impostazioni → Obiettivi di risposta**: il pulsante **Modifica** sulla riga di una priorità ne imposta i due obiettivi, in minuti, ore o giorni, fino a un anno, e un obiettivo vuoto significa nessun obiettivo. Le priorità di un nuovo progetto partono con questi:
+Un obiettivo di risposta dice quanto in fretta va lavorato un caso: **Riconoscere entro**, quanto un nuovo caso può attendere che qualcuno se ne faccia carico, e **Contenere entro**, quanto può richiedere per essere contenuto o chiuso. Ogni priorità dei casi ha i propri, in **Prodotti → Eventi di sicurezza → Impostazioni → Obiettivi di risposta**: il pulsante **Modifica** sulla riga di una priorità ne imposta i due obiettivi, in minuti, ore o giorni, fino a un anno, e un obiettivo vuoto significa nessun obiettivo. Le priorità di un nuovo progetto partono con questi:
 
 | Priorità | Riconoscere entro | Contenere entro |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ Per i casi di sicurezza non vengono inviati messaggi WhatsApp. Una notifica push
 
 ### Pubblicare nei canali di Slack e Microsoft Teams
 
-Per pubblicare in un canale, aggiungi una regola in **Prodotti → Security Events → Area di lavoro → Slack** (o **Microsoft Teams**). Se nessuno dei due è collegato, l'unica voce della sezione è **Collega Slack o Teams**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
+Per pubblicare in un canale, aggiungi una regola in **Prodotti → Eventi di sicurezza → Area di lavoro → Slack** (o **Microsoft Teams**). Se nessuno dei due è collegato, l'unica voce della sezione è **Collega Slack o Teams**. Una regola indica i canali in cui pubblicare (e, in Microsoft Teams, le chat) e, se vuoi, i casi a cui si applica:
 
 | Condizione | Corrisponde a |
 | --- | --- |
@@ -236,7 +236,7 @@ Ogni notifica, tranne quella di un'attività, viene pubblicata nei canali di ogn
 
 ## Playbook
 
-Un playbook è un elenco di passi che vengono eseguiti su un caso. Creane uno in **Prodotti → Security Events → Playbook**, da un modello o da zero, e aggiungi i suoi passi nella sua pagina. Un progetto senza playbook vede i modelli al posto di un elenco vuoto; quando ci sono playbook, **Crea da modello** sull'elenco li apre, con **Aggiunto** su quelli che il progetto ha già.
+Un playbook è un elenco di passi che vengono eseguiti su un caso. Creane uno in **Prodotti → Eventi di sicurezza → Playbook**, da un modello o da zero, e aggiungi i suoi passi nella sua pagina. Un progetto senza playbook vede i modelli al posto di un elenco vuoto; quando ci sono playbook, **Crea da modello** sull'elenco li apre, con **Aggiunto** su quelli che il progetto ha già.
 
 ### Quando viene eseguito un playbook
 
@@ -375,7 +375,7 @@ Un'email o un post senza un messaggio proprio invia un riepilogo del caso.
 
 ### Esecuzioni e approvazioni
 
-Ogni esecuzione è elencata sul suo caso e in **Prodotti → Security Events → Playbook → Esecuzioni**, passo per passo:
+Ogni esecuzione è elencata sul suo caso e in **Prodotti → Eventi di sicurezza → Playbook → Esecuzioni**, passo per passo:
 
 | Stato dell'esecuzione | Significa |
 | --- | --- |
@@ -392,7 +392,7 @@ Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un
 
 ## La panoramica
 
-**Prodotti → Security Events → Panoramica** è dove si apre il prodotto:
+**Prodotti → Eventi di sicurezza → Panoramica** è dove si apre il prodotto:
 
 - I casi aperti assegnati a te, i casi aperti che nessuno ha preso in carico, e i passi dei playbook in attesa di approvazione, ognuno con un collegamento alla pagina che li elenca.
 - **Tempo medio di presa in carico**, **Tempo medio di contenimento** e **Tempo medio di chiusura**, sui casi aperti negli ultimi 30 giorni: dall'apertura di un caso fino a quando qualcuno lo prende in carico (assegnandolo a una persona, o spostandolo in uno stato che conta come preso in carico), fino a uno stato che conta come contenuto e fino a uno che conta come chiuso. Un caso ancora in attesa non entra nel calcolo della media.

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 13100
+    "keys": 39414,
+    "untranslated": 13074
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -27,6 +27,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "Canada (+1)",
+    "Chat",
     "CloudWatch Metric Streams",
     "Container",
     "Container {{container}}: {{reason}}",
@@ -104,6 +105,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Problem",
     "Prompt",
+    "Push",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Region",

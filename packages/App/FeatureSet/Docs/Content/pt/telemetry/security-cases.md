@@ -29,7 +29,7 @@ flowchart TB
     work --> close["Fechado com um veredito"]
 ```
 
-Abra **Produtos → Security Events → Casos de segurança → Casos abertos** para a fila. **Atribuídos a mim**, **Não atribuído**, **Casos fechados** e **Todos os casos** são páginas próprias ao lado, cada uma listando os casos que o nome diz.
+Abra **Produtos → Eventos de segurança → Casos de segurança → Casos abertos** para a fila. **Atribuídos a mim**, **Não atribuído**, **Casos fechados** e **Todos os casos** são páginas próprias ao lado, cada uma listando os casos que o nome diz.
 
 ## Antes de começar
 
@@ -142,7 +142,7 @@ Um caso aberto a partir de alertas do Google SecOps também os fecha no Google S
 
 ## Prioridades e status dos casos
 
-Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Security Events → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack e no Microsoft Teams, e nas mensagens dos playbooks.
+Cada projeto tem suas próprias prioridades e status de caso, em **Produtos → Eventos de segurança → Configurações → Prioridades de casos** e **Status de casos**. Renomeie-os, mude a cor, arraste-os para outra ordem e adicione os seus, como um status "Triagem" ou uma prioridade "Emergência" acima de **Crítico**. Um nome novo aparece em todo lugar ao mesmo tempo: na fila, nas páginas dos casos e na visão geral, nas notificações, no Slack e no Microsoft Teams, e nas mensagens dos playbooks.
 
 Alguns são predefinidos, porque o OneUptime lê o que eles significam. Eles podem ser renomeados e mudar de cor, mas não excluídos nem arquivados, e mantêm sua ordem:
 
@@ -161,7 +161,7 @@ Para parar de usar um status ou uma prioridade seus, use **Arquivar** na linha d
 
 ## Metas de resposta
 
-Uma meta de resposta é a rapidez com que um caso deve ser tratado: **Confirmar em até**, quanto tempo um caso novo pode esperar até alguém assumi-lo, e **Conter em até**, quanto tempo pode levar para ser contido ou fechado. Cada prioridade de caso tem as suas, em **Produtos → Security Events → Configurações → Metas de resposta**: o botão **Editar** na linha de uma prioridade define suas duas metas, em minutos, horas ou dias, até um ano, e uma meta vazia significa sem meta. As prioridades de um projeto novo começam com estas:
+Uma meta de resposta é a rapidez com que um caso deve ser tratado: **Confirmar em até**, quanto tempo um caso novo pode esperar até alguém assumi-lo, e **Conter em até**, quanto tempo pode levar para ser contido ou fechado. Cada prioridade de caso tem as suas, em **Produtos → Eventos de segurança → Configurações → Metas de resposta**: o botão **Editar** na linha de uma prioridade define suas duas metas, em minutos, horas ou dias, até um ano, e uma meta vazia significa sem meta. As prioridades de um projeto novo começam com estas:
 
 | Prioridade | Confirmar em até | Conter em até |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ Mensagens de WhatsApp não são enviadas para casos de segurança. Uma notifica�
 
 ### Publique em canais do Slack e do Microsoft Teams
 
-Para publicar em um canal, adicione uma regra em **Produtos → Security Events → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar Slack ou Teams**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
+Para publicar em um canal, adicione uma regra em **Produtos → Eventos de segurança → Espaço de trabalho → Slack** (ou **Microsoft Teams**). Sem nenhum dos dois conectado, a única entrada da seção é **Conectar Slack ou Teams**. Uma regra indica os canais em que publicar (e, no Microsoft Teams, os chats) e, se você quiser, os casos a que ela se aplica:
 
 | Condição | Corresponde a |
 | --- | --- |
@@ -236,7 +236,7 @@ Cada notificação, exceto a de uma tarefa, é publicada nos canais de todas as 
 
 ## Playbooks
 
-Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos → Security Events → Playbooks**, a partir de um modelo ou em branco, e adicione as etapas na página dele. Um projeto sem playbooks vê os modelos no lugar de uma lista vazia; assim que há playbooks, **Criar a partir de modelo** na lista os abre, com **Adicionado** nos que o projeto já tem.
+Um playbook é uma lista de etapas que rodam em um caso. Crie um em **Produtos → Eventos de segurança → Playbooks**, a partir de um modelo ou em branco, e adicione as etapas na página dele. Um projeto sem playbooks vê os modelos no lugar de uma lista vazia; assim que há playbooks, **Criar a partir de modelo** na lista os abre, com **Adicionado** nos que o projeto já tem.
 
 ### Quando um playbook roda
 
@@ -375,7 +375,7 @@ Um e-mail ou uma publicação sem mensagem própria envia um resumo do caso.
 
 ### Execuções e aprovações
 
-Cada execução aparece no caso dela e em **Produtos → Security Events → Playbooks → Execuções**, etapa por etapa:
+Cada execução aparece no caso dela e em **Produtos → Eventos de segurança → Playbooks → Execuções**, etapa por etapa:
 
 | Status da execução | Significado |
 | --- | --- |
@@ -392,7 +392,7 @@ Uma execução que deixa de receber sinais do worker dela, depois de uma reinici
 
 ## A visão geral
 
-**Produtos → Security Events → Visão geral** é onde o produto abre:
+**Produtos → Eventos de segurança → Visão geral** é onde o produto abre:
 
 - Os casos abertos atribuídos a você, os casos abertos que ninguém assumiu, e as etapas de playbooks aguardando aprovação, cada um abrindo a página que os lista.
 - **Tempo médio para reconhecer**, **Tempo médio para conter** e **Tempo médio para fechar**, sobre os casos abertos nos últimos 30 dias: da abertura de um caso até alguém assumi-lo (atribuindo-o a uma pessoa, ou levando-o para um status que conta como reconhecido), até um status que conta como contido e até um que conta como fechado. Um caso que ainda está esperando não entra na média.

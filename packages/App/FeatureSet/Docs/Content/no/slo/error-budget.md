@@ -131,7 +131,7 @@ Med standardterskelen på 20 % blir et truet SLO feilfritt igjen ved 25 % gjenv�
 Når et SLO går over til **I faresonen** eller **Budsjett oppbrukt**, gir OneUptime eierne beskjed:
 
 - Eierne er brukerne og teammedlemmene på siden **Eiere** til SLO-et som fortsatt er medlemmer av prosjektet. Et SLO uten eiere gir i stedet prosjekteierne beskjed.
-- Hver eier får en e-post som standard, og beskjeden på alle andre kanaler vedkommende slår på for **SLO status changed** under **Brukerinnstillinger** → **Varselinnstillinger** → **Overvåking**.
+- Hver eier får en e-post som standard, og beskjeden på alle andre kanaler vedkommende slår på for **SLO-status endret** under **Brukerinnstillinger** → **Varselinnstillinger** → **Overvåking**.
 - Emnet i e-posten nevner statusen og SLO-et, for eksempel `[SLO At Risk] API Availability`.
 
 For at et SLO nær en grense ikke skal varsle hele tiden, får eierne høyst én beskjed i timen. En overgang til **Budsjett oppbrukt** sendes alltid, også innenfor den timen.

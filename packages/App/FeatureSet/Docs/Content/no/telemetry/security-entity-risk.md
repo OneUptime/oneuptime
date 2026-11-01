@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Ved<br/>terskelen"| case["En sak åpnes, eller<br/>den åpne saken<br/>tar inn risikoen"]
 ```
 
-Åpne **Produkter → Security Events → Entitetsrisiko**: hver bruker, vert, IP-adresse og hvert datalager med risiko nå, de mest risikable først, med nivå, hvor mye den betyr, hva som fant den og når. Hver av dem åpnes på sin egen side. **Mest risikable entiteter** på oversikten viser toppen av denne listen, og **Slå opp en entitet** under den slår opp hvilken som helst verdi på tvers av 30 dager med hendelser, også et domene eller en fil-hash.
+Åpne **Produkter → Sikkerhetshendelser → Entitetsrisiko**: hver bruker, vert, IP-adresse og hvert datalager med risiko nå, de mest risikable først, med nivå, hvor mye den betyr, hva som fant den og når. Hver av dem åpnes på sin egen side. **Mest risikable entiteter** på oversikten viser toppen av denne listen, og **Slå opp en entitet** under den slår opp hvilken som helst verdi på tvers av 30 dager med hendelser, også et domene eller en fil-hash.
 
 ## Før du begynner
 
@@ -65,7 +65,7 @@ Når en entitets risiko når terskelen, utløses en deteksjon fra kilden Entitet
 
 Når en sak er åpnet om en entitets risiko, telles ikke det som lå bak, på nytt: en ny sak åpnes bare når kilder som er nye siden da, når terskelen igjen. En sak som er lukket som håndtert, åpnes ikke igjen av de samme funnene.
 
-Endre terskelen under **Produkter → Security Events → Innstillinger → Risikovurdering → Risikoterskel**: et heltall fra 10 til 10000. Middels starter på halvparten og Kritisk på det doble, på alle sider.
+Endre terskelen under **Produkter → Sikkerhetshendelser → Innstillinger → Risikovurdering → Risikoterskel**: et heltall fra 10 til 10000. Middels starter på halvparten og Kritisk på det doble, på alle sider.
 
 ### Slå risikosaker på eller av
 

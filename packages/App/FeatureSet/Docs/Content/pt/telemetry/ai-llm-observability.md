@@ -23,7 +23,7 @@ flowchart TB
     group --> tabs
 ```
 
-Abra **Produtos → AI / LLM**, em **Observabilidade**. O produto tem sete abas:
+Abra **Produtos → IA / LLM**, em **Observabilidade**. O produto tem sete abas:
 
 | Aba | O que mostra |
 | --- | --- |
@@ -39,7 +39,7 @@ No visualizador de traces, o span de cada chamada de IA também tem uma aba **LL
 
 ## Três formas de entrada
 
-As três ficam em **Produtos → AI / LLM → Conectar**. Use uma, duas ou todas: tudo chega às mesmas **Conversas**, **Uso**, **Alertas** e **Orçamentos**.
+As três ficam em **Produtos → IA / LLM → Conectar**. Use uma, duas ou todas: tudo chega às mesmas **Conversas**, **Uso**, **Alertas** e **Orçamentos**.
 
 | Forma de entrada | O que você recebe | Como |
 | --- | --- | --- |

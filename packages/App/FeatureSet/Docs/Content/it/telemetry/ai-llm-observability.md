@@ -23,7 +23,7 @@ flowchart TB
     group --> tabs
 ```
 
-Apri **Prodotti → AI / LLM**, sotto **Osservabilità**. Il prodotto ha sette schede:
+Apri **Prodotti → IA / LLM**, sotto **Osservabilità**. Il prodotto ha sette schede:
 
 | Scheda | Cosa mostra |
 | --- | --- |
@@ -39,7 +39,7 @@ Nel visualizzatore di tracce, lo span di ogni chiamata di IA ha anche una scheda
 
 ## Tre vie d'ingresso
 
-Tutte e tre sono in **Prodotti → AI / LLM → Collega**. Usane una, due o tutte: tutto arriva nelle stesse **Conversazioni**, **Utilizzo**, **Avvisi** e **Budget**.
+Tutte e tre sono in **Prodotti → IA / LLM → Collega**. Usane una, due o tutte: tutto arriva nelle stesse **Conversazioni**, **Utilizzo**, **Avvisi** e **Budget**.
 
 | Via d'ingresso | Cosa ottieni | Come |
 | --- | --- | --- |

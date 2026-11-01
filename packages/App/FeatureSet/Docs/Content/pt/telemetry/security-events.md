@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem uma seção para cada parte da segurança, e uma página própria para cada coisa nela:
+Abra **Produtos → Eventos de segurança**, em **Observabilidade**. O menu dele tem uma seção para cada parte da segurança, e uma página própria para cada coisa nela:
 
 | Página | Seção | Para que serve |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ O endpoint responde `200` assim que os eventos entram na fila. Um evento enviado
 
 ### Encontre-os em Eventos
 
-Abra **Produtos → Security Events → Eventos**. Os eventos aparecem em poucos segundos, com gravidade, classe, usuário, host e endereços IP preenchidos.
+Abra **Produtos → Eventos de segurança → Eventos**. Os eventos aparecem em poucos segundos, com gravidade, classe, usuário, host e endereços IP preenchidos.
 :::
 
 ### Formatos
@@ -327,7 +327,7 @@ flowchart TB
 ### Crie uma regra
 
 :::steps
-1. Abra **Produtos → Security Events → Detecções → Regras de detecção** e clique em **Criar: Regra de detecção**.
+1. Abra **Produtos → Eventos de segurança → Detecções → Regras de detecção** e clique em **Criar: Regra de detecção**.
 2. Em **Regra Sigma**, cole o YAML da regra em **Regra Sigma (YAML)**. Ele é analisado ao salvar, então um erro aparece no formulário.
 3. O **Nome** é preenchido com o `title` da regra: escreva por cima para chamá-la de outro jeito. Uma regra nova roda; **Habilitado** fica no formulário de edição dela.
 4. Em **Ao corresponder**, deixe **Abrir um caso ao corresponder** ativado para agrupar as correspondências dela em casos, pelo valor pelo qual a regra agrupa.
@@ -492,7 +492,7 @@ Os achados são eventos comuns: pesquise-os em **Eventos** e faça pivô sobre e
 
 ### Exceções
 
-Uma exceção é algo que uma regra ignora porque você já espera, como um scanner de vulnerabilidades, um job de backup noturno ou um teste de invasão planejado. Ela silencia a regra para essa única coisa sem desativá-la, e as outras correspondências da regra continuam disparando. Toda exceção fica listada em **Produtos → Security Events → Detecções → Exceções de regra**: adicione uma ali com **Adicionar: Exceção de regra**, com **Adicionar exceção** na linha de uma regra, ou com **Adicionar exceção** na linha de uma detecção de um caso, que já começa com a regra da detecção e aquilo para o que ela disparou.
+Uma exceção é algo que uma regra ignora porque você já espera, como um scanner de vulnerabilidades, um job de backup noturno ou um teste de invasão planejado. Ela silencia a regra para essa única coisa sem desativá-la, e as outras correspondências da regra continuam disparando. Toda exceção fica listada em **Produtos → Eventos de segurança → Detecções → Exceções de regra**: adicione uma ali com **Adicionar: Exceção de regra**, com **Adicionar exceção** na linha de uma regra, ou com **Adicionar exceção** na linha de uma detecção de um caso, que já começa com a regra da detecção e aquilo para o que ela disparou.
 
 | O que a regra ignora | Com o que corresponde |
 | --- | --- |
@@ -508,7 +508,7 @@ Uma exceção é algo que uma regra ignora porque você já espera, como um scan
 
 ### Listas de observação
 
-Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Security Events → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Use-a em uma regra** dá uma seleção que lê a lista, para copiar em uma regra.
+Uma lista de observação é uma lista que sua equipe mantém uma única vez e que qualquer regra pode ler, como usuários VIP, hosts críticos, hashes de arquivos maliciosos conhecidos ou os endereços de onde os administradores podem entrar. Toda lista fica em **Produtos → Eventos de segurança → Detecções → Listas de observação**: crie uma ali com **Criar: Lista de observação**, que pede o nome dela e o que ela contém, ou adicione uma comum em **Comece com uma lista comum**. A página de uma lista mostra seus valores, e **Use-a em uma regra** dá uma seleção que lê a lista, para copiar em uma regra.
 
 Uma regra lê uma lista com `expand` e o nome da lista entre sinais `%`. Esta regra dispara quando um administrador entra a partir de um endereço que não está na lista permitida:
 

@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Åpne **Produkter → Security Events**, under **Observerbarhet**. Menyen har en seksjon for hver del av sikkerheten, og en egen side for hver ting i den:
+Åpne **Produkter → Sikkerhetshendelser**, under **Observerbarhet**. Menyen har en seksjon for hver del av sikkerheten, og en egen side for hver ting i den:
 
 | Side | Seksjon | Hva den er til |
 | --- | --- | --- |
@@ -111,7 +111,7 @@ Endepunktet svarer `200` så snart hendelsene står i kø. En hendelse sendt ute
 
 ### Finn dem under Hendelser
 
-Åpne **Produkter → Security Events → Hendelser**. Hendelsene vises i løpet av noen sekunder, med alvorlighetsgrad, klasse, bruker, vert og IP-adresser fylt ut.
+Åpne **Produkter → Sikkerhetshendelser → Hendelser**. Hendelsene vises i løpet av noen sekunder, med alvorlighetsgrad, klasse, bruker, vert og IP-adresser fylt ut.
 :::
 
 ### Formater
@@ -327,7 +327,7 @@ flowchart TB
 ### Opprett en regel
 
 :::steps
-1. Åpne **Produkter → Security Events → Deteksjoner → Deteksjonsregler**, og klikk på **Opprett Deteksjonsregel**.
+1. Åpne **Produkter → Sikkerhetshendelser → Deteksjoner → Deteksjonsregler**, og klikk på **Opprett Deteksjonsregel**.
 2. Lim inn regelens YAML i **Sigma-regel (YAML)** under **Sigma-regel**. Den tolkes når du lagrer, så en feil vises i skjemaet.
 3. **Navn** fylles inn fra regelens `title`: skriv over det for å kalle regelen noe annet. En ny regel kjører; **Aktivert** står i redigeringsskjemaet.
 4. La **Åpne en sak ved treff** stå på under **Ved treff** for å samle treffene i saker, etter verdien regelen grupperer etter.
@@ -492,7 +492,7 @@ Funn er vanlige hendelser: søk etter dem under **Hendelser** og pivoter på dem
 
 ### Unntak
 
-Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsskanner, en nattlig sikkerhetskopijobb eller en planlagt penetrasjonstest. Det gjør regelen stille for akkurat den ene tingen uten å slå den av, og regelens andre treff utløses fortsatt. Alle unntak står under **Produkter → Security Events → Deteksjoner → Regelunntak**: legg til ett der med **Legg til Regelunntak**, med **Legg til unntak** i en regels rad, eller med **Legg til unntak** i en deteksjons rad på en sak, som starter med deteksjonens regel og det den ble utløst for.
+Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsskanner, en nattlig sikkerhetskopijobb eller en planlagt penetrasjonstest. Det gjør regelen stille for akkurat den ene tingen uten å slå den av, og regelens andre treff utløses fortsatt. Alle unntak står under **Produkter → Sikkerhetshendelser → Deteksjoner → Regelunntak**: legg til ett der med **Legg til Regelunntak**, med **Legg til unntak** i en regels rad, eller med **Legg til unntak** i en deteksjons rad på en sak, som starter med deteksjonens regel og det den ble utløst for.
 
 | Det regelen hopper over | Hva det treffer |
 | --- | --- |
@@ -508,7 +508,7 @@ Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsska
 
 ### Overvåkingslister
 
-En overvåkingsliste er en liste teamet ditt holder én gang og som enhver regel kan lese, som VIP-brukere, kritiske verter, kjente ondsinnede filhasher eller adressene administratorer kan logge på fra. Alle lister ligger under **Produkter → Security Events → Deteksjoner → Overvåkingslister**: Opprett en der med **Opprett Overvåkingsliste**, som spør om navnet og hva den inneholder, eller legg til en vanlig fra **Start med en vanlig liste**. Siden til en liste viser verdiene, og **Bruk den i en regel** gir en seleksjon som leser listen, til å kopiere inn i en regel.
+En overvåkingsliste er en liste teamet ditt holder én gang og som enhver regel kan lese, som VIP-brukere, kritiske verter, kjente ondsinnede filhasher eller adressene administratorer kan logge på fra. Alle lister ligger under **Produkter → Sikkerhetshendelser → Deteksjoner → Overvåkingslister**: Opprett en der med **Opprett Overvåkingsliste**, som spør om navnet og hva den inneholder, eller legg til en vanlig fra **Start med en vanlig liste**. Siden til en liste viser verdiene, og **Bruk den i en regel** gir en seleksjon som leser listen, til å kopiere inn i en regel.
 
 En regel leser en liste med `expand` og navnet på listen mellom to `%`-tegn. Denne regelen utløses når en administrator logger på fra en adresse som ikke står på den tillatte listen:
 

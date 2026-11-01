@@ -18,7 +18,7 @@ Det kræver rollen Project Owner, Project Admin eller Security Admin at sætte s
 :::steps
 ### Slå det til, som de fleste teams har brug for
 
-Åbn **Produkter → Security Events**. Klik på **Slå anbefalet til** på **Oversigt**. Det slår tre ting til på én gang: **Find sikkerhedshændelser i dine logs**, de anbefalede detektionsregler og **Berig nye sager**, en playbook, der tjekker hver ny sag mod trusselsintelligens og efterlader en tjekliste til triage på den.
+Åbn **Produkter → Sikkerhedshændelser**. Klik på **Slå anbefalet til** på **Oversigt**. Det slår tre ting til på én gang: **Find sikkerhedshændelser i dine logs**, de anbefalede detektionsregler og **Berig nye sager**, en playbook, der tjekker hver ny sag mod trusselsintelligens og efterlader en tjekliste til triage på den.
 
 ### Send et testangreb
 
@@ -96,7 +96,7 @@ Intet har nået Security siden da. Åbn **Forbindelser**, og tjek, at **Dine log
 :::
 
 :::details Kortet, der slår Security til, er væk
-Nogen har lukket det med **Luk**. Så længe intet overvåges for trusler endnu, tilbyder **Oversigt** **Sæt Security op**, som henter det tilbage.
+Nogen har lagt det væk med **Skjul**. Så længe intet overvåges for trusler endnu, tilbyder **Oversigt** **Sæt Security op**, som henter det tilbage.
 :::
 
 ## Næste trin

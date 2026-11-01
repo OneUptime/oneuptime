@@ -49,7 +49,7 @@ Basis-URL-en Falcon viste, forteller deg hvilken sky CID-en din ligger i. Siden 
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **CrowdStrike Falcon**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn hemmeligheten i **Klienthemmelighet**.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **CrowdStrike Falcon**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn hemmeligheten i **Klienthemmelighet**.
 
 ### Test den før du lagrer
 

@@ -52,7 +52,7 @@ Annota quando scade il segreto. Quel giorno il polling si ferma con `Microsoft D
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Defender XDR** in **EDR / XDR** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Segreto client**.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Microsoft Defender XDR** in **EDR / XDR** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il valore del segreto in **Segreto client**.
 
 ### Provarla prima di salvare
 
