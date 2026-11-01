@@ -5,6 +5,7 @@ OneUptime の Proxmox エージェントは、Proxmox VE クラスターのノ�
 :::cards
 - [接続方法を選ぶ](#接続方法を選ぶ): エージェント、または Proxmox VE 9 自身のプッシュ。
 - [エージェントをインストールする](#エージェントをインストールする): API トークンを作成し、インストールスクリプトまたは Docker Compose を使います。
+- [バックアップの結果](#proxmox-ve-の通知を送信する): Proxmox VE 自身の通知を、2 つのコマンドで送信します。
 - [ネイティブプッシュ](#インストール不要の代替策-proxmox-ve-9-以降のネイティブ-opentelemetry-プッシュ): Proxmox VE 9 が自身でメトリクスを送信します。
 - [トラブルシューティング](#トラブルシューティング): 診断スクリプトと、よくある問題。
 :::
@@ -33,6 +34,7 @@ flowchart TB
 | インストールするもの | 単一のマシン上の Docker Compose | なし: Proxmox の Web UI でのメトリクスサーバーの追加 |
 | ノード、ゲスト、ストレージ | はい | はい |
 | HA の状態、起動時の自動開始、バックアップの対象範囲、レプリケーション | はい | いいえ |
+| Proxmox VE の通知（8.3 以降）からのバックアップの結果、フェンシングされたノード、失敗したレプリケーション | はい | はい |
 | Proxmox AI エージェント | はい | いいえ |
 
 **HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Replication Failing** の各テンプレートにはエージェントが必要です。1 つのクラスターにはどちらか一方を使ってください。両方を実行すると、すべてのリソースが二重に報告されます。
@@ -185,6 +187,44 @@ Collector は 30 秒ごとにエクスポーターをスクレイプします。
 
 元の `id` ラベルはそのまま残ります。
 
+## Proxmox VE の通知を送信する
+
+pve-exporter はバックアップジョブにどのゲストが含まれるかを示しますが、バックアップがどうなったかは示しません。それを伝えるのは Proxmox VE 自身の通知です。各バックアップジョブの結果、フェンシングされたノード、失敗したレプリケーション、保留中の更新などです。Proxmox VE 8.3 以降では、任意のノードで root として 2 つのコマンドを実行すると、何もインストールせずに、エージェントやネイティブプッシュと並行して、すべての通知がクラスターのログとして OneUptime に送信されます。クラスターのセットアップガイドには、URL、キー、クラスター名が入力済みのコマンドが表示されます。
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+1 つ目のコマンドは `oneuptime` という名前の Webhook ターゲットを追加し、キーとクラスター名をそのシークレットに保持します。2 つ目のコマンドはルールのない matcher を追加し、Proxmox VE はこれをすべての通知として扱います。クラスター名は OneUptime に表示されるとおりに使ってください。エージェントの `PROXMOX_CLUSTER_NAME`、またはネイティブプッシュでは Proxmox クラスター自身の名前です。
+
+各通知には次の属性が付いて届きます:
+
+| 属性 | 値 |
+| --- | --- |
+| `pve.notification.type` | `vzdump`（バックアップジョブ）、`replication`、`fencing`、`package-updates`、または `system-mail` |
+| `pve.notification.severity` | `info`、`notice`、`warning`、`error`、または `unknown` |
+| `pve.notification.title` | 通知のタイトル |
+| `pve.notification.job_id` | バックアップジョブの場合は、そのジョブの ID |
+| `proxmox.node.name` | 通知を送信したノード |
+
+バックアップジョブの通知から、OneUptime は各ゲストの最後のバックアップを記録します。成功したかどうか、いつ終わったか、サイズ、かかった時間です。ゲストのページにはそれが表示され、**ゲスト** の一覧ではバックアップ列に表示され、クラスターの **概要** では結果が集計されます。失敗したバックアップは、そのゲストの後のバックアップが成功するまで **対応が必要** に残ります。**Backup Job Failed** と **Node Fenced** のアラートも同じログを読み取ります。
+
+送信を止めるには:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## 任意 — Proxmox のサービスログを送信する
 
 既定では、エージェントはメトリクスだけを送信するため、クラスターの **ログ** ページは空のままです。Proxmox VE のサービスは、8 つのユニットで systemd ジャーナルにログを出力します: `pveproxy`、`pvedaemon`、`pve-firewall`、`pve-ha-crm`、`pve-ha-lrm`、`pvescheduler`、`pvestatd`、`qmeventd`。同梱の `otel-collector-config.yaml` には、まさにこれらのユニットを対象とする `journald` レシーバーがコメントアウトされた状態で含まれており、同じくコメントアウトされた `logs` パイプラインにつながっています。このパイプラインが `proxmox.cluster.name` を付与するため、ログはクラスターに入ります。
@@ -288,6 +328,8 @@ OneUptime の取り込みが停止したあとは、新たに沈黙したノー�
 
 これらが必要な場合は、代わりにエージェントを実行し、メトリクスサーバーを削除してください。両方を実行すると、すべてのリソースが二重に報告されます。
 
+バックアップの結果、フェンシングされたノード、失敗したレプリケーションは、それでも OneUptime に届けられます。[Proxmox VE の通知を送信](#proxmox-ve-の通知を送信する) してください。ネイティブプッシュでも動作します。
+
 ## systemd サービスとして実行する
 
 マシンの起動時にエージェントを起動し、失敗したときに再起動するには、その systemd ユニットをインストールします。インストールスクリプトが配置する `/opt/oneuptime-proxmox-agent` にエージェントがあることを前提としています:
@@ -380,6 +422,13 @@ OneUptime は Proxmox クラスターを `proxmox.cluster.name` で登録し、�
 
 :::details ネイティブプッシュで Guest Down、HA、バックアップのアラートが発生しない
 ネイティブプッシュは、HA の状態、起動時の自動開始、バックアップの対象範囲、レプリケーションを送信しません。これらが必要な場合は [エージェントをインストール](#エージェントをインストールする) し、メトリクスサーバーを削除してください。両方を実行すると、すべてのリソースが二重に報告されます。
+:::
+
+:::details バックアップの結果が表示されない
+1. Proxmox VE のリリースを確認します。Webhook ターゲットには 8.3 以降が必要です（`pveversion`）。
+2. ターゲットとその matcher が存在することを確認します。`pvesh get /cluster/notifications/endpoints/webhook` と `pvesh get /cluster/notifications/matchers` の両方に `oneuptime` が表示されるはずです。
+3. `pvesh create /cluster/notifications/targets/oneuptime/test` でテスト通知を送信します。1 分以内にクラスターの **ログ** ページに表示されます。表示されない場合は、ターゲットのキーまたは URL が誤っています。
+4. ターゲットのシークレットにあるクラスター名を確認します。OneUptime が知らない名前を使うと、2 つ目のクラスターが登録されます。
 :::
 
 ## 次のステップ

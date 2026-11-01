@@ -4,7 +4,7 @@ Un moniteur Proxmox surveille un cluster Proxmox VE – ses nœuds, ses VM et co
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-proxmox): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prêts-à-lemploi): Douze alertes prêtes à l'emploi, un incident par nœud, invité ou volume.
+- [Modèles](#modèles-dalerte-prêts-à-lemploi): Quinze alertes prêtes à l'emploi, un incident par nœud, invité ou volume, et deux sur les notifications propres à Proxmox VE.
 - [Identité des ressources](#identité-des-ressources): Comment cibler un seul nœud, invité ou volume de stockage.
 - [Métriques](#métriques-collectées): Chaque série `pve_*` sur laquelle le moniteur peut alerter.
 :::
@@ -109,7 +109,7 @@ Filtrez sur `pve.scope` ou `pve.type` pour un type de ressource, sur `pve.id` ou
 
 ## Modèles d'alerte prêts à l'emploi
 
-La liste de **Sur quoi alerter** propose 12 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui se déclenche et un autre qui rétablit. La plupart regroupent par `id`, si bien que chaque nœud, invité, volume ou tâche reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
+La liste de **Sur quoi alerter** propose 15 modèles. Chacun construit un moniteur complet – requêtes, filtres d'attributs, un regroupement, un critère qui se déclenche et un autre qui rétablit. La plupart regroupent par `id`, si bien que chaque nœud, invité, volume ou tâche reçoit son propre incident et sa propre alerte. Les seuils sont des points de départ que vous pouvez modifier.
 
 Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le tableau. Un critère ne se déclenche que si la condition est remplie à chaque minute de sa fenêtre, et un critère à seuil se rétablit 10 % au-delà de son seuil pour qu'une valeur qui oscille autour de la limite ne bascule pas sans cesse.
 
@@ -119,13 +119,16 @@ Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le 
 | Node Offline | Critique | `pve_up` pour `pve.scope = node`, Min par `id` | Sous 1 | À 1 |
 | Guest Down | Warning | `pve_up` et `pve_onboot_status` pour `pve.scope = guest`, Min par `id` | `pve_up` est sous 1 alors que `pve_onboot_status` vaut 1 | `pve_up` est revenu à 1, ou le démarrage au boot est désactivé |
 | Cluster Quorum at Risk | Critique | `pve_up` ÷ `pve_node_info` × 100 pour `pve.scope = node` (tous deux Somme) : la part des nœuds en ligne | 50 % ou moins | Au-dessus de 55 % |
+| Node Restarted | Warning | `pve_uptime_seconds` et `pve_up` pour `pve.scope = node`, Min par `id` | `pve_uptime_seconds` est sous 900 (15 minutes) alors que `pve_up` vaut 1 | `pve_uptime_seconds` est à 990 ou plus, ou `pve_up` vaut 0 |
 | High Node CPU Usage | Warning | `pve_cpu_usage_ratio` pour `pve.scope = node`, Avg par `id` | Au-dessus de 0,9 (90 % des cœurs du nœud) | À 0,81 ou moins |
 | High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 pour `pve.scope = node`, par `id` | Au-dessus de 85 % | À 76,5 % ou moins |
 | High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` pour `pve.scope = guest`, Avg par `id`, 15 dernières minutes | Au-dessus de 0,95 (95 % de ses vCPU) pendant les 15 minutes | À 0,855 ou moins |
+| Storage Unavailable | Critique | `pve_up` pour `pve.scope = storage`, Min par `id` | Sous 1 | À 1 |
 | Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 pour `pve.scope = storage`, par `id` | Au-dessus de 85 % | À 76,5 % ou moins |
 | Container Root Disk Near Full | Warning | Le même ratio de disque pour `pve.type = lxc`, par `id` | Au-dessus de 90 % | À 81 % ou moins |
 | HA Resource in Error State | Critique | `pve_ha_state` pour `state = error`, Max par `id` | Au-dessus de 0 | À 0 |
 | Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (une seule série pour le cluster) | Au-dessus de 0 | À 0 |
+| Backup Running Too Long | Warning | `pve_lock_state` pour `pve.scope = guest` et `state = backup`, Min par `id`, 6 dernières heures | Au-dessus de 0 | À 0 |
 | Replication Failing | Critique | `pve_replication_failed_syncs`, Max par `id` (l'identifiant de la tâche) | Au-dessus de 0 | À 0 |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
@@ -134,17 +137,31 @@ Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le 
 - **Les modèles de panne utilisent Minimum**, si bien qu'une seule collecte où la ressource était en panne les déclenche au lieu d'être masquée par les collectes où elle fonctionnait.
 - **Guest Down** ne regarde que les invités configurés pour démarrer au boot : si vous en arrêtez un volontairement, il alerte quand même, désactivez donc d'abord son démarrage au boot.
 - **Cluster Quorum at Risk** compte les nœuds en ligne. pve-exporter remonte aussi le quorum lui-même, sous la forme de `pve_up` pour `cluster/<name>` : 1 tant que le cluster a le quorum.
+- **Node Restarted** se déclenche pour un nœud en ligne qui tourne depuis moins de 15 minutes : il a redémarré, ou il a planté puis est revenu. Il se résout dès que le nœud tourne depuis 16,5 minutes, 10 % au-delà du seuil ; un nœud en panne déclenche plutôt **Node Offline**.
 - **High Guest CPU Usage** est plus élevé et plus lent que le modèle des nœuds : un invité est censé utiliser ses vCPU, donc seul un invité qui ne redescend jamais déclenche une alerte.
 - **Les formules de ratio** prennent la **Somme** des deux côtés. Les deux proviennent de la même collecte, le résultat est donc un vrai pourcentage.
 - **Container Root Disk Near Full** exclut les VM QEMU : leur utilisation de disque vaut 0 sans l'agent invité QEMU.
+- **Storage Unavailable** se déclenche quand un stockage que Proxmox VE liste pour un nœud cesse d'être disponible : un partage impossible à monter, un Proxmox Backup Server injoignable, un pool qui a disparu. Les invités dont les disques s'y trouvent se bloquent ou ne démarrent pas, et les sauvegardes vers ce stockage échouent.
 - **Guest Not Backed Up** ne couvre que l'appartenance aux tâches de sauvegarde. pve-exporter n'indique pas si les sauvegardes ont tourné ni si elles ont réussi ; regroupez `pve_not_backed_up_info` par `id` pour lister les invités.
+- **Backup Running Too Long** se déclenche quand une VM ou un conteneur est verrouillé par une sauvegarde à chaque collecte pendant six heures : une sauvegarde bloquée, ou une cible trop lente pour l'invité. Tant que le verrou est posé, l'invité ne peut être ni migré, ni pris en instantané, ni sauvegardé de nouveau.
 - **L'obsolescence de la réplication** (maintenant moins la dernière synchronisation) ne peut pas déclencher d'alerte, car les critères n'ont pas d'arithmétique sur l'heure. La page **Vue d'ensemble** du cluster l'affiche ; alertez plutôt avec **Replication Failing**.
+
+### Alertes sur les notifications de Proxmox VE
+
+Deux autres alertes lisent les notifications propres à Proxmox VE, que le cluster envoie sous forme de journaux une fois que vous [les envoyez à OneUptime](/docs/telemetry/proxmox#envoyer-les-notifications-de-proxmox-ve). Ce sont des moniteurs de journaux, proposés sur la page **Recommandations** du cluster, et ils fonctionnent aussi bien avec l'agent qu'avec l'envoi natif.
+
+| Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | Warning | Journaux de notification avec `pve.notification.type = vzdump` et `pve.notification.severity = error`, par nœud et par tâche, 60 dernières minutes | Une tâche de sauvegarde signale un échec | La prochaine exécution de la même tâche réussit |
+| Node Fenced | Critique | Journaux de notification avec `pve.notification.type = fencing`, par nœud, 30 dernières minutes | Proxmox VE isole un nœud (fencing) | Ce nœud n'est pas isolé de nouveau pendant 30 minutes |
+
+Chaque nœud et chaque tâche de sauvegarde reçoit son propre incident et sa propre alerte. L'alerte d'une tâche de sauvegarde en échec reste ouverte jusqu'à ce qu'une exécution ultérieure de la même tâche réussisse, quel que soit le temps que cela prend.
 
 ### L'envoi natif de Proxmox VE
 
 Proxmox VE 9 et les versions ultérieures peuvent pousser les métriques via leur serveur de métriques OpenTelemetry intégré, sans rien installer – voir le [guide de l'agent Proxmox](/docs/telemetry/proxmox). OneUptime transforme cet envoi en les mêmes séries `pve_*`, si bien que le catalogue et les modèles de CPU, de mémoire et de stockage fonctionnent avec lui.
 
-**Node Offline** et **Cluster Quorum at Risk** fonctionnent aussi : chaque nœud n'envoie que son propre statut, donc un nœud qui cesse de remonter des données est signalé en panne (`pve_up` = 0) par les nœuds encore en vie – voir [Quand un nœud cesse de remonter des données](/docs/telemetry/proxmox#quand-un-nœud-cesse-de-se-signaler). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** et **Replication Failing** ont besoin de données que seul l'agent collecte.
+**Node Offline** et **Cluster Quorum at Risk** fonctionnent aussi : chaque nœud n'envoie que son propre statut, donc un nœud qui cesse de remonter des données est signalé en panne (`pve_up` = 0) par les nœuds encore en vie – voir [Quand un nœud cesse de remonter des données](/docs/telemetry/proxmox#quand-un-nœud-cesse-de-se-signaler). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** et **Replication Failing** ont besoin de données que seul l'agent collecte. Les deux [alertes sur les notifications](#alertes-sur-les-notifications-de-proxmox-ve) fonctionnent aussi avec l'envoi natif : Proxmox VE envoie lui-même ses notifications.
 
 ## Métriques collectées
 
@@ -180,6 +197,7 @@ Les séries de CPU et de mémoire sont aussi remontées pour chaque invité, sur
 | `pve_disk_read_bytes` | bytes | Octets lus sur le disque par l'invité. Un compteur sur toute la durée de vie. |
 | `pve_disk_write_bytes` | bytes | Octets écrits sur le disque par l'invité. Un compteur sur toute la durée de vie. |
 | `pve_onboot_status` | count | 1 quand l'invité démarre au boot du nœud. Un invité arrêté avec ce réglage est généralement une panne imprévue. |
+| `pve_lock_state` | — | Le verrou que Proxmox VE pose sur un invité pendant qu'une tâche le modifie, une série par verrou (`backup`, `migrate`, `snapshot`, …), à 1 sur celui qui est posé. Filtrez sur l'étiquette `state`. |
 
 ### Stockage
 
@@ -187,6 +205,7 @@ Les séries de CPU et de mémoire sont aussi remontées pour chaque invité, sur
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Octets utilisés sur le disque ou le stockage. Pour un invité QEMU, vaut 0 sauf si l'agent invité QEMU est installé. |
 | `pve_disk_size_bytes` | bytes | Taille totale du disque ou du stockage. |
+| `pve_storage_shared` | count | 1 quand chaque nœud du cluster peut utiliser le stockage, comme NFS ou Ceph ; 0 quand seul son propre nœud le peut. |
 | `pve_storage_info` | count | Métadonnées du stockage, toujours 1 tant qu'il existe. Une somme additionne chaque collecte d'une minute : elle ne compte pas les volumes. |
 
 ### HA

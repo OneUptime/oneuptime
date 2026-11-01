@@ -4,7 +4,7 @@ A Proxmox monitor watches one Proxmox VE cluster — its nodes, VMs and LXC cont
 
 :::cards
 - [Create the monitor](#create-a-proxmox-monitor): Six steps in the dashboard.
-- [Templates](#pre-built-alert-templates): Twelve ready-made alerts, one incident per node, guest or volume.
+- [Templates](#pre-built-alert-templates): Fifteen ready-made alerts, one incident per node, guest or volume, and two on Proxmox VE's own notifications.
 - [Resource identity](#resource-identity): How to target one node, guest or storage volume.
 - [Metrics](#collected-metrics): Every `pve_*` series the monitor can alert on.
 :::
@@ -109,7 +109,7 @@ Filter on `pve.scope` or `pve.type` for one kind of resource, on `pve.id` or `id
 
 ## Pre-built Alert Templates
 
-The **What to alert on** list offers 12 templates. Each builds a complete monitor — queries, attribute filters, a group-by, a criteria that fires and one that recovers. Most group by `id`, so each node, guest, volume or job gets its own incident and alert. Thresholds are starting points you can edit.
+The **What to alert on** list offers 15 templates. Each builds a complete monitor — queries, attribute filters, a group-by, a criteria that fires and one that recovers. Most group by `id`, so each node, guest, volume or job gets its own incident and alert. Thresholds are starting points you can edit.
 
 Templates read the past 5 minutes unless the table says otherwise. A criteria fires only when the condition holds for every minute of its window, and a threshold criteria recovers 10% past its threshold so a value hovering at the line does not flap.
 
@@ -119,13 +119,16 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 | Node Offline | Critical | `pve_up` for `pve.scope = node`, Min per `id` | Below 1 | At 1 |
 | Guest Down | Warning | `pve_up` and `pve_onboot_status` for `pve.scope = guest`, Min per `id` | `pve_up` is below 1 while `pve_onboot_status` is 1 | `pve_up` is back at 1, or start on boot is turned off |
 | Cluster Quorum at Risk | Critical | `pve_up` ÷ `pve_node_info` × 100 for `pve.scope = node` (both Sum): the share of nodes online | 50% or less | Above 55% |
+| Node Restarted | Warning | `pve_uptime_seconds` and `pve_up` for `pve.scope = node`, Min per `id` | `pve_uptime_seconds` is below 900 (15 minutes) while `pve_up` is 1 | `pve_uptime_seconds` is at 990 or more, or `pve_up` is 0 |
 | High Node CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg per `id` | Above 0.9 (90% of the node's cores) | At or below 0.81 |
 | High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, per `id` | Above 85% | At or below 76.5% |
 | High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg per `id`, past 15 minutes | Above 0.95 (95% of its vCPUs) for all 15 minutes | At or below 0.855 |
+| Storage Unavailable | Critical | `pve_up` for `pve.scope = storage`, Min per `id` | Below 1 | At 1 |
 | Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, per `id` | Above 85% | At or below 76.5% |
 | Container Root Disk Near Full | Warning | The same disk ratio for `pve.type = lxc`, per `id` | Above 90% | At or below 81% |
 | HA Resource in Error State | Critical | `pve_ha_state` for `state = error`, Max per `id` | Above 0 | At 0 |
 | Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (one cluster-wide series) | Above 0 | At 0 |
+| Backup Running Too Long | Warning | `pve_lock_state` for `pve.scope = guest` and `state = backup`, Min per `id`, past 6 hours | Above 0 | At 0 |
 | Replication Failing | Critical | `pve_replication_failed_syncs`, Max per `id` (the job id) | Above 0 | At 0 |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
@@ -134,17 +137,31 @@ Templates read the past 5 minutes unless the table says otherwise. A criteria fi
 - **Down templates use Minimum**, so one down scrape trips them instead of being hidden by scrapes where the resource was up.
 - **Guest Down** only looks at guests set to start on boot: one of them stopped on purpose still pages, so turn its start on boot off first.
 - **Cluster Quorum at Risk** counts the nodes online. pve-exporter also reports quorum itself, as `pve_up` for `cluster/<name>`: 1 while the cluster is quorate.
+- **Node Restarted** fires for a node that is up but has been running for less than 15 minutes: it rebooted, or it crashed and came back. It resolves once the node has been up for 16.5 minutes, 10% past the threshold; a node that is down raises **Node Offline** instead.
 - **High Guest CPU Usage** is higher and slower than the node template: a guest is meant to use its vCPUs, so only one that never comes down pages.
 - **Ratio formulas** take the **Sum** of both sides. Both come from the same scrape, so the result is a true percentage.
 - **Container Root Disk Near Full** leaves out QEMU VMs: their disk usage reads 0 without the QEMU guest agent.
+- **Storage Unavailable** fires when a storage Proxmox VE lists for a node stops being available: a share that cannot be mounted, a Proxmox Backup Server that cannot be reached, a pool that is gone. Guests with disks on it hang or fail to start, and backups to it fail.
 - **Guest Not Backed Up** covers backup-job membership only. pve-exporter does not say whether backups ran or succeeded; group `pve_not_backed_up_info` by `id` to list the guests.
+- **Backup Running Too Long** fires when a VM or container is locked by a backup in every scrape of six hours: a hung backup, or a target too slow for the guest. While the lock is held the guest cannot be migrated, snapshotted or backed up again.
 - **Replication staleness** (now minus the last sync) cannot be alerted on, because criteria have no clock arithmetic. The cluster's **Overview** page shows it; alert on **Replication Failing** instead.
+
+### Alerts on Proxmox VE's notifications
+
+Two more alerts read Proxmox VE's own notifications, which the cluster sends as logs once you [send them to OneUptime](/docs/telemetry/proxmox#send-proxmox-ves-notifications). They are Logs monitors, offered on the cluster's **Recommendations** page, and work with the agent and the native push alike.
+
+| Template | Severity | Watches | Fires when | Recovers when |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | Warning | Notification logs with `pve.notification.type = vzdump` and `pve.notification.severity = error`, per node and job, past 60 minutes | A backup job reports a failure | The same job's next run succeeds |
+| Node Fenced | Critical | Notification logs with `pve.notification.type = fencing`, per node, past 30 minutes | Proxmox VE fences a node | That node is not fenced again for 30 minutes |
+
+Each node and backup job gets its own incident and alert. A failed backup job's alert stays open until a later run of the same job succeeds, however long that takes.
 
 ### The Proxmox VE native push
 
 Proxmox VE 9 and later can push metrics through its built-in OpenTelemetry metric server, with nothing to install — see the [Proxmox Agent guide](/docs/telemetry/proxmox). OneUptime turns the push into the same `pve_*` series, so the catalog and the CPU, memory and storage templates work with it.
 
-**Node Offline** and **Cluster Quorum at Risk** work too: each node pushes only its own status, so a node that stops reporting is reported down (`pve_up` = 0) by the nodes still alive — see [When a node stops reporting](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** and **Replication Failing** need data only the agent collects.
+**Node Offline** and **Cluster Quorum at Risk** work too: each node pushes only its own status, so a node that stops reporting is reported down (`pve_up` = 0) by the nodes still alive — see [When a node stops reporting](/docs/telemetry/proxmox#when-a-node-stops-reporting). **Guest Down**, **HA Resource in Error State**, **Guest Not Backed Up** and **Replication Failing** need data only the agent collects. The two [notification alerts](#alerts-on-proxmox-ves-notifications) work with it too: Proxmox VE sends its notifications itself.
 
 ## Collected Metrics
 
@@ -180,6 +197,7 @@ The CPU and memory series are also reported for each guest, on `qemu/*` and `lxc
 | `pve_disk_read_bytes` | bytes | Bytes read from disk by the guest. A lifetime counter. |
 | `pve_disk_write_bytes` | bytes | Bytes written to disk by the guest. A lifetime counter. |
 | `pve_onboot_status` | count | 1 when the guest starts on node boot. A stopped guest with this set is usually unplanned downtime. |
+| `pve_lock_state` | — | The lock Proxmox VE holds on a guest while a task changes it, one series per lock (`backup`, `migrate`, `snapshot`, …), 1 on the one held. Filter on the `state` label. |
 
 ### Storage
 
@@ -187,6 +205,7 @@ The CPU and memory series are also reported for each guest, on `qemu/*` and `lxc
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | bytes | Bytes used on the disk or storage. For a QEMU guest it reads 0 unless the QEMU guest agent is installed. |
 | `pve_disk_size_bytes` | bytes | Total size of the disk or storage. |
+| `pve_storage_shared` | count | 1 when every node of the cluster can use the storage, such as NFS or Ceph; 0 when only its own node can. |
 | `pve_storage_info` | count | Storage metadata, always 1 while the storage exists. A Sum adds every scrape in a minute, so it does not count volumes. |
 
 ### HA

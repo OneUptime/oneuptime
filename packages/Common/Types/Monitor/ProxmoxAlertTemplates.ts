@@ -642,7 +642,7 @@ const nodeRestartedTemplate: ProxmoxAlertTemplate = {
   name: "Node Restarted",
   summary: "A node started less than 15 minutes ago.",
   description:
-    "Alert when a node that is up has been running for less than 15 minutes (pve_uptime_seconds below 900 while pve_up is 1, scoped to nodes): it rebooted, or crashed and came back. One incident per node, which resolves once the node has been up for 15 minutes. A node that is down raises Node Offline instead.",
+    "Alert when a node that is up has been running for less than 15 minutes (pve_uptime_seconds below 900 while pve_up is 1, scoped to nodes): it rebooted, or crashed and came back. One incident per node, which resolves once the node has been up for 16.5 minutes (15 minutes plus the recovery margin). A node that is down raises Node Offline instead.",
   category: "Node",
   severity: "Warning",
   getMonitorStep: (args: ProxmoxAlertTemplateArgs): MonitorStep => {
@@ -694,7 +694,7 @@ const nodeRestartedTemplate: ProxmoxAlertTemplate = {
           },
         ],
         incidentTitle: `[Proxmox] Node Restarted - ${args.monitorName}`,
-        incidentDescription: `A Proxmox node has been up for less than 15 minutes: it rebooted, or it crashed and came back. If nobody restarted it, check the node's journal from the previous boot (journalctl -b -1) for a kernel panic, an out-of-memory kill, a watchdog or HA fence, or a power event, and check whether HA moved its guests away while it was down. The incident resolves once the node has been up for 15 minutes.`,
+        incidentDescription: `A Proxmox node has been up for less than 15 minutes: it rebooted, or it crashed and came back. If nobody restarted it, check the node's journal from the previous boot (journalctl -b -1) for a kernel panic, an out-of-memory kill, a watchdog or HA fence, or a power event, and check whether HA moved its guests away while it was down. The incident resolves once the node has been up for 16.5 minutes.`,
         criteriaName: "Node Restarted - Uptime < 15 minutes while up",
         criteriaDescription:
           "Triggers when a node that is up has been running for less than 15 minutes.",

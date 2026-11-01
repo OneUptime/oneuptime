@@ -5,6 +5,7 @@ OneUptime Proxmox-agenten övervakar ett Proxmox VE-kluster: dess noder, QEMU-VM
 :::cards
 - [Välj hur du ansluter](#välj-hur-du-ansluter): Agenten, eller den inbyggda pushen i Proxmox VE 9.
 - [Installera agenten](#installera-agenten): En API-token, sedan installationsskriptet eller Docker Compose.
+- [Säkerhetskopieringsresultat](#skicka-proxmox-ves-aviseringar): Proxmox VE:s egna aviseringar, skickade med två kommandon.
 - [Inbyggd push](#alternativ-utan-installation-inbyggd-opentelemetry-push-i-proxmox-ve-9): Proxmox VE 9 skickar sina mätvärden själv.
 - [Felsökning](#felsökning): Ett diagnosskript, och de vanliga problemen.
 :::
@@ -33,6 +34,7 @@ Klustret registrerar sig med sina första data, under det namn som agenten stäm
 | Att installera | Docker Compose på en maskin | Ingenting: en mätvärdesserver i Proxmox webbgränssnitt |
 | Noder, gäster och lagring | Ja | Ja |
 | HA-tillstånd, start vid uppstart, säkerhetskopieringstäckning och replikering | Ja | Nej |
+| Säkerhetskopieringsresultat, isolerade noder och misslyckad replikering, från Proxmox VE:s aviseringar (8.3 eller senare) | Ja | Ja |
 | Proxmox-AI-agent | Ja | Nej |
 
 Mallarna **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** och **Replication Failing** behöver agenten. Använd det ena eller det andra för ett kluster: att köra båda rapporterar varje resurs två gånger.
@@ -185,6 +187,44 @@ Monitorkriterier och attributfilter matchar på likhet, inte på ett prefix, så
 
 Den ursprungliga `id`-etiketten behålls som den är.
 
+## Skicka Proxmox VE:s aviseringar
+
+pve-exporter talar om vilka gäster ett säkerhetskopieringsjobb omfattar, men inte hur en säkerhetskopiering gick. Det talar Proxmox VE om själv, i sina aviseringar: resultatet av varje säkerhetskopieringsjobb, en isolerad nod, en misslyckad replikering, väntande uppdateringar. På Proxmox VE 8.3 eller senare skickar två kommandon, körda som root på valfri nod, varje avisering till OneUptime som en logg från klustret, utan att något behöver installeras, vid sidan av agenten eller den inbyggda pushen. Klustrets installationsguide visar dem med din URL, din nyckel och ditt klusternamn ifyllda.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+Det första kommandot lägger till ett webhook-mål med namnet `oneuptime`, som håller nyckeln och klustrets namn i sina hemligheter; det andra lägger till en matcher utan regler, som Proxmox VE läser som varje avisering. Använd klustrets namn så som OneUptime visar det: agentens `PROXMOX_CLUSTER_NAME`, eller med den inbyggda pushen Proxmox-klustrets eget namn.
+
+Varje avisering kommer med de här attributen:
+
+| Attribut | Värde |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (ett säkerhetskopieringsjobb), `replication`, `fencing`, `package-updates` eller `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` eller `unknown` |
+| `pve.notification.title` | Aviseringens rubrik |
+| `pve.notification.job_id` | Säkerhetskopieringsjobbets id, för ett säkerhetskopieringsjobb |
+| `proxmox.node.name` | Noden som skickade den |
+
+Från ett säkerhetskopieringsjobbs avisering registrerar OneUptime varje gästs senaste säkerhetskopia: om den lyckades, när den blev klar, hur stor den var och hur lång tid den tog. En gästs sida visar den, listan **Gäster** har den i kolumnen Backup, klustrets **Översikt** räknar resultaten, och en misslyckad ligger kvar under **Kräver uppmärksamhet** tills en senare säkerhetskopia av den gästen lyckas. Larmen **Backup Job Failed** och **Node Fenced** läser samma loggar.
+
+Så slutar du skicka dem:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## Valfritt — Skicka Proxmox-tjänstloggar
 
 Som standard skickar agenten bara mätvärden, så klustrets sida **Loggar** förblir tom. Proxmox VE-tjänsterna loggar till systemd-journalen under åtta enheter: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` och `qmeventd`. Den medföljande `otel-collector-config.yaml` har en bortkommenterad `journald`-receiver för exakt de enheterna, kopplad till en bortkommenterad `logs`-pipeline som stämplar `proxmox.cluster.name` så att loggarna hamnar på ditt kluster.
@@ -288,6 +328,8 @@ Den inbyggda pushen skickar bara det som varje nod vet om sig själv, så en del
 
 Om du behöver dem kör du agenten i stället och tar bort mätvärdesservern: att köra båda rapporterar varje resurs två gånger.
 
+Säkerhetskopieringsresultat, isolerade noder och misslyckade replikeringar når ändå OneUptime: [skicka Proxmox VE:s aviseringar](#skicka-proxmox-ves-aviseringar), som också fungerar med den inbyggda pushen.
+
 ## Kör som en systemd-tjänst
 
 För att starta agenten med maskinen och starta om den när den misslyckas installerar du dess systemd-enhet. Den förutsätter att agenten ligger i `/opt/oneuptime-proxmox-agent`, där installationsskriptet placerar den:
@@ -380,6 +422,13 @@ Den slutade rapportera: en nod som är nere, en `pvestatd` som har hängt sig, e
 
 :::details Med inbyggd push utlöses aldrig Guest Down-, HA- eller säkerhetskopieringslarm
 Den inbyggda pushen skickar inte HA-tillstånd, start vid uppstart, säkerhetskopieringstäckning eller replikering. [Installera agenten](#installera-agenten) för dem, och ta bort mätvärdesservern: att köra båda rapporterar varje resurs två gånger.
+:::
+
+:::details Säkerhetskopieringsresultat dyker aldrig upp
+1. Kontrollera Proxmox VE-versionen: webhook-mål kräver 8.3 eller senare (`pveversion`).
+2. Kontrollera att målet och dess matcher finns: `pvesh get /cluster/notifications/endpoints/webhook` och `pvesh get /cluster/notifications/matchers` visar båda `oneuptime`.
+3. Skicka en testavisering med `pvesh create /cluster/notifications/targets/oneuptime/test`. Den visas på klustrets sida **Loggar** inom en minut; om den inte gör det är nyckeln eller URL:en i målet fel.
+4. Kontrollera klustrets namn i målets hemligheter: ett namn som OneUptime inte känner till registrerar ett andra kluster.
 :::
 
 ## Nästa steg

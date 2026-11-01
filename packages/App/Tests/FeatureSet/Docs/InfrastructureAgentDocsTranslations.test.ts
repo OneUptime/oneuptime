@@ -147,7 +147,11 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [KUBERNETES]: ["Enable AI Command Execution", "Pilot", "Warning Events"],
   // The dashboard template's name, from the template catalog.
   [COST]: ["Kubernetes Cost Dashboard"],
-  // Alert template names: the templates are created with English names.
+  /*
+   * Alert template names: the templates are created with English names,
+   * the two on Proxmox VE's notifications (ProxmoxNotificationAlertTemplates)
+   * included.
+   */
   [PROXMOX]: [
     "HA Resource in Error State",
     "Guest Down",
@@ -155,6 +159,8 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "Replication Failing",
     "Node Offline",
     "Cluster Quorum at Risk",
+    "Backup Job Failed",
+    "Node Fenced",
   ],
   /*
    * The pod and container pages' link to a database (OPEN_DATABASE_LABEL),

@@ -4,7 +4,7 @@ Proxmox モニターは 1 つの Proxmox VE クラスター（ノード、VM と
 
 :::cards
 - [モニターを作成する](#proxmox-モニターを作成する): ダッシュボードでの 6 つのステップ。
-- [テンプレート](#既製のアラートテンプレート): ノード、ゲスト、ボリュームごとに 1 件のインシデントを作る 12 個の既製アラート。
+- [テンプレート](#既製のアラートテンプレート): ノード、ゲスト、ボリュームごとに 1 件のインシデントを作る 15 個の既製アラートと、Proxmox VE 自身の通知を読む 2 個のアラート。
 - [リソースの識別](#リソースの識別): 1 つのノード、ゲスト、ストレージボリュームを対象にする方法。
 - [メトリクス](#収集されるメトリクス): モニターがアラートに使えるすべての `pve_*` 系列。
 :::
@@ -109,7 +109,7 @@ flowchart TB
 
 ## 既製のアラートテンプレート
 
-**アラートの対象** の一覧には 12 個のテンプレートがあります。それぞれが完全なモニターを作ります。クエリ、属性フィルター、グループ化、発火する条件、回復する条件です。ほとんどは `id` でグループ化するため、ノード、ゲスト、ボリューム、ジョブごとに専用のインシデントとアラートが作られます。しきい値は出発点なので編集できます。
+**アラートの対象** の一覧には 15 個のテンプレートがあります。それぞれが完全なモニターを作ります。クエリ、属性フィルター、グループ化、発火する条件、回復する条件です。ほとんどは `id` でグループ化するため、ノード、ゲスト、ボリューム、ジョブごとに専用のインシデントとアラートが作られます。しきい値は出発点なので編集できます。
 
 表に別の記載がない限り、テンプレートは過去 5 分を読み取ります。条件はそのウィンドウのすべての分で成り立つ場合にのみ発火し、しきい値の条件はしきい値から 10% 離れたところで回復するため、境界付近を行き来する値でばたつくことはありません。
 
@@ -119,13 +119,16 @@ flowchart TB
 | Node Offline | 重大 | `pve.scope = node` の `pve_up`、`id` ごとの Min | 1 未満 | 1 になる |
 | Guest Down | 警告 | `pve.scope = guest` の `pve_up` と `pve_onboot_status`、`id` ごとの Min | `pve_onboot_status` が 1 のときに `pve_up` が 1 未満 | `pve_up` が 1 に戻るか、起動時の自動開始がオフになる |
 | Cluster Quorum at Risk | 重大 | `pve.scope = node` の `pve_up` ÷ `pve_node_info` × 100（どちらも合計）：オンラインのノードの割合 | 50% 以下 | 55% を超える |
+| Node Restarted | 警告 | `pve.scope = node` の `pve_uptime_seconds` と `pve_up`、`id` ごとの Min | `pve_up` が 1 のときに `pve_uptime_seconds` が 900（15 分）未満 | `pve_uptime_seconds` が 990 以上になるか、`pve_up` が 0 になる |
 | High Node CPU Usage | 警告 | `pve.scope = node` の `pve_cpu_usage_ratio`、`id` ごとの Avg | 0.9 を超える（ノードのコアの 90%） | 0.81 以下 |
 | High Node Memory Usage | 警告 | `pve.scope = node` の `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100、`id` ごと | 85% を超える | 76.5% 以下 |
 | High Guest CPU Usage | 警告 | `pve.scope = guest` の `pve_cpu_usage_ratio`、`id` ごとの Avg、過去 15 分 | 15 分間ずっと 0.95 を超える（vCPU の 95%） | 0.855 以下 |
+| Storage Unavailable | 重大 | `pve.scope = storage` の `pve_up`、`id` ごとの Min | 1 未満 | 1 になる |
 | Storage Near Full | 警告 | `pve.scope = storage` の `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100、`id` ごと | 85% を超える | 76.5% 以下 |
 | Container Root Disk Near Full | 警告 | `pve.type = lxc` に対する同じディスクの比率、`id` ごと | 90% を超える | 81% 以下 |
 | HA Resource in Error State | 重大 | `state = error` の `pve_ha_state`、`id` ごとの Max | 0 を超える | 0 になる |
 | Guest Not Backed Up | 警告 | `pve_not_backed_up_total`、Max（クラスター全体で一つの系列） | 0 を超える | 0 になる |
+| Backup Running Too Long | 警告 | `pve.scope = guest` かつ `state = backup` の `pve_lock_state`、`id` ごとの Min、過去 6 時間 | 0 を超える | 0 になる |
 | Replication Failing | 重大 | `pve_replication_failed_syncs`、`id`（ジョブ ID）ごとの Max | 0 を超える | 0 になる |
 
 **重大度** は選択リストに表示されるラベルです。テンプレートが作成するインシデントとアラートは、プロジェクトで最も重大なインシデントとアラートの重大度から始まります。条件で変更してください。
@@ -134,17 +137,31 @@ flowchart TB
 - **停止検知のテンプレートは最小を使います**。そのため、リソースが停止していたスクレイプが 1 回あれば発火し、稼働していたスクレイプに隠されることはありません。
 - **Guest Down** は起動時に自動開始する設定のゲストだけを見ます。そのようなゲストを意図的に停止しても呼び出しが発生するため、先に起動時の自動開始をオフにしてください。
 - **Cluster Quorum at Risk** はオンラインのノードを数えます。pve-exporter はクォーラムそのものも `cluster/<name>` の `pve_up` として報告し、クラスターにクォーラムがある間は 1 です。
+- **Node Restarted** は、稼働中でありながら起動から 15 分未満のノードで発火します。再起動したか、クラッシュして復帰したノードです。ノードの稼働時間が 16.5 分（しきい値から 10% 先）に達すると解決します。停止しているノードでは、代わりに **Node Offline** が発火します。
 - **High Guest CPU Usage** はノードのテンプレートより高く、遅く設定されています。ゲストは vCPU を使い切るのが普通なので、下がらないままのゲストだけが呼び出しの対象になります。
 - **比率の数式** は両辺の **合計** を取ります。どちらも同じスクレイプから得られるため、結果は正しいパーセントになります。
 - **Container Root Disk Near Full** は QEMU の VM を対象外にします。QEMU ゲストエージェントがないと、そのディスク使用量は 0 になるためです。
+- **Storage Unavailable** は、Proxmox VE がノードについて一覧に示すストレージが利用できなくなったときに発火します。マウントできない共有、到達できない Proxmox Backup Server、なくなったプールなどです。そこにディスクを持つゲストは応答しなくなったり起動できなくなったりし、そこへのバックアップは失敗します。
 - **Guest Not Backed Up** が対象とするのはバックアップジョブへの所属だけです。pve-exporter はバックアップが実行されたか成功したかを報告しません。ゲストの一覧を得るには `pve_not_backed_up_info` を `id` でグループ化します。
+- **Backup Running Too Long** は、VM やコンテナが 6 時間のすべてのスクレイプでバックアップによってロックされているときに発火します。ハングしたバックアップか、そのゲストには遅すぎるバックアップ先です。ロックが続く間、そのゲストは移行も、スナップショットの作成も、再度のバックアップもできません。
 - **レプリケーションの古さ**（現在時刻から最後の同期を引いた値）は、条件で時刻の計算ができないため、アラートに使えません。クラスターの **概要** ページに表示されるので、代わりに **Replication Failing** でアラートを出してください。
+
+### Proxmox VE の通知に対するアラート
+
+さらに 2 つのアラートが Proxmox VE 自身の通知を読み取ります。通知を [OneUptime に送信する](/docs/telemetry/proxmox#proxmox-ve-の通知を送信する) と、クラスターはそれをログとして送ります。これらはログモニターで、クラスターの **推奨事項** ページで提案され、エージェントでもネイティブプッシュでも動作します。
+
+| テンプレート | 重大度 | 監視対象 | 発火する条件 | 回復する条件 |
+| --- | --- | --- | --- | --- |
+| Backup Job Failed | 警告 | `pve.notification.type = vzdump` かつ `pve.notification.severity = error` の通知ログ、ノードとジョブごと、過去 60 分 | バックアップジョブが失敗を報告する | 同じジョブの次の実行が成功する |
+| Node Fenced | 重大 | `pve.notification.type = fencing` の通知ログ、ノードごと、過去 30 分 | Proxmox VE がノードをフェンシングする | そのノードが 30 分間再びフェンシングされない |
+
+ノードとバックアップジョブごとに専用のインシデントとアラートが作られます。失敗したバックアップジョブのアラートは、どれだけ時間がかかっても、同じジョブの後の実行が成功するまで開いたままです。
 
 ### Proxmox VE のネイティブプッシュ
 
 Proxmox VE 9 以降は、組み込みの OpenTelemetry メトリクスサーバーを通じて、何もインストールせずにメトリクスをプッシュできます。[Proxmox エージェントのガイド](/docs/telemetry/proxmox) を参照してください。OneUptime はプッシュを同じ `pve_*` 系列に変換するため、カタログと、CPU、メモリ、ストレージのテンプレートはそのまま使えます。
 
-**Node Offline** と **Cluster Quorum at Risk** も動作します。各ノードは自身のステータスだけをプッシュするため、報告が止まったノードは、まだ動いているノードによって停止（`pve_up` = 0）と報告されます。[ノードの報告が止まったとき](/docs/telemetry/proxmox#ノードの報告が止まったとき) を参照してください。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up**、**Replication Failing** には、エージェントだけが収集するデータが必要です。
+**Node Offline** と **Cluster Quorum at Risk** も動作します。各ノードは自身のステータスだけをプッシュするため、報告が止まったノードは、まだ動いているノードによって停止（`pve_up` = 0）と報告されます。[ノードの報告が止まったとき](/docs/telemetry/proxmox#ノードの報告が止まったとき) を参照してください。**Guest Down**、**HA Resource in Error State**、**Guest Not Backed Up**、**Replication Failing** には、エージェントだけが収集するデータが必要です。 2 つの [通知のアラート](#proxmox-ve-の通知に対するアラート) もネイティブプッシュで動作します。Proxmox VE が自分で通知を送るためです。
 
 ## 収集されるメトリクス
 
@@ -180,6 +197,7 @@ CPU とメモリの系列は、各ゲストについても `qemu/*` と `lxc/*` 
 | `pve_disk_read_bytes` | バイト | ゲストがディスクから読み取ったバイト数。生涯カウンター。 |
 | `pve_disk_write_bytes` | バイト | ゲストがディスクに書き込んだバイト数。生涯カウンター。 |
 | `pve_onboot_status` | 個数 | ノードの起動時にゲストが開始する設定なら 1。この設定のゲストが停止しているのは、たいてい計画外のダウンタイムです。 |
+| `pve_lock_state` | — | タスクがゲストを変更している間に Proxmox VE がゲストにかけるロック。ロックごと（`backup`、`migrate`、`snapshot`、…）に 1 つの系列があり、かかっているロックで 1 になります。`state` ラベルでフィルターします。 |
 
 ### ストレージ
 
@@ -187,6 +205,7 @@ CPU とメモリの系列は、各ゲストについても `qemu/*` と `lxc/*` 
 | --- | --- | --- |
 | `pve_disk_usage_bytes` | バイト | ディスクまたはストレージの使用中のバイト数。QEMU ゲストでは、QEMU ゲストエージェントがインストールされていない限り 0 になります。 |
 | `pve_disk_size_bytes` | バイト | ディスクまたはストレージの総容量。 |
+| `pve_storage_shared` | 個数 | NFS や Ceph のように、クラスターのすべてのノードがストレージを使える場合は 1。そのストレージ自身のノードだけが使える場合は 0。 |
 | `pve_storage_info` | 個数 | ストレージのメタデータ。存在する間は常に 1。合計は毎分のスクレイプをすべて足すため、ボリューム数にはなりません。 |
 
 ### HA

@@ -5,6 +5,7 @@
 :::cards
 - [برگزیدن روش اتصال](#برگزیدن-روش-اتصال): عامل، یا ارسال خود Proxmox VE 9.
 - [نصب عامل](#نصب-عامل): یک توکن API، سپس اسکریپت نصب یا Docker Compose.
+- [نتایج پشتیبان‌گیری](#فرستادن-اعلانهای-proxmox-ve): اعلان‌های خود Proxmox VE، فرستاده‌شده با دو فرمان.
 - [ارسال بومی](#جایگزین-بدون-نصب-ارسال-بومی-opentelemetry-در-proxmox-ve-9): Proxmox VE 9 متریک‌هایش را خودش می‌فرستد.
 - [رفع اشکال](#رفع-اشکال): یک اسکریپت تشخیصی، و مشکلات معمول.
 :::
@@ -33,6 +34,7 @@ flowchart TB
 | آنچه نصب می‌شود | Docker Compose روی یک ماشین | هیچ: یک سرور متریک در رابط وب Proxmox |
 | گره‌ها، مهمان‌ها و ذخیره‌سازی | بله | بله |
 | وضعیت HA، شروع هنگام بوت، پوشش پشتیبان‌گیری و همتاسازی | بله | خیر |
+| نتایج پشتیبان‌گیری، گره‌های جداشده و همتاسازی ناموفق، از اعلان‌های Proxmox VE (8.3 یا بعد از آن) | بله | بله |
 | عامل هوش مصنوعی Proxmox | بله | خیر |
 
 الگوهای **HA Resource in Error State**، **Guest Down**، **Guest Not Backed Up** و **Replication Failing** به عامل نیاز دارند. برای یک خوشه یکی از این دو را به کار ببرید: اجرای هر دو هر منبع را دو بار گزارش می‌کند.
@@ -185,6 +187,44 @@ Everything is ready. Begin running and processing data.
 
 برچسب اصلی `id` همان‌طور که هست نگه داشته می‌شود.
 
+## فرستادن اعلان‌های Proxmox VE
+
+pve-exporter می‌گوید یک کار پشتیبان‌گیری کدام مهمان‌ها را در بر می‌گیرد، اما نمی‌گوید پشتیبان‌گیری چطور پیش رفت. این را خود Proxmox VE در اعلان‌هایش می‌گوید: نتیجه هر کار پشتیبان‌گیری، گره‌ای که جدا شده، همتاسازی‌ای که شکست خورده، به‌روزرسانی‌هایی که منتظرند. روی Proxmox VE 8.3 یا بعد از آن، دو فرمان که با root روی هر گره‌ای اجرا شوند، هر اعلان را به صورت لاگی از خوشه به OneUptime می‌فرستند، بی‌آنکه چیزی نصب شود، در کنار عامل یا ارسال بومی. راهنمای راه‌اندازی خوشه این فرمان‌ها را با نشانی، کلید و نام خوشه شما پرشده نشان می‌دهد.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+فرمان اول یک مقصد webhook به نام `oneuptime` می‌افزاید که کلید و نام خوشه را در رازهایش نگه می‌دارد؛ فرمان دوم یک matcher بدون قاعده می‌افزاید که Proxmox VE آن را همه اعلان‌ها می‌خواند. نام خوشه را همان‌طور که OneUptime نشان می‌دهد به کار ببرید: `PROXMOX_CLUSTER_NAME` عامل، یا با ارسال بومی نام خود خوشه Proxmox.
+
+هر اعلان با این ویژگی‌ها می‌رسد:
+
+| ویژگی | مقدار |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (یک کار پشتیبان‌گیری)، `replication`، `fencing`، `package-updates` یا `system-mail` |
+| `pve.notification.severity` | `info`، `notice`، `warning`، `error` یا `unknown` |
+| `pve.notification.title` | عنوان اعلان |
+| `pve.notification.job_id` | شناسه کار پشتیبان‌گیری، برای یک کار پشتیبان‌گیری |
+| `proxmox.node.name` | گره‌ای که آن را فرستاده است |
+
+OneUptime از اعلان یک کار پشتیبان‌گیری، آخرین پشتیبان هر مهمان را ثبت می‌کند: موفق بوده یا نه، کی تمام شده، چه اندازه‌ای داشته و چقدر طول کشیده است. صفحه هر مهمان آن را نشان می‌دهد، فهرست **مهمان‌ها** آن را در ستون Backup دارد، **نمای کلی** خوشه نتایج را می‌شمارد، و پشتیبانِ ناموفق تا وقتی پشتیبان بعدی همان مهمان موفق شود زیر **نیاز به توجه** می‌ماند. هشدارهای **Backup Job Failed** و **Node Fenced** همین لاگ‌ها را می‌خوانند.
+
+برای قطع فرستادن آن‌ها:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## اختیاری — فرستادن لاگ‌های سرویس Proxmox
 
 به‌طور پیش‌فرض عامل فقط متریک می‌فرستد، پس صفحه **لاگ‌ها** خوشه خالی می‌ماند. سرویس‌های Proxmox VE در ژورنال systemd زیر هشت واحد لاگ می‌نویسند: `pveproxy`، `pvedaemon`، `pve-firewall`، `pve-ha-crm`، `pve-ha-lrm`، `pvescheduler`، `pvestatd` و `qmeventd`. `otel-collector-config.yaml` همراه یک گیرنده `journald` درون توضیح برای دقیقاً همین واحدها دارد که به یک خط لوله `logs` درون توضیح وصل است و `proxmox.cluster.name` را مُهر می‌زند تا لاگ‌ها در خوشه شما بنشینند.
@@ -288,6 +328,8 @@ Proxmox VE 9.0 و بعد از آن یک سرور متریک OpenTelemetry دار
 
 اگر به این‌ها نیاز دارید، به‌جایش عامل را اجرا کنید و سرور متریک را بردارید: اجرای هر دو هر منبع را دو بار گزارش می‌کند.
 
+نتایج پشتیبان‌گیری، گره‌های جداشده و همتاسازی‌های ناموفق باز هم به OneUptime می‌رسند: [اعلان‌های Proxmox VE را بفرستید](#فرستادن-اعلانهای-proxmox-ve)، که با ارسال بومی هم کار می‌کنند.
+
 ## اجرا به‌صورت یک سرویس systemd
 
 برای اینکه عامل همراه ماشین شروع شود و اگر از کار افتاد دوباره راه‌اندازی شود، واحد systemd آن را نصب کنید. این واحد فرض می‌کند عامل در `/opt/oneuptime-proxmox-agent` است، جایی که اسکریپت نصب آن را می‌گذارد:
@@ -380,6 +422,13 @@ OneUptime یک خوشه Proxmox را بر پایه `proxmox.cluster.name` آن �
 
 :::details با ارسال بومی، هشدارهای Guest Down، HA یا پشتیبان‌گیری هرگز برانگیخته نمی‌شوند
 ارسال بومی وضعیت HA، شروع هنگام بوت، پوشش پشتیبان‌گیری یا همتاسازی را نمی‌فرستد. برای این‌ها [عامل را نصب کنید](#نصب-عامل) و سرور متریک را بردارید: اجرای هر دو هر منبع را دو بار گزارش می‌کند.
+:::
+
+:::details نتایج پشتیبان‌گیری هرگز دیده نمی‌شوند
+1. نسخه Proxmox VE را بررسی کنید: مقصدهای webhook به 8.3 یا بعد از آن نیاز دارند (`pveversion`).
+2. بررسی کنید که مقصد و matcher آن وجود داشته باشند: `pvesh get /cluster/notifications/endpoints/webhook` و `pvesh get /cluster/notifications/matchers` هر دو `oneuptime` را فهرست می‌کنند.
+3. با `pvesh create /cluster/notifications/targets/oneuptime/test` یک اعلان آزمایشی بفرستید. ظرف یک دقیقه در صفحه **لاگ‌ها** خوشه دیده می‌شود؛ اگر نشد، کلید یا نشانی مقصد نادرست است.
+4. نام خوشه را در رازهای مقصد بررسی کنید: نامی که OneUptime نمی‌شناسد خوشه دومی ثبت می‌کند.
 :::
 
 ## گام‌های بعدی

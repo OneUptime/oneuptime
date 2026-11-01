@@ -5,6 +5,7 @@ The OneUptime Proxmox agent monitors a Proxmox VE cluster: its nodes, QEMU VMs, 
 :::cards
 - [Choose how to connect](#choose-how-to-connect): The agent, or Proxmox VE 9's own push.
 - [Install the agent](#install-the-agent): An API token, then the install script or Docker Compose.
+- [Backup results](#send-proxmox-ves-notifications): Proxmox VE's own notifications, sent with two commands.
 - [Native push](#zero-install-alternative-proxmox-ve-9-native-opentelemetry-push): Proxmox VE 9 sends its metrics itself.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
@@ -33,6 +34,7 @@ The cluster registers itself with its first data, under the name the agent stamp
 | To install | Docker Compose on one machine | Nothing: a metric server in the Proxmox web UI |
 | Nodes, guests and storage | Yes | Yes |
 | HA state, start-on-boot, backup coverage and replication | Yes | No |
+| Backup results, fenced nodes and failed replication, from Proxmox VE's notifications (8.3 or later) | Yes | Yes |
 | Proxmox AI agent | Yes | No |
 
 The **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** and **Replication Failing** templates need the agent. Use one or the other for a cluster: running both reports every resource twice.
@@ -185,6 +187,44 @@ Monitor criteria and attribute filters match on equality, not on a prefix, so th
 
 The original `id` label is kept as it is.
 
+## Send Proxmox VE's notifications
+
+pve-exporter says which guests a backup job includes, but not how a backup went. Proxmox VE says that itself, in its notifications: each backup job's result, a fenced node, a failed replication, updates waiting. On Proxmox VE 8.3 or later, two commands, run as root on any node, send every notification to OneUptime as a log of the cluster, with nothing to install, alongside the agent or the native push. The cluster's setup guide shows them with your URL, key and cluster name filled in.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+The first command adds a webhook target named `oneuptime`, which keeps the key and the cluster's name in its secrets; the second adds a matcher with no rules, which Proxmox VE reads as every notification. Use the cluster's name as OneUptime shows it: the agent's `PROXMOX_CLUSTER_NAME`, or with the native push the Proxmox cluster's own name.
+
+Each notification arrives with these attributes:
+
+| Attribute | Value |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (a backup job), `replication`, `fencing`, `package-updates` or `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` or `unknown` |
+| `pve.notification.title` | The notification's title |
+| `pve.notification.job_id` | The backup job's id, for a backup job |
+| `proxmox.node.name` | The node that sent it |
+
+From a backup job's notification, OneUptime records each guest's last backup: whether it succeeded, when it finished, how big it was and how long it took. A guest's page shows it, the **Guests** list has it in its Backup column, the cluster's **Overview** counts the results, and a failed one stays under **Needs attention** until a later backup of that guest succeeds. The **Backup Job Failed** and **Node Fenced** alerts read the same logs.
+
+To stop sending them:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## Optional — Ship Proxmox service logs
 
 By default the agent ships metrics only, so the cluster's **Logs** page stays empty. The Proxmox VE services log to the systemd journal under eight units: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` and `qmeventd`. The shipped `otel-collector-config.yaml` has a commented-out `journald` receiver for exactly those units, wired to a commented `logs` pipeline that stamps `proxmox.cluster.name` so the logs land on your cluster.
@@ -288,6 +328,8 @@ The native push sends only what each node knows about itself, so part of what th
 
 If you need those, run the agent instead, and remove the metric server: running both reports every resource twice.
 
+Backup results, fenced nodes and failed replications still reach OneUptime: [send Proxmox VE's notifications](#send-proxmox-ves-notifications), which work with the native push too.
+
 ## Run as a systemd service
 
 To start the agent with the machine and restart it when it fails, install its systemd unit. It assumes the agent lives in `/opt/oneuptime-proxmox-agent`, where the install script puts it:
@@ -380,6 +422,13 @@ It stopped reporting: a node that is down, a hung `pvestatd`, a stopped `pmxcfs`
 
 :::details With native push, Guest Down, HA or backup alerts never fire
 The native push does not send HA state, start-on-boot, backup coverage or replication. [Install the agent](#install-the-agent) for those, and remove the metric server: running both reports every resource twice.
+:::
+
+:::details Backup results never appear
+1. Check the Proxmox VE release: webhook targets need 8.3 or later (`pveversion`).
+2. Check that the target and its matcher exist: `pvesh get /cluster/notifications/endpoints/webhook` and `pvesh get /cluster/notifications/matchers` both list `oneuptime`.
+3. Send a test notification with `pvesh create /cluster/notifications/targets/oneuptime/test`. It shows on the cluster's **Logs** page within a minute; if it does not, the key or the URL in the target is wrong.
+4. Check the cluster's name in the target's secrets: a name OneUptime does not know registers a second cluster.
 :::
 
 ## Next steps

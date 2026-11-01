@@ -5,6 +5,7 @@ El agente de Proxmox de OneUptime supervisa un clúster de Proxmox VE: sus nodos
 :::cards
 - [Elige cómo conectar](#elige-cómo-conectar): El agente, o el envío propio de Proxmox VE 9.
 - [Instala el agente](#instala-el-agente): Un token de API y luego el script de instalación o Docker Compose.
+- [Resultados de las copias de seguridad](#envía-las-notificaciones-de-proxmox-ve): Las propias notificaciones de Proxmox VE, enviadas con dos comandos.
 - [Push nativo](#alternativa-sin-instalación-push-nativo-de-opentelemetry-de-proxmox-ve-9): Proxmox VE 9 envía sus métricas por sí mismo.
 - [Solución de problemas](#solución-de-problemas): Un script de diagnóstico y los problemas habituales.
 :::
@@ -33,6 +34,7 @@ El clúster se registra con sus primeros datos, con el nombre que el agente marc
 | Qué instalar | Docker Compose en una máquina | Nada: un servidor de métricas en la interfaz web de Proxmox |
 | Nodos, invitados y almacenamiento | Sí | Sí |
 | Estado de HA, inicio con el arranque, cobertura de copias de seguridad y replicación | Sí | No |
+| Resultados de las copias de seguridad, nodos aislados y replicación fallida, desde las notificaciones de Proxmox VE (8.3 o posterior) | Sí | Sí |
 | Agente de IA de Proxmox | Sí | No |
 
 Las plantillas **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** y **Replication Failing** necesitan el agente. Usa uno u otro para un clúster: ejecutar ambos informa de cada recurso dos veces.
@@ -185,6 +187,44 @@ Los criterios de los monitores y los filtros de atributos comparan por igualdad,
 
 La etiqueta `id` original se mantiene tal cual.
 
+## Envía las notificaciones de Proxmox VE
+
+pve-exporter indica qué invitados incluye un trabajo de copia de seguridad, pero no cómo fue una copia. Eso lo dice el propio Proxmox VE, en sus notificaciones: el resultado de cada trabajo de copia de seguridad, un nodo aislado, una replicación fallida, actualizaciones pendientes. En Proxmox VE 8.3 o posterior, dos comandos, ejecutados como root en cualquier nodo, envían cada notificación a OneUptime como un log del clúster, sin nada que instalar, junto al agente o al push nativo. La guía de configuración del clúster los muestra con tu URL, tu clave y el nombre de tu clúster ya rellenados.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+El primer comando añade un destino webhook llamado `oneuptime`, que guarda la clave y el nombre del clúster en sus secretos; el segundo añade un matcher sin reglas, que Proxmox VE interpreta como todas las notificaciones. Usa el nombre del clúster tal como lo muestra OneUptime: el `PROXMOX_CLUSTER_NAME` del agente o, con el push nativo, el nombre propio del clúster de Proxmox.
+
+Cada notificación llega con estos atributos:
+
+| Atributo | Valor |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (un trabajo de copia de seguridad), `replication`, `fencing`, `package-updates` o `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` o `unknown` |
+| `pve.notification.title` | El título de la notificación |
+| `pve.notification.job_id` | El ID del trabajo de copia de seguridad, para un trabajo de copia de seguridad |
+| `proxmox.node.name` | El nodo que la envió |
+
+A partir de la notificación de un trabajo de copia de seguridad, OneUptime registra la última copia de cada invitado: si tuvo éxito, cuándo terminó, cuánto ocupaba y cuánto tardó. La página de un invitado la muestra, la lista **Invitados** la tiene en su columna Copia de seguridad, la **Vista general** del clúster cuenta los resultados, y una fallida permanece en **Requiere atención** hasta que una copia posterior de ese invitado tiene éxito. Las alertas **Backup Job Failed** y **Node Fenced** leen los mismos logs.
+
+Para dejar de enviarlas:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## Opcional — Envía los logs de servicio de Proxmox
 
 Por defecto, el agente solo envía métricas, así que la página **Registros** del clúster se queda vacía. Los servicios de Proxmox VE escriben sus logs en el journal de systemd con ocho unidades: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` y `qmeventd`. El `otel-collector-config.yaml` incluido tiene un receiver `journald` comentado para exactamente esas unidades, conectado a un pipeline `logs` comentado que marca `proxmox.cluster.name` para que los logs lleguen a tu clúster.
@@ -288,6 +328,8 @@ El push nativo solo envía lo que cada nodo sabe de sí mismo, así que parte de
 
 Si los necesitas, ejecuta el agente en su lugar y quita el servidor de métricas: ejecutar ambos informa de cada recurso dos veces.
 
+Los resultados de las copias de seguridad, los nodos aislados y las replicaciones fallidas siguen llegando a OneUptime: [envía las notificaciones de Proxmox VE](#envía-las-notificaciones-de-proxmox-ve), que también funcionan con el push nativo.
+
 ## Ejecutar como servicio de systemd
 
 Para iniciar el agente con la máquina y reiniciarlo cuando falle, instala su unidad de systemd. Supone que el agente está en `/opt/oneuptime-proxmox-agent`, donde lo pone el script de instalación:
@@ -380,6 +422,13 @@ Dejó de informar: un nodo caído, un `pvestatd` colgado, un `pmxcfs` detenido o
 
 :::details Con el push nativo, las alertas de Guest Down, HA o copias de seguridad nunca se disparan
 El push nativo no envía el estado de HA, el inicio con el arranque, la cobertura de copias de seguridad ni la replicación. [Instala el agente](#instala-el-agente) para tenerlos y quita el servidor de métricas: ejecutar ambos informa de cada recurso dos veces.
+:::
+
+:::details Los resultados de las copias de seguridad nunca aparecen
+1. Comprueba la versión de Proxmox VE: los destinos webhook necesitan la 8.3 o posterior (`pveversion`).
+2. Comprueba que existen el destino y su matcher: `pvesh get /cluster/notifications/endpoints/webhook` y `pvesh get /cluster/notifications/matchers` muestran ambos `oneuptime`.
+3. Envía una notificación de prueba con `pvesh create /cluster/notifications/targets/oneuptime/test`. Aparece en la página **Registros** del clúster en menos de un minuto; si no aparece, la clave o la URL del destino son incorrectas.
+4. Comprueba el nombre del clúster en los secretos del destino: un nombre que OneUptime no conoce registra un segundo clúster.
 :::
 
 ## Próximos pasos

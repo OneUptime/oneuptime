@@ -5,6 +5,7 @@ L'agent Proxmox de OneUptime surveille un cluster Proxmox VE : ses nœuds, ses V
 :::cards
 - [Choisir le mode de connexion](#choisir-le-mode-de-connexion): L'agent, ou le push propre à Proxmox VE 9.
 - [Installer l'agent](#installer-lagent): Un jeton d'API, puis le script d'installation ou Docker Compose.
+- [Résultats des sauvegardes](#envoyer-les-notifications-de-proxmox-ve): Les notifications propres à Proxmox VE, envoyées avec deux commandes.
 - [Push natif](#alternative-sans-installation-push-opentelemetry-natif-de-proxmox-ve-9): Proxmox VE 9 envoie lui-même ses métriques.
 - [Dépannage](#dépannage): Un script de diagnostic, et les problèmes habituels.
 :::
@@ -33,6 +34,7 @@ Le cluster s'enregistre avec ses premières données, sous le nom que l'agent ap
 | À installer | Docker Compose sur une machine | Rien : un serveur de métriques dans l'interface web de Proxmox |
 | Nœuds, invités et stockage | Oui | Oui |
 | État HA, démarrage au boot, couverture des sauvegardes et réplication | Oui | Non |
+| Résultats des sauvegardes, nœuds isolés et réplications en échec, depuis les notifications de Proxmox VE (8.3 ou ultérieure) | Oui | Oui |
 | Agent IA Proxmox | Oui | Non |
 
 Les modèles **HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** et **Replication Failing** nécessitent l'agent. Utilisez l'un ou l'autre pour un cluster : exécuter les deux signale chaque ressource deux fois.
@@ -185,6 +187,44 @@ Les critères des moniteurs et les filtres d'attributs comparent par égalité, 
 
 L'étiquette `id` d'origine est conservée telle quelle.
 
+## Envoyer les notifications de Proxmox VE
+
+pve-exporter indique quels invités une tâche de sauvegarde inclut, mais pas comment une sauvegarde s'est passée. Proxmox VE le dit lui-même, dans ses notifications : le résultat de chaque tâche de sauvegarde, un nœud isolé, une réplication en échec, des mises à jour en attente. Sur Proxmox VE 8.3 et les versions ultérieures, deux commandes, exécutées en tant que root sur n'importe quel nœud, envoient chaque notification à OneUptime comme un journal du cluster, sans rien installer, en plus de l'agent ou du push natif. Le guide de configuration du cluster les affiche avec votre URL, votre clé et le nom de votre cluster déjà renseignés.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+La première commande ajoute une cible webhook nommée `oneuptime`, qui garde la clé et le nom du cluster dans ses secrets ; la seconde ajoute un matcher sans règles, que Proxmox VE lit comme toutes les notifications. Utilisez le nom du cluster tel que OneUptime l'affiche : le `PROXMOX_CLUSTER_NAME` de l'agent ou, avec le push natif, le nom propre du cluster Proxmox.
+
+Chaque notification arrive avec ces attributs :
+
+| Attribut | Valeur |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (une tâche de sauvegarde), `replication`, `fencing`, `package-updates` ou `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` ou `unknown` |
+| `pve.notification.title` | Le titre de la notification |
+| `pve.notification.job_id` | L'identifiant de la tâche de sauvegarde, pour une tâche de sauvegarde |
+| `proxmox.node.name` | Le nœud qui l'a envoyée |
+
+À partir de la notification d'une tâche de sauvegarde, OneUptime enregistre la dernière sauvegarde de chaque invité : si elle a réussi, quand elle s'est terminée, sa taille et sa durée. La page d'un invité l'affiche, la liste **Invités** l'a dans sa colonne Sauvegarde, la **Vue d'ensemble** du cluster compte les résultats, et une sauvegarde en échec reste sous **Attention requise** jusqu'à ce qu'une sauvegarde ultérieure de cet invité réussisse. Les alertes **Backup Job Failed** et **Node Fenced** lisent les mêmes journaux.
+
+Pour arrêter de les envoyer :
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## Optionnel — Envoyer les journaux des services Proxmox
 
 Par défaut, l'agent n'envoie que des métriques : la page **Journaux** du cluster reste donc vide. Les services Proxmox VE journalisent dans le journal systemd sous huit unités : `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` et `qmeventd`. Le `otel-collector-config.yaml` fourni contient un receiver `journald` commenté pour exactement ces unités, relié à un pipeline `logs` commenté qui appose `proxmox.cluster.name`, afin que les journaux arrivent sur votre cluster.
@@ -288,6 +328,8 @@ Le push natif n'envoie que ce que chaque nœud sait de lui-même : une partie de
 
 Si vous en avez besoin, exécutez plutôt l'agent et supprimez le serveur de métriques : exécuter les deux signale chaque ressource deux fois.
 
+Les résultats des sauvegardes, les nœuds isolés et les réplications en échec parviennent tout de même à OneUptime : [envoyez les notifications de Proxmox VE](#envoyer-les-notifications-de-proxmox-ve), qui fonctionnent aussi avec le push natif.
+
 ## Exécuter comme service systemd
 
 Pour démarrer l'agent avec la machine et le relancer en cas d'échec, installez son unité systemd. Elle suppose que l'agent se trouve dans `/opt/oneuptime-proxmox-agent`, là où le script d'installation le place :
@@ -380,6 +422,13 @@ Il a cessé de se signaler : un nœud en panne, un `pvestatd` bloqué, un `pmxcf
 
 :::details Avec le push natif, les alertes Guest Down, HA ou de sauvegarde ne se déclenchent jamais
 Le push natif n'envoie ni l'état HA, ni le démarrage au boot, ni la couverture des sauvegardes, ni la réplication. [Installez l'agent](#installer-lagent) pour les obtenir, et supprimez le serveur de métriques : exécuter les deux signale chaque ressource deux fois.
+:::
+
+:::details Les résultats des sauvegardes n'apparaissent jamais
+1. Vérifiez la version de Proxmox VE : les cibles webhook nécessitent la 8.3 ou ultérieure (`pveversion`).
+2. Vérifiez que la cible et son matcher existent : `pvesh get /cluster/notifications/endpoints/webhook` et `pvesh get /cluster/notifications/matchers` listent tous deux `oneuptime`.
+3. Envoyez une notification de test avec `pvesh create /cluster/notifications/targets/oneuptime/test`. Elle apparaît sur la page **Journaux** du cluster en moins d'une minute ; sinon, la clé ou l'URL de la cible est erronée.
+4. Vérifiez le nom du cluster dans les secrets de la cible : un nom que OneUptime ne connaît pas enregistre un second cluster.
 :::
 
 ## Étapes suivantes
