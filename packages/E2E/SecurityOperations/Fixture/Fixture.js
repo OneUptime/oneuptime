@@ -3296,14 +3296,16 @@ function memberSecurity(body) {
       kind: "User",
       id: member.id,
       name: member.name,
-      isInUse: true,
+      // ?empty=1: a project that has not used Security Events yet.
+      isInUse: !isEmpty,
       windowDays: 7,
       values: [email],
       isSearchedByLogs: false,
       entity: { type: "User", value: member.email },
-      eventCount: 58,
-      findingCount: 2,
-      maxSeverityId: 4,
+      // The spray's sign-ins and the travel, when the project has them.
+      eventCount: hasHistory ? 58 : 0,
+      findingCount: hasHistory ? 2 : 0,
+      maxSeverityId: hasHistory ? 4 : 0,
       lastSeen: naming[0]
         ? new Date(naming[0].lastDetectedAt).toISOString()
         : null,
