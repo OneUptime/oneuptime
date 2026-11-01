@@ -62,6 +62,9 @@ const NAMED_DISCOVERED_SOURCE: Readonly<
   [NetworkDeviceDiscoveryMethod.Dns]: translationKey(
     "DNS lookup by its probe ({{name}})",
   ),
+  [NetworkDeviceDiscoveryMethod.ControllerClientList]: translationKey(
+    "Client list of {{name}}",
+  ),
 };
 
 // The same, for a reader whose name was never recorded.
@@ -81,6 +84,9 @@ const UNNAMED_DISCOVERED_SOURCE: Readonly<
     "A router's ARP table",
   ),
   [NetworkDeviceDiscoveryMethod.Dns]: translationKey("DNS lookup by its probe"),
+  [NetworkDeviceDiscoveryMethod.ControllerClientList]: translationKey(
+    "A network controller's client list",
+  ),
 };
 
 /*
