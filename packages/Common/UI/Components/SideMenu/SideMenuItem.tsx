@@ -3,14 +3,16 @@ import Badge, { BadgeType } from "../Badge/Badge";
 import Icon from "../Icon/Icon";
 import UILink, { LinkAriaCurrent } from "../Link/Link";
 import IconProp from "../../../Types/Icon/IconProp";
+import Route from "../../../Types/API/Route";
 import Link from "../../../Types/Link";
-import React, { FunctionComponent } from "react";
+import React, { FunctionComponent, useContext } from "react";
 import {
   getDrawnLanguage,
   getMenuWordsBreakClassName,
   getSideMenuEntryCurrent,
   SIDE_MENU_ITEM_TITLE_TEST_ID,
 } from "./SideMenuEntryState";
+import SideMenuRowListContext, { isRowListLink } from "./SideMenuRowPage";
 
 export interface ComponentProps {
   link: Link;
@@ -50,19 +52,24 @@ export interface ComponentProps {
  * The entry for the page the user is on is lit, and says so to a screen
  * reader too (aria-current): "page" when it links to that very page, "true"
  * when the page sits under it - a role's page under Roles, a run's under
- * its runbook's Executions - and the entry marks it by its activeRoute.
+ * its runbook's Executions - and the entry marks it by its activeRoute, or
+ * the menu finds the page is one of the rows of the list the entry leads to
+ * (SideMenuRowPage: a node's page under Nodes).
  */
 const SideMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   const { translateString, language } = useTranslateValue();
-  const mainCurrent: LinkAriaCurrent | undefined = getSideMenuEntryCurrent({
-    link: props.link,
-    activeRoute: props.activeRoute,
-  });
+  const rowList: Route | null = useContext(SideMenuRowListContext);
+  const mainCurrent: LinkAriaCurrent | undefined =
+    getSideMenuEntryCurrent({
+      link: props.link,
+      activeRoute: props.activeRoute,
+    }) || (isRowListLink(props.link, rowList) ? "true" : undefined);
   const isActive: boolean = mainCurrent !== undefined;
   const subItemCurrent: LinkAriaCurrent | undefined = props.subItemLink
-    ? getSideMenuEntryCurrent({ link: props.subItemLink })
+    ? getSideMenuEntryCurrent({ link: props.subItemLink }) ||
+      (isRowListLink(props.subItemLink, rowList) ? "true" : undefined)
     : undefined;
   const isSubItemActive: boolean = subItemCurrent !== undefined;
   const translatedTitle: string =
