@@ -104,14 +104,19 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
+        {/*
+         * A title longer than its box - one German word, "KNOTENVERFÜGBARKEIT"
+         * - breaks inside it (hyphenated where the reader's language allows)
+         * instead of running under the icon.
+         */}
         <div className="flex min-w-0 items-center gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <span className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider hyphens-auto [overflow-wrap:anywhere]">
             {props.title}
           </span>
           <InfoTooltip label={props.title} text={props.description} />
         </div>
         <div
-          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+          className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
         >
           <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
         </div>

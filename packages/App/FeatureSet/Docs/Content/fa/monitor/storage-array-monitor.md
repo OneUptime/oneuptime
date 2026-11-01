@@ -128,7 +128,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | Hardware Component Degraded | سخت‌افزار | Warning | `purefa_hw_component_status` با فیلتر `component_status=degraded`، Max به ازای هر `component_name`، ۵ دقیقه گذشته | > ۰ – یک قطعه افت کارکرد دارد. یک حادثه به ازای هر قطعه؛ وقتی ok گزارش دهد بهبود می‌یابد |
 | Drive Failed | سخت‌افزار | بحرانی | `purefa_drive_capacity_bytes` با فیلتر `component_status=failed`، Max به ازای هر `component_name`، ۵ دقیقه گذشته | > ۰ – یک ماژول DirectFlash یا SSD از کار افتاده و آرایه داده را روی بقیه بازسازی می‌کند. یک حادثه به ازای هر درایو؛ با تعویض آن بهبود می‌یابد |
 | Host Lost Redundant Paths | میزبان‌ها | Warning | `purefa_host_connectivity_info` با فیلتر `status=critical`، Max به ازای هر `host`، ۵ دقیقه گذشته | > ۰ – میزبان از راه یک کنترلر یا هیچ کنترلری به آرایه می‌رسد؛ یک failover کنترلر ذخیره‌سازی آن را آفلاین می‌کند. یک حادثه به ازای هر میزبان؛ با بازگشت مسیرهایش بهبود می‌یابد |
-| Replication Lag Above 1 Minute | Replication | Warning | `purefa_pod_replica_links_lag_max_msec`، Max به ازای هر `local_pod`، ۱۰ دقیقه گذشته | > ۶۰۰۰۰ ms (۶۰ s) – failover در این لحظه نوشتن‌های تازه‌تری از آنچه برنامه‌ریزی شده از دست می‌دهد. یک حادثه به ازای هر پاد؛ در ≤ ۵۴۰۰۰ بهبود می‌یابد |
+| Replication Lag Above 1 Minute | تکثیر | Warning | `purefa_pod_replica_links_lag_max_msec`، Max به ازای هر `local_pod`، ۱۰ دقیقه گذشته | > ۶۰۰۰۰ ms (۶۰ s) – failover در این لحظه نوشتن‌های تازه‌تری از آنچه برنامه‌ریزی شده از دست می‌دهد. یک حادثه به ازای هر پاد؛ در ≤ ۵۴۰۰۰ بهبود می‌یابد |
 
 ### FlashBlade
 

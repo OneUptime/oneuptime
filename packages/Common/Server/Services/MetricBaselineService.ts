@@ -2,6 +2,12 @@ import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import MetricBaselineHourly from "../../Models/AnalyticsModels/MetricBaselineHourly";
 import logger, { LogAttributes } from "../Utils/Logger";
+import {
+  ANOMALY_SIGMA_BY_SENSITIVITY,
+  ANOMALY_WINDOW_DAYS_OPTIONS,
+  AnomalyDetectionSensitivity,
+  DEFAULT_ANOMALY_WINDOW_DAYS,
+} from "../../Types/Monitor/CriteriaFilter";
 import ObjectID from "../../Types/ObjectID";
 
 /**
@@ -91,7 +97,8 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * the `min_samples` reliability gate yields baselines that don't fire
    * on every weekly traffic cycle.
    */
-  public static readonly DEFAULT_WINDOW_DAYS: number = 14;
+  public static readonly DEFAULT_WINDOW_DAYS: number =
+    DEFAULT_ANOMALY_WINDOW_DAYS;
   /**
    * Hard upper bound on the rolling window. Locked to the MV target
    * table's TTL — querying further back would just hit empty space
@@ -107,9 +114,8 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * the table for every conceivable value. Adding a longer option
    * requires bumping `MAX_WINDOW_DAYS` and the table TTL together.
    */
-  public static readonly WINDOW_DAYS_OPTIONS: ReadonlyArray<number> = [
-    14, 28, 60, 90,
-  ];
+  public static readonly WINDOW_DAYS_OPTIONS: ReadonlyArray<number> =
+    ANOMALY_WINDOW_DAYS_OPTIONS;
   /**
    * Hard cap on rows returned per drift window. Params travel in the
    * ClickHouse HTTP URI and the detector joins both windows in JS, so an
@@ -550,15 +556,11 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   public static sigmaForSensitivity(
     sensitivity: "Low" | "Medium" | "High",
   ): number {
-    switch (sensitivity) {
-      case "Low":
-        return 4;
-      case "High":
-        return 2;
-      case "Medium":
-      default:
-        return 3;
-    }
+    return (
+      ANOMALY_SIGMA_BY_SENSITIVITY[
+        sensitivity as AnomalyDetectionSensitivity
+      ] ?? ANOMALY_SIGMA_BY_SENSITIVITY[AnomalyDetectionSensitivity.Medium]
+    );
   }
 
   private toNumber(v: number | string | undefined): number {

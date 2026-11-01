@@ -5,7 +5,10 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import QueryHelper from "../Types/Database/QueryHelper";
-import { truncateShortText } from "../Utils/Database/TruncateColumnValue";
+import {
+  truncateLongText,
+  truncateShortText,
+} from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
 import {
   ProxmoxRosterNode,
@@ -57,7 +60,35 @@ export interface ParsedProxmoxResource {
    */
   isBackedUp: boolean | null;
   uptimeSeconds: number | null;
+  /*
+   * Facts that change while the resource lives (see the buffer entry in
+   * ProxmoxCephSnapshotScan). An empty string is a reading ("no tags",
+   * "no lock"); null keeps the stored value. Optional so a caller that
+   * reads none of them (an older test, the native push) leaves them be.
+   */
+  isTemplate?: boolean | null | undefined;
+  tags?: string | null | undefined;
+  lockState?: string | null | undefined;
+  cpuCount?: number | null | undefined;
+  storageType?: string | null | undefined;
+  storageContent?: string | null | undefined;
+  isShared?: boolean | null | undefined;
+  subscriptionLevel?: string | null | undefined;
   lastSeenAt: Date;
+}
+
+/*
+ * One guest's result in a backup run, as the cluster's backup notification
+ * reports it (Common/Utils/Proxmox/ProxmoxNotifications).
+ */
+export interface ProxmoxGuestBackupResult {
+  vmid: number;
+  // ok: the backup was made. failed: it was not (an error, or aborted).
+  status: "ok" | "failed";
+  // When the run that included the guest finished.
+  finishedAt: Date;
+  bytes: number | null;
+  durationSeconds: number | null;
 }
 
 export interface ProxmoxResourceLatestMetric {
@@ -99,6 +130,14 @@ const UPSERT_COLUMNS: Array<string> = [
   "onboot",
   "isBackedUp",
   "uptimeSeconds",
+  "isTemplate",
+  "tags",
+  "lockState",
+  "cpuCount",
+  "storageType",
+  "storageContent",
+  "isShared",
+  "subscriptionLevel",
   "lastSeenAt",
   "isNativePush",
   "version",
@@ -121,6 +160,11 @@ function sanitizeResource(r: ParsedProxmoxResource): ParsedProxmoxResource {
     guestType: truncateShortText(r.guestType),
     parentNodeName: truncateShortText(r.parentNodeName),
     haState: truncateShortText(r.haState),
+    tags: truncateLongText(r.tags ?? null),
+    lockState: truncateShortText(r.lockState ?? null),
+    storageType: truncateShortText(r.storageType ?? null),
+    storageContent: truncateShortText(r.storageContent ?? null),
+    subscriptionLevel: truncateShortText(r.subscriptionLevel ?? null),
   };
 }
 
@@ -200,6 +244,16 @@ export class Service extends DatabaseService<Model> {
           r.onboot,
           r.isBackedUp,
           r.uptimeSeconds !== null ? Math.trunc(r.uptimeSeconds) : null,
+          r.isTemplate ?? null,
+          r.tags ?? null,
+          r.lockState ?? null,
+          r.cpuCount !== null && r.cpuCount !== undefined
+            ? Math.trunc(r.cpuCount)
+            : null,
+          r.storageType ?? null,
+          r.storageContent ?? null,
+          r.isShared ?? null,
+          r.subscriptionLevel ?? null,
           r.lastSeenAt,
           Boolean(data.isNativePush),
           0, // version (BaseModel @VersionColumn)
@@ -211,6 +265,8 @@ export class Service extends DatabaseService<Model> {
           "projectId", "proxmoxClusterId", "kind", "externalId",
           "name", "vmid", "guestType", "parentNodeName",
           "isUp", "haState", "onboot", "isBackedUp", "uptimeSeconds",
+          "isTemplate", "tags", "lockState", "cpuCount", "storageType",
+          "storageContent", "isShared", "subscriptionLevel",
           "lastSeenAt", "isNativePush", "version"
         )
         VALUES ${valueFragments.join(", ")}
@@ -225,6 +281,14 @@ export class Service extends DatabaseService<Model> {
           "onboot" = COALESCE(EXCLUDED."onboot", "ProxmoxResource"."onboot"),
           "isBackedUp" = COALESCE(EXCLUDED."isBackedUp", "ProxmoxResource"."isBackedUp"),
           "uptimeSeconds" = COALESCE(EXCLUDED."uptimeSeconds", "ProxmoxResource"."uptimeSeconds"),
+          "isTemplate" = COALESCE(EXCLUDED."isTemplate", "ProxmoxResource"."isTemplate"),
+          "tags" = COALESCE(EXCLUDED."tags", "ProxmoxResource"."tags"),
+          "lockState" = COALESCE(EXCLUDED."lockState", "ProxmoxResource"."lockState"),
+          "cpuCount" = COALESCE(EXCLUDED."cpuCount", "ProxmoxResource"."cpuCount"),
+          "storageType" = COALESCE(EXCLUDED."storageType", "ProxmoxResource"."storageType"),
+          "storageContent" = COALESCE(EXCLUDED."storageContent", "ProxmoxResource"."storageContent"),
+          "isShared" = COALESCE(EXCLUDED."isShared", "ProxmoxResource"."isShared"),
+          "subscriptionLevel" = COALESCE(EXCLUDED."subscriptionLevel", "ProxmoxResource"."subscriptionLevel"),
           "lastSeenAt" = EXCLUDED."lastSeenAt",
           "isNativePush" = EXCLUDED."isNativePush",
           "notReportingMarkedAt" = NULL,
@@ -327,6 +391,120 @@ export class Service extends DatabaseService<Model> {
 
       await this.getRepository().manager.query(sql, params);
     }
+  }
+
+  /**
+   * Write what the cluster's backup notifications say about its guests: the
+   * last run that included each one, how it ended, its size and how long it
+   * took, and when its last successful backup finished. Guests are found by
+   * VMID, which Proxmox keeps unique across a cluster; a VMID with no row
+   * yet is skipped (the next notification names it again).
+   *
+   * Notifications can arrive out of order, so each column only moves
+   * forward: an older run never replaces a newer one, and an older success
+   * never replaces a newer success. Returns the number of guests written.
+   */
+  @CaptureSpan()
+  public async recordBackupResults(data: {
+    projectId: ObjectID;
+    proxmoxClusterId: ObjectID;
+    results: Array<ProxmoxGuestBackupResult>;
+  }): Promise<number> {
+    // The newest run per guest, and the newest successful one.
+    const byVmid: Map<
+      number,
+      { latest: ProxmoxGuestBackupResult; latestOkAt: Date | null }
+    > = new Map();
+
+    for (const result of data.results) {
+      if (
+        !Number.isInteger(result.vmid) ||
+        result.vmid <= 0 ||
+        isNaN(result.finishedAt.getTime())
+      ) {
+        continue;
+      }
+      const existing:
+        | { latest: ProxmoxGuestBackupResult; latestOkAt: Date | null }
+        | undefined = byVmid.get(result.vmid);
+      const okAt: Date | null =
+        result.status === "ok" ? result.finishedAt : null;
+      if (!existing) {
+        byVmid.set(result.vmid, { latest: result, latestOkAt: okAt });
+        continue;
+      }
+      if (result.finishedAt >= existing.latest.finishedAt) {
+        existing.latest = result;
+      }
+      if (
+        okAt &&
+        (!existing.latestOkAt || okAt.getTime() > existing.latestOkAt.getTime())
+      ) {
+        existing.latestOkAt = okAt;
+      }
+    }
+
+    if (byVmid.size === 0) {
+      return 0;
+    }
+
+    const valueFragments: Array<string> = [];
+    const params: Array<unknown> = [
+      data.projectId.toString(),
+      data.proxmoxClusterId.toString(),
+    ];
+    let paramIndex: number = 3;
+
+    for (const [vmid, entry] of byVmid) {
+      valueFragments.push(
+        `($${paramIndex++}::integer, $${paramIndex++}, $${paramIndex++}::timestamptz, $${paramIndex++}::bigint, $${paramIndex++}::integer, $${paramIndex++}::timestamptz)`,
+      );
+      params.push(
+        vmid,
+        entry.latest.status,
+        entry.latest.finishedAt,
+        entry.latest.bytes !== null && Number.isFinite(entry.latest.bytes)
+          ? Math.max(0, Math.trunc(entry.latest.bytes)).toString()
+          : null,
+        entry.latest.durationSeconds !== null &&
+          Number.isFinite(entry.latest.durationSeconds)
+          ? Math.max(0, Math.round(entry.latest.durationSeconds))
+          : null,
+        entry.latestOkAt,
+      );
+    }
+
+    const isNewerRun: string = `(p."lastBackupAt" IS NULL OR v."finishedAt" >= p."lastBackupAt")`;
+
+    const result: unknown = await this.getRepository().manager.query(
+      `UPDATE "ProxmoxResource" AS p
+       SET
+         "lastBackupAt" = CASE WHEN ${isNewerRun} THEN v."finishedAt" ELSE p."lastBackupAt" END,
+         "lastBackupStatus" = CASE WHEN ${isNewerRun} THEN v."status" ELSE p."lastBackupStatus" END,
+         "lastBackupBytes" = CASE WHEN ${isNewerRun} THEN v."bytes" ELSE p."lastBackupBytes" END,
+         "lastBackupDurationSeconds" = CASE WHEN ${isNewerRun} THEN v."seconds" ELSE p."lastBackupDurationSeconds" END,
+         "lastSuccessfulBackupAt" = CASE
+           WHEN v."okAt" IS NOT NULL
+             AND (p."lastSuccessfulBackupAt" IS NULL OR v."okAt" > p."lastSuccessfulBackupAt")
+           THEN v."okAt"
+           ELSE p."lastSuccessfulBackupAt"
+         END,
+         "updatedAt" = now()
+       FROM (VALUES ${valueFragments.join(", ")})
+         AS v("vmid", "status", "finishedAt", "bytes", "seconds", "okAt")
+       WHERE p."projectId" = $1
+         AND p."proxmoxClusterId" = $2
+         AND p."kind" = 'Guest'
+         AND p."vmid" = v."vmid"
+         AND p."deletedAt" IS NULL`,
+      params,
+    );
+
+    // Postgres driver returns [rows, affected] for UPDATE — normalize.
+    if (Array.isArray(result) && typeof result[1] === "number") {
+      return result[1];
+    }
+    return 0;
   }
 
   /**

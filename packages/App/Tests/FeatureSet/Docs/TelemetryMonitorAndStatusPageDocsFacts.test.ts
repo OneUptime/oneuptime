@@ -1,5 +1,10 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { EXCEPTION_MEASURES } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
+import {
+  EXCEPTION_ANOMALY_MINIMUM_COUNT,
+  EXCEPTION_BASELINE_MINIMUM_WEEKS,
+  EXCEPTION_MEASURES,
+} from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
+import { DEFAULT_RETENTION_IN_DAYS } from "Common/Models/DatabaseModels/TelemetryUsageBilling";
 import { hasPage, readPage } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import CriteriaFilterUtil from "../../../FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
@@ -60,10 +65,13 @@ import { Green } from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import {
+  ANOMALY_SIGMA_BY_SENSITIVITY,
+  ANOMALY_WINDOW_DAYS_OPTIONS,
   AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
   CriteriaFilterUtil as CommonCriteriaFilterUtil,
+  DEFAULT_ANOMALY_WINDOW_DAYS,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -881,8 +889,11 @@ describe("the window a count looks back over", () => {
             },
           )?.label || "";
 
+        // An anomaly condition has no number: it asks for a sensitivity.
         expect(row[1]).toContain(
-          `**${comparison}** \`${recipe.threshold}\` in **${window}**`,
+          recipe.threshold === undefined
+            ? `**${comparison}** in **${window}**`
+            : `**${comparison}** \`${recipe.threshold}\` in **${window}**`,
         );
 
         // A pick on another measure says which, first.
@@ -1288,7 +1299,7 @@ describe("criteria", () => {
     },
   );
 
-  it("offers the anomaly conditions on log, span and metric criteria, and the exception and profile pages say why they have none", () => {
+  it("offers the anomaly conditions on log, span, exception and metric criteria, and the profile page says why it has none", () => {
     for (const entry of COUNT_PAGES) {
       const hasAnomaly: boolean = offeredConditions(entry.checkOn).some(
         (condition: string): boolean => {
@@ -1303,6 +1314,7 @@ describe("criteria", () => {
         hasAnomaly: [
           CheckOn.LogCount,
           CheckOn.SpanCount,
+          CheckOn.ExceptionCount,
           CheckOn.MetricValue,
         ].includes(entry.checkOn),
       });
@@ -1321,9 +1333,27 @@ describe("criteria", () => {
       }).toEqual({ checkOn: criteria.checkOn, hasAnomaly: false });
     }
 
+    // Only the count has a baseline: the rest of the page's measures do not.
+    for (const checkOn of EXCEPTION_MEASURES) {
+      expect({
+        checkOn,
+        hasAnomaly: offeredConditions(checkOn).some(
+          (condition: string): boolean => {
+            return CommonCriteriaFilterUtil.isAnomalyFilterType(
+              condition as FilterType,
+            );
+          },
+        ),
+      }).toEqual({
+        checkOn,
+        hasAnomaly: checkOn === CheckOn.ExceptionCount,
+      });
+    }
+
     expect(EXCEPTIONS).toContain(
-      "Exception counts have no anomaly conditions: there is no baseline to compare them with.",
+      "Only **Exception Count** has them: see [Spikes against what is normal](#spikes-against-what-is-normal).",
     );
+    expect(EXCEPTIONS).not.toContain("Exception counts have no anomaly");
     expect(PROFILES).toContain(
       "Profile counts have no anomaly conditions: there is no baseline to compare them with.",
     );
@@ -1359,9 +1389,11 @@ describe("criteria", () => {
       "Common/Server/Services/MetricBaselineService.ts",
     );
 
-    expect(baseline).toContain(
-      "public static readonly DEFAULT_WINDOW_DAYS: number = 14;",
+    expect(oneLine(baseline)).toContain(
+      "public static readonly DEFAULT_WINDOW_DAYS: number = DEFAULT_ANOMALY_WINDOW_DAYS;",
     );
+    expect(DEFAULT_ANOMALY_WINDOW_DAYS).toBe(14);
+    expect(ANOMALY_WINDOW_DAYS_OPTIONS).toEqual([14, 28, 60, 90]);
     expect(baseline).toContain(
       "public static readonly MAX_WINDOW_DAYS: number = 90;",
     );
@@ -1382,7 +1414,7 @@ describe("criteria", () => {
       ),
     ).toContain("AnomalyDetectionSensitivity.Medium");
 
-    for (const markdown of [LOGS, TRACES]) {
+    for (const markdown of [LOGS, TRACES, EXCEPTIONS]) {
       expect(markdown).toContain(
         "Pick a **Sensitivity** — Low, Medium (the default) or High — and, in the custom criteria, a **Baseline Window** of 14 (the default), 28, 60 or 90 days.",
       );
@@ -1390,6 +1422,71 @@ describe("criteria", () => {
 
     expect(METRICS).toContain(
       "**When to alert** shows **Sensitivity** — Low, Medium (the default) or High — instead, and the custom criteria a **Baseline Window** too — 14 days (the default), 28, 60 or 90 —",
+    );
+  });
+
+  it("the Exceptions page's spike settings are the rule's: each sensitivity's numbers, the baseline windows and what is left empty", () => {
+    const rows: Array<Array<string>> = tableRows(EXCEPTIONS, [
+      "Setting",
+      "What it does",
+      "Default",
+    ]);
+    const rowOf: (title: string) => Array<string> = (
+      title: string,
+    ): Array<string> => {
+      return rows.find((cells: Array<string>): boolean => {
+        return boldSpans(cells[0] as string)[0] === title;
+      }) as Array<string>;
+    };
+
+    const sigma: Record<string, number> = ANOMALY_SIGMA_BY_SENSITIVITY;
+    const minimum: Record<string, number> = EXCEPTION_ANOMALY_MINIMUM_COUNT;
+
+    expect(rowOf(TelemetryRuleCopy.sensitivityTitle)[1]).toContain(
+      `${sigma["Low"]} standard deviations at Low, ${sigma["Medium"]} at Medium, ${sigma["High"]} at High.`,
+    );
+    expect(rowOf(TelemetryRuleCopy.sensitivityTitle)[2]).toBe("Medium");
+    expect(rowOf(TelemetryRuleCopy.minimumCountTitle)[1]).toContain(
+      `${minimum["Low"]} at Low, ${minimum["Medium"]} at Medium, ${minimum["High"]} at High.`,
+    );
+    expect(rowOf(TelemetryRuleCopy.baselineWindowTitle)[1]).toContain(
+      `${ANOMALY_WINDOW_DAYS_OPTIONS.slice(0, -1).join(", ")} or ${ANOMALY_WINDOW_DAYS_OPTIONS[3]} days.`,
+    );
+    expect(rowOf(TelemetryRuleCopy.baselineWindowTitle)[2]).toBe(
+      `${DEFAULT_ANOMALY_WINDOW_DAYS} days`,
+    );
+    expect(rowOf(TelemetryRuleCopy.sigmaCountTitle)[2]).toBe("Empty");
+    expect(rowOf(TelemetryRuleCopy.minimumCountTitle)[2]).toBe("Empty");
+  });
+
+  it("the Exceptions page says what a spike rule needs, and how long it learns", () => {
+    expect(EXCEPTION_BASELINE_MINIMUM_WEEKS).toBe(2);
+    expect(DEFAULT_RETENTION_IN_DAYS).toBe(15);
+
+    expect(EXCEPTIONS).toContain(
+      "Until a service has two weeks of history, the criteria is still learning and does not fire, however many exceptions it throws. History only reaches as far back as OneUptime keeps exceptions: 15 days unless you changed it",
+    );
+
+    const recipe: TelemetryRuleRecipe = getRecipes(MonitorType.Exceptions).find(
+      (candidate: TelemetryRuleRecipe): boolean => {
+        return candidate.title === "Exceptions spike";
+      },
+    ) as TelemetryRuleRecipe;
+
+    expect(recipe.filterType).toBe(FilterType.AnomalouslyHigh);
+    expect(recipe.anomalyDetection?.sensitivity).toBe(
+      AnomalyDetectionSensitivity.Medium,
+    );
+    expect(EXCEPTIONS).toContain(
+      "**Exceptions spike** compares the window with the same hours of the weeks before, not with a fixed number.",
+    );
+
+    // The history is the monitor's own query, so its filters are not a superset.
+    expect(
+      readSource("Common/Server/Utils/Monitor/ExceptionLearnedBaseline.ts"),
+    ).toContain("ExceptionInstanceService.countPerWindow({");
+    expect(EXCEPTIONS).toContain(
+      "History is read with the monitor's own filters",
     );
   });
 

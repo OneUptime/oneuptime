@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 13166
+    "keys": 39389,
+    "untranslated": 13022
   },
   "sameAsEnglish": [
     "2xx",
@@ -22,6 +22,7 @@
     "Edge",
     "Google Calendar",
     "Google SecOps",
+    "HA: {{state}}",
     "Hello world",
     "ICMP (ping)",
     "INP 120 ms",
@@ -59,6 +60,7 @@
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

@@ -510,11 +510,11 @@ Efter det første vellykkede walk læser OneUptime SNMPv2-systemgruppen og, hvor
 
 En enhed kun med ping beholder det navn og den adresse, du, eller en discovery-scanning, gav den. Det, dens egen polling ikke har læst, får den fra discovery:
 
-- Det systemnavn, den beskrivelse, `sysObjectID`, placering og kontakt, som den seneste [discovery-scanning](#find-enheder-med-en-netværksscanning) af dens adresse læste over SNMP, og de reverse-DNS- og NetBIOS-navne, den fandt.
-- Dens MAC-adresse, fra ARP-tabellen i en gennemgået router på dens site.
+- Det systemnavn, den beskrivelse, `sysObjectID`, placering, kontakt, model, serienummer, firmware og softwareversion, som den seneste [discovery-scanning](#find-enheder-med-en-netværksscanning) af dens adresse læste over SNMP, og de reverse-DNS- og NetBIOS-navne, den fandt.
+- Dens MAC-adresse, fra ARP-tabellen i en gennemgået router på dens site, eller ellers fra den første Ethernet-port, som den scanning læste.
 - For en enhed, der polles på et DNS-navn, den adresse, dens sonde slog navnet op til.
 
-De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver scanning, router-walk eller polling, der læser en af dem igen, opdaterer den. Enhedens oversigt og dens element i inventaret viser, hvilken scanning, router eller sonde der læste hver værdi, og hvornår. En værdi, du har gemt på enheden, erstattes aldrig. Når en scanning finder en anden maskine på enhedens adresse, for eksempel et DHCP-lease, der er flyttet, siger oversigten det, og intet af det, den scanning læste der, bruges.
+De gemmes ved siden af enhedens egne felter, skrives aldrig ind i dem, og hver scanning, router-walk eller polling, der læser en af dem igen, opdaterer den. En scanning læser en værts MAC-adresse, model, serienummer, firmware og softwareversion med nogle få anmodninger mere efter dens systemgruppe, i højst fem sekunder pr. vært. En vært, der holder op med at svare på dem, tæller stadig som en, der har svaret, og det, scanningen ikke kunne læse, beholder sin seneste værdi. Enhedens oversigt og dens element i inventaret viser, hvilken scanning, router eller sonde der læste hver værdi, og hvornår. En værdi, du har gemt på enheden, erstattes aldrig. Når en scanning finder en anden maskine på enhedens adresse, for eksempel et DHCP-lease, der er flyttet, siger oversigten det, og intet af det, den scanning læste der, bruges.
 
 En Meraki-switch, et Meraki-adgangspunkt eller en Meraki-appliance giver hverken serienummer eller firmware over SNMP: når enheden polles direkte, svarer den på systemgruppen og interfacetabellerne, som giver dens model og dens MAC-adresse, og intet andet. Når en [Meraki-forbindelse](/docs/monitor/network-traffic#cisco-meraki-uden-netflow) læser dens organisation, henter enheden dem, og alt andet, dens polling lader stå tomt, fra Meraki-dashboardet, og dens kort **Inventar** nævner forbindelsen i en række **Meraki**.
 
@@ -747,7 +747,7 @@ OneUptime holder derefter én netværksenheds-monitor pr. matchende enhed, lavet
 > [!IMPORTANT]
 > Hver monitor, en politik opretter, tæller med i dit abonnement. En politik over et stort miljø er mange monitorer fra én gemning, så bekræftelsen af den anbefalede politik nævner projektets antal enheder, før den opretter noget.
 
-Tabellens kolonne **Covered Devices** viser **Endnu ikke talt** indtil politikkens første synkronisering, og **Last Sync** siger, hvornår det var, eller hvorfor den fejlede.
+Tabellens kolonne **Covered Devices** viser **Endnu ikke talt** indtil politikkens første synkronisering, og **Seneste synkronisering** siger, hvornår det var, eller hvorfor den fejlede.
 
 Uden politikker endnu tilbyder siden **Create the recommended policy**: en monitorskabelon **Network device alert pack (recommended)**, der bærer den [anbefalede advarselspakke](#anbefalet-advarselspakke), og en politik **Alert on every device**, der anvender den på hele projektet. Skabelonen findes igen ved en markør i dens beskrivelse, så handlingen aldrig opretter en ekstra kopi, og den er en monitorskabelon, du også kan bruge til monitorer, du selv opretter. Indsnævr politikkens omfang bagefter, hvis hele projektet er for meget.
 

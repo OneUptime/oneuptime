@@ -510,11 +510,11 @@ Dopo il primo walk riuscito, OneUptime legge il gruppo di sistema SNMPv2 e, dove
 
 Un dispositivo solo ping mantiene il nome e l'indirizzo che gli hai dato tu, o una scansione di rilevamento. Ciò che il suo polling non ha letto, lo prende dal rilevamento:
 
-- Il nome di sistema, la descrizione, il `sysObjectID`, la posizione e il contatto che l'ultima [scansione di rilevamento](#rilevare-i-dispositivi-con-una-scansione-di-rete) del suo indirizzo ha letto via SNMP, e i nomi DNS inverso e NetBIOS che ha trovato.
-- Il suo indirizzo MAC, dalla tabella ARP di un router percorso del suo sito.
+- Il nome di sistema, la descrizione, il `sysObjectID`, la posizione, il contatto, il modello, il numero di serie, il firmware e la versione del software che l'ultima [scansione di rilevamento](#rilevare-i-dispositivi-con-una-scansione-di-rete) del suo indirizzo ha letto via SNMP, e i nomi DNS inverso e NetBIOS che ha trovato.
+- Il suo indirizzo MAC, dalla tabella ARP di un router percorso del suo sito o, altrimenti, dalla prima porta Ethernet letta da quella scansione.
 - Per un dispositivo interrogato tramite un nome DNS, l'indirizzo in cui la sua sonda ha risolto quel nome.
 
-Questi valori sono tenuti accanto ai campi del dispositivo, mai scritti al loro interno, e ogni scansione, walk di un router o polling che ne rilegge uno lo aggiorna. La panoramica del dispositivo e il suo elemento nell'inventario indicano quale scansione, router o sonda ha letto ogni valore, e quando. Un valore che hai salvato sul dispositivo non viene mai sostituito. Quando una scansione trova un'altra macchina all'indirizzo del dispositivo, per esempio un lease DHCP che si è spostato, la panoramica lo dice, e non si usa nulla di ciò che quella scansione vi ha letto.
+Questi valori sono tenuti accanto ai campi del dispositivo, mai scritti al loro interno, e ogni scansione, walk di un router o polling che ne rilegge uno lo aggiorna. Una scansione legge l'indirizzo MAC, il modello, il numero di serie, il firmware e la versione del software di un host con qualche richiesta in più dopo il suo gruppo di sistema, per al massimo cinque secondi per host. Un host che smette di rispondere a queste richieste conta comunque come un host che ha risposto, e ciò che la scansione non è riuscita a leggere conserva il suo ultimo valore. La panoramica del dispositivo e il suo elemento nell'inventario indicano quale scansione, router o sonda ha letto ogni valore, e quando. Un valore che hai salvato sul dispositivo non viene mai sostituito. Quando una scansione trova un'altra macchina all'indirizzo del dispositivo, per esempio un lease DHCP che si è spostato, la panoramica lo dice, e non si usa nulla di ciò che quella scansione vi ha letto.
 
 Uno switch, un access point o un'appliance Meraki non fornisce via SNMP né numero di serie né firmware: interrogato direttamente, il dispositivo risponde al gruppo di sistema e alle tabelle delle interfacce, che danno il suo modello e il suo indirizzo MAC, e nient'altro. Quando una [connessione Meraki](/docs/monitor/network-traffic#cisco-meraki-senza-netflow) legge la sua organizzazione, il dispositivo prende questi valori, e tutto ciò che il suo polling lascia vuoto, dalla dashboard di Meraki, e la sua scheda **Inventario** nomina la connessione in una riga **Meraki**.
 
@@ -747,7 +747,7 @@ OneUptime mantiene quindi un monitor del dispositivo di rete per ogni dispositiv
 > [!IMPORTANT]
 > Ogni monitor creato da una policy conta per il tuo piano. Una policy su un parco grande sono molti monitor da un solo salvataggio, quindi la conferma della policy consigliata indica il numero di dispositivi del progetto prima di creare qualsiasi cosa.
 
-La colonna **Covered Devices** della tabella riporta **Non ancora conteggiato** fino alla prima sincronizzazione della policy, e **Last Sync** dice quando è avvenuta, o perché è fallita.
+La colonna **Covered Devices** della tabella riporta **Non ancora conteggiato** fino alla prima sincronizzazione della policy, e **Ultima sincronizzazione** dice quando è avvenuta, o perché è fallita.
 
 Finché non ci sono policy, la pagina offre **Create the recommended policy**: un modello di monitor **Network device alert pack (recommended)**, che contiene il [pacchetto di avvisi consigliato](#pacchetto-di-avvisi-consigliato), e una policy **Alert on every device** che lo applica all'intero progetto. Il modello viene ritrovato grazie a un marcatore nella sua descrizione, quindi l'azione non crea mai una seconda copia, ed è un modello di monitor che puoi usare anche per i monitor che crei tu. Restringi poi l'ambito della policy se l'intero progetto è troppo.
 

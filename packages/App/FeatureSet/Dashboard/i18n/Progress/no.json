@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 13244
+    "keys": 39389,
+    "untranslated": 13100
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -54,6 +54,7 @@
     "Gemini for Google Workspace",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "Hunt",
     "Hunts",
     "ICMP (ping)",
@@ -71,6 +72,7 @@
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mexico (+52)",
+    "N/A",
     "Nav",
     "New Zealand (+64)",
     "Node",
@@ -136,12 +138,14 @@
     "Type",
     "UTC",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Web",
     "Web, iOS, Android, React Native",
@@ -195,6 +199,8 @@
     "{{count}} samples",
     "{{count}} team",
     "{{minutes}} min",
+    "{{percent}} full",
+    "{{size}} disk",
     "{{tokens}} tokens"
   ]
 }

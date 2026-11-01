@@ -48,7 +48,7 @@ covered in [CONTRIBUTING](../.github/CONTRIBUTING.md#licensing-of-contributions)
 | `Server/CustomNotificationChannels/` | Custom notification channels: the sender core hands every request for a channel to (`CustomChannelSender.ts`, served at `/api/notification/custom-channel/send` by `API/CustomChannelSendAPI.ts`), and the job that adds a channel paging everyone to everybody's on-call rules (`Jobs/AddCustomChannelToEveryonesRules.ts`). The `CustomNotificationChannel` model, its migrations, `CustomNotificationChannelService`, the payload (`packages/Common/Types/CustomNotificationChannel/`), the signed request and its retries (`packages/App/FeatureSet/Notification/Utils/SignedWebhookPost.ts`, shared with the Community Edition's SMS and call gateway), the action links and every place a channel is read stay in core, which asks `packages/Common/Server/Utils/Notification/CustomChannelEdition.ts` before anything reaches a channel. |
 | `Server/Billing/` | OneUptime Cloud's card billing: the Stripe client core's `BillingService` hands every payment-provider call to, and the subscription and metered plan jobs. Only with billing on. See [OneUptime Cloud billing](#oneuptime-cloud-billing). |
 | `Server/CloudMarketplace/` | OneUptime Cloud sold on AWS Marketplace, Microsoft Marketplace, Google Cloud Marketplace and Vercel Marketplace: routes, purchases, the hourly usage report and the jobs. Only with billing on. See [OneUptime Cloud billing](#oneuptime-cloud-billing). |
-| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/` and `Dashboard/AuditLogExport/`. `Dashboard/AuditLogExport/` holds Settings > Audit Logs > Export (a project's exports), and its table, form and test are shared with `AdminDashboard/AuditLogExport/`, Settings > Audit Log Export (the instance's exports). `Dashboard/CustomRoles/` holds the custom role screens (Teams > Settings > Roles, a role's page, and the custom roles of a team and of an API key), `Dashboard/IpAllowlists/` the IP allowlist card that status pages, public dashboards and forms share, `Dashboard/StatusPageAccessControls/` a status page's reader session limit and subscriber restrictions, and `Dashboard/StatusPageBranding/` its Powered by OneUptime switch; `Dashboard/EnterpriseSettings/` holds the license notice those four show. Core keeps a shell for each (the Roles pages, `IpAllowlistSettings`, `StatusPageSessionLengthSettings`, `SubscriberRestrictionsSettings`, `StatusPagePoweredBySettings`, `TeamCustomRolesSettings`, `ApiKeyCustomRolesSettings`), which draws the upsell and, while a record still holds the setting, a card with the one move every edition allows: removing it. One area is shared across the frontends by relative import: the license manager (`AdminDashboard/License/`, also used by the Dashboard). `AdminDashboard/WhiteLabel/` holds Settings > White Label, and `AdminDashboard/CustomChannels/` Settings > Notifications > Custom Channels (its menu entry is drawn through `SettingsNotificationSideMenuItems`, at the end of the folded Notifications section, rather than `SettingsSideMenuItems`, which draws Basic's). |
+| `Dashboard/`, `AdminDashboard/` | The Enterprise UI plugins for the two frontends, each assembled from per-area `Plugins.ts(x)` files. `Dashboard/TelemetryRetention/` holds the retention override cards (retention by telemetry type on Settings > Telemetry, and the retention cards of every service and resource Settings page) and the form and summary they share. `Dashboard/Identity/` holds the SCIM screens, their license banner and the one read-only incident action (**Reset Bearer Token**); its license-mode hooks are also used by `Dashboard/AuditLogs/` and `Dashboard/AuditLogExport/`. `Dashboard/AuditLogExport/` holds Settings > Audit Logs > Export (a project's exports), and its table, form and test are shared with `AdminDashboard/AuditLogExport/`, Settings > Audit Log Export (the instance's exports). `Dashboard/CustomRoles/` holds the custom role screens (Teams > Settings > Roles, a role's page, and the custom roles of a team and of an API key), `Dashboard/IpAllowlists/` the IP allowlist card that status pages, public dashboards and forms share, `Dashboard/StatusPageAccessControls/` a status page's reader session limit and subscriber restrictions, and `Dashboard/StatusPageBranding/` its Powered by OneUptime switch; `Dashboard/EnterpriseSettings/` holds the license notice those four show. Core keeps a shell for each (the Roles pages, `IpAllowlistSettings`, `StatusPageSessionLengthSettings`, `SubscriberRestrictionsSettings`, `StatusPagePoweredBySettings`, `TeamCustomRolesSettings`, `ApiKeyCustomRolesSettings`), which draws the upsell and, while a record still holds the setting, a card with the one move every edition allows: removing it. One area is shared across the frontends by relative import: the license details (`AdminDashboard/License/LicenseDetails.tsx`, also used by the Dashboard). `AdminDashboard/WhiteLabel/` holds Settings > White Label, and `AdminDashboard/CustomChannels/` Settings > Notifications > Custom Channels (its menu entry is drawn through `SettingsNotificationSideMenuItems`, at the end of the folded Notifications section, rather than `SettingsSideMenuItems`, which draws Basic's). |
 | `Scripts/` | Operator scripts, such as `GenerateLicenseSigningKey.ts`. |
 | `Tests/Server`, `Tests/UI` | The two jest projects in `jest.config.js`. |
 
@@ -537,7 +537,7 @@ and the release steps are in
 - **What operators see.** The edition label names the marketplace ("Licensed
   through AWS Marketplace", "Marketplace Reports Failing", "Marketplace
   Subscription Ended"), master admins get `marketplaceBilling` from
-  `GET /api/global-config/license`, and the license manager has no **Refresh
+  `GET /api/global-config/license`, and Settings > License has no **Refresh
   license** button for a marketplace license, which has no key to refresh.
 
 ## White-labelling
@@ -569,8 +569,8 @@ That means it needs EdDSA signing (see the key ceremony below): a license
 server still issuing legacy HS256 tokens cannot give anyone white-labelling,
 because no installation can verify those. The switch reaches a customer's
 installation at its next license refresh: the daily usage report, or
-**Refresh license** in its edition dialog. An offline installation needs a new
-offline token.
+**Refresh license** on its Settings > License page in the Admin Dashboard. An
+offline installation needs a new offline token.
 
 ### On the customer's installation
 
@@ -604,11 +604,11 @@ with scripts, event handlers, embedded HTML, `javascript:` or entity
 declarations is refused. Stored values are read back under the same rules, so
 a value that would not pass today is never served.
 
-What deliberately stays OneUptime: the Admin Dashboard's own sentences and its
-edition dialog (where the installation's operators manage the OneUptime
-license - a license notice names its licensor), the public docs and the API
-reference served at `/docs` and `/reference`, the license emails oneuptime.com
-sends, the mobile app, Slack, Microsoft Teams and other workspace messages,
+What deliberately stays OneUptime: the Admin Dashboard's own sentences, its
+edition dialog and its license page (where the installation's operators manage
+the OneUptime license - a license notice names its licensor), the public docs
+and the API reference served at `/docs` and `/reference`, the license emails
+oneuptime.com sends, the mobile app, Slack, Microsoft Teams and other workspace messages,
 WhatsApp messages (their templates are approved with Meta under the operator's
 own account), and every command, package, image and URL (`oneuptime`,
 `ONEUPTIME_*`, `oneuptime.com`).

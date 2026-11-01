@@ -894,7 +894,7 @@ const classifyUnverifiedWithoutExpiry: (
     "A OneUptime Enterprise license is installed, but no expiry is recorded for it, " +
     `so this installation cannot tell whether it is still current. ${why}`;
   const remedy: string =
-    "A master admin can re-activate the license from the edition label in the Admin Dashboard, " +
+    "A master admin can re-activate the license on Settings > License in the Admin Dashboard, " +
     "or leave the daily license sync to fetch its expiry from oneuptime.com.";
 
   let message: string = `${problem} ${remedy}`;

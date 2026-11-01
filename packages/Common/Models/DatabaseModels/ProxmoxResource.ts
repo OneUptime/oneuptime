@@ -666,6 +666,282 @@ export default class ProxmoxResource extends BaseModel {
   })
   public notReportingMarkedAt?: Date = undefined;
 
+  /*
+   * What pve-exporter's info series say about a guest beyond its name:
+   * whether it is a template (a template never runs, so it is never a
+   * stopped guest), its Proxmox tags, and the lock Proxmox holds on it
+   * while a backup, a migration or a snapshot runs.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Is Template",
+    description:
+      "True when this guest is a template (pve_guest_info template label). A template never runs. Null for nodes, storage and the native push.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isTemplate?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Tags",
+    description:
+      "The guest's Proxmox tags as reported, separated by semicolons (prod;web). Empty when it has none.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public tags?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Lock",
+    description:
+      "The lock Proxmox holds on this guest (backup, migrate, snapshot, suspended...) from pve_lock_state. Empty when it holds none.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public lockState?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "CPU Count",
+    description:
+      "CPU cores of a node, or vCPUs given to a guest (pve_cpu_usage_limit).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public cpuCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Storage Type",
+    description:
+      "The storage's Proxmox plugin type (dir, lvmthin, zfspool, nfs, rbd, pbs...) from pve_storage_info.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public storageType?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Storage Content",
+    description:
+      "What the storage holds, as Proxmox lists it (images, rootdir, backup, iso, vztmpl...), separated by commas.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public storageContent?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Boolean,
+    canReadOnRelationQuery: true,
+    title: "Is Shared",
+    description:
+      "True when every node of the cluster can use this storage (pve_storage_shared).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Boolean,
+  })
+  public isShared?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Subscription Level",
+    description:
+      "A node's Proxmox VE subscription level (c, b, s or p; empty for none) from pve_node_info.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public subscriptionLevel?: string = undefined;
+
+  /*
+   * A guest's last backup, as the cluster's own backup notifications report
+   * it (Proxmox VE's notification webhook, sent to OneUptime's logs
+   * endpoint). Null until a backup notification names the guest.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Backup At",
+    description:
+      "When the last backup run that included this guest finished, from the cluster's backup notifications.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastBackupAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Last Backup Status",
+    description: "How the guest's last backup ended: ok or failed.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public lastBackupStatus?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Successful Backup At",
+    description:
+      "When the guest's last successful backup finished, from the cluster's backup notifications.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastSuccessfulBackupAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.BigPositiveNumber,
+    canReadOnRelationQuery: true,
+    title: "Last Backup Bytes",
+    description: "The size of the guest's last backup (0 when it failed).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.BigPositiveNumber,
+    transformer: {
+      to: (value: number | null | undefined): string | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return Math.trunc(value).toString();
+      },
+      from: (value: string | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        const parsed: number = parseInt(value, 10);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public lastBackupBytes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Last Backup Duration Seconds",
+    description: "How long the guest's last backup took, in seconds.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public lastBackupDurationSeconds?: number = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: READ_PERMISSIONS,

@@ -4,10 +4,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import {
+  AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
   EvaluateOverTimeType,
   FilterType,
+  MetricAnomalyDetectionOptions,
 } from "Common/Types/Monitor/CriteriaFilter";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
@@ -75,6 +77,8 @@ export interface TelemetryRuleRecipe {
   rollingTime?: RollingTime | undefined;
   filterType: FilterType;
   threshold: number | undefined;
+  // An anomaly condition's sensitivity and baseline.
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
   action: TelemetryAlertRuleAction;
   metricAggregationType?: EvaluateOverTimeType | undefined;
   // The part of the query that goes with it.
@@ -252,13 +256,13 @@ const EXCEPTION_RECIPES: Array<TelemetryRuleRecipe> = [
     monitorType: MonitorType.Exceptions,
     title: translationKey("Exceptions spike"),
     description: translationKey(
-      "Exceptions rise well above the usual, such as three times the day before.",
+      "Exceptions rise well above what is normal for this hour of the week.",
     ),
     icon: IconProp.ArrowTrendingUp,
-    measure: CheckOn.ExceptionCountIncreasePercent,
     windowInSeconds: 900,
-    filterType: FilterType.GreaterThan,
-    threshold: 200,
+    filterType: FilterType.AnomalouslyHigh,
+    threshold: undefined,
+    anomalyDetection: { sensitivity: AnomalyDetectionSensitivity.Medium },
     action: TelemetryAlertRuleAction.Alert,
     openedTitle: translationKey("{{monitorName}}: exceptions spiked"),
   },
@@ -481,7 +485,7 @@ export const buildRecipeRule: (data: {
     metricAggregationType: recipe.metricAggregationType,
     onNoDataPolicy: undefined,
     thresholdUnit: undefined,
-    anomalyDetection: undefined,
+    anomalyDetection: recipe.anomalyDetection,
     action: recipe.action,
     monitorStatusId: getStatusForAction({ action: recipe.action, seeds }),
     incident: opensIncident ? buildIncident({ title, seeds }) : undefined,

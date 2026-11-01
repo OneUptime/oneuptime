@@ -5,6 +5,7 @@ OneUptime Proxmox 代理程式會監控 Proxmox VE 叢集：它的節點、QEMU 
 :::cards
 - [選擇連線方式](#選擇連線方式): 代理程式，或 Proxmox VE 9 自己的推送。
 - [安裝代理程式](#安裝代理程式): 一個 API 權杖，然後是安裝指令碼或 Docker Compose。
+- [備份結果](#傳送-proxmox-ve-的通知): Proxmox VE 自己的通知，用兩個命令傳送。
 - [原生推送](#免安裝的替代方案proxmox-ve-9-原生-opentelemetry-推送): Proxmox VE 9 自行傳送其指標。
 - [疑難排解](#疑難排解): 一個診斷指令碼，以及常見問題。
 :::
@@ -33,9 +34,10 @@ flowchart TB
 | 需要安裝 | 一台機器上的 Docker Compose | 無：在 Proxmox 網頁 UI 中加入一個指標伺服器 |
 | 節點、客體和儲存空間 | 是 | 是 |
 | HA 狀態、開機啟動、備份涵蓋範圍和複寫 | 是 | 否 |
+| 來自 Proxmox VE 通知（8.3 或更新版本）的備份結果、被隔離的節點和失敗的複寫 | 是 | 是 |
 | Proxmox AI 代理程式 | 是 | 否 |
 
-**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up** 和 **Replication Failing** 範本需要代理程式。一個叢集請只使用其中一種方式：同時執行兩者會將每個資源回報兩次。
+**HA Resource in Error State**、**Guest Down**、**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 範本需要代理程式。一個叢集請只使用其中一種方式：同時執行兩者會將每個資源回報兩次。
 
 ## 開始之前
 
@@ -185,6 +187,44 @@ Collector 會每 30 秒抓取一次匯出器：其叢集收集器在 `PVE_HOST` 
 
 原始的 `id` 標籤會保持不變。
 
+## 傳送 Proxmox VE 的通知
+
+pve-exporter 會告訴你備份工作包含哪些客體，但不會告訴你備份的結果。Proxmox VE 自己會在通知中說明：每個備份工作的結果、被隔離的節點、失敗的複寫、等待安裝的更新。在 Proxmox VE 8.3 或更新版本上，在任一節點上以 root 執行兩個命令，即可將每則通知作為叢集的日誌傳送到 OneUptime，不需要安裝任何東西，可與代理程式或原生推送同時使用。叢集的設定指南會顯示這兩個命令，並已填好你的 URL、金鑰和叢集名稱。
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+第一個命令新增一個名為 `oneuptime` 的 webhook 目標，並將金鑰和叢集名稱保存在它的 secret 中；第二個命令新增一個沒有規則的 matcher，Proxmox VE 會將它視為所有通知。請使用 OneUptime 中顯示的叢集名稱：代理程式的 `PROXMOX_CLUSTER_NAME`，或者在使用原生推送時，Proxmox 叢集自己的名稱。
+
+每則通知都帶有以下屬性：
+
+| 屬性 | 值 |
+| --- | --- |
+| `pve.notification.type` | `vzdump`（備份工作）、`replication`、`fencing`、`package-updates` 或 `system-mail` |
+| `pve.notification.severity` | `info`、`notice`、`warning`、`error` 或 `unknown` |
+| `pve.notification.title` | 通知的標題 |
+| `pve.notification.job_id` | 備份工作的 ID（僅限備份工作） |
+| `proxmox.node.name` | 傳送通知的節點 |
+
+OneUptime 會根據備份工作的通知記錄每個客體的最近一次備份：是否成功、何時完成、大小以及耗時。客體頁面會顯示它，**客體** 清單在「備份」欄中顯示它，叢集的 **概覽** 會統計結果，失敗的備份會一直留在 **需要注意** 中，直到該客體之後的某次備份成功。**Backup Job Failed** 和 **Node Fenced** 警示讀取的也是這些日誌。
+
+若要停止傳送：
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## 選用——傳送 Proxmox 服務日誌
 
 預設情況下，代理程式只會傳送指標，因此叢集的 **日誌** 頁面會保持空白。Proxmox VE 服務會以八個單元記錄到 systemd journal：`pveproxy`、`pvedaemon`、`pve-firewall`、`pve-ha-crm`、`pve-ha-lrm`、`pvescheduler`、`pvestatd` 和 `qmeventd`。隨附的 `otel-collector-config.yaml` 中有一個被註解掉的 `journald` 接收器，正好針對這些單元，並連接到一條同樣被註解掉的 `logs` 管道，該管道會加上 `proxmox.cluster.name`，讓日誌歸入你的叢集。
@@ -269,7 +309,7 @@ Proxmox VE 9.0 及更新版本隨附一個 OpenTelemetry 指標伺服器，可�
 
 - 獨立主機，或整個叢集同時沉默：沒有任何節點留下來回報，因此不會觸發任何依節點的警示。叢集會改為變成 **已中斷**，就像代理程式停止時一樣。
 - 沉默超過 7 天的節點不再被回報：其警示會解除，它也會從節點頁面上消失。自行託管的 OneUptime 可以用 `PVE_SILENT_NODE_RETENTION_HOURS` 變更這 7 天。
-- 你從叢集中移除的節點看起來與停止運作的節點一樣。請在其頁面上使用 **Remove Node**：它會消失，其警示也會解除。否則它會維持離線狀態最多 7 天。
+- 你從叢集中移除的節點看起來與停止運作的節點一樣。請在其頁面上使用 **移除節點**：它會消失，其警示也會解除。否則它會維持離線狀態最多 7 天。
 - 節點的客體和儲存空間：只有節點本身會保留為離線。它的虛擬機器、容器和儲存空間會在其最後一次回報大約 15 分鐘後從各自的頁面上消失，而被 HA 在另一個節點上重新啟動的客體會重新出現在那個節點下。
 
 在 OneUptime 擷取中斷之後，新近沉默的節點只有在其他某個節點再次推送 2 分鐘後才會被回報，因此中斷本身永遠不會為每個節點都發出呼叫。已經處於離線狀態的節點會在短暫的中斷期間維持離線，並保留其警示；中斷超過 5 分鐘後，一旦其他節點推送了 2 分鐘，它就會再次被回報。
@@ -284,9 +324,11 @@ Proxmox VE 9.0 及更新版本隨附一個 OpenTelemetry 指標伺服器，可�
 | --- | --- |
 | HA 狀態 | 不會推送：**HA Resource in Error State** 範本需要代理程式。 |
 | 開機啟動旗標 | 不會推送：只為設定了開機啟動的客體發出呼叫的 **Guest Down** 需要代理程式。 |
-| 備份涵蓋範圍和複寫 | 不會推送：**Guest Not Backed Up** 和 **Replication Failing** 需要代理程式。 |
+| 備份涵蓋範圍和複寫 | 不會推送：**Guest Not Backed Up**、**Backup Running Too Long** 和 **Replication Failing** 需要代理程式。 |
 
 如果你需要這些，請改為執行代理程式，並移除指標伺服器：同時執行兩者會將每個資源回報兩次。
+
+備份結果、被隔離的節點和失敗的複寫仍然可以送達 OneUptime：[傳送 Proxmox VE 的通知](#傳送-proxmox-ve-的通知)，它同樣適用於原生推送。
 
 ## 以 systemd 服務執行
 
@@ -375,11 +417,18 @@ OneUptime 會依 `proxmox.cluster.name` 註冊 Proxmox 叢集，而代理程式�
 :::
 
 :::details 使用原生推送時，節點顯示為離線
-它停止了回報：停止運作的節點、停住的 `pvestatd`、停止的 `pmxcfs` 或到 OneUptime 的網路被切斷，看起來都一樣。它的下一次回報會讓它恢復。如果你將該節點從叢集中移除了，請在其頁面上使用 **Remove Node**；否則它會維持離線狀態最多 7 天。請參閱 [節點停止回報時](#節點停止回報時)。
+它停止了回報：停止運作的節點、停住的 `pvestatd`、停止的 `pmxcfs` 或到 OneUptime 的網路被切斷，看起來都一樣。它的下一次回報會讓它恢復。如果你將該節點從叢集中移除了，請在其頁面上使用 **移除節點**；否則它會維持離線狀態最多 7 天。請參閱 [節點停止回報時](#節點停止回報時)。
 :::
 
 :::details 使用原生推送時，Guest Down、HA 或備份警示從未觸發
 原生推送不會傳送 HA 狀態、開機啟動、備份涵蓋範圍或複寫。如需這些，請 [安裝代理程式](#安裝代理程式)，並移除指標伺服器：同時執行兩者會將每個資源回報兩次。
+:::
+
+:::details 備份結果從未出現
+1. 檢查 Proxmox VE 版本：webhook 目標需要 8.3 或更新版本（`pveversion`）。
+2. 檢查目標及其 matcher 是否存在：`pvesh get /cluster/notifications/endpoints/webhook` 和 `pvesh get /cluster/notifications/matchers` 都應列出 `oneuptime`。
+3. 使用 `pvesh create /cluster/notifications/targets/oneuptime/test` 傳送一則測試通知。它會在一分鐘內出現在叢集的 **日誌** 頁面上；如果沒有出現，表示目標中的金鑰或 URL 有誤。
+4. 檢查目標 secret 中的叢集名稱：OneUptime 不認得的名稱會註冊出第二個叢集。
 :::
 
 ## 後續步驟

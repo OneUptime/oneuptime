@@ -1288,6 +1288,33 @@ status function. The tags, the charts, the npm packages, the Terraform
 provider, the draft and the four agents' builds say so themselves; the builds
 and e2e jobs behind the release still run for any branch.
 
+### `ReleaseNotes.test.js`
+
+`Scripts/Release/GenerateReleaseNotes.js`, which writes the notes of every
+GitHub release. They used to come from an action that worked out its range from
+the repository's tags, and a draft has no tag: it took the newest tag for the
+end of the range, which is the release before this one, so 14.0.96, 14.0.97 and
+14.0.98 each listed what the release before them shipped. It sorted by labels,
+which nobody applies, so all of it landed in one folded list.
+
+The suite runs the script against a fake GitHub (nothing here reaches the
+network) and pins the range: from the newest published release older than this
+one, as numbers, drafts and prereleases left out, to the commit the run built.
+Then the changes: every pull request once, every commit pushed straight to
+master (GitHub answers those with the release gate, which is no answer), and
+neither the gate nor the version bump. Then the sorting of real titles, in both
+forms the repository writes them, with a label over a title and what mends the
+repository under Maintenance; a title staying text, so that `/install/<agent>`
+keeps its placeholder and `@hono/node-server` mentions nobody; and GitHub's
+limit on a release body, which would fail the draft step.
+
+A release is not held back for its notes, so it also pins failure: what passes
+by is waited out, what cannot change is not, and with `--fallback-on-error` a
+GitHub that stays down leaves a warning and a page that links to the changes,
+run as the release job runs it. In `release.yml`, `draft-github-release` must
+write the notes for this version from the run's commit, ahead of all three
+attempts at the draft, and each attempt must read that file.
+
 ### `PlaywrightImage.test.js`
 
 The browser jobs run in `mcr.microsoft.com/playwright`, the image Playwright

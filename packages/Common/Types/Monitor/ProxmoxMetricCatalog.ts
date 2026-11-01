@@ -183,6 +183,16 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     unit: "count",
   },
   {
+    id: "pve-lock-state",
+    friendlyName: "Lock State",
+    description:
+      "The lock Proxmox holds on a guest while a backup, migration, snapshot or clone runs, as an enum-style series: one series per lock (backup, migrate, snapshot, suspended...) with value 1 for the one held. Filter on the state label.",
+    metricName: "pve_lock_state",
+    category: "Guest",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Guest,
+  },
+  {
     id: "pve-onboot-status",
     friendlyName: "Start-on-Boot Status",
     description:
@@ -216,6 +226,17 @@ const proxmoxMetricCatalog: Array<ProxmoxMetricDefinition> = [
     defaultAggregation: MetricsAggregationType.Max,
     defaultResourceScope: ProxmoxResourceScope.Storage,
     unit: "bytes",
+  },
+  {
+    id: "pve-storage-shared",
+    friendlyName: "Shared Storage",
+    description:
+      "Whether every node of the cluster can use a storage (1) or only its own node (0).",
+    metricName: "pve_storage_shared",
+    category: "Storage",
+    defaultAggregation: MetricsAggregationType.Max,
+    defaultResourceScope: ProxmoxResourceScope.Storage,
+    unit: "count",
   },
   {
     id: "pve-storage-info",

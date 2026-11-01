@@ -1047,11 +1047,13 @@ export default class CriteriaFilterUtil {
        * "no match" for every other filter type, so anything else offered
        * here would let the user save a rule that silently never fires.
        *
-       * Unlike log and span counts, neither of these has a volume
-       * baseline behind it - there is no ExceptionCountBaseline or
-       * ProfileCountBaseline and no anomaly branch in either evaluator -
-       * so the anomaly conditions stay off this list too.
+       * The exception count also supports the anomaly conditions: the
+       * server judges them against the monitor's own earlier weeks
+       * (ExceptionLearnedBaseline). New and regressed exceptions, the rise
+       * over the usual and profile counts have no baseline behind them,
+       * and no anomaly branch, so the anomaly conditions stay off for them.
        */
+      const allowAnomaly: boolean = checkOn === CheckOn.ExceptionCount;
       options = options.filter((i: DropdownOption) => {
         return (
           i.value === FilterType.EqualTo ||
@@ -1059,7 +1061,11 @@ export default class CriteriaFilterUtil {
           i.value === FilterType.GreaterThan ||
           i.value === FilterType.LessThan ||
           i.value === FilterType.LessThanOrEqualTo ||
-          i.value === FilterType.GreaterThanOrEqualTo
+          i.value === FilterType.GreaterThanOrEqualTo ||
+          (allowAnomaly &&
+            (i.value === FilterType.AnomalouslyHigh ||
+              i.value === FilterType.AnomalouslyLow ||
+              i.value === FilterType.Anomalous))
         );
       });
     }

@@ -116,18 +116,18 @@ Le fichier [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENS
 
 Une nouvelle installation de l'Enterprise Edition fonctionne en **essai de 14 jours**, compté à partir du premier démarrage de l'Enterprise Edition par l'installation. L'essai sert à l'évaluation : l'usage en production de l'Enterprise Edition exige un abonnement sous la OneUptime Enterprise License. Activez une licence avant la fin de l'essai : ensuite, SCIM, la journalisation d'audit et les remplacements de rétention s'arrêtent et la configuration Enterprise passe en lecture seule (voir [Quand une licence expire ou manque](#quand-une-licence-expire-ou-manque)). Pour obtenir une licence, contactez [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
-La licence se gère depuis le **libellé d'édition**, que les administrateurs principaux voient dans l'en-tête du tableau de bord admin et dans le pied de page du Dashboard. Il affiche l'état de la licence, l'utilisation des sièges et, pour les administrateurs principaux, l'ID d'instance.
+La licence se gère dans **Admin Dashboard > Paramètres > Licence** : c'est là que les administrateurs principaux l'ajoutent, l'actualisent et la remplacent, et personne d'autre ne peut la modifier. Le **libellé d'édition**, dans l'en-tête du tableau de bord admin et dans le pied de page du Dashboard, ne fait qu'afficher la situation : l'état de la licence et, pour les administrateurs principaux, l'utilisation des sièges et un bouton **Gérer la licence** qui mène à cette page.
 
 OneUptime Enterprise acheté sur AWS Marketplace, Microsoft Marketplace ou Google Cloud Marketplace n'a pas besoin de clé de licence : l'abonnement à la place de marché en tient lieu et facture chaque utilisateur à l'heure. Voir [Places de marché cloud](/docs/installation/cloud-marketplaces).
 
 ### Activation en ligne (clé de licence)
 
 :::steps
-1. Connectez-vous en tant qu'administrateur principal et ouvrez le libellé d'édition.
+1. Connectez-vous en tant qu'administrateur principal et ouvrez **Admin Dashboard > Paramètres > Licence**.
 2. Saisissez votre clé de licence et validez-la.
 :::
 
-L'installation vérifie la clé auprès de OneUptime et stocke la licence qu'elle reçoit. Elle tient ensuite la licence à jour grâce à une synchronisation quotidienne. Utilisez **Refresh license** dans le libellé d'édition pour récupérer immédiatement les changements, comme des sièges supplémentaires ou un renouvellement.
+L'installation vérifie la clé auprès de OneUptime et stocke la licence qu'elle reçoit. Elle tient ensuite la licence à jour grâce à une synchronisation quotidienne. Utilisez **Refresh license** sur la même page pour récupérer immédiatement les changements, comme des sièges supplémentaires ou un renouvellement.
 
 L'activation en ligne nécessite un accès HTTPS sortant du serveur OneUptime vers `https://oneuptime.com`. Si le serveur n'atteint Internet qu'à travers un relais, définissez `ENTERPRISE_LICENSE_SERVER_URL` sur l'adresse `https://` du relais. Le relais doit transmettre `/api/enterprise-license/` à oneuptime.com.
 
@@ -136,9 +136,9 @@ L'activation en ligne nécessite un accès HTTPS sortant du serveur OneUptime ve
 Une installation sans route vers Internet peut utiliser un **jeton de licence signé** au lieu d'une clé :
 
 :::steps
-1. Connectez-vous en tant qu'administrateur principal, ouvrez le libellé d'édition et notez l'**ID d'instance**.
+1. Connectez-vous en tant qu'administrateur principal, ouvrez **Admin Dashboard > Paramètres > Licence**, passez à l'activation hors ligne et notez l'**ID d'instance**.
 2. Demandez à OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) un jeton de licence hors ligne pour cet ID d'instance.
-3. Collez le jeton dans le champ de jeton du libellé d'édition et activez-le.
+3. Collez le jeton dans le champ de jeton et activez-le.
 :::
 
 L'installation vérifie elle-même le jeton, avec les clés de signature de OneUptime intégrées à votre version. Elle ne contacte jamais OneUptime. Un jeton émis pour un ID d'instance est refusé par toutes les autres installations, et un jeton émis sans ID d'instance (comme celui que reçoit une installation activée en ligne) est refusé aussi. Pour renouveler ou ajouter des sièges, activez un nouveau jeton avant l'expiration de l'actuel.

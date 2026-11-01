@@ -235,6 +235,158 @@ describe("the page in the docs", () => {
   });
 });
 
+describe("the pages that say what SMS and calls need on a self-hosted install", () => {
+  /*
+   * Three pages went on saying a self-hosted install sends through Twilio
+   * after the gateway shipped: what a channel needs before it can be turned
+   * on, in two places, and whose numbers to whitelist. A reader who stops at
+   * any of them never learns the gateway exists, so each sentence names it,
+   * in every language, in the words that language's gateway page uses.
+   */
+  const METHODS: string = "notifications/notification-methods";
+  const ESCALATION: string = "on-call/escalation-rules";
+  const WHITELIST: string = "on-call/phone-number-whitelist";
+
+  // The word for a gateway in each language: its page's title has it.
+  const GATEWAY_WORDS: Record<string, string> = {
+    da: "gateway",
+    de: "gateway",
+    en: "gateway",
+    es: "pasarela",
+    fa: "درگاه",
+    fr: "passerelle",
+    hi: "गेटवे",
+    it: "gateway",
+    ja: "ゲートウェイ",
+    ko: "게이트웨이",
+    nl: "gateway",
+    no: "gateway",
+    pt: "gateway",
+    ru: "шлюз",
+    sv: "gateway",
+    "zh-CN": "网关",
+    "zh-TW": "閘道",
+  };
+
+  const LANGUAGES: Array<string> = [...SUPPORTED_DOCS_LANGUAGE_CODES];
+
+  // A translation lies line for line beside its English page.
+  function lineBeside(
+    language: string,
+    docsPage: string,
+    englishWords: string,
+  ): string {
+    const index: number = readPage("en", docsPage)
+      .split("\n")
+      .findIndex((line: string): boolean => {
+        return line.includes(englishWords);
+      });
+
+    expect({ docsPage, englishWords, found: index >= 0 }).toEqual({
+      docsPage,
+      englishWords,
+      found: true,
+    });
+
+    return readPage(language, docsPage).split("\n")[index] as string;
+  }
+
+  function titleOfGatewayPage(language: string): string {
+    return (readPage(language, PAGE).split("\n")[0] as string).slice(2);
+  }
+
+  it("keeps a word for every docs language, the one its gateway page's title has", () => {
+    expect(Object.keys(GATEWAY_WORDS).sort()).toEqual(LANGUAGES.slice().sort());
+
+    for (const language of LANGUAGES) {
+      expect({
+        language,
+        inTitle: titleOfGatewayPage(language)
+          .toLowerCase()
+          .includes(GATEWAY_WORDS[language] as string),
+      }).toEqual({ language, inTitle: true });
+    }
+  });
+
+  it.each(LANGUAGES)(
+    "%s: Notification Methods links the gateway beside Twilio, by its page's title",
+    (language: string) => {
+      const line: string = lineBeside(
+        language,
+        METHODS,
+        "On a self-hosted OneUptime, SMS and calls",
+      );
+      const twilio: number = line.indexOf(
+        "](/docs/self-hosted/twilio-integration)",
+      );
+      const gateway: number = line.indexOf(
+        `[${titleOfGatewayPage(language)}](${PAGE_URL})`,
+      );
+
+      expect({ language, twilio: twilio >= 0 }).toEqual({
+        language,
+        twilio: true,
+      });
+      expect({ language, gatewayAfterTwilio: gateway > twilio }).toEqual({
+        language,
+        gatewayAfterTwilio: true,
+      });
+    },
+  );
+
+  it.each(LANGUAGES)(
+    "%s: Escalation Rules names the gateway among what a channel needs set up",
+    (language: string) => {
+      const line: string = lineBeside(
+        language,
+        ESCALATION,
+        "a self-hosted installation needs a Twilio account",
+      );
+
+      expect({
+        language,
+        named: line.toLowerCase().includes(GATEWAY_WORDS[language] as string),
+      }).toEqual({ language, named: true });
+    },
+  );
+
+  it.each(LANGUAGES)(
+    "%s: the phone number whitelist names the gateway among where numbers come from",
+    (language: string) => {
+      const line: string = lineBeside(
+        language,
+        WHITELIST,
+        "**You use a self-hosted installation.**",
+      );
+
+      expect({
+        language,
+        named: line.toLowerCase().includes(GATEWAY_WORDS[language] as string),
+      }).toEqual({ language, named: true });
+    },
+  );
+
+  it("leaves none of the sentences that said Twilio was the only way", () => {
+    expect(readPage("en", METHODS)).not.toContain(
+      "SMS and calls also need a Twilio account,",
+    );
+    expect(readPage("en", ESCALATION)).not.toContain(
+      "needs a Twilio account or a Telegram bot",
+    );
+    expect(readPage("en", WHITELIST)).not.toContain(
+      "come from the Twilio numbers your administrator configured",
+    );
+  });
+
+  it("tells the truth about an install on a gateway: the numbers are its provider's", () => {
+    expect(readPage("en", WHITELIST)).toContain(
+      "or your own SMS and voice provider, when the installation sends through its own gateway.",
+    );
+    // The gateway page says OneUptime never learns the number a message left from.
+    expect(page).toContain("and the number it went out from is left blank");
+  });
+});
+
 describe("Set It Up, as the Admin Dashboard's card draws it", () => {
   const setUp: string = section("Set It Up");
 

@@ -8,7 +8,7 @@ import { TelemetryRetentionFoldStateHandler } from "../Components/TelemetryResou
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
-import { LicenseManagerComponent } from "Common/UI/Components/EditionLabel/LicenseManager";
+import { LicenseDetailsComponent } from "Common/UI/Components/EditionLabel/LicenseDetails";
 import { ComponentType, ExoticComponent } from "react";
 
 /*
@@ -296,12 +296,13 @@ export interface DashboardEnterprisePlugins {
     | undefined;
 
   /*
-   * License management (activation, refresh, seat usage, the instances on
-   * the license) in the edition dialog of the footer's edition pill. Footer
-   * passes it to EditionLabel, which keeps the read-only license status. Not
-   * a page and never lazy: see Common/UI/Components/EditionLabel/LicenseManager.ts.
+   * The seat usage and the instances on the license, in the read-only edition
+   * dialog of the footer's edition pill. Footer passes it to EditionLabel,
+   * which keeps the license status; a master admin manages the license on
+   * Settings > License in the Admin Dashboard. Not a page and never lazy: see
+   * Common/UI/Components/EditionLabel/LicenseDetails.ts.
    */
-  LicenseManager?: LicenseManagerComponent | undefined;
+  LicenseDetails?: LicenseDetailsComponent | undefined;
 }
 
 // Names of the screens a plugin can provide (everything but the marker).
@@ -332,7 +333,7 @@ const PLUGIN_KEY_SET: Record<DashboardEnterprisePluginKey, true> = {
   StatusPagePoweredBy: true,
   StatusPageSessionLength: true,
   StatusPageSubscriberRestrictions: true,
-  LicenseManager: true,
+  LicenseDetails: true,
 };
 
 export const DASHBOARD_ENTERPRISE_PLUGIN_KEYS: ReadonlyArray<DashboardEnterprisePluginKey> =

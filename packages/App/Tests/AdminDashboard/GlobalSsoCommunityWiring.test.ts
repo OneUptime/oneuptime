@@ -277,9 +277,9 @@ describe("the Global SSO / OIDC pages and Require SSO are core pages", () => {
     const contract: string = readAdminSource("Enterprise/EnterprisePlugins.ts");
 
     expect(contract).not.toMatch(/\bGlobal(?:SSO|OIDC)(?:List|View)\b/);
-    // The contract itself is still there, for Health, licenses and the license manager.
+    // The contract itself is still there, for Health, licenses and the license details.
     expect(contract).toContain("HealthOverview?: EnterprisePluginComponent");
-    expect(contract).toContain("LicenseManager: true,");
+    expect(contract).toContain("LicenseDetails: true,");
   });
 });
 

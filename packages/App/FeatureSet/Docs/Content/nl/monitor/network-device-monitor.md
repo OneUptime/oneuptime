@@ -510,11 +510,11 @@ Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het 
 
 Een apparaat met alleen ping houdt de naam en het adres die jij, of een discovery-scan, het gaf. Wat zijn eigen poll niet heeft gelezen, haalt het uit discovery:
 
-- De systeemnaam, beschrijving, `sysObjectID`, locatie en contactpersoon die de laatste [discovery-scan](#apparaten-ontdekken-met-een-netwerkscan) van zijn adres via SNMP las, en de reverse-DNS- en NetBIOS-namen die die vond.
-- Zijn MAC-adres, uit de ARP-tabel van een doorlopen router in zijn site.
+- De systeemnaam, beschrijving, `sysObjectID`, locatie, contactpersoon, het model, serienummer, de firmware en softwareversie die de laatste [discovery-scan](#apparaten-ontdekken-met-een-netwerkscan) van zijn adres via SNMP las, en de reverse-DNS- en NetBIOS-namen die die vond.
+- Zijn MAC-adres, uit de ARP-tabel van een doorlopen router in zijn site, of anders van de eerste Ethernet-poort die die scan las.
 - Voor een apparaat dat op een DNS-naam wordt gepold, het adres waarnaar zijn probe die naam heeft omgezet.
 
-Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Het overzicht van het apparaat en zijn item in de inventaris tonen welke scan, router of probe elke waarde las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
+Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Een scan leest het MAC-adres, model, serienummer, de firmware en softwareversie van een host met een paar extra verzoeken na zijn systeemgroep, maximaal vijf seconden per host. Een host die daar niet meer op antwoordt, telt nog steeds als een host die heeft geantwoord, en wat de scan niet kon lezen, behoudt zijn laatste waarde. Het overzicht van het apparaat en zijn item in de inventaris tonen welke scan, router of probe elke waarde las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
 
 Een Meraki-switch, -access point of -appliance levert over SNMP geen serienummer of firmware: rechtstreeks gepold antwoordt het apparaat op de systeemgroep en de interfacetabellen, die zijn model en zijn MAC-adres geven, en verder niets. Wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest, neemt het apparaat die, en alles wat zijn poll verder leeg laat, over uit het Meraki-dashboard, en zijn kaart **Inventaris** noemt de koppeling in een rij **Meraki**.
 
@@ -747,7 +747,7 @@ OneUptime houdt dan één netwerkapparaat-monitor bij per apparaat dat past, gem
 > [!IMPORTANT]
 > Elke monitor die een beleid inricht, telt mee voor je abonnement. Een beleid over een grote omgeving is veel monitors uit één keer opslaan, dus de bevestiging van het aanbevolen beleid noemt het aantal apparaten van het project voordat het iets maakt.
 
-De kolom **Covered Devices** van de tabel toont **Nog niet geteld** tot de eerste synchronisatie van het beleid, en **Last Sync** zegt wanneer dat was, of waarom het mislukte.
+De kolom **Covered Devices** van de tabel toont **Nog niet geteld** tot de eerste synchronisatie van het beleid, en **Laatste synchronisatie** zegt wanneer dat was, of waarom het mislukte.
 
 Zolang er nog geen beleid is, biedt de pagina **Create the recommended policy** aan: een monitorsjabloon **Network device alert pack (recommended)**, met het [aanbevolen waarschuwingspakket](#aanbevolen-waarschuwingspakket), en een beleid **Alert on every device** dat het op het hele project toepast. Het sjabloon wordt teruggevonden aan een markering in zijn beschrijving, dus de actie maakt nooit een tweede kopie, en het is een monitorsjabloon dat je ook kunt gebruiken voor monitors die je zelf maakt. Versmal daarna het bereik van het beleid als het hele project te veel is.
 

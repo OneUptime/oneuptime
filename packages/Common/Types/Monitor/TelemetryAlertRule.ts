@@ -273,10 +273,19 @@ export default class TelemetryAlertRuleUtil {
 
   /*
    * The anomaly conditions are offered where the server judges them: log
-   * and span counts against their hourly baselines, metrics against theirs.
-   * Exceptions have no baseline.
+   * and span counts against their hourly baselines, metrics against theirs,
+   * and an exception count against its own earlier weeks
+   * (ExceptionLearnedBaseline). New exceptions, regressed ones and the rise
+   * over the usual have no baseline, so an Exceptions rule on one has none.
    */
-  public static supportsAnomaly(monitorType: MonitorType): boolean {
+  public static supportsAnomaly(
+    monitorType: MonitorType,
+    measure?: CheckOn | null | undefined,
+  ): boolean {
+    if (monitorType === MonitorType.Exceptions) {
+      return !measure || measure === CheckOn.ExceptionCount;
+    }
+
     return (
       monitorType === MonitorType.Logs ||
       monitorType === MonitorType.Traces ||
@@ -290,11 +299,14 @@ export default class TelemetryAlertRuleUtil {
    */
   public static getComparisons(data: {
     monitorType: MonitorType;
+    measure?: CheckOn | null | undefined;
     current?: FilterType | undefined;
   }): Array<FilterType> {
     const comparisons: Array<FilterType> = [...STATIC_COMPARISONS];
 
-    if (TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType)) {
+    if (
+      TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType, data.measure)
+    ) {
       comparisons.push(...ANOMALY_COMPARISONS);
     }
 
@@ -773,6 +785,7 @@ export default class TelemetryAlertRuleUtil {
 
   private static isReadableComparison(data: {
     monitorType: MonitorType;
+    measure?: CheckOn | null | undefined;
     current?: FilterType | undefined;
   }): boolean {
     if (!data.current) {
@@ -789,7 +802,7 @@ export default class TelemetryAlertRuleUtil {
 
     return (
       ANOMALY_COMPARISONS.includes(data.current) &&
-      TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType)
+      TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType, data.measure)
     );
   }
 
@@ -823,6 +836,7 @@ export default class TelemetryAlertRuleUtil {
       filter.evaluateOverTime ||
       !TelemetryAlertRuleUtil.isReadableComparison({
         monitorType: data.monitorType,
+        measure: data.measure,
         current: filter.filterType,
       })
     ) {

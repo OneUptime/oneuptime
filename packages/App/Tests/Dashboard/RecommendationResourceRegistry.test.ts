@@ -24,6 +24,13 @@ import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
+import {
+  OPENSHIFT_OPERATOR_DEGRADED_TEMPLATE_ID,
+  OPENSHIFT_OPERATOR_UNAVAILABLE_TEMPLATE_ID,
+  OPENSHIFT_UPDATE_FAILING_TEMPLATE_ID,
+} from "Common/Types/Monitor/OpenShiftAlertTemplates";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import {
   StorageArrayAlertTemplate,
@@ -1159,6 +1166,95 @@ describe("RecommendationResourceRegistry", () => {
       expect(notReported).toContain("none are offered");
       expect(unknownPlatform).toContain("no recommended monitors");
     });
+  });
+
+  /*
+   * A Kubernetes cluster's list depends on its provider alone: an OpenShift
+   * cluster is offered its operators' and its update's alerts too, and the
+   * page says so. Any other cluster - one whose provider no telemetry named
+   * yet included - is offered the same list as ever, with no note.
+   */
+  describe("Kubernetes cluster context", () => {
+    const OPENSHIFT_TEMPLATE_IDS: Array<string> = [
+      OPENSHIFT_OPERATOR_UNAVAILABLE_TEMPLATE_ID,
+      OPENSHIFT_OPERATOR_DEGRADED_TEMPLATE_ID,
+      OPENSHIFT_UPDATE_FAILING_TEMPLATE_ID,
+    ];
+
+    function readClusterContext(
+      provider: unknown,
+    ): MonitorRecommendationContext {
+      const model: KubernetesCluster = new KubernetesCluster();
+      (model as unknown as Record<string, unknown>)["provider"] = provider;
+
+      return RecommendationResourceRegistry.readContext({
+        resourceType: MonitorRecommendationResourceType.Kubernetes,
+        model: model,
+      });
+    }
+
+    function noteFor(provider: unknown): string | undefined {
+      return RecommendationResourceRegistry.describeContext({
+        resourceType: MonitorRecommendationResourceType.Kubernetes,
+        context: readClusterContext(provider),
+      });
+    }
+
+    function templateIdsFor(provider: unknown): Array<string> {
+      return MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.Kubernetes,
+        readClusterContext(provider),
+      ).map((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId;
+      });
+    }
+
+    test("selects the provider along with the identifier and the name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.Kubernetes,
+        ),
+      ).toEqual({ clusterIdentifier: true, name: true, provider: true });
+    });
+
+    test("reads the provider as stored, and anything but a string as none", () => {
+      expect(readClusterContext(OPENSHIFT_KUBERNETES_PROVIDER)).toEqual({
+        kubernetesProvider: OPENSHIFT_KUBERNETES_PROVIDER,
+      });
+      expect(readClusterContext("EKS").kubernetesProvider).toBe("EKS");
+
+      for (const provider of [undefined, null, 7, ["OpenShift"]]) {
+        expect(readClusterContext(provider).kubernetesProvider).toBe(null);
+      }
+    });
+
+    test("an OpenShift cluster is told why its list has the OpenShift alerts", () => {
+      expect(noteFor(OPENSHIFT_KUBERNETES_PROVIDER)).toBe(
+        "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.",
+      );
+
+      for (const id of OPENSHIFT_TEMPLATE_IDS) {
+        expect(templateIdsFor(OPENSHIFT_KUBERNETES_PROVIDER)).toContain(id);
+      }
+    });
+
+    test.each([
+      ["no provider reported yet", null],
+      ["the column's default", "unknown"],
+      ["an empty one", ""],
+      ["a cloud's", "EKS"],
+      ["another distribution's", "Tencent EKS"],
+      ["OpenShift spelt as the catalog does not offer to", "openshift"],
+    ])(
+      "%s gets no note, as its list holds no OpenShift alert",
+      (_label: string, provider: string | null) => {
+        expect(noteFor(provider)).toBeUndefined();
+
+        for (const id of OPENSHIFT_TEMPLATE_IDS) {
+          expect(templateIdsFor(provider)).not.toContain(id);
+        }
+      },
+    );
   });
 
   /*

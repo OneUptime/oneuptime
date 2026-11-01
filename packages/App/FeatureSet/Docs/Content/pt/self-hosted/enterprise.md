@@ -116,18 +116,18 @@ O arquivo [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE
 
 Uma nova instalação da Enterprise Edition funciona como um **período de teste de 14 dias**, contado a partir da primeira vez que a instalação inicia a Enterprise Edition. O teste serve para avaliação: o uso em produção da Enterprise Edition exige uma assinatura sob a OneUptime Enterprise License. Ative uma licença antes que o teste termine: depois dele, SCIM, o registro de auditoria e as substituições de retenção param e a configuração enterprise passa a ser somente leitura (veja [Quando uma licença expira ou está ausente](#quando-uma-licença-expira-ou-está-ausente)). Para obter uma licença, entre em contato com [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
-A licença é gerenciada a partir do **rótulo da edição**, que os administradores master veem no cabeçalho do painel do administrador e no rodapé do Dashboard. Ele mostra o status da licença, o uso de assentos e, para os administradores master, o ID da instância.
+A licença é gerenciada em **Admin Dashboard > Configurações > Licença**: é lá que os administradores master a adicionam, a atualizam e a substituem, e ninguém mais pode alterá-la. O **rótulo da edição**, no cabeçalho do painel do administrador e no rodapé do Dashboard, apenas mostra a situação: o status da licença e, para os administradores master, o uso de assentos e um botão **Gerenciar licença** que leva a essa página.
 
 O OneUptime Enterprise comprado no AWS Marketplace, no Microsoft Marketplace ou no Google Cloud Marketplace não precisa de chave de licença: a assinatura do marketplace é a licença e cobra cada usuário por hora. Consulte [Marketplaces de nuvem](/docs/installation/cloud-marketplaces).
 
 ### Ativação online (chave de licença)
 
 :::steps
-1. Entre como administrador master e abra o rótulo da edição.
+1. Entre como administrador master e abra **Admin Dashboard > Configurações > Licença**.
 2. Insira a sua chave de licença e valide-a.
 :::
 
-A instalação verifica a chave com o OneUptime e armazena a licença que recebe. A partir daí, mantém a licença atualizada com uma sincronização diária. Use **Refresh license** no rótulo da edição para buscar alterações na hora, como assentos extras ou uma renovação.
+A instalação verifica a chave com o OneUptime e armazena a licença que recebe. A partir daí, mantém a licença atualizada com uma sincronização diária. Use **Refresh license** na mesma página para buscar alterações na hora, como assentos extras ou uma renovação.
 
 A ativação online precisa de HTTPS de saída do servidor do OneUptime para `https://oneuptime.com`. Se o servidor só chega à internet através de um relay, defina `ENTERPRISE_LICENSE_SERVER_URL` com o endereço `https://` do relay. O relay deve encaminhar `/api/enterprise-license/` para oneuptime.com.
 
@@ -136,9 +136,9 @@ A ativação online precisa de HTTPS de saída do servidor do OneUptime para `ht
 Uma instalação sem rota para a internet pode usar um **token de licença assinado** em vez de uma chave:
 
 :::steps
-1. Entre como administrador master, abra o rótulo da edição e anote o **ID da instância**.
+1. Entre como administrador master, abra **Admin Dashboard > Configurações > Licença**, mude para a ativação offline e anote o **ID da instância**.
 2. Peça ao OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) um token de licença offline para esse ID da instância.
-3. Cole o token no campo de token do rótulo da edição e ative-o.
+3. Cole o token no campo de token e ative-o.
 :::
 
 A instalação verifica o token por conta própria, com as chaves de assinatura do OneUptime embutidas na sua versão. Ela nunca contata o OneUptime. Um token emitido para um ID da instância é recusado por todas as outras instalações, e um token emitido sem ID da instância (como o token que uma instalação ativada online recebe) também é recusado. Para renovar ou adicionar assentos, ative um novo token antes que o atual expire.

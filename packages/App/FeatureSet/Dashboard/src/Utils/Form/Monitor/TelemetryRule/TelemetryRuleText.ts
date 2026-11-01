@@ -233,9 +233,11 @@ const METRIC_COMPARISON_TERMS: Record<string, string> = {
 
 export const getComparisonChoices: (data: {
   monitorType: MonitorType;
+  measure?: CheckOn | null | undefined;
   current?: FilterType | undefined;
 }) => Array<TelemetryRuleChoice<FilterType>> = (data: {
   monitorType: MonitorType;
+  measure?: CheckOn | null | undefined;
   current?: FilterType | undefined;
 }): Array<TelemetryRuleChoice<FilterType>> => {
   const labels: Record<string, string> =
@@ -382,6 +384,12 @@ export const TelemetryRuleCopy: {
   metricTitle: string;
   aggregationTitle: string;
   sensitivityTitle: string;
+  baselineWindowTitle: string;
+  baselineWindowDescription: string;
+  sigmaCountTitle: string;
+  sigmaCountDescription: string;
+  minimumCountTitle: string;
+  minimumCountDescription: string;
   noDataTitle: string;
   noDataDescription: string;
   statusTitle: string;
@@ -397,6 +405,7 @@ export const TelemetryRuleCopy: {
   metricWindowFieldDescription: string;
   valueRequired: string;
   anomalyHint: string;
+  exceptionAnomalyHint: string;
   groupedHint: string;
 } = {
   whenToAlertTitle: translationKey("When to alert"),
@@ -429,6 +438,18 @@ export const TelemetryRuleCopy: {
   metricTitle: translationKey("Metric"),
   aggregationTitle: translationKey("Measured as"),
   sensitivityTitle: translationKey("Sensitivity"),
+  baselineWindowTitle: translationKey("Baseline Window"),
+  baselineWindowDescription: translationKey(
+    "How much history to learn from. It can only learn from the exceptions OneUptime keeps.",
+  ),
+  sigmaCountTitle: translationKey("Standard deviations"),
+  sigmaCountDescription: translationKey(
+    "How far from the usual count a window must be. Leave empty to use the sensitivity.",
+  ),
+  minimumCountTitle: translationKey("Minimum exceptions"),
+  minimumCountDescription: translationKey(
+    "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.",
+  ),
   noDataTitle: translationKey("If there is no data"),
   noDataDescription: translationKey("What a window with no values counts as."),
   statusTitle: translationKey("Monitor status while it matches"),
@@ -457,6 +478,9 @@ export const TelemetryRuleCopy: {
   valueRequired: translationKey("Enter the value to compare with."),
   anomalyHint: translationKey(
     "Compared with the same hour of the week over the last 14 days. A new monitor waits until there is enough history.",
+  ),
+  exceptionAnomalyHint: translationKey(
+    "Compared with the same hours of the weeks before. A new service waits until it has two weeks of history.",
   ),
   groupedHint: translationKey(
     "Counted together here. The monitor counts each group on its own.",
@@ -652,6 +676,24 @@ export const getRuleSentence: (data: {
           hasCount,
           translator,
         });
+      }
+      if (rule.filterType === FilterType.AnomalouslyHigh) {
+        return translator.translateTemplate(
+          "Alerts when matching exceptions in {{window}} are unusually many for this hour of the week.",
+          { window },
+        );
+      }
+      if (rule.filterType === FilterType.AnomalouslyLow) {
+        return translator.translateTemplate(
+          "Alerts when matching exceptions in {{window}} are unusually few for this hour of the week.",
+          { window },
+        );
+      }
+      if (rule.filterType === FilterType.Anomalous) {
+        return translator.translateTemplate(
+          "Alerts when matching exceptions in {{window}} are unusually many or few for this hour of the week.",
+          { window },
+        );
       }
       if (isNone) {
         return translator.translateTemplate(

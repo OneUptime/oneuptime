@@ -7,10 +7,10 @@ import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -20,25 +20,36 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
+import ResourceTable, {
+  InfrastructureResource,
+} from "../../../Components/Infrastructure/ResourceTable";
 import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
+import ProxmoxPartHero from "../../../Components/Proxmox/Part/ProxmoxPartHero";
+import ProxmoxNodeOverview from "../../../Components/Proxmox/Part/ProxmoxNodeOverview";
+import {
+  ProxmoxPartRoutes,
+  getProxmoxPartRoutes,
+} from "../../../Components/Proxmox/Part/ProxmoxPartRoutes";
+import {
+  getProxmoxGuestColumns,
+  getProxmoxStorageColumns,
+  toProxmoxListResource,
+} from "../../../Components/Proxmox/ProxmoxResourceColumns";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
   externalIdFromRouteParam,
   fetchProxmoxInventoryRow,
+  fetchProxmoxRowsOnNode,
   formatBytes,
-  formatPercent,
-  formatUptime,
-  displayNameForResource,
-  displayStatusForResource,
 } from "../Utils/ProxmoxResourceUtils";
+import {
+  getProxmoxNodeName,
+  getProxmoxRowsOnNode,
+  sortProxmoxGuests,
+  summarizeProxmoxGuests,
+} from "../Utils/ProxmoxPartFacts";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
@@ -56,8 +67,17 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
-// A node's pve externalId is "node/<name>".
-const NODE_EXTERNAL_ID_PREFIX: string = "node/";
+/*
+ * A Proxmox VE node inside its cluster: the hero says which node it is,
+ * whether it is up and what it runs; the tabs hold its Overview (what
+ * needs attention on it, its load, what is open on it, its busiest guests,
+ * its alerts and details), its guests, its storage and its metric charts.
+ */
+
+export const PROXMOX_NODE_TAB_OVERVIEW: string = "Overview";
+export const PROXMOX_NODE_TAB_GUESTS: string = "Guests";
+export const PROXMOX_NODE_TAB_STORAGE: string = "Storage";
+export const PROXMOX_NODE_TAB_METRICS: string = "Metrics";
 
 const ProxmoxClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -74,17 +94,57 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
 
   const [cluster, setCluster] = useState<ProxmoxCluster | null>(null);
   const [row, setRow] = useState<ProxmoxResourceModel | null>(null);
+  const [nodeRows, setNodeRows] = useState<Array<ProxmoxResourceModel>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingRow, setIsLoadingRow] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
   const [isRemoving, setIsRemoving] = useState<boolean>(false);
   const [removeError, setRemoveError] = useState<string>("");
+  const [refreshToken, setRefreshToken] = useState<number>(0);
+
+  /*
+   * "View all guests" on the Overview opens the Guests tab: Tabs keeps its
+   * own selection, so it is mounted again on that tab.
+   */
+  const [tabsKey, setTabsKey] = useState<number>(0);
+  const [initialTabName, setInitialTabName] = useState<string>(
+    PROXMOX_NODE_TAB_OVERVIEW,
+  );
 
   // The node's own name as Proxmox knows it ("pve1" from "node/pve1").
-  const pveNodeName: string = externalId.startsWith(NODE_EXTERNAL_ID_PREFIX)
-    ? externalId.substring(NODE_EXTERNAL_ID_PREFIX.length)
-    : "";
+  const pveNodeName: string = getProxmoxNodeName(null, externalId);
+
+  // Only the newest inventory read may commit.
+  const inventorySequence: React.MutableRefObject<number> = useRef<number>(0);
+
+  const fetchInventory: PromiseVoidFunction = async (): Promise<void> => {
+    const sequence: number = ++inventorySequence.current;
+    try {
+      const [inventoryRow, rowsOnNode]: [
+        ProxmoxResourceModel | null,
+        Array<ProxmoxResourceModel>,
+      ] = await Promise.all([
+        fetchProxmoxInventoryRow({
+          proxmoxClusterId: modelId,
+          kind: "Node",
+          externalId: externalId,
+        }),
+        fetchProxmoxRowsOnNode({
+          proxmoxClusterId: modelId,
+          nodeName: pveNodeName,
+        }),
+      ]);
+      if (sequence !== inventorySequence.current) {
+        return;
+      }
+      setRow(inventoryRow);
+      setNodeRows(rowsOnNode);
+    } catch {
+      // Graceful degradation — the Overview shows its empty state.
+    }
+    setIsLoadingRow(false);
+  };
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
@@ -102,18 +162,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
     }
     setIsLoading(false);
 
-    try {
-      const inventoryRow: ProxmoxResourceModel | null =
-        await fetchProxmoxInventoryRow({
-          proxmoxClusterId: modelId,
-          kind: "Node",
-          externalId: externalId,
-        });
-      setRow(inventoryRow);
-    } catch {
-      // Graceful degradation — overview tab shows its empty state.
-    }
-    setIsLoadingRow(false);
+    await fetchInventory();
   };
 
   useEffect(() => {
@@ -121,6 +170,13 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
       setError(API.getFriendlyMessage(err));
     });
   }, []);
+
+  const refresh: () => void = (): void => {
+    setRefreshToken(Date.now());
+    fetchInventory().catch(() => {
+      // The page keeps what it showed; the next refresh tries again.
+    });
+  };
 
   /*
    * Remove a node that has stopped reporting. The server refuses a node
@@ -183,9 +239,23 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
   }
 
   const clusterName: string = cluster.name;
-  const nodeName: string = row
-    ? displayNameForResource(row)
-    : externalId.replace(/^node\//, "");
+  const nodeName: string = getProxmoxNodeName(row, externalId) || externalId;
+  const routes: ProxmoxPartRoutes = getProxmoxPartRoutes(modelId);
+  const now: Date = OneUptimeDate.getCurrentDate();
+
+  // What the node reports: its guests (by VMID) and its storage.
+  const onNode: {
+    guests: Array<ProxmoxResourceModel>;
+    storage: Array<ProxmoxResourceModel>;
+  } = getProxmoxRowsOnNode(nodeRows, pveNodeName);
+  const guests: Array<ProxmoxResourceModel> = sortProxmoxGuests(onNode.guests);
+  const storage: Array<ProxmoxResourceModel> = onNode.storage;
+  const guestResources: Array<InfrastructureResource> = guests.map(
+    toProxmoxListResource,
+  );
+  const storageResources: Array<InfrastructureResource> = storage.map(
+    toProxmoxListResource,
+  );
 
   /*
    * All charts filter on the raw `id` datapoint label — the one label
@@ -274,74 +344,6 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
     yAxisValueFormatter: formatBytes,
   };
 
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "Node Name", value: nodeName },
-    { title: "Cluster", value: clusterName },
-  ];
-
-  if (row) {
-    const status: string = displayStatusForResource(row);
-    if (status) {
-      summaryFields.push({
-        title: "Status",
-        value: (
-          <StatusBadge
-            text={status}
-            type={row.isUp ? StatusBadgeType.Success : StatusBadgeType.Danger}
-          />
-        ),
-        description: PROXMOX_METRIC_DESCRIPTIONS.nodeStatus,
-      });
-    }
-
-    const uptime: string = formatUptime(row.uptimeSeconds);
-    if (uptime) {
-      summaryFields.push({
-        title: "Uptime",
-        value: uptime,
-        description: PROXMOX_METRIC_DESCRIPTIONS.nodeUptime,
-      });
-    }
-
-    if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
-      summaryFields.push({
-        title: "CPU",
-        value: formatPercent(Number(row.latestCpuPercent)),
-        description: PROXMOX_METRIC_DESCRIPTIONS.nodeCpu,
-      });
-    }
-
-    if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {
-      summaryFields.push({
-        title: "Memory (Used / Total)",
-        value: `${formatBytes(Number(row.latestMemoryBytes))} / ${formatBytes(
-          row.maxMemoryBytes !== null && row.maxMemoryBytes !== undefined
-            ? Number(row.maxMemoryBytes)
-            : null,
-        )}`,
-        description: PROXMOX_METRIC_DESCRIPTIONS.nodeMemory,
-      });
-    }
-
-    if (row.haState) {
-      summaryFields.push({
-        title: "HA State",
-        value: row.haState,
-        description: PROXMOX_METRIC_DESCRIPTIONS.nodeHaState,
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
-
   /*
    * On the Proxmox VE native push a node taken out of the cluster looks
    * exactly like a dead one: its siblings keep reporting it as down. So
@@ -354,40 +356,118 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
     row && row.isUp === false && row.isNativePush === true && pveNodeName,
   );
 
+  const removeNodeCard: ReactElement | null = canRemoveNode ? (
+    <Card
+      title="Remove Node"
+      description="This node has stopped reporting. If it was taken out of the Proxmox cluster, remove it here so it is no longer reported as offline."
+      buttons={[
+        {
+          title: "Remove Node",
+          buttonStyle: ButtonStyleType.DANGER_OUTLINE,
+          icon: IconProp.Trash,
+          onClick: () => {
+            setRemoveError("");
+            setShowRemoveModal(true);
+          },
+        },
+      ]}
+    />
+  ) : null;
+
+  const showGuests: () => void = (): void => {
+    setInitialTabName(PROXMOX_NODE_TAB_GUESTS);
+    setTabsKey((key: number): number => {
+      return key + 1;
+    });
+  };
+
   const tabs: Array<Tab> = [
     {
-      name: "Overview",
-      children: (
-        <div className="space-y-6">
-          <ResourceOverviewTab
-            summaryFields={row ? summaryFields : []}
-            labels={{}}
-            annotations={{}}
-            isLoading={isLoadingRow}
-            emptyMessage="Node details not reported yet. Make sure the Proxmox agent is sending metrics."
-          />
-          {canRemoveNode && (
-            <Card
-              title="Remove Node"
-              description="This node has stopped reporting. If it was taken out of the Proxmox cluster, remove it here so it is no longer reported as offline."
-              buttons={[
-                {
-                  title: "Remove Node",
-                  buttonStyle: ButtonStyleType.DANGER_OUTLINE,
-                  icon: IconProp.Trash,
-                  onClick: () => {
-                    setRemoveError("");
-                    setShowRemoveModal(true);
-                  },
-                },
-              ]}
-            />
-          )}
-        </div>
+      name: PROXMOX_NODE_TAB_OVERVIEW,
+      children: isLoadingRow ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <ProxmoxNodeOverview
+          clusterId={modelId}
+          clusterName={clusterName}
+          externalId={externalId}
+          row={row}
+          nodeRows={[...guests, ...storage]}
+          routes={routes}
+          onShowGuests={showGuests}
+          refreshToken={refreshToken}
+          footer={removeNodeCard}
+        />
       ),
     },
     {
-      name: "Metrics",
+      name: PROXMOX_NODE_TAB_GUESTS,
+      countBadge: guests.length,
+      children: (
+        <ResourceTable
+          onRefreshClick={refresh}
+          title="Guests"
+          description="The VMs, containers and templates on this node, with their current resource usage."
+          resources={guestResources}
+          isLoading={isLoadingRow}
+          showGroupColumn={false}
+          builtInColumnDescriptions={{
+            status: PROXMOX_METRIC_DESCRIPTIONS.guestsTableStatus,
+            cpu: PROXMOX_METRIC_DESCRIPTIONS.guestsTableCpu,
+            memory: PROXMOX_METRIC_DESCRIPTIONS.guestsTableMemory,
+            age: PROXMOX_METRIC_DESCRIPTIONS.guestsTableUptime,
+          }}
+          tableIdPrefix="proxmox-node-guests"
+          emptyMessage="No guests on this node."
+          columns={getProxmoxGuestColumns({
+            rows: guests,
+            resources: guestResources,
+            translator: translator,
+            now: now,
+          })}
+          getViewRoute={(resource: InfrastructureResource): Route => {
+            return routes.getPartRoute(
+              "Guest",
+              resource.additionalAttributes["externalId"] || "",
+            );
+          }}
+        />
+      ),
+    },
+    {
+      name: PROXMOX_NODE_TAB_STORAGE,
+      countBadge: storage.length,
+      children: (
+        <ResourceTable
+          onRefreshClick={refresh}
+          title="Storage"
+          description="The storage this node reports, with its current usage. Shared storage is listed on every node that uses it."
+          resources={storageResources}
+          isLoading={isLoadingRow}
+          showGroupColumn={false}
+          showResourceMetrics={false}
+          // Proxmox reports no uptime for a storage: no column of dashes.
+          showAge={false}
+          builtInColumnDescriptions={{
+            status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus,
+          }}
+          tableIdPrefix="proxmox-node-storage"
+          emptyMessage="No storage reported for this node."
+          columns={getProxmoxStorageColumns({
+            resources: storageResources,
+            translator: translator,
+          })}
+          getViewRoute={(resource: InfrastructureResource): Route => {
+            return routes.getPartRoute(
+              "Storage",
+              resource.additionalAttributes["externalId"] || "",
+            );
+          }}
+        />
+      ),
+    },
+    {
+      name: PROXMOX_NODE_TAB_METRICS,
       children: (
         <Card
           title={translator.translateTemplate("Node Metrics: {{nodeName}}", {
@@ -470,8 +550,27 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
   ];
 
   return (
-    <Fragment>
-      <Tabs tabs={tabs} onTabChange={() => {}} />
+    <div data-testid="proxmox-node-page">
+      <ProxmoxPartHero
+        kind="Node"
+        row={row}
+        externalId={externalId}
+        clusterName={clusterName}
+        clusterRoute={routes.clusterRoute}
+        getPartRoute={routes.getPartRoute}
+        guestSummary={summarizeProxmoxGuests(guests)}
+      />
+      {/*
+       * The tab row wraps on a phone, so Metrics is never out of sight past
+       * the edge of the screen.
+       */}
+      <Tabs
+        key={tabsKey}
+        tabs={tabs}
+        initialTabName={initialTabName}
+        wrap={true}
+        onTabChange={() => {}}
+      />
       {showRemoveModal && canRemoveNode && (
         <ConfirmModal
           title="Remove Node"
@@ -495,7 +594,7 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
           }}
         />
       )}
-    </Fragment>
+    </div>
   );
 };
 

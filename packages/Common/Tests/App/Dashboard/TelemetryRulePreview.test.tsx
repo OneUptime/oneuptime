@@ -547,6 +547,28 @@ describe("what the preview draws and says", () => {
     );
   });
 
+  test("an unusual exceptions rule says a new service, not a new monitor, is what waits", async () => {
+    answerWith([3, 4, 5]);
+
+    render(
+      <TelemetryRulePreview
+        monitorType={MonitorType.Exceptions}
+        settings={LOG_SETTINGS}
+        filterType={FilterType.AnomalouslyHigh}
+        threshold={undefined}
+      />,
+    );
+
+    await waitForRead();
+
+    expect(lastChart().referenceLines).toBeUndefined();
+    expect(
+      screen.getByTestId("telemetry-rule-preview-verdict"),
+    ).toHaveTextContent(
+      "Compared with the same hours of the weeks before. A new service waits until it has two weeks of history.",
+    );
+  });
+
   test("a grouped Logs monitor is told the preview counts every group together", async () => {
     answerWith([3]);
 

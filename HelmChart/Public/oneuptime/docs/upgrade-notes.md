@@ -32,8 +32,8 @@ See [Installation & Upgrades](installation.md#upgrading) for the upgrade command
     Edition requires a subscription under the OneUptime Enterprise License
     ([sales@oneuptime.com](mailto:sales@oneuptime.com)). **If you use SCIM or
     audit logging, activate a license before the trial ends.** After the
-    trial, until a master admin activates a license from the edition label in
-    the Admin Dashboard header, SCIM and audit logging stop: your identity
+    trial, until a master admin activates a license on Settings > License in
+    the Admin Dashboard, SCIM and audit logging stop: your identity
     provider's SCIM requests are refused and audit logging stops recording. At
     the same time enterprise configuration becomes read-only and the Health
     dashboards are locked. Single sign-on is not affected. Everything resumes,

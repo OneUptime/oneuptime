@@ -1,4 +1,4 @@
-import LicenseManager from "../../../AdminDashboard/License/LicenseManager";
+import LicenseDetails from "../../../AdminDashboard/License/LicenseDetails";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -20,15 +20,12 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
- * The edition dialog of the Enterprise Edition: core's EditionLabel with this
- * license manager (ee/AdminDashboard/License/LicenseManager), which is what
- * the Dashboard and the Admin Dashboard render in the Enterprise image.
- *
- * Every test and assertion of the suite that covered the dialog before its
- * license management moved out of core
- * (packages/Common/Tests/UI/Components/EditionLabelLicenseStatus.test.tsx)
- * runs here unchanged, so the split cannot have changed what a master admin
- * sees or sends. The core suite keeps the part that holds without ee/.
+ * The edition dialog of the Enterprise Edition: core's EditionLabel with these
+ * license details (ee/AdminDashboard/License/LicenseDetails), which is what
+ * the Dashboard and the Admin Dashboard render in the Enterprise image. It
+ * shows the license, for whoever opens it, and changes nothing: a master admin
+ * is sent to Settings > License (LicenseSettingsPage.test.tsx) with one button.
+ * The core suite keeps the part that holds without ee/.
  *
  * What the edition pill and dialog say about the license, now that the
  * Enterprise license client reports a status rather than a yes/no:
@@ -46,7 +43,6 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *            it names single sign-on, which is part of every edition and does
  *            not depend on the license;
  *   unverified legacy licenses, told apart for a master admin;
- *   offline activation with a pasted signed token;
  *   the Community Edition image running with IS_ENTERPRISE_EDITION set, told to
  *            a master admin.
  */
@@ -215,7 +211,7 @@ const respondWith: (payload: JSONObject) => void = (
 };
 
 const renderPill: () => Promise<void> = async (): Promise<void> => {
-  render(<EditionLabel licenseManager={LicenseManager} />);
+  render(<EditionLabel licenseDetails={LicenseDetails} />);
 
   await waitFor(() => {
     expect(fetchCalls.length).toBeGreaterThan(0);
@@ -244,7 +240,7 @@ afterEach(() => {
   delete process.env[MISMATCH_FLAG];
 });
 
-describe("EditionLabel with the license manager - a valid license", () => {
+describe("EditionLabel with the license details - a valid license", () => {
   it("reads plainly as the Enterprise Edition", async () => {
     await renderPill();
 
@@ -269,7 +265,7 @@ describe("EditionLabel with the license manager - a valid license", () => {
   });
 });
 
-describe("EditionLabel with the license manager - an expired license in its grace period", () => {
+describe("EditionLabel with the license details - an expired license in its grace period", () => {
   // 25 days into the 30-day grace period.
   const graceEndsAt: string = inDays(5);
 
@@ -319,15 +315,23 @@ describe("EditionLabel with the license manager - an expired license in its grac
     expect(lapseWarningProblems(notice.textContent)).toEqual([]);
   });
 
-  it("still counts as licensed: details, seats and the refresh button stay", async () => {
+  it("still counts as licensed: the details and the seats stay", async () => {
     await openDialog();
 
     expect(await screen.findByText("Licensed to")).toBeInTheDocument();
     expect(screen.getByText("Licensed seats")).toBeInTheDocument();
-    expect(
-      screen.getByTestId("refresh-enterprise-license"),
-    ).toBeInTheDocument();
     expect(screen.getByText("Grace period")).toBeInTheDocument();
+  });
+
+  it("sends a master admin to the license page to refresh it", async () => {
+    await openDialog();
+
+    expect(
+      await screen.findByRole("button", { name: "Manage license" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("refresh-enterprise-license"),
+    ).not.toBeInTheDocument();
   });
 
   it("does not call an expired license a trial", async () => {
@@ -359,7 +363,7 @@ describe("EditionLabel with the license manager - an expired license in its grac
   });
 });
 
-describe("EditionLabel with the license manager - an unlicensed installation's trial", () => {
+describe("EditionLabel with the license details - an unlicensed installation's trial", () => {
   const graceEndsAt: string = inDays(10);
 
   beforeEach(() => {
@@ -412,12 +416,15 @@ describe("EditionLabel with the license manager - an unlicensed installation's t
     expect(lapseWarningProblems(notice.textContent)).toEqual([]);
   });
 
-  it("lets a master admin add the license during the trial", async () => {
+  it("sends a master admin to the license page to add the license", async () => {
     await openDialog();
 
     expect(
-      await screen.findByPlaceholderText("Enter your enterprise license key"),
+      await screen.findByRole("button", { name: "Manage license" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText("Enter your enterprise license key"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows no empty license details for a license that does not exist", async () => {
@@ -475,7 +482,7 @@ describe("EditionLabel with the license manager - an unlicensed installation's t
   });
 });
 
-describe("EditionLabel with the license manager - no usable license", () => {
+describe("EditionLabel with the license details - no usable license", () => {
   it.each([
     [
       "expired",
@@ -523,7 +530,7 @@ describe("EditionLabel with the license manager - no usable license", () => {
        * license does not touch it.
        */
       expect(lapsedStateProblems(notice.textContent)).toEqual([]);
-      // Nor anywhere else in the dialog, the license manager's parts included.
+      // Nor anywhere else in the dialog, the license details included.
       expect(singleSignOnMentions(document.body.textContent)).toEqual([]);
     },
   );
@@ -563,7 +570,7 @@ describe("EditionLabel with the license manager - no usable license", () => {
     expect(
       screen.queryByText(/turn these on immediately/),
     ).not.toBeInTheDocument();
-    // A master admin with the license manager is the one who can add it.
+    // A master admin with the Enterprise frontends is the one who can add it.
     expect(
       screen.getByText(
         /A valid license that includes them keeps SCIM provisioning and audit logging running, enterprise configuration \(SCIM, team compliance, audit log settings\) editable/,
@@ -581,18 +588,21 @@ describe("EditionLabel with the license manager - no usable license", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("offers the license input to a master admin", async () => {
+  it("sends a master admin to the license page, and has no input of its own", async () => {
     respondWith(adminPayload({ status: "expired", licenseValid: false }));
 
     await openDialog();
 
     expect(
-      await screen.findByPlaceholderText("Enter your enterprise license key"),
+      await screen.findByRole("button", { name: "Manage license" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText("Enter your enterprise license key"),
+    ).not.toBeInTheDocument();
   });
 });
 
-describe("EditionLabel with the license manager - an unverified legacy license", () => {
+describe("EditionLabel with the license details - an unverified legacy license", () => {
   it("tells a master admin it cannot be verified offline", async () => {
     respondWith(adminPayload({ verification: "unverified" }));
 
@@ -627,144 +637,7 @@ describe("EditionLabel with the license manager - an unverified legacy license",
   });
 });
 
-describe("EditionLabel with the license manager - offline activation", () => {
-  beforeEach(() => {
-    respondWith(adminPayload({ status: "missing", licenseValid: false }));
-  });
-
-  const switchToToken: () => Promise<void> = async (): Promise<void> => {
-    fireEvent.click(
-      await screen.findByTestId("switch-license-activation-mode"),
-    );
-  };
-
-  it("offers a master admin a way to paste a signed token instead of a key", async () => {
-    await openDialog();
-
-    await switchToToken();
-
-    expect(
-      screen.getByTestId("enterprise-license-token-input"),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByPlaceholderText("Enter your enterprise license key"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Activate License" }),
-    ).toBeInTheDocument();
-  });
-
-  it("sends the pasted token, and no key, to the activation route", async () => {
-    await openDialog();
-    await switchToToken();
-
-    fireEvent.change(screen.getByTestId("enterprise-license-token-input"), {
-      target: { value: "  header.payload.signature \n" },
-    });
-
-    respondWith(adminPayload());
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Activate License" }));
-    });
-
-    await waitFor(() => {
-      expect(
-        fetchCalls.some((call: FetchCall): boolean => {
-          return call.method === "POST";
-        }),
-      ).toBe(true);
-    });
-
-    const post: FetchCall = fetchCalls.find((call: FetchCall): boolean => {
-      return call.method === "POST";
-    }) as FetchCall;
-
-    expect(post.url).toContain("/global-config/license");
-    expect(post.url).not.toContain("/refresh");
-    expect(post.data).toEqual({ licenseToken: "header.payload.signature" });
-    expect(
-      await screen.findByText("License activated offline."),
-    ).toBeInTheDocument();
-  });
-
-  it("shows the server's refusal of a token this build does not trust", async () => {
-    await openDialog();
-    await switchToToken();
-
-    fireEvent.change(screen.getByTestId("enterprise-license-token-input"), {
-      target: { value: "header.payload.signature" },
-    });
-
-    respond = (
-      call: FetchCall,
-    ): HTTPResponse<JSONObject> | HTTPErrorResponse => {
-      if (call.method === "POST") {
-        return new HTTPErrorResponse(
-          400,
-          {
-            message:
-              "This build does not trust the key that signed this token, so it cannot be activated offline.",
-          },
-          {},
-        );
-      }
-
-      return new HTTPResponse<JSONObject>(
-        200,
-        adminPayload({ status: "missing", licenseValid: false }),
-        {},
-      );
-    };
-
-    fireEvent.click(screen.getByRole("button", { name: "Activate License" }));
-
-    expect(
-      await screen.findByText(/does not trust the key that signed this token/),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText("License activated offline."),
-    ).not.toBeInTheDocument();
-  });
-
-  it("keeps the activate button disabled until a token is pasted", async () => {
-    await openDialog();
-    await switchToToken();
-
-    expect(
-      screen.getByRole("button", { name: "Activate License" }),
-    ).toBeDisabled();
-  });
-
-  it("switches back to the license key", async () => {
-    await openDialog();
-    await switchToToken();
-
-    fireEvent.click(screen.getByText("Use a license key instead"));
-
-    expect(
-      screen.getByPlaceholderText("Enter your enterprise license key"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Validate License" }),
-    ).toBeInTheDocument();
-  });
-
-  it("is never offered to somebody who is not a master admin", async () => {
-    isMasterAdmin = false;
-    respondWith(publicPayload({ status: "missing", licenseValid: false }));
-
-    await openDialog();
-
-    await screen.findByText("A master admin has to activate this license");
-
-    expect(
-      screen.queryByTestId("switch-license-activation-mode"),
-    ).not.toBeInTheDocument();
-  });
-});
-
-describe("EditionLabel with the license manager - the Community Edition", () => {
+describe("EditionLabel with the license details - the Community Edition", () => {
   beforeEach(() => {
     isEnterpriseEdition = false;
     respondWith(
@@ -780,7 +653,7 @@ describe("EditionLabel with the license manager - the Community Edition", () => 
   });
 
   it("does not ask about a license on page load", async () => {
-    render(<EditionLabel licenseManager={LicenseManager} />);
+    render(<EditionLabel licenseDetails={LicenseDetails} />);
 
     expect(
       screen.getByRole("button", {
@@ -791,7 +664,7 @@ describe("EditionLabel with the license manager - the Community Edition", () => 
   });
 
   it("keeps the comparison and the version card", async () => {
-    render(<EditionLabel licenseManager={LicenseManager} />);
+    render(<EditionLabel licenseDetails={LicenseDetails} />);
     fireEvent.click(screen.getByRole("button", { name: /Community Edition/ }));
 
     expect(
@@ -809,7 +682,7 @@ describe("EditionLabel with the license manager - the Community Edition", () => 
   it("tells a master admin to switch to the enterprise image", async () => {
     process.env[MISMATCH_FLAG] = "true";
 
-    render(<EditionLabel licenseManager={LicenseManager} />);
+    render(<EditionLabel licenseDetails={LicenseDetails} />);
 
     const button: HTMLElement = screen.getByRole("button", {
       name: "Community Edition, Action needed",
@@ -828,7 +701,7 @@ describe("EditionLabel with the license manager - the Community Edition", () => 
     process.env[MISMATCH_FLAG] = "true";
     isMasterAdmin = false;
 
-    render(<EditionLabel licenseManager={LicenseManager} />);
+    render(<EditionLabel licenseDetails={LicenseDetails} />);
     fireEvent.click(
       screen.getByRole("button", { name: "Community Edition, Learn more" }),
     );
@@ -841,7 +714,7 @@ describe("EditionLabel with the license manager - the Community Edition", () => 
   });
 
   it("says nothing about the image when it was not asked for", async () => {
-    render(<EditionLabel licenseManager={LicenseManager} />);
+    render(<EditionLabel licenseDetails={LicenseDetails} />);
     fireEvent.click(
       screen.getByRole("button", { name: "Community Edition, Learn more" }),
     );
@@ -854,11 +727,11 @@ describe("EditionLabel with the license manager - the Community Edition", () => 
   });
 });
 
-describe("EditionLabel with the license manager - oneuptime.com", () => {
+describe("EditionLabel with the license details - oneuptime.com", () => {
   it("renders nothing and asks nothing with billing enabled", async () => {
     billingEnabled = true;
 
-    const { container } = render(<EditionLabel licenseManager={LicenseManager} />);
+    const { container } = render(<EditionLabel licenseDetails={LicenseDetails} />);
 
     await act(async () => {
       await Promise.resolve();
@@ -876,10 +749,10 @@ describe("EditionLabel with the license manager - oneuptime.com", () => {
   it("keeps React's hook order when the billing answer changes between renders", async () => {
     billingEnabled = true;
 
-    const { rerender, container } = render(<EditionLabel licenseManager={LicenseManager} />);
+    const { rerender, container } = render(<EditionLabel licenseDetails={LicenseDetails} />);
 
     billingEnabled = false;
-    rerender(<EditionLabel licenseManager={LicenseManager} />);
+    rerender(<EditionLabel licenseDetails={LicenseDetails} />);
 
     await waitFor(() => {
       expect(container).not.toBeEmptyDOMElement();
@@ -896,11 +769,11 @@ describe("EditionLabel with the license manager - oneuptime.com", () => {
  * adding one. Neither is true here, and the explanation the license client
  * sent with it used to be rendered nowhere at all.
  */
-describe("EditionLabel with the license manager - a license with no recorded expiry", () => {
+describe("EditionLabel with the license details - a license with no recorded expiry", () => {
   const NO_EXPIRY_MESSAGE: string =
     "A OneUptime Enterprise license is installed, but no expiry is recorded for it, so this installation cannot tell whether it is still current. " +
     "Enterprise features stay available meanwhile, under the 14-day trial counted from when this installation first ran the Enterprise Edition. " +
-    "A master admin can re-activate the license from the edition label in the Admin Dashboard, or leave the daily license sync to fetch its expiry from oneuptime.com.";
+    "A master admin can re-activate the license on Settings > License in the Admin Dashboard, or leave the daily license sync to fetch its expiry from oneuptime.com.";
 
   beforeEach(() => {
     respondWith(
@@ -928,8 +801,12 @@ describe("EditionLabel with the license manager - a license with no recorded exp
     );
 
     expect(notice).not.toHaveTextContent("No Enterprise license is installed");
-    expect(notice).toHaveTextContent("Re-activate the license below");
-    expect(notice).not.toHaveTextContent("Add a license below");
+    expect(notice).toHaveTextContent(
+      "Re-activate the license in the Admin Dashboard",
+    );
+    expect(notice).not.toHaveTextContent(
+      "Add a license in the Admin Dashboard",
+    );
   });
 
   it("renders the license client's own explanation", async () => {
@@ -956,11 +833,14 @@ describe("EditionLabel with the license manager - a license with no recorded exp
   });
 
   // The key input is offered, because re-activating is what fixes this.
-  it("offers the master admin the activation input", async () => {
+  it("sends the master admin to the license page to re-activate it", async () => {
     await openDialog();
 
     expect(
-      await screen.findByPlaceholderText("Enter your enterprise license key"),
+      await screen.findByRole("button", { name: "Manage license" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText("Enter your enterprise license key"),
+    ).not.toBeInTheDocument();
   });
 });
