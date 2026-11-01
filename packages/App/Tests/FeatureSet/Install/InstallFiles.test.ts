@@ -1,5 +1,6 @@
 import {
   createInstallFilesRouter,
+  NOT_FOUND_HEADLINE,
   getNotFoundText,
   getServedVersion,
 } from "../../../FeatureSet/Install/API/InstallFiles";
@@ -333,6 +334,16 @@ describe("what the router refuses", () => {
     expect(reply.status).toBe(404);
     expect(reply.body.toString("utf8")).not.toContain("script>");
     expect(reply.body.toString("utf8")).not.toContain("alert");
+  });
+
+  test("the not-found text says what is here without naming the product, which a licence can rename", () => {
+    const text: string = getNotFoundText();
+
+    expect(text.split("\n")[0]).toBe(NOT_FOUND_HEADLINE);
+    expect(NOT_FOUND_HEADLINE).toBe(
+      "Not found. These install scripts are served here:",
+    );
+    expect(text).not.toContain("OneUptime");
   });
 
   test("the not-found text lists every install script, and only those", () => {
