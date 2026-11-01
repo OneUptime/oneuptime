@@ -8,6 +8,7 @@ import {
   DataStorePrincipalType,
 } from "Common/Types/DataSecurity/DataStoreAccess";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
@@ -121,17 +122,23 @@ const DataStoreAccessPage: FunctionComponent<
           field: { principal: true },
           title: "Who",
           type: FieldType.Element,
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-xs",
           getElement: (item: DataStoreAccess): ReactElement => {
             return (
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-gray-900">
-                  {item.isPublic
-                    ? translator.translateText("Anyone on the internet")
-                    : item.principalName || item.principal || "—"}
+              <div>
+                <div className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]">
+                  {item.isPublic ? (
+                    translator.translateText("Anyone on the internet")
+                  ) : (
+                    <IsolatedText
+                      text={item.principalName || item.principal || "—"}
+                    />
+                  )}
                 </div>
                 {item.principalName && item.principal && !item.isPublic ? (
-                  <div className="truncate font-mono text-xs text-gray-500">
-                    {item.principal}
+                  <div className="font-mono text-xs text-gray-500 [overflow-wrap:anywhere]">
+                    <IsolatedText text={item.principal} />
                   </div>
                 ) : (
                   <></>
@@ -183,11 +190,13 @@ const DataStoreAccessPage: FunctionComponent<
           title: "Granted Via",
           type: FieldType.Element,
           hideOnMobile: true,
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-xs",
           getElement: (item: DataStoreAccess): ReactElement => {
             return (
-              <div className="min-w-0">
-                <div className="truncate text-sm text-gray-700">
-                  {item.grantedVia || "—"}
+              <div>
+                <div className="text-sm text-gray-700 [overflow-wrap:anywhere]">
+                  <IsolatedText text={item.grantedVia || "—"} />
                 </div>
                 {item.isSeenInTraces ? (
                   <div className="text-xs text-gray-500">

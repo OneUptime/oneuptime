@@ -66,6 +66,7 @@ import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
 import DataSecuritySetting from "Common/Models/DatabaseModels/DataSecuritySetting";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
+import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
 import DataStoreFeed, {
   DataStoreFeedEventType,
 } from "Common/Models/DatabaseModels/DataStoreFeed";
@@ -186,6 +187,7 @@ const ID = {
   securityCase: (n) => uuid("d0000000", n),
   alert: (n) => uuid("e0000000", n),
   incident: (n) => uuid("f0000000", n),
+  identity: (n) => uuid("1a000000", n),
 };
 
 const fixture = {
@@ -200,6 +202,12 @@ const fixture = {
     unencryptedIssue: ID.issue(2),
     emailInLogsIssue: ID.issue(3),
     connection: ID.connection(1),
+    // Who can reach the data: anyone, a role that writes, an account outside, an unused role, a service.
+    publicIdentity: ID.identity(1),
+    exporterIdentity: ID.identity(2),
+    vendorIdentity: ID.identity(3),
+    legacyIdentity: ID.identity(4),
+    serviceIdentity: ID.identity(5),
   },
   scenario: {
     language,
@@ -657,6 +665,216 @@ table(DataStoreAccess).push(
   },
 );
 
+/*
+ * Who reaches the stores through IAM, an account outside that may assume a
+ * role, a role nobody has used in months and a service seen in traces -
+ * each grant behind one of the identities below.
+ */
+table(DataStoreAccess).push(
+  {
+    _id: ID.access(3),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(1)),
+    accessKey: "account:210987654321:read",
+    principal: "arn:aws:iam::210987654321:root",
+    principalName: "210987654321",
+    principalType: DataStorePrincipalType.Account,
+    accessLevel: DataStoreAccessLevel.Read,
+    grantedVia:
+      "Can assume role vendor-reader, whose IAM policy AmazonS3ReadOnlyAccess",
+    isExternal: true,
+    isPublic: false,
+    isSeenInTraces: false,
+    isUnused: false,
+    firstSeenAt: ago(9 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.access(4),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(2)),
+    accessKey: "role:legacy-etl:read",
+    principal: "arn:aws:iam::123456789012:role/legacy-etl",
+    principalName: "legacy-etl",
+    principalType: DataStorePrincipalType.Role,
+    accessLevel: DataStoreAccessLevel.Read,
+    grantedVia: "IAM policy inline policy orders-read",
+    isExternal: false,
+    isPublic: false,
+    isSeenInTraces: false,
+    isUnused: true,
+    lastUsedAt: ago(140 * DAY),
+    firstSeenAt: ago(300 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.access(5),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(2)),
+    accessKey: "service:checkout:read",
+    principal: "66666666-6666-4666-8666-666666666666",
+    principalName: "checkout",
+    principalType: DataStorePrincipalType.Service,
+    accessLevel: DataStoreAccessLevel.Read,
+    grantedVia: "Seen in traces",
+    isExternal: false,
+    isPublic: false,
+    isSeenInTraces: true,
+    isUnused: false,
+    lastUsedAt: ago(20 * MINUTE),
+    firstSeenAt: ago(12 * DAY),
+    lastSeenAt: ago(20 * MINUTE),
+  },
+  {
+    _id: ID.access(6),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(2)),
+    accessKey: "role:finance-exporter:read",
+    principal: "arn:aws:iam::123456789012:role/finance-exporter",
+    principalName: "finance-exporter",
+    principalType: DataStorePrincipalType.Role,
+    accessLevel: DataStoreAccessLevel.Read,
+    grantedVia: "IAM policy AmazonRDSReadOnlyAccess",
+    isExternal: false,
+    isPublic: false,
+    isSeenInTraces: false,
+    isUnused: false,
+    lastUsedAt: ago(9 * HOUR),
+    firstSeenAt: ago(21 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+);
+
+/*
+ * The identities those grants add up to, as the evaluator writes them:
+ * the riskiest first on the Access page.
+ */
+table(DataSecurityIdentity).push(
+  {
+    _id: ID.identity(1),
+    projectId,
+    identityKey: "*",
+    principal: "*",
+    principalName: "Everyone",
+    principalType: DataStorePrincipalType.Public,
+    provider: "aws",
+    isExternal: true,
+    isPublic: true,
+    isUnused: false,
+    isSeenInTraces: false,
+    storeCount: 1,
+    sensitiveStoreCount: 1,
+    restrictedStoreCount: 1,
+    highestSensitivity: DataSensitivity.Restricted,
+    highestAccessLevel: DataStoreAccessLevel.Read,
+    canChangeSensitiveData: false,
+    dataTypeIds: ["credit-card-number", "email-address"],
+    estimatedRecords: 2400000,
+    riskScore: 71,
+    firstSeenAt: ago(3 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.identity(2),
+    projectId,
+    identityKey: "arn:aws:iam::123456789012:role/finance-exporter",
+    principal: "arn:aws:iam::123456789012:role/finance-exporter",
+    principalName: "finance-exporter",
+    principalType: DataStorePrincipalType.Role,
+    provider: "aws",
+    isExternal: false,
+    isPublic: false,
+    isUnused: false,
+    isSeenInTraces: false,
+    storeCount: 2,
+    sensitiveStoreCount: 2,
+    restrictedStoreCount: 1,
+    highestSensitivity: DataSensitivity.Restricted,
+    highestAccessLevel: DataStoreAccessLevel.Write,
+    canChangeSensitiveData: true,
+    dataTypeIds: ["credit-card-number", "email-address", "phone-number"],
+    estimatedRecords: 3040000,
+    riskScore: 67,
+    lastUsedAt: ago(9 * HOUR),
+    firstSeenAt: ago(21 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.identity(3),
+    projectId,
+    identityKey: "arn:aws:iam::210987654321:root",
+    principal: "arn:aws:iam::210987654321:root",
+    principalName: "210987654321",
+    principalType: DataStorePrincipalType.Account,
+    provider: "aws",
+    isExternal: true,
+    isPublic: false,
+    isUnused: false,
+    isSeenInTraces: false,
+    storeCount: 1,
+    sensitiveStoreCount: 1,
+    restrictedStoreCount: 1,
+    highestSensitivity: DataSensitivity.Restricted,
+    highestAccessLevel: DataStoreAccessLevel.Read,
+    canChangeSensitiveData: false,
+    dataTypeIds: ["credit-card-number", "email-address"],
+    estimatedRecords: 2400000,
+    riskScore: 66,
+    firstSeenAt: ago(9 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.identity(4),
+    projectId,
+    identityKey: "arn:aws:iam::123456789012:role/legacy-etl",
+    principal: "arn:aws:iam::123456789012:role/legacy-etl",
+    principalName: "legacy-etl",
+    principalType: DataStorePrincipalType.Role,
+    provider: "aws",
+    isExternal: false,
+    isPublic: false,
+    isUnused: true,
+    isSeenInTraces: false,
+    storeCount: 1,
+    sensitiveStoreCount: 1,
+    restrictedStoreCount: 0,
+    highestSensitivity: DataSensitivity.Confidential,
+    highestAccessLevel: DataStoreAccessLevel.Read,
+    canChangeSensitiveData: false,
+    dataTypeIds: ["email-address", "phone-number"],
+    estimatedRecords: 640000,
+    riskScore: 41,
+    lastUsedAt: ago(140 * DAY),
+    firstSeenAt: ago(300 * DAY),
+    lastSeenAt: ago(2 * HOUR),
+  },
+  {
+    _id: ID.identity(5),
+    projectId,
+    identityKey: "66666666-6666-4666-8666-666666666666",
+    principal: "66666666-6666-4666-8666-666666666666",
+    principalName: "checkout",
+    principalType: DataStorePrincipalType.Service,
+    provider: "oneuptime",
+    isExternal: false,
+    isPublic: false,
+    isUnused: false,
+    isSeenInTraces: true,
+    storeCount: 1,
+    sensitiveStoreCount: 1,
+    restrictedStoreCount: 0,
+    highestSensitivity: DataSensitivity.Confidential,
+    highestAccessLevel: DataStoreAccessLevel.Read,
+    canChangeSensitiveData: false,
+    dataTypeIds: ["email-address", "phone-number"],
+    estimatedRecords: 640000,
+    riskScore: 31,
+    lastUsedAt: ago(20 * MINUTE),
+    firstSeenAt: ago(12 * DAY),
+    lastSeenAt: ago(20 * MINUTE),
+  },
+);
+
 table(DataSecurityScan).push(
   {
     _id: ID.scan(1),
@@ -885,6 +1103,17 @@ table(DataSecurityIssueFeed).push(
  */
 
 // ?data=busy: stores with long names, as real accounts name them.
+const BUSY_IDENTITY_NAMES = [
+  "AWSReservedSSO_DataEngineeringPowerUserAccess_7a1b2c3d4e5f6a7b",
+  "eks-nodegroup-payments-production-eu-central-1-NodeInstanceRole-1X2Y3Z",
+  "customer-data-platform-nightly-export-to-partner-warehouse",
+  "terraform-ci-deployer",
+  "analytics-reader",
+  "support-tools-readonly-access-for-escalations",
+  "backup-vault-restore-operator",
+  "ml-feature-store-training-pipeline-role",
+];
+
 const BUSY_STORES = [
   [
     "prod-eu-west-1-customer-analytics-events-archive-2026",
@@ -1036,6 +1265,47 @@ const EXPOSURE_CYCLE = [
 ];
 
 function addBusyData() {
+  /*
+   * Identities with the long names a big account has: a role path and a
+   * session-length name, an SSO permission set, a service account.
+   */
+  BUSY_IDENTITY_NAMES.forEach((name, index) => {
+    const external = index % 4 === 1;
+    const principal = `arn:aws:iam::${external ? "999988887777" : "123456789012"}:role/service-role/${name}`;
+    table(DataSecurityIdentity).push({
+      _id: ID.identity(20 + index),
+      projectId,
+      identityKey: principal,
+      principal,
+      principalName: name,
+      principalType: DataStorePrincipalType.Role,
+      provider: "aws",
+      isExternal: external,
+      isPublic: false,
+      isUnused: index % 3 === 2,
+      isSeenInTraces: false,
+      storeCount: 3 + index,
+      sensitiveStoreCount: 1 + (index % 3),
+      restrictedStoreCount: index % 2,
+      highestSensitivity:
+        index % 2 === 1
+          ? DataSensitivity.Restricted
+          : DataSensitivity.Confidential,
+      highestAccessLevel:
+        index % 3 === 0
+          ? DataStoreAccessLevel.Admin
+          : DataStoreAccessLevel.Read,
+      canChangeSensitiveData: index % 3 === 0,
+      dataTypeIds: ["email-address", "credit-card-number"],
+      estimatedRecords: (index + 1) * 90000,
+      riskScore: 60 - index,
+      lastUsedAt:
+        index % 3 === 2 ? ago((100 + index) * DAY) : ago(index * HOUR),
+      firstSeenAt: ago(40 * DAY),
+      lastSeenAt: ago(2 * HOUR),
+    });
+  });
+
   BUSY_STORES.forEach(([name, kind, provider, region], index) => {
     const number = 10 + index;
     const sensitivity = SENSITIVITY_CYCLE[index % SENSITIVITY_CYCLE.length];
@@ -1115,6 +1385,7 @@ function emptyData() {
     DataSecurityIssue,
     DataStoreFinding,
     DataStoreAccess,
+    DataSecurityIdentity,
     DataSecurityScan,
     DataSecurityFlow,
     DataStoreOwnerUser,

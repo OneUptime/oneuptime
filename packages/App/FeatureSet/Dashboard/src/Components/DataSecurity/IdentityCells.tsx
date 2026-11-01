@@ -180,15 +180,14 @@ export const IdentityReachCell: FunctionComponent<{
       <SensitivityPill sensitivity={identity.highestSensitivity} />
       <span className="whitespace-nowrap text-xs text-gray-500">
         {translator.translatePlural(STORES_REACHED, identity.storeCount || 0)}
-        {restricted > 0 ? (
-          <>
-            {" · "}
-            {translator.translatePlural(RESTRICTED_STORES, restricted)}
-          </>
-        ) : (
-          <></>
-        )}
       </span>
+      {restricted > 0 ? (
+        <span className="whitespace-nowrap text-xs text-gray-500">
+          {translator.translatePlural(RESTRICTED_STORES, restricted)}
+        </span>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };
