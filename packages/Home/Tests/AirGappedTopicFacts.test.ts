@@ -3532,6 +3532,26 @@ describe("what the pages say the agent chart does", () => {
   });
 });
 
+describe("what the infrastructure page says about downloads", () => {
+  const collector: string =
+    "packages/App/FeatureSet/Docs/Static/scripts/host-collector/install.sh";
+  const olderAgent: string =
+    "packages/App/FeatureSet/Docs/Static/scripts/infrastructure-agent/install.sh";
+
+  test("the host collector takes a mirror, and checks what it downloads", () => {
+    expect(repoFile(collector)).toContain("--download-url)");
+    expect(repoFile(collector)).toContain('"$url.sha256"');
+  });
+
+  test("the older agent's installer has no mirror option, as the page says", () => {
+    const script: string = repoFile(olderAgent);
+
+    expect(script).toContain("api.github.com");
+    expect(script).not.toContain("--download-url");
+    expect(script).not.toContain("mirror");
+  });
+});
+
 describe("what the pages say about SMS, calls and editions", () => {
   test("Twilio and a gateway are the two providers a server can send through", () => {
     expect(CALL_AND_SMS_PROVIDERS).toEqual([
