@@ -116,7 +116,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  transform/job-failures-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: metric\\n        statements:\\n          - copy_metric\\(name=\"k8s\\.job\\.failed_pods\\.increase\", description=\"Pods of the Job that failed since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.job\\.failed_pods\"\\n(?:      #[^\\n]*\\n)*      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulative_to_delta/job-failures-increase:\\n"
+          pattern: "\\n  transform/job-failures-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: metric\\n        statements:\\n          - copy_metric\\(name=\"k8s\\.job\\.failed_pods\\.increase\", description=\"Pods of the Job that failed since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.job\\.failed_pods\"\\n(?:      #[^\\n]*\\n)*      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulativetodelta/job-failures-increase:\\n"
       # Exactly once: never in metric context there too.
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
@@ -128,7 +128,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulative_to_delta/job-failures-increase:\\n"
+          pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulativetodelta/job-failures-increase:\\n"
 
   - it: in metric context from 0.108.0
     set:
@@ -136,7 +136,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      - context: metric\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulative_to_delta/job-failures-increase:\\n"
+          pattern: "\\n      - context: metric\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.job\\.failed_pods\\.increase\"\\n  cumulativetodelta/job-failures-increase:\\n"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "context: datapoint"
@@ -173,7 +173,7 @@ tests:
           pattern: "\\n      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.job\\.failed_pods\\.increase\"\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n"
+          pattern: "\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulativetodelta/job-failures-increase\\n"
 
   - it: turns only the copy into the failures since each sample, sending nothing for a first sample, with 2 hours of memory
     asserts:
@@ -242,3 +242,36 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n  cumulative_to_delta/job-failures-increase:\\n    include:\\n      metrics:\\n        - k8s\\.job\\.failed_pods\\.increase\\n      match_type: strict\\n"
+
+  # Collector 0.157.0 renamed the processor cumulative_to_delta and keeps
+  # cumulativetodelta as a deprecated alias; a collector before 0.157.0 knows
+  # only cumulativetodelta and refuses a whole config that names the new type
+  # (kubernetes-agent.cumulativeToDeltaProcessor). Tests/Ops'
+  # validate-collector-configs.sh runs both renders in the collector.
+  - it: names the processor cumulativetodelta for a collector before 0.157.0, where it is defined and where it runs
+    set:
+      image.tag: "0.156.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  cumulativetodelta/job-failures-increase:\\n    include:\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - cumulativetodelta/job-failures-increase\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n(?:  |        - )cumulative_to_delta/"
+
+  - it: and cumulative_to_delta from 0.157.0, which renamed it
+    set:
+      image.tag: "0.157.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  cumulative_to_delta/job-failures-increase:\\n    include:\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - cumulative_to_delta/job-failures-increase\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n(?:  |        - )cumulativetodelta/"

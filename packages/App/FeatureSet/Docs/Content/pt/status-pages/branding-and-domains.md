@@ -107,7 +107,7 @@ Quantos dias o gráfico cobre não é definido aqui. Isso é o **Histórico de t
 
 | Campo | O que faz |
 | ----- | ------------ |
-| **Idioma Padrão** | O idioma que os visitantes veem na primeira visita, escolhido em uma lista que nomeia cada idioma na própria língua e em inglês (`Deutsch (German)`). O padrão é o inglês, e os visitantes sempre podem trocar pelo rodapé. |
+| **Idioma Padrão** | O idioma que os visitantes veem na primeira visita, escolhido em uma lista que nomeia cada idioma na própria língua e em inglês (`Deutsch (German)`). O padrão é o inglês, e os visitantes sempre podem trocar pelo rodapé. Os assinantes também recebem as mensagens nele, a menos que estivessem lendo a página em outro idioma quando se inscreveram. |
 | **Idiomas habilitados** | Uma seleção múltipla, texto de exemplo `All languages`. Deixe-a vazia e todos os idiomas compatíveis são oferecidos; escolha alguns e o rodapé lista só esses. |
 
 O OneUptime vem com dezessete idiomas: inglês, alemão, francês, espanhol, italiano, português, holandês, dinamarquês, norueguês, sueco, russo, japonês, coreano, chinês (simplificado), chinês (tradicional), hindi e persa. O persa é lido da direita para a esquerda, então uma página exibida em persa é disposta a partir da direita, desde o primeiro momento quando o persa é o seu idioma padrão. As barras de tempo de atividade continuam começando à esquerda pelo dia mais antigo.

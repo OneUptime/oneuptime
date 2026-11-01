@@ -26,6 +26,7 @@
 const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
+const { processorNamesFor } = require("./CumulativeToDeltaProcessor");
 
 // The cluster collector's pipeline the processors run in.
 const PIPELINE = "metrics";
@@ -374,15 +375,20 @@ function readRenderedDeployment(renderedFile) {
  * The collector config that runs the processors, from a parsed cluster
  * collector config, after checking that its metrics pipeline runs them
  * where the chart says: right after the memory limiter, the copy first,
- * on what k8s_cluster sends.
+ * on what k8s_cluster sends. Named as the collector `image` knows them
+ * (cumulativetodelta before 0.157.0, which a --reuse-values upgrade runs),
+ * so a chart that rendered the other name for that image fails here; with
+ * no image, as the chart's pinned collector names them.
  */
-function behaviourConfig(collector) {
+function behaviourConfig(collector, image) {
+  const increaseProcessors = processorNamesFor(INCREASE_PROCESSORS, image);
+  const liftedProcessors = processorNamesFor(LIFTED_PROCESSORS, image);
   const pipeline = collector.service.pipelines[PIPELINE];
   if (!pipeline) {
     fail(`the cluster collector has no ${PIPELINE} pipeline`);
   }
-  const lead = pipeline.processors.slice(0, 1 + INCREASE_PROCESSORS.length);
-  if (lead.join(",") !== ["memory_limiter", ...INCREASE_PROCESSORS].join(",")) {
+  const lead = pipeline.processors.slice(0, 1 + increaseProcessors.length);
+  if (lead.join(",") !== ["memory_limiter", ...increaseProcessors].join(",")) {
     fail(`${PIPELINE} runs ${pipeline.processors.join(", ")}`);
   }
   if (!pipeline.processors.includes("resource")) {
@@ -400,7 +406,7 @@ function behaviourConfig(collector) {
       otlp: { protocols: { http: { endpoint: "0.0.0.0:4318" } } },
     },
     processors: Object.fromEntries(
-      LIFTED_PROCESSORS.map((name) => {
+      liftedProcessors.map((name) => {
         return [name, collector.processors[name]];
       }),
     ),
@@ -409,7 +415,7 @@ function behaviourConfig(collector) {
       pipelines: {
         metrics: {
           receivers: ["otlp"],
-          processors: LIFTED_PROCESSORS,
+          processors: liftedProcessors,
           exporters: ["file"],
         },
       },
@@ -421,7 +427,7 @@ function writeConfig(renderedFile, dir) {
   const { collector, image } = readRenderedDeployment(renderedFile);
   fs.writeFileSync(
     path.join(dir, "config.yaml"),
-    yaml.dump(behaviourConfig(collector)),
+    yaml.dump(behaviourConfig(collector, image)),
   );
   fs.writeFileSync(path.join(dir, "image"), image);
   for (let index = 0; index < SAMPLE_SECONDS.length; index++) {

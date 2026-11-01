@@ -142,7 +142,7 @@ export default class TraceMonitorCriteria {
     }
 
     const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute,
+      observed: observedPerMinute,
       stats: baseline,
       sigmaCount,
       method,

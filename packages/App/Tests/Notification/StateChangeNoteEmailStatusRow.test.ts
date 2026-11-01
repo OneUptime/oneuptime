@@ -83,11 +83,11 @@ const NOTE_TEMPLATES: Array<NoteTemplateCase> = [
     template: "SubscriberIncidentNoteCreated.hbs",
     stateVariable: "incidentState",
     title: {
-      label: "Incident Title:",
+      label: "Incident Title",
       variable: "incidentTitle",
       value: "Checkout requests failing",
     },
-    nextLabel: "Resources Affected:",
+    nextLabel: "Resources Affected",
     base: {
       incidentTitle: "Checkout requests failing",
       resourcesAffected: "Checkout API",
@@ -103,11 +103,11 @@ const NOTE_TEMPLATES: Array<NoteTemplateCase> = [
     template: "SubscriberScheduledMaintenanceEventNoteCreated.hbs",
     stateVariable: "eventState",
     title: {
-      label: "Event Title:",
+      label: "Event Title",
       variable: "eventTitle",
       value: "Database upgrade",
     },
-    nextLabel: "Event Description:",
+    nextLabel: "Event Description",
     base: {
       eventTitle: "Database upgrade",
       eventDescription: "<p>The primary database is upgraded.</p>",
@@ -133,7 +133,7 @@ describe.each(NOTE_TEMPLATES)("$template", (noteCase: NoteTemplateCase) => {
     const titleAt: number = labels.indexOf(noteCase.title.label);
 
     expect(titleAt).toBeGreaterThanOrEqual(0);
-    expect(labels[titleAt + 1]).toBe("Status:");
+    expect(labels[titleAt + 1]).toBe("Status");
     expect(labels[titleAt + 2]).toBe(noteCase.nextLabel);
     expect(html).toContain("Resolved");
     // In its own colour: the dot beside the name.
@@ -143,7 +143,7 @@ describe.each(NOTE_TEMPLATES)("$template", (noteCase: NoteTemplateCase) => {
   test("posted on its own: no Status row, the email it always was", () => {
     const html: string = render(noteCase.template, noteCase.base);
 
-    expect(rowLabels(html)).not.toContain("Status:");
+    expect(rowLabels(html)).not.toContain("Status");
 
     const labels: Array<string> = rowLabels(html);
     const titleAt: number = labels.indexOf(noteCase.title.label);
@@ -172,6 +172,6 @@ describe("the 'note updated' emails have no Status row", () => {
     "SubscriberIncidentNoteUpdated.hbs",
     "SubscriberScheduledMaintenanceEventNoteUpdated.hbs",
   ])("%s", (template: string) => {
-    expect(templateSource(template)).not.toContain('title="Status: "');
+    expect(templateSource(template)).not.toContain('(t "Status")');
   });
 });

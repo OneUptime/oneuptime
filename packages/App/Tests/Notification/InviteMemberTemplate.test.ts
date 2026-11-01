@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -6,6 +7,9 @@ import {
   registerEmailBrandHelpers,
   registerJoiningConcat,
 } from "./Fixtures/EmailBrandHelpers";
+
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(Handlebars);
 
 /*
  * InviteMember.hbs - the only email TeamMemberService sends when somebody is

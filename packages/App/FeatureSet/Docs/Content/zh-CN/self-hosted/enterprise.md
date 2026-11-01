@@ -116,18 +116,18 @@ npm run update
 
 新的 Enterprise Edition 安装以 **14 天试用期** 运行，从该安装首次启动 Enterprise Edition 时开始计算。试用期用于评估：在生产环境中使用 Enterprise Edition 需要依据 OneUptime Enterprise License 订阅。请在试用期结束前激活许可证：试用期结束后，SCIM、审计日志记录和保留期覆盖都会停止，企业配置会变为只读（参见[许可证过期或缺失时](#许可证过期或缺失时)）。如需许可证，请联系 [sales@oneuptime.com](mailto:sales@oneuptime.com)。
 
-许可证通过 **版本标签** 管理，主管理员可以在管理员仪表板的页眉和 Dashboard 的页脚看到它。它显示许可证状态、席位使用情况，并向主管理员显示实例 ID。
+许可证在 **Admin Dashboard > 设置 > 许可证** 中管理：主管理员在这里添加、刷新和替换许可证，其他人都无法更改。管理员仪表板页眉和 Dashboard 页脚中的 **版本标签** 只显示情况：许可证状态，并向主管理员显示席位使用情况和前往该页面的 **管理许可证** 按钮。
 
 在 AWS Marketplace、Microsoft Marketplace 或 Google Cloud Marketplace 上购买的 OneUptime Enterprise 无需许可证密钥：市场订阅即是许可证，并按小时为每位用户计费。请参阅[云市场](/docs/installation/cloud-marketplaces)。
 
 ### 在线激活（许可证密钥）
 
 :::steps
-1. 以主管理员身份登录并打开版本标签。
+1. 以主管理员身份登录并打开 **Admin Dashboard > 设置 > 许可证**。
 2. 输入你的许可证密钥并进行验证。
 :::
 
-安装会向 OneUptime 核对密钥，并存储收到的许可证。此后，它通过每日同步让许可证保持最新。要立即获取额外席位或续订之类的变更，请在版本标签上使用 **Refresh license**。
+安装会向 OneUptime 核对密钥，并存储收到的许可证。此后，它通过每日同步让许可证保持最新。要立即获取额外席位或续订之类的变更，请在同一页面使用 **Refresh license**。
 
 在线激活需要从 OneUptime 服务器到 `https://oneuptime.com` 的出站 HTTPS。如果服务器只能通过中继访问互联网，请将 `ENTERPRISE_LICENSE_SERVER_URL` 设置为中继的 `https://` 地址。中继必须把 `/api/enterprise-license/` 转发到 oneuptime.com。
 
@@ -136,9 +136,9 @@ npm run update
 没有通往互联网的路由的安装可以使用 **签名的许可证令牌** 代替密钥：
 
 :::steps
-1. 以主管理员身份登录，打开版本标签并记下 **实例 ID**。
+1. 以主管理员身份登录，打开 **Admin Dashboard > 设置 > 许可证**，切换到离线激活并记下 **实例 ID**。
 2. 向 OneUptime（[sales@oneuptime.com](mailto:sales@oneuptime.com)）申请该实例 ID 的离线许可证令牌。
-3. 将令牌粘贴到版本标签的令牌字段中并激活。
+3. 将令牌粘贴到令牌字段中并激活。
 :::
 
 安装会依据内置在你所用版本中的 OneUptime 签名密钥自行验证令牌。它从不联系 OneUptime。为某个实例 ID 签发的令牌会被其他所有安装拒绝，未指定实例 ID 签发的令牌（例如在线激活的安装收到的令牌）也会被拒绝。要续订或增加席位，请在当前令牌过期前激活新令牌。

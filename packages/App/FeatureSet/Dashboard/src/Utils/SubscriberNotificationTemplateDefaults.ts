@@ -217,7 +217,7 @@ const incidentStateChangedDefaults: EventDefaults = {
     body: `Incident {{incidentTitle}} on {{statusPageName}} is {{incidentState}}. Details: {{detailsUrl}}. Unsub: {{unsubscribeUrl}}`,
   },
   [StatusPageSubscriberNotificationMethod.Slack]: {
-    body: `🚨 ## Incident - {{incidentTitle}}
+    body: `## 🚨 Incident - {{incidentTitle}}
 
 
 **Resources Affected:** {{resourcesAffected}}
@@ -227,7 +227,7 @@ const incidentStateChangedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
-    body: `🚨 ## Incident - {{incidentTitle}}
+    body: `## 🚨 Incident - {{incidentTitle}}
 
 
 **Resources Affected:** {{resourcesAffected}}
@@ -843,7 +843,7 @@ const episodeStateChangedDefaults: EventDefaults = {
     body: `Incident {{episodeTitle}} on {{statusPageName}} is {{episodeState}}. Details: {{detailsUrl}}. Unsub: {{unsubscribeUrl}}`,
   },
   [StatusPageSubscriberNotificationMethod.Slack]: {
-    body: `🚨 ## Incident - {{episodeTitle}}
+    body: `## 🚨 Incident - {{episodeTitle}}
 
 
 **Resources Affected:** {{resourcesAffected}}
@@ -853,7 +853,7 @@ const episodeStateChangedDefaults: EventDefaults = {
 [View Status Page]({{statusPageUrl}}) | [Unsubscribe]({{unsubscribeUrl}})`,
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
-    body: `🚨 ## Incident - {{episodeTitle}}
+    body: `## 🚨 Incident - {{episodeTitle}}
 
 
 **Resources Affected:** {{resourcesAffected}}

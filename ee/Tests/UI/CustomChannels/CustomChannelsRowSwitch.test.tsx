@@ -207,7 +207,7 @@ const NIGHT_PAGER: ChannelRow = {
 
 // The server's words when the license lapsed after the page was read.
 const LICENSE_REQUIRED_MESSAGE: string =
-  "This OneUptime Enterprise feature needs a valid Enterprise license that includes it. Enterprise configuration you already have is kept and can still be viewed or deleted, but it cannot be created or changed until a master admin adds or renews the license from the edition label in the Admin Dashboard header.";
+  "This OneUptime Enterprise feature needs a valid Enterprise license that includes it. Enterprise configuration you already have is kept and can still be viewed or deleted, but it cannot be created or changed until a master admin adds or renews the license on Settings > License in the Admin Dashboard.";
 
 interface UpdateRequest {
   modelType: unknown;

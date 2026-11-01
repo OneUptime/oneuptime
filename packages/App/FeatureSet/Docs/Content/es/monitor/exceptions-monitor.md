@@ -41,7 +41,7 @@ En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Excepcio
 
 ### Elegir de qué te avisa el monitor
 
-En **¿Sobre qué debe avisarte este monitor?**, elige **Cualquier excepción** o **Demasiadas excepciones**. Cada opción rellena la regla, que puedes cambiar más abajo. Elige **Otra cosa** para configurarla tú. **Una excepción nueva**, **Vuelve una excepción resuelta** y **Pico de excepciones** alertan sobre una excepción vista por primera vez, sobre una que volvió después de que la resolviera, y sobre un aumento muy por encima de lo habitual.
+En **¿Sobre qué debe avisarte este monitor?**, elige **Cualquier excepción** o **Demasiadas excepciones**. Cada opción rellena la regla, que puedes cambiar más abajo. Elige **Otra cosa** para configurarla tú. **Una excepción nueva**, **Vuelve una excepción resuelta** y **Pico de excepciones** alertan sobre una excepción vista por primera vez, sobre una que volvió después de que la resolviera, y sobre un aumento muy por encima de lo normal para esa hora de la semana.
 
 ### Elegir las excepciones que se cuentan
 
@@ -53,7 +53,7 @@ Abre **Más campos** para filtrar por servicio de telemetría o entidad de infra
 
 ### Decir cuándo alertar
 
-En **Cuándo alertar**, elige una **Condición**, el **Número de excepciones** y una **Ventana de tiempo**. La frase de debajo repite la regla con palabras sencillas. El gráfico que hay debajo cuenta las excepciones coincidentes en cada ventana de las últimas horas, dibuja el número de la regla como una línea e indica cuántas veces habría alertado la regla. Su botón propone un número que la regla no habría superado en ese tiempo. **Alertar sobre** elige qué compara la regla: **Excepciones**, **Excepciones nuevas**, **Excepciones que volvieron** o **Un aumento sobre lo habitual**. El gráfico solo se dibuja para **Excepciones**.
+En **Cuándo alertar**, elige una **Condición**, el **Número de excepciones** y una **Ventana de tiempo**. La frase de debajo repite la regla con palabras sencillas. El gráfico que hay debajo cuenta las excepciones coincidentes en cada ventana de las últimas horas, dibuja el número de la regla como una línea e indica cuántas veces habría alertado la regla. Su botón propone un número que la regla no habría superado en ese tiempo. **Alertar sobre** elige qué compara la regla: **Excepciones**, **Excepciones nuevas**, **Excepciones que volvieron** o **Un aumento sobre lo habitual**. El gráfico solo se dibuja para **Excepciones**. Con **Inusualmente alto**, que es lo que configura **Pico de excepciones**, no hay ningún número que introducir: elija una **Sensibilidad** en su lugar.
 
 ### Elegir qué pasa
 
@@ -116,7 +116,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de excepciones tienen cuatro clases de **Tipo de filtro**: **Exception Count**, el número de excepciones que coincidieron en la ventana, y **New Exceptions**, **Regressed Exceptions** y **Exception Increase (in %)**, descritos más abajo. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho** o **Exactamente**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y un **Valor**.
+Los criterios de un monitor de excepciones tienen cuatro clases de **Tipo de filtro**: **Exception Count**, el número de excepciones que coincidieron en la ventana, y **New Exceptions**, **Regressed Exceptions** y **Exception Increase (in %)**, descritos más abajo. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho**, **Exactamente**, **Inusualmente alto**, **Inusualmente bajo** o **Inusualmente alto o bajo**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de excepciones está… |
 | --- | --- |
@@ -126,8 +126,11 @@ Los criterios de un monitor de excepciones tienen cuatro clases de **Tipo de fil
 | **Menor o igual que** | en el valor o por debajo |
 | **Igual a** | exactamente en el valor |
 | **Distinto de** | en cualquier valor menos ese |
+| **Anomalously High** | por encima del rango esperado para esta hora de la semana |
+| **Anomalously Low** | por debajo de ese rango |
+| **Anomalous** | fuera de ese rango, en cualquier sentido |
 
-Los recuentos de excepciones no tienen condiciones de anomalía: no hay ninguna referencia con la que compararlos.
+Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Baja, Media, la predeterminada, o Alta) y, en los criterios propios, una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. Solo **Exception Count** las tiene: consulte [Picos frente a lo normal](#picos-frente-a-lo-normal).
 
 Un monitor de excepciones creado en Crear monitor empieza con la regla de lo que elegiste en **¿Sobre qué debe avisarte este monitor?**:
 
@@ -137,7 +140,7 @@ Un monitor de excepciones creado en Crear monitor empieza con la regla de lo que
 | **Demasiadas excepciones** | **Más de** `20` en **Últimos 5 minutos** | Crea una alerta, que se resuelve sola |
 | **Una excepción nueva** | **Excepciones nuevas**: **Más de** `0` en **Últimos 10 minutos** | Crea una alerta, que se resuelve sola |
 | **Vuelve una excepción resuelta** | **Excepciones que volvieron**: **Más de** `0` en **Últimos 10 minutos** | Crea una alerta, que se resuelve sola |
-| **Pico de excepciones** | **Un aumento sobre lo habitual**: **Más de** `200` en **Últimos 15 minutos** | Crea una alerta, que se resuelve sola |
+| **Pico de excepciones** | **Inusualmente alto** en **Últimos 15 minutos** | Crea una alerta, que se resuelve sola |
 
 Un monitor de excepciones creado mediante la API o Terraform sin criterios empieza con estos criterios:
 
@@ -157,6 +160,22 @@ Además de cuántas excepciones hubo, un monitor de excepciones puede alertar so
 | **Exception Increase (in %)** | Cuánto supera el número de excepciones coincidentes a lo habitual: el día anterior a la ventana, por ventana de su duración, al menos una. Diez excepciones tras un día tranquilo dan 900 %. |
 
 Las excepciones nuevas y las que vuelven se filtran por servicio, tipo de excepción, entorno y mensaje, y también por entidad de infraestructura: una excepción cuenta cuando una de sus ocurrencias en la ventana vino de una de las entidades elegidas.
+
+## Picos frente a lo normal
+
+**Pico de excepciones** compara la ventana con las mismas horas de las semanas anteriores, no con un número fijo. Un pico de lunes por la mañana es normal un lunes por la mañana, el mismo recuento a las 3 de un domingo no lo es, y una subida lenta durante varios días se nota en cuanto sale del rango de la semana pasada.
+
+| Ajuste | Qué hace | Predeterminado |
+| --- | --- | --- |
+| **Sensibilidad** | Cuánto debe alejarse una ventana del rango habitual: 4 desviaciones estándar en Baja, 3 en Media, 2 en Alta. | Media |
+| **Ventana de referencia** (en **Más campos**) | Cuánto historial se usa para aprender: 14, 28, 60 o 90 días. | 14 días |
+| **Desviaciones estándar** (en **Más campos**) | Un número propio en lugar del que fija **Sensibilidad**. | Vacío |
+| **Mínimo de excepciones** (en **Más campos**) | El menor número de excepciones en una ventana que puede alertar: 20 en Baja, 10 en Media, 5 en Alta. | Vacío |
+
+- **Usa sus filtros.** El historial se lee con los filtros del propio monitor, así que un monitor de un tipo de excepción se compara con el historial de ese tipo, y las excepciones resueltas y archivadas quedan fuera de ambos.
+- **La calma cuenta.** Una ventana sin excepciones forma parte de lo normal, así que el rango de un servicio tranquilo sigue siendo pequeño. Sus primeras excepciones no alertan, por **Mínimo de excepciones**, y una ráfaga real sí.
+- **Un servicio nuevo espera.** Hasta que un servicio tiene dos semanas de historial, el criterio sigue aprendiendo y no se activa, por muchas excepciones que lance. El historial solo llega hasta donde OneUptime conserva las excepciones: 15 días si no lo ha cambiado, y un servicio conservado menos de dos semanas nunca tiene suficiente.
+- **La alerta dice por qué.** Nombra el rango esperado y cuánto se alejó la ventana. Cada comprobación escribe lo mismo en la **Cronología de estados**, o que aún está aprendiendo.
 
 ## Ejemplo práctico: solo las excepciones de producción
 
@@ -183,6 +202,10 @@ Es lo esperado. Las excepciones resueltas no se cuentan, así que el recuento ba
 
 :::details Un filtro de tipo de excepción no coincide con nada
 Los **Tipos de excepción** se comparan exactamente con el nombre de tipo con el que se notificó la excepción, como `TypeError`. Copia el tipo desde el explorador de excepciones.
+:::
+
+:::details Una regla de pico de excepciones nunca alerta
+Consulte la **Cronología de estados**: indica el rango esperado, el recuento necesario para alertar o que la regla aún está aprendiendo. Un servicio necesita dos semanas de historial, así que una retención inferior a dos semanas lo mantiene aprendiendo. Si el recuento se queda por debajo de **Mínimo de excepciones**, bájelo en **Más campos** o elija una **Sensibilidad** más alta.
 :::
 
 ## Próximos pasos

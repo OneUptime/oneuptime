@@ -34,6 +34,13 @@ const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
 const behaviour = require("./Utils/KubernetesAgentJobFailuresIncreaseBehaviour");
+const {
+  processorNamesFor,
+  templateForPinnedCollector,
+} = require("./Utils/CumulativeToDeltaProcessor");
+
+// The collector a `helm upgrade --reuse-values` keeps on a release from before 0.161.0.
+const REUSE_VALUES_IMAGE = "otel/opentelemetry-collector-contrib:0.96.0";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const DEPLOYMENT_TEMPLATE =
@@ -43,6 +50,16 @@ const SCRIPT = "Tests/Ops/agent-job-failures-increase-behaviour.sh";
 
 function readRepoFile(file) {
   return fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
+}
+
+/*
+ * The Deployment template as the chart renders it for the collector it pins:
+ * the template asks kubernetes-agent.cumulativeToDeltaProcessor for the
+ * cumulative-to-delta processor's type, which is cumulative_to_delta there
+ * (and cumulativetodelta before 0.157.0: Utils/CumulativeToDeltaProcessor.js).
+ */
+function readDeploymentTemplate() {
+  return templateForPinnedCollector(readRepoFile(DEPLOYMENT_TEMPLATE));
 }
 
 function jobLine(entry) {
@@ -143,7 +160,7 @@ function exportedAsExpected() {
  * directives and comments.
  */
 function templatePipelineProcessors() {
-  const template = readRepoFile(DEPLOYMENT_TEMPLATE);
+  const template = readDeploymentTemplate();
   const start = template.indexOf("        metrics:\n          receivers:\n");
   expect(start).toBeGreaterThan(-1);
   const block = template.substring(start);
@@ -367,9 +384,71 @@ describe("agent-job-failures-increase-behaviour.sh: what it feeds the collector 
     );
 
     // Every one it lifts is defined in the template.
-    const template = readRepoFile(DEPLOYMENT_TEMPLATE);
+    const template = readDeploymentTemplate();
     for (const name of behaviour.LIFTED_PROCESSORS) {
       expect(template).toContain(`\n      ${name}:\n`);
+    }
+  });
+
+  // A rendered cluster collector config, named as `image` knows its processors.
+  function stubCollector(image) {
+    const increase = processorNamesFor(behaviour.INCREASE_PROCESSORS, image);
+    const lifted = processorNamesFor(behaviour.LIFTED_PROCESSORS, image);
+    return {
+      processors: Object.fromEntries(
+        [...lifted, "memory_limiter", "k8sattributes", "batch"].map((name) => {
+          return [name, { marker: name }];
+        }),
+      ),
+      service: {
+        pipelines: {
+          metrics: {
+            receivers: ["k8s_cluster", "otlp"],
+            processors: [
+              "memory_limiter",
+              ...increase,
+              "k8sattributes",
+              "resource",
+              "batch",
+            ],
+            exporters: ["otlphttp"],
+          },
+        },
+      },
+    };
+  }
+
+  test("on the 0.96.0 a --reuse-values upgrade keeps, it lifts the processor as cumulativetodelta, the only name that collector knows", () => {
+    const config = behaviour.behaviourConfig(
+      stubCollector(REUSE_VALUES_IMAGE),
+      REUSE_VALUES_IMAGE,
+    );
+
+    expect(config.service.pipelines.metrics.processors).toEqual([
+      "transform/job-failures-increase",
+      "cumulativetodelta/job-failures-increase",
+      "resource",
+    ]);
+    expect(
+      config.processors["cumulativetodelta/job-failures-increase"],
+    ).toEqual({ marker: "cumulativetodelta/job-failures-increase" });
+  });
+
+  test("and refuses a chart that named it cumulative_to_delta for 0.96.0, a config that collector refuses as a whole", () => {
+    const exit = jest.spyOn(process, "exit").mockImplementation((code) => {
+      throw new Error(`exit ${code}`);
+    });
+    const error = jest.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(() => {
+        behaviour.behaviourConfig(stubCollector(), REUSE_VALUES_IMAGE);
+      }).toThrow("exit 1");
+      expect(() => {
+        behaviour.behaviourConfig(stubCollector(REUSE_VALUES_IMAGE));
+      }).toThrow("exit 1");
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
     }
   });
 

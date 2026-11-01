@@ -1,4 +1,4 @@
-import { toGsm7Message } from "./Gsm7Text";
+import { isGsm7OutsideLinks, toGsm7Message, toUcs2Message } from "./Gsm7Text";
 
 /*
  * THE TEXT MESSAGES A STATUS PAGE'S SUBSCRIBERS GET, AS ONEUPTIME WRITES THEM.
@@ -19,6 +19,13 @@ import { toGsm7Message } from "./Gsm7Text";
  * go out exactly as written: a link is an address, and a look-alike would
  * lead somewhere else. Letters of other scripts are kept as written.
  *
+ * A text that stays UCS-2 whatever its punctuation - written in Chinese,
+ * Japanese, Persian or another script, which is how a status page writes to
+ * a subscriber who reads it in that language - keeps its punctuation as
+ * written instead (Gsm7Text's toUcs2Text): there a look-alike costs the
+ * same and only reads worse. What says nothing - an emoji - is still left
+ * out.
+ *
  * A custom SMS template a team wrote for its page goes out as written, with
  * every value it places: the team chose its words and texts through its own
  * Twilio account (a custom SMS template is used only with one), where
@@ -29,7 +36,9 @@ import { toGsm7Message } from "./Gsm7Text";
 export const writeDefaultSubscriberSms: (text: string) => string = (
   text: string,
 ): string => {
-  return toGsm7Message(text).trim();
+  const gsm7: string = toGsm7Message(text).trim();
+
+  return isGsm7OutsideLinks(gsm7) ? gsm7 : toUcs2Message(text).trim();
 };
 
 export default writeDefaultSubscriberSms;

@@ -372,7 +372,7 @@ export const AirGappedSteps: Array<AirGappedStep> = [
     key: "license-offline",
     title: "License the Enterprise Edition offline",
     description:
-      "Running the Enterprise Edition? Send us the instance ID from the edition label, and activate the signed license token we return. The install verifies it against keys built into the release and never contacts us.",
+      "Running the Enterprise Edition? Send us the instance ID from Settings > License in the Admin Dashboard, and activate the signed license token we return. The install verifies it against keys built into the release and never contacts us.",
     // A token, not a setting someone types: nothing to show as code.
     settings: [],
     link: {
@@ -546,7 +546,7 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "How do we license the Enterprise Edition with no internet?",
     answer:
-      "With an offline license token. A master admin reads the instance ID from the edition label, and we issue a token signed for that instance. The install verifies it against the signing keys built into the release, and every other install refuses it. To renew or add seats, activate a new token before the current one expires.",
+      "With an offline license token. A master admin reads the instance ID on Settings > License in the Admin Dashboard, and we issue a token signed for that instance. The install verifies it against the signing keys built into the release, and every other install refuses it. To renew or add seats, activate a new token before the current one expires.",
   },
   {
     question: "How do upgrades work?",

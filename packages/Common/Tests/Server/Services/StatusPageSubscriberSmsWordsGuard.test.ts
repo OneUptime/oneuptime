@@ -14,8 +14,13 @@ import { describe, expect, test } from "@jest/globals";
  * welcome, its manage link) are written with writeDefaultSubscriberSms. A
  * team's own SMS template is sent as written.
  *
+ * The notifications' texts are written in each subscriber's language, by
+ * SubscriberMessageText.sms and smsWithLinks, which both end in
+ * writeDefaultSubscriberSms: the words are the translator's, the characters
+ * GSM-7's either way.
+ *
  * Read from the source, because these texts are written in a dozen jobs: a
- * new default text that forgets it fails here.
+ * new default text that writes its own words, without them, fails here.
  */
 
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
@@ -25,10 +30,23 @@ const SCAN_DIRS: Array<string> = [
   path.join(PACKAGES_DIR, "Common", "Server"),
 ];
 
-// How a default subscriber text ends: with the unsubscribe link.
-const DEFAULT_TEXT_END: string = "Unsub: ${unsubscribeUrl}`";
+// How a notification's default text is written: in the subscriber's language.
+const DEFAULT_TEXT_WRITERS: ReadonlyArray<string> = [
+  "SubscriberMessageText.smsWithLinks(",
+  "SubscriberMessageText.sms(",
+];
+
+/*
+ * How a default text written by hand, in English only, ended: with the
+ * unsubscribe link. None is left; one that comes back skips the
+ * subscriber's language, and perhaps writeDefaultSubscriberSms too.
+ */
+const HAND_WRITTEN_TEXT_END: string = "Unsub: ${unsubscribeUrl}`";
 
 const WRITER_CALL: string = "writeDefaultSubscriberSms(";
+
+const MESSAGE_TEXT: string =
+  "Common/Server/Utils/StatusPage/SubscriberMessageText.ts";
 
 const listSourceFiles: (directory: string) => Array<string> = (
   directory: string,
@@ -62,32 +80,58 @@ const relative: (file: string) => string = (file: string): string => {
 
 interface DefaultText {
   file: string;
-  // The statement that assigns it, from its "smsMessage =" to its end.
+  // The statement that assigns it, from its "smsMessage =" to the writer.
   statement: string;
 }
 
 const DEFAULT_TEXTS: Array<DefaultText> = [];
 
+// Files that still end a text with the English unsubscribe link by hand.
+const HAND_WRITTEN_TEXTS: Array<string> = [];
+
 for (const directory of SCAN_DIRS) {
   for (const file of listSourceFiles(directory)) {
+    if (relative(file) === MESSAGE_TEXT) {
+      continue;
+    }
+
     const source: string = fs.readFileSync(file, "utf8");
-    let at: number = source.indexOf(DEFAULT_TEXT_END);
 
-    while (at !== -1) {
-      const start: number = source.lastIndexOf("smsMessage =", at);
+    for (const writer of DEFAULT_TEXT_WRITERS) {
+      let at: number = source.indexOf(writer);
 
-      DEFAULT_TEXTS.push({
-        file: relative(file),
-        statement: source.slice(
-          start === -1 ? Math.max(0, at - 400) : start,
-          at + DEFAULT_TEXT_END.length,
-        ),
-      });
+      while (at !== -1) {
+        const start: number = source.lastIndexOf("smsMessage =", at);
 
-      at = source.indexOf(DEFAULT_TEXT_END, at + DEFAULT_TEXT_END.length);
+        DEFAULT_TEXTS.push({
+          file: relative(file),
+          statement: source.slice(
+            start === -1 ? Math.max(0, at - 400) : start,
+            at + writer.length,
+          ),
+        });
+
+        at = source.indexOf(writer, at + writer.length);
+      }
+    }
+
+    if (source.includes(HAND_WRITTEN_TEXT_END)) {
+      HAND_WRITTEN_TEXTS.push(relative(file));
     }
   }
 }
+
+// A method of SubscriberMessageText, from its name to its end.
+const methodOf: (source: string, name: string) => string = (
+  source: string,
+  name: string,
+): string => {
+  const start: number = source.indexOf(`public static ${name}(`);
+
+  expect(start).toBeGreaterThan(-1);
+
+  return source.slice(start, source.indexOf("\n  }\n", start));
+};
 
 const read: (relativePath: string) => string = (
   relativePath: string,
@@ -122,16 +166,26 @@ describe("the texts OneUptime writes to a status page's SMS subscribers", () => 
     expect(DEFAULT_TEXTS.length).toBeGreaterThanOrEqual(11);
   });
 
-  test("each default text is written with writeDefaultSubscriberSms", () => {
-    const unwritten: Array<string> = DEFAULT_TEXTS.filter(
+  test("each default text is written with writeDefaultSubscriberSms, in the subscriber's language", () => {
+    const messageText: string = read(MESSAGE_TEXT);
+
+    for (const name of ["sms", "smsWithLinks"]) {
+      expect(methodOf(messageText, name)).toContain(`return ${WRITER_CALL}`);
+    }
+
+    // Each is written in the subscriber's language.
+    const outsideLanguage: Array<string> = DEFAULT_TEXTS.filter(
       (text: DefaultText): boolean => {
-        return !text.statement.includes(WRITER_CALL);
+        return !text.statement.includes("writeInLanguage(");
       },
     ).map((text: DefaultText): string => {
       return text.file;
     });
 
-    expect(unwritten).toEqual([]);
+    expect(outsideLanguage).toEqual([]);
+
+    // And none is written by hand, in English, beside them.
+    expect(HAND_WRITTEN_TEXTS).toEqual([]);
   });
 
   test("a team's own SMS template is sent as written", () => {

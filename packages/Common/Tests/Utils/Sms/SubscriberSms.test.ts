@@ -92,6 +92,57 @@ describe("writeDefaultSubscriberSms", () => {
     expect(writeDefaultSubscriberSms("")).toBe("");
   });
 
+  /*
+   * A subscriber written to in Chinese, Japanese or Persian gets a text in
+   * UCS-2 whatever its punctuation, and a look-alike costs the same there:
+   * "事件：Acme" stays as written instead of "事件:Acme".
+   */
+  test("a text in another script keeps its own punctuation, in as many parts", () => {
+    const chinese: string = `\u{4E8B}\u{4EF6}\u{FF1A}Acme Status \u{4E0A}\u{7684} Checkout\u{FF08}\u{91CD}\u{5927}\u{4E8B}\u{4EF6}\u{FF09}\u{3002}\u{8BE6}\u{60C5}\u{FF1A} ${DETAILS} \u{3002}\u{9000}\u{8BA2}\u{FF1A} ${UNSUBSCRIBE}`;
+    const written: string = writeDefaultSubscriberSms(chinese);
+
+    expect(written).toBe(chinese);
+    expect(countSmsSegments(written).encoding).toBe(SmsEncoding.Ucs2);
+    expect(countSmsSegments(written).segments).toBe(
+      countSmsSegments(chinese.replace(/\u{FF1A}/gu, ":")).segments,
+    );
+  });
+
+  test("an emoji is still left out of it", () => {
+    expect(
+      writeDefaultSubscriberSms(
+        `\u{4E8B}\u{4EF6}\u{FF1A}\u{652F}\u{4ED8}\u{1F525}\u{3002} ${DETAILS}`,
+      ),
+    ).toBe(`\u{4E8B}\u{4EF6}\u{FF1A}\u{652F}\u{4ED8}\u{3002} ${DETAILS}`);
+  });
+
+  test("a Persian text keeps the isolates around an English title, so its bracket stays at its end", () => {
+    const persian: string = `\u{062D}\u{0627}\u{062F}\u{062B}\u{0647} \u{2068}Checkout (EU)\u{2069} \u{062F}\u{0631} \u{2068}Acme Status\u{2069}. ${DETAILS}`;
+
+    expect(writeDefaultSubscriberSms(persian)).toBe(persian);
+  });
+
+  test("a text whose words are Latin is written with look-alikes, whatever its link holds", () => {
+    expect(
+      writeDefaultSubscriberSms(
+        `Incident \u{201C}EU\u{201D} \u{2013} down. Details: ${DETAILS}`,
+      ),
+    ).toBe(`Incident "EU" - down. Details: ${DETAILS}`);
+  });
+
+  test("400,000 characters of another script, emoji and spaces take well under two seconds", () => {
+    const worst: string = "\u{4E8B}\u{FF1A}\u{1F525} ".repeat(100000);
+    const written: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return writeDefaultSubscriberSms(worst);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(written.result.startsWith("\u{4E8B}\u{FF1A} \u{4E8B}")).toBe(true);
+    expect(written.inMs).toBeLessThan(2000);
+  });
+
   test("400,000 characters of look-alikes, emoji and spaces take well under two seconds", () => {
     const worst: string = "\u{2019}\u{1F525}\u{2013} ".repeat(100000);
     // The fastest of up to three attempts: one timing on a busy runner is noisy.

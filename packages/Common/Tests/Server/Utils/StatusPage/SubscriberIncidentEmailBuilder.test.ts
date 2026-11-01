@@ -964,3 +964,161 @@ describe("helpers", () => {
     ).rejects.toThrow("without its id");
   });
 });
+
+/*
+ * A default email is written in its subscriber's language: the one handed
+ * to forSubscriber, else the page's default. Its subject, OneUptime's
+ * default names of the severity and the state, and the template's own
+ * words (the envelope's language, which MailService.render reads). A custom
+ * template is the team's own and reads as it always did; only a subject
+ * OneUptime gives it is in the subscriber's language.
+ */
+describe("the subscriber's language", () => {
+  function defaultSeverity(name: string): Incident {
+    const row: Incident = incident();
+    const severity: IncidentSeverity = new IncidentSeverity();
+    severity.name = name;
+    row.incidentSeverity = severity;
+    return row;
+  }
+
+  test("an English email has no language of its own, and reads as it always did", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentCreated,
+    });
+
+    const email: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      language: "en",
+    });
+
+    expect(email.subject).toBe("[Incident] Checkout requests failing");
+    expect(email.envelope.language).toBeUndefined();
+    expect(Object.keys(email.envelope)).not.toContain("language");
+  });
+
+  test("a subscriber's language words the subject, and names the email's language", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentCreated,
+      incident: defaultSeverity("Major Incident"),
+    });
+
+    const email: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      language: "de",
+    });
+
+    expect(email.subject).toBe("[Vorfall] Checkout requests failing");
+    expect(email.envelope.subject).toBe(email.subject);
+    expect(email.envelope.language).toBe("de");
+    expect((email.envelope.vars as JSONObject)["incidentSeverity"]).toBe(
+      "Schwerwiegender Vorfall",
+    );
+  });
+
+  test("a severity the project named itself reads as written", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentCreated,
+    });
+
+    expect(
+      (
+        pageEmail.forSubscriber({
+          unsubscribeUrl: UNSUBSCRIBE_URL,
+          language: "de",
+        }).envelope.vars as JSONObject
+      )["incidentSeverity"],
+    ).toBe("Critical");
+  });
+
+  test("without a language of their own, the page's default language", async () => {
+    const page: StatusPage = statusPage();
+    page.defaultLanguage = "fr";
+
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      page: page,
+      note: { text: "Rolled back.", postedAt: null },
+    });
+
+    const email: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+    });
+
+    expect(email.subject).toBe(
+      "[Mise à jour d'incident] Checkout requests failing",
+    );
+    expect(email.envelope.language).toBe("fr");
+  });
+
+  test("a note posted with a state change names the state in the subscriber's language", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentPublicNoteCreated,
+      note: { text: "Fixed.", postedAt: null },
+      stateChange: { name: "Resolved" },
+    });
+
+    const email: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      language: "es",
+    });
+
+    expect(email.subject).toBe(
+      "[Incidencia: Resuelto] Checkout requests failing",
+    );
+    expect((email.envelope.vars as JSONObject)["incidentState"]).toBe(
+      "Resuelto",
+    );
+  });
+
+  test("two subscribers of one page each get their own language from one build", async () => {
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentCreated,
+    });
+
+    expect(
+      pageEmail.forSubscriber({
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        language: "ja",
+      }).subject,
+    ).toBe("[インシデント] Checkout requests failing");
+    expect(
+      pageEmail.forSubscriber({
+        unsubscribeUrl: OTHER_UNSUBSCRIBE_URL,
+        language: "pt",
+      }).subject,
+    ).toBe("[Incidente] Checkout requests failing");
+    expect(
+      pageEmail.forSubscriber({ unsubscribeUrl: UNSUBSCRIBE_URL }).subject,
+    ).toBe("[Incident] Checkout requests failing");
+  });
+
+  test("a custom template's body is the team's own; a subject OneUptime gives it is the subscriber's", async () => {
+    emailTemplate = template({ body: "<p>Hallo {{incidentTitle}}</p>" });
+
+    const { pageEmail } = await build({
+      event: SubscriberIncidentEmailEvent.IncidentCreated,
+      page: statusPage({ smtp: true }),
+    });
+
+    const email: SubscriberIncidentEmail = pageEmail.forSubscriber({
+      unsubscribeUrl: UNSUBSCRIBE_URL,
+      language: "nl",
+    });
+
+    expect(email.envelope.templateType).toBe(EmailTemplateType.BlankTemplate);
+    expect(email.envelope.language).toBeUndefined();
+    expect(email.subject).toBe("[Incident] Checkout requests failing");
+    expect(String((email.envelope.vars as JSONObject)["body"])).toContain(
+      "Hallo Checkout requests failing",
+    );
+
+    // German words OneUptime's subject, Dutch reads it as English does.
+    expect(
+      pageEmail.forSubscriber({
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+        language: "de",
+      }).subject,
+    ).toBe("[Vorfall] Checkout requests failing");
+  });
+});

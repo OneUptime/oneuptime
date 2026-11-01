@@ -422,18 +422,18 @@ const COLOURED_ROWS: Array<ColouredRow> = [
   },
   {
     template: "SubscriberIncidentNoteCreated.hbs",
-    label: "Severity:",
+    label: "Severity",
     variable: "incidentSeverity",
   },
   // A note posted with a state change names the state it moved to.
   {
     template: "SubscriberIncidentNoteCreated.hbs",
-    label: "Status:",
+    label: "Status",
     variable: "incidentState",
   },
   {
     template: "SubscriberIncidentNoteUpdated.hbs",
-    label: "Severity:",
+    label: "Severity",
     variable: "incidentSeverity",
   },
   {
@@ -478,12 +478,12 @@ const COLOURED_ROWS: Array<ColouredRow> = [
   },
   {
     template: "SubscriberScheduledMaintenanceEventStateChanged.hbs",
-    label: "Event State:",
+    label: "Event State",
     variable: "eventState",
   },
   {
     template: "SubscriberScheduledMaintenanceEventNoteCreated.hbs",
-    label: "Status:",
+    label: "Status",
     variable: "eventState",
   },
 ];

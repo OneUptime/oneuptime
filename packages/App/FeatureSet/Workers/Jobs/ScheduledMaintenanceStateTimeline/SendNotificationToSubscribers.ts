@@ -7,7 +7,6 @@ import Dictionary from "Common/Types/Dictionary";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import SMS from "Common/Types/SMS/SMS";
-import Text from "Common/Types/Text";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import MailService from "Common/Server/Services/MailService";
@@ -56,7 +55,32 @@ import ScheduledMaintenancePublication, {
   NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
   ScheduledMaintenancePublicationState,
 } from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
-import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberChatText,
+} from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import StateChangeNoteMessage, {
+  StateChangeNoteText,
+} from "Common/Types/StatusPage/StateChangeNoteMessage";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * What subscribers are told when an event's state changes, in each
+ * subscriber's language (Common/Server/Locales).
+ */
+const STATE_CHANGE_TEXT: {
+  readonly chatHeading: string;
+  readonly chatEvent: string;
+  readonly chatStateChangedTo: string;
+} = {
+  chatHeading: translationKey(
+    "Scheduled Maintenance State Update - {{statusPageName}}",
+  ),
+  chatEvent: translationKey("Event:"),
+  chatStateChangedTo: translationKey("State Changed To:"),
+};
 
 RunCron(
   "ScheduledMaintenanceStateTimeline:SendNotificationToSubscribers",
@@ -480,6 +504,54 @@ RunCron(
                 subscriber,
               ).toString();
 
+            /*
+             * The language this subscriber's messages are written in: their
+             * own, else the page's (SubscriberLanguage).
+             */
+            const language: string = SubscriberLanguage.getLanguage({
+              subscriber: subscriber,
+              statusPage: statuspage,
+            });
+
+            /*
+             * The default Slack and Teams message, in the subscriber's
+             * language: Teams' with its lines one under the other.
+             */
+            const getChatMessage: (lineBreak: string) => string = (
+              lineBreak: string,
+            ): string => {
+              return writeInLanguage(
+                language,
+                (translator: Translator): string => {
+                  return [
+                    mdText`## ${translator.translateTemplate(STATE_CHANGE_TEXT.chatHeading, { statusPageName: statusPageName })}`.toString(),
+                    SubscriberMessageText.chatLine(
+                      translator,
+                      STATE_CHANGE_TEXT.chatEvent,
+                      event.title || "",
+                    ).toString(),
+                    SubscriberMessageText.chatLine(
+                      translator,
+                      STATE_CHANGE_TEXT.chatStateChangedTo,
+                      SubscriberMessageText.nameInLanguage(
+                        translator,
+                        stateName,
+                      ),
+                    ).toString(),
+                    SubscriberMessageText.chatLine(
+                      translator,
+                      SubscriberChatText.resourcesAffected,
+                      resourcesAffectedPlainText,
+                    ).toString(),
+                    SubscriberMessageText.chatLinks(translator, {
+                      statusPageUrl: statusPageURL,
+                      unsubscribeUrl: unsubscribeUrl,
+                    }).toString(),
+                  ].join(lineBreak);
+                },
+              );
+            };
+
             // Add unsubscribeUrl to template variables for this subscriber
             const subscriberEmailBodyTemplateVariables: SubscriberNotificationEmailBodyTemplateVariables =
               {
@@ -507,9 +579,25 @@ RunCron(
                     subscriberPlainTextTemplateVariables,
                   );
               } else {
-                // Use default hard-coded template
-                smsMessage = writeDefaultSubscriberSms(
-                  `Maintenance ${event.title || ""} on ${statusPageName} is ${scheduledEventStateTimeline.scheduledMaintenanceState?.name}. Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                // OneUptime's own words, in the subscriber's language.
+                smsMessage = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return SubscriberMessageText.smsWithLinks(translator, {
+                      sentences: [
+                        translator.translateTemplate(
+                          StateChangeNoteText.scheduledMaintenanceSmsHeadline,
+                          {
+                            title: event.title || "",
+                            statusPageName: statusPageName,
+                            state: SubscriberMessageText.stateName(stateName),
+                          },
+                        ),
+                      ],
+                      detailsUrl: scheduledEventDetailsUrl,
+                      unsubscribeUrl: unsubscribeUrl,
+                    });
+                  },
                 );
               }
 
@@ -549,17 +637,8 @@ RunCron(
                     subscriberMarkdownTemplateVariables,
                   );
               } else {
-                // Use default hard-coded template
-                markdownMessage =
-                  mdText`## Scheduled Maintenance State Update - ${statusPageName}
-
-**Event:** ${event.title || ""}
-
-**State Changed To:** ${stateName}
-
-**Resources Affected:** ${resourcesAffectedPlainText}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                // OneUptime's own words, in the subscriber's language.
+                markdownMessage = getChatMessage("\n\n");
               }
 
               // send Slack notification with markdown conversion
@@ -581,13 +660,8 @@ RunCron(
                     subscriberMarkdownTemplateVariables,
                   );
               } else {
-                // Use default hard-coded template
-                markdownMessage =
-                  mdText`## Scheduled Maintenance State Update - ${statusPageName}
-**Event:** ${event.title || ""}
-**State Changed To:** ${stateName}
-**Resources Affected:** ${resourcesAffectedPlainText}
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                // OneUptime's own words, in the subscriber's language.
+                markdownMessage = getChatMessage("\n");
               }
 
               // send Teams notification
@@ -640,10 +714,18 @@ RunCron(
                       emailTemplate.emailSubject,
                       subscriberPlainTextTemplateVariables,
                     )
-                  : `[Scheduled Maintenance ${Text.uppercaseFirstLetter(
-                      scheduledEventStateTimeline.scheduledMaintenanceState
-                        ?.name,
-                    )}] ${event.title || ""}`;
+                  : writeInLanguage(
+                      language,
+                      (translator: Translator): string => {
+                        return StateChangeNoteMessage.getScheduledMaintenanceCustomTemplateEmailSubject(
+                          {
+                            stateName: stateName,
+                            eventTitle: event.title || "",
+                            translator: translator,
+                          },
+                        );
+                      },
+                    );
 
                 MailService.sendMail(
                   {
@@ -686,9 +768,16 @@ RunCron(
                         ? "true"
                         : "false",
                       resourcesAffected: resourcesAffectedString,
-                      eventState:
-                        scheduledEventStateTimeline.scheduledMaintenanceState
-                          ?.name || "",
+                      // OneUptime's default name, in the subscriber's language.
+                      eventState: writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return SubscriberMessageText.nameInLanguage(
+                            translator,
+                            stateName,
+                          );
+                        },
+                      ),
                       ...EmailColorUtil.getTemplateVariables(
                         "eventState",
                         scheduledEventStateTimeline.scheduledMaintenanceState
@@ -702,11 +791,23 @@ RunCron(
                           statuspage,
                         ),
                     },
-                    subject: `[${Text.uppercaseFirstLetter(
-                      scheduledEventStateTimeline.scheduledMaintenanceState
-                        ?.name,
-                    )} Scheduled Maintenance] ${event.title || ""}`,
+                    subject: writeInLanguage(
+                      language,
+                      (translator: Translator): string => {
+                        return StateChangeNoteMessage.getScheduledMaintenanceEmailSubject(
+                          {
+                            stateName: stateName,
+                            eventTitle: event.title || "",
+                            translator: translator,
+                          },
+                        );
+                      },
+                    ),
                     isSubjectLiteral: true,
+                    // The template's own words, in the subscriber's language.
+                    ...(language !== DEFAULT_READER_LANGUAGE
+                      ? { language: language }
+                      : {}),
                   },
                   {
                     mailServer: ProjectSmtpConfigService.toEmailServer(

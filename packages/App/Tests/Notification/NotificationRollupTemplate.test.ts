@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -14,6 +15,9 @@ import {
   buildRollupEmail,
 } from "Common/Server/Utils/EmailRollup/EmailRollupRenderer";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(Handlebars);
 
 /*
  * NotificationRollup.hbs — the one email a flooded recipient gets instead of

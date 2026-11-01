@@ -123,8 +123,36 @@ import FeedMarkdown, {
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "../../Types/StatusPage/SubscriberNotificationsSwitch";
-import { writeDefaultSubscriberSms } from "../../Utils/Sms/SubscriberSms";
 import ScheduledMaintenancePublication from "../../Types/ScheduledMaintenance/ScheduledMaintenancePublication";
+import SubscriberLanguage from "../Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberChatText,
+} from "../Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "../Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
+import { translationKey, Translator } from "../../UI/Utils/TranslateTemplate";
+
+/*
+ * What subscribers are told when an event is scheduled, in each
+ * subscriber's language (Common/Server/Locales).
+ */
+const EVENT_SCHEDULED_TEXT: {
+  readonly smsHeadline: string;
+  readonly smsHeadlineWithImpact: string;
+  readonly emailSubject: string;
+  readonly chatHeading: string;
+  readonly chatScheduledDate: string;
+} = {
+  smsHeadline: translationKey(
+    "Scheduled Maintenance: {{title}} on {{statusPageName}}.",
+  ),
+  smsHeadlineWithImpact: translationKey(
+    "Scheduled Maintenance: {{title}} on {{statusPageName}}. Impact: {{resources}}.",
+  ),
+  emailSubject: translationKey("[Scheduled Maintenance] {{title}}"),
+  chatHeading: translationKey("Scheduled Maintenance - {{title}}"),
+  chatScheduledDate: translationKey("Scheduled Date:"),
+};
 
 /*
  * The attachments whose membership an ongoing event acts on. Monitors are
@@ -489,6 +517,26 @@ export class Service extends ProjectReferencesService<Model> {
               subscriber,
             ).toString();
 
+          /*
+           * The language this subscriber's messages are written in: their
+           * own, else the page's (SubscriberLanguage).
+           */
+          const language: string = SubscriberLanguage.getLanguage({
+            subscriber: subscriber,
+            statusPage: statuspage,
+          });
+
+          // The email's subject, in the subscriber's language.
+          const eventSubject: string = writeInLanguage(
+            language,
+            (translator: Translator): string => {
+              return translator.translateTemplate(
+                EVENT_SCHEDULED_TEXT.emailSubject,
+                { title: event.title || statusPageName },
+              );
+            },
+          );
+
           // The values every channel's custom template gets, as written.
           const templateVariables: Record<string, string> = {
             statusPageName: statusPageName,
@@ -544,9 +592,27 @@ export class Service extends ProjectReferencesService<Model> {
                   plainTextTemplateVariables,
                 );
             } else {
-              // Use default template
-              smsMessage = writeDefaultSubscriberSms(
-                `Scheduled Maintenance: ${event.title || ""} on ${statusPageName}.${resourcesAffected ? ` Impact: ${resourcesAffected}.` : ""} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+              // OneUptime's own words, in the subscriber's language.
+              smsMessage = writeInLanguage(
+                language,
+                (translator: Translator): string => {
+                  return SubscriberMessageText.smsWithLinks(translator, {
+                    sentences: [
+                      translator.translateTemplate(
+                        resourcesAffected
+                          ? EVENT_SCHEDULED_TEXT.smsHeadlineWithImpact
+                          : EVENT_SCHEDULED_TEXT.smsHeadline,
+                        {
+                          title: event.title || "",
+                          statusPageName: statusPageName,
+                          resources: resourcesAffected,
+                        },
+                      ),
+                    ],
+                    detailsUrl: scheduledEventDetailsUrl,
+                    unsubscribeUrl: unsubscribeUrl,
+                  });
+                },
               );
             }
 
@@ -581,17 +647,24 @@ export class Service extends ProjectReferencesService<Model> {
                   markdownTemplateVariables,
                 );
             } else {
-              // Use default template: the same plain values, escaped.
-              slackMessage =
-                mdText`## 🔧 Scheduled Maintenance - ${event.title || ""}
+              /*
+               * The same plain values, escaped, around OneUptime's own words
+               * and the date, in the subscriber's language.
+               */
+              slackMessage = writeInLanguage(
+                language,
+                (translator: Translator): string => {
+                  return mdText`## 🔧 ${translator.translateTemplate(EVENT_SCHEDULED_TEXT.chatHeading, { title: event.title || "" })}
 
-**Scheduled Date:** ${OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!)}
+${SubscriberMessageText.chatLine(translator, EVENT_SCHEDULED_TEXT.chatScheduledDate, OneUptimeDate.getDateAsUserFriendlyFormattedString(event.startsAt!))}
 
-${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
+${resourcesAffected ? SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffected) : ""}
 
-**Description:** ${FeedMarkdown.asMarkdown(event.description || "")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, FeedMarkdown.asMarkdown(event.description || ""))}
 
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
+                },
+              );
             }
 
             // send Slack notification here.
@@ -729,7 +802,7 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
                         ).join(", "),
                     },
                   )
-                : "[Scheduled Maintenance] " + (event.title || statusPageName);
+                : eventSubject;
 
               MailService.sendMail(
                 {
@@ -755,17 +828,33 @@ ${resourcesAffected ? mdText`**Resources Affected:** ${resourcesAffected}` : ""}
                 } as LogAttributes);
               });
             } else {
-              // Use default hard-coded template
+              /*
+               * The default email, in the subscriber's language: its own
+               * words (the template's), its subject and when the event
+               * starts.
+               */
               MailService.sendMail(
                 {
                   toEmail: subscriber.subscriberEmail,
                   templateType:
                     EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
-                  vars: emailVars,
-                  subject:
-                    "[Scheduled Maintenance] " +
-                    (event.title || statusPageName),
+                  vars: {
+                    ...emailVars,
+                    scheduledAt: writeInLanguage(language, (): string => {
+                      return OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones(
+                        {
+                          date: event.startsAt!,
+                          timezones: statuspage.subscriberTimezones || [],
+                          use12HourFormat: true,
+                        },
+                      );
+                    }),
+                  },
+                  subject: eventSubject,
                   isSubjectLiteral: true,
+                  ...(language !== DEFAULT_READER_LANGUAGE
+                    ? { language: language }
+                    : {}),
                 },
                 {
                   mailServer: ProjectSmtpConfigService.toEmailServer(

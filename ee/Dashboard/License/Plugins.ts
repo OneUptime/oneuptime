@@ -1,24 +1,24 @@
-import LicenseManager from "../../AdminDashboard/License/LicenseManager";
+import LicenseDetails from "../../AdminDashboard/License/LicenseDetails";
 import { DashboardEnterprisePlugins } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
 
 /*
- * License management in the edition dialog - the pill in the Dashboard's
- * footer. The core Footer hands it to EditionLabel, which keeps the read-only
- * license status and renders this for everything that changes the license.
+ * The license details in the edition dialog - the pill in the Dashboard's
+ * footer. The core Footer hands them to EditionLabel, which adds the seat
+ * usage and the instances to the read-only status. Nothing here changes the
+ * license: a master admin does that on Settings > License in the Admin
+ * Dashboard, and the dialog links there.
  *
  * The same component as the Admin Dashboard's, imported from
  * ee/AdminDashboard/License: it reaches core only through Common/... and
  * react, which both bundles resolve, and this Dashboard's tsconfig includes
- * that directory so its type check covers the shared file too.
+ * that file so its type check covers it too.
  *
- * Not lazy, unlike the page plugins: the manager wraps the dialog and holds
- * what an admin typed while the dialog is closed, so it is mounted with the
- * footer on every page.
+ * Not lazy, unlike the page plugins: the dialog has no Suspense around it.
  */
-type LicensePluginKeys = "LicenseManager";
+type LicensePluginKeys = "LicenseDetails";
 
 const LicensePlugins: Pick<DashboardEnterprisePlugins, LicensePluginKeys> = {
-  LicenseManager: LicenseManager,
+  LicenseDetails: LicenseDetails,
 };
 
 export default LicensePlugins;

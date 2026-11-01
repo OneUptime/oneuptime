@@ -1,4 +1,4 @@
-import LicenseManager from "../../../AdminDashboard/License/LicenseManager";
+import LicenseDetails from "../../../AdminDashboard/License/LicenseDetails";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -15,29 +15,14 @@ import React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
- * The edition dialog of the Enterprise Edition: core's EditionLabel with this
- * license manager (ee/AdminDashboard/License/LicenseManager). Every test and
- * assertion of packages/Common/Tests/UI/Components/EditionLabelLicenseRefresh
- * .test.tsx from before the license management moved out of core runs here
- * unchanged; the core suite keeps the part that holds without ee/.
+ * The edition dialog of the Enterprise Edition: core's EditionLabel with these
+ * license details (ee/AdminDashboard/License/LicenseDetails). The core suite
+ * keeps the part that holds without ee/; refreshing the license is
+ * Settings > License (LicenseSettingsPage.test.tsx).
  *
- * The "Refresh license" button, and who is allowed to see it.
- *
- * The seat limit is set on oneuptime.com and can change on any day. It reaches
- * a self-hosted installation through a job that runs once a day — which was
- * merely slow while nothing acted on the number, and is a real problem now that
- * the installation refuses users above it. An administrator who has just bought
- * ten seats should not have to wait until tomorrow, and should not have to
- * re-type the license key into a box the dialog hides while the license is
- * valid. This button is the answer, so these tests pin that it:
- *
- *   - is offered only to a master admin, matching the server, which now
- *     requires one on both license writes;
- *   - sends no license key, so it can only ever refresh the key already
- *     stored and never replace a working license with a typo;
- *   - shows the new limit afterwards;
- *   - says so when it fails, rather than looking like it worked. The whole
- *     reason it was pressed is a belief that the stored terms are stale.
+ * Who sees the seat figures, and how a seat limit that is being enforced
+ * reads: the installation refuses users above it, so the dialog must say what
+ * it is already doing rather than suggest what could be done.
  */
 
 let isEnterpriseEdition: boolean = true;
@@ -173,7 +158,7 @@ const licensePayload: LicensePayloadFunction = (
 type OpenDialogFunction = () => Promise<void>;
 
 const openDialog: OpenDialogFunction = async (): Promise<void> => {
-  render(<EditionLabel licenseManager={LicenseManager} />);
+  render(<EditionLabel licenseDetails={LicenseDetails} />);
 
   // The pill only knows what to say once the license GET has come back.
   await waitFor(() => {
@@ -192,7 +177,7 @@ const openDialog: OpenDialogFunction = async (): Promise<void> => {
  * refreshes and replays. On the login page (nobody signed in) the flag must
  * NOT be sent, or the page would get a 401 instead of the edition pill.
  */
-describe("EditionLabel with the license manager - telling the license route we expect to be signed in", () => {
+describe("EditionLabel with the license details - telling the license route we expect to be signed in", () => {
   type LicenseGetFunction = () => FetchCall;
 
   const licenseGet: LicenseGetFunction = (): FetchCall => {
@@ -217,7 +202,7 @@ describe("EditionLabel with the license manager - telling the license route we e
    * updates land inside act() so they do not spill past the end of the test.
    */
   const renderAndSettle: RenderAndSettleFunction = async (): Promise<void> => {
-    render(<EditionLabel licenseManager={LicenseManager} />);
+    render(<EditionLabel licenseDetails={LicenseDetails} />);
 
     await waitFor(() => {
       expect(fetchCalls.length).toBeGreaterThan(0);
@@ -259,7 +244,7 @@ describe("EditionLabel with the license manager - telling the license route we e
   });
 });
 
-describe("EditionLabel with the license manager - refreshing the license", () => {
+describe("EditionLabel with the license details - who sees what", () => {
   beforeEach(() => {
     fetchCalls.length = 0;
     isEnterpriseEdition = true;
@@ -269,33 +254,6 @@ describe("EditionLabel with the license manager - refreshing the license", () =>
     respond = (): HTTPResponse<JSONObject> => {
       return new HTTPResponse<JSONObject>(200, licensePayload(), {});
     };
-  });
-
-  it("offers the button to a master admin once the license is valid", async () => {
-    await openDialog();
-
-    expect(
-      await screen.findByTestId("refresh-enterprise-license"),
-    ).toBeInTheDocument();
-  });
-
-  /*
-   * The server requires a master admin on both license writes, so offering the
-   * button to anyone else would only ever produce a permission error.
-   */
-  it("does not offer the button to a user who is not a master admin", async () => {
-    isMasterAdmin = false;
-
-    await openDialog();
-
-    await waitFor(() => {
-      expect(screen.getByText("Licensed to")).toBeInTheDocument();
-    });
-
-    expect(
-      screen.queryByTestId("refresh-enterprise-license"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("Change license key")).not.toBeInTheDocument();
   });
 
   /*
@@ -330,30 +288,6 @@ describe("EditionLabel with the license manager - refreshing the license", () =>
     expect(screen.queryByText(/unlimited/)).not.toBeInTheDocument();
   });
 
-  /*
-   * An installation activated offline holds no license key, so there is
-   * nothing to refresh from oneuptime.com: a new token replaces the license.
-   */
-  it("offers no refresh to an installation activated offline", async () => {
-    respond = (): HTTPResponse<JSONObject> => {
-      return new HTTPResponse<JSONObject>(
-        200,
-        licensePayload({ activationMode: "offline", licenseKey: null }),
-        {},
-      );
-    };
-
-    await openDialog();
-
-    expect(await screen.findByText("Replace license")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("refresh-enterprise-license"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/activated offline, so it does not report/),
-    ).toBeInTheDocument();
-  });
-
   it("asks a non-admin to find one when the license needs activating", async () => {
     isMasterAdmin = false;
     respond = (): HTTPResponse<JSONObject> => {
@@ -373,96 +307,9 @@ describe("EditionLabel with the license manager - refreshing the license", () =>
       screen.queryByPlaceholderText("Enter your enterprise license key"),
     ).not.toBeInTheDocument();
   });
-
-  /*
-   * No license key in the body. A refresh that carried one would be an
-   * activation with a friendlier name.
-   */
-  it("refreshes the stored license without sending a key", async () => {
-    await openDialog();
-
-    fireEvent.click(await screen.findByTestId("refresh-enterprise-license"));
-
-    await waitFor(() => {
-      expect(
-        fetchCalls.some((call: FetchCall): boolean => {
-          return call.url.includes("/global-config/license/refresh");
-        }),
-      ).toBe(true);
-    });
-
-    const refreshCall: FetchCall = fetchCalls.find(
-      (call: FetchCall): boolean => {
-        return call.url.includes("/global-config/license/refresh");
-      },
-    ) as FetchCall;
-
-    expect(refreshCall.method).toBe("POST");
-    expect(refreshCall.data).toBeUndefined();
-  });
-
-  it("shows the new seat limit after a refresh", async () => {
-    await openDialog();
-
-    await screen.findByTestId("refresh-enterprise-license");
-
-    // Ten more seats bought on oneuptime.com since the page loaded.
-    respond = (): HTTPResponse<JSONObject> => {
-      return new HTTPResponse<JSONObject>(
-        200,
-        licensePayload({
-          userLimit: 60,
-          seatsRemaining: 10,
-          canAddMoreUsers: true,
-        }),
-        {},
-      );
-    };
-
-    fireEvent.click(screen.getByTestId("refresh-enterprise-license"));
-
-    expect(
-      await screen.findByText(/License refreshed from OneUptime/),
-    ).toBeInTheDocument();
-    expect(await screen.findByText(/60 seats/)).toBeInTheDocument();
-  });
-
-  /*
-   * A refresh that quietly kept the old terms and said nothing would be worse
-   * than no button at all: the administrator pressed it precisely because they
-   * think the stored terms are wrong.
-   */
-  it("reports a failed refresh instead of looking like it worked", async () => {
-    await openDialog();
-
-    await screen.findByTestId("refresh-enterprise-license");
-
-    respond = (
-      call: FetchCall,
-    ): HTTPResponse<JSONObject> | HTTPErrorResponse => {
-      if (call.url.includes("/refresh")) {
-        return new HTTPErrorResponse(
-          500,
-          { message: "Could not reach OneUptime." },
-          {},
-        );
-      }
-
-      return new HTTPResponse<JSONObject>(200, licensePayload(), {});
-    };
-
-    fireEvent.click(screen.getByTestId("refresh-enterprise-license"));
-
-    expect(
-      await screen.findByText(/Could not reach OneUptime/),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(/License refreshed from OneUptime/),
-    ).not.toBeInTheDocument();
-  });
 });
 
-describe("EditionLabel with the license manager - what an exhausted seat limit looks like", () => {
+describe("EditionLabel with the license details - what an exhausted seat limit looks like", () => {
   beforeEach(() => {
     fetchCalls.length = 0;
     isEnterpriseEdition = true;

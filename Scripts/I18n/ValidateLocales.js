@@ -31,6 +31,8 @@ const LOCALE_DIRS = {
   PublicDashboard: "packages/App/FeatureSet/PublicDashboard/src/Locales",
   Docs: "packages/App/FeatureSet/Docs/Locales",
   APIReference: "packages/App/FeatureSet/APIReference/Locales",
+  // What the server writes in a reader's language (Common/Server/Locales/README.md).
+  Server: "packages/Common/Server/Locales",
 };
 
 // en.json is the source of truth; these 16 locales must mirror it.

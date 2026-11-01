@@ -243,6 +243,7 @@ import { AddFormDomain1808712000000 } from "./1808712000000-AddFormDomain";
 import { AddNetworkEndpointHostnameAndAttachmentSource1808720000000 } from "./1808720000000-AddNetworkEndpointHostnameAndAttachmentSource";
 import { AddCloudRuleKind1808760000000 } from "./1808760000000-AddCloudRuleKind";
 import { AddProxmoxInventoryFactsAndBackups1808770000000 } from "./1808770000000-AddProxmoxInventoryFactsAndBackups";
+import { AddStatusPageSubscriberLanguage1808780000000 } from "./1808780000000-AddStatusPageSubscriberLanguage";
 import { AddDataSecurityIdentities1808791000000 } from "./1808791000000-AddDataSecurityIdentities";
 import { AddDataSecurityFieldSuggestions1808792000000 } from "./1808792000000-AddDataSecurityFieldSuggestions";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1690,6 +1691,7 @@ export default [
   AddNetworkEndpointHostnameAndAttachmentSource1808720000000,
   AddCloudRuleKind1808760000000,
   AddProxmoxInventoryFactsAndBackups1808770000000,
+  AddStatusPageSubscriberLanguage1808780000000,
   AddDataSecurityIdentities1808791000000,
   AddDataSecurityFieldSuggestions1808792000000,
 ];
