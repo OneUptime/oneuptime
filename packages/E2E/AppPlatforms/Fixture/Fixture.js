@@ -44,6 +44,7 @@ import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import { Amber500, Indigo500 } from "Common/Types/BrandColors";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ObjectID from "Common/Types/ObjectID";
@@ -542,6 +543,41 @@ const LABEL_RULES = [
   }),
 ];
 
+/*
+ * The lines the environments' feeds hold for their apps' changes, as
+ * CloudAppChangeRecorder writes them (buildCloudAppChangeFeedMarkdown):
+ * checkout-api's deploy of 43 in checkout's feed, and reports' rollback in
+ * its environment's.
+ */
+function appLink(environmentNumber, appNumber) {
+  return `/dashboard/${PROJECT_ID}/app-platforms/${uuid("71000000", environmentNumber)}/apps/${uuid("75000000", appNumber)}`;
+}
+
+const FEED = EMPTY
+  ? []
+  : [
+      {
+        _id: uuid("78000000", 1),
+        projectId: PROJECT_ID,
+        cloudResourceId: uuid("71000000", 1),
+        cloudResourceFeedEventType: "AppDeployed",
+        displayColor: Indigo500,
+        feedInfoInMarkdown: `🚀 Deployed [production/checkout-api](${appLink(1, 1)}): revision **43** replaced **42**.`,
+        postedAt: new Date(LOADED_AT - 25 * MINUTE),
+        createdAt: new Date(LOADED_AT - 25 * MINUTE),
+      },
+      {
+        _id: uuid("78000000", 2),
+        projectId: PROJECT_ID,
+        cloudResourceId: uuid("71000000", 5),
+        cloudResourceFeedEventType: "AppRolledBack",
+        displayColor: Amber500,
+        feedInfoInMarkdown: `↩️ Rolled back [reports](${appLink(5, 6)}) to revision **v11def**: revision **v12abc** stopped reporting.`,
+        postedAt: new Date(LOADED_AT - 40 * MINUTE),
+        createdAt: new Date(LOADED_AT - 40 * MINUTE),
+      },
+    ];
+
 // The service checkout-api's telemetry is under, in Services.
 const SERVICES = EMPTY
   ? []
@@ -555,6 +591,7 @@ const TABLES = {
   CloudAppRevision: REVISIONS,
   CloudResourceOwnerRule: OWNER_RULES,
   CloudResourceLabelRule: LABEL_RULES,
+  CloudResourceFeed: FEED,
 };
 
 /*
@@ -700,7 +737,6 @@ const EMPTY_TABLES = [
   "User",
   "CloudResourceOwnerUser",
   "CloudResourceOwnerTeam",
-  "CloudResourceFeed",
   "TelemetryIngestionKey",
   "ProjectUser",
   // The telemetry explorers' pickers and saved views, and the metric catalog.

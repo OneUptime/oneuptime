@@ -261,7 +261,10 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
                   className={`mt-1 block max-w-full rounded-sm text-sm text-gray-600 hover:text-gray-900 hover:underline ${LINK_FOCUS_CLASS_NAME}`}
                   dataTestId="cloud-app-header-where"
                 >
-                  <CloudAppFacts facts={where} />
+                  <CloudAppFacts
+                    facts={where}
+                    dataTestId="cloud-app-header-where-facts"
+                  />
                 </AppLink>
               ) : (
                 <></>
@@ -274,7 +277,10 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
                 }
               >
                 {revision ? (
-                  <CloudAppFacts facts={revisionFacts} />
+                  <CloudAppFacts
+                    facts={revisionFacts}
+                    dataTestId="cloud-app-header-revision-facts"
+                  />
                 ) : (
                   <span className="text-gray-500">
                     {translator.translateText(APP_NO_REVISION)}

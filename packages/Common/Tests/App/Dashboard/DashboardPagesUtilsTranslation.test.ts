@@ -101,6 +101,10 @@ const GERMAN: Record<string, string> = {
   "{{count}} not reporting": "{{count}} melden nicht",
   "{{count}} environments disconnected": "{{count}} Umgebungen getrennt",
   "{{count}} environments disconnected_one": "{{count}} Umgebung getrennt",
+  "{{count}} environments waiting for first data":
+    "{{count}} Umgebungen warten auf die ersten Daten",
+  "{{count}} environments waiting for first data_one":
+    "{{count}} Umgebung wartet auf die ersten Daten",
   "in the last {{hours}} hours": "in den letzten {{hours}} Stunden",
   "seen in the last {{minutes}} min": "in den letzten {{minutes}} Min. gesehen",
   // Utils/Workflow/WorkflowVariableUtil.ts
@@ -466,6 +470,29 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
       "in den letzten 24 Stunden",
       "in den letzten 15 Min. gesehen",
     ]);
+  });
+
+  test("the cloud fleet's environments that never reported wait, in German", () => {
+    const sublabelOf: (waiting: number) => string = (
+      waiting: number,
+    ): string => {
+      return (
+        summarizeCloudFleet({
+          total: 4,
+          connected: 4 - waiting,
+          waiting,
+          disconnected: 0,
+          byProvider: {},
+          liveInstances: 0,
+          apps: 1,
+          runningApps: 1,
+          deploys: 0,
+        })[1]?.sublabel || ""
+      );
+    };
+
+    expect(sublabelOf(1)).toBe("1 Umgebung wartet auf die ersten Daten");
+    expect(sublabelOf(2)).toBe("2 Umgebungen warten auf die ersten Daten");
   });
 
   test("a workflow variable's name field explains its reference in German", () => {

@@ -40,6 +40,13 @@ const CHECKOUT_APP_ID: string = "75000000-0000-4000-8000-000000000001";
 const CHECKOUT_APP: string = `${CHECKOUT}/apps/${CHECKOUT_APP_ID}`;
 const CHECKOUT_SERVICE_ID: string = "77000000-0000-4000-8000-000000000001";
 
+// reports, on Container Apps: rolled back 40 minutes ago, v12abc to v11def.
+const REPORTS_ID: string = "71000000-0000-4000-8000-000000000005";
+const REPORTS_APP: string = `${APP_PLATFORMS}/${REPORTS_ID}/apps/75000000-0000-4000-8000-000000000006`;
+
+// A chart's marker of reports' rollback, by its accessible name.
+const ROLLBACK_MARKER: RegExp = /^Rolled back to revision v11def at /;
+
 // The six apps, as All Apps sorts them (by name).
 const APP_NAMES: Array<string> = [
   "api",
@@ -383,8 +390,10 @@ test.describe("the Overview", () => {
     await expect(litEntry(page)).toHaveText("Overview");
 
     /*
-     * The strip: six apps, two of them quiet; six environments, two of them
-     * disconnected; two deploys in the last day; seven live tasks.
+     * The strip: six apps, two of them quiet; six environments, one of them
+     * disconnected - the one that never reported waits, as its platform's
+     * card says, and is not called disconnected; two deploys in the last
+     * day; seven live tasks.
      */
     await expect(fleetTiles(page)).toHaveCount(4);
     const values: Array<string> = await fleetTiles(page).evaluateAll(
@@ -399,23 +408,26 @@ test.describe("the Overview", () => {
       page.getByTestId("cloud-fleet-summary-tile-sublabel"),
     ).toHaveText([
       "2 not reporting",
-      "2 environments disconnected",
+      "1 environment disconnected",
       "in the last 24 hours",
       "seen in the last 15 min",
     ]);
 
     /*
      * Recent deploys: every deploy, the newest first, from what to what -
-     * not the first revision an app reported, which is no deploy.
+     * not the first revision an app reported, which is no deploy. Where it
+     * runs reads as All Apps says it: "cluster production".
      */
     const deploys: Locator = page.getByTestId("recent-deploy");
-    await expect(deploys).toHaveCount(3);
-    await expect(deploys.nth(2)).toContainText("41 → 42");
+    await expect(deploys).toHaveCount(4);
     await expect(deploys.nth(0)).toContainText("checkout-api");
     await expect(deploys.nth(0)).toContainText("42 → 43");
-    await expect(deploys.nth(0)).toContainText("AWS ECS · production");
+    await expect(deploys.nth(0)).toContainText("AWS ECS · cluster production");
     await expect(deploys.nth(1)).toContainText("api");
     await expect(deploys.nth(1)).toContainText("00041-abc → 00042-xyz");
+    await expect(deploys.nth(2)).toContainText("reports");
+    await expect(deploys.nth(2)).toContainText("v11def → v12abc");
+    await expect(deploys.nth(3)).toContainText("41 → 42");
 
     // Four in a row, the breakdown whole: wrapped, never cut.
     const tileTops: Set<number> = new Set(
@@ -742,8 +754,12 @@ test.describe("the Overview", () => {
     await page.setViewportSize(LAPTOP);
     await open(page, `${APP_PLATFORMS}?state=empty`);
 
+    // What the product shows: every app and its deploys.
     await expect(
-      page.getByText("See every cloud environment your apps run in").first(),
+      page.getByText("See every app your cloud platforms run").first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Deploys and rollbacks", { exact: true }),
     ).toBeVisible();
     await expect(page.getByTestId("cloud-fleet-summary")).toHaveCount(0);
     await expect(platformGroups(page)).toHaveCount(0);
@@ -1118,15 +1134,33 @@ test.describe("apps and their deploys", () => {
     await expect(tiles).toContainText("122 ms");
     await expect(tiles).toContainText("36.0%");
     await expect(tiles).toContainText("1.5 GiB");
+    /*
+     * Each revision its live tasks run, named as the Revisions tab names it:
+     * 43 Current on two, 42 still Running on one - and, two at once, what
+     * that means.
+     */
     await expect(page.getByTestId("cloud-app-running-revision")).toHaveText([
-      "432 instances",
-      "421 instance",
+      "43Current2 instances",
+      "42Running1 instance",
     ]);
+    await expect(
+      page.getByTestId("cloud-app-running-now-split"),
+    ).toContainText("a deploy in progress, or traffic split between them");
     // The deploy 25 minutes ago, marked on both charts.
     await expect(page.getByTestId("chart-annotation-marker")).toHaveCount(2);
-    await expect(page.getByTestId("cloud-app-details")).toContainText(
-      "aws.ecs.task.family",
-    );
+    /*
+     * Details names each attribute as the chips do, its key beside it, and
+     * the revision under the attribute it is read from.
+     */
+    const details: Locator = page.getByTestId("cloud-app-detail-row");
+    await expect(details.locator("dt")).toHaveText([
+      "App (aws.ecs.task.family)",
+      "Cluster (aws.ecs.cluster.arn)",
+      "Task definition revision (aws.ecs.task.revision)",
+      "Image",
+      "First Seen",
+    ]);
+    await expect(details.nth(2).locator("dd")).toHaveText("43");
     await screenshot(page, "app-platforms-app-overview-1280");
 
     await page.setViewportSize(PHONE);
@@ -1259,6 +1293,210 @@ test.describe("apps and their deploys", () => {
       desktopMenu(page).getByRole("link", { name: "Instances" }),
     ).toHaveAttribute("href", `${CHECKOUT}/instances`);
     await screenshot(page, "app-platforms-environment-apps-1280");
+  });
+
+  /*
+   * A revision the app went back to was not deployed then: the header said
+   * "Deployed 40 minutes ago" for reports' rollback (#5511's UI review).
+   */
+  test("a rolled-back app says so in its header, on its charts and on its Revisions row", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, REPORTS_APP);
+
+    const revision: Locator = page.getByTestId("cloud-app-header-revision");
+    await expect(revision).toHaveText(
+      "Revision v11def · Rolled back 40 minutes ago · Replaced v12abc",
+    );
+    await expect(revision).toHaveAttribute("data-change", "rolled-back");
+    // In amber, as its marker is on the charts.
+    await expect(revision.getByTestId("cloud-app-fact-rolled-back")).toHaveCSS(
+      "color",
+      "rgb(180, 83, 9)",
+    );
+    await expect(
+      page.getByRole("button", { name: ROLLBACK_MARKER }),
+    ).toHaveCount(2);
+    await screenshot(page, "app-platforms-app-rolled-back-1280");
+
+    await open(page, `${REPORTS_APP}?tab=Revisions`);
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText("v12abc");
+    await expect(rows.nth(0)).toContainText("Retired");
+    await expect(rows.nth(1)).toContainText("v11def");
+    await expect(rows.nth(1)).toContainText("Current");
+    await expect(
+      rows.nth(1).getByTestId("cloud-app-revision-rolled-back"),
+    ).toHaveText("Rolled back 40 minutes ago");
+    await expect(
+      rows.nth(0).getByTestId("cloud-app-revision-rolled-back"),
+    ).toHaveCount(0);
+    await screenshot(page, "app-platforms-app-rolled-back-revisions-1280");
+  });
+
+  /*
+   * The facts under an app's name used to be squeezed beside its controls
+   * to a word a line - "us-" over "east-1", "Revision 43 ·" over "Deployed
+   * 25 minutes ago ·" - beside the side menu at 1024 and in German at 1280.
+   * Now each fact is whole on its line, a dot shows only between two facts
+   * on one line, and at 1024 the controls move under the name.
+   */
+  test("an app's header keeps its facts whole, and no dot hangs at a line's end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [address, width] of [
+      [CHECKOUT_APP, 1024],
+      [`${CHECKOUT_APP}?lang=de`, 1280],
+      [CHECKOUT_APP, 390],
+      [`${CHECKOUT_APP}?lang=fa`, 390],
+    ] as Array<[string, number]>) {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, address);
+
+      const header: Locator = page.getByTestId("cloud-app-header");
+      const lines: Array<{
+        line: string;
+        fact: string;
+        lines: number;
+        top: number;
+        previousTop: number | null;
+        dotShown: boolean;
+      }> = await header.evaluate(
+        (
+          element: Element,
+        ): Array<{
+          line: string;
+          fact: string;
+          lines: number;
+          top: number;
+          previousTop: number | null;
+          dotShown: boolean;
+        }> => {
+          const result: Array<{
+            line: string;
+            fact: string;
+            lines: number;
+            top: number;
+            previousTop: number | null;
+            dotShown: boolean;
+          }> = [];
+          const rows: Array<Element> = Array.from(
+            element.querySelectorAll(
+              "[data-testid='cloud-app-header-where-facts'] > div, [data-testid='cloud-app-header-revision-facts'] > div",
+            ),
+          );
+          for (const row of rows) {
+            const clip: DOMRect = row.parentElement!.getBoundingClientRect();
+            const facts: Array<Element> = Array.from(row.children);
+            let previousTop: number | null = null;
+            for (const fact of facts) {
+              const text: Element = fact.querySelector("bdi")!;
+              const range: Range = document.createRange();
+              range.selectNodeContents(text);
+              const tops: Set<number> = new Set<number>();
+              for (const rect of Array.from(range.getClientRects())) {
+                if (rect.width > 0) {
+                  tops.add(Math.round(rect.top));
+                }
+              }
+              const top: number = Math.min(...Array.from(tops));
+              const dot: Element | null = fact.querySelector(
+                "[data-testid='cloud-app-fact-separator']",
+              );
+              let dotShown: boolean = false;
+              if (dot) {
+                const box: DOMRect = dot.getBoundingClientRect();
+                const middle: number = box.left + box.width / 2;
+                dotShown = middle > clip.left && middle < clip.right;
+              }
+              result.push({
+                line: row.parentElement!.getAttribute("data-testid") || "",
+                fact: text.textContent || "",
+                lines: tops.size,
+                top,
+                previousTop,
+                dotShown,
+              });
+              previousTop = top;
+            }
+          }
+          return result;
+        },
+      );
+
+      expect(lines.length).toBeGreaterThanOrEqual(5);
+      for (const line of lines) {
+        // Each fact whole: "us-east-1", "Deployed 25 minutes ago".
+        expect(line.lines, `${line.fact} at ${width}`).toBe(1);
+        if (line.previousTop === null) {
+          continue;
+        }
+        // A dot only between two facts on one line; none starting a line.
+        expect(line.dotShown, `the dot before ${line.fact}`).toBe(
+          line.top === line.previousTop,
+        );
+      }
+
+      if (width === 1024) {
+        /*
+         * Beside the side menu the controls give way: the revision, when it
+         * was deployed and what it replaced keep one line.
+         */
+        const revisionTops: Set<number> = new Set(
+          lines
+            .filter((fact: { line: string }): boolean => {
+              return fact.line === "cloud-app-header-revision-facts";
+            })
+            .map((fact: { top: number }): number => {
+              return fact.top;
+            }),
+        );
+        expect(revisionTops.size).toBe(1);
+      }
+      await expectNoSidewaysScroll(page);
+    }
+  });
+
+  /*
+   * The lines an app's deploy and rollback write into its environment's
+   * feed, as the server writes them: each says what replaced what, the
+   * revision as the app's page says it, and links to the app.
+   */
+  test("an environment's feed says each deploy and rollback of its apps, linking to the app", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CHECKOUT}/feed`);
+
+    await expect(
+      page.getByText("replaced", { exact: false }).first(),
+    ).toContainText("Deployed production/checkout-api: revision 43 replaced 42.");
+    await expect(
+      page.getByRole("link", { name: "production/checkout-api" }),
+    ).toHaveAttribute("href", CHECKOUT_APP);
+    await screenshot(page, "app-platforms-environment-feed-1280");
+
+    await page.setViewportSize(PHONE);
+    await open(page, `${APP_PLATFORMS}/${REPORTS_ID}/feed`);
+    await expect(
+      page.getByText("stopped reporting", { exact: false }).first(),
+    ).toContainText(
+      "Rolled back reports to revision v11def: revision v12abc stopped reporting.",
+    );
+    await expect(page.getByRole("link", { name: "reports" })).toHaveAttribute(
+      "href",
+      REPORTS_APP,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-environment-feed-390");
   });
 
   test("a recent deploy opens its app's Revisions", async ({
@@ -1703,7 +1941,7 @@ test.describe("in the reader's language", () => {
       page.getByTestId("cloud-fleet-summary-tile-sublabel"),
     ).toHaveText([
       "2 melden nicht",
-      "2 Umgebungen getrennt",
+      "1 Umgebung getrennt",
       "in den letzten 24 Stunden",
       "in den letzten 15 Min. gesehen",
     ]);

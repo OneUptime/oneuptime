@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import CloudAppRevisionService, {
   CLOUD_APP_REVISION_LIVE_MINUTES,
   MAX_NEW_CLOUD_APP_REVISIONS_PER_HOUR,
@@ -274,7 +275,7 @@ describe("a revision the app never ran", () => {
   });
 
   test("the hourly budget counts the app's revisions first seen in the last hour", async () => {
-    const countBy: jest.SpiedFunction<typeof CloudAppRevisionService.countBy> =
+    const countBy: SpyInstance<typeof CloudAppRevisionService.countBy> =
       jest.spyOn(CloudAppRevisionService, "countBy");
 
     await sighting("43");
@@ -431,7 +432,7 @@ describe("CloudAppRevisionService.deleteUnseenForResource", () => {
     jest
       .spyOn(CloudAppService, "findBy")
       .mockResolvedValue([withCurrent, withoutCurrent] as never);
-    const deleteBy: jest.SpiedFunction<
+    const deleteBy: SpyInstance<
       typeof CloudAppRevisionService.deleteBy
     > = jest
       .spyOn(CloudAppRevisionService, "deleteBy")

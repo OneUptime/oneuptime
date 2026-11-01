@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import CloudAppService, {
   DEFAULT_CLOUD_APP_RETENTION_DAYS,
 } from "../../../Server/Services/CloudAppService";
@@ -92,17 +93,17 @@ afterEach(() => {
 
 describe("CloudAppService.recordApp", () => {
   test("creates an app the environment has not had, with what its identity says, as root", async () => {
-    const findOneBy: jest.SpiedFunction<typeof CloudAppService.findOneBy> = jest
+    const findOneBy: SpyInstance<typeof CloudAppService.findOneBy> = jest
       .spyOn(CloudAppService, "findOneBy")
       .mockResolvedValue(null);
-    const create: jest.SpiedFunction<typeof CloudAppService.create> = jest
+    const create: SpyInstance<typeof CloudAppService.create> = jest
       .spyOn(CloudAppService, "create")
       .mockImplementation((async (args: CreateArgs) => {
         const created: CloudApp = args.data;
         created._id = APP_ID;
         return created;
       }) as never);
-    const update: jest.SpiedFunction<typeof CloudAppService.updateOneById> =
+    const update: SpyInstance<typeof CloudAppService.updateOneById> =
       jest.spyOn(CloudAppService, "updateOneById");
 
     const id: ObjectID = await CloudAppService.recordApp({
@@ -153,9 +154,9 @@ describe("CloudAppService.recordApp", () => {
     jest
       .spyOn(CloudAppService, "findOneBy")
       .mockResolvedValue(appRow(APP_ID) as never);
-    const create: jest.SpiedFunction<typeof CloudAppService.create> =
+    const create: SpyInstance<typeof CloudAppService.create> =
       jest.spyOn(CloudAppService, "create");
-    const update: jest.SpiedFunction<typeof CloudAppService.updateOneById> =
+    const update: SpyInstance<typeof CloudAppService.updateOneById> =
       jest
         .spyOn(CloudAppService, "updateOneById")
         .mockResolvedValue(undefined as never);
@@ -188,7 +189,7 @@ describe("CloudAppService.recordApp", () => {
     jest
       .spyOn(CloudAppService, "findOneBy")
       .mockResolvedValue(appRow(APP_ID) as never);
-    const update: jest.SpiedFunction<typeof CloudAppService.updateOneById> =
+    const update: SpyInstance<typeof CloudAppService.updateOneById> =
       jest
         .spyOn(CloudAppService, "updateOneById")
         .mockResolvedValue(undefined as never);
@@ -235,7 +236,7 @@ describe("CloudAppService.recordApp", () => {
 
   test("any other failure is thrown, as is a refused create with no row to take", async () => {
     jest.spyOn(CloudAppService, "findOneBy").mockResolvedValue(null);
-    const create: jest.SpiedFunction<typeof CloudAppService.create> = jest
+    const create: SpyInstance<typeof CloudAppService.create> = jest
       .spyOn(CloudAppService, "create")
       .mockRejectedValueOnce(new Error("Postgres said no"));
 
@@ -268,7 +269,7 @@ describe("CloudAppService.recordApp", () => {
 
 describe("CloudAppService.findAppId", () => {
   test("is the id of the app with the key in the environment, or null", async () => {
-    const findOneBy: jest.SpiedFunction<typeof CloudAppService.findOneBy> = jest
+    const findOneBy: SpyInstance<typeof CloudAppService.findOneBy> = jest
       .spyOn(CloudAppService, "findOneBy")
       .mockResolvedValueOnce(appRow(APP_ID) as never)
       .mockResolvedValueOnce(null);
@@ -295,7 +296,7 @@ describe("CloudAppService.findAppId", () => {
 describe("CloudAppService.deleteUnseenForResource", () => {
   test("removes, as root, the environment's apps not seen since the cutoff", async () => {
     const cutoff: Date = new Date("2026-10-02T10:00:00.000Z");
-    const deleteBy: jest.SpiedFunction<typeof CloudAppService.deleteBy> = jest
+    const deleteBy: SpyInstance<typeof CloudAppService.deleteBy> = jest
       .spyOn(CloudAppService, "deleteBy")
       .mockResolvedValue(3);
 

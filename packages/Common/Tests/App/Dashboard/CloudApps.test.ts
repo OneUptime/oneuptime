@@ -13,9 +13,12 @@ import {
   MAX_SIGNAL_GROUP_BY_KEYS,
   countLiveInstancesByApp,
   countLiveInstancesByRevision,
+  getCloudAppAttributeNoun,
   getCloudAppAttributes,
   getCloudAppChangeMarkers,
+  getCloudAppDetailAttributeKeys,
   getCloudAppErrorRateTone,
+  getCloudAppGroupLabel,
   getCloudAppGroupNoun,
   getCloudAppRevisionNoun,
   getCloudAppRevisionState,
@@ -25,9 +28,15 @@ import {
   getCloudAppTelemetryDisplayValues,
   getCloudAppTelemetryFilters,
   getShortRevision,
+  isCloudAppGroupAttribute,
+  isCloudAppRolledBack,
   isCloudAppScoped,
   matchCloudAppSignals,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudApps";
+import {
+  Translator,
+  createTranslator,
+} from "../../../UI/Utils/TranslateTemplate";
 import { getCloudResourceAttributeDisplayKeys } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
 
 /*
@@ -118,6 +127,135 @@ describe("what each platform calls things", () => {
     expect(getShortRevision({ revision: "api-", appName: "api" })).toBe("api-");
     expect(getShortRevision({ revision: null, appName: "api" })).toBe("");
     expect(getShortRevision({ revision: " 7 ", appName: null })).toBe("7");
+  });
+});
+
+// The reader's words for the nouns a line puts before a group's name.
+const ENGLISH: Translator = createTranslator(undefined, "en");
+const GERMAN: Translator = createTranslator((key: string): string => {
+  return (
+    { Cluster: "Cluster", Slot: "Bereitstellungsslot" } as Record<
+      string,
+      string
+    >
+  )[key] as string;
+}, "de");
+
+describe("an app's place and its attributes, as a line and its Details name them", () => {
+  test("what keeps two apps of one name apart is a group attribute; the rest name the app", () => {
+    expect(isCloudAppGroupAttribute("aws.ecs.cluster.arn")).toBe(true);
+    expect(isCloudAppGroupAttribute("deployment.environment.name")).toBe(true);
+    expect(isCloudAppGroupAttribute("deployment.environment")).toBe(true);
+    expect(isCloudAppGroupAttribute("aws.ecs.task.family")).toBe(false);
+    expect(isCloudAppGroupAttribute("faas.name")).toBe(false);
+    expect(isCloudAppGroupAttribute("service.name")).toBe(false);
+  });
+
+  test("each attribute is named as the app's telemetry chips name it", () => {
+    expect(
+      getCloudAppAttributeNoun({
+        key: "aws.ecs.task.family",
+        cloudPlatform: "aws_ecs",
+      }),
+    ).toBe("App");
+    expect(
+      getCloudAppAttributeNoun({
+        key: "aws.ecs.cluster.arn",
+        cloudPlatform: "aws_ecs",
+      }),
+    ).toBe("Cluster");
+    expect(
+      getCloudAppAttributeNoun({
+        key: "deployment.environment.name",
+        cloudPlatform: "azure_app_service",
+      }),
+    ).toBe("Slot");
+    expect(
+      getCloudAppAttributeNoun({
+        key: "deployment.environment.name",
+        cloudPlatform: "aws_elastic_beanstalk",
+      }),
+    ).toBe("Environment");
+    // A platform that keeps no two apps apart has no noun of its own.
+    expect(
+      getCloudAppAttributeNoun({
+        key: "deployment.environment",
+        cloudPlatform: "gcp_cloud_run",
+      }),
+    ).toBe("Group");
+  });
+
+  test("Details lists the attributes that name the app before the one that keeps it apart", () => {
+    expect(
+      getCloudAppDetailAttributeKeys({
+        telemetryAttributes: {
+          "aws.ecs.cluster.arn": CLUSTER_ARN,
+          "aws.ecs.task.family": "checkout",
+        },
+      }),
+    ).toEqual(["aws.ecs.task.family", "aws.ecs.cluster.arn"]);
+    expect(
+      getCloudAppDetailAttributeKeys({
+        telemetryAttributes: {
+          "service.name": "web",
+          "deployment.environment.name": "staging",
+        },
+      }),
+    ).toEqual(["service.name", "deployment.environment.name"]);
+    // Empty or unset values are not attributes.
+    expect(
+      getCloudAppDetailAttributeKeys({
+        telemetryAttributes: { "faas.name": "api", "service.name": "  " },
+      }),
+    ).toEqual(["faas.name"]);
+    expect(getCloudAppDetailAttributeKeys(null)).toEqual([]);
+  });
+
+  test("the group reads 'cluster production', its noun cased as each language cases it, and is empty where there is none", () => {
+    expect(
+      getCloudAppGroupLabel({
+        groupName: "production",
+        cloudPlatform: "aws_ecs",
+        translator: ENGLISH,
+      }),
+    ).toBe("cluster production");
+    // A German noun keeps its capital in the middle of a line.
+    expect(
+      getCloudAppGroupLabel({
+        groupName: "production",
+        cloudPlatform: "aws_ecs",
+        translator: GERMAN,
+      }),
+    ).toBe("Cluster production");
+    expect(
+      getCloudAppGroupLabel({
+        groupName: " blue ",
+        cloudPlatform: "azure_app_service",
+        translator: GERMAN,
+      }),
+    ).toBe("Bereitstellungsslot blue");
+    expect(
+      getCloudAppGroupLabel({
+        groupName: "blue",
+        cloudPlatform: "azure_app_service",
+        translator: ENGLISH,
+      }),
+    ).toBe("slot blue");
+    // No group, or a platform whose app names are unique: nothing to say.
+    expect(
+      getCloudAppGroupLabel({
+        groupName: "",
+        cloudPlatform: "aws_ecs",
+        translator: ENGLISH,
+      }),
+    ).toBe("");
+    expect(
+      getCloudAppGroupLabel({
+        groupName: "production",
+        cloudPlatform: "gcp_cloud_run",
+        translator: ENGLISH,
+      }),
+    ).toBe("");
   });
 });
 
@@ -561,6 +699,99 @@ describe("the deploys and rollbacks an app's charts mark", () => {
         end: END,
       }),
     ).toHaveLength(1);
+  });
+
+  /*
+   * The header and the Revisions row of the revision an app went back to
+   * say "Rolled back 40 minutes ago", not "Deployed": over all time, not a
+   * chart's window - the rollback may be a week old.
+   */
+  test("whether the revision an app runs is one it went back to, over all time", () => {
+    const history: Array<{
+      revision: string;
+      previousRevision: string | null;
+      firstSeenAt: Date;
+    }> = [
+      { revision: "43", previousRevision: "42", firstSeenAt: minutesAgo(40) },
+      { revision: "42", previousRevision: "41", firstSeenAt: minutesAgo(600) },
+      { revision: "41", previousRevision: null, firstSeenAt: minutesAgo(900) },
+    ];
+
+    // Back on 42 after 43 stopped: a rollback, however long ago.
+    expect(
+      isCloudAppRolledBack({
+        revisions: history,
+        currentRevision: "42",
+        currentRevisionSince: minutesAgo(10),
+        previousRevision: "43",
+      }),
+    ).toBe(true);
+    // A week-old rollback is still the way the app came to run 42.
+    const DAY: number = 24 * 60;
+    expect(
+      isCloudAppRolledBack({
+        revisions: [
+          {
+            revision: "43",
+            previousRevision: "42",
+            firstSeenAt: minutesAgo(8 * DAY),
+          },
+          {
+            revision: "42",
+            previousRevision: null,
+            firstSeenAt: minutesAgo(10 * DAY),
+          },
+        ],
+        currentRevision: "42",
+        currentRevisionSince: minutesAgo(7 * DAY),
+        previousRevision: "43",
+      }),
+    ).toBe(true);
+
+    // 43 deployed and still running: a deploy.
+    expect(
+      isCloudAppRolledBack({
+        revisions: history,
+        currentRevision: "43",
+        currentRevisionSince: minutesAgo(40),
+        previousRevision: "42",
+      }),
+    ).toBe(false);
+
+    // Taking the newer 43 back again is a roll forward, not a rollback.
+    expect(
+      isCloudAppRolledBack({
+        revisions: history,
+        currentRevision: "43",
+        currentRevisionSince: minutesAgo(5),
+        previousRevision: "42",
+      }),
+    ).toBe(false);
+
+    // The first revision seen, no revision, or revisions not read: no.
+    expect(
+      isCloudAppRolledBack({
+        revisions: [history[2]!],
+        currentRevision: "41",
+        currentRevisionSince: minutesAgo(900),
+      }),
+    ).toBe(false);
+    expect(
+      isCloudAppRolledBack({
+        revisions: history,
+        currentRevision: null,
+        currentRevisionSince: minutesAgo(10),
+        previousRevision: "43",
+      }),
+    ).toBe(false);
+    expect(
+      isCloudAppRolledBack({
+        revisions: [],
+        currentRevision: "42",
+        currentRevisionSince: minutesAgo(10),
+        previousRevision: "43",
+      }),
+    ).toBe(false);
   });
 
   test("a change outside the window is not marked", () => {

@@ -1,4 +1,5 @@
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -89,6 +90,37 @@ export const RUNNING_NOW_SPLIT: string = translationKey(
 export const APP_DETAILS_DESCRIPTION: string = translationKey(
   "The resource attributes this app's telemetry is matched on, and the revision it runs.",
 );
+
+/*
+ * An attribute's key, free to break after each of its dots: in the Details
+ * card's label column at a tablet's width "(aws.ecs.task.family)" broke at
+ * whatever letter filled the line ("aws.ecs.task.fam" over "ily"). A <wbr>
+ * adds no character, so a copy reads the key as written.
+ */
+export const AttributeKey: FunctionComponent<{ name: string }> = (props: {
+  name: string;
+}): ReactElement => {
+  const parts: Array<string> = props.name.split(".");
+
+  return (
+    <>
+      {parts.map((part: string, index: number): ReactElement => {
+        return (
+          <Fragment key={index}>
+            {part}
+            {index < parts.length - 1 ? (
+              <>
+                .<wbr />
+              </>
+            ) : (
+              <></>
+            )}
+          </Fragment>
+        );
+      })}
+    </>
+  );
+};
 
 // One row of the Details card.
 interface AppDetailRow {
@@ -538,7 +570,9 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
                     {row.attribute ? (
                       <>
                         {" "}
-                        <bdi>({row.attribute})</bdi>
+                        <bdi>
+                          (<AttributeKey name={row.attribute} />)
+                        </bdi>
                       </>
                     ) : (
                       <></>

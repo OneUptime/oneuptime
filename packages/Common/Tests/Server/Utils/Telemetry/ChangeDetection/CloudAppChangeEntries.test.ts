@@ -217,6 +217,86 @@ describe("the feed line", () => {
     );
   });
 
+  /*
+   * Cloud Run and Container Apps name a revision after its service: the
+   * line names the app already, so it says the revision as the app's page
+   * does ("00042-xyz"), and the change event's attributes keep it whole.
+   */
+  test("a revision named after its service is said without the service's name, and kept whole in the attributes", () => {
+    const cloudRun: CloudAppChangeSubject = {
+      ...SUBJECT,
+      appName: "api",
+      groupName: null,
+      cloudPlatform: "gcp_cloud_run",
+      cloudProvider: "gcp",
+      cloudAccountId: "acme-prod",
+      cloudRegion: "europe-west1",
+    };
+    const deploy: CloudAppRevisionChange = {
+      ...DEPLOY,
+      revision: "api-00042-xyz",
+      previousRevision: "api-00041-abc",
+    };
+
+    expect(
+      buildCloudAppChangeFeedMarkdown({
+        subject: cloudRun,
+        change: deploy,
+        appLink: LINK,
+      }).toString(),
+    ).toBe(
+      `🚀 Deployed [api](${LINK}): revision **00042-xyz** replaced **00041-abc**.`,
+    );
+
+    const entry: ParsedChangeEventEntry = buildCloudAppChangeEntry({
+      subject: cloudRun,
+      change: deploy,
+    });
+    expect(entry.title).toBe("Deployed api revision 00042-xyz");
+    expect(entry.description).toContain(
+      "started running revision 00042-xyz; it ran 00041-abc before.",
+    );
+    expect(entry.attributes[ChangeEventAttribute.AppPlatformRevision]).toBe(
+      "api-00042-xyz",
+    );
+    expect(entry.attributes[ChangeEventAttribute.PreviousRevision]).toBe(
+      "api-00041-abc",
+    );
+
+    // A Container Apps rollback: "reports--v11def" said as "v11def".
+    const containerApps: CloudAppChangeSubject = {
+      ...cloudRun,
+      appName: "reports",
+      cloudPlatform: "azure_container_apps",
+    };
+    const rollback: CloudAppRevisionChange = {
+      ...ROLLBACK,
+      revision: "reports--v11def",
+      previousRevision: "reports--v12abc",
+    };
+    expect(
+      buildCloudAppChangeFeedMarkdown({
+        subject: containerApps,
+        change: rollback,
+        appLink: LINK,
+      }).toString(),
+    ).toBe(
+      `↩️ Rolled back [reports](${LINK}) to revision **v11def**: revision **v12abc** stopped reporting.`,
+    );
+    expect(
+      buildCloudAppChangeEntry({ subject: containerApps, change: rollback })
+        .title,
+    ).toBe("Rolled back reports to revision v11def");
+
+    // A revision that is not named after its app is said as it is.
+    expect(
+      buildCloudAppChangeEntry({
+        subject: cloudRun,
+        change: { ...deploy, revision: "apix-7", previousRevision: "api" },
+      }).title,
+    ).toBe("Deployed api revision apix-7");
+  });
+
   test("a name or revision written like markdown stays text", () => {
     const line: string = buildCloudAppChangeFeedMarkdown({
       subject: { ...SUBJECT, groupName: null, appName: "a*b](x)" },

@@ -62,10 +62,17 @@ import EnvironmentAppsCard, {
   ENVIRONMENT_APPS_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/EnvironmentAppsCard";
 import RecentDeploysCard from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/RecentDeploysCard";
-import CloudAppHeader from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/CloudAppHeader";
+import CloudAppHeader, {
+  CLOUD_APP_HEADER_TEXT_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/CloudAppHeader";
+import { CloudAppRevisionMarkerSource } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudApps";
 import { getEnvironmentFeedKind } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Feed";
 
 const MINUTE_MS: number = 60 * 1000;
+// An app's fields as a test writes them: one it leaves unset reads undefined.
+type CloudAppFields = { [K in keyof CloudApp]?: CloudApp[K] | undefined };
+// A fact of a line of facts (CloudAppFacts), not the dot before it.
+const FACT_TEST_ID: RegExp = /^cloud-app-fact-(?!separator)/;
 const ENVIRONMENT_ID: string = "74000000-0000-4000-8000-000000000001";
 const ARCHIVED_ENVIRONMENT_ID: string = "74000000-0000-4000-8000-000000000002";
 const APP_PLATFORMS: string = `/dashboard/${PROJECT_ID}/app-platforms`;
@@ -440,7 +447,10 @@ describe("Recent deploys", () => {
     // A Cloud Run revision is shown without its service's name.
     expect(rows[0]).toHaveTextContent("00041-abc → 00042-xyz");
     expect(rows[1]).toHaveTextContent("42 → 43");
-    expect(rows[1]).toHaveTextContent("AWS ECS · production");
+    // Where it runs as All Apps says it: the cluster named a cluster.
+    expect(rows[1]).toHaveTextContent("AWS ECS · cluster production");
+    expect(rows[0]).toHaveTextContent("GCP Cloud Run");
+    expect(rows[0]).not.toHaveTextContent("·");
     expect(within(rows[1]!).getByRole("link")).toHaveAttribute(
       "href",
       `${APP_PLATFORMS}/${ENVIRONMENT_ID}/apps/${appId(3)}?tab=Revisions`,
@@ -482,9 +492,10 @@ describe("Recent deploys", () => {
 
 describe("an app's header", () => {
   function renderHeader(data: {
-    app: Partial<CloudApp>;
+    app: CloudAppFields;
     liveInstances?: number;
     withService?: boolean;
+    revisions?: Array<CloudAppRevisionMarkerSource>;
   }): void {
     const app: CloudApp = Object.assign(new CloudApp(), {
       _id: appId(3),
@@ -500,6 +511,7 @@ describe("an app's header", () => {
           app={app}
           environment={ENVIRONMENT}
           liveInstances={data.liveInstances}
+          revisions={data.revisions}
           environmentRoute={new Route(`${APP_PLATFORMS}/${ENVIRONMENT_ID}`)}
           serviceRoute={
             data.withService
@@ -565,6 +577,118 @@ describe("an app's header", () => {
     );
     expect(screen.getByTestId("cloud-app-header")).toHaveTextContent(
       "registry/checkout:1.4.2",
+    );
+  });
+
+  /*
+   * The facts under the name are kept whole between their dots, and no dot
+   * hangs at a line's end: beside the side menu at 1024, and in German at
+   * 1280, the header read "Revision 43 ·" over "Deployed 25 minutes ago ·"
+   * and broke us-east-1 at its hyphen (#5511's UI review).
+   */
+  test("its facts are kept whole, a dot of text between two, and its words ask for room beside the controls", () => {
+    renderHeader({
+      app: {
+        lastSeenAt: minutesAgo(1),
+        currentRevision: "43",
+        currentRevisionSince: minutesAgo(25),
+        previousRevision: "42",
+      },
+      liveInstances: 3,
+    });
+
+    const where: HTMLElement = screen.getByTestId("cloud-app-header-where");
+    const whereFacts: Array<HTMLElement> =
+      within(where).getAllByTestId(FACT_TEST_ID);
+    expect(
+      whereFacts.map((fact: HTMLElement): string | null => {
+        return fact.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "cloud-app-fact-platform",
+      "cloud-app-fact-region",
+      "cloud-app-fact-group",
+    ]);
+    // One dot between two facts, none before the first.
+    expect(within(where).getAllByTestId("cloud-app-fact-separator")).toHaveLength(
+      2,
+    );
+    expect(
+      within(whereFacts[0]!).queryByTestId("cloud-app-fact-separator"),
+    ).toBeNull();
+    // The dots are text: copied or read aloud, the line is whole.
+    expect(where.textContent).toBe(
+      "AWS ECS / Fargate · us-east-1 · cluster production",
+    );
+
+    const revision: HTMLElement = screen.getByTestId(
+      "cloud-app-header-revision",
+    );
+    expect(revision.textContent).toBe(
+      "Revision 43 · Deployed 25 minutes ago · Replaced 42",
+    );
+    expect(revision).toHaveAttribute("data-change", "deployed");
+    // What it replaced is quieter, but readable: never gray-400 on white.
+    expect(within(revision).getByTestId("cloud-app-fact-replaced")).toHaveClass(
+      "text-gray-500",
+    );
+
+    // The words beside the logo ask for 20rem, so the controls give way.
+    expect(CLOUD_APP_HEADER_TEXT_CLASS_NAME).toContain("md:min-w-[20rem]");
+    expect(
+      screen.getByTestId("cloud-app-name").parentElement!.parentElement,
+    ).toHaveClass("md:min-w-[20rem]");
+  });
+
+  /*
+   * A revision the app went back to was not deployed then: the header said
+   * "Deployed 10 minutes ago" for a rollback.
+   */
+  test("a rolled-back app says when it rolled back, in amber, not when it was deployed", () => {
+    renderHeader({
+      app: {
+        lastSeenAt: minutesAgo(1),
+        currentRevision: "42",
+        currentRevisionSince: minutesAgo(10),
+        previousRevision: "43",
+      },
+      liveInstances: 2,
+      revisions: [
+        { revision: "43", previousRevision: "42", firstSeenAt: minutesAgo(40) },
+        {
+          revision: "42",
+          previousRevision: "41",
+          firstSeenAt: minutesAgo(3 * 24 * 60),
+        },
+      ],
+    });
+
+    const revision: HTMLElement = screen.getByTestId(
+      "cloud-app-header-revision",
+    );
+    expect(revision.textContent).toBe(
+      "Revision 42 · Rolled back 10 minutes ago · Replaced 43",
+    );
+    expect(revision).toHaveAttribute("data-change", "rolled-back");
+    expect(
+      within(revision).getByTestId("cloud-app-fact-rolled-back"),
+    ).toHaveClass("text-amber-700");
+    expect(revision).not.toHaveTextContent("Deployed");
+  });
+
+  test("without its revisions read, a newer revision is said deployed", () => {
+    renderHeader({
+      app: {
+        lastSeenAt: minutesAgo(1),
+        currentRevision: "42",
+        currentRevisionSince: minutesAgo(10),
+        previousRevision: "43",
+      },
+    });
+
+    expect(screen.getByTestId("cloud-app-header-revision")).toHaveAttribute(
+      "data-change",
+      "deployed",
     );
   });
 

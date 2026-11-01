@@ -144,6 +144,82 @@ describe("summarizeCloudFleet", () => {
     });
   });
 
+  /*
+   * An environment that has never sent anything is waiting for its first
+   * data - grey, "Waiting", on its platform's card and in All Environments
+   * - so the strip does not call it disconnected (#5511's UI review: "2
+   * environments disconnected" over one disconnected and one waiting).
+   */
+  test("an environment that never reported waits; it is not counted disconnected", () => {
+    const oneOfEach: CloudFleetSummaryTile = tileByTitle(
+      summarizeCloudFleet(
+        fleet({
+          total: 6,
+          connected: 4,
+          waiting: 1,
+          byProvider: { aws: 2, gcp: 2, azure: 2 },
+        }),
+      ),
+      "Environments",
+    );
+
+    // The quiet one first; the waiting one is not named disconnected.
+    expect(oneOfEach.sublabel).toBe("1 environment disconnected");
+
+    const onlyWaiting: CloudFleetSummaryTile = tileByTitle(
+      summarizeCloudFleet(
+        fleet({
+          total: 3,
+          connected: 1,
+          waiting: 2,
+          byProvider: { aws: 3 },
+        }),
+      ),
+      "Environments",
+    );
+
+    expect(onlyWaiting.sublabel).toBe("2 environments waiting for first data");
+    expect(onlyWaiting.sublabelParts).toBeUndefined();
+    expect(
+      tileByTitle(
+        summarizeCloudFleet(
+          fleet({ total: 1, connected: 0, waiting: 1, byProvider: { gcp: 1 } }),
+        ),
+        "Environments",
+      ).sublabel,
+    ).toBe("1 environment waiting for first data");
+  });
+
+  test("never counts more environments waiting than are not connected", () => {
+    // Counted by separate reads: a connected row may lack its lastSeenAt.
+    expect(
+      tileByTitle(
+        summarizeCloudFleet(
+          fleet({
+            total: 2,
+            connected: 2,
+            waiting: 2,
+            byProvider: { azure: 2 },
+          }),
+        ),
+        "Environments",
+      ).sublabel,
+    ).toBe("2 Azure");
+    expect(
+      tileByTitle(
+        summarizeCloudFleet(
+          fleet({
+            total: 3,
+            connected: 1,
+            waiting: -4,
+            byProvider: { azure: 3 },
+          }),
+        ),
+        "Environments",
+      ).sublabel,
+    ).toBe("2 environments disconnected");
+  });
+
   test("a connected fleet breaks the environments down by provider, busiest first", () => {
     const tiles: Array<CloudFleetSummaryTile> = summarizeCloudFleet(
       fleet({

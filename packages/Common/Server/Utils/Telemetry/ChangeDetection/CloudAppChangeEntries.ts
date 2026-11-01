@@ -11,6 +11,7 @@ import {
   ChangeEventType,
 } from "../../../../Utils/Telemetry/ChangeEventFields";
 import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
+import { getShortCloudAppRevision } from "../../../../Utils/Telemetry/CloudAppRevisionName";
 import type { ParsedChangeEventEntry } from "../ChangeEventRow";
 import { isTrackableVersion } from "./TelemetryChangeSignals";
 
@@ -108,6 +109,28 @@ function describeWhere(subject: CloudAppChangeSubject): string {
   return places.length > 0 ? `${platform} (${places.join(", ")})` : platform;
 }
 
+/*
+ * The revisions a line says, as the app's page shows them: a Cloud Run or
+ * Container Apps revision without its service's name, which the line names
+ * already ("Deployed api revision 00042-xyz"). The attributes keep them
+ * whole.
+ */
+function getShortRevisions(data: {
+  subject: CloudAppChangeSubject;
+  change: CloudAppRevisionChange;
+}): { revision: string; previousRevision: string } {
+  return {
+    revision: getShortCloudAppRevision({
+      revision: data.change.revision,
+      appName: data.subject.appName,
+    }),
+    previousRevision: getShortCloudAppRevision({
+      revision: data.change.previousRevision,
+      appName: data.subject.appName,
+    }),
+  };
+}
+
 // The change event a revision change is recorded as.
 export function buildCloudAppChangeEntry(data: {
   subject: CloudAppChangeSubject;
@@ -117,6 +140,8 @@ export function buildCloudAppChangeEntry(data: {
   const app: string = getCloudAppDisplayName(subject);
   const where: string = describeWhere(subject);
   const on: string = where ? ` on ${where}` : "";
+  const said: { revision: string; previousRevision: string } =
+    getShortRevisions(data);
 
   const attributes: Dictionary<string> = {
     [ChangeEventAttribute.Source]: ChangeEventSource.AppPlatform,
@@ -152,8 +177,8 @@ export function buildCloudAppChangeEntry(data: {
     return {
       time: change.time,
       eventType: ChangeEventType.Rollback,
-      title: `Rolled back ${app} to revision ${change.revision}`,
-      description: `${app}${on} went back to revision ${change.revision}: revision ${change.previousRevision} stopped reporting while ${change.revision} kept running. OneUptime recorded this from the app's telemetry.`,
+      title: `Rolled back ${app} to revision ${said.revision}`,
+      description: `${app}${on} went back to revision ${said.revision}: revision ${said.previousRevision} stopped reporting while ${said.revision} kept running. OneUptime recorded this from the app's telemetry.`,
       attributes,
     };
   }
@@ -161,8 +186,8 @@ export function buildCloudAppChangeEntry(data: {
   return {
     time: change.time,
     eventType: ChangeEventType.Deployment,
-    title: `Deployed ${app} revision ${change.revision}`,
-    description: `${app}${on} started running revision ${change.revision}; it ran ${change.previousRevision} before. OneUptime recorded this from the app's telemetry.`,
+    title: `Deployed ${app} revision ${said.revision}`,
+    description: `${app}${on} started running revision ${said.revision}; it ran ${said.previousRevision} before. OneUptime recorded this from the app's telemetry.`,
     attributes,
   };
 }
@@ -177,10 +202,12 @@ export function buildCloudAppChangeFeedMarkdown(data: {
   appLink: string;
 }): MarkdownText {
   const app: string = getCloudAppDisplayName(data.subject);
+  const said: { revision: string; previousRevision: string } =
+    getShortRevisions(data);
 
   if (data.change.kind === CloudAppRevisionChangeKind.RolledBack) {
-    return mdText`↩️ Rolled back [${app}](${data.appLink}) to revision **${data.change.revision}**: revision **${data.change.previousRevision}** stopped reporting.`;
+    return mdText`↩️ Rolled back [${app}](${data.appLink}) to revision **${said.revision}**: revision **${said.previousRevision}** stopped reporting.`;
   }
 
-  return mdText`🚀 Deployed [${app}](${data.appLink}): revision **${data.change.revision}** replaced **${data.change.previousRevision}**.`;
+  return mdText`🚀 Deployed [${app}](${data.appLink}): revision **${said.revision}** replaced **${said.previousRevision}**.`;
 }

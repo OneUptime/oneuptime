@@ -1,8 +1,10 @@
 import { ManagedCloudPlatform } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
 import { shortenEcsClusterArn } from "Common/Utils/Telemetry/CloudInstanceIdentity";
+import { getShortCloudAppRevision } from "Common/Utils/Telemetry/CloudAppRevisionName";
 import {
   Translator,
+  translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -75,14 +77,16 @@ export function getCloudAppGroupNoun(
 
 /*
  * "cluster production": what keeps an app apart from another of its name,
- * as a line about it says it - its platform's noun (lower case, as it reads
- * in the middle of a line) and the name. Empty when the app has none, or
- * its platform keeps no two apps of one name apart.
+ * as a line about it says it - its platform's noun, cased as the middle of
+ * a line is in the reader's language ("cluster" in English, "Cluster" in
+ * German, whose nouns keep their capital - it was lower-cased in every
+ * language), and the name. Empty when the app has none, or its platform
+ * keeps no two apps of one name apart.
  */
 export function getCloudAppGroupLabel(data: {
   groupName: string | null | undefined;
   cloudPlatform: string | null | undefined;
-  translator: Pick<Translator, "translateText" | "translateTemplate">;
+  translator: Pick<Translator, "translateTemplate">;
 }): string {
   const name: string = (data.groupName || "").trim();
   const noun: string | null = getCloudAppGroupNoun(data.cloudPlatform);
@@ -92,7 +96,7 @@ export function getCloudAppGroupLabel(data: {
   }
 
   return data.translator.translateTemplate("{{noun}} {{name}}", {
-    noun: (data.translator.translateText(noun) || noun).toLowerCase(),
+    noun: translatableTerm(noun, { inSentence: true }),
     name,
   });
 }
@@ -568,28 +572,14 @@ export function getCloudAppRevisionState(data: {
  * A revision as a row shows it. Cloud Run and Container Apps name a
  * revision after its service ("checkout-00042-xyz", "checkout--abc123"), so
  * a row under the app leaves the app's name off the front; anything else is
- * shown as it is.
+ * shown as it is - as the server's feed lines and change titles say it
+ * (Common/Utils/Telemetry/CloudAppRevisionName).
  */
 export function getShortRevision(data: {
   revision: string | null | undefined;
   appName: string | null | undefined;
 }): string {
-  const revision: string = (data.revision || "").trim();
-  const appName: string = (data.appName || "").trim();
-
-  if (!revision || !appName) {
-    return revision;
-  }
-
-  for (const separator of ["--", "-"]) {
-    const prefix: string = `${appName}${separator}`;
-
-    if (revision.startsWith(prefix) && revision.length > prefix.length) {
-      return revision.slice(prefix.length);
-    }
-  }
-
-  return revision;
+  return getShortCloudAppRevision(data);
 }
 
 // A deploy or a rollback, as an app's charts mark it.

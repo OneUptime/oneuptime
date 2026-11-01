@@ -43,7 +43,9 @@ minutes ago from `reports--v12abc`, deployed two days ago, to the
 errors and p95 over the last hour, and `checkout-api`'s per revision, come
 back from `/telemetry/traces/analytics` (`APP_SIGNALS`, `REVISION_SIGNALS`).
 The service `checkout-api`'s telemetry is under is in Services, so its app page
-offers **Set up alerts**.
+offers **Set up alerts**. `checkout`'s feed holds the line `checkout-api`'s
+deploy of 43 wrote, and `reports`' environment's the line of its rollback
+(`CloudResourceFeed`, as `CloudAppChangeRecorder` writes them).
 
 One row is a resource of a connected Azure account, `vm-prod-01`: Cloud's,
 never listed in App Platforms. Its App Platforms address forwards to Cloud.

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import CloudResourceFeedService from "../../../../../Server/Services/CloudResourceFeedService";
 import DatabaseConfig from "../../../../../Server/DatabaseConfig";
@@ -67,10 +68,10 @@ interface Submission {
 }
 
 let submissions: Array<Submission>;
-let feedItem: jest.SpiedFunction<
+let feedItem: SpyInstance<
   typeof CloudResourceFeedService.createCloudResourceFeedItem
 >;
-let warn: jest.SpiedFunction<typeof logger.warn>;
+let warn: SpyInstance<typeof logger.warn>;
 
 async function settle(): Promise<void> {
   for (let i: number = 0; i < 5; i++) {

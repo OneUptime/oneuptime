@@ -69,6 +69,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -77,6 +78,8 @@ const LATIN_DIGIT: RegExp = /[0-9]/;
 interface FleetCounts {
   total: number;
   connected: number;
+  // Environments that never reported (no lastSeenAt).
+  waiting?: number | undefined;
   byProvider: Record<string, number>;
   liveInstances: number;
   apps?: number | undefined;
@@ -112,6 +115,9 @@ function fleet(
     }
     if (request.query["otelCollectorStatus"] === "connected") {
       return Promise.resolve(counts.connected);
+    }
+    if (request.query["lastSeenAt"] instanceof IsNull) {
+      return Promise.resolve(counts.waiting || 0);
     }
     if (typeof request.query["cloudProvider"] === "string") {
       return Promise.resolve(
@@ -232,6 +238,87 @@ describe("CloudFleetSummary", () => {
     expect(screen.getByText("all running")).toBeInTheDocument();
   });
 
+  /*
+   * An environment that has never sent anything is new, not broken: grey
+   * and "Waiting" on its platform's card, so the strip does not count it
+   * disconnected either. It said "2 environments disconnected" over a card
+   * that showed one disconnected and one waiting (#5511's UI review).
+   */
+  test("counts an environment that never reported as waiting, not disconnected", async () => {
+    mockCountResponse = fleet({
+      total: 6,
+      connected: 4,
+      waiting: 1,
+      byProvider: { aws: 2, gcp: 2, azure: 2 },
+      liveInstances: 7,
+      apps: 6,
+      runningApps: 4,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cloud-fleet-summary")).toBeInTheDocument();
+    });
+
+    // The quiet one comes first; the waiting one is not called disconnected.
+    expect(screen.getByText("1 environment disconnected")).toBeInTheDocument();
+    expect(screen.queryByText(/waiting/)).not.toBeInTheDocument();
+
+    // The ones never heard from: environments with no lastSeenAt.
+    const waitingCount: CountRequest = countsOf("CloudResource").find(
+      (request: CountRequest): boolean => {
+        return request.query["lastSeenAt"] instanceof IsNull;
+      },
+    )!;
+    expect(waitingCount.query["isArchived"]).toBe(false);
+    expect(waitingCount.query["cloudResourceKind"]).toBe("environment");
+  });
+
+  test("says how many wait for their first data when none went quiet", async () => {
+    mockCountResponse = fleet({
+      total: 3,
+      connected: 1,
+      waiting: 2,
+      byProvider: { aws: 3 },
+      liveInstances: 1,
+      apps: 1,
+      runningApps: 1,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("2 environments waiting for first data"),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/disconnected/)).not.toBeInTheDocument();
+  });
+
+  test("never counts more waiting environments than are not connected", async () => {
+    // A connected row whose lastSeenAt is not written yet is not waiting.
+    mockCountResponse = fleet({
+      total: 2,
+      connected: 2,
+      waiting: 1,
+      byProvider: { gcp: 2 },
+      liveInstances: 2,
+      apps: 2,
+      runningApps: 2,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getByText("2 Google Cloud")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/waiting/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/disconnected/)).not.toBeInTheDocument();
+  });
+
   test("counts the environments unarchived, and their apps, running apps and deploys only", async () => {
     mockCountResponse = fleet({
       total: 2,
@@ -249,9 +336,9 @@ describe("CloudFleetSummary", () => {
       expect(screen.getByTestId("cloud-fleet-summary")).toBeInTheDocument();
     });
 
-    // total, connected, and one per provider (aws, gcp, azure).
+    // total, connected, never reported, and one per provider (aws, gcp, azure).
     const environmentCounts: Array<CountRequest> = countsOf("CloudResource");
-    expect(environmentCounts).toHaveLength(5);
+    expect(environmentCounts).toHaveLength(6);
     for (const request of environmentCounts) {
       expect(request.query["isArchived"]).toBe(false);
       expect(request.query["cloudResourceKind"]).toBe("environment");
@@ -324,7 +411,7 @@ describe("CloudFleetSummary", () => {
       24 * 60 + 1,
     );
 
-    expect(mockCountCalls.length).toBeLessThanOrEqual(9);
+    expect(mockCountCalls.length).toBeLessThanOrEqual(10);
     expect(screen.getByText("2 not reporting")).toBeInTheDocument();
   });
 
