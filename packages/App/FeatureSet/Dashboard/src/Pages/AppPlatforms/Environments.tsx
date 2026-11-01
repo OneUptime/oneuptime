@@ -49,7 +49,6 @@ import CLOUD_ENVIRONMENT_SHOWCASE from "../../Components/Cloud/CloudEnvironmentS
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
-import CloudFleetSummary from "../../Components/Cloud/CloudFleetSummary";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -75,7 +74,12 @@ const PROVIDER_DROPDOWN_OPTIONS: Array<DropdownOption> = Object.values(
   return { label: CLOUD_PROVIDER_LABELS[provider], value: provider };
 });
 
-const CloudResources: FunctionComponent<
+/*
+ * App Platforms > All Environments: one row per platform, account and
+ * region an app reported from. How they are doing together - how many are
+ * reporting, how many instances are live - is on the product's Overview.
+ */
+const AppPlatformEnvironments: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -155,10 +159,6 @@ const CloudResources: FunctionComponent<
    */
   return (
     <Fragment>
-      {/* Counted again for the first environment and for each the Add dialog connects. */}
-      <CloudFleetSummary
-        refreshToken={(firstRecordWatch.count || 0) + connectedCount}
-      />
       <ModelTable<CloudResource>
         modelType={CloudResource}
         // Archive in each row's ⋯ menu, as in Bulk Actions.
@@ -284,7 +284,7 @@ const CloudResources: FunctionComponent<
               const account: string = (item.cloudAccountId as string) || "";
               const name: string = (item.name as string) || "";
               const route: Route = RouteUtil.populateRouteParams(
-                RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route,
+                RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW] as Route,
                 {
                   modelId: new ObjectID(item._id as string),
                 },
@@ -413,7 +413,7 @@ const CloudResources: FunctionComponent<
           return Promise.resolve(
             new Route(
               RouteUtil.populateRouteParams(
-                RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route,
+                RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW] as Route,
                 {
                   modelId: item._id,
                 },
@@ -454,4 +454,4 @@ const CloudResources: FunctionComponent<
   );
 };
 
-export default CloudResources;
+export default AppPlatformEnvironments;

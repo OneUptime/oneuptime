@@ -7,14 +7,11 @@ import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { useCloudResourceViewContext } from "./CloudResourceViewContext";
-import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 
 const CloudResourceDelete: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
-  const { cloudResourceKind } = useCloudResourceViewContext();
 
   return (
     <Fragment>
@@ -22,17 +19,10 @@ const CloudResourceDelete: FunctionComponent<
         modelType={CloudResource}
         modelId={modelId}
         onDeleteSuccess={() => {
-          // Back to the list the row was on.
+          // Back to the list the resource was on.
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[
-                isCloudResourceKindResource(cloudResourceKind)
-                  ? PageMap.CLOUD_MONITORED_RESOURCES
-                  : PageMap.CLOUD_RESOURCES
-              ] as Route,
-              {
-                modelId,
-              },
+              RouteMap[PageMap.CLOUD_MONITORED_RESOURCES] as Route,
             ),
           );
         }}

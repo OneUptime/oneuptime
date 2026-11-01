@@ -2818,31 +2818,68 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
       }),
     ],
   },
+  /*
+   * The apps on managed app and container platforms: what Cloud's "All
+   * Environments" was before the two became products of their own. The
+   * platforms' names find it.
+   */
+  {
+    id: "app-platforms",
+    title: "App Platforms",
+    productPage: PageMap.APP_PLATFORMS_OVERVIEW,
+    icon: IconProp.RocketLaunch,
+    iconColor: "blue",
+    sections: [
+      {
+        title: "App Platforms",
+        pages: [
+          {
+            page: PageMap.APP_PLATFORMS_OVERVIEW,
+            title: "Overview",
+            icon: IconProp.ChartBar,
+            keywords: ["paas", "platform as a service", "app platforms"],
+          },
+          {
+            ...allListPage(
+              PageMap.APP_PLATFORMS_ENVIRONMENTS,
+              "All Environments",
+            ),
+            keywords: [
+              "cloud environments",
+              "ecs",
+              "fargate",
+              "app runner",
+              "elastic beanstalk",
+              "cloud run",
+              "app engine",
+              "container apps",
+              "container instances",
+              "app service",
+            ],
+          },
+        ],
+      },
+      ...resourceSettingsSections({
+        ownerRules: PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULES,
+        labelRules: PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULES,
+        archived: PageMap.APP_PLATFORMS_ARCHIVED,
+      }),
+    ],
+  },
+  /*
+   * The cloud accounts connected to OneUptime and every resource in them.
+   * It opens on its accounts.
+   */
   {
     id: "cloud",
     title: "Cloud",
-    productPage: PageMap.CLOUD_RESOURCES,
+    productPage: PageMap.CLOUD_ACCOUNTS,
     icon: IconProp.Cloud,
     iconColor: "blue",
     sections: [
       {
         title: "Cloud",
         pages: [
-          {
-            page: PageMap.CLOUD_CONNECT,
-            title: "Connect",
-            icon: IconProp.Link,
-            keywords: [
-              "connect aws",
-              "connect azure",
-              "connect google cloud",
-              "gcp",
-              "cloud account",
-              "cloudwatch",
-              "azure monitor",
-              "cloud monitoring",
-            ],
-          },
           {
             page: PageMap.CLOUD_ACCOUNTS,
             title: "Accounts",
@@ -2858,18 +2895,31 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "activity log",
             ],
           },
-          allListPage(PageMap.CLOUD_RESOURCES, "All Environments"),
           {
             ...allListPage(PageMap.CLOUD_MONITORED_RESOURCES, "All Resources"),
             keywords: [
               "iaas",
-              "paas",
               "virtual machines",
               "load balancers",
               "buckets",
               "managed databases",
               "azure monitor",
               "cloudwatch",
+              "cloud monitoring",
+            ],
+          },
+          {
+            page: PageMap.CLOUD_CONNECT,
+            title: "Connect",
+            icon: IconProp.Link,
+            keywords: [
+              "connect aws",
+              "connect azure",
+              "connect google cloud",
+              "gcp",
+              "cloud account",
+              "cloudwatch",
+              "azure monitor",
               "cloud monitoring",
             ],
           },

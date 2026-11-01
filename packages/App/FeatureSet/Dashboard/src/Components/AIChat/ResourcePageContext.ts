@@ -54,6 +54,21 @@ interface ResourcePageDefinition {
   modelType: { new (): NamedResource };
   noun: string;
   subresources: Array<SubresourcePageDefinition>;
+  /*
+   * Where else the type's pages are, for a model two products show:
+   * CloudResource's environments are App Platforms' (the definition
+   * itself), its resources Cloud's (…/cloud/:id), whose detail page is no
+   * child of its list - so a set names the page all of its pages are under.
+   */
+  alsoAt?: Array<ResourcePageSet> | undefined;
+}
+
+interface ResourcePageSet {
+  // The page every page of the set is under.
+  prefixPage: PageMap;
+  detailPage: PageMap;
+  noun: string;
+  subresources: Array<SubresourcePageDefinition>;
 }
 
 /*
@@ -353,15 +368,27 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
       },
     ],
   },
+  /*
+   * The product's Overview is its list of environments by platform; every
+   * App Platforms page is under it. A Cloud resource's pages are Cloud's.
+   */
   [AIResourceType.CloudResource]: {
-    listPage: PageMap.CLOUD_RESOURCES,
-    detailPage: PageMap.CLOUD_RESOURCE_VIEW,
+    listPage: PageMap.APP_PLATFORMS_OVERVIEW,
+    detailPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
     modelType: CloudResource,
     noun: translationKey("cloud environment"),
     subresources: [
       {
         kind: AIResourceSubresourceKind.Instance,
-        collectionPage: PageMap.CLOUD_RESOURCE_VIEW_INSTANCES,
+        collectionPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES,
+      },
+    ],
+    alsoAt: [
+      {
+        prefixPage: PageMap.CLOUD_ROOT,
+        detailPage: PageMap.CLOUD_RESOURCE_VIEW,
+        noun: translationKey("cloud resource"),
+        subresources: [],
       },
     ],
   },
@@ -491,8 +518,33 @@ function decodeExternalKey(rawKey: string): string | undefined {
   }
 }
 
-function detectSubresource(
+// A type's pages: its own, then where else they are (alsoAt).
+function getPageSets(
   definition: ResourcePageDefinition,
+): Array<ResourcePageSet> {
+  return [
+    {
+      prefixPage: definition.listPage,
+      detailPage: definition.detailPage,
+      noun: definition.noun,
+      subresources: definition.subresources,
+    },
+    ...(definition.alsoAt || []),
+  ];
+}
+
+// The set of a type's pages the current page is in, if any.
+function getCurrentPageSet(
+  definition: ResourcePageDefinition,
+): ResourcePageSet | undefined {
+  return getPageSets(definition).find((set: ResourcePageSet): boolean => {
+    const prefix: Route | undefined = RouteMap[set.prefixPage];
+    return Boolean(prefix && Navigation.isStartWith(prefix));
+  });
+}
+
+function detectSubresource(
+  definition: ResourcePageSet,
 ): AIResourceSubresource | undefined {
   for (const child of definition.subresources) {
     const detailRoute: Route | undefined = child.detailPage
@@ -545,11 +597,12 @@ export default class ResourcePageContextUtil {
 
   public static detect(): DashboardPageContext | null {
     for (const resourceType of Object.values(AIResourceType)) {
-      const page: ResourcePageDefinition = RESOURCE_PAGES[resourceType];
+      const page: ResourcePageSet | undefined = getCurrentPageSet(
+        RESOURCE_PAGES[resourceType],
+      );
       const definition: AIResourceDefinition =
         getAIResourceDefinition(resourceType);
-      const listRoute: Route | undefined = RouteMap[page.listPage];
-      if (!definition || !listRoute || !Navigation.isStartWith(listRoute)) {
+      if (!definition || !page) {
         continue;
       }
       const detailRoute: Route | undefined = RouteMap[page.detailPage];
@@ -676,9 +729,12 @@ export default class ResourcePageContextUtil {
         },
       ];
     }
-    const parent: TranslatableTerm = translatableTerm(page.noun, {
-      inSentence: true,
-    });
+    const parent: TranslatableTerm = translatableTerm(
+      (getCurrentPageSet(page) || getPageSets(page)[0]!).noun,
+      {
+        inSentence: true,
+      },
+    );
     if (context.subresource) {
       return [
         {

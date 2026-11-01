@@ -13,6 +13,12 @@ import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
+import {
+  CloudRuleName,
+  getCloudRuleListQuery,
+  withCloudRuleKind,
+} from "../../../Components/Cloud/CloudRuleKind";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -45,9 +51,16 @@ const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         description:
           "Auto-attach labels when matching cloud resources are created.",
       }}
+      /*
+       * Cloud's rules are for the resources of its accounts; App Platforms
+       * has its own for environments. A rule from before the two products
+       * split is for both, and says so (CloudRuleKind).
+       */
+      query={getCloudRuleListQuery(CloudResourceKind.Resource)}
+      onBeforeCreate={withCloudRuleKind<CloudResourceLabelRule>(CloudResourceKind.Resource)}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
-      selectMoreFields={{ isEnabled: true }}
+      selectMoreFields={{ isEnabled: true, cloudResourceKind: true }}
       filters={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
@@ -57,7 +70,16 @@ const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
         },
       ]}
       columns={[
-        { field: { name: true }, title: "Name", type: FieldType.Text },
+        {
+          field: { name: true },
+          title: "Name",
+          type: FieldType.Element,
+          getElement: (item: CloudResourceLabelRule): ReactElement => {
+            return (
+              <CloudRuleName rule={item} kind={CloudResourceKind.Resource} />
+            );
+          },
+        },
         {
           field: { description: true },
           title: "Description",

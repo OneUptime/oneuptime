@@ -552,12 +552,36 @@ export const ServerlessRoutePath: Dictionary<string> = {
   [PageMap.SERVERLESS_ARCHIVED]: `archived`,
 };
 
+/*
+ * App Platforms, relative to …/app-platforms/: its Overview at the mount
+ * itself, the environments list at environments/, an environment's pages
+ * at its id (as a Cloud resource's are at …/cloud/:id), and its settings
+ * and archived list beside them.
+ */
+export const AppPlatformsRoutePath: Dictionary<string> = {
+  [PageMap.APP_PLATFORMS_ENVIRONMENTS]: `environments`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.APP_PLATFORMS_ARCHIVED]: `archived`,
+};
+
 export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_RESOURCE_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
-  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
-  [PageMap.CLOUD_RESOURCE_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
-  [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: `${RouteParams.ModelID}/instances`,
   [PageMap.CLOUD_RESOURCE_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_RESOURCE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
@@ -5607,14 +5631,131 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  // Cloud Resources
+  // App Platforms
+  [PageMap.APP_PLATFORMS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/*`,
+  ),
+
+  [PageMap.APP_PLATFORMS_OVERVIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENTS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[
+        PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION
+      ]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ARCHIVED]
+    }`,
+  ),
+
+  // Cloud: its accounts, every resource in them, and the way to connect one
   [PageMap.CLOUD_ROOT]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/*`,
   ),
 
-  [PageMap.CLOUD_RESOURCES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/cloud`,
-  ),
+  [PageMap.CLOUD_HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/cloud`),
 
   [PageMap.CLOUD_MONITORED_RESOURCES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
@@ -5637,24 +5778,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_RESOURCE_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_METRICS]
-    }`,
-  ),
-
-  [PageMap.CLOUD_RESOURCE_VIEW_LOGS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/cloud/${
-      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_LOGS]
-    }`,
-  ),
-
-  [PageMap.CLOUD_RESOURCE_VIEW_TRACES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/cloud/${
-      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_TRACES]
-    }`,
-  ),
-
-  [PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/cloud/${
-      CloudRoutePath[PageMap.CLOUD_RESOURCE_VIEW_INSTANCES]
     }`,
   ),
 

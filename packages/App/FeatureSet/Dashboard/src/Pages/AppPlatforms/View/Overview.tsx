@@ -67,9 +67,6 @@ import {
 import { CLOUD_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import { useCloudResourceViewContext } from "./CloudResourceViewContext";
-import CloudMonitoredResourceOverview from "./MonitoredResourceOverview";
-import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -100,6 +97,12 @@ export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
   );
 };
 
+/*
+ * An environment's Overview in App Platforms: how the apps on one platform,
+ * in one account and region, are doing - their requests, errors and
+ * latency from their traces, the CPU and memory of the instances running
+ * them, and the busiest instances.
+ */
 const CloudEnvironmentOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -420,7 +423,7 @@ const CloudEnvironmentOverview: FunctionComponent<
         "live in the last {{minutes}} min",
         { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
       ),
-      to: populate(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES),
+      to: populate(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES),
       description: CLOUD_METRIC_DESCRIPTIONS.instances,
     },
     {
@@ -548,7 +551,9 @@ const CloudEnvironmentOverview: FunctionComponent<
                 cloudRegion: r.cloudRegion as string | undefined,
               })}
               documentationRoute={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION] as Route,
+                RouteMap[
+                  PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION
+                ] as Route,
                 { modelId: modelId },
               )}
             />
@@ -579,7 +584,9 @@ const CloudEnvironmentOverview: FunctionComponent<
         }
         detailRows={detailRows}
         recordId={modelId.toString()}
-        settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
+        settingsRoute={populate(
+          PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS,
+        )}
         labels={r.labels}
       />
 
@@ -628,20 +635,4 @@ const CloudEnvironmentOverview: FunctionComponent<
   );
 };
 
-/*
- * A Cloud row is an environment or a resource discovered from cloud
- * monitoring (CloudResourceViewContext); each has an Overview of its own.
- */
-const CloudResourceOverview: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
-  const { cloudResourceKind } = useCloudResourceViewContext();
-
-  if (isCloudResourceKindResource(cloudResourceKind)) {
-    return <CloudMonitoredResourceOverview {...props} />;
-  }
-
-  return <CloudEnvironmentOverview {...props} />;
-};
-
-export default CloudResourceOverview;
+export default CloudEnvironmentOverview;

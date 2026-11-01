@@ -159,6 +159,27 @@ export const MOVED_TASK_PATHS: {
 };
 
 /*
+ * Cloud and App Platforms became two products. Cloud's environments - the
+ * apps on ECS and Fargate, Cloud Run, App Service and the other managed app
+ * and container platforms - moved to App Platforms (…/app-platforms/), and
+ * Cloud now opens on its accounts. Relative to …/cloud/:
+ *
+ *   - the environments list was Cloud's own address (…/cloud), which stays
+ *     the product's: it forwards to Cloud > Accounts;
+ *   - an environment's pages (…/cloud/:id/…) forward to the same tab under
+ *     App Platforms, keeping the id, the query string and the hash - the
+ *     Cloud page reads the row's kind first (Pages/Cloud/View/Layout,
+ *     Utils/CloudResourceViewPages), since a resource keeps those addresses;
+ *   - the list's Developer pages (…/cloud/developer/…) moved under All
+ *     Resources (…/cloud/resources/developer/…).
+ */
+export const MOVED_CLOUD_DEVELOPER_PATHS: ReadonlyArray<string> = [
+  "developer/terraform",
+  "developer/api",
+  "developer/ai-assistants",
+];
+
+/*
  * The old Code Repositories pages, relative to …/code-repository/: a
  * repository's Overview, Settings and Delete pages, keeping its id. The
  * list forwards to Code's Repositories.

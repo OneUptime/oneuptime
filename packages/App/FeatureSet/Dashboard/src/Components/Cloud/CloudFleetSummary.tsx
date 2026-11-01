@@ -18,8 +18,8 @@ import {
   CloudFleetCounts,
   CloudFleetSummaryTile,
   summarizeCloudFleet,
-} from "../../Pages/Cloud/Utils/CloudFleetSummary";
-import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../Pages/Cloud/Utils/CloudResourceTelemetryScope";
+} from "../../Pages/AppPlatforms/Utils/CloudFleetSummary";
+import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
 
 /*
  * The stat strip above the Cloud Environments table: how many environments

@@ -636,6 +636,52 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "blue",
       category: infrastructureCategory,
     },
+    /*
+     * The apps a managed app or container platform runs for you, found in
+     * their own OpenTelemetry. It was Cloud's "All Environments" until the
+     * two became products of their own: the platforms' names are its
+     * keywords, so a search for the one you deploy to finds it.
+     */
+    {
+      title: t("navbar.items.appPlatformsTitle", "App Platforms"),
+      keywords: [
+        "paas",
+        "platform as a service",
+        "app platform",
+        "ecs",
+        "aws ecs",
+        "fargate",
+        "app runner",
+        "elastic beanstalk",
+        "beanstalk",
+        "cloud run",
+        "app engine",
+        "container apps",
+        "container instances",
+        "app service",
+        "web apps",
+        "managed containers",
+      ],
+      description: t(
+        "navbar.items.appPlatformsDescription",
+        "Monitor the apps you run on ECS and Fargate, Cloud Run, App Service and other managed platforms.",
+      ),
+      /*
+       * Lands on the Overview; every page under /app-platforms (the
+       * environments, one environment, Archived, Settings) keeps it lit.
+       */
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.APP_PLATFORMS_OVERVIEW] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.APP_PLATFORMS_ROOT],
+      icon: IconProp.RocketLaunch,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    /*
+     * The cloud accounts connected to OneUptime and every resource in them.
+     * It lands on the accounts; every page under /cloud keeps it lit.
+     */
     {
       title: t("navbar.items.cloudTitle"),
       keywords: [
@@ -648,7 +694,6 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "cloud accounts",
         "azure subscriptions",
         "iaas",
-        "paas",
         "cloudwatch",
         "azure monitor",
         "cloud monitoring",
@@ -658,11 +703,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "virtual machines",
         "load balancers",
       ],
-      description: t("navbar.items.cloudDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CLOUD_RESOURCES] as Route,
+      description: t(
+        "navbar.items.cloudDescription",
+        "Connect your AWS, Azure and Google Cloud accounts and monitor every resource in them.",
       ),
-      activeRoute: RouteMap[PageMap.CLOUD_RESOURCES],
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CLOUD_ACCOUNTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CLOUD_ROOT],
       icon: IconProp.Cloud,
       iconColor: "blue",
       category: infrastructureCategory,

@@ -65,6 +65,15 @@ export interface DeveloperDocsParentPage {
   scope: DeveloperDocsScope;
   // The model the pages are about, by table name ("Workflow").
   tableName: string;
+  /*
+   * Which of a model's products the page is in, for the one model two
+   * products show: CloudResource's environments are App Platforms', its
+   * resources Cloud's. Such a model has one parent page per product in a
+   * scope, and each product's menus and route file name theirs by its page
+   * key (parentPageKey). Every other model has one parent page per scope
+   * and leaves this out.
+   */
+  product?: string | undefined;
 }
 
 /*
@@ -388,15 +397,33 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       scope: DeveloperDocsScope.View,
       tableName: "ServerlessFunction",
     },
+    /*
+     * One model, two products: App Platforms lists the environments its
+     * apps run in, Cloud every resource in its accounts.
+     */
     {
-      pageKey: PageMap.CLOUD_RESOURCES,
+      pageKey: PageMap.APP_PLATFORMS_ENVIRONMENTS,
       scope: DeveloperDocsScope.List,
       tableName: "CloudResource",
+      product: "App Platforms",
+    },
+    {
+      pageKey: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "CloudResource",
+      product: "App Platforms",
+    },
+    {
+      pageKey: PageMap.CLOUD_MONITORED_RESOURCES,
+      scope: DeveloperDocsScope.List,
+      tableName: "CloudResource",
+      product: "Cloud",
     },
     {
       pageKey: PageMap.CLOUD_RESOURCE_VIEW,
       scope: DeveloperDocsScope.View,
       tableName: "CloudResource",
+      product: "Cloud",
     },
     {
       pageKey: PageMap.CLOUD_ACCOUNT_VIEW,
@@ -446,16 +473,38 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
 /*
  * The parent page of a model's Developer pages in a scope: its list page or
  * its view page. Undefined when it has none in that scope.
+ *
+ * A model two products show has a parent page in each (`product`), and the
+ * caller names the one it is drawing (`parentPageKey`): asked without it,
+ * this throws rather than guess, so a menu cannot link to the other
+ * product's pages. A key that is not this model's parent in this scope is
+ * undefined, as a model without one is.
  */
 export function getDeveloperDocsParentPage(
   tableName: string,
   scope: DeveloperDocsScope,
+  parentPageKey?: PageMap | undefined,
 ): DeveloperDocsParentPage | undefined {
-  return DEVELOPER_DOCS_PARENT_PAGES.find(
-    (parent: DeveloperDocsParentPage): boolean => {
-      return parent.tableName === tableName && parent.scope === scope;
-    },
-  );
+  const parents: Array<DeveloperDocsParentPage> =
+    DEVELOPER_DOCS_PARENT_PAGES.filter(
+      (parent: DeveloperDocsParentPage): boolean => {
+        return parent.tableName === tableName && parent.scope === scope;
+      },
+    );
+
+  if (parentPageKey) {
+    return parents.find((parent: DeveloperDocsParentPage): boolean => {
+      return parent.pageKey === parentPageKey;
+    });
+  }
+
+  if (parents.length > 1) {
+    throw new Error(
+      `${tableName} has ${parents.length} ${scope} pages with Developer pages, one per product: name the one this menu or route file draws (parentPageKey).`,
+    );
+  }
+
+  return parents[0];
 }
 
 /*

@@ -69,13 +69,19 @@ export function getDeveloperDocsRoutes(data: {
   props: PageComponentProps;
   // For a list scope: the `*_ROOT` page the route file is mounted at.
   mountPageKey?: PageMap | undefined;
+  /*
+   * For a model two products show (CloudResource): the page of this
+   * product the Developer pages hang under (DeveloperDocsParentPage
+   * `product`).
+   */
+  parentPageKey?: PageMap | undefined;
 }): Array<ReactElement> {
   const resource: DeveloperDocsResource = getDeveloperDocsResource(
     data.modelType,
   );
   const tableName: string = new data.modelType().tableName || "";
   const parent: DeveloperDocsParentPage | undefined =
-    getDeveloperDocsParentPage(tableName, data.scope);
+    getDeveloperDocsParentPage(tableName, data.scope, data.parentPageKey);
 
   if (!parent) {
     throw new Error(

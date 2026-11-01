@@ -1,3 +1,4 @@
+import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
   DEVELOPER_DOCS_PAGES,
@@ -38,6 +39,12 @@ export interface DeveloperSideMenuSectionOptions {
   scope: DeveloperDocsScope;
   // The resource, on a view menu.
   modelId?: ObjectID | undefined;
+  /*
+   * For a model two products show (CloudResource): the page of this
+   * product the Developer pages hang under (DeveloperDocsParentPage
+   * `product`).
+   */
+  parentPageKey?: PageMap | undefined;
 }
 
 export function getDeveloperSideMenuItems(
@@ -45,7 +52,11 @@ export function getDeveloperSideMenuItems(
 ): Array<SideMenuItemProps> {
   const tableName: string = new options.modelType().tableName || "";
   const parent: DeveloperDocsParentPage | undefined =
-    getDeveloperDocsParentPage(tableName, options.scope);
+    getDeveloperDocsParentPage(
+      tableName,
+      options.scope,
+      options.parentPageKey,
+    );
 
   if (!parent) {
     throw new Error(

@@ -1615,6 +1615,8 @@ const IncidentView: FunctionComponent<
                     cloudResources: {
                       name: true,
                       _id: true,
+                      // Opens an environment in App Platforms, a resource in Cloud.
+                      cloudResourceKind: true,
                     },
                     services: {
                       name: true,

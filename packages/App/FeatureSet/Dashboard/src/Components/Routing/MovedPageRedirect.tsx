@@ -13,8 +13,12 @@ import {
 } from "react-router-dom";
 
 export interface ComponentProps {
-  // The page that replaced the one that used to be at this URL.
-  pageMap: PageMap;
+  /*
+   * The page that replaced the one that used to be at this URL: a PageMap
+   * key, or a generated one (a Developer page's,
+   * DeveloperDocsPages.getDeveloperDocsPageKey).
+   */
+  pageMap: PageMap | string;
   /*
    * Query parameters the new page needs to show what the old one did, such
    * as which tab: the old Alert On-Call Rules page forwards to On-Call Rules
