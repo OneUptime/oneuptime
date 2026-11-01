@@ -28,7 +28,7 @@ Para executar uma regra você precisa de permissão para editar a regra **e** pa
 > [!IMPORTANT]
 > Uma permissão restrita a certos rótulos, ou aos recursos dos quais você é proprietário, não basta: uma execução pode alterar todos os recursos do projeto. As listas de bloqueio das equipes valem como em qualquer outro lugar, e um bloqueio restrito a alguns rótulos também conta: uma execução alteraria os recursos que têm esses rótulos, então um bloqueio com rótulos sobre a edição dos recursos que uma regra altera recusa a execução.
 
-As regras de uma rede pedem o mesmo quando você as executa sobre os dispositivos que já tem. **Executar agora** de uma regra de atribuição de site ou de rótulos de dispositivo exige permissão para editar a regra e **Edit Network Device**. **Dry Run** e **Run Rule** de uma regra de importação automática exigem permissão para editar a regra, **Create Network Device** e, quando a regra tem um modelo de monitor, **Create Monitor**. Cada uma precisa abranger o projeto inteiro. Veja [Importar automaticamente com regras de importação automática](/docs/monitor/network-device-monitor#importar-automaticamente-com-regras-de-importação-automática).
+As regras de uma rede pedem o mesmo quando você as executa sobre os dispositivos que já tem. **Executar agora** de uma regra de atribuição de site ou de rótulos de dispositivo exige permissão para editar a regra e **Edit Network Device**. **Dry Run** e **Executar regra** de uma regra de importação automática exigem permissão para editar a regra, **Create Network Device** e, quando a regra tem um modelo de monitor, **Create Monitor**. Cada uma precisa abranger o projeto inteiro. Veja [Importar automaticamente com regras de importação automática](/docs/monitor/network-device-monitor#importar-automaticamente-com-regras-de-importação-automática).
 
 ## Executar uma regra
 
@@ -43,11 +43,11 @@ Abra o menu **⋯** no fim da linha da regra e selecione **Executar agora**, ou 
 
 ### Decidir se avisa os novos proprietários
 
-Numa regra de proprietários, escolha se quer **Notify the owners this run adds**. A opção vem desligada por padrão e só tem efeito quando a própria regra tem **Notificar proprietários** ligado. Um proprietário é avisado uma vez para cada recurso ao qual é adicionado.
+Numa regra de proprietários, escolha se quer **Notificar os proprietários que esta execução adicionar**. A opção vem desligada por padrão e só tem efeito quando a própria regra tem **Notificar proprietários** ligado. Um proprietário é avisado uma vez para cada recurso ao qual é adicionado.
 
 ### Disparar a regra
 
-Selecione **Run Rule** e mantenha a caixa de diálogo aberta. Num projeto grande, a caixa de diálogo mostra até onde a execução chegou.
+Selecione **Executar regra** e mantenha a caixa de diálogo aberta. Num projeto grande, a caixa de diálogo mostra até onde a execução chegou.
 
 ### Ler o relatório
 

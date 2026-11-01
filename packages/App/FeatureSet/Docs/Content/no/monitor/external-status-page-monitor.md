@@ -135,7 +135,7 @@ Du kan konfigurere kriterier som avgjør når den eksterne tjenesten regnes som 
 | **External Status Page Active Incidents** | Antallet aktive hendelser statussiden melder om nå (bare de som rammer en komponent innenfor avgrensningen, når komponenter eller en gruppe er valgt) | Lik, Ikke lik og de numeriske sammenligningene |
 | **External Status Page Response Time (in ms)** | Hvor lang tid det tar å hente dataene fra statussiden | Større enn, Mindre enn, Større enn eller lik, Mindre enn eller lik |
 
-Den samlede statusen er det siden sier, så verdiene varierer med leverandøren: en Atlassian Statuspage melder sin egen beskrivelse, som `All Systems Operational`; en OneUptime-statusside den verste statusen blant komponentene i omfanget, som `under_maintenance`; en feed melder `operational` eller `degraded_performance`; kontrollen av om siden kan nås, melder `reachable` eller `unreachable`. Med valgte komponenter eller en gruppe er det den verste statusen blant dem, på hvilken som helst side. Disse sammenligningene skiller mellom store og små bokstaver. Monitorens sammendrag viser den samlede statusen i ord og farge, slik det viser hver komponents (`under_maintenance` står som **Under Maintenance**), mens kriteriene sammenligner verdien siden melder. For å varsle om driftsavbrudd er **External Status Page Active Incidents** og **External Status Page Component Status** som regel mer pålitelige.
+Den samlede statusen er det siden sier, så verdiene varierer med leverandøren: en Atlassian Statuspage melder sin egen beskrivelse, som `All Systems Operational`; en OneUptime-statusside den verste statusen blant komponentene i omfanget, som `under_maintenance`; en feed melder `operational` eller `degraded_performance`; kontrollen av om siden kan nås, melder `reachable` eller `unreachable`. Med valgte komponenter eller en gruppe er det den verste statusen blant dem, på hvilken som helst side. Disse sammenligningene skiller mellom store og små bokstaver. Monitorens sammendrag viser den samlede statusen i ord og farge, slik det viser hver komponents (`under_maintenance` står som **Under vedlikehold**), mens kriteriene sammenligner verdien siden melder. For å varsle om driftsavbrudd er **External Status Page Active Incidents** og **External Status Page Component Status** som regel mer pålitelige.
 
 På en RSS- eller Atom-feed regnes elementene fra de siste 24 timene som aktive hendelser: et RSS-element ut fra publiseringsdatoen, et Atom-element ut fra oppdateringsdatoen. Et element som er datert fram i tid, regnes først fra datoen sin.
 
@@ -178,7 +178,7 @@ Mens en pågående planlagt vedlikeholdshendelse berører en ressurs, fordi den 
 :::steps
 ### Legg til kriteriet
 
-Klikk **Legg til kriterier** i kriteriene til monitoren. Gi det filteret **External Status Page Component Status**, **Lik**, **Under Maintenance**, og velg vedlikeholdsstatusen din i **Endre overvåkingsstatus til**.
+Klikk **Legg til kriterier** i kriteriene til monitoren. Gi det filteret **External Status Page Component Status**, **Lik**, **Under vedlikehold**, og velg vedlikeholdsstatusen din i **Endre overvåkingsstatus til**.
 
 ### Flytt det helt øverst
 
@@ -186,7 +186,7 @@ Dra det nye kriteriet over de andre: det første kriteriet som treffer, vinner.
 
 ### Sjekk det med Test monitor
 
-Klikk **Test monitor** mens det andre prosjektet har vedlikehold i gang: komponenten det berører, viser **Under Maintenance**.
+Klikk **Test monitor** mens det andre prosjektet har vedlikehold i gang: komponenten det berører, viser **Under vedlikehold**.
 :::
 
 ### Hva en OneUptime-statusside lar monitoren lese

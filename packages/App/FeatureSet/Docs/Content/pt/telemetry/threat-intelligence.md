@@ -46,7 +46,7 @@ O bloco de cada lista leva aos seus termos: o Feodo Tracker é livre para qualqu
 :::steps
 ### Abra Threat Intel
 
-Abra **Produtos → Security Events → Detecções → Inteligência de ameaças**.
+Abra **Produtos → Eventos de segurança → Detecções → Inteligência de ameaças**.
 
 ### Crie o feed
 

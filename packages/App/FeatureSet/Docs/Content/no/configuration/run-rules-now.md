@@ -28,7 +28,7 @@ For å kjøre en regel trenger du tillatelse til å redigere regelen **og** til 
 > [!IMPORTANT]
 > En tillatelse som er begrenset til bestemte etiketter, eller til ressurser du eier, er ikke nok: en kjøring kan endre alle ressursene i prosjektet. Teamenes blokkeringslister gjelder som overalt ellers, og en blokkering begrenset til noen etiketter teller også: en kjøring ville endre ressursene som har de etikettene, så en blokkering med etiketter på redigering av ressursene en regel endrer, avviser kjøringen.
 
-Et nettverks regler krever det samme når du kjører dem på enhetene du allerede har. **Kjør nå** for en regel for stedstildeling eller enhetsetiketter krever tillatelse til å redigere regelen og **Edit Network Device**. **Dry Run** og **Run Rule** for en regel for automatisk import krever tillatelse til å redigere regelen, **Create Network Device** og, når regelen har en monitormal, **Create Monitor**. Hver av dem må nå hele prosjektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importer-automatisk-med-automatiske-importregler).
+Et nettverks regler krever det samme når du kjører dem på enhetene du allerede har. **Kjør nå** for en regel for stedstildeling eller enhetsetiketter krever tillatelse til å redigere regelen og **Edit Network Device**. **Dry Run** og **Kjør regel** for en regel for automatisk import krever tillatelse til å redigere regelen, **Create Network Device** og, når regelen har en monitormal, **Create Monitor**. Hver av dem må nå hele prosjektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importer-automatisk-med-automatiske-importregler).
 
 ## Kjøre én regel
 
@@ -43,11 +43,11 @@ Et nettverks regler krever det samme når du kjører dem på enhetene du allered
 
 ### Velg om nye eiere skal varsles
 
-For en eierregel velger du om du vil **Notify the owners this run adds**. Det er av som standard og virker bare når regelen selv har **Varsle eiere** slått på. En eier varsles én gang for hver ressurs vedkommende legges til på.
+For en eierregel velger du om du vil **Varsle eierne denne kjøringen legger til**. Det er av som standard og virker bare når regelen selv har **Varsle eiere** slått på. En eier varsles én gang for hver ressurs vedkommende legges til på.
 
 ### Start regelen
 
-Velg **Run Rule** og hold dialogboksen åpen. I et stort prosjekt viser dialogboksen hvor langt kjøringen har kommet.
+Velg **Kjør regel** og hold dialogboksen åpen. I et stort prosjekt viser dialogboksen hvor langt kjøringen har kommet.
 
 ### Les rapporten
 

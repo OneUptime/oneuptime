@@ -46,7 +46,7 @@ De tegel van een lijst linkt naar haar voorwaarden: Feodo Tracker is vrij voor e
 :::steps
 ### Ga naar Threat Intel
 
-Open **Producten → Security Events → Detecties → Dreigingsinformatie**.
+Open **Producten → Beveiligingsgebeurtenissen → Detecties → Dreigingsinformatie**.
 
 ### Maak de feed aan
 

@@ -63,7 +63,7 @@ Din anpassade CSS och HTML gäller i båda temana; [Anpassad HTML, CSS och JavaS
 ### Titel, beskrivning och favicon
 
 - **Titel och beskrivning**: sidans namn i webbläsarfliken och i e-post till prenumeranter, och beskrivningen som sökmotorer visar. **Redigera** öppnar **Sidtitel** (platshållare `e.g., Acme Status`) och **Sidbeskrivning**. Sökmotorer och länkförhandsvisningar visar dem, så skriv dem för en kund, inte för ditt team.
-- **Favicon**: **Edit Favicon** öppnar uppladdningen **Favicon**: den lilla ikonen i webbläsarfliken.
+- **Favicon**: **Redigera favicon** öppnar uppladdningen **Favicon**: den lilla ikonen i webbläsarfliken.
 
 ### Sidhuvudslänkar
 

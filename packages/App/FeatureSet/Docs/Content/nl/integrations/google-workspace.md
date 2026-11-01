@@ -48,7 +48,7 @@ De verbinding meldt zich aan met de sleutel van een serviceaccount en [domeinbre
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Google Workspace** onder **Identiteit** en klik op **Volgende**. Vul het **Administrator email** in, klik op **Volgende** en plak de inhoud van het sleutelbestand in **JSON van het serviceaccount**. Zet in de stap **Opvragen** **Drive-activiteit** aan om ook Drive te lezen.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Google Workspace** onder **Identiteit** en klik op **Volgende**. Vul het **Administrator email** in, klik op **Volgende** en plak de inhoud van het sleutelbestand in **JSON van het serviceaccount**. Zet in de stap **Opvragen** **Drive-activiteit** aan om ook Drive te lezen.
 
 ### Testen voordat je opslaat
 

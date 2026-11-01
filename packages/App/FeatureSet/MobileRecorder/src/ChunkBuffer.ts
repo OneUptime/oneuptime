@@ -10,6 +10,16 @@ import {
 } from "./Contract";
 import { byteLength, emptySignalCounts } from "./Sanitize";
 
+/*
+ * Per-chunk caps on recorded routes, as the browser recorder's Chunker has.
+ * The list rides the envelope, which the server refuses outright over 8 KB,
+ * and it keeps a screen the user came back to, so nothing else bounds it. A
+ * chunk with more route changes than this is an app rewriting its route
+ * rather than a person moving through it; routeCount still counts them.
+ */
+const MAX_ROUTES_PER_CHUNK: number = 32;
+const MAX_ROUTE_BYTES_PER_CHUNK: number = 2 * 1024;
+
 export interface BufferedReplaySegment {
   payload: string;
   eventCount: number;
@@ -28,7 +38,9 @@ export default class ReplayChunkBuffer {
   private startUnixMs: number = 0;
   private endUnixMs: number = 0;
   private hasFullSnapshot: boolean = false;
+  /* In the order visited: a return to a screen is what a journey is read from. */
   private routes: Array<string> = [];
+  private routeBytes: number = 0;
   private readonly fidelity: Set<SessionReplayFidelityNotice> =
     new Set<SessionReplayFidelityNotice>();
   private signals: SessionReplaySignalCounts = emptySignalCounts();
@@ -66,8 +78,8 @@ export default class ReplayChunkBuffer {
       this.hasFullSnapshot = true;
     }
 
-    if (options?.route && !this.routes.includes(options.route)) {
-      this.routes.push(options.route);
+    if (options?.route) {
+      this.addRoute(options.route);
     }
     for (const notice of options?.fidelityNotices ?? []) {
       this.fidelity.add(notice);
@@ -130,6 +142,24 @@ export default class ReplayChunkBuffer {
     this.reset();
   }
 
+  private addRoute(route: string): void {
+    if (
+      this.routes.length >= MAX_ROUTES_PER_CHUNK ||
+      this.routes[this.routes.length - 1] === route
+    ) {
+      return;
+    }
+
+    const bytes: number = byteLength(route);
+
+    if (this.routeBytes + bytes > MAX_ROUTE_BYTES_PER_CHUNK) {
+      return;
+    }
+
+    this.routeBytes += bytes;
+    this.routes.push(route);
+  }
+
   private reset(): void {
     this.events = [];
     this.approximateBytes = 2;
@@ -137,6 +167,7 @@ export default class ReplayChunkBuffer {
     this.endUnixMs = 0;
     this.hasFullSnapshot = false;
     this.routes = [];
+    this.routeBytes = 0;
     this.fidelity.clear();
     this.signals = emptySignalCounts();
     this.droppedEvents = 0;

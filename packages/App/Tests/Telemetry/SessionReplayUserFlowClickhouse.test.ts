@@ -83,6 +83,7 @@ const database: string = `rum_user_flow_test_${process.pid}_${Date.now()}`;
 const projectId: ObjectID = new ObjectID("6600000000000000000000c1");
 const rumApplicationId: string = "6600000000000000000000c2";
 const otherApplicationId: string = "6600000000000000000000c3";
+const returnApplicationId: string = "6600000000000000000000c7";
 const longApplicationId: string = "6600000000000000000000c4";
 
 const ORIGIN: string = "https://shop.example.com";
@@ -143,6 +144,16 @@ const LONGEST_JOURNEY: Array<string> = Array.from(
   },
 );
 
+/*
+ * Also in an application of its own: a session that came back to the page it
+ * left, stored the two ways that happens. RETURN_IN_LAST_CHUNK is as an older
+ * recorder wrote it: the last chunk's list holds /inbox once, and only its
+ * flush url says the visitor went back. RETURN_KEPT is as the recorders write
+ * it now, with the return in the list itself.
+ */
+const RETURN_IN_LAST_CHUNK: string = "a0000000000000000000000000000007";
+const RETURN_KEPT: string = "a0000000000000000000000000000008";
+
 const JANE_KEY: string = "1".repeat(64);
 const FORMER_KEY: string = "2".repeat(64);
 const VISITOR_ID: string = "b".repeat(32);
@@ -154,6 +165,8 @@ const START: Record<string, Date> = {
   [SESSIONS.elsewhere]: new Date(now - 15 * 60 * 1000),
   [SESSIONS.ancient]: new Date(now - 3 * 24 * 60 * 60 * 1000),
   [LONG_SESSION]: new Date(now - 5 * 60 * 1000),
+  [RETURN_IN_LAST_CHUNK]: new Date(now - 6 * 60 * 1000),
+  [RETURN_KEPT]: new Date(now - 7 * 60 * 1000),
 };
 
 interface ChunkFixture {
@@ -250,6 +263,42 @@ const chunkFixtures: Array<ChunkFixture> = [
     startOffsetMs: 0,
     url: LONGEST_JOURNEY[LONGEST_JOURNEY.length - 1] as string,
     routes: LONGEST_JOURNEY,
+  },
+  {
+    sessionId: RETURN_IN_LAST_CHUNK,
+    rumApplicationId: returnApplicationId,
+    tabId: "tab-1",
+    chunkIndex: 0,
+    version: 1000,
+    startOffsetMs: 0,
+    url: `${ORIGIN}/inbox`,
+    routes: [`${ORIGIN}/inbox`],
+  },
+  {
+    sessionId: RETURN_IN_LAST_CHUNK,
+    rumApplicationId: returnApplicationId,
+    tabId: "tab-1",
+    chunkIndex: 1,
+    version: 1000,
+    startOffsetMs: CHUNK_MS,
+    url: `${ORIGIN}/inbox`,
+    routes: [`${ORIGIN}/inbox`, `${ORIGIN}/inbox/7`],
+  },
+  {
+    sessionId: RETURN_KEPT,
+    rumApplicationId: returnApplicationId,
+    tabId: "tab-1",
+    chunkIndex: 0,
+    version: 1000,
+    startOffsetMs: 0,
+    url: `${ORIGIN}/inbox`,
+    routes: [
+      `${ORIGIN}/inbox`,
+      `${ORIGIN}/inbox/7`,
+      `${ORIGIN}/inbox`,
+      `${ORIGIN}/inbox/8`,
+      `${ORIGIN}/inbox`,
+    ],
   },
 ];
 
@@ -418,6 +467,20 @@ const headerFixtures: Array<JSONObject> = [
     rumApplicationId: longApplicationId,
     version: 1000,
     entryUrl: LONGEST_JOURNEY[0] as string,
+    deviceType: "desktop",
+  }),
+  headerRow({
+    sessionId: RETURN_IN_LAST_CHUNK,
+    rumApplicationId: returnApplicationId,
+    version: 1000,
+    entryUrl: `${ORIGIN}/inbox`,
+    deviceType: "desktop",
+  }),
+  headerRow({
+    sessionId: RETURN_KEPT,
+    rumApplicationId: returnApplicationId,
+    version: 1000,
+    entryUrl: `${ORIGIN}/inbox`,
     deviceType: "desktop",
   }),
 ];
@@ -685,6 +748,40 @@ integration("User Flows journeys against ClickHouse", () => {
     expect(response.pages).not.toContain(
       LONGEST_JOURNEY[USER_FLOW_MAX_PAGES_PER_JOURNEY],
     );
+  });
+
+  describe("a page the visitor came back to", () => {
+    const readReturns: () => Promise<UserFlowJourneysResponseDto> =
+      (): Promise<UserFlowJourneysResponseDto> => {
+        return SessionReplayUserFlowReadService.readJourneys({
+          projectId: projectId,
+          rumApplicationId: new ObjectID(returnApplicationId),
+          startTime: windowStart,
+          endTime: windowEnd,
+        });
+      };
+
+    /*
+     * Without the flush url this journey ended on /inbox/7, and the page
+     * called that the exit page of a session that left from /inbox.
+     */
+    test("a return in the last chunk is where the journey ends, in a recording that lists a page once", async () => {
+      expect(pagesOf(await readReturns(), RETURN_IN_LAST_CHUNK)).toEqual([
+        `${ORIGIN}/inbox`,
+        `${ORIGIN}/inbox/7`,
+        `${ORIGIN}/inbox`,
+      ]);
+    });
+
+    test("a list that keeps its returns reads as it was lived", async () => {
+      expect(pagesOf(await readReturns(), RETURN_KEPT)).toEqual([
+        `${ORIGIN}/inbox`,
+        `${ORIGIN}/inbox/7`,
+        `${ORIGIN}/inbox`,
+        `${ORIGIN}/inbox/8`,
+        `${ORIGIN}/inbox`,
+      ]);
+    });
   });
 
   test("the journeys fold into a flow map", async () => {

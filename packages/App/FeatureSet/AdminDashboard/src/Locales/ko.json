@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "이 라이선스와 연결된 회사 이름입니다.",
+  "Annual contract value (in USD) for this license.": "이 라이선스의 연간 계약 금액(USD)입니다.",
+  "Expiration date of this license.": "이 라이선스의 만료일입니다.",
+  "Something went wrong": "문제가 발생했습니다",
+  "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 새로 고치세요",
+  "Error details": "오류 세부 정보",
+  "Still stuck?": "여전히 해결되지 않나요?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "오류 스택, 컴포넌트 스택, 민감 정보를 지운 페이지 URL, 브라우저 정보, OneUptime 빌드가 담긴 로컬 진단 파일을 내려받으세요. 쿠키, 저장된 브라우저 데이터, 양식 내용은 절대 읽지 않습니다. OneUptime 지원팀에 공유하기 전에 검토하세요.",
+  "Download support bundle": "지원 번들 내려받기",
+  "Send it to {{email}}": "{{email}}(으)로 보내세요",
+  "Support bundle downloaded. Review it, then attach it to your email.": "지원 번들을 내려받았습니다. 검토한 뒤 이메일에 첨부하세요.",
+  "The support bundle could not be downloaded. Please try again.": "지원 번들을 내려받지 못했습니다. 다시 시도하세요.",
   "common": {
     "save": "저장",
     "cancel": "취소",

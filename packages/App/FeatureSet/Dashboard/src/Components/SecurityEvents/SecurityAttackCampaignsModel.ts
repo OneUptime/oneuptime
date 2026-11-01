@@ -109,18 +109,23 @@ export const LOAD_CAMPAIGNS_FAILED: string = translationKey(
   "The campaigns could not be loaded.",
 );
 
+/*
+ * Count-dependent: each language words a count by its own plural rules
+ * (translatePlural), and its "one" form takes the count as {{count}} - in
+ * Russian 21 reads the "one" form, in French 0 does - never a written 1.
+ */
 export const REQUESTS_COUNT: PluralTemplate = {
-  one: translationKey("1 request"),
+  one: translationKey("{{count}} request"),
   other: translationKey("{{count}} requests"),
 };
 
 export const DIFFERENT_REQUESTS: PluralTemplate = {
-  one: translationKey("1 different request"),
+  one: translationKey("{{count}} different request"),
   other: translationKey("{{count}} different requests"),
 };
 
 export const GOT_THROUGH_COUNT: PluralTemplate = {
-  one: translationKey("1 request got through"),
+  one: translationKey("{{count}} request got through"),
   other: translationKey("{{count}} requests got through"),
 };
 

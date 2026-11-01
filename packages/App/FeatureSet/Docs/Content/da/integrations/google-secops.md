@@ -48,7 +48,7 @@ Send advarslens JSON som **Body**. En registrering, regeloplysninger med de matc
 
 ### Kontrollér, at advarsler kommer frem
 
-Kør playbooken. Dens advarsler vises i **Produkter → Security Events** inden for sekunder.
+Kør playbooken. Dens advarsler vises i **Produkter → Sikkerhedshændelser** inden for sekunder.
 :::
 
 ## Videresend UDM-begivenheder
@@ -97,7 +97,7 @@ Tilføj på tjenestekontoens fane **Keys** en nøgle af typen **JSON**, og downl
 
 ### Tilføj forbindelsen
 
-Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), vælg **Tilføj forbindelse**, vælg **Google SecOps**, og udfyld formularen med indstillingerne i tabellen nedenfor.
+Åbn **Produkter → Sikkerhedshændelser → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), vælg **Tilføj forbindelse**, vælg **Google SecOps**, og udfyld formularen med indstillingerne i tabellen nedenfor.
 
 ### Test, før du gemmer
 
@@ -247,7 +247,7 @@ Opret i Google Cloud en tjenestekonto i det projekt, din SecOps-instans er knytt
 
 ### Tilføj destinationen
 
-Åbn **Produkter → Security Events → Forbindelser**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Google SecOps under **SIEM**, og klik på **Næste**. Vælg **Region**, udfyld **Instansens ressourcenavn** som for connectoren ovenfor, og indsæt nøglen i **Tjenestekontoens JSON**.
+Åbn **Produkter → Sikkerhedshændelser → Forbindelser**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Google SecOps under **SIEM**, og klik på **Næste**. Vælg **Region**, udfyld **Instansens ressourcenavn** som for connectoren ovenfor, og indsæt nøglen i **Tjenestekontoens JSON**.
 
 ### Send en testhændelse
 
@@ -321,7 +321,7 @@ Upstream-versionen **13.0.0** bruger allerede `alertListOptions.maxReturnedAlert
 1. Tjek **versionerne af de kørende app- og worker-images**. At opdatere en lokal kildefil for connectoren eller at uploade tjenestekontoens JSON igen opdaterer ikke en udrullet container. Udrul et image, der indeholder connectorens rettelse, på hver app eller dedikeret worker, der kører poll-jobbet. Bygger du dit eget image, så byg det igen med den rettede kilde, og udrul et nyt, uforanderligt tag; at genstarte en pod med det gamle image er ikke nok.
 2. Kontrollér anmodningen til advarselsvisningen mod [Googles API-reference](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView). Den bruger `timeRange.startTime`, `timeRange.endTime`, `snapshotQuery=` (en tom værdi medtager alle advarselsstatusser), `alertListOptions.maxReturnedAlerts` og `includeNonAlertingDetections`, sat eksplicit ud fra det gemte valg **Data to import**. Den må ikke sende `pageSize` eller `pageToken` til det endpoint. De to gennemgange efter oprettelsestid bruger [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections) og `legacySearchCuratedDetections`, hvor `ruleId`, `listBasis`, `alertState`, `pageSize` og `pageToken` er de dokumenterede parametre, og deres fejl har i stedet præfikset for registreringssøgningen. `legacySearchCuratedDetections` får altid ét ID for en kurateret regel, aldrig `-`. Erstat det ikke med et filter, der udelukker lukkede advarsler, for så går registreringer tabt.
 3. Sammenlign hele ressourcen `projects/{project}/locations/{location}/instances/{instance}` med værdierne i din Google SecOps-lejers indstillinger. Instansdelen skal være SecOps-instansens ID; et visningsnavn for en forbindelse eller navnet på en tjenestekonto kan ikke bruges i stedet. Bekræft, at det regionale endpoint passer til instansens placering.
-4. Vent på det næste konfigurerede pollinterval, efter at udrulningen er færdig. **Senest hentet** bør rykke frem, og **Seneste fejl** bør ryddes ved en fuldført poll. Indeholder vinduet registreringer, bør de vises under **Produkter → Security Events**; et stille vindue kan med rette indtage nul begivenheder.
+4. Vent på det næste konfigurerede pollinterval, efter at udrulningen er færdig. **Senest hentet** bør rykke frem, og **Seneste fejl** bør ryddes ved en fuldført poll. Indeholder vinduet registreringer, bør de vises under **Produkter → Sikkerhedshændelser**; et stille vindue kan med rette indtage nul begivenheder.
 
 Hvis den samme fejl fortsætter, så åbn **Vis fejl** i forbindelsens kolonne **Handlinger**, brug **Kopiér fejl** i dialogboksen, og giv support den meddelelse, image-tagget eller -digesten, regionen og instansens ressourcenavn. Legitimationsoplysninger i den registrerede meddelelse er maskeret; send ikke tjenestekontoens private nøgle, JWT-assertionen eller adgangstokenet separat. Fejl, der er registreret før opgraderingen, kan allerede være afkortet; en senere mislykket poll registrerer hele meddelelsen. En mislykket poll beholder sit vindue til et nyt forsøg, og en poll, der er Partial, indsnævrer sit næste vindue eller går forbi et enkelt minut, som den navngiver i Last Error. Planlagt indhentning behandler op til 24 timer pr. kørsel.
 
@@ -332,7 +332,7 @@ Google SecOps havde tidligere sit eget forbindelseskort, sin egen API og sin ege
 - **Forbindelser flyttes automatisk.** Når den opgraderede version kører sine datamigreringer, kopieres hver Google SecOps-forbindelse til Security Event Connections med udbyderen `google-secops`. Den beholder sit ID, sit navn, sin **Region**, sit **Instansens ressourcenavn**, sin tjenestekontonøgle, sin tilstand **Aktiveret**, sit pollinterval, sit valg **Data to import**, sin pollmarkør, Last Polled, Last Successful Poll, Last Event Imported og Last Error, så pollingen fortsætter, hvor den slap. Connectoren beholder identiteten `Google` / `Google SecOps`, som den tidligere importerede under, så allerede importerede registreringer tæller som **Already imported** i stedet for at blive gemt to gange.
 - **Den seneste kørselshistorik kommer med.** De seneste 500 kørsler for hver forbindelse kopieres til dens kørselshistorik i **Diagnosticering**. En kørsel, der stadig var i kø eller kørte, kopieres som mislykket med `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`
 - **De tidligere rækker deaktiveres, ikke slettes.** En gammel worker, der stadig kører under en rullende udrulning, kan derfor ikke polle den samme instans en gang til. At rulle tilbage til en version med den tidligere connector kræver, at du aktiverer de rækker igen.
-- **En forbindelse, der ikke kan flyttes, bliver, hvor den var.** En uden gemt nøgle, eller hvis nøgle ikke kan dekrypteres med denne servers `ENCRYPTION_SECRET`, springes over og navngives i worker-loggen; tilføj den igen under **Produkter → Security Events → Forbindelser**. En, hvis gemte indstillinger ikke længere består den nuværende validering, flyttes alligevel, og dens polls mislykkes med en meddelelse, der navngiver feltet, indtil du redigerer den. En, som en midlertidig databasefejl afbrød, flyttes, når migreringen kører igen ved næste start af en worker, og pollingen fortsætter fra dens kopierede markør.
+- **En forbindelse, der ikke kan flyttes, bliver, hvor den var.** En uden gemt nøgle, eller hvis nøgle ikke kan dekrypteres med denne servers `ENCRYPTION_SECRET`, springes over og navngives i worker-loggen; tilføj den igen under **Produkter → Sikkerhedshændelser → Forbindelser**. En, hvis gemte indstillinger ikke længere består den nuværende validering, flyttes alligevel, og dens polls mislykkes med en meddelelse, der navngiver feltet, indtil du redigerer den. En, som en midlertidig databasefejl afbrød, flyttes, når migreringen kører igen ved næste start af en worker, og pollingen fortsætter fra dens kopierede markør.
 - **API-ruterne er ændret.** Ruterne `/google-secops-connection` og `/google-secops-connection-run`, herunder `/google-secops-connection/test` og `/google-secops-connection/:connectionId/run`, erstattes af `/security-event-connection` og `/security-event-connection-run` med udbyderen `google-secops`; operationerne er `/security-event-connection/test` og `/security-event-connection/:connectionId/run`. De tidligere felter på øverste niveau flytter ind i `config` og `secrets`:
 
   ```json

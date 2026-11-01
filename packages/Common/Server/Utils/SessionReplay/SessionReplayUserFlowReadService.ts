@@ -28,14 +28,18 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * Where the order comes from. The session header's routes[] is a sorted
  * SET (the finalizer sorts it so re-finalization is byte-stable), so it
  * cannot say "/cart came before /checkout". Each CHUNK row, though, carries
- * the pages visited while it was open, in first-seen order, with the page
- * it was flushed from last. Chunks sorted by start time (tabs interleave by
- * wall clock, which is how one person lived them) and flattened give the
- * journey; back-to-back repeats are collapsed in the same statement, so the
- * payload is one short array per session rather than one row per chunk.
- * Two visits to one page inside a single flush window collapse to one -
- * the chunk dedupes its own route list - which is why the map says
- * "journeys" and never claims an exact page-view count.
+ * the pages visited while it was open, in the order they were visited.
+ * Chunks sorted by start time (tabs interleave by wall clock, which is how
+ * one person lived them) and flattened give the journey; back-to-back
+ * repeats are collapsed in the same statement, so the payload is one short
+ * array per session rather than one row per chunk.
+ *
+ * Every chunk's list is closed with the page the chunk was flushed from.
+ * Recordings from before the recorders kept returns hold each page of a
+ * chunk once, in first-seen order, so A -> B -> A in a session's last chunk
+ * would otherwise read as leaving from B. Inside a chunk of such a recording
+ * a return that was not the last page is still lost, which is why the map
+ * says "journeys" and never claims an exact page-view count.
  *
  * Nothing here names the `payload` column; everything comes from the
  * manifest-level columns the session list already exposes, which is why the
@@ -405,7 +409,8 @@ export default class SessionReplayUserFlowReadService {
   ): Statement {
     /*
      * Inner: one row per chunk (the newest delivery of each; pinned copies
-     * and retried deliveries collapse), manifest columns only.
+     * and retried deliveries collapse), manifest columns only, with each
+     * chunk's route list closed by the page it was flushed from.
      * Middle: per session, chunks sorted by (start, tab, index) and their
      * route lists flattened; signal-bearing chunks kept with the page they
      * were flushed from; totals and the recorded span.
@@ -442,7 +447,7 @@ export default class SessionReplayUserFlowReadService {
                   flowChunk -> flowChunk.4,
                   arraySort(
                     flowChunk -> (flowChunk.1, flowChunk.2, flowChunk.3),
-                    groupArray((chunkStartTime, tabId, chunkIndex, routes))
+                    groupArray((chunkStartTime, tabId, chunkIndex, flowChunkRoutes))
                   )
                 )
               )
@@ -468,7 +473,7 @@ export default class SessionReplayUserFlowReadService {
             chunkStartTime,
             chunkEndTime,
             url,
-            routes,
+            if(url = '' OR routes[-1] = url, routes, arrayPushBack(routes, url)) AS flowChunkRoutes,
             errorCount,
             rageClickCount,
             deadClickCount,

@@ -38,7 +38,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Tous les dossiers** | Dossiers de sécurité | Chaque dossier, ouvert ou fermé |
 | **Événements** | Événements | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
 | **Chasses** | Événements | Des recherches enregistrées depuis Événements, rouvertes en un clic ou exécutées selon une planification qui prévient des personnes quand elles trouvent quelque chose |
-| **Campaigns** | Événements | Chaque adresse qui a envoyé des requêtes d'attaque, et si l'une de ses requêtes est passée |
+| **Campagnes** | Événements | Chaque adresse qui a envoyé des requêtes d'attaque, et si l'une de ses requêtes est passée |
 | **Risque des entités** | Événements | Chaque utilisateur, hôte et adresse, noté selon ce qui a été trouvé à son sujet cette semaine, les plus à risque d'abord |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
 | **Règles de détection** | Détections | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |
@@ -262,11 +262,11 @@ La barre latérale compte les événements de la fenêtre par **Source**, **Grav
 
 ### Ce qui s'est passé ensuite
 
-Un événement lu dans une ligne de journal écrite au sein d'une requête tracée est suivi jusque dans cette requête. Son panneau indique jusqu'où la requête est allée (**Rejeté**, **Reached App**, **Errored** ou **Reached Database**), qui l'a envoyée, et renvoie vers sa trace, son exception, son replay de session et la ligne de journal elle-même. Une ligne de journal, une trace et une exception qui font partie d'une attaque le signalent aussi sur leurs propres pages.
+Un événement lu dans une ligne de journal écrite au sein d'une requête tracée est suivi jusque dans cette requête. Son panneau indique jusqu'où la requête est allée (**Rejeté**, **Application atteinte**, **En erreur** ou **Base de données atteinte**), qui l'a envoyée, et renvoie vers sa trace, son exception, son replay de session et la ligne de journal elle-même. Une ligne de journal, une trace et une exception qui font partie d'une attaque le signalent aussi sur leurs propres pages.
 
 ### Campaigns
 
-**Campaigns** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier.
+**Campagnes** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier.
 
 ### Corréler
 

@@ -46,7 +46,7 @@ Il riquadro di un elenco rimanda ai suoi termini: Feodo Tracker è libero per qu
 :::steps
 ### Apri Threat Intel
 
-Apri **Prodotti → Security Events → Rilevamenti → Threat Intel**.
+Apri **Prodotti → Eventi di sicurezza → Rilevamenti → Threat Intel**.
 
 ### Crea il feed
 

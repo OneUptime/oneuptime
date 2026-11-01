@@ -120,7 +120,7 @@ Klicka på **Skapa Alert Reminder Rule**. I **Matcha** låter du **Alla larm** v
 I **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur ofta ägarna påminns, och **Sluta påminna när**: **Löst**, standardvärdet, eller **Bekräftad**. Dess **Namn** följer båda, till exempel "Påminn var 30 minuter tills löst", tills du skriver ett eget. Skapa sedan regeln.
 :::
 
-Ägarna får varje påminnelse som **Alert reminder**, som är påslagen via e-post som standard. Ett larms regel matchas på nytt när dess allvarlighetsgrad eller etiketter ändras. För att stoppa påminnelserna för ett larm slår du av **Skicka påminnelser** på dess sida **Inställningar**; det sparas i samma ögonblick som du slår om det.
+Ägarna får varje påminnelse som **Påminnelse om larm**, som är påslagen via e-post som standard. Ett larms regel matchas på nytt när dess allvarlighetsgrad eller etiketter ändras. För att stoppa påminnelserna för ett larm slår du av **Skicka påminnelser** på dess sida **Inställningar**; det sparas i samma ögonblick som du slår om det.
 
 ## Inställningar
 

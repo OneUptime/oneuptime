@@ -48,7 +48,7 @@ Envie o JSON do alerta como **Body**. Uma detecção, os detalhes da regra com o
 
 ### Verificar que os alertas chegam
 
-Rode o playbook. Os alertas dele aparecem em **Produtos → Security Events** em segundos.
+Rode o playbook. Os alertas dele aparecem em **Produtos → Eventos de segurança** em segundos.
 :::
 
 ## Encaminhar eventos UDM
@@ -97,7 +97,7 @@ No Google SecOps, abra **SIEM Settings → Profile**. O nome do recurso da inst�
 
 ### Adicionar a conexão
 
-Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), selecione **Adicionar conexão**, escolha **Google SecOps** e preencha o formulário com as configurações da tabela abaixo.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), selecione **Adicionar conexão**, escolha **Google SecOps** e preencha o formulário com as configurações da tabela abaixo.
 
 ### Testar antes de salvar
 
@@ -247,7 +247,7 @@ No Google Cloud, crie uma conta de serviço no projeto ao qual sua instância do
 
 ### Adicionar o destino
 
-Abra **Produtos → Security Events → Conexões**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Google SecOps em **SIEM** e clique em **Próximo**. Escolha a **Região**, preencha o **Nome do recurso da instância** como para o conector acima e cole a chave em **JSON da conta de serviço**.
+Abra **Produtos → Eventos de segurança → Conexões**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Google SecOps em **SIEM** e clique em **Próximo**. Escolha a **Região**, preencha o **Nome do recurso da instância** como para o conector acima e cole a chave em **JSON da conta de serviço**.
 
 ### Enviar um evento de teste
 
@@ -321,7 +321,7 @@ A versão upstream **13.0.0** já usa `alertListOptions.maxReturnedAlerts` na vi
 1. Verifique as **versões das imagens do aplicativo e dos workers em execução**. Atualizar um arquivo-fonte local do conector ou reenviar o JSON da conta de serviço não atualiza um contêiner implantado. Implante uma imagem que contenha a correção do conector em cada aplicativo ou worker dedicado que rode o job de consulta. Se você monta a sua própria imagem, monte-a de novo com o código corrigido e implante uma nova tag imutável; reiniciar um pod com a imagem antiga não basta.
 2. Confira a requisição à visão de alertas com a [referência da API do Google](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView). Ela usa `timeRange.startTime`, `timeRange.endTime`, `snapshotQuery=` (um valor vazio inclui todos os status de alerta), `alertListOptions.maxReturnedAlerts` e `includeNonAlertingDetections` definido explicitamente a partir da seleção **Data to import** salva. Ela não deve enviar `pageSize` nem `pageToken` a esse endpoint. As duas passadas por horário de criação usam [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections) e `legacySearchCuratedDetections`, em que `ruleId`, `listBasis`, `alertState`, `pageSize` e `pageToken` são os parâmetros documentados, e as falhas delas trazem em vez disso o prefixo da pesquisa de detecções. `legacySearchCuratedDetections` sempre recebe um único ID de regra selecionada, nunca `-`. Não substitua isso por um filtro que exclua os alertas fechados, porque assim se perdem detecções.
 3. Compare o recurso completo `projects/{project}/locations/{location}/instances/{instance}` com os valores das configurações do seu locatário do Google SecOps. O componente da instância deve ser o ID da instância do SecOps; um nome de exibição da conexão ou o nome de uma conta de serviço não o substitui. Confirme que o endpoint regional corresponde à localização da instância.
-4. Espere o próximo intervalo de consulta configurado depois que a implantação terminar. **Última consulta** deve avançar e **Último erro** deve ser limpo em uma consulta completa. Se a janela tiver detecções, elas devem aparecer em **Produtos → Security Events**; uma janela tranquila pode legitimamente ingerir zero eventos.
+4. Espere o próximo intervalo de consulta configurado depois que a implantação terminar. **Última consulta** deve avançar e **Último erro** deve ser limpo em uma consulta completa. Se a janela tiver detecções, elas devem aparecer em **Produtos → Eventos de segurança**; uma janela tranquila pode legitimamente ingerir zero eventos.
 
 Se o mesmo erro continuar, abra **Ver erro** na coluna **Ações** da conexão, use **Copiar erro** na caixa de diálogo e envie ao suporte essa mensagem, a tag ou o digest da imagem, a região e o nome do recurso da instância. As credenciais na mensagem registrada estão ocultadas; não envie separadamente a chave privada da conta de serviço, a asserção JWT nem o token de acesso. Os erros registrados antes da atualização podem já estar truncados; uma consulta com falha posterior registra a mensagem completa. Uma consulta com falha mantém a janela dela para nova tentativa, e uma consulta Partial reduz a janela seguinte ou passa de um único minuto que ela nomeia no Last Error. A atualização agendada processa até 24 horas por execução.
 
@@ -332,7 +332,7 @@ O Google SecOps tinha o próprio cartão de conexões, a própria API e o própr
 - **As conexões são movidas automaticamente.** Quando a versão atualizada roda as migrações de dados dela, cada conexão do Google SecOps é copiada para as Security Event Connections com o provedor `google-secops`. Ela mantém o ID, o nome, a **Região**, o **Nome do recurso da instância**, a chave da conta de serviço, o estado **Habilitado**, o intervalo de consulta, a seleção **Data to import**, o cursor de consulta, Last Polled, Last Successful Poll, Last Event Imported e Last Error, para que a consulta retome de onde parou. O conector mantém a identidade `Google` / `Google SecOps` com que o anterior importava, então as detecções já importadas contam como **Already imported** em vez de serem salvas duas vezes.
 - **O histórico recente de execuções vem junto.** As 500 execuções mais recentes de cada conexão são copiadas para o histórico de execuções dela em **Diagnóstico**. Uma execução que ainda estava na fila ou rodando é copiada como falha com `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`
 - **As linhas anteriores são desabilitadas, não excluídas.** Assim, um worker antigo ainda rodando durante uma implantação gradual não consegue consultar a mesma instância uma segunda vez. Voltar para uma versão com o conector anterior exige habilitar essas linhas de novo.
-- **Uma conexão que não pode ser movida fica onde estava.** Uma sem chave salva, ou cuja chave não pode ser descriptografada com o `ENCRYPTION_SECRET` deste servidor, é pulada e nomeada no log do worker; adicione-a de novo em **Produtos → Security Events → Conexões**. Uma cujas configurações salvas não passam mais na validação atual é movida mesmo assim, e as consultas dela falham com uma mensagem que nomeia o campo até você editá-la. Uma que um erro passageiro do banco de dados interrompeu é movida quando a migração roda de novo na próxima inicialização de um worker, e a consulta retoma a partir do cursor copiado.
+- **Uma conexão que não pode ser movida fica onde estava.** Uma sem chave salva, ou cuja chave não pode ser descriptografada com o `ENCRYPTION_SECRET` deste servidor, é pulada e nomeada no log do worker; adicione-a de novo em **Produtos → Eventos de segurança → Conexões**. Uma cujas configurações salvas não passam mais na validação atual é movida mesmo assim, e as consultas dela falham com uma mensagem que nomeia o campo até você editá-la. Uma que um erro passageiro do banco de dados interrompeu é movida quando a migração roda de novo na próxima inicialização de um worker, e a consulta retoma a partir do cursor copiado.
 - **As rotas da API mudaram.** As rotas `/google-secops-connection` e `/google-secops-connection-run`, inclusive `/google-secops-connection/test` e `/google-secops-connection/:connectionId/run`, são substituídas por `/security-event-connection` e `/security-event-connection-run` com o provedor `google-secops`; as operações são `/security-event-connection/test` e `/security-event-connection/:connectionId/run`. Os campos de nível superior anteriores passam para `config` e `secrets`:
 
   ```json

@@ -294,11 +294,6 @@ const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
       literal: /editButtonText=\{"Edit Images"\}/,
     },
     {
-      label: "Edit Favicon",
-      file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
-      literal: /editButtonText=\{"Edit Favicon"\}/,
-    },
-    {
       label: "Edit Default Bar Color",
       file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
       literal: /editButtonText=\{"Edit Default Bar Color"\}/,
@@ -433,6 +428,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anomaly detection",
   ],
   [METRICS_MONITOR]: [
+    "Its services.",
+    "An average, minimum, maximum or percentile of a plain metric",
+    "A Sum or a Count, and any query on a histogram,",
+    "A query filtered or grouped by an attribute",
     "Every minute.",
     "Queries, then formulas.",
     "Then the rule's measure.",

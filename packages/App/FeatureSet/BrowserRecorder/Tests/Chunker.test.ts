@@ -73,21 +73,44 @@ describe("Chunker", (): void => {
       ]);
     });
 
-    it("keeps first-seen order, so the last entry is the chunk's exit page", (): void => {
+    /*
+     * Issue #5375. A person's journey is read from this order, and a Set
+     * kept a return at its first position: A -> B -> A read as ending on B,
+     * and the return - the very thing a back-and-forth looks like inside a
+     * 15s window - was gone.
+     */
+    it("keeps the order they were visited, returns included, so the last entry is the chunk's exit page", (): void => {
       const chunker: Chunker = makeChunker();
 
       chunker.addRoute("https://shop.example.com/a");
       chunker.addRoute("https://shop.example.com/b");
       chunker.addRoute("https://shop.example.com/a");
       chunker.addRoute("https://shop.example.com/c");
+      chunker.addRoute("https://shop.example.com/a");
       chunker.add(event());
       chunker.close(false);
 
       expect(chunks[0]?.routes).toEqual([
         "https://shop.example.com/a",
         "https://shop.example.com/b",
+        "https://shop.example.com/a",
         "https://shop.example.com/c",
+        "https://shop.example.com/a",
       ]);
+    });
+
+    it("a page going back and forth stays inside the count and byte caps", (): void => {
+      const chunker: Chunker = makeChunker();
+
+      for (let index: number = 0; index < 500; index++) {
+        chunker.addRoute(`https://shop.example.com/tab-${index % 2}`);
+      }
+
+      chunker.add(event());
+      chunker.close(false);
+
+      /* MAX_ROUTES_PER_CHUNK: a return costs a slot like any navigation. */
+      expect(chunks[0]?.routes.length).toBe(32);
     });
 
     /*
@@ -125,7 +148,7 @@ describe("Chunker", (): void => {
      * grow one envelope without bound. routeCount still counts every change
      * past the cap, so the signal is not lost - only the list is bounded.
      */
-    it("caps the number of distinct routes it will carry", (): void => {
+    it("caps the number of routes it will carry", (): void => {
       const chunker: Chunker = makeChunker();
 
       for (let index: number = 0; index < 200; index++) {
@@ -178,7 +201,7 @@ describe("Chunker", (): void => {
       expect(routes.length).toBeLessThan(32);
     });
 
-    it("does not double-count the bytes of a route it already holds", (): void => {
+    it("does not double-count the bytes of a route repeated back to back", (): void => {
       const chunker: Chunker = makeChunker();
 
       for (let index: number = 0; index < 50; index++) {

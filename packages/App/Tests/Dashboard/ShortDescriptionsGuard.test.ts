@@ -144,7 +144,11 @@ describe("descriptions across the product are short", () => {
   test("reads every kind of description, however its words are held", () => {
     const minimums: Record<DescriptionKind, number> = {
       field: 800,
-      column: 400,
+      /*
+       * A rule's match conditions are not counted: the conditions builder
+       * draws them, help and all (RuleCriteriaModelForm).
+       */
+      column: 150,
       detail: 30,
       section: 100,
       option: 20,
@@ -191,6 +195,10 @@ describe("descriptions across the product are short", () => {
     );
     // A model column's description, shown under a field with none.
     expect(textsOfKind(found, "column")).toContain(
+      "List of services affected by this incident.",
+    );
+    // Never a rule's match condition: the conditions builder draws those.
+    expect(textsOfKind(found, "column")).not.toContain(
       "Regular expression pattern to match monitor names. Leave empty to match any monitor name. Example: 'prod-.*' matches monitors starting with 'prod-'.",
     );
     expect(textsOfKind(found, "empty")).toContain(

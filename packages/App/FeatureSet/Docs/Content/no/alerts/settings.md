@@ -120,7 +120,7 @@ Klikk på **Opprett Alert Reminder Rule**. Under **Treff** lar du **Alle varsler
 Under **Påminnelser** angir du **Påminnelsesintervall (minutter)**, hvor ofte eierne minnes på, og **Stopp påminnelser når**: **Løst**, standarden, eller **Bekreftet**. **Navn** følger begge, for eksempel "Påminn hver 30 minutter til løst", til du skriver inn ditt eget. Opprett deretter regelen.
 :::
 
-Eiere får hver påminnelse som **Alert reminder**, som er slått på via e-post som standard. Et varsels regel samsvares på nytt når alvorlighetsgraden eller etikettene endres. For å stoppe påminnelsene for ett varsel slår du av **Send påminnelser** på siden **Innstillinger**; den lagrer i det øyeblikket du slår den om.
+Eiere får hver påminnelse som **Påminnelse om varsel**, som er slått på via e-post som standard. Et varsels regel samsvares på nytt når alvorlighetsgraden eller etikettene endres. For å stoppe påminnelsene for ett varsel slår du av **Send påminnelser** på siden **Innstillinger**; den lagrer i det øyeblikket du slår den om.
 
 ## Innstillinger
 

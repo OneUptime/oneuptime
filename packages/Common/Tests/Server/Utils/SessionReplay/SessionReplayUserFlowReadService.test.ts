@@ -113,7 +113,15 @@ describe("statements", () => {
       "flowChunk -> (flowChunk.1, flowChunk.2, flowChunk.3)",
     );
     expect(query).toContain(
-      "groupArray((chunkStartTime, tabId, chunkIndex, routes))",
+      "groupArray((chunkStartTime, tabId, chunkIndex, flowChunkRoutes))",
+    );
+    /*
+     * Every chunk's list ends on the page it was flushed from, so a return
+     * in a session's last chunk is where the journey ends even in a
+     * recording whose list holds each page once.
+     */
+    expect(query).toContain(
+      "if(url = '' OR routes[-1] = url, routes, arrayPushBack(routes, url)) AS flowChunkRoutes",
     );
     /* Back-to-back repeats are collapsed in the statement. */
     expect(query).toContain(

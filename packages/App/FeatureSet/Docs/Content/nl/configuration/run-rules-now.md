@@ -28,7 +28,7 @@ Om een regel uit te voeren hebt u de machtiging nodig om de regel te bewerken **
 > [!IMPORTANT]
 > Een machtiging die beperkt is tot bepaalde labels, of tot resources waarvan u eigenaar bent, is niet genoeg: een uitvoering kan elke resource in het project wijzigen. Blokkeerlijsten van teams gelden zoals overal, en een blokkering die tot enkele labels is beperkt, telt ook mee: een uitvoering zou de resources met die labels wijzigen, dus een blokkering met labels op het bewerken van de resources die een regel wijzigt, weigert de uitvoering.
 
-De regels van een netwerk vragen hetzelfde wanneer u ze uitvoert op de apparaten die u al hebt. **Nu uitvoeren** van een regel voor sitetoewijzing of apparaatlabels vereist de machtiging om de regel te bewerken en **Edit Network Device**. **Dry Run** en **Run Rule** van een regel voor automatisch importeren vereisen de machtiging om de regel te bewerken, **Create Network Device** en, als de regel een monitorsjabloon heeft, **Create Monitor**. Elke machtiging moet het hele project bereiken. Zie [Automatisch importeren met regels voor automatisch importeren](/docs/monitor/network-device-monitor#automatisch-importeren-met-auto-importregels).
+De regels van een netwerk vragen hetzelfde wanneer u ze uitvoert op de apparaten die u al hebt. **Nu uitvoeren** van een regel voor sitetoewijzing of apparaatlabels vereist de machtiging om de regel te bewerken en **Edit Network Device**. **Dry Run** en **Regel uitvoeren** van een regel voor automatisch importeren vereisen de machtiging om de regel te bewerken, **Create Network Device** en, als de regel een monitorsjabloon heeft, **Create Monitor**. Elke machtiging moet het hele project bereiken. Zie [Automatisch importeren met regels voor automatisch importeren](/docs/monitor/network-device-monitor#automatisch-importeren-met-auto-importregels).
 
 ## Eén regel uitvoeren
 
@@ -43,11 +43,11 @@ Open het menu **⋯** aan het eind van de rij van de regel en kies **Nu uitvoere
 
 ### Kiezen of nieuwe eigenaren een melding krijgen
 
-Kies bij een eigenaarsregel of u **Notify the owners this run adds** wilt. Dit staat standaard uit en werkt alleen als bij de regel zelf **Eigenaren op de hoogte stellen** aan staat. Een eigenaar krijgt één melding voor elke resource waaraan hij wordt toegevoegd.
+Kies bij een eigenaarsregel of u **Eigenaren die deze uitvoering toevoegt op de hoogte brengen** wilt. Dit staat standaard uit en werkt alleen als bij de regel zelf **Eigenaren op de hoogte stellen** aan staat. Een eigenaar krijgt één melding voor elke resource waaraan hij wordt toegevoegd.
 
 ### De regel starten
 
-Kies **Run Rule** en laat het dialoogvenster open. Bij een groot project toont het dialoogvenster hoe ver de uitvoering is.
+Kies **Regel uitvoeren** en laat het dialoogvenster open. Bij een groot project toont het dialoogvenster hoe ver de uitvoering is.
 
 ### Het rapport lezen
 

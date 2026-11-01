@@ -190,7 +190,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in fourteen groups
+  # own fixture server on its own port - so they run here in sixteen groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite outgrew a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner), so each now runs in halves, in two groups
@@ -199,9 +199,13 @@ jobs:
   # config, same browsers, one worker.
   #
   # The same group has taken a third longer on one run than on the next with
-  # nothing changed but the runner (group 1: about 18 and 24 minutes), so keep
-  # each group near 20 minutes on a slow runner, well under its run step's 28.
-  # When one passes about 22, move a suite or add a group.
+  # nothing changed but the runner (group 1: about 18 and 24 minutes), and on
+  # 14.0.100's second gate run (2026-11-01) group 14 took 1.45 times the
+  # minutes of the first run, suite for suite. Security Operations alone takes
+  # about 20 minutes on a runner of normal speed, so on such a runner it would
+  # pass 28. So the run step's limit is 35, and a group is planned at about 22
+  # minutes on a runner of normal speed (about 32 on the slowest seen). When
+  # one passes that, move a suite or add a group.
   #
   # The groups run in the Playwright image (mcr.microsoft.com/playwright, at
   # the version packages/E2E locks): Chromium, Firefox and the system
@@ -218,7 +222,7 @@ jobs:
   # DejaVu faces from the repository, with no apt (in the image, four tests
   # that measure words failed without them).
   # Tests/Ops/PlaywrightImage holds its tag to the lockfile's Playwright, the
-  # job's limit to the run step's 28 minutes, the setup and the pull, and
+  # job's limit to the run step's 35 minutes, the setup and the pull, and
   # every job in the image to installing the runner's fonts.
   # When Event Overview or
   # the Workflow Builder suite passes it alone, split that suite across two
@@ -229,16 +233,16 @@ jobs:
   # since 2026-10-27: its config reads WORKFLOW_BUILDER_SHARD (set below from
   # the group's workflow_builder_shard) and Playwright shards it by spec file,
   # the laptop's projects in one half and the phone's in the other. Model
-  # Tables is split since 2026-11-01 by MODEL_TABLES_SHARD, by test as Event
-  # Overview is (Tests/Ops/DashboardOfflineUiShards holds every half to
-  # running once).
+  # Tables and Monitor Overview are split since 2026-11-01 by
+  # MODEL_TABLES_SHARD and MONITOR_OVERVIEW_SHARD, by test as Event Overview
+  # is (Tests/Ops/DashboardOfflineUiShards holds every half to running once).
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
   # its output paths in the upload step below.
   dashboard-offline-ui:
     name: Dashboard Offline UI (${{ matrix.group }})
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 48
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       # The runner's own user: the workspace and HOME are its, and Firefox
@@ -263,6 +267,8 @@ jobs:
       WORKFLOW_BUILDER_SHARD: ${{ matrix.workflow_builder_shard || '' }}
       # And of Model Tables (playwright.model-tables-ui.config.ts).
       MODEL_TABLES_SHARD: ${{ matrix.model_tables_shard || '' }}
+      # And of Monitor Overview (playwright.monitor-overview-ui.config.ts).
+      MONITOR_OVERVIEW_SHARD: ${{ matrix.monitor_overview_shard || '' }}
     strategy:
       # Every group reports its own suites, whatever happens to the others.
       fail-fast: false
@@ -360,6 +366,10 @@ jobs:
           # pointed at, reached with Tab and tapped).
           # Navigation Search (3.6 minutes) from group 13 on 2026-11-01, when
           # 14.0.100's first gate run took this group 20.9: about 24.5.
+          # On the second run (2026-11-01) its step hit its 28 minutes in
+          # Navigation Search, on a runner about a fifth slower (Chart Time Zoom
+          # 12.7, the rest 12.1): Navigation Search moved on to group 16. About
+          # 21.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -370,7 +380,6 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-runbook-steps-ui
-              test-navigation-search-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -420,13 +429,24 @@ jobs:
           # network device and its alert pack's filters on a phone): about 21,
           # from the 20.3 this group kept once Value Picker and List Delete
           # left for group 14.
+          # Monitor Overview runs in halves since 2026-11-01: 248 tests, 13.8
+          # minutes on 14.0.100's first gate run, when this group took 21.7,
+          # and 18.6 on the second, whose runner was about a third slower
+          # (every suite here was), when the step hit its 28 minutes during
+          # the last suite. The first half (124 tests) stays here, the second
+          # goes to group 16: about 14.6. Meraki Traffic (3.0) from group 7 and
+          # Security Events Empty States (3.7) from group 14, which took 25.5
+          # and past 28 on that run: about 21.5.
           - group: 3
+            monitor_overview_shard: 1/2
             suites: >-
               test-monitor-overview-ui
               test-event-notes-ui
               test-trace-detail-ui
               test-label-rule-transfer-ui
               test-rules-menu-section-ui
+              test-meraki-traffic-ui
+              test-security-events-empty-states-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
           # job's 30 minutes, and its On Create or Update spec would take that
           # group past them. Its two projects, a laptop and a phone, are both
@@ -593,9 +613,10 @@ jobs:
           # master's two runs of 2026-10-31 that finished every group took
           # this group 18.0 and 18.4 minutes, the steadiest of the light ones:
           # about 20.5.
+          # Discovery (5.6) moved to group 16 on 2026-11-01, when both of
+          # 14.0.100's gate runs took this group 24.6 minutes: about 19.
           - group: 6
             suites: >-
-              test-discovery-ui
               test-status-page-theme-ui
               test-calendar-feed-ui
               test-sign-in-options-ui
@@ -677,6 +698,8 @@ jobs:
           # at 1280 and 390: about 9 seconds): about 20.
           # Meraki Traffic (3.0 minutes) from group 8 on 2026-11-01, when 14.0.100's
           # first gate run took this group 20.3 and group 8 27.5: about 23.5.
+          # It moved on to group 3 when the second took this group 25.5:
+          # about 20.
           - group: 7
             suites: >-
               test-profiles-ui
@@ -684,7 +707,6 @@ jobs:
               test-custom-roles-ui
               test-public-dashboard-theme-ui
               test-dashboard-table-thresholds-ui
-              test-meraki-traffic-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -854,6 +876,8 @@ jobs:
           # 28 minutes in Topology, the last suite (Workflow Builder's half
           # 11.3, Kubernetes Events 3.6, OpenShift Pages 2.8): OpenShift Pages
           # and Topology (about 2.8 each) moved to group 15. About 22.5.
+          # Kubernetes Events (3.5) followed them when the second run took this
+          # group 24.0: about 20.5.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -863,7 +887,6 @@ jobs:
               test-runbooks-menu-ui
               test-postmortems-ui
               test-archivable-values-ui
-              test-kubernetes-events-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -1025,6 +1048,8 @@ jobs:
           # Consumers and a database's Calling services as one shared table, at
           # every width with busy and long names, in German and dark (2.4
           # minutes locally with its bundle, from 1.3): about 20.5.
+          # Ask AI (3.4) moved to group 16 on 2026-11-01, when 14.0.100's second
+          # gate run took this group 25.9: about 20.
           - group: 12
             suites: >-
               test-code-ui
@@ -1032,7 +1057,6 @@ jobs:
               test-acknowledgement-timeout-ui
               test-new-version-ui
               test-resource-overviews-ui
-              test-ask-ai-ui
           # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
           # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
           # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)
@@ -1105,7 +1129,9 @@ jobs:
           # joined them on 2026-11-01: about 19.5.
           # Security Events Empty States (3.7 minutes) from group 8 on
           # 2026-11-01, when 14.0.100's first gate run took this group 19.1 and
-          # group 8 27.5: about 23.
+          # group 8 27.5: about 23. It moved on to group 3 when the second run's
+          # runner, 1.45 times slower here suite for suite, took this group's
+          # step past its 28 minutes: about 19.
           - group: 14
             suites: >-
               test-value-picker-ui
@@ -1118,7 +1144,6 @@ jobs:
               test-network-traffic-names-ui
               test-custom-field-files-ui
               test-proxmox-pages-ui
-              test-security-events-empty-states-ui
           # A group of its own since 2026-11-01, as no group had the room: the
           # second half of Model Tables (88 tests, 6.9 minutes locally) and
           # Metrics AI (3.0 on 14.0.100's first gate run) from group 4, whose
@@ -1126,7 +1151,8 @@ jobs:
           # to 23.2 minutes on that run: about 12. OpenShift Pages and Topology
           # (about 2.8 each) from group 9, whose step hit its 28 on that run
           # too: about 17.5. Status Timeline (2.3) and Runbook Triggers (1.8)
-          # from group 11, which took 25.7: about 21.5.
+          # from group 11, which took 25.7: about 21.5. The second run took it
+          # 15.5: Kubernetes Events (3.5) from group 9: about 19.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1136,6 +1162,20 @@ jobs:
               test-topology-ui
               test-status-timeline-ui
               test-runbook-triggers-ui
+              test-kubernetes-events-ui
+          # Added on 2026-11-01, when 14.0.100's second gate run, on runners up
+          # to 1.45 times slower, took groups 2, 3 and 14 past their run step's
+          # 28 minutes and groups 6, 7, 9, 12 and 13 to 24 to 26: Monitor
+          # Overview's second half (124 tests, about 7 minutes) from group 3,
+          # Navigation Search (3.6) from group 2, Discovery (5.6) from group 6
+          # and Ask AI (3.4) from group 12: about 19.5.
+          - group: 16
+            monitor_overview_shard: 2/2
+            suites: >-
+              test-monitor-overview-ui
+              test-navigation-search-ui
+              test-discovery-ui
+              test-ask-ai-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1176,7 +1216,7 @@ jobs:
       # runs, rather than quietly running nothing.
       - name: Run this group's UI regressions
         working-directory: packages/E2E
-        timeout-minutes: 28
+        timeout-minutes: 35
         env:
           SUITES: ${{ matrix.suites }}
         run: |

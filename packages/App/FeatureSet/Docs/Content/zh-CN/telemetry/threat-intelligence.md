@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### 前往 Threat Intel
 
-打开 **产品 → Security Events → 检测 → 威胁情报** 。
+打开 **产品 → 安全事件 → 检测 → 威胁情报** 。
 
 ### 创建情报源
 

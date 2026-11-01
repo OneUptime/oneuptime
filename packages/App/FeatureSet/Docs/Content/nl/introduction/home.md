@@ -76,7 +76,7 @@ flowchart TB
     done -->|"Nee"| shown["De checklist met de<br/>overgebleven stappen"]
 ```
 
-De checklist verdwijnt zodra alle vier stappen klaar zijn. Om hem eerder te verbergen, klikt u op **Sluiten**. Dat wordt onthouden in deze browser, voor dit project; alles wat de stappen openen, staat nog steeds in het menu **Producten**.
+De checklist verdwijnt zodra alle vier stappen klaar zijn. Om hem eerder te verbergen, klikt u op **Verbergen**. Dat wordt onthouden in deze browser, voor dit project; alles wat de stappen openen, staat nog steeds in het menu **Producten**.
 
 ### Vraagt aandacht
 

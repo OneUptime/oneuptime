@@ -84,7 +84,7 @@ Stel onder **Herinneringen** het **Herinneringsinterval (minuten)** in, hoe vaak
 
 De API en Terraform weigeren een regel die zou wachten tot de gebeurtenis begint en zou stoppen zodra die begint: die zou nooit een herinnering sturen. Een oudere regel die zo is opgeslagen, staat in de lijst met **Herinnert nooit**, en het formulier vraagt je te kiezen wanneer er herinnerd wordt.
 
-Eigenaren krijgen elke herinnering als **Maintenance reminder**, die voor elk nieuw lid per e-mail aanstaat. Een herinneringsregel opslaan, wijzigen of verwijderen koppelt elke gebeurtenis die nog niet voltooid is opnieuw aan een regel. Om de herinneringen voor één gebeurtenis te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat slaat op zodra je omschakelt.
+Eigenaren krijgen elke herinnering als **Onderhoudsherinnering**, die voor elk nieuw lid per e-mail aanstaat. Een herinneringsregel opslaan, wijzigen of verwijderen koppelt elke gebeurtenis die nog niet voltooid is opnieuw aan een regel. Om de herinneringen voor één gebeurtenis te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat slaat op zodra je omschakelt.
 
 Deze herinneringen zijn voor je team. De herinneringen die de abonnees van je statuspagina's krijgen voordat een gebeurtenis begint, stel je in op de gebeurtenis zelf, onder **Herinneringen vóór de gebeurtenis**.
 
@@ -132,7 +132,7 @@ Open de regel en controleer haar voorwaarden: elke voorwaarde die je hebt ingevu
 :::
 
 :::details Eigenaren kregen geen herinnering
-Controleer of een herinneringsregel past op de labels van de gebeurtenis, of **Herinneringen sturen** bij de gebeurtenis aanstaat en of **Maintenance reminder** aanstaat in de meldingsinstellingen van de eigenaren. Een regel met **Terwijl het bezig is** stuurt niets voordat de gebeurtenis begint.
+Controleer of een herinneringsregel past op de labels van de gebeurtenis, of **Herinneringen sturen** bij de gebeurtenis aanstaat en of **Onderhoudsherinnering** aanstaat in de meldingsinstellingen van de eigenaren. Een regel met **Terwijl het bezig is** stuurt niets voordat de gebeurtenis begint.
 :::
 
 ## Volgende stappen

@@ -142,7 +142,7 @@ Duas coisas para saber antes de ler os números:
 
 ## A aba Uso
 
-Abra **Produtos → AI / LLM** e vá para **Uso**. Ela ordena **Funcionário**, **Equipe**, **Modelo**, **Provedor** e **Aplicação / Serviço** por gasto, nos últimos 7 dias, a menos que você escolha outro período. Chamadas que não citam ninguém são contadas em **Sem atribuição**: uma linha grande de **Sem atribuição** mostra qual ferramenta ainda precisa ter a identidade definida.
+Abra **Produtos → IA / LLM** e vá para **Uso**. Ela ordena **Funcionário**, **Equipe**, **Modelo**, **Provedor** e **Aplicação / Serviço** por gasto, nos últimos 7 dias, a menos que você escolha outro período. Chamadas que não citam ninguém são contadas em **Sem atribuição**: uma linha grande de **Sem atribuição** mostra qual ferramenta ainda precisa ter a identidade definida.
 
 ### As métricas de assistentes de programação são um recurso alternativo, não uma soma
 

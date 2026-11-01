@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Company name associated with this license.",
+  "Annual contract value (in USD) for this license.": "Annual contract value (in USD) for this license.",
+  "Expiration date of this license.": "Expiration date of this license.",
+  "Something went wrong": "Something went wrong",
+  "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
+  "Error details": "Error details",
+  "Still stuck?": "Still stuck?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.",
+  "Download support bundle": "Download support bundle",
+  "Send it to {{email}}": "Send it to {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Support bundle downloaded. Review it, then attach it to your email.",
+  "The support bundle could not be downloaded. Please try again.": "The support bundle could not be downloaded. Please try again.",
   "common": {
     "save": "Save",
     "cancel": "Cancel",

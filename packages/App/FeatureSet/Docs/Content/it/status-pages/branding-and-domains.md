@@ -63,7 +63,7 @@ Il vostro CSS e il vostro HTML personalizzati si applicano in entrambi i temi; [
 ### Titolo, descrizione e favicon
 
 - **Titolo e descrizione**: il nome della pagina nella scheda del browser e nelle email agli iscritti, e la descrizione che mostrano i motori di ricerca. **Modifica** apre **Titolo della pagina** (segnaposto `e.g., Acme Status`) e **Descrizione della pagina**. Motori di ricerca e anteprime dei link li mostrano, quindi scriveteli per un cliente, non per il vostro team.
-- **Favicon**: **Edit Favicon** apre il caricamento **Favicon**: la piccola icona nella scheda del browser.
+- **Favicon**: **Modifica favicon** apre il caricamento **Favicon**: la piccola icona nella scheda del browser.
 
 ### Link dell'intestazione
 

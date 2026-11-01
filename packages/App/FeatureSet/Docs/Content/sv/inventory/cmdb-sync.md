@@ -147,7 +147,7 @@ Värdar och nätverksenheter beskrivs med samma uppgifter, sparade under samma n
 | Firmwareversion | `device.firmware.version` | Stämplad | ENTITY-MIB, annars det `sysDescr` nämner |
 | Operativsystem | `os.name` | `os.description` (eller `os.type`) | Det `sysDescr` nämner: Cisco IOS, Junos OS, Arista EOS, Linux |
 | OS-version | `os.version` | Upptäckt | ENTITY-MIB, annars det `sysDescr` nämner |
-| Device Type | `device.type` | Stämplad. Annars klassificerar kortet den utifrån operativsystem och namn (Server, Brandvägg, ...) | Dess roll: den du tilldelade, annars den som topologikartan ritar den som |
+| Enhetstyp | `device.type` | Stämplad. Annars klassificerar kortet den utifrån operativsystem och namn (Server, Brandvägg, ...) | Dess roll: den du tilldelade, annars den som topologikartan ritar den som |
 | Plats | `device.location` | Stämplad. Annars visar kortet dess molnzon | `sysLocation`. Kortet visar dess plats först |
 
 [Värdtabellen](#tillgångsattribut-för-värdar) och [tabellen över nätverksenheter](#tillgångsattribut-för-nätverksenheter) nedan talar i detalj om var varje värde kommer ifrån.

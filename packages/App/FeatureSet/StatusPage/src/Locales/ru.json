@@ -1,4 +1,7 @@
 {
+  "Something went wrong": "Что-то пошло не так",
+  "An unexpected error has occurred. Please reload the page to continue": "Произошла непредвиденная ошибка. Перезагрузите страницу, чтобы продолжить",
+  "Error details": "Подробности ошибки",
   "a11y": {
     "skipToMainContent": "Перейти к основному содержанию",
     "loading": "Загрузка...",

@@ -28,9 +28,9 @@ OneUptime slår opp hver verdi blant prosjektets oppføringer, sier hvor sikkert
 
 ## Hvor du ser det
 
-- **Tilkoblede signaler**, en side i hver sikkerhetssak: åpne en sak under **Produkter → Security Events → Sikkerhetssaker → Åpne saker**, og deretter **Tilkoblede signaler** etter **Entiteter** i menyen.
-- **Tilkoblet**, en fane i hver sikkerhetshendelse: åpne en hendelse under **Produkter → Security Events → Hendelser**. Den viser hva hendelsen nevner, i timen rundt den.
-- Siden til en entitet under **Produkter → Security Events → Entitetsrisiko**: hvor OneUptime kjenner brukeren, verten eller adressen, rundt den siste sikkerhetshendelsen.
+- **Tilkoblede signaler**, en side i hver sikkerhetssak: åpne en sak under **Produkter → Sikkerhetshendelser → Sikkerhetssaker → Åpne saker**, og deretter **Tilkoblede signaler** etter **Entiteter** i menyen.
+- **Tilkoblet**, en fane i hver sikkerhetshendelse: åpne en hendelse under **Produkter → Sikkerhetshendelser → Hendelser**. Den viser hva hendelsen nevner, i timen rundt den.
+- Siden til en entitet under **Produkter → Sikkerhetshendelser → Entitetsrisiko**: hvor OneUptime kjenner brukeren, verten eller adressen, rundt den siste sikkerhetshendelsen.
 - Et **Sikkerhet**-kort på siden til hver vert, Docker-vert, Podman-vert, Kubernetes-klynge, nettverksenhet, tjeneste, hvert medlem og hvert inventarelement: de åpne sikkerhetssakene som nevner den, hvor mange sikkerhetshendelser og funn som nevnte den de siste 7 dagene, den alvorligste av dem og risikoen. **Åpne i Security Events** åpner den der.
 - Et **Sikkerhet**-kort på siden til en hendelse, når en sikkerhetssak erklærte hendelsen (**Erklært fra**), eller åpne saker nevner en vert eller klynge den berører (**Åpne saker som nevner det den berører**).
 

@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Nom de l'entreprise associée à cette licence.",
+  "Annual contract value (in USD) for this license.": "Valeur annuelle du contrat (en USD) pour cette licence.",
+  "Expiration date of this license.": "Date d'expiration de cette licence.",
+  "Something went wrong": "Un problème est survenu",
+  "An unexpected error has occurred. Please reload the page to continue": "Une erreur inattendue s'est produite. Veuillez recharger la page pour continuer",
+  "Error details": "Détails de l'erreur",
+  "Still stuck?": "Toujours bloqué ?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Téléchargez un fichier de diagnostic local avec la pile d'erreur, la pile de composants, l'URL de la page nettoyée, les détails du navigateur et le build de OneUptime. Il ne lit jamais les cookies, les données enregistrées du navigateur ni le contenu des formulaires. Relisez-le avant de le partager avec le support OneUptime.",
+  "Download support bundle": "Télécharger le pack de support",
+  "Send it to {{email}}": "Envoyez-le à {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Pack de support téléchargé. Vérifiez-le, puis joignez-le à votre e-mail.",
+  "The support bundle could not be downloaded. Please try again.": "Le pack de support n'a pas pu être téléchargé. Veuillez réessayer.",
   "common": {
     "save": "Enregistrer",
     "cancel": "Annuler",
