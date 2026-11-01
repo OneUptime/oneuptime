@@ -39427,5 +39427,7 @@
   "Cluster update": "클러스터 업데이트",
   "Compact rows": "촘촘한 행",
   "Sort by": "정렬 기준",
-  "Sorted by {{column}}": "{{column}} 기준 정렬"
+  "Sorted by {{column}}": "{{column}} 기준 정렬",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "라우트"
 }

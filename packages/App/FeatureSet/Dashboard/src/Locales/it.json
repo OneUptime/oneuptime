@@ -39427,5 +39427,7 @@
   "Cluster update": "Aggiornamento del cluster",
   "Compact rows": "Righe compatte",
   "Sort by": "Ordina per",
-  "Sorted by {{column}}": "Ordinato per {{column}}"
+  "Sorted by {{column}}": "Ordinato per {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "route"
 }

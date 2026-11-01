@@ -39427,5 +39427,7 @@
   "Cluster update": "به‌روزرسانی خوشه",
   "Compact rows": "سطرهای فشرده",
   "Sort by": "مرتب‌سازی بر اساس",
-  "Sorted by {{column}}": "مرتب‌شده بر اساس {{column}}"
+  "Sorted by {{column}}": "مرتب‌شده بر اساس {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "مسیر"
 }

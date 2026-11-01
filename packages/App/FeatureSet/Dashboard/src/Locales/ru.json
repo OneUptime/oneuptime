@@ -39427,5 +39427,7 @@
   "Cluster update": "Обновление кластера",
   "Compact rows": "Компактные строки",
   "Sort by": "Сортировать по",
-  "Sorted by {{column}}": "Сортировка: {{column}}"
+  "Sorted by {{column}}": "Сортировка: {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "маршрут"
 }

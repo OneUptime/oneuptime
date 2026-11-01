@@ -39427,5 +39427,7 @@
   "Cluster update": "集群更新",
   "Compact rows": "紧凑行",
   "Sort by": "排序依据",
-  "Sorted by {{column}}": "按{{column}}排序"
+  "Sorted by {{column}}": "按{{column}}排序",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "路由"
 }

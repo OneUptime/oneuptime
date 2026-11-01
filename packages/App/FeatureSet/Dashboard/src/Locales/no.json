@@ -39427,5 +39427,7 @@
   "Cluster update": "Klyngeoppdatering",
   "Compact rows": "Kompakte rader",
   "Sort by": "Sorter etter",
-  "Sorted by {{column}}": "Sortert etter {{column}}"
+  "Sorted by {{column}}": "Sortert etter {{column}}",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "rute"
 }

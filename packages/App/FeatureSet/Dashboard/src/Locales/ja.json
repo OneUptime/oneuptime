@@ -39427,5 +39427,7 @@
   "Cluster update": "クラスターの更新",
   "Compact rows": "コンパクトな行",
   "Sort by": "並べ替えの基準",
-  "Sorted by {{column}}": "{{column}}で並べ替え"
+  "Sorted by {{column}}": "{{column}}で並べ替え",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "ルート"
 }

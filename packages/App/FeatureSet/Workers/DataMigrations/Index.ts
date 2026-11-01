@@ -925,6 +925,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new AddUserIdToExceptionInstance(),
   /*
+   * Binds every infrastructure monitor's step to its resource's id and stores
+   * its value as the resource has it (InfrastructureResourceBinding), so a
+   * rename of a cluster, vCenter or host keeps its monitors. Reads the
+   * resource tables; idempotent. No ordering requirement, so it sits above
+   * the three runbook migrations below, which keep their places right before
+   * the last slot AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new BindInfrastructureMonitorSteps(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -958,13 +967,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
-  /*
-   * Binds every infrastructure monitor's step to its resource's id and stores
-   * its value as the resource has it (InfrastructureResourceBinding), so a
-   * rename of a cluster, vCenter or host keeps its monitors. Reads the
-   * resource tables; idempotent.
-   */
-  new BindInfrastructureMonitorSteps(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -39427,5 +39427,7 @@
   "Cluster update": "क्लस्टर अपडेट",
   "Compact rows": "संक्षिप्त पंक्तियाँ",
   "Sort by": "इसके अनुसार क्रमबद्ध करें",
-  "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध"
+  "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध",
+  "DeploymentConfig": "DeploymentConfig",
+  "route": "रूट"
 }
