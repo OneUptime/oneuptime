@@ -116,7 +116,7 @@ const MonitorLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitor Labels (optional)",
+          placeholder: "Select Monitor Labels",
           // Its section's description says what it matches.
           hideColumnDescription: true,
         },

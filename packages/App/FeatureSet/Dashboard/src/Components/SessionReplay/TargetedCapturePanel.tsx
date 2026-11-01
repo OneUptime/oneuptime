@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -368,7 +369,12 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-gray-100 pt-3">
               <button
                 type="button"
-                className="text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:cursor-not-allowed disabled:text-gray-400"
+                className={`text-xs font-medium text-indigo-600 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: !canAct,
+                    hoverClassName: "hover:text-indigo-800",
+                  },
+                )}`}
                 disabled={!canAct}
                 data-testid="targeted-capture-status"
                 onClick={(): void => {
@@ -379,7 +385,12 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
               </button>
               <button
                 type="button"
-                className="text-xs font-medium text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:text-gray-300"
+                className={`text-xs font-medium text-gray-500 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: !canAct,
+                    hoverClassName: "hover:text-gray-700",
+                  },
+                )}`}
                 disabled={!canAct}
                 data-testid="targeted-capture-clear"
                 onClick={(): void => {

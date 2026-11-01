@@ -1,3 +1,7 @@
+import {
+  BUTTON_DISABLED_CLASS_NAME,
+  BUTTON_DISABLED_CURSOR_CLASS_NAME,
+} from "../Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -105,10 +109,10 @@ export const TOGGLE_TRACK_ENABLED_CLASS: string = "cursor-pointer";
 
 /*
  * Disabled controls are exempt from the contrast rule; dimming the whole
- * switch is what tells one apart from a switch that can be pressed.
+ * switch is what tells one apart from a switch that can be pressed - as
+ * every locked button is dimmed (BUTTON_DISABLED_CLASS_NAME).
  */
-export const TOGGLE_TRACK_DISABLED_CLASS: string =
-  "cursor-not-allowed opacity-50";
+export const TOGGLE_TRACK_DISABLED_CLASS: string = BUTTON_DISABLED_CLASS_NAME;
 
 /*
  * 20px, filling the track's height inside its 2px clear border.
@@ -399,7 +403,9 @@ const Toggle: FunctionComponent<ComponentProps> = (
                     id={labelId}
                     htmlFor={switchId}
                     className={`font-medium text-gray-900 ${
-                      isDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                      isDisabled
+                        ? BUTTON_DISABLED_CURSOR_CLASS_NAME
+                        : "cursor-pointer"
                     }`}
                   >
                     {/* The text in a span of its own, as FieldLabel has it. */}

@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -1246,7 +1247,12 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 type="button"
                 aria-label={t("Previous page")}
                 disabled={currentPage === 0}
-                className="rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className={`rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: currentPage === 0,
+                    hoverClassName: "hover:bg-gray-50",
+                  },
+                )}`}
                 onClick={() => {
                   setPage(currentPage - 1);
                 }}
@@ -1260,7 +1266,12 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
                 type="button"
                 aria-label={t("Next page")}
                 disabled={currentPage >= pageCount - 1}
-                className="rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className={`rounded-md border border-gray-200 px-3 py-1.5 font-medium text-gray-700 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: currentPage >= pageCount - 1,
+                    hoverClassName: "hover:bg-gray-50",
+                  },
+                )}`}
                 onClick={() => {
                   setPage(currentPage + 1);
                 }}

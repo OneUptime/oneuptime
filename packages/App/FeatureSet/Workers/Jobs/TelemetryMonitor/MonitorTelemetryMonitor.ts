@@ -1805,10 +1805,19 @@ export const monitorException: MonitorExceptionFunction = async (data: {
     data.monitorStep.data?.exceptionMonitor ||
     MonitorStepExceptionMonitorUtil.getDefault();
 
+  /*
+   * One clock read for the whole evaluation: the count's window and the
+   * measures' (new, regressed, the increase) end at the same instant. Read
+   * twice, a millisecond could pass between them, and the occurrences the
+   * measures group would no longer be the ones counted.
+   */
+  const evaluateUntil: Date =
+    data.evaluateUntil || OneUptimeDate.getCurrentDate();
+
   const analyticsQuery: Query<ExceptionInstance> =
     MonitorStepExceptionMonitorUtil.toAnalyticsQuery(
       exceptionMonitorConfig,
-      data.evaluateUntil,
+      evaluateUntil,
     );
 
   analyticsQuery.projectId = data.projectId;
@@ -1868,7 +1877,7 @@ export const monitorException: MonitorExceptionFunction = async (data: {
       config: exceptionMonitorConfig,
       countQuery,
       exceptionCount: exceptionCount.toNumber(),
-      evaluateUntil: data.evaluateUntil,
+      evaluateUntil: evaluateUntil,
     });
 
   /*

@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import CodeContextModal, { CodeContextDraft } from "./CodeContextModal";
 import {
   CODE_TASK_CONTEXT_KINDS,
@@ -449,11 +450,14 @@ const CodeComposer: FunctionComponent<ComponentProps> = (
               }}
               className={`inline-flex h-8 flex-shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
                 props.tools ? "max-sm:w-8 max-sm:px-0" : ""
-              } ${
-                canSend
-                  ? "bg-indigo-600 text-white shadow-sm hover:bg-indigo-500"
-                  : "cursor-not-allowed bg-gray-100 text-gray-400"
-              }`}
+              } bg-indigo-600 text-white shadow-sm ${getHandDrawnButtonStateClassName(
+                {
+                  // Faded with nothing to send; as it is while it sends.
+                  isLocked: !canSend,
+                  isBusy: isSending,
+                  hoverClassName: "hover:bg-indigo-500",
+                },
+              )}`}
             >
               {isSending ? (
                 <span className={SPINNER_CLASS_NAME} />

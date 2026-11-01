@@ -121,7 +121,7 @@ const ProxmoxClusterOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Proxmox Cluster Labels (optional)",
+          placeholder: "Select Proxmox Cluster Labels",
         },
         {
           field: { proxmoxClusterNamePattern: true },

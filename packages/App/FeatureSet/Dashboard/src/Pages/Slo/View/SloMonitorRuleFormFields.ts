@@ -48,7 +48,7 @@ export default function getSloMonitorRuleFormFields(): Fields<ServiceLevelObject
         valueField: "_id",
       },
       required: false,
-      placeholder: "Select Monitor Labels (optional)",
+      placeholder: "Select Monitor Labels",
     },
     {
       field: { monitorType: true },

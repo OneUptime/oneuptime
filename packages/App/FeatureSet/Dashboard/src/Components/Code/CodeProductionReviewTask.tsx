@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import { CodeTaskResponse } from "./CodeApi";
 import { getCodeHostName, getPullRequestCopy } from "./CodeHostCopy";
 import CodeHostMark from "./CodeHostMark";
@@ -316,7 +317,13 @@ const CodeProductionReviewTask: FunctionComponent<ComponentProps> = (
           onClick={props.onReviewAgain}
           className={`${
             updates ? "" : "ml-auto "
-          }inline-flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60`}
+          }inline-flex h-8 flex-shrink-0 items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+            {
+              isLocked: isWorking,
+              isBusy: props.isAskingAgain,
+              hoverClassName: "hover:bg-gray-50",
+            },
+          )}`}
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
           {text(PRODUCTION_REVIEW_COPY.reviewAgain)}

@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -82,8 +83,6 @@ const GHOST_PRESSED_TONE_CLASS: Record<ReplayTone, string> = {
   live: "bg-red-600 text-white hover:bg-red-700",
 };
 
-const DISABLED_CLASS: string = "cursor-not-allowed text-gray-300";
-
 /*
  * A square icon-only ghost, as ReplayToolButton draws one, for a control
  * that has to be a plain <button> of its own: the transport's ⋯, the
@@ -137,11 +136,17 @@ export function getReplaySegmentClassName(
 ): string {
   const tone: ReplayTone = options.tone || "neutral";
 
-  const stateClass: string = options.isDisabled
-    ? DISABLED_CLASS
-    : options.isSelected
-      ? SEGMENT_SELECTED_TONE_CLASS[tone]
-      : SEGMENT_IDLE_CLASS;
+  /*
+   * A tab that cannot be picked looks locked, as every control does - and
+   * never selected: a dead control is drawn at rest, unraised, and faded.
+   */
+  const stateClass: string = getHandDrawnLookClassName({
+    className:
+      options.isSelected && !options.isDisabled
+        ? SEGMENT_SELECTED_TONE_CLASS[tone]
+        : SEGMENT_IDLE_CLASS,
+    isLocked: options.isDisabled,
+  });
 
   const paddingClass: string = options.size === "compact" ? "px-2" : "px-2.5";
 
@@ -197,19 +202,27 @@ export interface ReplayToolButtonProps {
 function toneClassFor(props: ReplayToolButtonProps): string {
   const tone: ReplayTone = props.tone || "neutral";
 
-  if (props.isDisabled || props.isLoading) {
-    return DISABLED_CLASS;
-  }
+  // A dead control never looks pressed: locked, it is drawn unpressed.
+  const isPressed: boolean = Boolean(props.isPressed) && !props.isDisabled;
 
-  if (props.variant === "segment") {
-    return props.isPressed
-      ? SEGMENT_SELECTED_TONE_CLASS[tone]
-      : SEGMENT_IDLE_CLASS;
-  }
+  const look: string =
+    props.variant === "segment"
+      ? isPressed
+        ? SEGMENT_SELECTED_TONE_CLASS[tone]
+        : SEGMENT_IDLE_CLASS
+      : isPressed
+        ? GHOST_PRESSED_TONE_CLASS[tone]
+        : GHOST_TONE_CLASS[tone];
 
-  return props.isPressed
-    ? GHOST_PRESSED_TONE_CLASS[tone]
-    : GHOST_TONE_CLASS[tone];
+  /*
+   * Its own tone at rest while it works (its spinner shows), faded with the
+   * not-allowed cursor while it is locked - as every control looks.
+   */
+  return getHandDrawnLookClassName({
+    className: look,
+    isLocked: props.isDisabled,
+    isBusy: props.isLoading,
+  });
 }
 
 /*

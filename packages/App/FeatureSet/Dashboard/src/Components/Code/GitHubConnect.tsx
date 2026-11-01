@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Route from "Common/Types/API/Route";
 import Link from "Common/UI/Components/Link/Link";
@@ -571,11 +572,12 @@ export const ConnectGitHubEmptyState: FunctionComponent<{
             onClick={() => {
               props.connection.connect();
             }}
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
-              connectLock.isLocked
-                ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                : "bg-gray-900 text-white hover:bg-gray-800"
-            }`}
+            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnLookClassName(
+              {
+                className: "bg-gray-900 text-white hover:bg-gray-800",
+                isLocked: connectLock.isLocked,
+              },
+            )}`}
           >
             <GitHubMark className="h-4 w-4" />
             {translator.translateText("Connect GitHub")}

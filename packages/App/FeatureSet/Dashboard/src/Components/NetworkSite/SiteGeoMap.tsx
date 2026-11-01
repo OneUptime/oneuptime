@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -312,7 +313,12 @@ const MapControlButton: FunctionComponent<{
       data-testid={`site-geo-map-control-${props.label
         .toLowerCase()
         .replace(/[^a-z]+/g, "-")}`}
-      className="flex h-7 w-7 items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-default disabled:text-gray-300 disabled:hover:bg-transparent"
+      className={`flex h-7 w-7 items-center justify-center rounded-md text-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+        {
+          isLocked: props.disabled,
+          hoverClassName: "hover:bg-gray-100 hover:text-gray-900",
+        },
+      )}`}
       onClick={props.onClick}
     >
       <Icon className="h-4 w-4" icon={props.icon} />

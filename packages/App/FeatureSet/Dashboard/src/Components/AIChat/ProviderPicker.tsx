@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, {
@@ -152,9 +153,12 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
             return !open;
           });
         }}
-        className={`flex max-w-[240px] items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 ${
-          variant === "compact" ? "" : "px-3 py-1.5"
-        }`}
+        className={`flex max-w-[240px] items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 transition-colors ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: props.disabled,
+            hoverClassName: "hover:border-gray-300 hover:bg-gray-50",
+          },
+        )} ${variant === "compact" ? "" : "px-3 py-1.5"}`}
       >
         <Icon
           icon={IconProp.Sparkles}

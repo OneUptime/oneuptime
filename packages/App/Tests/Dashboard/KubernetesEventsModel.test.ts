@@ -422,6 +422,56 @@ describe("buildKubernetesEventsAttributes: the filter each view sends", () => {
   });
 });
 
+describe("isKubernetesEventAboutWorkload: a DeploymentConfig's rollouts", () => {
+  const workload: { kind: KubernetesWorkloadKind; name: string } = {
+    kind: KubernetesWorkloadKind.DeploymentConfig,
+    name: "legacy-web",
+  };
+
+  test.each([
+    ["DeploymentConfig", "legacy-web"],
+    // Each rollout's ReplicationController, and what it runs.
+    ["ReplicationController", "legacy-web-7"],
+    ["Pod", "legacy-web-7-x2x7q"],
+    // What OpenShift starts to run a rollout, and its hooks.
+    ["Pod", "legacy-web-7-deploy"],
+    ["Pod", "legacy-web-7-hook-pre"],
+    ["Pod", "legacy-web-7-hook-mid"],
+    ["Pod", "legacy-web-7-hook-post"],
+  ])("%s %s is its own", (objectKind: string, objectName: string) => {
+    expect(
+      isKubernetesEventAboutWorkload({ objectKind, objectName }, workload),
+    ).toBe(true);
+  });
+
+  test.each([
+    // A neighbour whose name starts the same way.
+    ["DeploymentConfig", "legacy-web-api"],
+    ["ReplicationController", "legacy-web-api-3"],
+    ["Pod", "legacy-web-api-3-k2m4p"],
+    ["Pod", "legacy-web-api-3-deploy"],
+    // Not the shapes a rollout makes.
+    ["ReplicationController", "legacy-web-x2x7q"],
+    ["Pod", "legacy-web-x2x7q"],
+    ["Pod", "legacy-web-7"],
+    ["Pod", "legacy-web-7-hook-later"],
+    ["Pod", "legacy-web-7-hook"],
+    ["Pod", "legacy-web-7-x2x7q-extra"],
+    // A Deployment of the same name is another workload's.
+    ["ReplicaSet", "legacy-web-7d4f9b6c5"],
+  ])("%s %s is not", (objectKind: string, objectName: string) => {
+    expect(
+      isKubernetesEventAboutWorkload({ objectKind, objectName }, workload),
+    ).toBe(false);
+  });
+
+  test("its page asks for its own Kind, its controllers and its pods", () => {
+    expect(
+      WORKLOAD_EVENT_KINDS[KubernetesWorkloadKind.DeploymentConfig],
+    ).toEqual(["DeploymentConfig", "ReplicationController", "Pod"]);
+  });
+});
+
 describe("isKubernetesEventAboutWorkload: what a workload runs, by its names", () => {
   const deployment: { kind: KubernetesWorkloadKind; name: string } = {
     kind: KubernetesWorkloadKind.Deployment,
