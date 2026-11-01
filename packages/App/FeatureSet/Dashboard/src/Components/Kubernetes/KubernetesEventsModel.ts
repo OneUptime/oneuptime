@@ -45,6 +45,7 @@ export enum KubernetesWorkloadKind {
   DaemonSet = "DaemonSet",
   Job = "Job",
   CronJob = "CronJob",
+  DeploymentConfig = "DeploymentConfig",
 }
 
 // Which Events a view shows.
@@ -357,6 +358,11 @@ export const WORKLOAD_EVENT_KINDS: Record<
   [KubernetesWorkloadKind.DaemonSet]: ["DaemonSet", "Pod"],
   [KubernetesWorkloadKind.Job]: ["Job", "Pod"],
   [KubernetesWorkloadKind.CronJob]: ["CronJob", "Job", "Pod"],
+  [KubernetesWorkloadKind.DeploymentConfig]: [
+    "DeploymentConfig",
+    "ReplicationController",
+    "Pod",
+  ],
 };
 
 /*
@@ -450,6 +456,24 @@ export function isKubernetesEventAboutWorkload(
         event.objectKind === "Pod" &&
         isDigits(parts[0]) &&
         isJobPodSuffix(parts.slice(1))
+      );
+    case KubernetesWorkloadKind.DeploymentConfig:
+      /*
+       * A rollout's ReplicationController is `<name>-<version>`, its pods
+       * `<name>-<version>-<5 of the suffix characters>`, and what runs the
+       * rollout `<name>-<version>-deploy` and `-hook-pre/mid/post`.
+       */
+      if (event.objectKind === "ReplicationController") {
+        return parts.length === 1 && isDigits(parts[0]);
+      }
+      return (
+        event.objectKind === "Pod" &&
+        isDigits(parts[0]) &&
+        ((parts.length === 2 &&
+          (isGenerated(parts[1]) || parts[1] === "deploy")) ||
+          (parts.length === 3 &&
+            parts[1] === "hook" &&
+            ["pre", "mid", "post"].includes(parts[2] || "")))
       );
     default:
       return false;

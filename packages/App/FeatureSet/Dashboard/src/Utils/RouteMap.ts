@@ -121,6 +121,12 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL]: `${RouteParams.ModelID}/hpas/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPAS]: `${RouteParams.ModelID}/vpas`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL]: `${RouteParams.ModelID}/vpas/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS]: `${RouteParams.ModelID}/deploymentconfigs`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL]: `${RouteParams.ModelID}/deploymentconfigs/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES]: `${RouteParams.ModelID}/routes`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL]: `${RouteParams.ModelID}/routes/${RouteParams.SubModelID}`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL]: `${RouteParams.ModelID}/services/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_AI]: `${RouteParams.ModelID}/ai`,
@@ -3232,6 +3238,44 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[
+        PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL
+      ]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES]
+    }`,
+  ),
+
+  [PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL]
     }`,
   ),
 
