@@ -69,6 +69,15 @@ function snmpHost(
   };
 }
 
+// What a host says about its hardware when the scan asks it next.
+const HARDWARE: Partial<DiscoveredNetworkDevice> = {
+  scannedMacAddress: "00:1b:54:c2:7a:01",
+  model: "WS-C2960X-48TS-L",
+  serialNumber: "FOC1932X0K1",
+  firmwareVersion: "15.2(7r)E",
+  softwareVersion: "15.2(7)E2",
+};
+
 function pingHost(
   overrides: Partial<DiscoveredNetworkDevice> = {},
 ): DiscoveredNetworkDevice {
@@ -139,6 +148,7 @@ describe("getDiscoveredAddressFindings", () => {
         sysLocation: "Store 12, back office rack",
         sysContact: "netops@acme.example",
       },
+      hardware: {},
       dnsName: "edge-sw-07.store-12.acme.example",
     });
   });
@@ -150,9 +160,49 @@ describe("getDiscoveredAddressFindings", () => {
       address: "10.20.12.30",
       answeredSnmp: false,
       snmp: {},
+      hardware: {},
       dnsName: "kds-03.store-12.acme.example",
       netbiosName: "WB0012KDS03",
     });
+  });
+
+  test("what a host said about its hardware, off the row its system group came from", () => {
+    const findings: DiscoveredAddressFindings | undefined =
+      getDiscoveredAddressFindings([
+        snmpHost({
+          sysName: "short-answer",
+          sysDescr: undefined,
+          sysObjectId: undefined,
+          sysLocation: undefined,
+          sysContact: undefined,
+          serialNumber: "SHORT-ANSWER",
+        }),
+        snmpHost(HARDWARE),
+      ]).get("10.20.12.7");
+
+    expect(findings?.hardware).toEqual(HARDWARE);
+  });
+
+  test("a row's hardware is never mixed with another row's system group", () => {
+    const findings: DiscoveredAddressFindings | undefined =
+      getDiscoveredAddressFindings([
+        snmpHost(),
+        snmpHost({
+          sysName: "another-machine",
+          sysContact: undefined,
+          ...HARDWARE,
+        }),
+      ]).get("10.20.12.7");
+
+    expect(findings?.snmp.sysName).toBe("edge-sw-07");
+    expect(findings?.hardware).toEqual({});
+  });
+
+  test("a ping-only row's stray hardware is not a reading", () => {
+    expect(
+      getDiscoveredAddressFindings([pingHost(HARDWARE)]).get("10.20.12.30")
+        ?.hardware,
+    ).toEqual({});
   });
 
   test("a ping-only row's stray SNMP fields are not an SNMP answer", () => {
@@ -410,6 +460,58 @@ describe("planDiscoveredDetails - what a result records", () => {
     expect(patches[0]!.unset).toEqual(["otherMachine"]);
   });
 
+  test("what a host said about its hardware is recorded, read by the scan over SNMP", () => {
+    const details: NetworkDeviceDiscoveredDetails = detailsAfter(
+      plan([snmpHost(HARDWARE)], [device()])[0]!,
+    );
+
+    expect(details.values.scannedMacAddress?.value).toBe("00:1b:54:c2:7a:01");
+    expect(details.values.model?.value).toBe("WS-C2960X-48TS-L");
+    expect(details.values.firmwareVersion?.value).toBe("15.2(7r)E");
+    expect(details.values.softwareVersion?.value).toBe("15.2(7)E2");
+    expect(details.values.serialNumber).toEqual({
+      value: "FOC1932X0K1",
+      method: "snmp",
+      readBy: {
+        type: NetworkDeviceDiscoveryReaderType.DiscoveryScan,
+        id: SCAN_ID,
+        name: "Store subnets",
+      },
+      readAt: COMPLETED_AT,
+    });
+  });
+
+  test("the poll's reading of its own port is not the scan's to touch", () => {
+    const ownMac: Record<string, unknown> = {
+      ownMacAddress: {
+        value: "aa:bb:cc:06:25:ed",
+        method: "snmp",
+        readBy: { type: "probe", id: SCAN_ID },
+        readAt: "2026-10-23T08:00:00.000Z",
+      },
+    };
+
+    const patch: DiscoveredDetailsPatch = plan(
+      [snmpHost(HARDWARE)],
+      [device({ discoveredDetails: ownMac })],
+    )[0]!;
+
+    expect(Object.keys(patch.set)).not.toContain("ownMacAddress");
+    expect(patch.unset).not.toContain("ownMacAddress");
+    expect(detailsAfter(patch, ownMac).values.ownMacAddress?.value).toBe(
+      "aa:bb:cc:06:25:ed",
+    );
+  });
+
+  test("a device with something the scan contradicts records none of the hardware it read", () => {
+    const patch: DiscoveredDetailsPatch = plan(
+      [snmpHost({ sysName: "somebody-elses-switch", ...HARDWARE })],
+      [device({ sysName: "edge-sw-07" })],
+    )[0]!;
+
+    expect(Object.keys(patch.set)).toEqual(["otherMachine"]);
+  });
+
   test("never a column of the device: a patch only ever names discovered-details keys", () => {
     const patch: DiscoveredDetailsPatch = plan([snmpHost()], [device()])[0]!;
 
@@ -658,6 +760,126 @@ describe("planDiscoveredDetails - what a result records", () => {
   });
 });
 
+describe("planDiscoveredDetails - a result that says nothing about the hardware", () => {
+  const READ_EARLIER: string = "2026-10-22T09:00:00.000Z";
+
+  function recorded(): Record<string, unknown> {
+    const entry: (value: string) => Record<string, unknown> = (
+      value: string,
+    ): Record<string, unknown> => {
+      return {
+        value: value,
+        method: "snmp",
+        readBy: { type: "discoveryScan", id: SCAN_ID },
+        readAt: READ_EARLIER,
+      };
+    };
+
+    return {
+      scannedMacAddress: entry("00:1b:54:c2:7a:01"),
+      model: entry("WS-C2960X-48TS-L"),
+      serialNumber: entry("FOC1932X0K1"),
+      firmwareVersion: entry("15.2(7r)E"),
+      softwareVersion: entry("15.2(7)E2"),
+    };
+  }
+
+  const HARDWARE_KEYS: Array<string> = [
+    "scannedMacAddress",
+    "model",
+    "serialNumber",
+    "firmwareVersion",
+    "softwareVersion",
+  ];
+
+  test("an older probe's answer drops a missing sysLocation, and none of these", () => {
+    // No hardware keys at all: exactly the row a probe before this read stores.
+    const patch: DiscoveredDetailsPatch = plan(
+      [snmpHost({ sysLocation: undefined })],
+      [device({ discoveredDetails: recorded() })],
+    )[0]!;
+
+    expect(patch.unset).toContain("sysLocation");
+
+    for (const key of HARDWARE_KEYS) {
+      expect(patch.unset).not.toContain(key);
+      expect(Object.keys(patch.set)).not.toContain(key);
+    }
+
+    const details: NetworkDeviceDiscoveredDetails = detailsAfter(
+      patch,
+      recorded(),
+    );
+
+    expect(details.values.serialNumber?.value).toBe("FOC1932X0K1");
+    expect(details.values.serialNumber?.readAt).toBe(READ_EARLIER);
+    expect(details.values.scannedMacAddress?.value).toBe("00:1b:54:c2:7a:01");
+  });
+
+  test("a read that ran out of time says as little: what it did read is replaced, the rest kept", () => {
+    const patch: DiscoveredDetailsPatch = plan(
+      [snmpHost({ firmwareVersion: "15.2(8r)E" })],
+      [device({ discoveredDetails: recorded() })],
+    )[0]!;
+
+    const details: NetworkDeviceDiscoveredDetails = detailsAfter(
+      patch,
+      recorded(),
+    );
+
+    expect(details.values.firmwareVersion?.value).toBe("15.2(8r)E");
+    expect(details.values.firmwareVersion?.readAt).toBe(COMPLETED_AT);
+    expect(details.values.serialNumber?.value).toBe("FOC1932X0K1");
+    expect(details.values.serialNumber?.readAt).toBe(READ_EARLIER);
+  });
+
+  test("a host that answered nothing leaves them too", () => {
+    const patch: DiscoveredDetailsPatch = plan(
+      [pingHost({ ipAddress: "10.20.12.7" })],
+      [device({ discoveredDetails: recorded() })],
+    )[0]!;
+
+    expect(detailsAfter(patch, recorded()).values.model?.value).toBe(
+      "WS-C2960X-48TS-L",
+    );
+  });
+
+  test("never backwards: a reading older than the one recorded replaces nothing", () => {
+    const patches: Array<DiscoveredDetailsPatch> = plan(
+      [snmpHost(HARDWARE)],
+      [
+        device({
+          discoveredDetails: {
+            serialNumber: {
+              value: "NEWER-READING",
+              method: "snmp",
+              readBy: { type: "discoveryScan", id: SCAN_ID },
+              readAt: "2026-12-01T00:00:00.000Z",
+            },
+          },
+        }),
+      ],
+    );
+
+    expect(Object.keys(patches[0]!.set)).not.toContain("serialNumber");
+    expect(Object.keys(patches[0]!.set)).toContain("model");
+  });
+
+  test("planning the same result twice changes nothing", () => {
+    const first: DiscoveredDetailsPatch = plan(
+      [snmpHost(HARDWARE)],
+      [device()],
+    )[0]!;
+    const stored: Record<string, unknown> = apply({}, first);
+    const second: DiscoveredDetailsPatch = plan(
+      [snmpHost(HARDWARE)],
+      [device({ discoveredDetails: stored })],
+    )[0]!;
+
+    expect(apply(stored, second)).toEqual(stored);
+  });
+});
+
 describe("getScanReader and getScanReadTime", () => {
   test("a scan is credited by its own name, else its target, else by id alone", () => {
     expect(getScanReader(SCAN)).toEqual({
@@ -702,6 +924,19 @@ describe("buildDiscoveredDetailsForImport", () => {
     expect(details.foundBy?.readBy.id).toBe(SCAN_ID);
     // Exactly what a later run of the same scan would record.
     expect(json).toEqual(plan([snmpHost()], [device()])[0]!.set);
+  });
+
+  test("a device imported from a host starts with what it said about its hardware", () => {
+    const details: NetworkDeviceDiscoveredDetails =
+      readNetworkDeviceDiscoveredDetails(
+        buildDiscoveredDetailsForImport({
+          host: snmpHost(HARDWARE),
+          scan: SCAN,
+        }),
+      );
+
+    expect(details.values.serialNumber?.value).toBe("FOC1932X0K1");
+    expect(details.values.scannedMacAddress?.value).toBe("00:1b:54:c2:7a:01");
   });
 
   test("a ping-only host's import records its names", () => {

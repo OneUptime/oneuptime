@@ -113,6 +113,9 @@ describe("the device list's lookup", () => {
       `(nd."discoveredDetails" -> 'ownMacAddress' ->> 'value') = ANY($3::text[])`,
     );
     expect(sql).toContain(
+      `(nd."discoveredDetails" -> 'scannedMacAddress' ->> 'value') = ANY($3::text[])`,
+    );
+    expect(sql).toContain(
       `(nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $5`,
     );
     expect(sql).toContain('lower(btrim(nd."name")) = ANY($7::text[])');

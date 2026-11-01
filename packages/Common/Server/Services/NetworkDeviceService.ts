@@ -3402,6 +3402,7 @@ export class Service extends ProjectReferencesService<Model> {
           OR nd."hostname" = ANY($4::text[])
           OR (nd."discoveredDetails" -> 'macAddress' ->> 'value') = ANY($3::text[])
           OR (nd."discoveredDetails" -> 'ownMacAddress' ->> 'value') = ANY($3::text[])
+          OR (nd."discoveredDetails" -> 'scannedMacAddress' ->> 'value') = ANY($3::text[])
           OR (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $5
           OR (nd."discoveredDetails" -> 'controllerLinks' -> 'readBy' ->> 'id') = $5
           OR lower(btrim(nd."name")) = ANY($7::text[])

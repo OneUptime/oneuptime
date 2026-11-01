@@ -510,11 +510,11 @@ Efter den första lyckade walken läser OneUptime SNMPv2-systemgruppen och, där
 
 En enhet med bara ping behåller det namn och den adress som du, eller en discovery-skanning, gav den. Det som dess egen pollning inte har läst hämtar den från discovery:
 
-- Det systemnamn, den beskrivning, `sysObjectID`, plats och kontakt som den senaste [discovery-skanningen](#upptäck-enheter-med-en-nätverksskanning) av dess adress läste över SNMP, och de omvända DNS-namn och NetBIOS-namn som den hittade.
-- Dess MAC-adress, från ARP-tabellen i en genomgången router på dess plats.
+- Det systemnamn, den beskrivning, `sysObjectID`, plats, kontakt, modell, serienummer, firmware och programvaruversion som den senaste [discovery-skanningen](#upptäck-enheter-med-en-nätverksskanning) av dess adress läste över SNMP, och de omvända DNS-namn och NetBIOS-namn som den hittade.
+- Dess MAC-adress, från ARP-tabellen i en genomgången router på dess plats, eller annars från den första Ethernet-port som den skanningen läste.
 - För en enhet som pollas på ett DNS-namn, adressen som dess sond slog upp namnet till.
 
-De sparas bredvid enhetens egna fält, skrivs aldrig in i dem, och varje skanning, router-walk eller pollning som läser något av dem igen uppdaterar det. Enhetens översikt och dess objekt i inventariet visar vilken skanning, router eller sond som läste varje värde, och när. Ett värde som du har sparat på enheten ersätts aldrig. När en skanning hittar en annan maskin på enhetens adress, till exempel ett DHCP-lån som har flyttat, säger översikten det, och inget av det som den skanningen läste där används.
+De sparas bredvid enhetens egna fält, skrivs aldrig in i dem, och varje skanning, router-walk eller pollning som läser något av dem igen uppdaterar det. En skanning läser en värds MAC-adress, modell, serienummer, firmware och programvaruversion med några fler förfrågningar efter dess systemgrupp, i högst fem sekunder per värd. En värd som slutar svara på dem räknas ändå som en värd som har svarat, och det som skanningen inte kunde läsa behåller sitt senaste värde. Enhetens översikt och dess objekt i inventariet visar vilken skanning, router eller sond som läste varje värde, och när. Ett värde som du har sparat på enheten ersätts aldrig. När en skanning hittar en annan maskin på enhetens adress, till exempel ett DHCP-lån som har flyttat, säger översikten det, och inget av det som den skanningen läste där används.
 
 En Meraki-switch, en Meraki-åtkomstpunkt eller en Meraki-appliance ger varken serienummer eller firmware över SNMP: när enheten pollas direkt svarar den på systemgruppen och gränssnittstabellerna, som ger dess modell och dess MAC-adress, och inget mer. När en [Meraki-anslutning](/docs/monitor/network-traffic#cisco-meraki-utan-netflow) läser dess organisation hämtar enheten dem, och allt annat som dess pollning lämnar tomt, från Meraki-dashboarden, och dess kort **Inventarie** nämner anslutningen på en rad **Meraki**.
 

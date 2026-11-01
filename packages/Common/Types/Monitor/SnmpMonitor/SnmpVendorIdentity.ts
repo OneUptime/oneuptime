@@ -13,13 +13,14 @@ import SnmpOidListUtil from "./SnmpOidListUtil";
  * whatever description someone gave it, often none, so nothing named its
  * operating system either.
  *
- * WHEN IT IS READ. Once a poll, in one GET, only for a device the sysObjectID
- * says is one of these platforms, and only for what ENTITY-MIB left empty - a
- * device with nothing to fill costs nothing. Being listed here is what makes
- * the GET safe, and it is why this is a list and not a guess at every vendor
- * OID there is: an agent asked for an object it does not have may simply not
- * answer ("When polled for some unsupported OIDs, the MS/MR fails to respond",
- * Meraki's SNMP guide), and the walk would wait out a timeout on every poll.
+ * WHEN IT IS READ. Once a poll, and once a discovery scan for a host that
+ * answered it, in one GET, only for a device the sysObjectID says is one of
+ * these platforms, and only for what ENTITY-MIB left empty - a device with
+ * nothing to fill costs nothing. Being listed here is what makes the GET safe,
+ * and it is why this is a list and not a guess at every vendor OID there is: an
+ * agent asked for an object it does not have may simply not answer ("When
+ * polled for some unsupported OIDs, the MS/MR fails to respond", Meraki's SNMP
+ * guide), and the walk would wait out a timeout on every poll.
  *
  * A Cisco Meraki device is deliberately not here. Polled directly it answers
  * SNMPv2-MIB and IF-MIB; its serial number sits in
@@ -40,6 +41,9 @@ export type SnmpVendorIdentityField = keyof Pick<
   SnmpEntityInfo,
   "model" | "serialNumber" | "firmwareVersion" | "softwareVersion"
 >;
+
+export const SNMP_VENDOR_IDENTITY_FIELDS: ReadonlyArray<SnmpVendorIdentityField> =
+  ["model", "serialNumber", "firmwareVersion", "softwareVersion"];
 
 export interface SnmpVendorIdentityRead {
   field: SnmpVendorIdentityField;
@@ -153,9 +157,9 @@ export function getSnmpVendorIdentity(
 }
 
 /**
- * What a poll still has to ask a device for: the platform's reads for every
- * field `entityInfo` left empty. Empty for a device that is not one of these
- * platforms, and for one ENTITY-MIB already told everything.
+ * What a poll or a scan still has to ask a device for: the platform's reads for
+ * every field `entityInfo` left empty. Empty for a device that is not one of
+ * these platforms, and for one ENTITY-MIB already told everything.
  */
 export function getSnmpVendorIdentityReads(data: {
   sysObjectId: string | undefined;
