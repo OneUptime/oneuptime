@@ -107,7 +107,7 @@ Quanti giorni copre il grafico non si imposta qui. È **Cronologia uptime** nell
 
 | Campo | Cosa fa |
 | ----- | ------------ |
-| **Lingua predefinita** | La lingua che vedono i visitatori alla prima visita, scelta da un elenco che nomina ogni lingua nella sua grafia e in inglese (`Deutsch (German)`). È l'inglese per impostazione predefinita, e i visitatori possono sempre cambiarla dal footer. |
+| **Lingua predefinita** | La lingua che vedono i visitatori alla prima visita, scelta da un elenco che nomina ogni lingua nella sua grafia e in inglese (`Deutsch (German)`). È l'inglese per impostazione predefinita, e i visitatori possono sempre cambiarla dal footer. Anche gli iscritti ricevono i messaggi in questa lingua, a meno che non leggessero la pagina in un'altra lingua quando si sono iscritti. |
 | **Lingue abilitate** | Una selezione multipla, segnaposto `All languages`. Lasciatela vuota e vengono offerte tutte le lingue supportate; sceglietene alcune e il footer elenca solo quelle. |
 
 OneUptime include diciassette lingue: inglese, tedesco, francese, spagnolo, italiano, portoghese, olandese, danese, norvegese, svedese, russo, giapponese, coreano, cinese (semplificato), cinese (tradizionale), hindi e persiano. Il persiano si legge da destra a sinistra, quindi una pagina mostrata in persiano è disposta a partire da destra, fin dall'apertura se il persiano è la sua lingua predefinita. Le sue barre di uptime partono comunque da sinistra con il giorno più vecchio.

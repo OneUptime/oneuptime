@@ -7,8 +7,9 @@ import path from "path";
  * Subscribers & Announcements, under "Email footer, custom SMTP and Twilio",
  * says how a status page's default text messages are written: in GSM-7's
  * characters, curly quotes and dashes as their plain look-alikes, an emoji
- * left out, links exactly as written - and that a custom SMS template goes
- * out as written. Held here to the code that writes them
+ * left out, links exactly as written, a text in another script with its
+ * punctuation as written - and that a custom SMS template goes out as
+ * written. Held here to the code that writes them
  * (Common/Utils/Sms/SubscriberSms), and its place to every translation.
  */
 
@@ -19,7 +20,7 @@ const CONTENT_DIRECTORY: string = path.join(
 );
 
 const PARAGRAPH: string =
-  "The default text messages are written in the characters a text message carries most cheaply: curly quotes, dashes and the like go out as their plain look-alikes and an emoji is left out, so one character in a title never makes a text cost two or three parts. Links go out exactly as written. A custom SMS template goes out as you wrote it, with the values it places.";
+  "The default text messages are written in the characters a text message carries most cheaply: curly quotes, dashes and the like go out as their plain look-alikes and an emoji is left out, so one character in a title never makes a text cost two or three parts. A text in another script, such as Chinese or Persian, keeps its punctuation as written, since it costs the same either way. Links go out exactly as written. A custom SMS template goes out as you wrote it, with the values it places.";
 
 const LANGUAGES: Array<string> = fs
   .readdirSync(CONTENT_DIRECTORY)
@@ -83,6 +84,14 @@ describe("Subscribers & Announcements: how the default text messages are written
     // Links exactly as written.
     expect(writeDefaultSubscriberSms(`Unsub: ${link}–x`)).toBe(
       `Unsub: ${link}–x`,
+    );
+    // A text in another script keeps its punctuation, its emoji still left out.
+    expect(
+      writeDefaultSubscriberSms(
+        `\u{4E8B}\u{4EF6}\u{FF1A}Checkout\u{FF08}EU\u{FF09}\u{1F525}\u{3002} ${link}`,
+      ),
+    ).toBe(
+      `\u{4E8B}\u{4EF6}\u{FF1A}Checkout\u{FF08}EU\u{FF09}\u{3002} ${link}`,
     );
   });
 });

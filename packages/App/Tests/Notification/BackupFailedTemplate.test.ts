@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -31,6 +32,8 @@ const TEMPLATES_DIR: string = Path.resolve(
 );
 
 const handlebars: typeof Handlebars = Handlebars.create();
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(handlebars);
 
 const ERROR: string =
   "The S3-compatible storage did not let this key write the backup (HTTP 403, AccessDenied). <b>Allow</b> it to write.";

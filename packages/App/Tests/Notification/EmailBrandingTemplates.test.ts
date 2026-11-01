@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -359,6 +360,7 @@ describe("a renamed installation", () => {
 describe("the partials every email is built from", () => {
   // A Handlebars with the partials and no helpers at all: they need none.
   const plain: typeof Handlebars = Handlebars.create();
+  registerEmailLanguageHelpers(plain);
 
   beforeAll(() => {
     for (const file of fs.readdirSync(PARTIALS_DIR)) {
@@ -715,6 +717,7 @@ describe("the brand helpers", () => {
 
     registerJoiningConcat(engine);
     registerEmailBrandHelpers(engine);
+    registerEmailLanguageHelpers(engine);
 
     for (const [source, variables] of [
       ["{{brandName}}", RENAMED],

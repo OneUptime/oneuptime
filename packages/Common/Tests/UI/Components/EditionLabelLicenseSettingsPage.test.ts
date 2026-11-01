@@ -9,7 +9,7 @@ import {
 } from "../../../UI/Components/EditionLabel/LicenseSettingsPage";
 import { ADMIN_DASHBOARD_URL } from "../../../UI/Config";
 import URL from "../../../Types/API/URL";
-import { describe, expect, it, jest } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 
 /*
  * The two things core knows about the license page, which is the Enterprise

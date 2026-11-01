@@ -1,5 +1,9 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
+import {
+  getVisitorLanguage,
+  toSupportedLanguage,
+} from "../../Types/ReaderLanguage";
 
 /*
  * THE WORDS A PAGE'S VISITOR READS, IN THE BROWSER'S LANGUAGE.
@@ -18,69 +22,11 @@ import { initReactI18next } from "react-i18next";
  */
 
 /*
- * The supported language a browser's language tag stands for, or "" when
- * none: the Chinese tags onto Simplified and Traditional Chinese as every
- * frontend maps them (zh-TW, zh-HK, zh-MO and Hant are Traditional), the
- * code itself when it is supported, else its language part ("de-AT" is
- * "de").
+ * Which supported language a browser's language tag stands for, and the
+ * first of a browser's languages a page has words for: in
+ * Common/Types/ReaderLanguage, which the server reads tags with too.
  */
-export const toSupportedLanguage: (
-  code: string | null | undefined,
-  supportedLanguages: ReadonlyArray<string>,
-) => string = (
-  code: string | null | undefined,
-  supportedLanguages: ReadonlyArray<string>,
-): string => {
-  if (!code || typeof code !== "string") {
-    return "";
-  }
-
-  const lower: string = code.toLowerCase();
-
-  if (
-    lower === "zh-tw" ||
-    lower === "zh-hk" ||
-    lower === "zh-mo" ||
-    lower === "zh-hant" ||
-    lower.startsWith("zh-hant-")
-  ) {
-    return supportedLanguages.includes("zh-TW") ? "zh-TW" : "";
-  }
-
-  if (lower === "zh" || lower.startsWith("zh-") || lower.startsWith("zh_")) {
-    return supportedLanguages.includes("zh-CN") ? "zh-CN" : "";
-  }
-
-  if (supportedLanguages.includes(code)) {
-    return code;
-  }
-
-  const base: string = lower.split(/[-_]/)[0] || "";
-
-  return supportedLanguages.includes(base) ? base : "";
-};
-
-// The first of the browser's languages that is supported, else English.
-export const getVisitorLanguage: (
-  browserLanguages: ReadonlyArray<string>,
-  supportedLanguages: ReadonlyArray<string>,
-) => string = (
-  browserLanguages: ReadonlyArray<string>,
-  supportedLanguages: ReadonlyArray<string>,
-): string => {
-  for (const browserLanguage of browserLanguages) {
-    const supported: string = toSupportedLanguage(
-      browserLanguage,
-      supportedLanguages,
-    );
-
-    if (supported) {
-      return supported;
-    }
-  }
-
-  return "en";
-};
+export { getVisitorLanguage, toSupportedLanguage };
 
 export const getBrowserLanguages: () => ReadonlyArray<string> =
   (): ReadonlyArray<string> => {

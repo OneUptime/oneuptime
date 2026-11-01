@@ -174,6 +174,17 @@ import FileOwnership from "../Utils/File/FileOwnership";
 import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
 import { writeDefaultSubscriberSms } from "../../Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "../Utils/StatusPage/SubscriberLanguage";
+import {
+  SubscriberEmailText,
+  SubscriberSmsText,
+} from "../Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "../Utils/ServerTranslation";
+import {
+  DEFAULT_READER_LANGUAGE,
+  getReaderLanguageFromAcceptLanguage,
+} from "../../Types/ReaderLanguage";
+import { Translator } from "../../UI/Utils/TranslateTemplate";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -3412,6 +3423,8 @@ export default class StatusPageAPI extends BaseAPI<
         _id: true,
         subscriberEmail: true,
         unsubscribeToken: true,
+        // The language each is written to in (SubscriberLanguage).
+        language: true,
       };
     } else if (phone) {
       /*
@@ -3425,6 +3438,8 @@ export default class StatusPageAPI extends BaseAPI<
         _id: true,
         subscriberPhone: true,
         unsubscribeToken: true,
+        // The language each is written to in (SubscriberLanguage).
+        language: true,
       };
     } else if (slackWorkspaceName) {
       lookupQuery = { slackWorkspaceName: slackWorkspaceName };
@@ -3432,6 +3447,8 @@ export default class StatusPageAPI extends BaseAPI<
         _id: true,
         slackIncomingWebhookUrl: true,
         unsubscribeToken: true,
+        // The language each is written to in (SubscriberLanguage).
+        language: true,
       };
     } else {
       lookupQuery = {
@@ -3441,6 +3458,8 @@ export default class StatusPageAPI extends BaseAPI<
         _id: true,
         microsoftTeamsIncomingWebhookUrl: true,
         unsubscribeToken: true,
+        // The language each is written to in (SubscriberLanguage).
+        language: true,
       };
     }
 
@@ -3532,6 +3551,13 @@ export default class StatusPageAPI extends BaseAPI<
       const statusPageNameStr: string =
         statusPage.pageTitle || statusPage.name || "Status Page";
 
+      /*
+       * The messages answer the visitor's request: in the language they read
+       * the page in (its Accept-Language), else in each subscriber's own.
+       */
+      const requestLanguage: string | null =
+        getReaderLanguageFromAcceptLanguage(req.headers["accept-language"]);
+
       const [
         manageEmailTemplate,
         manageSmsTemplate,
@@ -3612,7 +3638,35 @@ export default class StatusPageAPI extends BaseAPI<
           manageSubscriptionUrl: manageUrlink,
         };
 
-        const defaultChatMessage: string = `You have selected to manage your subscription for the status page: ${statusPageNameStr}. You can manage your subscription here: ${manageUrlink}`;
+        const language: string =
+          requestLanguage ||
+          SubscriberLanguage.getLanguage({
+            subscriber: statusPageSubscriber,
+            statusPage: statusPage,
+          });
+
+        // OneUptime's own words, in that language.
+        const defaultChatMessage: string = writeInLanguage(
+          language,
+          (translator: Translator): string => {
+            return translator.translateTemplate(
+              SubscriberSmsText.manageSubscription,
+              {
+                statusPageName: statusPageNameStr,
+                manageUrl: manageUrlink,
+              },
+            );
+          },
+        );
+        const manageSubject: string = writeInLanguage(
+          language,
+          (translator: Translator): string => {
+            return translator.translateTemplate(
+              SubscriberEmailText.manageSubscriptionSubject,
+              { statusPageName: statusPageNameStr },
+            );
+          },
+        );
 
         if (subscriberEmail) {
           const host: Hostname = await DatabaseConfig.getHost();
@@ -3630,7 +3684,7 @@ export default class StatusPageAPI extends BaseAPI<
                   manageEmailTemplate.emailSubject,
                   manageTemplateVariables,
                 )
-              : "Manage your Subscription for " + statusPageNameStr;
+              : manageSubject;
 
             MailService.sendMail(
               {
@@ -3674,8 +3728,11 @@ export default class StatusPageAPI extends BaseAPI<
 
                   manageSubscriptionUrl: manageUrlink,
                 },
-                subject: "Manage your Subscription for " + statusPageNameStr,
+                subject: manageSubject,
                 isSubjectLiteral: true,
+                ...(language !== DEFAULT_READER_LANGUAGE
+                  ? { language: language }
+                  : {}),
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -3862,6 +3919,8 @@ export default class StatusPageAPI extends BaseAPI<
         allowSubscribersToChooseEventTypes: true,
         showSubscriberPageOnStatusPage: true,
         limitSubscribersToPrivateUsers: true,
+        // What the visitor's language is stored against (SubscriberLanguage).
+        defaultLanguage: true,
       },
       props: {
         isRoot: true,
@@ -4137,6 +4196,18 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
+    /*
+     * The language the visitor reads the page in, which the status page sends
+     * as the request's Accept-Language: kept when it is not the page's
+     * default, so the subscriber is written to in it; none otherwise, and
+     * the subscriber follows the page (SubscriberLanguage).
+     */
+    const languageToStore: string | null =
+      SubscriberLanguage.getLanguageToStore({
+        acceptLanguage: req.headers["accept-language"],
+        statusPage: statusPage,
+      });
+
     statusPageSubscriber.statusPageId = objectId;
     statusPageSubscriber.sendYouHaveSubscribedMessage = true;
     statusPageSubscriber.projectId = statusPage.projectId!;
@@ -4223,6 +4294,14 @@ export default class StatusPageAPI extends BaseAPI<
          * written here (which clears Unsubscribed At).
          */
         ...(wantsToUnsubscribe ? {} : { isUnsubscribed: false }),
+        /*
+         * The language the visitor reads the page in now, when the request
+         * names one OneUptime writes in: what they read their notifications
+         * in from now on.
+         */
+        ...(getReaderLanguageFromAcceptLanguage(req.headers["accept-language"])
+          ? { language: languageToStore }
+          : {}),
       };
 
       if (Object.keys(change).length > 0) {
@@ -4243,6 +4322,10 @@ export default class StatusPageAPI extends BaseAPI<
         `Creating new subscriber: ${JSON.stringify(statusPageSubscriber)}`,
         getLogAttributesFromRequest(req as any),
       );
+
+      if (languageToStore) {
+        statusPageSubscriber.language = languageToStore;
+      }
 
       /*
        * One contact at a time, as the Subscribe page's forms send it: a

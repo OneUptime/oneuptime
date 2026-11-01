@@ -11,6 +11,10 @@ require("ts-node").register({
 const {
   buildRollupEmail,
 } = require("../../../../Common/Server/Utils/EmailRollup/EmailRollupRenderer");
+// The email language helpers the templates word their text with.
+const {
+  registerEmailLanguageHelpers,
+} = require("../../../FeatureSet/Notification/Utils/EmailLanguage");
 
 const root = path.resolve(__dirname, "../../../../..");
 const templates = path.join(
@@ -90,6 +94,7 @@ Handlebars.registerHelper("ifNotCond", function (left, right, options) {
   return left !== right ? options.fn(this) : options.inverse(this);
 });
 Handlebars.registerHelper("concat", (left, right) => left + right);
+registerEmailLanguageHelpers(Handlebars);
 
 function render(name, notifications) {
   const built = buildRollupEmail({

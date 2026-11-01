@@ -107,7 +107,7 @@ Le nombre de jours que couvre le graphique ne se règle pas ici. C'est **Histori
 
 | Champ | Ce qu'il fait |
 | ----- | ------------ |
-| **Langue par défaut** | La langue que voient les nouveaux visiteurs, choisie dans une liste qui nomme chaque langue dans sa propre graphie et en anglais (`Deutsch (German)`). Elle vaut l'anglais par défaut, et les visiteurs peuvent toujours changer depuis le pied de page. |
+| **Langue par défaut** | La langue que voient les nouveaux visiteurs, choisie dans une liste qui nomme chaque langue dans sa propre graphie et en anglais (`Deutsch (German)`). Elle vaut l'anglais par défaut, et les visiteurs peuvent toujours changer depuis le pied de page. Les abonnés reçoivent aussi leurs messages dans cette langue, sauf s'ils lisaient la page dans une autre langue quand ils se sont abonnés. |
 | **Langues activées** | Une sélection multiple, texte indicatif `All languages`. Laissez-la vide et toutes les langues prises en charge sont proposées ; choisissez-en quelques-unes et le pied de page ne liste que celles-ci. |
 
 Dix-sept langues sont livrées avec OneUptime : anglais, allemand, français, espagnol, italien, portugais, néerlandais, danois, norvégien, suédois, russe, japonais, coréen, chinois (simplifié), chinois (traditionnel), hindi et persan. Le persan se lit de droite à gauche : une page affichée en persan est donc disposée à partir de la droite, dès son ouverture quand le persan est sa langue par défaut. Ses barres de disponibilité commencent toujours à gauche par le jour le plus ancien.

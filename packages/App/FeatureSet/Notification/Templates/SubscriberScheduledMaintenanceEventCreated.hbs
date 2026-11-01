@@ -2,26 +2,26 @@
 
 {{> CustomLogo this}}
 
-{{> EmailTitle title=(concat "Scheduled Maintenance: " eventTitle) }}
+{{> EmailTitle title=(tt "Scheduled Maintenance: {{title}}" title=eventTitle) }}
 
-{{> InfoBlock info="A scheduled maintenance event has been announced for services you're subscribed to."}}
+{{> InfoBlock info=(tHtml "A scheduled maintenance event has been announced for services you're subscribed to.")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Maintenance Event" plainText=eventTitle }}
-{{> DetailBoxField title="Status" plainText="Scheduled" }}
-{{> DetailBoxField title="Scheduled Time" text=scheduledAt }}
+{{> DetailBoxField title=(t "Maintenance Event") plainText=eventTitle }}
+{{> DetailBoxField title=(t "Status") plainText=(t "Scheduled") }}
+{{> DetailBoxField title=(t "Scheduled Time") text=scheduledAt }}
 {{#if resourcesAffected}}
-{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{> DetailBoxField title=(t "Affected Resources") text=resourcesAffected  }}
 {{/if}}
 {{#if eventDescription}}
-{{> DetailBoxField title="Description" text=eventDescription  }}
+{{> DetailBoxField title=(t "Description") text=eventDescription  }}
 {{/if}}
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}
-{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Maintenance Details"}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText=(t "View Maintenance Details")}}
 {{else}}
-{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText=(t "View Status Page")}}
 {{/if}}
 
 {{> VerticalSpace this}}

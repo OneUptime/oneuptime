@@ -327,6 +327,17 @@ Via API-et sender du valget ved siden av feltene du endrer, i `miscDataProps`:
 
 som innhold i `PUT /api/status-page-announcement/<announcement-id>` (eller `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Utelat `miscDataProps`, så er redigeringen stille, som før.
 
+## Språket i meldinger til abonnenter
+
+Hver abonnent får meldingene sine på sitt eget språk: e-posten eller SMS-en som bekrefter abonnementet, velkomsten og lenken for å administrere det, og hvert varsel om en hendelse, en hendelsesepisode, en planlagt vedlikeholdshendelse eller en kunngjøring, via e-post, SMS, Slack og Microsoft Teams.
+
+- **En besøkende som bytter statussiden til et annet språk** i bunnteksten og deretter abonnerer eller oppdaterer abonnementet sitt, får meldingene sine på det språket.
+- **Alle andre** får dem på sidens standardspråk, som stilles inn under [Flere innstillinger](/docs/status-pages/branding-and-domains#flere-innstillinger) på siden Merkevare: en besøkende som leste siden på det språket, en abonnent teamet ditt legger til i dashbordet, med API-et eller med en arbeidsflyt, og alle som abonnerte før OneUptime tok vare på en abonnents språk. Endre standardspråket, så får de det nye fra neste melding.
+
+OneUptimes egne ord står på det språket: emnelinjer, overskrifter, etiketter og knapper, linjen for å melde seg av, datoer og navnene på hendelsestilstandene, alvorlighetsgradene og vedlikeholdstilstandene hvert nytt prosjekt starter med, for eksempel Resolved, Major Incident eller Ongoing. Det teamet ditt skriver, står slik det ble skrevet: titler, beskrivelser, notater og etteranalyser, deres egne navn på tilstander, alvorlighetsgrader og ressurser, statussidens navn, egendefinerte felt og egne maler, der verdiene står slik de er lagret. En e-post på persisk leses fra høyre mot venstre, og en engelsk tittel eller et engelsk notat i den leses fortsatt fra venstre mot høyre. Nyttelasten i en webhook er data og forblir som den er, og e-postrapporten er skrevet på engelsk.
+
+Via API-et er en abonnents `language` en språkkode som `de` eller `zh-TW`, eller tom for sidens standardspråk; alle andre verdier avvises.
+
 ## Sjekk hva som ble sendt
 
 Hvert abonnentvarsel har sin egen status ved siden av det det handler om. For en hendelse er det varselet om "opprettet" på hendelsens **Oversikt**, hver rad i **Tilstandstidslinje**, hvert offentlig notat og **Etteranalyse**. Planlagte vedlikeholdshendelser og kunngjøringer viser sine på samme måte, og hendelsesepisoder på de offentlige notatene sine. Klikk på statusen for å lese meldingen, som sier hva som skjedde. Offentlige notater viser statusen som et merke med sin egen ordlyd:
@@ -446,7 +457,7 @@ Fire avsnitt til, under **Flere innstillinger** nederst på **Abonnentsinnstilli
 
 Egendefinert SMTP er verdt å sette opp tidlig hvis du har e-postabonnenter: e-post som kommer fra ditt eget domene, blir langt sjeldnere filtrert bort og langt oftere stolt på av kunden som leser den klokken 2 om natten.
 
-Standard-SMS-ene skrives med tegnene en SMS bærer billigst: typografiske anførselstegn, tankestreker og lignende sendes som sitt enkle motstykke, og en emoji utelates, så ett tegn i en tittel aldri får en SMS til å koste to eller tre deler. Lenker sendes nøyaktig slik de er skrevet. En egendefinert SMS-mal sendes slik du skrev den, med verdiene den setter inn.
+Standard-SMS-ene skrives med tegnene en SMS bærer billigst: typografiske anførselstegn, tankestreker og lignende sendes som sitt enkle motstykke, og en emoji utelates, så ett tegn i en tittel aldri får en SMS til å koste to eller tre deler. En SMS i en annen skrift, for eksempel kinesisk eller persisk, beholder tegnsettingen slik den er skrevet, siden den koster det samme uansett. Lenker sendes nøyaktig slik de er skrevet. En egendefinert SMS-mal sendes slik du skrev den, med verdiene den setter inn.
 
 ## Kunngjøringer
 

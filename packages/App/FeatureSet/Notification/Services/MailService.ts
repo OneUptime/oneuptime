@@ -77,6 +77,10 @@ import {
   toEmailStatusMessage,
 } from "../Utils/EmailStatusMessage";
 import HandlebarsText from "../Utils/HandlebarsText";
+import {
+  EMAIL_LANGUAGE_VARIABLE_NAMES,
+  getEmailLanguageVariables,
+} from "../Utils/EmailLanguage";
 
 // An email as it is sent: its final subject and HTML body.
 export interface RenderedEmail {
@@ -975,6 +979,16 @@ export default class MailService {
     }
 
     Object.assign(vars, brandVariables);
+
+    /*
+     * The language the email's own words are in, and the way it reads
+     * (EmailLanguage.ts): none for English. Reserved like the brand's.
+     */
+    for (const name of EMAIL_LANGUAGE_VARIABLE_NAMES) {
+      delete vars[name];
+    }
+
+    Object.assign(vars, getEmailLanguageVariables(mail.language));
 
     const compiledBody: string = mail.templateType
       ? await this.compileEmailBody(mail.templateType, vars)

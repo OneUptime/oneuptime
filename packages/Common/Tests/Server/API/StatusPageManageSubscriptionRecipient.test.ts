@@ -632,11 +632,12 @@ describe("StatusPageAPI manage-subscription link recipient", () => {
         statusPageId.toString(),
       );
       /*
-       * The contact for this channel only, and the unsubscribe token for the
-       * link that works without signing in.
+       * The contact for this channel only, the unsubscribe token for the
+       * link that works without signing in, and the language the subscriber
+       * is written to in (SubscriberLanguage).
        */
       expect(Object.keys(lookup.select).sort()).toEqual(
-        ["_id", "subscriberPhone", "unsubscribeToken"].sort(),
+        ["_id", "subscriberPhone", "unsubscribeToken", "language"].sort(),
       );
       expect(lookup.sort).toEqual({ createdAt: SortOrder.Ascending });
       expect(lookup.skip).toBe(0);

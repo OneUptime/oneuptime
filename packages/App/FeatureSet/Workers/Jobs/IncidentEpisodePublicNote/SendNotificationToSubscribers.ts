@@ -71,7 +71,14 @@ import QueryDeepPartialEntity from "Common/Types/Database/PartialEntity";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
-import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberChatText,
+  SubscriberSmsText,
+} from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -83,8 +90,10 @@ import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 interface EpisodeNoteNotificationCopy {
   templateEventType: StatusPageSubscriberNotificationEventType;
   emailTemplateType: EmailTemplateType;
-  emailSubjectPrefix: string;
-  customTemplateEmailSubjectPrefix: string;
+  // The email's subject, {{title}} the episode's title.
+  emailSubject: string;
+  // A custom template's subject when it has none of its own.
+  customTemplateEmailSubject: string;
   smsNoteSentence: string;
   chatNoteSentence: string;
   webhookEventType: string;
@@ -107,10 +116,10 @@ const NOTIFICATION_COPY: Record<
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteCreated,
     emailTemplateType: EmailTemplateType.SubscriberEpisodeNoteCreated,
-    emailSubjectPrefix: "[Update Incident] ",
-    customTemplateEmailSubjectPrefix: "[Incident Update] ",
-    smsNoteSentence: "A new note is posted.",
-    chatNoteSentence: "New note has been added to an incident",
+    emailSubject: translationKey("[Update Incident] {{title}}"),
+    customTemplateEmailSubject: translationKey("[Incident Update] {{title}}"),
+    smsNoteSentence: SubscriberSmsText.notePosted,
+    chatNoteSentence: SubscriberChatText.newIncidentNote,
     webhookEventType: "EpisodeNoteCreated",
     feedSentReason: "a public note is added to",
     feedNotSentSubject: "the public note",
@@ -122,10 +131,12 @@ const NOTIFICATION_COPY: Record<
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberEpisodeNoteUpdated,
     emailTemplateType: EmailTemplateType.SubscriberEpisodeNoteUpdated,
-    emailSubjectPrefix: "[Incident Note Updated] ",
-    customTemplateEmailSubjectPrefix: "[Incident Note Updated] ",
-    smsNoteSentence: "A note has been updated.",
-    chatNoteSentence: "A note on this incident has been updated",
+    emailSubject: translationKey("[Incident Note Updated] {{title}}"),
+    customTemplateEmailSubject: translationKey(
+      "[Incident Note Updated] {{title}}",
+    ),
+    smsNoteSentence: SubscriberSmsText.noteUpdated,
+    chatNoteSentence: SubscriberChatText.incidentNoteUpdated,
     webhookEventType: "EpisodeNoteUpdated",
     feedSentReason: "a public note was updated on",
     feedNotSentSubject: "the updated public note",
@@ -709,6 +720,15 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                 subscriber,
               ).toString();
 
+            /*
+             * The language this subscriber's messages are written in: their
+             * own, else the page's (SubscriberLanguage).
+             */
+            const language: string = SubscriberLanguage.getLanguage({
+              subscriber: subscriber,
+              statusPage: statuspage,
+            });
+
             logger.debug(
               `Prepared unsubscribe link for subscriber ${subscriber._id} for public note ${episodePublicNote.id}.`,
               {
@@ -764,9 +784,28 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                     subscriberPlainTextTemplateVariables,
                   );
               } else {
-                // Use default hard-coded template
-                smsMessage = writeDefaultSubscriberSms(
-                  `Incident update: ${episode.title || "-"} on ${statusPageName}. ${copy.smsNoteSentence} Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                // OneUptime's own words, in the subscriber's language.
+                smsMessage = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return SubscriberMessageText.smsWithLinks(translator, {
+                      sentences: [
+                        translator.translateTemplate(
+                          SubscriberSmsText.incidentUpdate,
+                          {
+                            title: episode.title || "-",
+                            statusPageName: statusPageName,
+                          },
+                        ),
+                        SubscriberMessageText.text(
+                          translator,
+                          copy.smsNoteSentence,
+                        ),
+                      ],
+                      detailsUrl: episodeDetailsUrl,
+                      unsubscribeUrl: unsubscribeUrl,
+                    });
+                  },
                 );
               }
 
@@ -826,8 +865,15 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                       emailTemplate.emailSubject,
                       subscriberPlainTextTemplateVariables,
                     )
-                  : copy.customTemplateEmailSubjectPrefix +
-                    (episode.title || "");
+                  : writeInLanguage(
+                      language,
+                      (translator: Translator): string => {
+                        return translator.translateTemplate(
+                          copy.customTemplateEmailSubject,
+                          { title: episode.title || "" },
+                        );
+                      },
+                    );
 
                 await deliveryRecord.deliver({
                   statusPage: statuspage,
@@ -858,13 +904,33 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   },
                 });
               } else {
-                // Use default hard-coded template
+                // The subject and the severity, in the subscriber's language.
+                const subject: string = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return translator.translateTemplate(copy.emailSubject, {
+                      title: episode.title || "",
+                    });
+                  },
+                );
+                const episodeSeverity: string = episode.incidentSeverity?.name
+                  ? writeInLanguage(
+                      language,
+                      (translator: Translator): string => {
+                        return SubscriberMessageText.nameInLanguage(
+                          translator,
+                          episode.incidentSeverity!.name,
+                        );
+                      },
+                    )
+                  : " - ";
+
                 await deliveryRecord.deliver({
                   statusPage: statuspage,
                   method: StatusPageSubscriberNotificationMethod.Email,
                   // Which address it was, so a failed send frees it for a later page.
                   to: subscriberEmail,
-                  subject: copy.emailSubjectPrefix + episode.title,
+                  subject: subject,
                   logAttributes: logAttributes,
                   send: () => {
                     return MailService.sendMail(
@@ -885,8 +951,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                             ? "true"
                             : "false",
                           resourcesAffected: resourcesAffectedString,
-                          episodeSeverity:
-                            episode.incidentSeverity?.name || " - ",
+                          episodeSeverity: episodeSeverity,
                           ...EmailColorUtil.getTemplateVariables(
                             "episodeSeverity",
                             episode.incidentSeverity?.color,
@@ -898,8 +963,12 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                               statuspage,
                             ),
                         },
-                        subject: copy.emailSubjectPrefix + episode.title,
+                        subject: subject,
                         isSubjectLiteral: true,
+                        // The template's own words, in the subscriber's language.
+                        ...(language !== DEFAULT_READER_LANGUAGE
+                          ? { language: language }
+                          : {}),
                       },
                       {
                         mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -942,18 +1011,24 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                     subscriberMarkdownTemplateVariables,
                   );
               } else {
-                // Use default hard-coded template
-                markdownMessage = mdText`## Incident - ${episode.title || ""}
-
-**${copy.chatNoteSentence}**
-
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${episode.incidentSeverity?.name || " - "}
-
-**Note:**
-${FeedMarkdown.asMarkdown(episodePublicNote.note || "")}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                // OneUptime's own words, in the subscriber's language.
+                markdownMessage = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return SubscriberMessageText.incidentNoteChatMessage(
+                      translator,
+                      {
+                        title: episode.title,
+                        sentence: copy.chatNoteSentence,
+                        resourcesAffected: resourcesAffectedPlainText,
+                        severityName: episode.incidentSeverity?.name,
+                        note: episodePublicNote.note,
+                        statusPageUrl: statusPageURL,
+                        unsubscribeUrl: unsubscribeUrl,
+                      },
+                    );
+                  },
+                );
               }
 
               await deliveryRecord.deliver({
@@ -999,18 +1074,24 @@ ${FeedMarkdown.asMarkdown(episodePublicNote.note || "")}
                     subscriberMarkdownTemplateVariables,
                   );
               } else {
-                // Use default hard-coded template
-                markdownMessage = mdText`## Incident - ${episode.title || ""}
-
-**${copy.chatNoteSentence}**
-
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Severity:** ${episode.incidentSeverity?.name || " - "}
-
-**Note:**
-${FeedMarkdown.asMarkdown(episodePublicNote.note || "")}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                // OneUptime's own words, in the subscriber's language.
+                markdownMessage = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return SubscriberMessageText.incidentNoteChatMessage(
+                      translator,
+                      {
+                        title: episode.title,
+                        sentence: copy.chatNoteSentence,
+                        resourcesAffected: resourcesAffectedPlainText,
+                        severityName: episode.incidentSeverity?.name,
+                        note: episodePublicNote.note,
+                        statusPageUrl: statusPageURL,
+                        unsubscribeUrl: unsubscribeUrl,
+                      },
+                    );
+                  },
+                );
               }
 
               await deliveryRecord.deliver({
