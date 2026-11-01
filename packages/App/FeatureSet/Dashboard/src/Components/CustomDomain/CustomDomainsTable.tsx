@@ -12,6 +12,10 @@ import {
 } from "./CustomDomainKinds";
 import CustomDomainDnsSetupModal from "./CustomDomainDnsSetupModal";
 import CustomDomainName from "./CustomDomainName";
+import {
+  isDomainServerError,
+  isSubdomainServerError,
+} from "./CustomDomainServerErrors";
 import CustomDomainStatus from "./CustomDomainStatus";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -30,6 +34,7 @@ import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -62,16 +67,26 @@ import React, {
 } from "react";
 
 /*
- * The Custom Domains table of a status page and of a dashboard: one table, so
- * the two pages that do the same job read and work the same. The dashboard
- * page kept "Add CNAME", "Order Free SSL" and its own Status wording after
- * the status page lost them, because each page had its own copy of this.
+ * The Custom Domains table of a status page, of a dashboard and of a form:
+ * one table, so the pages that do the same job read and work the same. The
+ * dashboard page kept "Add CNAME", "Order Free SSL" and its own Status
+ * wording after the status page lost them, because each page had its own
+ * copy of this.
  *
  *   - Adding a domain is one page: the subdomain and one of the project's
  *     verified domains, with the certificate options folded under
  *     Advanced. The new domain's DNS Setup opens as soon as it is added.
+ *     A refusal about the subdomain or the domain - a name another status
+ *     page, dashboard or form has already - is said under that field
+ *     (CustomDomainServerErrors), not over the whole form.
+ *   - Editing a domain can change only its certificate, so Edit shows the
+ *     certificate options at once: folded, they left an Edit dialog with
+ *     nothing in it but a fold.
  *   - DNS Setup shows the record to add, and its Check now verifies it and
  *     orders the free certificate on the spot. Nothing asks for an order.
+ *     Whenever a row offers it, it is the row's button: on a domain whose
+ *     certificate keeps failing or has expired, it is the one action that
+ *     tries again and says why - Reissue SSL waits in the row's menu.
  *   - The Status column says where each domain is on its way to HTTPS, with
  *     why an order failed when one did (the certificates route).
  *   - Reissue SSL stays, for a domain with a certificate of ours to replace.
@@ -103,9 +118,9 @@ const certificateSection: FormFieldCollapsibleSection<CustomDomainModel> =
   });
 
 export interface ComponentProps {
-  // Whose domains: a status page's or a dashboard's.
+  // Whose domains: a status page's, a dashboard's or a form's.
   kind: CustomDomainKind;
-  // The status page or dashboard the domains belong to.
+  // The status page, dashboard or form the domains belong to.
   parentId: ObjectID;
   currentProject: Project | null;
 }
@@ -318,6 +333,15 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
             icon: IconProp.Globe,
             /*
+             * The row's button whenever it is offered. On a domain whose
+             * certificate keeps failing or has expired, Reissue SSL is
+             * offered too, and its plainer style used to win the button:
+             * the row said "Could not issue a free certificate yet" and
+             * offered a reissue of a certificate it never had, with the
+             * action that tries again and says why in its menu.
+             */
+            placement: ActionButtonPlacement.Primary,
+            /*
              * Until the record is verified, and on a verified domain whose
              * free certificate is not in place: not ordered yet, an order
              * that keeps failing (a CAA record, a server Let's Encrypt
@@ -431,6 +455,12 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
              * nothing. A different subdomain is a different domain: add it.
              */
             doNotShowWhenEditing: true,
+            /*
+             * A name another status page, dashboard or form has already,
+             * or a subdomain that is not a plain label: said under the
+             * subdomain, which is what to change.
+             */
+            ownsServerError: isSubdomainServerError,
           },
           {
             field: {
@@ -438,6 +468,8 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             },
             title: "Domain",
             description: CustomDomainCopy.domainFieldDescription,
+            // A domain that stopped being verified while the dialog was open.
+            ownsServerError: isDomainServerError,
             sideLink: {
               text: CustomDomainCopy.domainFieldSideLink,
               url: RouteUtil.populateRouteParams(
@@ -465,6 +497,10 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             required: true,
             placeholder: "Select domain",
           },
+          /*
+           * The certificate options, on Create: folded under More fields,
+           * whose line says which certificate the domain will use.
+           */
           {
             field: {
               isCustomCertificate: true,
@@ -476,6 +512,7 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             description:
               "If you have a custom certificate, you can upload it here. If you do not have a certificate, we will order a free SSL certificate for you.",
             collapsibleSection: certificateSection,
+            doNotShowWhenEditing: true,
           },
           {
             field: {
@@ -489,10 +526,18 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             placeholder:
               "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
             disableSpellCheck: true,
+            /*
+             * A form domain's column describes it for the API reference
+             * ("... while isCustomCertificate is on"), in English: the
+             * title and the PEM placeholder say what goes here, as on a
+             * status page's and a dashboard's, whose columns have none.
+             */
+            hideColumnDescription: true,
             showIf: (item: FormValues<CustomDomainModel>): boolean => {
               return Boolean(item.isCustomCertificate);
             },
             collapsibleSection: certificateSection,
+            doNotShowWhenEditing: true,
           },
           {
             field: {
@@ -506,10 +551,65 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             placeholder:
               "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
             disableSpellCheck: true,
+            hideColumnDescription: true,
             showIf: (item: FormValues<CustomDomainModel>): boolean => {
               return Boolean(item.isCustomCertificate);
             },
             collapsibleSection: certificateSection,
+            doNotShowWhenEditing: true,
+          },
+          /*
+           * The same options, on Edit: the certificate is all an edit can
+           * change - the name is fixed once the domain is added - so they
+           * are the dialog, not a fold in it.
+           */
+          {
+            field: {
+              isCustomCertificate: true,
+            },
+            title: "Upload Custom Certificate",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: false,
+            description:
+              "If you have a custom certificate, you can upload it here. If you do not have a certificate, we will order a free SSL certificate for you.",
+            doNotShowWhenCreating: true,
+          },
+          {
+            field: {
+              customCertificate: true,
+            },
+            title: "Certificate",
+            fieldType: FormFieldSchemaType.LongText,
+            required: (item: FormValues<CustomDomainModel>): boolean => {
+              return Boolean(item.isCustomCertificate);
+            },
+            placeholder:
+              "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+            disableSpellCheck: true,
+            hideColumnDescription: true,
+            showIf: (item: FormValues<CustomDomainModel>): boolean => {
+              return Boolean(item.isCustomCertificate);
+            },
+            doNotShowWhenCreating: true,
+          },
+          {
+            field: {
+              customCertificateKey: true,
+            },
+            title: "Certificate Private Key",
+            fieldType: FormFieldSchemaType.LongText,
+            required: (item: FormValues<CustomDomainModel>): boolean => {
+              return Boolean(item.isCustomCertificate);
+            },
+            placeholder:
+              "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+            disableSpellCheck: true,
+            hideColumnDescription: true,
+            showIf: (item: FormValues<CustomDomainModel>): boolean => {
+              return Boolean(item.isCustomCertificate);
+            },
+            doNotShowWhenCreating: true,
           },
         ]}
         showRefreshButton={true}

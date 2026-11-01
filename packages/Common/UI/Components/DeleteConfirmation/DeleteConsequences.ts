@@ -328,9 +328,9 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
     },
     Form: {
       sentence: translationKey(
-        "Deleting a form also deletes its submissions. The incidents and events it created stay.",
+        "Deleting a form also deletes its submissions and custom domains. The incidents and events it created stay.",
       ),
-      deletedWith: ["FormSubmission"],
+      deletedWith: ["FormSubmission", "FormDomain"],
       stays: ["Incident", "ScheduledMaintenance"],
     },
     SecurityCase: {
