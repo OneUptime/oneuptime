@@ -81,6 +81,7 @@ import { getAllIoTAlertTemplates } from "../../../Types/Monitor/IotAlertTemplate
 import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/KubernetesEventAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
+import { getAllProxmoxNotificationAlertTemplates } from "../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../Types/Monitor/VMwareAlertTemplates";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
@@ -147,6 +148,16 @@ const CASES: Array<OrderCase> = [
     path: "proxmox",
     templates: getAllProxmoxAlertTemplates(),
     categories: PROXMOX_TEMPLATE_CATEGORIES,
+    // What Proxmox VE reports itself: Logs monitors, after Quick Setup's.
+    afterQuickSetup: Array.from(
+      new Set(
+        getAllProxmoxNotificationAlertTemplates().map(
+          (template: { category: string }): string => {
+            return template.category;
+          },
+        ),
+      ),
+    ),
   },
   {
     name: "VMware",

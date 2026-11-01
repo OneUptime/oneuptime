@@ -27,23 +27,20 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
+import ProxmoxPartHero from "../../../Components/Proxmox/Part/ProxmoxPartHero";
+import ProxmoxStorageOverview from "../../../Components/Proxmox/Part/ProxmoxStorageOverview";
+import {
+  ProxmoxPartRoutes,
+  getProxmoxPartRoutes,
+} from "../../../Components/Proxmox/Part/ProxmoxPartRoutes";
 import {
   externalIdFromRouteParam,
   fetchProxmoxInventoryRow,
   formatBytes,
-  formatPercent,
   displayNameForResource,
-  displayStatusForResource,
 } from "../Utils/ProxmoxResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
-import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -303,109 +300,32 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
     yAxisValueFormatter: formatBytes,
   };
 
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "Storage Name", value: storageName },
-    { title: "Cluster", value: clusterName },
-  ];
+  const routes: ProxmoxPartRoutes = getProxmoxPartRoutes(modelId);
 
-  if (row) {
-    const status: string = displayStatusForResource(row);
-    if (status) {
-      summaryFields.push({
-        title: "Status",
-        value: (
-          <StatusBadge
-            text={status}
-            type={row.isUp ? StatusBadgeType.Success : StatusBadgeType.Danger}
-          />
-        ),
-        description: PROXMOX_METRIC_DESCRIPTIONS.storageStatus,
-      });
-    }
-
-    if (row.parentNodeName) {
-      summaryFields.push({ title: "Node", value: row.parentNodeName });
-    }
-
-    const used: number | null =
-      row.latestDiskBytes !== null && row.latestDiskBytes !== undefined
-        ? Number(row.latestDiskBytes)
-        : null;
-    const total: number | null =
-      row.maxDiskBytes !== null && row.maxDiskBytes !== undefined
-        ? Number(row.maxDiskBytes)
-        : null;
-
-    if (used !== null) {
-      summaryFields.push({
-        title: "Used",
-        value: formatBytes(used),
-        description: PROXMOX_METRIC_DESCRIPTIONS.storageUsed,
-      });
-    }
-    if (total !== null) {
-      summaryFields.push({
-        title: "Total",
-        value: formatBytes(total),
-        description: PROXMOX_METRIC_DESCRIPTIONS.storageTotal,
-      });
-    }
-    if (used !== null && total !== null && total > 0) {
-      summaryFields.push({
-        title: "Used %",
-        value: formatPercent((used / total) * 100),
-        description: PROXMOX_METRIC_DESCRIPTIONS.storageUsedPercent,
-      });
-    }
-
-    /*
-     * WI-29 growth forecast — only rendered when the volume is
-     * verifiably growing and the projection lands within a year
-     * (anything beyond is noise, mirroring the Ceph forecast cutoff).
-     */
-    if (
-      daysToFull !== null &&
-      Number.isFinite(daysToFull) &&
-      daysToFull <= 365
-    ) {
-      const usedPctText: string =
-        used !== null && total !== null && total > 0
-          ? formatPercent((used / total) * 100)
-          : "—";
-      summaryFields.push({
-        title: "Growth Forecast",
-        value:
-          daysToFull === 0
-            ? "Full now"
-            : `${usedPctText} full — at the current growth rate this volume will be full in ~${Math.max(
-                1,
-                Math.round(daysToFull),
-              )} day${Math.max(1, Math.round(daysToFull)) === 1 ? "" : "s"} (linear fit over the last ${PROJECTION_WINDOW_HOURS} h)`,
-        description: PROXMOX_METRIC_DESCRIPTIONS.storageGrowthForecast,
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
+  /*
+   * WI-29 growth forecast — only shown when the volume is verifiably
+   * growing and the projection lands within a year (anything beyond is
+   * noise, mirroring the Ceph forecast cutoff).
+   */
+  const forecastDays: number | null =
+    daysToFull !== null && Number.isFinite(daysToFull) && daysToFull <= 365
+      ? daysToFull
+      : null;
 
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <ResourceOverviewTab
-          summaryFields={row ? summaryFields : []}
-          labels={{}}
-          annotations={{}}
-          isLoading={isLoadingRow}
-          emptyMessage="Storage details not reported yet. Make sure the Proxmox agent is sending metrics."
+      children: isLoadingRow ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <ProxmoxStorageOverview
+          clusterId={modelId}
+          clusterName={clusterName}
+          externalId={externalId}
+          row={row}
+          routes={routes}
+          daysToFull={forecastDays}
+          forecastWindowHours={PROJECTION_WINDOW_HOURS}
         />
       ),
     },
@@ -425,7 +345,19 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="proxmox-storage-page">
+      <ProxmoxPartHero
+        kind="Storage"
+        row={row}
+        externalId={externalId}
+        clusterName={clusterName}
+        clusterRoute={routes.clusterRoute}
+        getPartRoute={routes.getPartRoute}
+      />
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+    </div>
+  );
 };
 
 export default ProxmoxClusterStorageDetail;

@@ -11,6 +11,7 @@ import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/Kube
 import { getAllOpenShiftAlertTemplates } from "../../../Types/Monitor/OpenShiftAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
+import { getAllProxmoxNotificationAlertTemplates } from "../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllStorageArrayAlertTemplates } from "../../../Types/Monitor/StorageArrayAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../Types/Monitor/VMwareAlertTemplates";
 import MonitorRecommendationCatalog from "../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
@@ -79,7 +80,11 @@ const CATALOGS: Array<Catalog> = [
   {
     name: "Proxmox",
     resourceType: MonitorRecommendationResourceType.Proxmox,
-    templates: getAllProxmoxAlertTemplates(),
+    // Its metric templates and the Logs monitors on its own notifications.
+    templates: [
+      ...getAllProxmoxAlertTemplates(),
+      ...getAllProxmoxNotificationAlertTemplates(),
+    ],
   },
   {
     name: "VMware",

@@ -6,6 +6,7 @@ import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
+import { getAllProxmoxNotificationAlertTemplates } from "../../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -909,5 +910,103 @@ describe("MonitorStepResourceIdentity — storage arrays", () => {
     const refs: SeriesResourceRefs = MonitorStepResourceIdentity.emptyRefs();
 
     expect(refs.storageArrayNames).toEqual([]);
+  });
+});
+
+/*
+ * The Logs monitors a cluster's Recommendations offer name the cluster in
+ * their attribute filter - a Kubernetes cluster's warning events, what a
+ * Proxmox cluster's own notifications report - so their incidents and
+ * alerts land on that cluster's pages (its Incidents, its side menu's
+ * counts, what is open on its Overview).
+ */
+describe("MonitorStepResourceIdentity — clusters a Logs monitor's filter names", () => {
+  function logMonitorWith(attributes: JSONObject): Monitor {
+    return monitorWithSteps(MonitorType.Logs, [
+      {
+        logMonitor: {
+          attributes: attributes,
+          body: "",
+          severityTexts: [],
+          telemetryServiceIds: [],
+          lastXSecondsOfLogs: 3600,
+        },
+      },
+    ]);
+  }
+
+  test("a Proxmox cluster's notification monitor names the cluster", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      logMonitorWith({
+        "resource.proxmox.cluster.name": "pve-prod",
+        "pve.notification.type": "vzdump",
+        "pve.notification.severity": "error",
+      }),
+    );
+
+    expect(refs.proxmoxClusterNames).toEqual(["pve-prod"]);
+    expect(refs.kubernetesClusterNames).toEqual([]);
+  });
+
+  test("the shipped Backup Job Failed and Node Fenced templates name their cluster", () => {
+    for (const template of getAllProxmoxNotificationAlertTemplates()) {
+      const step: MonitorStep = template.getMonitorStep({
+        clusterIdentifier: "pve-prod",
+        onlineMonitorStatusId: ObjectID.generate(),
+        offlineMonitorStatusId: ObjectID.generate(),
+        defaultIncidentSeverityId: ObjectID.generate(),
+        defaultAlertSeverityId: ObjectID.generate(),
+        monitorName: "pve-prod",
+      });
+      const model: Monitor = new Monitor();
+      model.monitorType = MonitorType.Logs;
+      model.projectId = new ObjectID("11111111-1111-4111-8111-111111111111");
+      const steps: MonitorSteps = new MonitorSteps();
+      steps.data = { monitorStepsInstanceArray: [step] };
+      model.monitorSteps = steps;
+
+      expect(refsFor(model).proxmoxClusterNames).toEqual(["pve-prod"]);
+    }
+  });
+
+  test("a Kubernetes cluster's warning events monitor names the cluster", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      logMonitorWith({
+        "event.domain": "k8s",
+        "resource.k8s.cluster.name": "aks-prod",
+        "k8s.event.type": "Warning",
+      }),
+    );
+
+    expect(refs.kubernetesClusterNames).toEqual(["aks-prod"]);
+  });
+
+  test("hosts and services a log filter names are left to the steps that read them", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      logMonitorWith({
+        "resource.host.name": "web-01",
+        "resource.service.name": "checkout",
+      }),
+    );
+
+    expect(MonitorStepResourceIdentity.isEmpty(refs)).toBe(true);
+  });
+
+  test("a number, a boolean or a blank value names no cluster and does not throw", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      logMonitorWith({
+        "resource.proxmox.cluster.name": 42,
+        "resource.k8s.cluster.name": true,
+        "resource.ceph.cluster.name": "   ",
+      } as unknown as JSONObject),
+    );
+
+    expect(MonitorStepResourceIdentity.isEmpty(refs)).toBe(true);
+  });
+
+  test("a Logs monitor with no attribute filter names nothing", () => {
+    expect(
+      MonitorStepResourceIdentity.isEmpty(refsFor(logMonitorWith({}))),
+    ).toBe(true);
   });
 });

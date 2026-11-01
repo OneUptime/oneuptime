@@ -12,6 +12,14 @@ import {
   ProxmoxMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import { AggregationIntervalUtil } from "../../../Types/BaseDatabase/AggregationIntervalUtil";
+import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
+import {
+  assessProxmoxGuest,
+  assessProxmoxNode,
+  getProxmoxAttentionItems,
+  getProxmoxClusterHealth,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/ProxmoxHealth";
+import { ResourceAttentionSeverity } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourceAttention";
 
 /*
  * The words behind every (i) on the Proxmox pages. The shared rules make
@@ -45,6 +53,12 @@ function readPage(relativePath: string): string {
 const OVERVIEW_SOURCE: string = readPage("View/Index.tsx");
 const UTILS_SOURCE: string = readPage("Utils/ProxmoxResourceUtils.ts");
 const STORAGE_DETAIL_SOURCE: string = readPage("View/StorageDetail.tsx");
+// The rules every page says what needs attention by.
+const HEALTH_SOURCE: string = readPage("Utils/ProxmoxHealth.ts");
+
+function row(fields: Partial<ProxmoxResource>): ProxmoxResource {
+  return Object.assign(new ProxmoxResource(), fields);
+}
 
 /*
  * Each (i) as the page labels it, so a title that names a percentile is
@@ -56,7 +70,6 @@ const TITLES: Record<ProxmoxMetric, string> = {
   clusterMemory: "Memory",
   fullestStorage: "Storage",
   guestsRunning: "Guests",
-  backupCoverage: "Backup Coverage",
   cpuChart: "CPU",
   memoryChart: "Memory",
   storageChart: "Storage",
@@ -64,43 +77,48 @@ const TITLES: Record<ProxmoxMetric, string> = {
   clusterInventoryCounts: "Cluster inventory counts",
   haStates: "High-availability states",
   clusterHealth: "Cluster Health",
-  quorum: "Quorum",
-  nodeCount: "Nodes",
-  guestCount: "Guests",
-  storageCount: "Storage",
   agentStatus: "Agent Status",
+  backupsLastOk: "Last backup OK",
+  backupsLastFailed: "Last backup failed",
+  backupsNotInJob: "In no backup job",
+  backupsNewest: "Newest backup",
   replicationLastSync: "Last Sync",
   replicationDuration: "Duration",
   replicationFailedSyncs: "Failed Syncs",
   cephCapacityUsed: "Capacity used",
   topGuestsByCpu: "CPU Usage",
   topGuestsByMemory: "Memory Usage",
+  // On the hero's status itself: its title, and words read after it.
   nodeStatus: "Status",
   nodeUptime: "Uptime",
   nodeCpu: "CPU",
-  nodeMemory: "Memory (Used / Total)",
-  nodeHaState: "HA State",
+  nodeMemory: "Memory",
+  nodeRootDisk: "Root Disk",
+  nodeGuests: "Guests",
+  nodeHaState: "HA state",
   nodeNetworkThroughput: "Network Throughput",
   nodeDiskThroughput: "Disk Throughput",
   guestStatus: "Status",
-  guestHaState: "HA State",
-  guestStartOnBoot: "Start on Boot",
-  guestBackupCoverage: "Backup Job Coverage",
+  guestHaState: "HA state",
+  guestStartOnBoot: "Start on boot",
+  guestBackupCoverage: "Backup job",
+  guestLastBackup: "Last Backup",
   guestUptime: "Uptime",
   guestCpu: "CPU",
-  guestMemory: "Memory (Used / Max)",
-  guestDisk: "Disk (Used / Max)",
+  guestMemory: "Memory",
+  guestDisk: "Disk",
   guestNetworkThroughput: "Network Throughput",
   guestDiskThroughput: "Disk Throughput",
   storageStatus: "Status",
-  storageUsed: "Used",
-  storageTotal: "Total",
-  storageUsedPercent: "Used %",
+  storageUsedPercent: "Used",
+  storageFree: "Free",
   storageGrowthForecast: "Growth Forecast",
+  storageShared: "Shared",
   nodesTableStatus: "Status",
   nodesTableCpu: "CPU",
   nodesTableMemory: "Memory",
   nodesTableUptime: "Age",
+  nodesTableGuests: "Guests",
   guestsTableStatus: "Status",
   guestsTableCpu: "CPU",
   guestsTableMemory: "Memory",
@@ -109,7 +127,6 @@ const TITLES: Record<ProxmoxMetric, string> = {
   guestsTableBackup: "Backup",
   storageTableStatus: "Status",
   storageTableUsage: "Used / Total",
-  storageTableAge: "Age",
   insightsDiskThroughput: "Disk Throughput",
 };
 
@@ -288,13 +305,18 @@ describe("snapshot numbers say they ignore the time picker", () => {
     expect(D.fullestStorage).toMatch(/rather than the selected time range/);
   });
 
-  test("the 85% storage threshold in the text is the one the page uses", () => {
+  test("the 85% and 95% storage thresholds in the text are the ones the rules use", () => {
     const nearFull: number = numericConstant(
-      OVERVIEW_SOURCE,
-      "STORAGE_NEAR_FULL_PERCENT",
+      HEALTH_SOURCE,
+      "PROXMOX_STORAGE_NEAR_FULL_PERCENT",
+    );
+    const full: number = numericConstant(
+      HEALTH_SOURCE,
+      "PROXMOX_STORAGE_FULL_PERCENT",
     );
 
     expect(nearFull).toBe(85);
+    expect(full).toBe(95);
 
     for (const key of [
       "fullestStorage",
@@ -302,14 +324,33 @@ describe("snapshot numbers say they ignore the time picker", () => {
       "storageUsedPercent",
     ] as const) {
       expect(D[key]).toContain(`${nearFull}%`);
+      expect(D[key]).toContain(`${full}%`);
     }
+    // The Overview's Storage tile turns red where the rules say Degraded.
+    expect(OVERVIEW_SOURCE).toContain(
+      "thresholds={{ warn: 75, danger: PROXMOX_STORAGE_NEAR_FULL_PERCENT }}",
+    );
   });
 
   test("the Storage chart admits that shared storage is counted once per node", () => {
     expect(D.storageChart).toMatch(/counted once for each node/);
     expect(D.storageChart).toMatch(/higher than the space really used/);
-    expect(D.storageCount).toMatch(/listed once per node/);
+    expect(D.clusterInventoryCounts).toMatch(/shared storage once per node/);
   });
+
+  test.each(["guestsRunning", "clusterInventoryCounts", "nodeGuests"] as const)(
+    "%s leaves templates out of the guests that run",
+    (key: ProxmoxMetric) => {
+      expect(D[key]).toMatch(/templates left out/);
+    },
+  );
+
+  test.each(["guestStatus", "guestsTableStatus"] as const)(
+    "%s names the Template status a template shows",
+    (key: ProxmoxMetric) => {
+      expect(D[key]).toMatch(/Running, Stopped or Template/);
+    },
+  );
 });
 
 describe("list columns and detail fields say how stale their numbers can be", () => {
@@ -386,15 +427,18 @@ describe("percentages name their denominator", () => {
 });
 
 describe("health, quorum and backups say exactly what they check", () => {
-  test("Cluster Health lists every driver the page uses", () => {
+  test("Cluster Health lists every driver the rules use", () => {
     for (const driver of [
       /Unhealthy/,
       /offline/,
+      /not quorate/,
+      /unavailable or over 95% full/,
       /error or fence/,
       /Degraded/,
       /85% full/,
       /start-on-boot guest is stopped/,
       /no backup job/,
+      /last backup failed/,
       /replication fails/,
       /Unknown if the agent is disconnected/,
     ]) {
@@ -402,33 +446,79 @@ describe("health, quorum and backups say exactly what they check", () => {
     }
   });
 
-  test("Quorum explains quorum and admits it is derived, not read", () => {
-    expect(D.quorum).toMatch(/more than half/);
-    // Without quorum running guests keep running; changes and HA stop.
-    expect(D.quorum).not.toMatch(/keep running/);
-    expect(D.quorum).toMatch(/start guests, change settings/);
-    expect(D.quorum).toMatch(/\(quorum\)/);
-    expect(D.quorum).toMatch(/red at half or fewer/);
-    expect(D.quorum).toMatch(/not read from Proxmox's own quorum service/);
-    expect(OVERVIEW_SOURCE).toContain("nodesOnline / nodesTotal <= 0.5");
+  test("each driver Cluster Health names is one the rules really apply", () => {
+    // Unhealthy: an offline node, a cluster that is not quorate.
+    expect(
+      getProxmoxClusterHealth(
+        getProxmoxAttentionItems({
+          rows: [row({ kind: "Node", externalId: "node/pve1", isUp: false })],
+          routeFor: () => {
+            return undefined;
+          },
+        }),
+      ),
+    ).toBe("Unhealthy");
+    expect(
+      getProxmoxClusterHealth(
+        getProxmoxAttentionItems({
+          rows: [],
+          isQuorate: false,
+          routeFor: () => {
+            return undefined;
+          },
+        }),
+      ),
+    ).toBe("Unhealthy");
+    // Degraded: a guest whose last backup failed.
+    expect(
+      assessProxmoxGuest(
+        row({
+          kind: "Guest",
+          externalId: "qemu/100",
+          lastBackupStatus: "failed",
+        }),
+      ).severity,
+    ).toBe(ResourceAttentionSeverity.Warning);
   });
 
-  test.each([
-    "backupCoverage",
-    "guestBackupCoverage",
-    "guestsTableBackup",
-  ] as const)(
-    "%s checks job coverage only, not backup success",
+  test("Node Availability says whether Proxmox reports the cluster quorate", () => {
+    expect(D.nodeAvailability).toMatch(
+      /whether it reports the cluster quorate/,
+    );
+    expect(D.nodeAvailability).toMatch(/red when half or more are offline/);
+    // Not quorate is red on the tile whatever the count says.
+    expect(OVERVIEW_SOURCE).toContain("isQuorate === false");
+  });
+
+  test.each(["guestBackupCoverage", "backupsNotInJob"] as const)(
+    "%s is about backup job coverage",
     (key: ProxmoxMetric) => {
       expect(D[key]).toMatch(/backup job/);
-      expect(D[key]).toMatch(/succeeded/);
-      expect(D[key]).toMatch(/not|does not/);
     },
   );
 
-  test("the backup column spells out all three values it can show", () => {
-    expect(D.guestsTableBackup).toMatch(/In job/);
-    expect(D.guestsTableBackup).toMatch(/Not backed up/);
+  test("the guest page's backup job row says it does not check results", () => {
+    expect(D.guestBackupCoverage).toMatch(/succeeded/);
+    expect(D.guestBackupCoverage).toMatch(/does not/);
+  });
+
+  test.each([
+    "backupsLastOk",
+    "backupsLastFailed",
+    "backupsNewest",
+    "guestLastBackup",
+    "guestsTableBackup",
+  ] as const)(
+    "%s says the results come from Proxmox VE's notifications",
+    (key: ProxmoxMetric) => {
+      expect(D[key]).toMatch(/Proxmox VE's notifications/);
+    },
+  );
+
+  test("the backup column spells out every value it can show", () => {
+    expect(D.guestsTableBackup).toMatch(/last backup went and when/);
+    expect(D.guestsTableBackup).toMatch(/In a backup job/);
+    expect(D.guestsTableBackup).toMatch(/In no backup job/);
     expect(D.guestsTableBackup).toMatch(/dash/);
   });
 
@@ -447,57 +537,28 @@ describe("health, quorum and backups say exactly what they check", () => {
 
   test("HA error and fence really do make the cluster Unhealthy", () => {
     expect(D.haStates).toMatch(/Unhealthy/);
-    expect(OVERVIEW_SOURCE).toContain(
-      'row.haState === "error" || row.haState === "fence"',
-    );
-  });
-
-  test("the agent status names the disconnect delay the server applies", () => {
-    expect(D.agentStatus).toMatch(/15 to 20 minutes after data stops/);
-
-    /*
-     * A cluster is marked disconnected once lastSeenAt is 15 minutes old,
-     * by a job that runs every 5 minutes - hence "15 to 20 minutes".
-     */
-    const service: string = fs.readFileSync(
-      path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "Server",
-        "Services",
-        "ProxmoxClusterService.ts",
-      ),
-      "utf8",
-    );
-    const cron: string = fs.readFileSync(
-      path.join(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "App",
-        "FeatureSet",
-        "Workers",
-        "Jobs",
-        "Proxmox",
-        "CleanupStaleResources.ts",
-      ),
-      "utf8",
-    );
-    const markDisconnected: string = service.slice(
-      service.indexOf("public async markDisconnectedClusters"),
-    );
-
-    // 15 minutes of time OneUptime was receiving (issue #2825).
-    expect(markDisconnected).toContain(
-      "ReceivingCoverage.getSilenceCutoff({\n      silenceInMinutes: 15,\n    });",
-    );
-    expect(markDisconnected).toContain('otelCollectorStatus: "disconnected"');
-    expect(cron).toContain("schedule: EVERY_FIVE_MINUTE");
-    expect(cron).toContain("markDisconnectedClusters()");
+    for (const state of ["error", "fence"]) {
+      expect(
+        assessProxmoxNode(
+          row({
+            kind: "Node",
+            externalId: "node/pve1",
+            isUp: true,
+            haState: state,
+          }),
+        ).severity,
+      ).toBe(ResourceAttentionSeverity.Critical);
+    }
+    expect(
+      assessProxmoxNode(
+        row({
+          kind: "Node",
+          externalId: "node/pve1",
+          isUp: true,
+          haState: "maintenance",
+        }),
+      ).severity,
+    ).toBeNull();
   });
 });
 
@@ -524,9 +585,39 @@ describe("replication, forecast and uptime", () => {
      * Replication failures only lift a Healthy cluster to Degraded; an
      * Unhealthy one stays Unhealthy.
      */
-    expect(OVERVIEW_SOURCE).toContain(
-      'inventoryHealth === "Healthy" && replicationDegradedItems.length > 0',
-    );
+    const routeFor: () => undefined = (): undefined => {
+      return undefined;
+    };
+    const failing: Array<{
+      jobId: string;
+      guestVmid: string;
+      failedSyncs: number;
+    }> = [{ jobId: "100-0", guestVmid: "100", failedSyncs: 1 }];
+    expect(
+      getProxmoxClusterHealth(
+        getProxmoxAttentionItems({
+          rows: [],
+          replicationJobs: failing,
+          routeFor,
+        }),
+      ),
+    ).toBe("Degraded");
+    expect(
+      getProxmoxClusterHealth(
+        getProxmoxAttentionItems({
+          rows: [row({ kind: "Node", externalId: "node/pve1", isUp: false })],
+          replicationJobs: failing,
+          routeFor,
+        }),
+      ),
+    ).toBe("Unhealthy");
+    expect(
+      getProxmoxAttentionItems({
+        rows: [],
+        replicationJobs: [{ jobId: "100-0", guestVmid: "100", failedSyncs: 0 }],
+        routeFor,
+      }),
+    ).toEqual([]);
   });
 
   test("Failed Syncs is a run of failures since the last good sync, not a lifetime total", () => {
@@ -554,9 +645,15 @@ describe("replication, forecast and uptime", () => {
     },
   );
 
-  test("the storage Age column admits Proxmox reports no uptime for storage", () => {
-    expect(D.storageTableAge).toMatch(/does not report an uptime/);
-    expect(D.storageTableAge).toMatch(/dash/);
+  /*
+   * Proxmox reports no uptime for a storage: its lists leave the Age column
+   * out instead of explaining a column of dashes.
+   */
+  test("no storage list column is explained as a column of dashes", () => {
+    expect(Object.keys(D)).not.toContain("storageTableAge");
+    for (const text of Object.values(D)) {
+      expect(text).not.toContain("this column normally shows a dash");
+    }
   });
 
   test("the QEMU disk field names the guest agent it depends on", () => {

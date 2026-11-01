@@ -189,6 +189,60 @@ export default class MonitorStepResourceIdentity {
     ) {
       input.refs.networkDeviceIds.push(networkDeviceId.trim().toLowerCase());
     }
+
+    /*
+     * 6. Clusters a Logs monitor's attribute filter names. The Logs
+     *    monitors a cluster's Recommendations offer - a Kubernetes
+     *    cluster's warning events, what a Proxmox cluster's own
+     *    notifications report (a failed backup job, a fenced node) - scope
+     *    themselves by the cluster's resource attribute
+     *    (`resource.k8s.cluster.name`, `resource.proxmox.cluster.name`),
+     *    the same keys a grouped series carries. Without this their
+     *    incidents and alerts linked to nothing, so they never showed on
+     *    the cluster's own pages. Cluster keys only: the services, hosts
+     *    and databases a log filter can name are read by the steps above.
+     */
+    this.collectClustersFromLogFilters({
+      stepData: stepData,
+      refs: input.refs,
+    });
+  }
+
+  private static collectClustersFromLogFilters(input: {
+    stepData: NonNullable<MonitorStep["data"]>;
+    refs: SeriesResourceRefs;
+  }): void {
+    const attributes: Record<string, unknown> = this.asAttributeRecord(
+      input.stepData.logMonitor?.attributes,
+    );
+
+    if (Object.keys(attributes).length === 0) {
+      return;
+    }
+
+    /*
+     * Only plain string values name a cluster (as in the metric filters
+     * above): a number or a boolean names no row.
+     */
+    const stringAttributes: JSONObject = {};
+
+    for (const [key, value] of Object.entries(attributes)) {
+      if (typeof value === "string" && value.trim().length > 0) {
+        stringAttributes[key] = value.trim();
+      }
+    }
+
+    const logRefs: SeriesResourceRefs =
+      SeriesResourceLabels.extractResourceRefs(stringAttributes);
+
+    input.refs.kubernetesClusterIds.push(...logRefs.kubernetesClusterIds);
+    input.refs.kubernetesClusterNames.push(...logRefs.kubernetesClusterNames);
+    input.refs.dockerSwarmClusterNames.push(...logRefs.dockerSwarmClusterNames);
+    input.refs.proxmoxClusterNames.push(...logRefs.proxmoxClusterNames);
+    input.refs.vmwareVCenterNames.push(...logRefs.vmwareVCenterNames);
+    input.refs.cephClusterNames.push(...logRefs.cephClusterNames);
+    input.refs.storageArrayNames.push(...logRefs.storageArrayNames);
+    input.refs.iotFleetNames.push(...logRefs.iotFleetNames);
   }
 
   private static collectDatabaseRefs(input: {

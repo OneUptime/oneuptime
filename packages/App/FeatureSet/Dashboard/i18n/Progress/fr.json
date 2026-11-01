@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 7637
+    "keys": 39389,
+    "untranslated": 7532
   },
   "sameAsEnglish": [
     " incidents",
@@ -268,6 +268,7 @@
     "Lesotho",
     "Liberia",
     "Liechtenstein",
+    "Local",
     "Logo",
     "Longitude",
     "Loopback",
@@ -420,11 +421,13 @@
     "Up · In",
     "Uplinks",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Variable",
     "Variables",

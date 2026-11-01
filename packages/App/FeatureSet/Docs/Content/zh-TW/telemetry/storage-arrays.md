@@ -174,7 +174,7 @@ Pure 的語意慣例由 FlashArray 原生端點和兩個匯出器共用。每個
 | FlashArray `/metrics/array` | `purefa_info`、`purefa_alerts_open`、`purefa_array_space_*`、`purefa_array_performance_*`、`purefa_hw_component_status`、`purefa_hw_component_temperature_celsius`、`purefa_hw_controller_info`、`purefa_drive_capacity_bytes`、`purefa_network_interface_*` | 陣列的名稱、Purity 版本和系統 ID；容量、已用空間和資料縮減；未結的警示數；陣列的健康狀態；**硬體** 頁面（元件、磁碟機、控制器、網路介面） |
 | FlashArray `/metrics/volumes` | `purefa_volume_performance_*`、`purefa_volume_space_*`、`purefa_volume_qos_*` | **磁碟區** 頁面：每個磁碟區的佈建大小和實體大小、資料縮減、讀寫延遲、IOPS 和頻寬 |
 | FlashArray `/metrics/hosts` | `purefa_host_connectivity_info`、`purefa_host_connections_info`、`purefa_host_performance_*`、`purefa_host_space_*` | **主機** 頁面：每台主機的連線能力（是否有備援路徑）、已連線的磁碟區、延遲、IOPS 和頻寬 |
-| FlashArray `/metrics/pods` | `purefa_pod_performance_*`、`purefa_pod_space_*`、`purefa_pod_replica_links_*`、`purefa_pod_mediator_status` | **Replication** 頁面：ActiveCluster 和 ActiveDR Pod、複本連結狀態和延遲 |
+| FlashArray `/metrics/pods` | `purefa_pod_performance_*`、`purefa_pod_space_*`、`purefa_pod_replica_links_*`、`purefa_pod_mediator_status` | **複寫** 頁面：ActiveCluster 和 ActiveDR Pod、複本連結狀態和延遲 |
 | FlashArray `/metrics/directories` | `purefa_directory_performance_*`、`purefa_directory_space_*` | **目錄** 頁面（FlashArray File Services） |
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名稱、Purity 版本和系統 ID；容量和資料縮減；未結的警示數；陣列的健康狀態；**硬體** 頁面 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **檔案系統** 頁面：每個檔案系統的佈建空間和已用空間、資料縮減、延遲、IOPS 和頻寬 |

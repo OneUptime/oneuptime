@@ -10,6 +10,17 @@ import { CriteriaIncident } from "../CriteriaIncident";
 import { CriteriaAlert } from "../CriteriaAlert";
 import { DATABASE_SERVER_ID_SCOPE_ATTRIBUTE } from "../DatabaseAlertTemplates";
 import { KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE } from "../KubernetesEventAlertTemplates";
+import { PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE } from "../ProxmoxNotificationAlertTemplates";
+
+/*
+ * The log attributes that name the resource a recommended Logs monitor
+ * watches: a Kubernetes cluster's warning events, a Proxmox cluster's own
+ * notifications.
+ */
+const LOG_SCOPE_RESOURCE_ATTRIBUTES: ReadonlyArray<string> = [
+  KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE,
+  PROXMOX_CLUSTER_NAME_LOG_ATTRIBUTE,
+];
 import MonitorRecommendationSeverityMapper from "./MonitorRecommendationSeverityMapper";
 import {
   MonitorRecommendation,
@@ -547,11 +558,12 @@ export default class MonitorRecommendationUtil {
 
   /*
    * The cluster a Logs step is scoped to by its attribute filter - a
-   * Kubernetes cluster's warning events (KubernetesEventAlertTemplates). The
-   * whole filter is part of the fingerprint through `configValues` anyway;
-   * this makes the step's resource as explicit as a Kubernetes monitor's
-   * clusterIdentifier, so "which resource does this monitor watch" has the
-   * same answer for both.
+   * Kubernetes cluster's warning events (KubernetesEventAlertTemplates), a
+   * Proxmox cluster's own notifications (ProxmoxNotificationAlertTemplates).
+   * The whole filter is part of the fingerprint through `configValues`
+   * anyway; this makes the step's resource as explicit as a cluster
+   * monitor's clusterIdentifier, so "which resource does this monitor watch"
+   * has the same answer for both.
    */
   private static getLogScopedResourceIdentifier(
     configKind: string,
@@ -561,11 +573,15 @@ export default class MonitorRecommendationUtil {
       return "";
     }
 
-    const value: unknown = (config.attributes || {})[
-      KUBERNETES_CLUSTER_NAME_LOG_ATTRIBUTE
-    ];
+    for (const attribute of LOG_SCOPE_RESOURCE_ATTRIBUTES) {
+      const value: unknown = (config.attributes || {})[attribute];
 
-    return typeof value === "string" ? value.trim() : "";
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+
+    return "";
   }
 
   /*

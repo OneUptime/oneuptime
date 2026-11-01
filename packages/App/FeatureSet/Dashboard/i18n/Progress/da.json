@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 13258
+    "keys": 39389,
+    "untranslated": 13114
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -21,6 +21,8 @@
     "Appliance",
     "Appliance {{appliance}}",
     "Apps",
+    "Backup",
+    "Backups",
     "Branding",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
@@ -68,6 +70,7 @@
     "Gateway",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "Hardware",
     "Hello world",
     "Hunt",
@@ -97,6 +100,7 @@
     "Merge request {{label}}",
     "Mexico (+52)",
     "Model",
+    "N/A",
     "Nav",
     "New Zealand (+64)",
     "Node",
@@ -185,12 +189,14 @@
     "Uplinks",
     "Uploads",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "Version {{number}}",
     "Web",
     "Web, iOS, Android, React Native",
@@ -260,6 +266,8 @@
     "{{count}} spans",
     "{{count}} team",
     "{{count}} teams",
+    "{{online}}/{{count}} node online",
+    "{{size}} disk",
     "{{tokens}} tokens"
   ]
 }

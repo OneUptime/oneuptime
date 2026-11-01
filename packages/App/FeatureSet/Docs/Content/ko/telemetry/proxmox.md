@@ -5,6 +5,7 @@ OneUptime Proxmox 에이전트는 Proxmox VE 클러스터, 즉 노드, QEMU VM, 
 :::cards
 - [연결 방법 선택](#연결-방법-선택): 에이전트, 또는 Proxmox VE 9 자체의 푸시.
 - [에이전트 설치](#에이전트-설치): API 토큰을 만든 다음 설치 스크립트나 Docker Compose 사용.
+- [백업 결과](#proxmox-ve-통지-보내기): Proxmox VE 자체 통지를 명령 두 개로 보냅니다.
 - [네이티브 푸시](#설치가-필요-없는-대안-proxmox-ve-9-네이티브-opentelemetry-푸시): Proxmox VE 9가 메트릭을 직접 보냅니다.
 - [문제 해결](#문제-해결): 진단 스크립트와 일반적인 문제.
 :::
@@ -33,9 +34,10 @@ flowchart TB
 | 설치할 것 | 머신 한 대의 Docker Compose | 없음: Proxmox 웹 UI의 메트릭 서버 |
 | 노드, 게스트, 스토리지 | 예 | 예 |
 | HA 상태, 부팅 시 시작, 백업 적용 범위, 복제 | 예 | 아니요 |
+| Proxmox VE 통지(8.3 이상)에서 오는 백업 결과, 펜싱된 노드, 실패한 복제 | 예 | 예 |
 | Proxmox AI 에이전트 | 예 | 아니요 |
 
-**HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Replication Failing** 템플릿에는 에이전트가 필요합니다. 클러스터에는 둘 중 하나만 사용하세요. 둘 다 실행하면 모든 리소스가 두 번 보고됩니다.
+**HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long**, **Replication Failing** 템플릿에는 에이전트가 필요합니다. 클러스터에는 둘 중 하나만 사용하세요. 둘 다 실행하면 모든 리소스가 두 번 보고됩니다.
 
 ## 시작하기 전에
 
@@ -185,6 +187,44 @@ Collector는 30초마다 익스포터를 스크레이프합니다. 클러스터 
 
 원래 `id` 레이블은 그대로 유지됩니다.
 
+## Proxmox VE 통지 보내기
+
+pve-exporter는 백업 작업에 어떤 게스트가 포함되는지는 알려 주지만, 백업이 어떻게 되었는지는 알려 주지 않습니다. 그것은 Proxmox VE가 자체 통지로 직접 알려 줍니다. 각 백업 작업의 결과, 펜싱된 노드, 실패한 복제, 대기 중인 업데이트 등입니다. Proxmox VE 8.3 이상에서는 아무 노드에서나 root로 명령 두 개를 실행하면, 아무것도 설치하지 않고 에이전트나 네이티브 푸시와 함께 모든 통지가 클러스터의 로그로 OneUptime에 전송됩니다. 클러스터의 설정 가이드에는 URL, 키, 클러스터 이름이 채워진 명령이 표시됩니다.
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+첫 번째 명령은 `oneuptime`이라는 웹훅 대상을 추가하고, 키와 클러스터 이름을 그 시크릿에 보관합니다. 두 번째 명령은 규칙이 없는 matcher를 추가하며, Proxmox VE는 이를 모든 통지로 해석합니다. 클러스터 이름은 OneUptime에 표시되는 그대로 쓰세요. 에이전트의 `PROXMOX_CLUSTER_NAME`, 또는 네이티브 푸시에서는 Proxmox 클러스터 자체의 이름입니다.
+
+각 통지는 다음 속성과 함께 도착합니다:
+
+| 속성 | 값 |
+| --- | --- |
+| `pve.notification.type` | `vzdump`(백업 작업), `replication`, `fencing`, `package-updates` 또는 `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` 또는 `unknown` |
+| `pve.notification.title` | 통지의 제목 |
+| `pve.notification.job_id` | 백업 작업의 경우 그 작업의 ID |
+| `proxmox.node.name` | 통지를 보낸 노드 |
+
+백업 작업의 통지에서 OneUptime은 각 게스트의 마지막 백업을 기록합니다. 성공했는지, 언제 끝났는지, 크기와 걸린 시간입니다. 게스트의 페이지에 표시되고, **게스트** 목록의 백업 열에 나오며, 클러스터의 **개요**에서 결과가 집계되고, 실패한 백업은 그 게스트의 이후 백업이 성공할 때까지 **확인 필요**에 남습니다. **Backup Job Failed**와 **Node Fenced** 알림도 같은 로그를 읽습니다.
+
+보내기를 멈추려면:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## 선택 사항 — Proxmox 서비스 로그 전송
 
 기본적으로 에이전트는 메트릭만 보내므로 클러스터의 **로그** 페이지는 비어 있습니다. Proxmox VE 서비스는 여덟 개 유닛으로 systemd 저널에 로그를 씁니다: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd`, `qmeventd`. 제공되는 `otel-collector-config.yaml`에는 정확히 이 유닛들을 위한 주석 처리된 `journald` 리시버가 있으며, 주석 처리된 `logs` 파이프라인에 연결되어 있습니다. 이 파이프라인이 `proxmox.cluster.name`을 붙이므로 로그가 클러스터에 들어갑니다.
@@ -269,7 +309,7 @@ Proxmox VE 9.0 이상에는 노드, 게스트, 스토리지 메트릭을 OTLP/HT
 
 - 독립 실행형 호스트, 또는 클러스터 전체가 한꺼번에 조용해지는 경우: 보고할 노드가 남지 않으므로 노드별 알림이 발생하지 않습니다. 대신 에이전트가 멈출 때처럼 클러스터가 **연결 끊김**으로 바뀝니다.
 - 7일 넘게 조용한 노드는 더 이상 보고되지 않습니다. 알림이 해결되고 노드 페이지에서 사라집니다. 자체 호스팅 OneUptime에서는 `PVE_SILENT_NODE_RETENTION_HOURS`로 7일을 바꿀 수 있습니다.
-- 클러스터에서 뺀 노드는 죽은 노드와 똑같아 보입니다. 그 페이지에서 **Remove Node**를 사용하세요. 노드가 사라지고 알림이 해결됩니다. 그렇지 않으면 최대 7일 동안 오프라인으로 남습니다.
+- 클러스터에서 뺀 노드는 죽은 노드와 똑같아 보입니다. 그 페이지에서 **노드 제거**를 사용하세요. 노드가 사라지고 알림이 해결됩니다. 그렇지 않으면 최대 7일 동안 오프라인으로 남습니다.
 - 노드의 게스트와 스토리지: 오프라인으로 유지되는 것은 노드 자체뿐입니다. 그 VM, 컨테이너, 스토리지는 마지막 보고 후 약 15분이 지나면 각 페이지에서 사라지며, HA가 다른 노드에서 다시 시작한 게스트는 그 노드 아래에 다시 나타납니다.
 
 OneUptime 수집이 중단된 뒤에는, 새로 조용해진 노드는 다른 노드 중 하나가 다시 2분 동안 푸시한 뒤에야 보고되므로, 중단 자체로 모든 노드에 대해 호출이 발생하지는 않습니다. 이미 오프라인이던 노드는 짧은 중단 동안 오프라인으로 남고 알림도 유지됩니다. 5분보다 긴 중단 후에는 다른 노드가 2분 동안 푸시하면 다시 보고됩니다.
@@ -284,9 +324,11 @@ OneUptime 수집이 중단된 뒤에는, 새로 조용해진 노드는 다른 �
 | --- | --- |
 | HA 상태 | 푸시되지 않음: **HA Resource in Error State** 템플릿에는 에이전트가 필요합니다. |
 | 부팅 시 시작 플래그 | 푸시되지 않음: 부팅 시 시작하도록 설정된 게스트에 대해서만 호출하는 **Guest Down**에는 에이전트가 필요합니다. |
-| 백업 적용 범위와 복제 | 푸시되지 않음: **Guest Not Backed Up**과 **Replication Failing**에는 에이전트가 필요합니다. |
+| 백업 적용 범위와 복제 | 푸시되지 않음: **Guest Not Backed Up**, **Backup Running Too Long**과 **Replication Failing**에는 에이전트가 필요합니다. |
 
 이것들이 필요하다면 대신 에이전트를 실행하고 메트릭 서버를 제거하세요. 둘 다 실행하면 모든 리소스가 두 번 보고됩니다.
+
+백업 결과, 펜싱된 노드, 실패한 복제는 그래도 OneUptime에 도착합니다. [Proxmox VE 통지를 보내세요](#proxmox-ve-통지-보내기). 네이티브 푸시와도 함께 작동합니다.
 
 ## systemd 서비스로 실행
 
@@ -375,11 +417,18 @@ OneUptime은 Proxmox 클러스터를 `proxmox.cluster.name`으로 등록하며, 
 :::
 
 :::details 네이티브 푸시에서 노드가 오프라인으로 표시됨
-노드가 보고를 멈췄습니다. 다운된 노드, 멈춘 `pvestatd`, 중지된 `pmxcfs`, OneUptime으로 가는 네트워크 단절은 모두 똑같아 보입니다. 다음 보고가 오면 돌아옵니다. 노드를 클러스터에서 뺐다면 그 페이지에서 **Remove Node**를 사용하세요. 그렇지 않으면 최대 7일 동안 오프라인으로 남습니다. [노드가 보고를 멈출 때](#노드가-보고를-멈출-때)를 참조하세요.
+노드가 보고를 멈췄습니다. 다운된 노드, 멈춘 `pvestatd`, 중지된 `pmxcfs`, OneUptime으로 가는 네트워크 단절은 모두 똑같아 보입니다. 다음 보고가 오면 돌아옵니다. 노드를 클러스터에서 뺐다면 그 페이지에서 **노드 제거**를 사용하세요. 그렇지 않으면 최대 7일 동안 오프라인으로 남습니다. [노드가 보고를 멈출 때](#노드가-보고를-멈출-때)를 참조하세요.
 :::
 
 :::details 네이티브 푸시에서 Guest Down, HA, 백업 알림이 발생하지 않음
 네이티브 푸시는 HA 상태, 부팅 시 시작, 백업 적용 범위, 복제를 보내지 않습니다. 이것들이 필요하다면 [에이전트를 설치](#에이전트-설치)하고 메트릭 서버를 제거하세요. 둘 다 실행하면 모든 리소스가 두 번 보고됩니다.
+:::
+
+:::details 백업 결과가 나타나지 않음
+1. Proxmox VE 릴리스를 확인하세요. 웹훅 대상에는 8.3 이상이 필요합니다(`pveversion`).
+2. 대상과 그 matcher가 있는지 확인하세요. `pvesh get /cluster/notifications/endpoints/webhook`과 `pvesh get /cluster/notifications/matchers` 모두에 `oneuptime`이 나와야 합니다.
+3. `pvesh create /cluster/notifications/targets/oneuptime/test`로 테스트 통지를 보내세요. 1분 안에 클러스터의 **로그** 페이지에 나타납니다. 나타나지 않으면 대상의 키나 URL이 잘못된 것입니다.
+4. 대상의 시크릿에 있는 클러스터 이름을 확인하세요. OneUptime이 모르는 이름이면 두 번째 클러스터가 등록됩니다.
 :::
 
 ## 다음 단계

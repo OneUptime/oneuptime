@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 13250
+    "keys": 39389,
+    "untranslated": 13106
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -18,6 +18,7 @@
     "Appliance {{appliance}}",
     "Australia (+61)",
     "Austria (+43)",
+    "Backup",
     "Branding",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
@@ -62,6 +63,8 @@
     "Google Calendar",
     "Google SecOps",
     "Goroutines",
+    "Guest",
+    "HA: {{state}}",
     "Hardware",
     "Hello world",
     "Hong Kong (+852)",
@@ -156,12 +159,14 @@
     "UTC",
     "Up · In",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Volume",
     "Web",
@@ -211,14 +216,17 @@
     "{{count}} VM",
     "{{count}} appliance",
     "{{count}} cluster",
+    "{{count}} core",
     "{{count}} dashboard",
     "{{count}} datacenter",
     "{{count}} datastore",
+    "{{count}} guest",
     "{{count}} host",
     "{{count}} repository",
     "{{count}} span",
     "{{count}} team",
     "{{count}} trigger",
-    "{{minutes}} min"
+    "{{minutes}} min",
+    "{{size}} in {{duration}}"
   ]
 }
