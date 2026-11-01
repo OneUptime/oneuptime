@@ -75,7 +75,9 @@ export default class TelemetryServiceUtil {
   /*
    * The same id -> Service map with the stand-in named as the reader sees it,
    * for a view that reads names off the map in many places. The map's own
-   * Service is not changed, and any other Service is handed on as it is.
+   * Service is not changed, and any other Service is handed on as it is. A
+   * Service row of that name keeps its own color: only its name is the
+   * stand-in's.
    */
   public static withUnknownServiceNamed(
     services: Record<string, Service>,
@@ -86,10 +88,18 @@ export default class TelemetryServiceUtil {
     for (const id of Object.keys(services)) {
       const service: Service = services[id] as Service;
 
-      named[id] =
-        service.name === UNKNOWN_SERVICE_NAME
-          ? this.getUnknownService(new ObjectID(id), translator)
-          : service;
+      if (service.name !== UNKNOWN_SERVICE_NAME) {
+        named[id] = service;
+        continue;
+      }
+
+      const standIn: Service = this.getUnknownService(
+        new ObjectID(id),
+        translator,
+      );
+
+      standIn.serviceColor = service.serviceColor || standIn.serviceColor;
+      named[id] = standIn;
     }
 
     return named;
