@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -147,7 +148,9 @@ const ResourceTopologyPage: FunctionComponent<ComponentProps> = (
         aria-label={tx("Refresh topology", translator)}
         title={tx("Refresh topology", translator)}
         disabled={isRefreshing}
-        className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+        className={`inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white p-2 text-gray-500 ${getHandDrawnButtonStateClassName(
+          { isBusy: isRefreshing, hoverClassName: "hover:bg-gray-50" },
+        )}`}
         onClick={() => {
           load(true).catch(() => {
             // load reports its own errors

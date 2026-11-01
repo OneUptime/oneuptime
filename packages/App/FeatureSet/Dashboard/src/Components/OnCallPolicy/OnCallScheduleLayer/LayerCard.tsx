@@ -1,3 +1,7 @@
+import {
+  getHandDrawnButtonStateClassName,
+  getHandDrawnLookClassName,
+} from "Common/UI/Components/Button/ButtonStates";
 import LayerConfigForm from "./LayerConfigForm";
 import LayerRotationSummary from "./LayerRotationSummary";
 import { getLayerPreviewEvents, LayerPreviewResult } from "./LayerShiftPreview";
@@ -352,11 +356,12 @@ const LayerCard: FunctionComponent<ComponentProps> = (
           e.stopPropagation();
           params.onClick();
         }}
-        className={`flex h-4 w-6 items-center justify-center rounded transition-colors ${
-          params.disabled || props.actionsDisabled
-            ? "cursor-not-allowed text-gray-300"
-            : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-        }`}
+        className={`flex h-4 w-6 items-center justify-center rounded transition-colors ${getHandDrawnLookClassName(
+          {
+            className: "text-gray-400 hover:bg-gray-100 hover:text-gray-700",
+            isLocked: params.disabled || props.actionsDisabled,
+          },
+        )}`}
       >
         <Icon icon={params.icon} className="h-3.5 w-3.5" />
       </button>
@@ -556,7 +561,13 @@ const LayerCard: FunctionComponent<ComponentProps> = (
                 e.stopPropagation();
                 props.onDeleteLayer();
               }}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors ${getHandDrawnButtonStateClassName(
+                {
+                  isLocked: props.actionsDisabled,
+                  isBusy: props.isDeleteButtonLoading,
+                  hoverClassName: "hover:bg-red-50 hover:text-red-600",
+                },
+              )}`}
             >
               <Icon
                 icon={

@@ -671,7 +671,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitors (optional)",
+          placeholder: "Select Monitors",
         },
         ...(isIncident
           ? [
@@ -689,7 +689,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
                   },
                 },
                 required: false,
-                placeholder: "Select Severities (optional)",
+                placeholder: "Select Severities",
               },
             ]
           : [
@@ -707,7 +707,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
                   },
                 },
                 required: false,
-                placeholder: "Select Severities (optional)",
+                placeholder: "Select Severities",
               },
             ]),
         {
@@ -721,7 +721,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Labels (optional)",
+          placeholder: "Select Labels",
         },
         {
           field: { monitorLabels: true },
@@ -736,7 +736,7 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitor Labels (optional)",
+          placeholder: "Select Monitor Labels",
         },
         {
           field: { titlePattern: true },

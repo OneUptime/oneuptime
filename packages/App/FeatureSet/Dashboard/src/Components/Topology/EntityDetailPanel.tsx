@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -955,8 +956,21 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
     const isOutdated: boolean = Boolean(moreError?.isOutdated);
     const listChanged: boolean =
       Boolean(current?.changedSections[config.section]) && !isOutdated;
-    const actionClassName: string =
-      "rounded-md px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-wait disabled:text-gray-400";
+    /*
+     * Reload list and Show more: the one that loads is busy (it says
+     * Loading…), the other locked until it is done.
+     */
+    const actionClassNameOf: (action?: SectionAction | undefined) => string = (
+      action?: SectionAction | undefined,
+    ): string => {
+      return `rounded-md px-2 py-1 text-xs font-medium text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+        {
+          isLocked: Boolean(pending),
+          isBusy: Boolean(action) && pending === action,
+          hoverClassName: "hover:text-indigo-800",
+        },
+      )}`;
+    };
     return (
       <div key={config.section} data-testid={config.testId}>
         <h3 className="text-sm font-semibold text-gray-900">
@@ -984,7 +998,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             {isOutdated && (
               <button
                 type="button"
-                className={`mt-1 ${actionClassName}`}
+                className={`mt-1 ${actionClassNameOf()}`}
                 onClick={() => {
                   Navigation.reload();
                 }}
@@ -1004,7 +1018,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             </p>
             <button
               type="button"
-              className={actionClassName}
+              className={actionClassNameOf("reload")}
               aria-label={`${t("Reload list")}: ${title}`}
               disabled={Boolean(pending)}
               aria-busy={pending === "reload"}
@@ -1025,7 +1039,7 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
             </p>
             <button
               type="button"
-              className={actionClassName}
+              className={actionClassNameOf("more")}
               aria-label={`${t("Show more")}: ${title}`}
               disabled={Boolean(pending)}
               aria-busy={pending === "more"}

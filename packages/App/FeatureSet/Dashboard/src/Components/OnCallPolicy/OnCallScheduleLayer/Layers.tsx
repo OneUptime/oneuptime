@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import { getCoverageWindowEnd } from "./CoverageWindow";
 import LayerCard from "./LayerCard";
 import { formatWindowSpan } from "./LayerSummary";
@@ -958,7 +959,14 @@ const Layers: FunctionComponent<ComponentProps> = (
           await addLayer();
         }}
         disabled={isMutating}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white py-4 text-sm font-medium text-gray-500 transition-colors hover:border-indigo-300 hover:bg-indigo-50/40 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-white py-4 text-sm font-medium text-gray-500 transition-colors ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: isMutating,
+            isBusy: isAddButtonLoading,
+            hoverClassName:
+              "hover:border-indigo-300 hover:bg-indigo-50/40 hover:text-indigo-600",
+          },
+        )}`}
       >
         <Icon
           icon={isAddButtonLoading ? IconProp.Spinner : IconProp.Add}

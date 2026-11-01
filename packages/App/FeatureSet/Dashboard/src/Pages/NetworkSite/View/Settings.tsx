@@ -357,7 +357,7 @@ const NetworkSiteSettings: FunctionComponent<
               },
             },
             required: false,
-            placeholder: "Select Alert Severity (optional)",
+            placeholder: "Select Alert Severity",
           },
         ]}
         modelDetailProps={{

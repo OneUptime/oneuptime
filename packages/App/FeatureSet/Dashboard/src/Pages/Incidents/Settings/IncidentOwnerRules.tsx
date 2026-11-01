@@ -150,7 +150,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitors (optional)",
+          placeholder: "Select Monitors",
         },
         {
           field: { incidentSeverities: true },
@@ -166,7 +166,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             },
           },
           required: false,
-          placeholder: "Select Severities (optional)",
+          placeholder: "Select Severities",
         },
         {
           field: { incidentLabels: true },
@@ -179,7 +179,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Incident Labels (optional)",
+          placeholder: "Select Incident Labels",
         },
         {
           field: { monitorLabels: true },
@@ -192,7 +192,7 @@ const IncidentRulesTable: FunctionComponent<RulesTableProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitor Labels (optional)",
+          placeholder: "Select Monitor Labels",
         },
         {
           field: { incidentTitlePattern: true },
@@ -322,7 +322,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
             },
           },
           required: false,
-          placeholder: "Select Severities (optional)",
+          placeholder: "Select Severities",
         },
         {
           field: { episodeLabels: true },
@@ -335,7 +335,7 @@ const EpisodeRulesTable: FunctionComponent<RulesTableProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Labels (optional)",
+          placeholder: "Select Labels",
         },
         {
           field: { episodeTitlePattern: true },

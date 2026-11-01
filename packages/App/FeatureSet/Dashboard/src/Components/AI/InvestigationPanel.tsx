@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import ChatActivityFeed, {
   hasRenderableActivity,
   KubectlActivitySummary,
@@ -1466,7 +1467,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 disabled={isVerdictLocked}
-                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600 sm:flex-none sm:px-3"
+                className={`inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:flex-none sm:px-3 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: isVerdictLocked,
+                    hoverClassName: "hover:bg-green-50 hover:text-green-700",
+                  },
+                )}`}
                 onClick={() => {
                   submitVerdict("Confirmed").catch(() => {
                     // handled inside submitVerdict
@@ -1483,7 +1489,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <button
                 type="button"
                 disabled={isVerdictLocked}
-                className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600 sm:flex-none sm:px-3"
+                className={`inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:flex-none sm:px-3 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: isVerdictLocked,
+                    hoverClassName: "hover:bg-rose-50 hover:text-rose-700",
+                  },
+                )}`}
                 onClick={() => {
                   submitVerdict("Rejected").catch(() => {
                     // handled inside submitVerdict

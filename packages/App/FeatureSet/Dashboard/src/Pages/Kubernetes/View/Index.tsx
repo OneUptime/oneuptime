@@ -380,6 +380,9 @@ const KubernetesClusterOverview: FunctionComponent<
   const [containerCount, setContainerCount] = useState<number>(0);
   const [pvcCount, setPvcCount] = useState<number>(0);
   const [pvCount, setPvCount] = useState<number>(0);
+  const [deploymentConfigCount, setDeploymentConfigCount] = useState<number>(0);
+  const [routeCount, setRouteCount] = useState<number>(0);
+  const [serviceCount, setServiceCount] = useState<number>(0);
   const [podHealthSummary, setPodHealthSummary] = useState<{
     running: number;
     pending: number;
@@ -508,6 +511,9 @@ const KubernetesClusterOverview: FunctionComponent<
       setCronJobCount(readNum("cronJobCount"));
       setPvcCount(readNum("pvcCount"));
       setPvCount(readNum("pvCount"));
+      setDeploymentConfigCount(readNum("deploymentConfigCount"));
+      setRouteCount(readNum("routeCount"));
+      setServiceCount(readNum("serviceCount"));
       setContainerCount(readNum("containerCount"));
 
       const podPhase: JSONObject =
@@ -1442,6 +1448,43 @@ const KubernetesClusterOverview: FunctionComponent<
       iconTextClass: "text-fuchsia-600",
     },
   ];
+
+  // OpenShift's own, only on a cluster that has some.
+  if (deploymentConfigCount > 0) {
+    workloadLinks.splice(3, 0, {
+      title: "DeploymentConfigs",
+      description: "OpenShift's older way to roll out pods",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS,
+      count: deploymentConfigCount,
+      icon: IconProp.Layers,
+      iconBgClass: "bg-sky-100",
+      iconTextClass: "text-sky-600",
+    });
+  }
+
+  if (routeCount > 0) {
+    infraLinks.push({
+      title: "Routes",
+      description: "How traffic reaches the cluster's Services",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES,
+      count: routeCount,
+      icon: IconProp.Globe,
+      iconBgClass: "bg-lime-100",
+      iconTextClass: "text-lime-600",
+    });
+  }
+
+  if (serviceCount > 0) {
+    infraLinks.push({
+      title: "Services",
+      description: "Stable addresses in front of pods",
+      pageMap: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES,
+      count: serviceCount,
+      icon: IconProp.Link,
+      iconBgClass: "bg-green-100",
+      iconTextClass: "text-green-600",
+    });
+  }
 
   // Build pod health segments for StackedProgressBar
   const podHealthSegments: Array<StackedProgressBarSegment> = [

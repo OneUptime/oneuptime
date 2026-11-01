@@ -545,7 +545,8 @@ describe("the dashboard is wired where the feature says", () => {
       },
     ).flat();
 
-    expect(code).not.toContain("Common/UI/Components/Button/Button");
+    // Not the shared Button (its locked look comes from ButtonStates).
+    expect(code).not.toContain('"Common/UI/Components/Button/Button"');
     expect(code).not.toContain("ButtonStyleType");
 
     // What the old button drew with: a box, a full width, a 20px icon.

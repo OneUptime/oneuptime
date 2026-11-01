@@ -1,5 +1,11 @@
 import MonitorCriteriaInstanceElement from "./MonitorCriteriaInstance";
 import {
+  CRITERIA_ACCENT_CLASS_NAME,
+  CRITERIA_BODY_CLASS_NAME,
+  CRITERIA_BOX_CLASS_NAME,
+  CRITERIA_DISABLED_ACCENT_CLASS_NAME,
+} from "./CriteriaEditorLayout";
+import {
   NetworkDeviceOidCatalogueEntry,
   NetworkDeviceTableCatalogueEntry,
 } from "./CriteriaFilter";
@@ -228,9 +234,9 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
     instance: MonitorCriteriaInstance,
   ) => string = (instance: MonitorCriteriaInstance): string => {
     if (instance.data?.isEnabled === false) {
-      return "border-l-gray-300";
+      return CRITERIA_DISABLED_ACCENT_CLASS_NAME;
     }
-    return "border-l-blue-500";
+    return CRITERIA_ACCENT_CLASS_NAME;
   };
 
   const handleDragEnd: (result: DropResult) => void = (
@@ -301,7 +307,8 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                             <div
                               ref={draggableProvided.innerRef}
                               {...draggableProvided.draggableProps}
-                              className={`mb-4 border rounded-lg overflow-hidden border-l-4 bg-white ${getCriteriaHeaderColor(i)}`}
+                              className={`${CRITERIA_BOX_CLASS_NAME} ${getCriteriaHeaderColor(i)}`}
+                              data-testid="monitor-criteria-box"
                             >
                               {/*
                                * Collapsible Header: the drag handle, and the
@@ -427,11 +434,13 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                 }`}
                               >
                                 {/*
-                                 * 12px sides on a phone, 16 from sm up: the
-                                 * criteria sits in two cards there, and the
-                                 * rule forms in it in two boxes more.
+                                 * 12px sides on a phone, 16 from sm up. On a
+                                 * phone the sections inside reach out over
+                                 * the 12px to the box's sides, so this box
+                                 * is the one frame round the criteria's
+                                 * fields (CriteriaEditorLayout).
                                  */}
-                                <div className="px-3 pb-3 bg-white sm:px-4 sm:pb-4">
+                                <div className={CRITERIA_BODY_CLASS_NAME}>
                                   <MonitorCriteriaInstanceElement
                                     monitorType={props.monitorType}
                                     monitorStep={props.monitorStep}

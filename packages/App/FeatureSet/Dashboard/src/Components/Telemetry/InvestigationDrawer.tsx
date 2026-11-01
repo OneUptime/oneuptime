@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -804,7 +805,13 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                       <button
                         type="button"
                         disabled={isSavingNote || !selectedIncidentId}
-                        className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                        className={`rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${getHandDrawnButtonStateClassName(
+                          {
+                            isLocked: !selectedIncidentId,
+                            isBusy: isSavingNote,
+                            hoverClassName: "hover:bg-indigo-500",
+                          },
+                        )}`}
                         onClick={saveNoteToIncident}
                       >
                         {isSavingNote ? "Saving…" : "Save note"}

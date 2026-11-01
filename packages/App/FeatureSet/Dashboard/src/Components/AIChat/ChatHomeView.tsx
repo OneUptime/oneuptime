@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import AskAiMark, { AskAiMarkSize } from "./AskAiMark";
 import {
   getTitleDirection,
@@ -131,7 +132,13 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
         onClick={() => {
           props.onAsk(question);
         }}
-        className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
+        className={`inline-flex max-w-full items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: props.isSending,
+            hoverClassName:
+              "hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900",
+          },
+        )}`}
       >
         <Icon
           icon={suggestion.icon}

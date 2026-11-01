@@ -48,15 +48,15 @@ Una persona conta come postazione dal momento in cui la inviti, prima ancora che
 :::steps
 ### Aggiungere prima un metodo di pagamento
 
-Un cambio di piano richiede un metodo di pagamento. Senza, **Change Plan** apre invece **Add a Payment Method**: vedi [Metodi di pagamento](#metodi-di-pagamento).
+Un cambio di piano richiede un metodo di pagamento. Senza, **Cambia piano** apre invece **Add a Payment Method**: vedi [Metodi di pagamento](#metodi-di-pagamento).
 
-### Fare clic su Change Plan
+### Fare clic su Cambia piano
 
-Nella scheda **Piano attuale**, fai clic su **Change Plan**. **Piano annuale** parte attivo: disattivalo per vedere i prezzi mensili.
+Nella scheda **Piano attuale**, fai clic su **Cambia piano**. I piani si aprono sul periodo per cui il progetto è fatturato; passa da **Mensile** ad **Annuale** per vedere gli altri prezzi.
 
 ### Scegliere il piano
 
-Ogni piano mostra il suo prezzo per utente. La nota sotto i piani dice che cosa succede alla tua prova: **Your free trial carries over** finché il progetto è ancora in prova, e **Changing plan does not start a free trial** quando non lo è più.
+Ogni piano mostra il suo prezzo per utente, e **Piano attuale** segna quello su cui si trova il progetto. La nota sotto i piani dice che cosa succede alla tua prova: **La tua prova gratuita continua** finché il progetto è ancora in prova, e **Cambiare piano non avvia una prova gratuita** quando non lo è più.
 
 ### Salvare la modifica
 
@@ -184,7 +184,7 @@ Un progetto con il piano Free ha bisogno di un metodo di pagamento prima di crea
 Un progetto con fatture non pagate diventa inattivo, e viene eliminato se restano non pagate. Apri **Fatture** e fai clic su **Paga la fattura** su ognuna ancora da saldare.
 :::
 
-:::details Change Plan apre Add a Payment Method
+:::details Cambia piano apre Add a Payment Method
 Il progetto non ha ancora un metodo di pagamento. Aggiungine uno, poi cambia il piano.
 :::
 

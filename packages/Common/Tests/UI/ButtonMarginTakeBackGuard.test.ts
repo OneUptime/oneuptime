@@ -58,6 +58,58 @@ function classTokens(text: string): Array<string> {
   });
 }
 
+const CHOOSING_OPERATORS: ReadonlySet<ts.SyntaxKind> = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.QuestionQuestionToken,
+  ts.SyntaxKind.BarBarToken,
+  ts.SyntaxKind.AmpersandAmpersandToken,
+]);
+
+/*
+ * The class texts an expression writes out: a literal or a template, and
+ * each one a default or a choice can give - `props.className ?? "-ml-3"`,
+ * `isOpen ? "..." : "..."`. The Test Monitor button's box defaulted to a
+ * bare -ml-3 behind a ??, and pulled the button 12px past the gutter of
+ * Create Monitor's criteria step on a phone, where this guard read nothing.
+ */
+function writtenClassTexts(
+  expression: ts.Expression,
+  source: ts.SourceFile,
+): Array<string> {
+  if (ts.isParenthesizedExpression(expression)) {
+    return writtenClassTexts(expression.expression, source);
+  }
+
+  if (
+    ts.isStringLiteral(expression) ||
+    ts.isNoSubstitutionTemplateLiteral(expression)
+  ) {
+    return [expression.text];
+  }
+
+  if (ts.isTemplateExpression(expression)) {
+    return [expression.getText(source)];
+  }
+
+  if (
+    ts.isBinaryExpression(expression) &&
+    CHOOSING_OPERATORS.has(expression.operatorToken.kind)
+  ) {
+    return [
+      ...writtenClassTexts(expression.left, source),
+      ...writtenClassTexts(expression.right, source),
+    ];
+  }
+
+  if (ts.isConditionalExpression(expression)) {
+    return [
+      ...writtenClassTexts(expression.whenTrue, source),
+      ...writtenClassTexts(expression.whenFalse, source),
+    ];
+  }
+
+  return [];
+}
+
 // The class text an attribute holds, when it is written out.
 function classTextOf(
   attribute: ts.JsxAttribute,
@@ -74,18 +126,12 @@ function classTextOf(
   }
 
   if (ts.isJsxExpression(initializer) && initializer.expression) {
-    const expression: ts.Expression = initializer.expression;
+    const texts: Array<string> = writtenClassTexts(
+      initializer.expression,
+      source,
+    );
 
-    if (
-      ts.isStringLiteral(expression) ||
-      ts.isNoSubstitutionTemplateLiteral(expression)
-    ) {
-      return expression.text;
-    }
-
-    if (ts.isTemplateExpression(expression)) {
-      return expression.getText(source);
-    }
+    return texts.length > 0 ? texts.join(" ") : null;
   }
 
   return null;
@@ -241,6 +287,38 @@ describe("the guard reads the shapes it is meant to", () => {
         return `${finding.line}:${finding.buttonStyle}`;
       }),
     ).toEqual(["3:NORMAL", "12:NORMAL", "14:DANGER_OUTLINE"]);
+  });
+
+  test("a bare -ml-3 a default or a choice gives is caught too", () => {
+    const code: string = `
+      const A = (props) => (
+        <div className={props.className ?? "-ml-3 mr-2"}>
+          <Button title="Test Monitor" buttonStyle={ButtonStyleType.NORMAL} />
+        </div>
+      );
+      const B = (props) => (
+        <div className={props.className ?? "md:-ml-3 md:mr-2"}>
+          <Button title="Test Monitor" buttonStyle={ButtonStyleType.NORMAL} />
+        </div>
+      );
+      const C = (props) => (
+        <div className={props.isOpen ? "mt-2 -ml-3" : "mt-2"}><Button title="Add" /></div>
+      );
+      const D = (props) => (
+        <div className={(props.isWide && "w-full") || "-ml-3"}><Button title="Add" /></div>
+      );
+      const E = (props) => (
+        <div className={getClassName("-ml-3")}><Button title="Add" /></div>
+      );
+    `;
+
+    expect(
+      findMarginTakeBacks("Fixture.tsx", code).map(
+        (finding: MarginTakeBackFinding): string => {
+          return `${finding.line}:${finding.buttonStyle}`;
+        },
+      ),
+    ).toEqual(["3:NORMAL", "13:NORMAL", "16:NORMAL"]);
   });
 
   test("a link Button's -ml-3 lines its words up and is left alone", () => {

@@ -176,7 +176,7 @@ const LABELS: Field<TestEntity> = {
   fieldType: FormFieldSchemaType.MultiSelectDropdown,
   dropdownModal: { type: Label, labelField: "name", valueField: "_id" },
   dropdownOptions: LABEL_OPTIONS,
-  placeholder: "Select Labels (optional)",
+  placeholder: "Select Labels",
 };
 
 const MONITOR_LABELS: Field<TestEntity> = {
@@ -185,7 +185,7 @@ const MONITOR_LABELS: Field<TestEntity> = {
   fieldType: FormFieldSchemaType.MultiSelectDropdown,
   dropdownModal: { type: Label, labelField: "name", valueField: "_id" },
   dropdownOptions: LABEL_OPTIONS,
-  placeholder: "Select Monitor Labels (optional)",
+  placeholder: "Select Monitor Labels",
 };
 
 const MONITORS: Field<TestEntity> = {
@@ -194,7 +194,7 @@ const MONITORS: Field<TestEntity> = {
   fieldType: FormFieldSchemaType.MultiSelectDropdown,
   dropdownModal: { type: Monitor, labelField: "name", valueField: "_id" },
   dropdownOptions: MONITOR_OPTIONS,
-  placeholder: "Select Monitors (optional)",
+  placeholder: "Select Monitors",
 };
 
 const SEVERITY: Field<TestEntity> = {
@@ -1197,7 +1197,10 @@ describe("RuleCriteriaBuilder", () => {
   });
 
   describe("value placeholders", () => {
-    test("a list asks to select one or more, never (optional)", () => {
+    test("a list asks to select one or more, not the page's own prompt", () => {
+      // The page asks "Select Labels" where its form draws the field itself.
+      expect(LABELS.placeholder).toBe("Select Labels");
+
       render(
         <Harness
           onChange={jest.fn()}

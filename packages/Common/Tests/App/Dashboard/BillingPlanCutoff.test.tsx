@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import React, { ReactElement, ReactNode } from "react";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import React, { ReactNode } from "react";
 import {
   afterEach,
   beforeEach,
@@ -21,9 +21,13 @@ import { getJestSpyOn } from "../../Spy";
  * own plan has stopped, above the plan, with the plan that turns each fully
  * back on.
  *
- * The real page and its counts; ModelAPI, the plan editor (CardModelDetail,
- * drawn here as its plan options), the payment methods table and Stripe are
- * test boundaries.
+ * Each plan's row in the Change Plan picker (the shared PlanPicker) says it
+ * in an amber line under who the plan is for, read with the plan's radio.
+ *
+ * The real page, its counts and its plan field; ModelAPI, the rest of the
+ * plan editor (CardModelDetail, drawn here as the field -
+ * BillingPlanEditorStandIn), the payment methods table and Stripe are test
+ * boundaries.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -137,40 +141,12 @@ jest.mock(
   { virtual: true },
 );
 
-interface RecordedOption {
-  value: string;
-  title: string;
-  description: string;
-}
-
-// The plan editor, drawn as the plans it offers: a title and a description each.
+/*
+ * The plan editor, drawn as its Change Plan dialog's field: the page's own
+ * plan picker, holding the plan the project is on.
+ */
 jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
-  return {
-    __esModule: true,
-    default: (props: {
-      cardProps: { title: string };
-      formFields: Array<{ radioButtonOptions?: Array<RecordedOption> }>;
-    }): ReactElement => {
-      if (props.cardProps.title !== "Current Plan") {
-        return <></>;
-      }
-
-      return (
-        <section aria-label="Plan options">
-          {(props.formFields[0]?.radioButtonOptions || []).map(
-            (option: RecordedOption) => {
-              return (
-                <div key={option.value} data-testid={`plan-${option.title}`}>
-                  <h3>{option.title}</h3>
-                  <p data-testid="plan-description">{option.description}</p>
-                </div>
-              );
-            },
-          )}
-        </section>
-      );
-    },
-  };
+  return jest.requireActual("./BillingPlanEditorStandIn");
 });
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
@@ -184,6 +160,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 import Billing from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/Billing";
 import { PLAN_CUTOFF_NOTE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/PlanCutoffNote";
+import { setPlanEditorProjectPlan } from "./BillingPlanEditorStandIn";
 import ApiKey from "../../../Models/DatabaseModels/ApiKey";
 import BillingPaymentMethod from "../../../Models/DatabaseModels/BillingPaymentMethod";
 import ProjectSCIM from "../../../Models/DatabaseModels/ProjectSCIM";
@@ -208,6 +185,7 @@ async function renderBillingOn(planId: string | null): Promise<void> {
   getItemMock.mockResolvedValue(
     planId ? { paymentProviderPlanId: planId } : {},
   );
+  setPlanEditorProjectPlan(planId);
 
   await act(async () => {
     render(
@@ -228,10 +206,16 @@ async function renderBillingOn(planId: string | null): Promise<void> {
   });
 }
 
+// What a plan's row in the picker says, all of it.
 function descriptionOf(plan: string): string {
-  return within(screen.getByTestId(`plan-${plan}`)).getByTestId(
-    "plan-description",
-  ).textContent as string;
+  return screen.getByTestId(`plan-picker-option-${plan}`).textContent || "";
+}
+
+// The plan's own line of what moving to it stops, or "" when it has none.
+function noteOf(plan: string): string {
+  return (
+    screen.queryByTestId(`plan-picker-note-${plan}`)?.textContent || ""
+  ).trim();
 }
 
 function countedModels(): Array<unknown> {
@@ -300,12 +284,34 @@ describe("a project on Scale with 3 API keys and 2 SCIM connections", () => {
     }
   });
 
-  it("keeps each plan's own description first", async () => {
+  it("says it on the plan's own line, under who the plan is for, read with its radio", async () => {
     await renderBillingOn("price_scale_month");
 
-    expect(descriptionOf("Free")).toMatch(
-      /^\$0 subscription\. Paid features are billed separately when pay as you go is enabled\. Your 3 API keys/,
+    expect(noteOf("Free")).toBe(
+      "Your 3 API keys stop working on this plan. Your 2 SCIM connections only remove people on this plan.",
     );
+    expect(noteOf("Growth")).toBe(
+      "Your 2 SCIM connections only remove people on this plan.",
+    );
+    expect(noteOf("Scale")).toBe("");
+    expect(noteOf("Enterprise")).toBe("");
+
+    const free: HTMLElement = screen.getByTestId("plan-picker-option-Free");
+    const text: string = free.textContent || "";
+
+    expect(text.indexOf("For one person getting started.")).toBeLessThan(
+      text.indexOf("Your 3 API keys"),
+    );
+
+    const radio: HTMLElement = screen.getByRole("radio", { name: "Free" });
+    const described: string = (radio.getAttribute("aria-describedby") || "")
+      .split(" ")
+      .map((id: string): string => {
+        return document.getElementById(id)?.textContent || "";
+      })
+      .join(" | ");
+
+    expect(described).toContain("Your 3 API keys stop working on this plan.");
   });
 
   it("shows no stopped note: nothing stopped on Scale", async () => {

@@ -233,6 +233,27 @@ const CHILDREN: Array<ChildCase> = [
     key: "checkout",
   },
   {
+    type: AIResourceType.KubernetesCluster,
+    path: "kubernetes",
+    collection: "deploymentconfigs",
+    kind: AIResourceSubresourceKind.DeploymentConfig,
+    key: "checkout",
+  },
+  {
+    type: AIResourceType.KubernetesCluster,
+    path: "kubernetes",
+    collection: "routes",
+    kind: AIResourceSubresourceKind.Route,
+    key: "checkout",
+  },
+  {
+    type: AIResourceType.KubernetesCluster,
+    path: "kubernetes",
+    collection: "services",
+    kind: AIResourceSubresourceKind.Service,
+    key: "checkout",
+  },
+  {
     type: AIResourceType.DockerHost,
     path: "docker",
     collection: "containers",

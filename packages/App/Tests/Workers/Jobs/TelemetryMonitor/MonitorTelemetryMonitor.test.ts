@@ -4,6 +4,7 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Search from "Common/Types/BaseDatabase/Search";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import OneUptimeDate from "Common/Types/Date";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import { JSONObject } from "Common/Types/JSON";
@@ -504,6 +505,45 @@ describe("monitorException's new and regressed exceptions", () => {
         "fp-1",
         "fp-2",
       ]);
+    }
+  });
+
+  /*
+   * REGRESSION: the measures read the clock again for their window, so when
+   * a millisecond passed after the count's own read, the occurrences they
+   * grouped were not the ones counted (a 1 ms race seen on 2026-11-01). Here
+   * every clock read is a millisecond later than the one before.
+   */
+  test("the count and the occurrences it groups are read for one instant, however the clock moves between them", async () => {
+    let reads: number = 0;
+    const clock: jest.SpiedFunction<typeof OneUptimeDate.getCurrentDate> = jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockImplementation(() => {
+        reads++;
+        return new Date(Date.UTC(2026, 10, 1, 12, 0, 0) + reads);
+      });
+
+    try {
+      exceptionFindBy.mockResolvedValue(fingerprintRows(["fp-1"]));
+      exceptionGroupCountBy.mockResolvedValue(new PositiveNumber(1));
+
+      await monitorException({
+        monitorStep: stepCheckingOn([CheckOn.NewExceptionCount], {
+          entityKeys: ["host:web-1"],
+        }),
+        monitorId,
+        projectId,
+      });
+
+      const readQuery: Record<string, unknown> = exceptionFindBy.mock
+        .calls[0]![0].query as Record<string, unknown>;
+      const countQuery: Record<string, unknown> = exceptionCountBy.mock
+        .calls[0]![0].query as Record<string, unknown>;
+
+      expect(reads).toBeGreaterThan(0);
+      expect(readQuery["time"]).toEqual(countQuery["time"]);
+    } finally {
+      clock.mockRestore();
     }
   });
 
