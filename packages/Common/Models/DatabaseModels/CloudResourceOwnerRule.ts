@@ -18,6 +18,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { CloudResourceKind } from "../../Types/Cloud/CloudResourceKind";
 import {
   Column,
   Entity,
@@ -70,7 +71,7 @@ import {
   pluralName: "Cloud Resource Owner Rules",
   icon: IconProp.User,
   tableDescription:
-    "Rules for automatically assigning owners to cloud resources when matching resources are created.",
+    "Rules for automatically assigning owners to cloud resources (Cloud) or cloud environments (App Platforms) when matching ones are created.",
 })
 export default class CloudResourceOwnerRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -392,6 +393,47 @@ export default class CloudResourceOwnerRule extends RuleBaseModel {
     length: ColumnLength.LongText,
   })
   public cloudTagPattern?: string = undefined;
+
+  /*
+   * Which product's rows the rule is for: "environment" for App Platforms'
+   * environments, "resource" for the resources of Cloud's accounts. Each
+   * product's rules page writes its own when a rule is created and lists
+   * its own. A rule written before the two products split names neither
+   * and keeps matching both, as it always did (both rule engines).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateCloudResourceOwnerRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadCloudResourceOwnerRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditCloudResourceOwnerRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Applies To",
+    description:
+      "environment: App Platforms' environments. resource: the resources of Cloud's accounts. Empty: both, as rules made before the two products split.",
+    example: "resource",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    length: ColumnLength.ShortText,
+  })
+  public cloudResourceKind?: CloudResourceKind = undefined;
 
   @ColumnAccessControl({
     create: [

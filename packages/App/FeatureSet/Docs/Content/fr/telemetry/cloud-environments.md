@@ -2,6 +2,8 @@
 
 Un **Environnement cloud** est l'endroit où vos conteneurs tournent sur une plateforme cloud managée : le compte et la région d'un cluster ECS, le projet et la région de Cloud Run, l'abonnement et la région de Container Apps. OneUptime le crée la première fois que votre télémétrie arrive avec les bons attributs de ressource, et regroupe chaque charge de travail qui y tourne. Rien à enregistrer à la main.
 
+Les environnements sont listés dans Plateformes d'applications, un produit à part entière : **Plateformes d'applications → Vue d'ensemble** les regroupe par plateforme et affiche d'abord ceux qui se sont tus, et **Plateformes d'applications → Tous les environnements** les liste tous. Les ressources de vos comptes cloud, comme les machines virtuelles, les buckets et les bases de données managées, sont dans Cloud : voir [Ressources cloud](/docs/telemetry/cloud-resources).
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Des tâches sur Fargate ou EC2, avec le CPU et la mémoire de chaque tâche.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Services et jobs, aussi listés comme fonctions serverless.
@@ -91,7 +93,7 @@ L'identité propre de la plateforme vient en premier, exprès. Un collecteur sid
 
 ### Ajouter un environnement
 
-L'ingestion crée les environnements pour vous : il n'y a donc rien à saisir. Ouvrez **Cloud → Tous les environnements** et cliquez sur **Ajouter un environnement cloud** : choisissez où s'exécute votre application, et le guide affiche les paramètres OpenTelemetry de cette plateforme, avec votre URL OneUptime et votre clé d'ingestion déjà renseignées. Sa dernière étape, **Attendre la connexion**, indique quand les premières données de l'environnement sont arrivées et renvoie vers lui. Pour afficher un autre nom, choisissez **Modifier les détails** dans la carte **Détails de la ressource** de la page **Paramètres** de l'environnement et saisissez-le dans **Nom d'affichage**.
+L'ingestion crée les environnements pour vous : il n'y a donc rien à saisir. Ouvrez **Plateformes d'applications → Tous les environnements** et cliquez sur **Ajouter un environnement cloud** : choisissez où s'exécute votre application, et le guide affiche les paramètres OpenTelemetry de cette plateforme, avec votre URL OneUptime et votre clé d'ingestion déjà renseignées. Sa dernière étape, **Attendre la connexion**, indique quand les premières données de l'environnement sont arrivées et renvoie vers lui. Pour afficher un autre nom, choisissez **Modifier les détails** dans la carte **Détails de l'environnement** de la page **Paramètres** de l'environnement et saisissez-le dans **Nom d'affichage**.
 
 ## Ce qui n'est pas un environnement cloud
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` avec `"valid": true` signifie que le jeton est accepté. `401` signifie qu'il est inconnu, révoqué, désactivé ou expiré, et le `message` de la réponse précise lequel. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Cloud → Tous les environnements**.
+`200` avec `"valid": true` signifie que le jeton est accepté. `401` signifie qu'il est inconnu, révoqué, désactivé ou expiré, et le `message` de la réponse précise lequel. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Plateformes d'applications → Tous les environnements**.
 :::
 
 > [!TIP]
-> Les mêmes étapes figurent dans le tableau de bord, avec votre jeton déjà renseigné : sous **Cloud → Tous les environnements**, cliquez sur **Ajouter un environnement cloud**. L'onglet **Documentation** de chaque environnement les affiche aussi.
+> Les mêmes étapes figurent dans le tableau de bord, avec votre jeton déjà renseigné : sous **Plateformes d'applications → Tous les environnements**, cliquez sur **Ajouter un environnement cloud**. L'onglet **Documentation** de chaque environnement les affiche aussi.
 
 ## Ce que vous obtenez
 
@@ -190,7 +192,7 @@ Un environnement dont la télémétrie s'arrête pendant 15 minutes affiche **D�
 ### Étiquettes et propriétaires
 
 - **Depuis votre télémétrie :** un attribut de ressource tel que `oneuptime.label.team=payments` ajoute l'étiquette `team:payments` à l'environnement.
-- **Depuis des règles :** **Cloud → Paramètres → Règles d'étiquettes** et **Règles de propriétaire** ajoutent des étiquettes et des propriétaires aux environnements correspondants. Voir [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules).
+- **Depuis des règles :** **Plateformes d'applications → Paramètres → Règles d'étiquettes** et **Règles de propriétaire** ajoutent des étiquettes et des propriétaires aux environnements correspondants. Les règles de Cloud concernent les ressources de vos comptes cloud, et une règle créée avant la séparation des deux s'applique aux deux. Voir [Règles d'étiquettes et de propriétaires](/docs/configuration/label-and-owner-rules).
 
 ## Dépannage
 

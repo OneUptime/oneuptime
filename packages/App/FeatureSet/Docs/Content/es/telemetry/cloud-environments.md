@@ -2,6 +2,8 @@
 
 Un **Entorno en la nube** es el lugar donde se ejecutan sus contenedores en una plataforma en la nube gestionada: la cuenta y la región de un clúster de ECS, el proyecto y la región de Cloud Run, la suscripción y la región de Container Apps. OneUptime lo crea la primera vez que su telemetría llega con los atributos de recurso adecuados, y agrupa cada carga de trabajo que se ejecuta allí. No hay nada que registrar a mano.
 
+Los entornos aparecen en Plataformas de aplicaciones, un producto propio: **Plataformas de aplicaciones → Vista general** los agrupa por plataforma y muestra primero los que han dejado de informar, y **Plataformas de aplicaciones → Todos los entornos** los enumera todos. Los recursos de sus cuentas en la nube, como máquinas virtuales, buckets y bases de datos gestionadas, están en Nube: consulte [Recursos en la nube](/docs/telemetry/cloud-resources).
+
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tareas en Fargate o EC2, con la CPU y la memoria de cada tarea.
 - [Google Cloud Run](/docs/telemetry/cloud-gcp-cloud-run): Servicios y trabajos, también listados como funciones serverless.
@@ -91,7 +93,7 @@ La identidad propia de la plataforma va primero a propósito. Un colector sideca
 
 ### Añadir un entorno
 
-La ingesta crea los entornos por usted, así que no hay nada que escribir. Abra **Nube → Todos los entornos** y haga clic en **Añadir entorno en la nube**: elija dónde se ejecuta su aplicación, y la guía muestra los ajustes de OpenTelemetry de esa plataforma, con su URL de OneUptime y su clave de ingesta ya incluidas. Su último paso, **Esperar a que se conecte**, indica cuándo han llegado los primeros datos del entorno y enlaza con él. Para mostrar otro nombre, elija **Editar detalles** en la tarjeta **Detalles del recurso** de la página **Ajustes** del entorno y escríbalo en **Nombre para mostrar**.
+La ingesta crea los entornos por usted, así que no hay nada que escribir. Abra **Plataformas de aplicaciones → Todos los entornos** y haga clic en **Añadir entorno en la nube**: elija dónde se ejecuta su aplicación, y la guía muestra los ajustes de OpenTelemetry de esa plataforma, con su URL de OneUptime y su clave de ingesta ya incluidas. Su último paso, **Esperar a que se conecte**, indica cuándo han llegado los primeros datos del entorno y enlaza con él. Para mostrar otro nombre, elija **Editar detalles** en la tarjeta **Detalles del entorno** de la página **Ajustes** del entorno y escríbalo en **Nombre para mostrar**.
 
 ## Qué no es un entorno en la nube
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` con `"valid": true` significa que el token se acepta. `401` significa que es desconocido, revocado, desactivado o caducado, y el `message` de la respuesta dice cuál. Al minuto del primer span, registro o métrica, el entorno aparece en **Nube → Todos los entornos**.
+`200` con `"valid": true` significa que el token se acepta. `401` significa que es desconocido, revocado, desactivado o caducado, y el `message` de la respuesta dice cuál. Al minuto del primer span, registro o métrica, el entorno aparece en **Plataformas de aplicaciones → Todos los entornos**.
 :::
 
 > [!TIP]
-> Los mismos pasos están en el panel, con su token ya incluido: en **Nube → Todos los entornos**, haga clic en **Añadir entorno en la nube**. La pestaña **Documentación** de cada entorno también los muestra.
+> Los mismos pasos están en el panel, con su token ya incluido: en **Plataformas de aplicaciones → Todos los entornos**, haga clic en **Añadir entorno en la nube**. La pestaña **Documentación** de cada entorno también los muestra.
 
 ## Qué obtiene
 
@@ -190,7 +192,7 @@ Un entorno cuya telemetría se detiene durante 15 minutos muestra **Desconectado
 ### Etiquetas y propietarios
 
 - **Desde su telemetría:** un atributo de recurso como `oneuptime.label.team=payments` añade la etiqueta `team:payments` al entorno.
-- **Desde reglas:** **Nube → Ajustes → Reglas de etiquetas** y **Reglas del propietario** añaden etiquetas y propietarios a los entornos que coinciden. Consulte [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules).
+- **Desde reglas:** **Plataformas de aplicaciones → Ajustes → Reglas de etiquetas** y **Reglas del propietario** añaden etiquetas y propietarios a los entornos que coinciden. Las reglas de Nube son para los recursos de sus cuentas en la nube, y una regla creada antes de que ambos se separaran se aplica a los dos. Consulte [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules).
 
 ## Solución de problemas
 

@@ -33,6 +33,7 @@ const HEADING: string = "Run OneUptime with no internet connection.";
 const SECTION_HEADINGS: Array<string> = [
   "For networks that stay closed",
   "Everything runs inside your network",
+  "Air-gapped, product by product",
   "Four steps to an air-gapped install",
   "What reaches out, and what to use instead",
   "OneUptime AI, on a model you run",

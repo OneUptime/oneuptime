@@ -34,7 +34,7 @@ Cloud Resources is one of several places your cloud shows up:
 
 | You run | Where it appears | How |
 | --- | --- | --- |
-| Containers on ECS, Cloud Run, Container Apps, App Service, … | **Cloud → All Environments** | Your workloads' own telemetry, by its `cloud.platform`. See [Cloud Environments](/docs/telemetry/cloud-environments) |
+| Containers on ECS, Cloud Run, Container Apps, App Service, … | **App Platforms → All Environments** | Your workloads' own telemetry, by its `cloud.platform`. See [Cloud Environments](/docs/telemetry/cloud-environments) |
 | Any IaaS or PaaS resource the provider monitors | **Cloud → All Resources** | The provider's monitoring API, read by a collector: this page |
 | Virtual machines with an OpenTelemetry Collector on them | **Hosts** | The host's own metrics and logs. See [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
 | Queues and topics your applications use | **Queues** | Spans, and the same cloud metrics. See [Queues](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Self-hosted installations can change these with environment variables on the app
 ## Inventory and rules
 
 - **Inventory:** Cloud Resources are listed in the [Inventory](/docs/inventory/overview) as **Cloud Resource** items, with the provider's ID as `cloud.resource.id` and the type as `cloud.resource.type`. The AI agent's resource tools list them too.
-- **Rules:** **Cloud → Settings → Label Rules** and **Owner Rules** apply to them as they do to cloud environments.
+- **Rules:** **Cloud → Settings → Label Rules** and **Owner Rules** apply to them. App Platforms has its own for cloud environments, and a rule made before the two were split applies to both.
 
 ## Troubleshooting
 

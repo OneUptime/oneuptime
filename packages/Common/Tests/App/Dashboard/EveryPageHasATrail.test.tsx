@@ -12,6 +12,7 @@ import { getAIInsightsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/s
 import { getAlertsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AlertBreadcrumbs";
 import { getCephBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CephBreadcrumbs";
 import { getCloudBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CloudBreadcrumbs";
+import { getAppPlatformsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AppPlatformsBreadcrumbs";
 import { getCodeBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CodeBreadcrumbs";
 import { getDashboardBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DashboardBreadCrumbs";
 import { getDataSecurityBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DataSecurityBreadcrumbs";
@@ -106,6 +107,7 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
   HostRoutePath: getHostBreadcrumbs,
   ServerlessRoutePath: getServerlessBreadcrumbs,
   CloudRoutePath: getCloudBreadcrumbs,
+  AppPlatformsRoutePath: getAppPlatformsBreadcrumbs,
   DatabaseRoutePath: getDatabaseBreadcrumbs,
   MessageQueueRoutePath: getMessageQueueBreadcrumbs,
   RumRoutePath: getRumBreadcrumbs,

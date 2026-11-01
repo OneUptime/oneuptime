@@ -3,8 +3,9 @@ import {
   CloudFleetCounts,
   CloudFleetSummaryTile,
   describeProviderBreakdown,
+  getProviderBreakdownParts,
   summarizeCloudFleet,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudFleetSummary";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudFleetSummary";
 import { CLOUD_FLEET_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/CloudMetricDescriptions";
 
 /*
@@ -88,6 +89,11 @@ describe("summarizeCloudFleet", () => {
       title: "Environments",
       value: "6",
       sublabel: "3 AWS · 2 Azure · 1 Google Cloud",
+      /*
+       * The parts the strip keeps whole, so a narrow tile wraps between
+       * providers and never breaks "Google Cloud" over two lines.
+       */
+      sublabelParts: ["3 AWS", "2 Azure", "1 Google Cloud"],
       description: CLOUD_FLEET_METRIC_DESCRIPTIONS.environments,
     });
     expect(tileByTitle(tiles, "Connected")).toEqual({
@@ -165,6 +171,59 @@ describe("summarizeCloudFleet", () => {
     );
     expect(tileByTitle(tiles, "Disconnected").value).toBe("0");
     expect(tileByTitle(tiles, "Live instances").value).toBe("0");
+  });
+});
+
+describe("the numbers the strip writes", () => {
+  test("are written the reader's way: thousands grouped, never a bare 1284", () => {
+    const tiles: Array<CloudFleetSummaryTile> = summarizeCloudFleet({
+      total: 1284,
+      connected: 1200,
+      disconnected: 84,
+      byProvider: { aws: 1100, gcp: 184 },
+      liveInstances: 15320,
+    });
+
+    expect(tileByTitle(tiles, "Environments").value).toBe("1,284");
+    expect(tileByTitle(tiles, "Connected").value).toBe("1,200");
+    expect(tileByTitle(tiles, "Disconnected").value).toBe("84");
+    expect(tileByTitle(tiles, "Live instances").value).toBe("15,320");
+    expect(tileByTitle(tiles, "Environments").sublabel).toBe(
+      "1,100 AWS · 184 Google Cloud",
+    );
+    expect(tileByTitle(tiles, "Connected").sublabel).toBe(
+      "93% of environments",
+    );
+  });
+
+  test("a breakdown of one provider is one part, drawn as the sublabel alone", () => {
+    const tiles: Array<CloudFleetSummaryTile> = summarizeCloudFleet({
+      total: 3,
+      connected: 3,
+      disconnected: 0,
+      byProvider: { azure: 3 },
+      liveInstances: 4,
+    });
+
+    expect(tileByTitle(tiles, "Environments").sublabel).toBe("3 Azure");
+    expect(tileByTitle(tiles, "Environments").sublabelParts).toBeUndefined();
+    // Only the breakdown is a list: no other tile has parts.
+    for (const tile of tiles) {
+      if (tile.title !== "Environments") {
+        expect(tile.sublabelParts).toBeUndefined();
+      }
+    }
+  });
+});
+
+describe("getProviderBreakdownParts", () => {
+  test("is the breakdown, one part per provider, busiest first", () => {
+    expect(getProviderBreakdownParts({ azure: 2, aws: 2, gcp: 5 })).toEqual([
+      "5 Google Cloud",
+      "2 AWS",
+      "2 Azure",
+    ]);
+    expect(getProviderBreakdownParts({ aws: 0 })).toEqual([]);
   });
 });
 

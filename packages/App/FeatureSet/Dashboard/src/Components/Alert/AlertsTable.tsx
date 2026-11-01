@@ -778,6 +778,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             name: true,
             _id: true,
             projectId: true,
+            // Opens an environment in App Platforms, a resource in Cloud.
+            cloudResourceKind: true,
           },
           services: {
             name: true,
@@ -983,6 +985,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 name: true,
                 _id: true,
                 projectId: true,
+                cloudResourceKind: true,
               },
               services: {
                 name: true,

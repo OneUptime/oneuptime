@@ -1,6 +1,6 @@
 # Google Cloud Run
 
-Send spor, logs og metrikker fra dine Cloud Run-tjenester og -jobs til OneUptime. Alt, der rapporterer `cloud.platform=gcp_cloud_run`, havner i ét **Cloud Environment** pr. Google Cloud-projekt og region, f.eks. _GCP Cloud Run · us-central1 · my-project_, og hver tjeneste vises også under **Serverløse funktioner**.
+Send spor, logs og metrikker fra dine Cloud Run-tjenester og -jobs til OneUptime. Alt, der rapporterer `cloud.platform=gcp_cloud_run`, havner i ét **Cloud-miljø** pr. Google Cloud-projekt og region, f.eks. _GCP Cloud Run · us-central1 · my-project_, og hver tjeneste vises også under **Serverløse funktioner**.
 
 :::cards
 - [Sådan virker det](#sådan-virker-det): Hvad GCP-detektoren sætter, og hvorfor en tjeneste vises to steder.
@@ -33,7 +33,7 @@ OpenTelemetrys GCP-ressourcedetektor læser metadataserveren og miljøvariablern
 | `faas.instance` | instans-ID'et | Navngiver én kørende instans: én række for hver under **Instanser** |
 
 > [!NOTE]
-> Cloud Run vises med vilje to steder. Fordi detektoren sætter `faas.name`, er hver tjeneste også en **Serverløs funktion** med egne kald, fejlrate og varighed. **Cloud Environment** samler alle tjenester i det projekt og den region. Intet gemmes to gange: den samme telemetri arkiveres under begge.
+> Cloud Run vises med vilje to steder. Fordi detektoren sætter `faas.name`, er hver tjeneste også en **Serverløs funktion** med egne kald, fejlrate og varighed. **Cloud-miljø** samler alle tjenester i det projekt og den region. Intet gemmes to gange: den samme telemetri arkiveres under begge.
 
 Miljønøglen er `gcp_cloud_run|my-project|us-central1`.
 
@@ -159,7 +159,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyder, at tokenet er accepteret. `401` betyder, at det er ukendt, tilbagekaldt, deaktiveret eller udløbet. Send derefter én anmodning til tjenesten, og søg i collectorens logs i Cloud Logging (filtrér på containeren `otel-collector`) efter `401`, `connection refused` eller `context deadline exceeded`. Inden for et minut vises miljøet under **Cloud → All Environments** som _GCP Cloud Run · us-central1 · my-project_, og tjenesten under **Serverløse funktioner**.
+`200` med `"valid": true` betyder, at tokenet er accepteret. `401` betyder, at det er ukendt, tilbagekaldt, deaktiveret eller udløbet. Send derefter én anmodning til tjenesten, og søg i collectorens logs i Cloud Logging (filtrér på containeren `otel-collector`) efter `401`, `connection refused` eller `context deadline exceeded`. Inden for et minut vises miljøet under **App-platforme → Alle miljøer** som _GCP Cloud Run · us-central1 · my-project_, og tjenesten under **Serverløse funktioner**.
 :::
 
 ## Tjenestens YAML med en sidecar

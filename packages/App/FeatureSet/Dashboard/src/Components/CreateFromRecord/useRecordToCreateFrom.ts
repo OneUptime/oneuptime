@@ -56,6 +56,7 @@ const MODEL_TYPES: Record<CreateFromRecordKind, { new (): BaseModel }> = {
   [CreateFromRecordKind.IoTFleet]: IoTFleet,
   [CreateFromRecordKind.DatabaseServer]: DatabaseServer,
   [CreateFromRecordKind.CloudResource]: CloudResource,
+  [CreateFromRecordKind.CloudEnvironment]: CloudResource,
   [CreateFromRecordKind.NetworkSite]: NetworkSite,
   [CreateFromRecordKind.Service]: Service,
   [CreateFromRecordKind.StatusPage]: StatusPage,

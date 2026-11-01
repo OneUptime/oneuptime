@@ -34,7 +34,7 @@ Cloud-Ressourcen ist einer von mehreren Orten, an denen Ihre Cloud auftaucht:
 
 | Sie betreiben | Wo es erscheint | Wie |
 | --- | --- | --- |
-| Container auf ECS, Cloud Run, Container Apps, App Service, … | **Cloud → Alle Umgebungen** | Die eigene Telemetrie Ihrer Workloads, nach ihrer `cloud.platform`. Siehe [Cloud-Umgebungen](/docs/telemetry/cloud-environments) |
+| Container auf ECS, Cloud Run, Container Apps, App Service, … | **App-Plattformen → Alle Umgebungen** | Die eigene Telemetrie Ihrer Workloads, nach ihrer `cloud.platform`. Siehe [Cloud-Umgebungen](/docs/telemetry/cloud-environments) |
 | Jede IaaS- oder PaaS-Ressource, die der Anbieter überwacht | **Cloud → Alle Ressourcen** | Die Überwachungs-API des Anbieters, von einem Collector gelesen: diese Seite |
 | Virtuelle Maschinen mit einem OpenTelemetry Collector darauf | **Hosts** | Die eigenen Metriken und Logs des Hosts. Siehe [Host-OpenTelemetry-Collector](/docs/telemetry/host-otel-collector) |
 | Warteschlangen und Topics, die Ihre Anwendungen nutzen | **Warteschlangen** | Spans und dieselben Cloud-Metriken. Siehe [Warteschlangen](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Selbst gehostete Installationen können diese Werte mit Umgebungsvariablen an de
 ## Inventar und Regeln
 
 - **Inventar:** Cloud-Ressourcen werden im [Inventar](/docs/inventory/overview) als Einträge vom Typ **Cloud-Ressource** aufgeführt, mit der ID des Anbieters als `cloud.resource.id` und dem Typ als `cloud.resource.type`. Die Ressourcenwerkzeuge des KI-Agenten listen sie ebenfalls auf.
-- **Regeln:** **Cloud → Einstellungen → Beschriftungsregeln** und **Eigentümerregeln** gelten für sie wie für Cloud-Umgebungen.
+- **Regeln:** **Cloud → Einstellungen → Beschriftungsregeln** und **Eigentümerregeln** gelten für sie. App-Plattformen hat eigene für Cloud-Umgebungen, und eine Regel, die vor der Trennung der beiden angelegt wurde, gilt für beide.
 
 ## Fehlerbehebung
 

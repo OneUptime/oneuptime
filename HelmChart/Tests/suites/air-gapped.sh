@@ -20,6 +20,11 @@
 # webhooks to a private address are refused. A check that cannot fail is no
 # check.
 #
+# The Kubernetes agent gets the same treatment at the end: the page for it
+# (oneuptime.com/enterprise/air-gapped/kubernetes) shows the values in
+# ../kubernetes-agent-air-gapped-values.yaml, and says every image then comes
+# from the customer's own registry.
+#
 # Everything here is `helm template`: no cluster, no images, no API server.
 
 # shellcheck source=../lib/harness.sh
@@ -355,5 +360,47 @@ assert_absent "with no imagePullSecrets set, the chart writes none (everything o
     "$(documents_of_kind "${WORK_DIR}/all-plain.yaml" "*")" "imagePullSecrets"
 assert_absent "with no imagePullSecrets set, the chart writes none (everything on, database operators)" \
     "$(documents_of_kind "${WORK_DIR}/all-plain-operators.yaml" "*")" "imagePullSecrets"
+
+# ---------------------------------------------------------------------------
+# 5. The Kubernetes agent, as oneuptime.com/enterprise/air-gapped/kubernetes
+#    shows it. The agent chart has no one registry setting, so the page names
+#    each image a default install runs. Rendered with those values, every image
+#    comes from the customer's registry; without them, none does, so a new
+#    workload the values do not move fails here.
+# ---------------------------------------------------------------------------
+AGENT_VALUES="${TESTS_DIR}/kubernetes-agent-air-gapped-values.yaml"
+
+render_agent() {
+    # render_agent <output-file> [extra helm template arguments...]
+    local out="$1"
+    shift
+    if ! helm template kubernetes-agent "$KUBERNETES_AGENT_CHART_DIR" \
+        --set clusterName=air-gapped \
+        --set oneuptime.url=https://oneuptime.example.com \
+        --set oneuptime.apiKey=air-gapped-test-key \
+        "$@" >"$out" 2>"${out}.err"; then
+        fail "helm template failed for $(basename "$out")"
+        sed 's/^/        /' "${out}.err"
+        harness_report
+        exit 1
+    fi
+}
+
+agent_images() {
+    # agent_images <manifest>: every image the manifest runs, once each
+    grep -E '^[[:space:]]*(- )?image:' "$1" | sed -E 's/^[[:space:]]*(- )?image:[[:space:]]*//; s/"//g' | sort -u
+}
+
+render_agent "${WORK_DIR}/agent-stock.yaml"
+assert_eq "a stock agent chart renders three images, none from the registry" "0" \
+    "$(agent_images "${WORK_DIR}/agent-stock.yaml" | grep -c "^${REGISTRY}/" || true)"
+assert_eq "a stock agent chart runs the three images the values name" "3" \
+    "$(agent_images "${WORK_DIR}/agent-stock.yaml" | wc -l | tr -d ' ')"
+
+render_agent "${WORK_DIR}/agent-air-gapped.yaml" -f "$AGENT_VALUES"
+assert_eq "every image of the agent comes from ${REGISTRY}" "" \
+    "$(agent_images "${WORK_DIR}/agent-air-gapped.yaml" | grep -v "^${REGISTRY}/" || true)"
+assert_eq "the values move all three images" "3" \
+    "$(agent_images "${WORK_DIR}/agent-air-gapped.yaml" | wc -l | tr -d ' ')"
 
 harness_report

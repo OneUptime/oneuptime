@@ -79,7 +79,7 @@ Um campo deixado em branco recorre à configuração seguinte da ordem acima, en
 
 Abra a página **Configurações** do serviço ou do recurso e depois **Mais configurações**. O seu cartão **Retenção de Dados de Telemetria** tem **Reter dados de telemetria por (dias)**, um único número para tudo o que ele envia, e o seu cartão **Retenção por tipo de telemetria** tem os mesmos campos que o do projeto. Deixe um campo em branco para usar as configurações do projeto.
 
-Serviços, hosts, clusters Kubernetes, hosts Docker e Podman, clusters Docker Swarm, Proxmox e Ceph, storage arrays, vCenters, bancos de dados, funções serverless, recursos de nuvem, aplicações RUM e frotas IoT têm todos esses cartões. Veja o [Catálogo de serviços](/docs/telemetry/services#alterar-um-serviço) para a página **Configurações** de um serviço.
+Serviços, hosts, clusters Kubernetes, hosts Docker e Podman, clusters Docker Swarm, Proxmox e Ceph, storage arrays, vCenters, bancos de dados, funções serverless, ambientes de nuvem, aplicações RUM e frotas IoT têm todos esses cartões. Veja o [Catálogo de serviços](/docs/telemetry/services#alterar-um-serviço) para a página **Configurações** de um serviço.
 
 ### Quando o plano ou a licença não inclui mais as substituições
 

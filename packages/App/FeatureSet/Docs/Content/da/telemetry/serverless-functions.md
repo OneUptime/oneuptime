@@ -84,7 +84,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyder, at OneUptime accepterer nøglen; `401` betyder, at den er ukendt, tilbagekaldt, deaktiveret eller udløbet. Kald derefter funktionen. Så snart den sender et span, en log eller en metrik, vises den under **Produkter → Infrastruktur → Serverløs → Alle funktioner**.
+`200` med `"valid": true` betyder, at OneUptime accepterer nøglen; `401` betyder, at den er ukendt, tilbagekaldt, deaktiveret eller udløbet. Kald derefter funktionen. Så snart den sender et span, en log eller en metrik, vises den under **Produkter → Cloud → Serverløs → Alle funktioner**.
 :::
 
 ## Azure Functions
@@ -197,7 +197,7 @@ En ressourceattribut, der starter med `oneuptime.label.`, bliver en projektetike
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Vil du i stedet mærke funktioner eller tildele ejere ud fra deres navne, så åbn **Produkter → Infrastruktur → Serverløs**, og brug **Etiketregler** og **Ejerregler** i sidemenuen. Regler kører, når en funktion oprettes, også automatisk fundne. For at anvende en regel på de funktioner, du allerede har, skal du bruge dens **Kør nu** (se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now)).
+Vil du i stedet mærke funktioner eller tildele ejere ud fra deres navne, så åbn **Produkter → Cloud → Serverløs**, og brug **Etiketregler** og **Ejerregler** i sidemenuen. Regler kører, når en funktion oprettes, også automatisk fundne. For at anvende en regel på de funktioner, du allerede har, skal du bruge dens **Kør nu** (se [Kør regler på eksisterende ressourcer](/docs/configuration/run-rules-now)).
 
 ## Fejlfinding
 

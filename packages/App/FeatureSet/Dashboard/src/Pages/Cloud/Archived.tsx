@@ -16,12 +16,16 @@ import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { getManagedCloudPlatformLabel } from "Common/Types/Cloud/CloudPlatform";
 import { getCloudResourceTypeLabel } from "Common/Types/Cloud/CloudResourceCatalog";
-import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKind";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+/*
+ * Cloud > Archived: the cloud resources archived by a person or by the sweep
+ * after they stopped reporting. The environments App Platforms shows have
+ * an Archived page of their own there.
+ */
 const CloudArchivedPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -68,6 +72,7 @@ const CloudArchivedPage: FunctionComponent<
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({
           isArchived: true,
+          cloudResourceKind: CloudResourceKind.Resource,
         })}
         onFetchSuccess={(data: Array<CloudResource>) => {
           onResourcesFetched(data);
@@ -79,14 +84,14 @@ const CloudArchivedPage: FunctionComponent<
         bulkActions={{
           buttons: [...unarchiveBulkActions],
         }}
-        name="Archived Cloud Environments and Resources"
+        name="Archived Cloud Resources"
         cardProps={{
-          title: "Archived Cloud Environments and Resources",
+          title: "Archived Cloud Resources",
           description:
-            "Archived cloud environments and resources: hidden from their lists but still collecting telemetry. Select rows to unarchive them.",
+            "Archived cloud resources: hidden from All Resources but still collecting telemetry. Select rows to unarchive them.",
         }}
         showViewIdButton={true}
-        noItemsMessage={"No archived cloud environments or resources."}
+        noItemsMessage={"No archived cloud resources."}
         showRefreshButton={true}
         /*
          * View opens the resource's own page. The default view route (this
@@ -106,9 +111,7 @@ const CloudArchivedPage: FunctionComponent<
         searchableFields={["name", "description"]}
         selectMoreFields={{
           cloudAccountId: true,
-          cloudPlatform: true,
           cloudRegion: true,
-          cloudResourceKind: true,
           cloudResourceType: true,
           cloudProvider: true,
           autoArchivedAt: true,
@@ -151,33 +154,23 @@ const CloudArchivedPage: FunctionComponent<
           },
           {
             field: {
-              cloudPlatform: true,
+              cloudResourceType: true,
             },
-            title: "Platform or Type",
+            title: "Type",
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: CloudResource): ReactElement => {
-              /*
-               * An environment by its platform, a resource discovered from
-               * cloud monitoring by its type.
-               */
-              const platform: string = isCloudResourceKindResource(
-                item.cloudResourceKind,
-              )
-                ? getCloudResourceTypeLabel(
-                    item.cloudProvider as string | undefined,
-                    item.cloudResourceType as string | undefined,
-                  )
-                : getManagedCloudPlatformLabel(
-                    (item.cloudPlatform as string) || "",
-                  );
+              const type: string = getCloudResourceTypeLabel(
+                item.cloudProvider as string | undefined,
+                item.cloudResourceType as string | undefined,
+              );
               const region: string = (item.cloudRegion as string) || "";
-              if (!platform && !region) {
+              if (!type && !region) {
                 return <span className="text-sm text-gray-400">—</span>;
               }
               return (
                 <div className="text-sm text-gray-700">
-                  <span>{platform || translator.translateText("unknown")}</span>
+                  <span>{type || translator.translateText("unknown")}</span>
                   {region && (
                     <span className="ml-1.5 text-xs text-gray-500 font-mono">
                       {region}

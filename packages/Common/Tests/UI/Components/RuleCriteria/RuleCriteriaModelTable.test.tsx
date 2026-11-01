@@ -361,9 +361,11 @@ More details stay here.
      * one: Match, Investigate, Fix - for incidents and alerts, and for each
      * telemetry lane in TelemetryAiRulesTable) have no help panel, nor has
      * the postmortem rules form (Match, then Draft), nor have Data
-     * Security's label and owner rules for data stores.
+     * Security's label and owner rules for data stores, nor the cloud
+     * owner and label rules - Cloud's and, since the two products split,
+     * App Platforms' (76).
      */
-    expect(staticRuleFormFiles).toHaveLength(74);
+    expect(staticRuleFormFiles).toHaveLength(76);
     expect(helpFormFiles).toHaveLength(62);
     // 68, and the five episode rule help texts that now have the heading too.
     expect(helpMarkdown).toHaveLength(73);

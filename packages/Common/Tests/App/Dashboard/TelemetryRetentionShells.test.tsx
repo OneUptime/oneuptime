@@ -195,7 +195,7 @@ jest.mock(
 );
 
 import CephSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Settings";
-import CloudSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Settings";
+import AppPlatformEnvironmentSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Settings";
 import DatabaseServerSettings, {
   DATABASE_RETENTION_SCOPE_NOTE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Settings";
@@ -373,12 +373,17 @@ const RESOURCE_PAGES: Array<ResourcePageCase> = [
     resourceName: "RUM application",
     detailIdPrefix: "rum-application",
   },
+  /*
+   * A cloud environment: the row its apps' telemetry is filed under. A
+   * resource in a cloud account (Cloud's Settings) has only the provider's
+   * metrics, and no retention of its own.
+   */
   {
-    name: "cloud resource",
-    Page: CloudSettings,
+    name: "cloud environment",
+    Page: AppPlatformEnvironmentSettings,
     modelType: CloudResource,
-    settingsKey: PageMap.CLOUD_RESOURCE_VIEW_SETTINGS,
-    resourceName: "cloud resource",
+    settingsKey: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS,
+    resourceName: "cloud environment",
     detailIdPrefix: "cloud-resource",
   },
   {

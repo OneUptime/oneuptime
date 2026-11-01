@@ -55,6 +55,11 @@ Four pages book, and each tags the event with the conversation it books:
 | `/enterprise/self-hosted` | `architecture_assessment` | `home/architecture-assessment-booked` |
 | `/enterprise/air-gapped`  | `architecture_assessment` | `home/architecture-assessment-booked` |
 
+The air-gapped product pages (`/enterprise/air-gapped/<product>`) embed no
+calendar: their buttons, tagged `cta_request_demo`, lead to
+`/enterprise/air-gapped#plan-your-install`, so they book there, one calendar for
+the whole family.
+
 All four book the same Cal event type (`oneuptimehq/demo`), so without
 `booking_kind` a free user's support call and a net-new enterprise demo are one
 undifferentiated count. The legacy per-page events are still emitted so existing

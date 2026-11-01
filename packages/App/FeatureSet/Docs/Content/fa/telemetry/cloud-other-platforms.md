@@ -1,6 +1,6 @@
 # سایر پلتفرم‌های ابری
 
-بسترهای مدیریت‌شده‌ای را که صفحهٔ جداگانه ندارند راه‌اندازی کنید: AWS Elastic Beanstalk، AWS App Runner، Google App Engine، Azure App Service و Azure Container Instances. قاعده همانی است که روی هر بستری هست: تله‌متری‌ای که یک `cloud.platform` مدیریت‌شده همراه با `cloud.account.id` و `cloud.region` دارد، برای هر بستر، حساب و منطقه در یک **Cloud Environment** قرار می‌گیرد، و شناسهٔ نمونه به هر نمونهٔ در حال اجرا یک ردیف در **نمونه‌ها** می‌دهد.
+بسترهای مدیریت‌شده‌ای را که صفحهٔ جداگانه ندارند راه‌اندازی کنید: AWS Elastic Beanstalk، AWS App Runner، Google App Engine، Azure App Service و Azure Container Instances. قاعده همانی است که روی هر بستری هست: تله‌متری‌ای که یک `cloud.platform` مدیریت‌شده همراه با `cloud.account.id` و `cloud.region` دارد، برای هر بستر، حساب و منطقه در یک **محیط ابری** قرار می‌گیرد، و شناسهٔ نمونه به هر نمونهٔ در حال اجرا یک ردیف در **نمونه‌ها** می‌دهد.
 
 :::cards
 - [AWS Elastic Beanstalk](#aws-elastic-beanstalk): یک Collector روی هر نمونه، با تشخیص‌دهنده‌های Beanstalk و EC2.
@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` همراه با `"valid": true` یعنی توکن پذیرفته شده است. `401` یعنی توکن ناشناخته، لغوشده، غیرفعال یا منقضی است. ظرف یک دقیقه پس از نخستین اسپن، لاگ یا متریک، محیط در **ابر** > **All Environments** نمایش داده می‌شود، با نامی برگرفته از بستر، منطقه و حساب.
+`200` همراه با `"valid": true` یعنی توکن پذیرفته شده است. `401` یعنی توکن ناشناخته، لغوشده، غیرفعال یا منقضی است. ظرف یک دقیقه پس از نخستین اسپن، لاگ یا متریک، محیط در **بسترهای برنامه** > **همه محیط‌ها** نمایش داده می‌شود، با نامی برگرفته از بستر، منطقه و حساب.
 
 ## عیب‌یابی
 

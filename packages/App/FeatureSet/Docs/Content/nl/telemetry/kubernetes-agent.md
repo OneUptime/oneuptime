@@ -240,6 +240,14 @@ Voor het aanmaken van de SCC's zijn cluster-admin-rechten nodig. Zonder de prese
 
 Om ze terug te krijgen, stap je bij een upgrade als cluster-admin over op `openshift` met `--set preset=openshift`.
 
+**Wat je in OneUptime ziet.** De agent leest ook de eigen objecten van OpenShift uit, alleen-lezen, en toont ze op de pagina's van het cluster:
+
+- Het **Overzicht** van het cluster begint met de kaart **OpenShift**: de versie die het draait, of er een update loopt of mislukt, en hoeveel van zijn clusteroperators gezond zijn, met wat elk van de andere meldt. Een niet-beschikbare operator maakt het cluster **Ongezond**, en een verminderde operator of een mislukte update maakt het **Verminderd**.
+- **Routes** en **Services**, onder **Netwerk**: waar elke Route antwoordt, hoe die TLS beëindigt, naar welke services die verkeer stuurt en met welk aandeel, en waarom een router de Route weigerde. De TLS-sleutel van een Route verlaat het cluster nooit: de agent vervangt die voordat hij de Route verstuurt.
+- **DeploymentConfigs**, onder **Workloads**, lees je net als Deployments: hun rollouts, de CPU en het geheugen van hun pods, en de events van de ReplicationControllers en pods die ze draaien.
+
+**Waarschuwingen over operators en updates.** De pagina **Aanbevelingen** van een OpenShift-cluster biedt **Cluster Operator Unavailable**, **Cluster Operator Degraded** en **Cluster Update Failing** aan. Elk daarvan is een logmonitor op de momentopnamen die de agent elke `resourceSpecs.interval` verstuurt. Hij waarschuwt zodra twee momentopnamen dat melden, dus een operator die tijdens een update even omklapt, veroorzaakt niets, en hij lost de waarschuwing op wanneer een momentopname meldt dat het probleem voorbij is, nooit omdat de agent is gestopt met versturen.
+
 **De eigen waarschuwingen van OpenShift.** OpenShift levert Prometheus en Alertmanager mee, met waarschuwingen voor zijn operators, etcd en de nodes. Om voor elke waarschuwing een incident in OneUptime te openen, voeg je in de webconsole onder **Administration → Cluster Settings → Configuration → Alertmanager** een webhook-ontvanger voor OneUptime toe, zoals [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) beschrijft.
 
 **Traces uit je code.** De eBPF-instrumentatie traceert HTTP, gRPC en SQL zonder codewijzigingen. Om traces te sturen vanuit OpenTelemetry-SDK's, of vanuit de Red Hat build of OpenTelemetry, richt je hun OTLP-exporter op OneUptime, zoals [OpenTelemetry](/docs/telemetry/open-telemetry) beschrijft.
@@ -254,6 +262,7 @@ Om ze terug te krijgen, stap je bij een upgrade als cluster-admin over op `opens
 | Clustermetrics | Nodecondities, toewijsbare resources, aantal pods |
 | Kubernetes-events | Elk event, Warning en Normal, uit elke namespace en van elk soort object: zie [Kubernetes-events](#kubernetes-events) |
 | Podlogs | De stdout en stderr van elke container (via `hostPath` op standaardclusters, via de Kubernetes-API op Autopilot en Fargate) |
+| OpenShift-objecten (de OpenShift-presets) | ClusterOperators, de ClusterVersion, Routes, DeploymentConfigs en Services: zie [OpenShift](#openshift) |
 | Applicatietraces (eBPF, standaard aan) | HTTP-, gRPC-, SQL- en Redis-spans van elke pod, zonder SDK of codewijzigingen |
 | HTTP RED-metrics (eBPF) | `http.server.request.duration`, en de groottes van request- en responsebody's, per service |
 | Servicegraaf (eBPF) | Randen met requestrate, latentie en fouten tussen aanroeper en aangeroepene, die de servicemap tekenen |

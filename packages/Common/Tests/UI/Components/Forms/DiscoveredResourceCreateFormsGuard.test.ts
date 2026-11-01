@@ -139,7 +139,7 @@ const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
   },
   {
     model: "CloudResource",
-    listPage: `${DASHBOARD}/Pages/Cloud/CloudResources.tsx`,
+    listPage: `${DASHBOARD}/Pages/AppPlatforms/Environments.tsx`,
     label: "ModelTable: Cloud Environments",
     service: "CloudResourceService.ts",
     // The key (resourceIdentifier) a form used to join these into.

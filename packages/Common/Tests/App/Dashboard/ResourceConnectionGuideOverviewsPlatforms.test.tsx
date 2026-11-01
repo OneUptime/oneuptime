@@ -25,7 +25,7 @@ import CephClusterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import VMwareVCenterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Index";
 import ServerlessFunctionOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Overview";
 import RumApplicationOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Overview";
-import CloudResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview";
+import CloudResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Overview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -426,7 +426,7 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
         cloudAccountId: "123456789012",
         cloudRegion: "us-east-1",
       }),
-      documentationPage: PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION,
+      documentationPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION,
       heroStatus: resourceOverviewPill,
       firstTile: "CPU",
     },

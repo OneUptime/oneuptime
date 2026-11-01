@@ -169,6 +169,11 @@ export interface DeveloperDocsGuideContext {
   live?: DeveloperDocsLiveData | undefined;
   // On the API list page: the first record, as the list request returns it.
   sample?: DeveloperDocsSample | undefined;
+  /*
+   * The rows the page is about, when the model's rows are two products'
+   * (CloudResource): the list and count examples ask for them only.
+   */
+  listQuery?: JSONObject | undefined;
 }
 
 export const DEVELOPER_DOCS_IMPORT_LIMIT: number = 100;
@@ -1163,7 +1168,11 @@ function getApiCollectionGuide(
         curl({
           method: "POST",
           url: `${collectionUrl}/get-list?skip=0&limit=${DEVELOPER_DOCS_LIST_LIMIT}`,
-          body: { select, sort: { createdAt: "DESC" } },
+          body: {
+            ...(context.listQuery ? { query: context.listQuery } : {}),
+            select,
+            sort: { createdAt: "DESC" },
+          },
         }),
         sample
           ? responseBlock({
@@ -1223,7 +1232,7 @@ function getApiCollectionGuide(
         curl({
           method: "POST",
           url: `${collectionUrl}/count`,
-          body: { query: {} },
+          body: { query: context.listQuery || {} },
         }),
         sample ? responseBlock({ count: sample.count }) : "",
       ]),

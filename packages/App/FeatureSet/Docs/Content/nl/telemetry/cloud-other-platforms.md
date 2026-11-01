@@ -1,6 +1,6 @@
 # Andere cloudplatforms
 
-Stel de beheerde platforms in die geen eigen pagina hebben: AWS Elastic Beanstalk, AWS App Runner, Google App Engine, Azure App Service en Azure Container Instances. De regel is dezelfde als op elk platform: telemetrie met een beheerde `cloud.platform`, met `cloud.account.id` en `cloud.region`, komt terecht in één **Cloud Environment** per platform, account en regio, en een instantie-identiteit geeft elke draaiende instantie een rij onder **Instanties**.
+Stel de beheerde platforms in die geen eigen pagina hebben: AWS Elastic Beanstalk, AWS App Runner, Google App Engine, Azure App Service en Azure Container Instances. De regel is dezelfde als op elk platform: telemetrie met een beheerde `cloud.platform`, met `cloud.account.id` en `cloud.region`, komt terecht in één **Cloud-omgeving** per platform, account en regio, en een instantie-identiteit geeft elke draaiende instantie een rij onder **Instanties**.
 
 :::cards
 - [AWS Elastic Beanstalk](#aws-elastic-beanstalk): Een collector op elke instantie, met de detectors voor Beanstalk en EC2.
@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` met `"valid": true` betekent dat het token is geaccepteerd. `401` betekent dat het onbekend, ingetrokken, uitgeschakeld of verlopen is. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **Cloud → All Environments**, genoemd naar het platform, de regio en het account.
+`200` met `"valid": true` betekent dat het token is geaccepteerd. `401` betekent dat het onbekend, ingetrokken, uitgeschakeld of verlopen is. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **App-platforms → Alle omgevingen**, genoemd naar het platform, de regio en het account.
 
 ## Problemen oplossen
 

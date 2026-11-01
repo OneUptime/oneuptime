@@ -45,7 +45,7 @@ Kies onder **Waarover moet deze monitor je informeren?** voor **Elke uitzonderin
 
 ### De te tellen uitzonderingen kiezen
 
-Stel in **Te bewaken uitzonderingen** de velden **Bericht bevat**, **Uitzonderingstypen** en **Environments** in. Een filter dat u leeg laat, komt met elke uitzondering overeen. **Overeenkomende uitzonderingen** onder de filters toont de uitzonderingen waarmee ze nu overeenkomen.
+Stel in **Te bewaken uitzonderingen** de velden **Bericht bevat**, **Uitzonderingstypen** en **Omgevingen** in. Een filter dat u leeg laat, komt met elke uitzondering overeen. **Overeenkomende uitzonderingen** onder de filters toont de uitzonderingen waarmee ze nu overeenkomen.
 
 ### Verder verfijnen (optioneel)
 
@@ -70,7 +70,7 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 | --- | --- | --- |
 | **Bericht bevat** | Uitzonderingen waarvan het bericht deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke uitzondering |
 | **Uitzonderingstypen** | Uitzonderingen van een van deze typen, gescheiden door komma's, zoals `TypeError, NullReferenceException`. De typenaam moet precies overeenkomen. | Leeg: elk type |
-| **Environments** | Uitzonderingen uit een van deze omgevingen, gescheiden door komma's (zie [Omgevingen](#omgevingen)). | Leeg: elke omgeving |
+| **Omgevingen** | Uitzonderingen uit een van deze omgevingen, gescheiden door komma's (zie [Omgevingen](#omgevingen)). | Leeg: elke omgeving |
 | **Tijdvenster** (in **Wanneer waarschuwen**) | Uitzonderingen van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 5 minuten** |
 | **Filteren op telemetrieservice** (onder **Meer velden**) | Uitzonderingen van een van de gekozen services. | Leeg: elke service |
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Uitzonderingen van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
@@ -160,7 +160,7 @@ Nieuwe en teruggekomen uitzonderingen worden gefilterd op service, uitzonderings
 
 ## Uitgewerkt voorbeeld: alleen uitzonderingen uit productie
 
-U wilt een incident telkens wanneer de API in productie een uitzondering gooit, en niets voor staging. U kiest **Elke uitzondering**, zet **Environments** op `production`, laat het **Tijdvenster** op **Laatste 5 minuten** staan en kiest **Een incident melden** onder **Wat er gebeurt**. In de laatste vijf minuten:
+U wilt een incident telkens wanneer de API in productie een uitzondering gooit, en niets voor staging. U kiest **Elke uitzondering**, zet **Omgevingen** op `production`, laat het **Tijdvenster** op **Laatste 5 minuten** staan en kiest **Een incident melden** onder **Wat er gebeurt**. In de laatste vijf minuten:
 
 | Uitzonderingen | Omgeving | Toestand | Geteld? |
 | --- | --- | --- | --- |
@@ -174,7 +174,7 @@ De **Exception Count** is 3, dus **Meer dan** `0` komt overeen: de monitor gaat 
 ## Problemen oplossen
 
 :::details Uitzonderingen verschijnen in de verkenner, maar de monitor telt 0
-Vergelijk de waarde van **Environments** met het filter `env:` van de verkenner: de vergelijking is exact en hoofdlettergevoelig, en uitzonderingen zonder omgeving worden weggelaten wanneer het filter is ingesteld. Controleer daarna of die uitzonderingen zijn opgelost of gearchiveerd. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Overeenkomende uitzonderingen** toont wat de filters selecteren.
+Vergelijk de waarde van **Omgevingen** met het filter `env:` van de verkenner: de vergelijking is exact en hoofdlettergevoelig, en uitzonderingen zonder omgeving worden weggelaten wanneer het filter is ingesteld. Controleer daarna of die uitzonderingen zijn opgelost of gearchiveerd. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Overeenkomende uitzonderingen** toont wat de filters selecteren.
 :::
 
 :::details Het incident werd opgelost toen ik de uitzondering oploste

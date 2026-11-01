@@ -38,6 +38,8 @@ const FOLDED_SECTIONS: Array<string> = [
   "Code",
   "Resources",
   "Infrastructure",
+  // Cloud, App Platforms and Serverless: what a cloud runs for you.
+  "Cloud",
   "Dashboards & Automation",
   "Settings",
 ];
@@ -728,6 +730,32 @@ test("the section of the current page opens by itself, with its product selected
       );
     }
   }
+});
+
+test("on an App Platforms page, the Cloud section opens with App Platforms selected", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openMenuAt(page, "/app-platforms");
+
+  await expect(sectionToggle(page, "Cloud")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(sectionToggle(page, "Infrastructure")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  const selected: Locator = page.getByRole("option", { selected: true });
+  await expect(selected).toContainText("App Platforms");
+  await expect(selected).toBeInViewport();
+  // Cloud's own products, in their order: accounts, platforms, functions.
+  await expect(
+    productsMenu(page)
+      .getByRole("option")
+      .filter({ hasText: /^(Cloud|App Platforms|Serverless)/ }),
+  ).toHaveCount(3);
 });
 
 test("on a phone, the menu toggle lists the essentials and folds the other sections", async ({

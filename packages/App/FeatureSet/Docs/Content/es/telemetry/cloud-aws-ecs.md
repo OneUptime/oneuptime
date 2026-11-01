@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-El flujo de registros de CloudWatch del colector (`otel/otel-collector/...`) debería decir `Everything is ready`, sin líneas de `401` ni `connection refused`. Al minuto del primer span, registro o métrica, el entorno aparece en **Nube → Todos los entornos** como _AWS ECS · us-east-1 · 123456789012_.
+El flujo de registros de CloudWatch del colector (`otel/otel-collector/...`) debería decir `Everything is ready`, sin líneas de `401` ni `connection refused`. Al minuto del primer span, registro o métrica, el entorno aparece en **Plataformas de aplicaciones → Todos los entornos** como _AWS ECS · us-east-1 · 123456789012_.
 :::
 
 ## La definición de tarea completa

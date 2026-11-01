@@ -62,6 +62,7 @@ const FOLDED: Array<string> = [
   "Code",
   "Resources",
   "Infrastructure",
+  "Cloud",
   "Dashboards & Automation",
   "Settings",
 ];
@@ -179,8 +180,6 @@ describe("the phone menu folds the products like the desktop menu", () => {
       "Docker",
       "Docker Swarm",
       "Podman",
-      "Serverless",
-      "Cloud",
       "Proxmox",
       "VMware",
       "Ceph",

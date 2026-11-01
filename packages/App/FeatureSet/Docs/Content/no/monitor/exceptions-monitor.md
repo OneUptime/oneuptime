@@ -45,7 +45,7 @@ Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Hvilket som 
 
 ### Velg unntakene som skal telles
 
-I **Unntak å følge med på** angir du **Meldingen inneholder**, **Unntakstyper** og **Environments**. Et filter du lar stå tomt, samsvarer med alle unntak. **Samsvarende unntak** under filtrene viser unntakene de samsvarer med akkurat nå.
+I **Unntak å følge med på** angir du **Meldingen inneholder**, **Unntakstyper** og **Miljøer**. Et filter du lar stå tomt, samsvarer med alle unntak. **Samsvarende unntak** under filtrene viser unntakene de samsvarer med akkurat nå.
 
 ### Snevre dem inn (valgfritt)
 
@@ -70,7 +70,7 @@ Klikk på **Opprett monitor**. Monitoren åpnes på siden **Oversikt**, og den f
 | --- | --- | --- |
 | **Meldingen inneholder** | Unntak der meldingen inneholder denne teksten, uten forskjell på store og små bokstaver. | Tom: alle unntak |
 | **Unntakstyper** | Unntak av en av disse typene, atskilt med komma, som `TypeError, NullReferenceException`. Typenavnet må samsvare nøyaktig. | Tom: alle typer |
-| **Environments** | Unntak fra et av disse miljøene, atskilt med komma (se [Miljøer](#miljøer)). | Tom: alle miljøer |
+| **Miljøer** | Unntak fra et av disse miljøene, atskilt med komma (se [Miljøer](#miljøer)). | Tom: alle miljøer |
 | **Tidsvindu** (i **Når det skal varsles**) | Unntak fra de siste 5 sekundene opp til de siste 24 timene. | **Siste 5 minutter** |
 | **Filtrer etter telemetritjeneste** (under **Flere felt**) | Unntak fra en av de valgte tjenestene. | Tom: alle tjenester |
 | **Filtrer etter infrastrukturenhet** (under **Flere felt**) | Unntak fra en av de valgte vertene, podene, containerne og andre entitetene. | Tom: alle entiteter |
@@ -160,7 +160,7 @@ Nye og tilbakevendte unntak filtreres etter tjeneste, unntakstype, miljø og mel
 
 ## Gjennomgått eksempel: bare produksjonsunntak
 
-Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenting for staging. Du velger **Hvilket som helst unntak**, setter **Environments** til `production`, beholder **Tidsvindu** på **Siste 5 minutter** og velger **Erklær en hendelse** under **Hva som skjer**. De siste fem minuttene:
+Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenting for staging. Du velger **Hvilket som helst unntak**, setter **Miljøer** til `production`, beholder **Tidsvindu** på **Siste 5 minutter** og velger **Erklær en hendelse** under **Hva som skjer**. De siste fem minuttene:
 
 | Unntak | Miljø | Tilstand | Telles? |
 | --- | --- | --- | --- |
@@ -174,7 +174,7 @@ Du vil ha en hendelse hver gang API-et kaster et unntak i produksjon, og ingenti
 ## Feilsøking
 
 :::details Unntak vises i utforskeren, men monitoren teller 0
-Sammenlign verdien i **Environments** med utforskerens filter `env:`: sammenligningen er nøyaktig og skiller mellom store og små bokstaver, og unntak uten miljø utelates når filteret er angitt. Sjekk deretter om unntakene er løst eller arkivert. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Edit Monitoring Criteria**: **Samsvarende unntak** viser hva filtrene samsvarer med.
+Sammenlign verdien i **Miljøer** med utforskerens filter `env:`: sammenligningen er nøyaktig og skiller mellom store og små bokstaver, og unntak uten miljø utelates når filteret er angitt. Sjekk deretter om unntakene er løst eller arkivert. Åpne monitorens side **Kriterier** (under **Konfigurasjon**), og klikk på **Edit Monitoring Criteria**: **Samsvarende unntak** viser hva filtrene samsvarer med.
 :::
 
 :::details Hendelsen ble løst da jeg løste unntaket

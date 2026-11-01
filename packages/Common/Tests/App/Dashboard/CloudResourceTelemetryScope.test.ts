@@ -8,7 +8,7 @@ import {
   getCloudResourceAttributeFilters,
   isCloudInstanceLive,
   isCloudResourceScoped,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudResourceTelemetryScope";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 
 /*

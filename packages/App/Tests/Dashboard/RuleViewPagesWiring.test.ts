@@ -131,22 +131,40 @@ interface RuleViewWiring {
   viewKey: string;
 }
 
-function getWiring(ruleType: RuleRunType): RuleViewWiring {
+/*
+ * Rule models two products list, each on a rules page of its own: one
+ * CloudResource table holds App Platforms' environments and the resources
+ * in Cloud's accounts, and a cloud rule names the kind of row it is for -
+ * each product's page lists its own. Every other rule model is listed by
+ * one page.
+ */
+const PAGES_PER_RULE_TYPE: Partial<Record<RuleRunType, number>> = {
+  [RuleRunType.CloudResourceLabelRule]: 2,
+  [RuleRunType.CloudResourceOwnerRule]: 2,
+};
+
+function pagesListing(ruleType: RuleRunType): number {
+  return PAGES_PER_RULE_TYPE[ruleType] || 1;
+}
+
+// Each page's wiring, in the order the pages were found.
+function getWirings(ruleType: RuleRunType): Array<RuleViewWiring> {
   const mounts: Array<RuleMount> = findMounts(ruleType);
-  expect(mounts).toHaveLength(1);
-  const mount: RuleMount = mounts[0]!;
+  expect(mounts).toHaveLength(pagesListing(ruleType));
 
-  const viewMatch: RegExpMatchArray | null = mount.rest.match(
-    /^modelType=\{[A-Za-z]+\}viewRuleId=\{[^}]*\}listRoute=\{RuleViewPageUtil\.getListRoute\(PageMap\.([A-Z_]+)[,)][\s\S]*?getRuleViewRoute=\{\([^)]*\):Route=>\{returnRuleViewPageUtil\.getRuleViewRoute\(PageMap\.([A-Z_]+),/,
-  );
+  return mounts.map((mount: RuleMount): RuleViewWiring => {
+    const viewMatch: RegExpMatchArray | null = mount.rest.match(
+      /^modelType=\{[A-Za-z]+\}viewRuleId=\{[^}]*\}listRoute=\{RuleViewPageUtil\.getListRoute\(PageMap\.([A-Z_]+)[,)][\s\S]*?getRuleViewRoute=\{\([^)]*\):Route=>\{returnRuleViewPageUtil\.getRuleViewRoute\(PageMap\.([A-Z_]+),/,
+    );
 
-  expect(viewMatch).not.toBeNull();
+    expect(viewMatch).not.toBeNull();
 
-  return {
-    mount: mount,
-    listKey: viewMatch![1]!,
-    viewKey: viewMatch![2]!,
-  };
+    return {
+      mount: mount,
+      listKey: viewMatch![1]!,
+      viewKey: viewMatch![2]!,
+    };
+  });
 }
 
 // The relative path RouteMap declares for a page key, e.g. "settings/label-rules".
@@ -164,45 +182,73 @@ const RULE_TYPES: Array<RuleRunType> = Object.values(RuleRunType);
 
 describe("rule view pages", () => {
   test.each(RULE_TYPES)(
-    "%s is listed by exactly one page, through a rule table",
+    "%s is listed by its own page (one per product that lists it), through a rule table",
     (ruleType: RuleRunType) => {
       const mounts: Array<RuleMount> = findMounts(ruleType);
 
-      expect(mounts).toHaveLength(1);
-      expect(["RuleTable", "LabelRuleTable"]).toContain(mounts[0]!.tag);
+      expect(mounts).toHaveLength(pagesListing(ruleType));
+
+      for (const mount of mounts) {
+        expect(["RuleTable", "LabelRuleTable"]).toContain(mount.tag);
+      }
     },
   );
+
+  test("a rule model two products list has a list and a view page in each", () => {
+    for (const ruleType of Object.keys(
+      PAGES_PER_RULE_TYPE,
+    ) as Array<RuleRunType>) {
+      const wirings: Array<RuleViewWiring> = getWirings(ruleType);
+
+      expect(
+        new Set(
+          wirings.map((wiring: RuleViewWiring): string => {
+            return wiring.listKey;
+          }),
+        ).size,
+      ).toBe(wirings.length);
+      expect(
+        new Set(
+          wirings.map((wiring: RuleViewWiring): string => {
+            return wiring.viewKey;
+          }),
+        ).size,
+      ).toBe(wirings.length);
+    }
+  });
 
   test.each(RULE_TYPES)(
     "%s passes its view wiring to the table and reads its own view id",
     (ruleType: RuleRunType) => {
-      const wiring: RuleViewWiring = getWiring(ruleType);
+      for (const wiring of getWirings(ruleType)) {
+        /*
+         * A page with several rule tables passes viewRuleId down from props;
+         * either way the page must ask for THIS model's view id.
+         */
+        expect(wiring.mount.page.source).toMatch(
+          new RegExp(
+            `RuleViewPageUtil\\.getViewRuleId\\(props,${ruleType},?\\)`,
+          ),
+        );
 
-      /*
-       * A page with several rule tables passes viewRuleId down from props;
-       * either way the page must ask for THIS model's view id.
-       */
-      expect(wiring.mount.page.source).toMatch(
-        new RegExp(`RuleViewPageUtil\\.getViewRuleId\\(props,${ruleType},?\\)`),
-      );
-
-      // A View button the table is told to hide would make the page unreachable.
-      const attributes: string = wiring.mount.rest.slice(
-        0,
-        wiring.mount.rest.indexOf("formFields="),
-      );
-      expect(attributes).not.toContain("isViewable={false}");
+        // A View button the table is told to hide would make the page unreachable.
+        const attributes: string = wiring.mount.rest.slice(
+          0,
+          wiring.mount.rest.indexOf("formFields="),
+        );
+        expect(attributes).not.toContain("isViewable={false}");
+      }
     },
   );
 
   test.each(RULE_TYPES)(
     "%s has a view page key that PageMap and RouteMap both define",
     (ruleType: RuleRunType) => {
-      const wiring: RuleViewWiring = getWiring(ruleType);
-
-      expect(PAGE_MAP).toContain(`${wiring.viewKey}="${wiring.viewKey}",`);
-      expect(ROUTE_MAP).toContain(`[PageMap.${wiring.viewKey}]:newRoute(`);
-      expect(PAGE_MAP).toContain(`${wiring.listKey}="${wiring.listKey}",`);
+      for (const wiring of getWirings(ruleType)) {
+        expect(PAGE_MAP).toContain(`${wiring.viewKey}="${wiring.viewKey}",`);
+        expect(ROUTE_MAP).toContain(`[PageMap.${wiring.viewKey}]:newRoute(`);
+        expect(PAGE_MAP).toContain(`${wiring.listKey}="${wiring.listKey}",`);
+      }
     },
   );
 
@@ -213,51 +259,57 @@ describe("rule view pages", () => {
   test.each(RULE_TYPES)(
     "%s view path extends its list path and ends in the rule id",
     (ruleType: RuleRunType) => {
-      const wiring: RuleViewWiring = getWiring(ruleType);
-      const listPath: string = relativePath(wiring.listKey);
-      const viewPath: string = relativePath(wiring.viewKey);
+      for (const wiring of getWirings(ruleType)) {
+        const listPath: string = relativePath(wiring.listKey);
+        const viewPath: string = relativePath(wiring.viewKey);
 
-      expect(viewPath.startsWith(`${listPath}/`)).toBe(true);
-      expect(viewPath).toMatch(/\$\{RouteParams\.(ModelID|SubModelID)\}$/);
+        expect(viewPath.startsWith(`${listPath}/`)).toBe(true);
+        expect(viewPath).toMatch(/\$\{RouteParams\.(ModelID|SubModelID)\}$/);
+      }
     },
   );
 
   test.each(RULE_TYPES)(
     "%s is routed to the page that lists it, as a view of that rule",
     (ruleType: RuleRunType) => {
-      const wiring: RuleViewWiring = getWiring(ruleType);
-      const viewKey: string = escapeRegExp(wiring.viewKey);
+      for (const wiring of getWirings(ruleType)) {
+        const viewKey: string = escapeRegExp(wiring.viewKey);
 
-      const routePattern: RegExp = new RegExp(
-        `<PageRoutepath=\\{[^{}]*PageMap\\.${viewKey}\\b[^{}]*\\}element=\\{<([A-Za-z]+)\\{\\.\\.\\.props\\}pageRoute=\\{RouteMap\\[PageMap\\.${viewKey}\\]asRoute\\}ruleViewModelType=\\{${ruleType}\\}/>\\}/>`,
-      );
+        const routePattern: RegExp = new RegExp(
+          `<PageRoutepath=\\{[^{}]*PageMap\\.${viewKey}\\b[^{}]*\\}element=\\{<([A-Za-z]+)\\{\\.\\.\\.props\\}pageRoute=\\{RouteMap\\[PageMap\\.${viewKey}\\]asRoute\\}ruleViewModelType=\\{${ruleType}\\}/>\\}/>`,
+        );
 
-      const routed: Array<{ file: SourceFile; component: string }> = [];
+        const routed: Array<{ file: SourceFile; component: string }> = [];
 
-      for (const file of ROUTE_FILES) {
-        const match: RegExpMatchArray | null = file.source.match(routePattern);
+        for (const file of ROUTE_FILES) {
+          const match: RegExpMatchArray | null =
+            file.source.match(routePattern);
 
-        if (match) {
-          routed.push({ file: file, component: match[1]! });
+          if (match) {
+            routed.push({ file: file, component: match[1]! });
+          }
         }
+
+        expect({ viewKey: wiring.viewKey, routes: routed.length }).toEqual({
+          viewKey: wiring.viewKey,
+          routes: 1,
+        });
+
+        // The routed component is the page that mounts the rule table.
+        const pageImport: string = path
+          .relative(
+            path.join(DASHBOARD_SRC, "Routes"),
+            wiring.mount.page.filePath,
+          )
+          .replace(/\.tsx$/, "");
+
+        expect(routed[0]!.file.source).toContain(
+          `import${routed[0]!.component}from"${pageImport}";`,
+        );
+        expect(routed[0]!.file.source).toContain(
+          `import${ruleType}from"Common/Models/DatabaseModels/${ruleType}";`,
+        );
       }
-
-      expect(routed).toHaveLength(1);
-
-      // The routed component is the page that mounts the rule table.
-      const pageImport: string = path
-        .relative(
-          path.join(DASHBOARD_SRC, "Routes"),
-          wiring.mount.page.filePath,
-        )
-        .replace(/\.tsx$/, "");
-
-      expect(routed[0]!.file.source).toContain(
-        `import${routed[0]!.component}from"${pageImport}";`,
-      );
-      expect(routed[0]!.file.source).toContain(
-        `import${ruleType}from"Common/Models/DatabaseModels/${ruleType}";`,
-      );
     },
   );
 

@@ -46,7 +46,24 @@ export enum RuleCriteriaSubject {
   Workflows = "Workflows",
   StorageArrays = "StorageArrays",
   DataStores = "DataStores",
+  /*
+   * No model's own: a page's (RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE). The
+   * cloud owner and label rules are about cloud resources on Cloud's pages,
+   * and about the environments apps run in on App Platforms' pages.
+   */
+  CloudEnvironments = "CloudEnvironments",
 }
+
+/*
+ * The records only a page names. One table of rules serves two products:
+ * CloudResourceOwnerRule and CloudResourceLabelRule are about cloud
+ * resources - their model's records - on Cloud's rules pages, and about the
+ * environments the apps on managed platforms run in on App Platforms', which
+ * pass this subject to their tables (ruleCriteriaSubject), so their choice
+ * reads "All cloud environments".
+ */
+export const RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE: ReadonlyArray<RuleCriteriaSubject> =
+  [RuleCriteriaSubject.CloudEnvironments];
 
 /*
  * One table holds the rules for several kinds of record, so its records

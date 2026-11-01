@@ -1,6 +1,8 @@
 # Molnmiljöer
 
-En **Cloud Environment** är platsen där dina containrar körs på en hanterad molnplattform: kontot och regionen för ett ECS-kluster, projektet och regionen för Cloud Run, prenumerationen och regionen för Container Apps. OneUptime skapar en första gången din telemetri kommer fram med rätt resursattribut, och samlar varje arbetsbelastning som körs där. Det finns inget att registrera för hand.
+En **Molnmiljö** är platsen där dina containrar körs på en hanterad molnplattform: kontot och regionen för ett ECS-kluster, projektet och regionen för Cloud Run, prenumerationen och regionen för Container Apps. OneUptime skapar en första gången din telemetri kommer fram med rätt resursattribut, och samlar varje arbetsbelastning som körs där. Det finns inget att registrera för hand.
+
+Miljöer listas i Appplattformar, en egen produkt: **Appplattformar → Översikt** grupperar dem efter plattform och visar först de som har tystnat, och **Appplattformar → Alla miljöer** listar alla. Resurserna i dina molnkonton, som virtuella maskiner, buckets och hanterade databaser, finns i Moln: se [Molnresurser](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Uppgifter på Fargate eller EC2, med CPU och minne per uppgift.
@@ -91,7 +93,7 @@ Plattformens egen identitet kommer först med avsikt. En sidecar-collector och a
 
 ### Lägg till en miljö
 
-Intaget skapar miljöer åt dig, så det finns inget att fylla i. Öppna **Moln → All Environments** och klicka på **Lägg till molnmiljö**: välj var din app körs, så visar guiden plattformens OpenTelemetry-inställningar, med din OneUptime-URL och intagningsnyckel ifyllda. Dess sista steg, **Vänta på anslutningen**, visar när miljöns första data har kommit in och länkar till den. Vill du visa ett annat namn väljer du **Redigera detaljer** på kortet **Resursdetaljer** på miljöns sida **Inställningar** och skriver ett **Visningsnamn**.
+Intaget skapar miljöer åt dig, så det finns inget att fylla i. Öppna **Appplattformar → Alla miljöer** och klicka på **Lägg till molnmiljö**: välj var din app körs, så visar guiden plattformens OpenTelemetry-inställningar, med din OneUptime-URL och intagningsnyckel ifyllda. Dess sista steg, **Vänta på anslutningen**, visar när miljöns första data har kommit in och länkar till den. Vill du visa ett annat namn väljer du **Redigera detaljer** på kortet **Miljödetaljer** på miljöns sida **Inställningar** och skriver ett **Visningsnamn**.
 
 ## Det som inte är en molnmiljö
 
@@ -103,7 +105,7 @@ Intaget skapar miljöer åt dig, så det finns inget att fylla i. Öppna **Moln 
 | Lastbalanserare, bucketar, hanterade databaser och andra IaaS- eller PaaS-resurser | **Cloud Resources** | Upptäcks från de mätvärden som Azure Monitor, CloudWatch och Cloud Monitoring publicerar. Se [Molnresurser](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
-> Cloud Run och App Engine visas med avsikt på två ställen. Deras detektor sätter både en hanterad `cloud.platform` och `faas.name`, så varje tjänst är också en egen **Serverlös funktion**, medan **Cloud Environment** samlar alla tjänster i det projektet och den regionen. Samma telemetri arkiveras under båda.
+> Cloud Run och App Engine visas med avsikt på två ställen. Deras detektor sätter både en hanterad `cloud.platform` och `faas.name`, så varje tjänst är också en egen **Serverlös funktion**, medan **Molnmiljö** samlar alla tjänster i det projektet och den regionen. Samma telemetri arkiveras under båda.
 
 ## Anslut en arbetsbelastning
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` med `"valid": true` betyder att din token accepteras. `401` betyder att den är okänd, återkallad, inaktiverad eller har gått ut, och svarets `message` säger vilket. Inom en minut efter det första spannet, den första loggen eller det första mätvärdet visas miljön under **Moln → All Environments**.
+`200` med `"valid": true` betyder att din token accepteras. `401` betyder att den är okänd, återkallad, inaktiverad eller har gått ut, och svarets `message` säger vilket. Inom en minut efter det första spannet, den första loggen eller det första mätvärdet visas miljön under **Appplattformar → Alla miljöer**.
 :::
 
 > [!TIP]
-> Samma steg finns i instrumentpanelen, med din token ifylld: under **Moln → All Environments**, klicka på **Lägg till molnmiljö**. Varje miljös flik **Dokumentation** har dem också.
+> Samma steg finns i instrumentpanelen, med din token ifylld: under **Appplattformar → Alla miljöer**, klicka på **Lägg till molnmiljö**. Varje miljös flik **Dokumentation** har dem också.
 
 ## Vad du får
 
@@ -190,7 +192,7 @@ En miljö vars telemetri slutar komma i 15 minuter visar **Frånkopplad**, och n
 ### Etiketter och ägare
 
 - **Från din telemetri:** ett resursattribut som `oneuptime.label.team=payments` lägger till etiketten `team:payments` på miljön.
-- **Från regler:** **Moln → Inställningar → Etikettregler** och **Ägarregler** lägger till etiketter och ägare på miljöer som matchar. Se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules).
+- **Från regler:** **Appplattformar → Inställningar → Etikettregler** och **Ägarregler** lägger till etiketter och ägare på miljöer som matchar. Reglerna i Moln gäller för resurserna i dina molnkonton, och en regel som skapades innan de två delades gäller för båda. Se [Etikett- och ägarregler](/docs/configuration/label-and-owner-rules).
 
 ## Felsökning
 

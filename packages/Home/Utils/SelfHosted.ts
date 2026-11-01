@@ -476,7 +476,7 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Bring your own notification transports",
     description:
-      "Send email through your internal SMTP relay. SMS, calls and push need their providers, so page people by email, webhook or a chat server on your network instead.",
+      "Send email through your internal SMTP relay, and SMS and calls through a gateway you run. Push needs its provider, so page people by email, webhook or a chat server on your network instead.",
     setting: "Settings > Notifications > Emails",
   },
   {

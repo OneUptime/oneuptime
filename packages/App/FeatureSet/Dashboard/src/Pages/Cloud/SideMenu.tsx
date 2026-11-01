@@ -10,27 +10,22 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/DeveloperDocsMenuSection";
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
+/*
+ * Cloud: the AWS accounts, Azure subscriptions and Google Cloud projects
+ * connected to OneUptime, and every resource in them. The apps that managed
+ * app and container platforms run (ECS, Cloud Run, App Service, ...) are
+ * App Platforms' (Pages/AppPlatforms/SideMenu).
+ */
 const CloudSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
     {
       title: "Cloud",
       items: [
         /*
-         * The way in: AWS, Azure and Google Cloud accounts connected in a
-         * few clicks, read on a schedule with read-only access.
-         */
-        {
-          link: {
-            title: "Connect",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CLOUD_CONNECT] as Route,
-            ),
-          },
-          icon: IconProp.Link,
-        },
-        /*
-         * The AWS accounts, Azure subscriptions and Google Cloud projects
-         * the connections read, each with its resources, changes and map.
+         * Where Cloud opens: the AWS accounts, Azure subscriptions and
+         * Google Cloud projects the connections read, each with its
+         * resources, changes and map. While there is none, the way to
+         * connect one is on it.
          */
         {
           link: {
@@ -41,19 +36,11 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Cloud,
         },
-        {
-          link: {
-            title: "All Environments",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.CLOUD_RESOURCES] as Route,
-            ),
-          },
-          icon: IconProp.List,
-        },
         /*
-         * The IaaS and PaaS resources discovered from the provider's own
-         * monitoring (Azure Monitor, CloudWatch, Cloud Monitoring) - virtual
-         * machines, load balancers, buckets, managed databases, queues.
+         * Every resource in the accounts - virtual machines, load balancers,
+         * buckets, managed databases, queues - read by a connection, or from
+         * the provider's own monitoring (Azure Monitor, CloudWatch, Cloud
+         * Monitoring) by a collector.
          */
         {
           link: {
@@ -63,6 +50,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.SquareStack,
+        },
+        /*
+         * Connecting another account: AWS, Azure and Google Cloud, in a few
+         * clicks, read on a schedule with read-only access.
+         */
+        {
+          link: {
+            title: "Connect",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_CONNECT] as Route,
+            ),
+          },
+          icon: IconProp.Link,
         },
       ],
     },
@@ -91,7 +91,7 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     /*
-     * The way back to archived cloud environments, which the list leaves out.
+     * The way back to archived cloud resources, which the list leaves out.
      * Few visits need it, so it waits in Advanced: folded away until opened,
      * and open by itself on the Archived page.
      */
@@ -114,6 +114,7 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
   addDeveloperSideMenuSection(sections, {
     modelType: CloudResource,
     scope: DeveloperDocsScope.List,
+    parentPageKey: PageMap.CLOUD_MONITORED_RESOURCES,
   });
 
   return <SideMenu sections={sections} />;

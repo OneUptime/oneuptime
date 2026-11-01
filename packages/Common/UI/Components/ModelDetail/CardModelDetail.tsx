@@ -25,6 +25,7 @@ import ModelFormModal from "../ModelFormModal/ModelFormModal";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
+import RuleCriteriaSubject from "../../../Types/Rules/RuleCriteriaSubject";
 import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import {
@@ -77,6 +78,17 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   documentationLink?: Route | URL | undefined;
   videoLink?: Route | URL | undefined;
   onBeforeEdit?: (() => boolean) | undefined;
+  /*
+   * What one record is called here, where the page calls it otherwise than
+   * its model does: "Edit Cloud Environment Owner Rule" on App Platforms,
+   * where the model says Cloud Resource Owner Rule. Defaults to the model's.
+   */
+  singularName?: string | undefined;
+  /*
+   * The records a rule's conditions are about, for a rule's edit form on a
+   * page that names them itself (ModelForm ruleCriteriaSubject).
+   */
+  ruleCriteriaSubject?: RuleCriteriaSubject | undefined;
 }
 
 /*
@@ -117,9 +129,11 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
    */
   const privateRecordOptions: PermissionGateOptions | undefined =
     usePrivateRecordGateOptions(model);
+  const singularName: string =
+    props.singularName?.trim() || model.singularName || "";
   const editTitle: string = translateNamedAction(translator, {
     template: "Edit {{itemName}}",
-    itemName: model.singularName || "",
+    itemName: singularName,
   });
 
   const onBeforeEditRef: React.MutableRefObject<(() => boolean) | undefined> =
@@ -343,6 +357,9 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
             modelType: props.modelDetailProps.modelType,
             steps: props.formSteps || [],
             createOrUpdateApiUrl: props.createOrUpdateApiUrl,
+            ...(props.ruleCriteriaSubject
+              ? { ruleCriteriaSubject: props.ruleCriteriaSubject }
+              : {}),
           }}
           /*
            * Prefer the id the caller already handed us. Deriving it purely

@@ -8,6 +8,7 @@ import CloudResourceOwnerUserService from "./CloudResourceOwnerUserService";
 import CloudResourceOwnerTeamService from "./CloudResourceOwnerTeamService";
 import CloudResourceService from "./CloudResourceService";
 import { getCloudTagRuleMatchValues } from "../../Types/Cloud/CloudInventory";
+import { doesCloudRuleApplyToKind } from "../../Types/Cloud/CloudResourceKind";
 import CloudResourceFeedService from "./CloudResourceFeedService";
 import { CloudResourceFeedEventType } from "../../Models/DatabaseModels/CloudResourceFeed";
 import { Purple500 } from "../../Types/BrandColors";
@@ -44,6 +45,7 @@ class CloudResourceOwnerRuleEngineServiceClass
     nameRegexPattern: true,
     descriptionRegexPattern: true,
     cloudTagPattern: true,
+    cloudResourceKind: true,
     ownerUsers: { _id: true },
     ownerTeams: { _id: true },
   };
@@ -150,6 +152,8 @@ class CloudResourceOwnerRuleEngineServiceClass
           description: true,
           labels: { _id: true },
           cloudTags: true,
+          // A rule is for environments or for resources.
+          cloudResourceKind: true,
         },
         props: { isRoot: true },
       });
@@ -320,6 +324,20 @@ class CloudResourceOwnerRuleEngineServiceClass
     cloudResource: CloudResource,
     rule: CloudResourceOwnerRule,
   ): boolean {
+    /*
+     * A rule is for one product's rows: App Platforms' environments or
+     * Cloud's resources. One written before the two products split is for
+     * both (doesCloudRuleApplyToKind).
+     */
+    if (
+      !doesCloudRuleApplyToKind({
+        ruleKind: rule.cloudResourceKind,
+        rowKind: cloudResource.cloudResourceKind,
+      })
+    ) {
+      return false;
+    }
+
     return RuleCriteriaMatcher.matchesWithLegacySync({
       rule,
       legacyFields: [

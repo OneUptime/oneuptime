@@ -29,7 +29,7 @@ Wenn Sie OneUptime selbst hosten, verwenden Sie `https://YOUR-ONEUPTIME-HOST/otl
 
 ## Die Umgebung erscheint nicht
 
-Nichts unter **Cloud → Alle Umgebungen**, eine Minute nach der ersten Anfrage. Prüfen Sie diese drei, in dieser Reihenfolge.
+Nichts unter **App-Plattformen → Alle Umgebungen**, eine Minute nach der ersten Anfrage. Prüfen Sie diese drei, in dieser Reihenfolge.
 
 **`cloud.platform` fehlt oder ist kein verwalteter Wert.** OneUptime legt Telemetrie nur dann unter Cloud-Umgebungen ab, wenn die Ressource einen dieser Werte trägt: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` oder `azure_app_service`. Die üblichen Ursachen:
 

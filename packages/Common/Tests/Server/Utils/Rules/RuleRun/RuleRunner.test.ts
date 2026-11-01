@@ -110,6 +110,11 @@ function fakeDefinition(data: {
   };
 }
 
+// The definition the registry hands the runner, as fakeDefinition set it up.
+function currentDefinition(): RuleRunDefinition {
+  return RuleRunRegistry.getDefinition(RuleRunType.MonitorLabelRule)!;
+}
+
 function labelRule(
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {
@@ -324,6 +329,53 @@ describe("RuleRunner.runPass", () => {
 
       expect(result.resourcesEvaluated).toBe(0);
       expect(result.nextCursor).toBeNull();
+    });
+
+    /*
+     * A cloud rule is for one product's rows (App Platforms' environments or
+     * Cloud's resources): its definition scopes the walk by the rule, so
+     * the pass reads and counts those only.
+     */
+    it("walks only the resources the rule can apply to, when its definition says which", async () => {
+      const fake: FakeRegistryEntry = fakeDefinition({
+        rule: labelRule({ cloudResourceKind: "environment" }),
+      });
+      currentDefinition().getResourceScope = (
+        rule: BaseModel,
+      ): Record<string, unknown> => {
+        return {
+          cloudResourceKind: (rule as unknown as Record<string, unknown>)[
+            "cloudResourceKind"
+          ],
+        };
+      };
+
+      await runPass({ cursor: resourceId(9) });
+
+      const args: { query: Record<string, unknown> } = fake.resourceFindBy.mock
+        .calls[0]![0] as never;
+
+      expect(Object.keys(args.query).sort()).toEqual([
+        "_id",
+        "cloudResourceKind",
+        "projectId",
+      ]);
+      expect(args.query["cloudResourceKind"]).toBe("environment");
+      expect(String(args.query["projectId"])).toBe(PROJECT_ID.toString());
+    });
+
+    it("a scope cannot walk another project", async () => {
+      const fake: FakeRegistryEntry = fakeDefinition({ rule: labelRule() });
+      currentDefinition().getResourceScope = (): Record<string, unknown> => {
+        return { projectId: ObjectID.generate() };
+      };
+
+      await runPass();
+
+      const args: { query: Record<string, unknown> } = fake.resourceFindBy.mock
+        .calls[0]![0] as never;
+
+      expect(String(args.query["projectId"])).toBe(PROJECT_ID.toString());
     });
   });
 

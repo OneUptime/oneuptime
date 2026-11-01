@@ -34,7 +34,7 @@ Molnresurser är en av flera platser där ditt moln dyker upp:
 
 | Du kör | Var det visas | Hur |
 | --- | --- | --- |
-| Containrar på ECS, Cloud Run, Container Apps, App Service, … | **Moln → All Environments** | Dina arbetsbelastningars egen telemetri, efter deras `cloud.platform`. Se [Molnmiljöer](/docs/telemetry/cloud-environments) |
+| Containrar på ECS, Cloud Run, Container Apps, App Service, … | **Appplattformar → Alla miljöer** | Dina arbetsbelastningars egen telemetri, efter deras `cloud.platform`. Se [Molnmiljöer](/docs/telemetry/cloud-environments) |
 | Varje IaaS- eller PaaS-resurs som leverantören övervakar | **Moln → Alla resurser** | Leverantörens övervaknings-API, läst av en collector: den här sidan |
 | Virtuella maskiner med en OpenTelemetry Collector på | **Värdar** | Värdens egna mätvärden och loggar. Se [OpenTelemetry-collector på värden](/docs/telemetry/host-otel-collector) |
 | Köer och ämnen som dina applikationer använder | **Queues** | Spann, och samma molnmätvärden. Se [Köer](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Installationer i egen drift kan ändra detta med miljövariabler på appen:
 ## Inventering och regler
 
 - **Inventering:** Molnresurser listas i [Inventering](/docs/inventory/overview) som objekt av typen **Molnresurs**, med leverantörens ID som `cloud.resource.id` och typen som `cloud.resource.type`. AI-agentens resursverktyg listar dem också.
-- **Regler:** **Moln → Inställningar → Etikettregler** och **Ägarregler** gäller för dem precis som för molnmiljöer.
+- **Regler:** **Moln → Inställningar → Etikettregler** och **Ägarregler** gäller för dem. Appplattformar har egna för molnmiljöer, och en regel som skapades innan de två delades gäller för båda.
 
 ## Felsökning
 

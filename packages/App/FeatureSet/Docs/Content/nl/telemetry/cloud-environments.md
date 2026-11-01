@@ -1,6 +1,8 @@
 # Cloud-omgevingen
 
-Een **Cloud Environment** is de plek waar je containers draaien op een beheerd cloudplatform: het account en de regio van een ECS-cluster, het project en de regio van Cloud Run, het abonnement en de regio van Container Apps. OneUptime maakt er een aan de eerste keer dat je telemetrie binnenkomt met de juiste resource-attributen, en bundelt elke workload die daar draait. Je hoeft niets met de hand te registreren.
+Een **Cloud-omgeving** is de plek waar je containers draaien op een beheerd cloudplatform: het account en de regio van een ECS-cluster, het project en de regio van Cloud Run, het abonnement en de regio van Container Apps. OneUptime maakt er een aan de eerste keer dat je telemetrie binnenkomt met de juiste resource-attributen, en bundelt elke workload die daar draait. Je hoeft niets met de hand te registreren.
+
+Omgevingen staan in App-platforms, een eigen product: **App-platforms → Overzicht** groepeert ze per platform en toont eerst de omgevingen die stil zijn gevallen, en **App-platforms → Alle omgevingen** toont ze allemaal. De resources in je cloudaccounts, zoals virtuele machines, buckets en beheerde databases, staan in Cloud: zie [Cloud-resources](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Taken op Fargate of EC2, met CPU en geheugen per taak.
@@ -91,7 +93,7 @@ De eigen identiteit van het platform komt bewust eerst. Een sidecar-collector en
 
 ### Een omgeving toevoegen
 
-De ingestie maakt omgevingen voor je aan, dus je hoeft niets in te typen. Open **Cloud → All Environments** en klik op **Cloud-omgeving toevoegen**: kies waar je applicatie draait, en de gids toont de OpenTelemetry-instellingen van dat platform, met je OneUptime-URL en ingestiesleutel al ingevuld. De laatste stap, **Wachten op verbinding**, meldt wanneer de eerste gegevens van de omgeving zijn binnengekomen en linkt ernaar. Wil je een andere naam tonen, kies dan **Details bewerken** op de kaart **Resourcedetails** op de pagina **Instellingen** van de omgeving en typ een **Weergavenaam**.
+De ingestie maakt omgevingen voor je aan, dus je hoeft niets in te typen. Open **App-platforms → Alle omgevingen** en klik op **Cloud-omgeving toevoegen**: kies waar je applicatie draait, en de gids toont de OpenTelemetry-instellingen van dat platform, met je OneUptime-URL en ingestiesleutel al ingevuld. De laatste stap, **Wachten op verbinding**, meldt wanneer de eerste gegevens van de omgeving zijn binnengekomen en linkt ernaar. Wil je een andere naam tonen, kies dan **Details bewerken** op de kaart **Omgevingsdetails** op de pagina **Instellingen** van de omgeving en typ een **Weergavenaam**.
 
 ## Wat geen cloud-omgeving is
 
@@ -103,7 +105,7 @@ De ingestie maakt omgevingen voor je aan, dus je hoeft niets in te typen. Open *
 | Load balancers, buckets, beheerde databases en andere IaaS- of PaaS-resources | **Cloud Resources** | Ontdekt uit de metrieken die Azure Monitor, CloudWatch en Cloud Monitoring publiceren. Zie [Cloud-resources](/docs/telemetry/cloud-resources) |
 
 > [!NOTE]
-> Cloud Run en App Engine verschijnen bewust op twee plekken. Hun detector stelt zowel een beheerde `cloud.platform` als `faas.name` in, dus elke service is ook een eigen **Serverless functie**, terwijl de **Cloud Environment** elke service in dat project en die regio groepeert. Dezelfde telemetrie wordt onder beide gearchiveerd.
+> Cloud Run en App Engine verschijnen bewust op twee plekken. Hun detector stelt zowel een beheerde `cloud.platform` als `faas.name` in, dus elke service is ook een eigen **Serverless functie**, terwijl de **Cloud-omgeving** elke service in dat project en die regio groepeert. Dezelfde telemetrie wordt onder beide gearchiveerd.
 
 ## Een workload koppelen
 
@@ -170,11 +172,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` met `"valid": true` betekent dat het token is geaccepteerd. `401` betekent dat het onbekend, ingetrokken, uitgeschakeld of verlopen is, en de `message` van het antwoord zegt welke van deze. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **Cloud → All Environments**.
+`200` met `"valid": true` betekent dat het token is geaccepteerd. `401` betekent dat het onbekend, ingetrokken, uitgeschakeld of verlopen is, en de `message` van het antwoord zegt welke van deze. Binnen een minuut na de eerste span, log of metriek verschijnt de omgeving onder **App-platforms → Alle omgevingen**.
 :::
 
 > [!TIP]
-> Dezelfde stappen staan in het dashboard, met je token al ingevuld: klik onder **Cloud → All Environments** op **Cloud-omgeving toevoegen**. Het tabblad **Documentatie** van elke omgeving toont ze ook.
+> Dezelfde stappen staan in het dashboard, met je token al ingevuld: klik onder **App-platforms → Alle omgevingen** op **Cloud-omgeving toevoegen**. Het tabblad **Documentatie** van elke omgeving toont ze ook.
 
 ## Wat je krijgt
 
@@ -190,7 +192,7 @@ Een omgeving waarvan de telemetrie 15 minuten stopt, toont **Verbinding verbroke
 ### Labels en eigenaren
 
 - **Uit je telemetrie:** een resource-attribuut zoals `oneuptime.label.team=payments` voegt het label `team:payments` toe aan de omgeving.
-- **Uit regels:** **Cloud → Instellingen → Labelregels** en **Eigenaarsregels** voegen labels en eigenaren toe aan omgevingen die overeenkomen. Zie [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules).
+- **Uit regels:** **App-platforms → Instellingen → Labelregels** en **Eigenaarsregels** voegen labels en eigenaren toe aan omgevingen die overeenkomen. De regels in Cloud gelden voor de resources in je cloudaccounts, en een regel die is gemaakt voordat de twee werden gesplitst, geldt voor beide. Zie [Label- en eigenaarsregels](/docs/configuration/label-and-owner-rules).
 
 ## Problemen oplossen
 

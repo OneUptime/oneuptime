@@ -29,7 +29,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 ## परिवेश नहीं दिखता
 
-पहले अनुरोध के एक मिनट बाद भी **क्लाउड → All Environments** में कुछ नहीं है। ये तीन चीज़ें इसी क्रम में जांचें।
+पहले अनुरोध के एक मिनट बाद भी **ऐप प्लेटफ़ॉर्म → सभी परिवेश** में कुछ नहीं है। ये तीन चीज़ें इसी क्रम में जांचें।
 
 **`cloud.platform` गायब है, या प्रबंधित मान नहीं है।** OneUptime टेलीमेट्री को क्लाउड परिवेश में तभी दर्ज करता है जब रिसोर्स पर इनमें से कोई मान हो: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` या `azure_app_service`। आम कारण:
 
