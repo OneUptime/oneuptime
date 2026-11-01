@@ -28,7 +28,7 @@ import API from "Common/Utils/API";
  *
  * The page servers ask the API's /seo what a page is (answerSeo stands in
  * for it), and render index.ejs with what they work out: the response here
- * records the status, the headers, a sent body and the render.
+ * records the status, the headers, a sent body, a redirect and the render.
  */
 
 export type FakeResponse = {
@@ -36,11 +36,15 @@ export type FakeResponse = {
   headers: Record<string, string>;
   body: unknown;
   rendered: { view: string; variables: JSONObject } | null;
+  // Where a redirect sent the browser, and how.
+  redirected: { status: number; location: string } | null;
   headersSent: boolean;
   status: (code: number) => FakeResponse;
   set: (name: string, value: string) => FakeResponse;
   setHeader: (name: string, value: string) => FakeResponse;
+  type: (value: string) => FakeResponse;
   send: (body: unknown) => FakeResponse;
+  redirect: (status: number, location: string) => void;
   render: (view: string, variables: JSONObject) => void;
 };
 
@@ -50,6 +54,7 @@ export function fakeResponse(): FakeResponse {
     headers: {},
     body: undefined,
     rendered: null,
+    redirected: null,
     headersSent: false,
     status: (code: number): FakeResponse => {
       res.statusCode = code;
@@ -63,10 +68,19 @@ export function fakeResponse(): FakeResponse {
       res.headers[name.toLowerCase()] = value;
       return res;
     },
+    type: (value: string): FakeResponse => {
+      res.headers["content-type"] = value;
+      return res;
+    },
     send: (body: unknown): FakeResponse => {
       res.body = body;
       res.headersSent = true;
       return res;
+    },
+    redirect: (status: number, location: string): void => {
+      res.statusCode = status;
+      res.redirected = { status, location };
+      res.headersSent = true;
     },
     render: (view: string, variables: JSONObject): void => {
       res.rendered = { view, variables };
@@ -80,14 +94,23 @@ export function fakeResponse(): FakeResponse {
 export function pageRequest(data: {
   host: string;
   path: string;
+  // The address with its query, when it has one; the path otherwise.
+  originalUrl?: string | undefined;
+  /*
+   * The name Express makes of the request (X-Forwarded-Host under trust
+   * proxy) where it differs from the Host the browser connected to.
+   */
+  hostname?: string | undefined;
+  headers?: Record<string, string> | undefined;
 }): ExpressRequest {
   return {
     path: data.path,
-    url: data.path,
+    url: data.originalUrl || data.path,
+    originalUrl: data.originalUrl || data.path,
     method: "GET",
-    hostname: data.host,
+    hostname: data.hostname || data.host,
     protocol: "https",
-    headers: { host: data.host },
+    headers: { host: data.host, ...(data.headers || {}) },
     get: (name: string): string | undefined => {
       return name.toLowerCase() === "host" ? data.host : undefined;
     },
@@ -143,6 +166,14 @@ export function seoLookups(apiGet: SpiedApi): Array<string> {
 
 export type PageRenderer = (req: ExpressRequest) => Promise<FakeResponse>;
 
+/*
+ * Any route the combined container registered, run with a fake response:
+ * what it answered, or that it passed the request on (next()).
+ */
+export type RouteRunner = (
+  req: ExpressRequest,
+) => Promise<{ res: FakeResponse; passedOn: boolean }>;
+
 export interface PageServers {
   // The combined App container (Frontend/Index.ts).
   combined: {
@@ -150,6 +181,8 @@ export interface PageServers {
     publicDashboard: PageRenderer;
     // A host that is not OneUptime's own: a status page's or a dashboard's domain.
     customDomain: PageRenderer;
+    // The first route registered for this method and path, whatever it does.
+    route: (method: string, path: string) => RouteRunner;
   };
   // The standalone containers (StatusPage/Serve.ts, PublicDashboard/Serve.ts).
   standalone: {
@@ -307,12 +340,37 @@ export async function loadPageServers(): Promise<PageServers> {
     };
   };
 
+  const runAnyRoute: (method: string, path: string) => RouteRunner = (
+    method: string,
+    path: string,
+  ): RouteRunner => {
+    const handler: RouteHandler = handlerFor(method, path);
+
+    return async (
+      req: ExpressRequest,
+    ): Promise<{ res: FakeResponse; passedOn: boolean }> => {
+      const res: FakeResponse = fakeResponse();
+      let passedOn: boolean = false;
+
+      await handler(
+        req,
+        res as unknown as ExpressResponse,
+        (() => {
+          passedOn = true;
+        }) as unknown as NextFunction,
+      );
+
+      return { res, passedOn };
+    };
+  };
+
   loaded = {
     combined: {
       statusPage: runRoute(handlerFor("get", "/status-page/*")),
       publicDashboard: runRoute(handlerFor("get", "/public-dashboard/*")),
       // The first catch-all Frontend/Index.ts registers: the custom-domain fallback.
       customDomain: runRoute(handlerFor("get", "*")),
+      route: runAnyRoute,
     },
     standalone: {
       statusPage: runStandalone("status-page"),

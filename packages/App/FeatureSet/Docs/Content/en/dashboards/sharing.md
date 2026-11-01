@@ -146,7 +146,7 @@ Someone who can only read the domain, such as a Viewer or a Settings Viewer, sti
 
 The same goes for API keys. A key that can only read dashboard domains can't call `verify-cname`, `order-ssl` or `reissue-ssl` on `/dashboard-domain`. Give it **Read Dashboard Domain** and **Edit Dashboard Domain** if it needs to.
 
-A domain belongs to one dashboard of the project at a time. You can attach more than one custom domain to a single dashboard if you serve the same content to several audiences: a customer-facing dashboard on your own brand, a co-branded partner dashboard, or a public health page with its own URL.
+A domain belongs to one dashboard of the project at a time. You can attach more than one custom domain to a single dashboard if you serve the same content to several audiences: a customer-facing dashboard on your own brand, a co-branded partner dashboard, or a public health page with its own URL. A name a status page or a form already uses, in any project, is refused: one domain shows one status page, dashboard or form.
 
 ## Branding
 

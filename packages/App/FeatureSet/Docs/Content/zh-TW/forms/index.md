@@ -94,6 +94,7 @@ flowchart TB
 | **範本** | 大家可以用來開始填寫表單的具名答案組、每個範本如何提問、表單開啟時使用的範本，以及每個範本自己的連結。 |
 | **提交時** | 每次提交建立什麼，以及其每個欄位如何填寫。**編輯設定** 用於變更預設值和一律套用的內容。 |
 | **分享** | **接受提交**、**分享連結**、提交後顯示的訊息，以及 **更多設定** 中的 **IP 允許清單**。 |
+| **自訂網域** | 表單自己的網域，例如 `report.acme.com`，以及它們的 DNS 記錄和憑證。請參閱 [自訂網域](/docs/forms/sharing-and-security#自訂網域)。 |
 | **提交紀錄** | 透過該表單進行的每一次提交，最新的在前，並顯示答案和所建立的內容。 |
 | **複製表單** | 位於 **進階** 下：表單的副本，會自動命名，帶有原表單的問題、範本、提交時設定、品牌、感謝訊息和 IP 允許清單，以及它自己的連結。副本建立時為關閉狀態，並在其建構器中開啟。 |
 | **刪除表單** | 位於 **進階** 下，用於刪除表單。其提交紀錄會一併刪除，但它建立的事件和維護事件不會被刪除。 |
@@ -135,6 +136,10 @@ flowchart TB
 | **Read Form** | 檢視表單及其問題、設定和連結。 | 以上角色，以及 Project Member、Viewer，和事件與排定維護相關的角色 |
 | **Read Form Submission** | 檢視提交及其答案。 | Project Owner, Project Admin |
 | **Delete Form Submission** | 刪除提交。 | Project Owner, Project Admin |
+| **Create Form Domain** | 為表單新增 [自訂網域](/docs/forms/sharing-and-security#自訂網域)。 | Project Owner, Project Admin 和 **Edit Form** |
+| **Edit Form Domain** | 檢查表單的自訂網域，以及訂購、重新核發或更換它們的憑證。 | Project Owner, Project Admin 和 **Edit Form** |
+| **Delete Form Domain** | 移除表單的自訂網域。 | Project Owner, Project Admin 和 **Edit Form** |
+| **Read Form Domain** | 檢視表單的自訂網域、它們的 DNS 記錄，以及每個網域在通往 HTTPS 的路上走到了哪一步。 | 擁有 **Read Form** 的任何人 |
 
 提交中包含陌生人輸入的內容（姓名、電子郵件地址，以及可能永遠不會進入紀錄的答案），因此除非您授予 **Read Form Submission**，否則只有專案擁有者和管理員能看到它們。任何能讀取表單的人都能看到並分享其連結。提交表單不需要任何權限。關於角色和細部權限如何組合，請參閱 [使用者、團隊與權限](/docs/permissions/index)。
 
@@ -144,7 +149,7 @@ flowchart TB
 
 ## 透過 API 使用表單
 
-表單是位於 `/api/form` 的一般 API 資源，其提交位於 `/api/form-submission`，提交可以讀取和刪除，但不能建立或編輯。[API 參考](/reference) 中有完整的要求和回應結構。
+表單是位於 `/api/form` 的一般 API 資源，其提交位於 `/api/form-submission`，提交可以讀取和刪除，但不能建立或編輯。[API 參考](/reference) 中有完整的要求和回應結構。 表單的自訂網域位於 `/api/form-domain`。
 
 ### 問題和設定
 
@@ -255,7 +260,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 公開頁面自己的端點
 
-公開頁面會與兩個不需要 API 金鑰的路由通訊：`GET /api/form/public/<shareKey>` 會傳回表單的名稱、描述和問題，如果有的話，還會傳回其標誌、標誌的替代文字和網站圖示（圖片為 base64），以及其範本和這些範本對頁面所問問題的答案；`POST /api/form/public/<shareKey>/submit` 用於提交表單，並在 `templateId` 中指明提交者所使用的範本。它們是頁面自己的端點，而不是供您在其上建構的 API：每次呼叫都要經過表單的保護措施（請參閱 [分享與安全](/docs/forms/sharing-and-security)），且會隨頁面一起變更。若要從您自己的程式碼建立事件，請使用 API 金鑰呼叫 `POST /api/incident`，請參閱 [宣告事件](/docs/incidents/declaring-incidents)。
+公開頁面會與兩個不需要 API 金鑰的路由通訊：`GET /api/form/public/<shareKey>` 會傳回表單的名稱、描述和問題，如果有的話，還會傳回其標誌、標誌的替代文字和網站圖示（圖片為 base64），以及其範本和這些範本對頁面所問問題的答案；`POST /api/form/public/<shareKey>/submit` 用於提交表單，並在 `templateId` 中指明提交者所使用的範本。它們是頁面自己的端點，而不是供您在其上建構的 API：每次呼叫都要經過表單的保護措施（請參閱 [分享與安全](/docs/forms/sharing-and-security)），且會隨頁面一起變更。若要從您自己的程式碼建立事件，請使用 API 金鑰呼叫 `POST /api/incident`，請參閱 [宣告事件](/docs/incidents/declaring-incidents)。 在表單的 [自訂網域](/docs/forms/sharing-and-security#自訂網域) 上，頁面改為使用該網域上的 `GET /api/form/custom-domain` 和 `POST /api/form/custom-domain/submit`，它們不含任何金鑰：由網域指明表單。
 
 ## 您的事件表單去了哪裡
 

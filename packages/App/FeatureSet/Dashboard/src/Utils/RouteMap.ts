@@ -746,6 +746,7 @@ export const FormsRoutePath: Dictionary<string> = {
   [PageMap.FORM_VIEW_TEMPLATES]: `${RouteParams.ModelID}/templates`,
   [PageMap.FORM_VIEW_ON_SUBMIT]: `${RouteParams.ModelID}/on-submit`,
   [PageMap.FORM_VIEW_SHARE]: `${RouteParams.ModelID}/share`,
+  [PageMap.FORM_VIEW_CUSTOM_DOMAINS]: `${RouteParams.ModelID}/custom-domains`,
   [PageMap.FORM_VIEW_SUBMISSIONS]: `${RouteParams.ModelID}/submissions`,
   [PageMap.FORM_VIEW_DUPLICATE]: `${RouteParams.ModelID}/duplicate`,
   [PageMap.FORM_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -8236,6 +8237,11 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.FORM_VIEW_SHARE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/forms/${
       FormsRoutePath[PageMap.FORM_VIEW_SHARE]
+    }`,
+  ),
+  [PageMap.FORM_VIEW_CUSTOM_DOMAINS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/forms/${
+      FormsRoutePath[PageMap.FORM_VIEW_CUSTOM_DOMAINS]
     }`,
   ),
   [PageMap.FORM_VIEW_SUBMISSIONS]: new Route(

@@ -1,10 +1,11 @@
 # Partilha e segurança
 
-Um formulário está aberto a qualquer pessoa que tenha o link dele, e cada envio pode acionar a sua equipe de plantão ou colocar uma janela de manutenção no seu calendário. Esta página trata da página **Partilhar** do formulário — o link, desativar o formulário, a mensagem depois do envio e a lista de IPs permitidos — e de todas as outras verificações pelas quais uma solicitação passa no caminho.
+Um formulário está aberto a qualquer pessoa que tenha o link dele, e cada envio pode acionar a sua equipe de plantão ou colocar uma janela de manutenção no seu calendário. Esta página trata da página **Partilhar** do formulário — o link, desativar o formulário, a mensagem depois do envio e a lista de IPs permitidos — e de todas as outras verificações pelas quais uma solicitação passa no caminho. Ela também explica como servir o formulário no seu próprio domínio.
 
 :::cards
 - [Partilhar o link](#partilhar-o-link): Copie-o, abra-o e redefina-o quando ele se espalhar demais.
 - [Um link para cada modelo](#um-link-para-cada-modelo): Um favorito por caso, um único formulário por trás de todos.
+- [Domínios personalizados](#domínios-personalizados): Sirva o formulário no seu próprio domínio, com um certificado gratuito.
 - [O que protege um formulário](#o-que-protege-um-formulário): Cada verificação pela qual uma solicitação passa, em ordem.
 - [Solução de problemas](#solução-de-problemas): O que cada mensagem na página do formulário significa, e o que fazer.
 :::
@@ -14,17 +15,17 @@ Um formulário está aberto a qualquer pessoa que tenha o link dele, e cada envi
 | Cartão | O que ele contém |
 | --- | --- |
 | **Status** | **Aceita envios** — se o link do formulário funciona. |
-| **Link de compartilhamento** | O link, com **Copiar link**, **Abrir formulário** e **Redefinir link**. |
+| **Link de compartilhamento** | Cada endereço em que o formulário responde, cada um com **Copiar link**, e **Redefinir link**. |
 | **Depois de enviar** | A **Mensagem de agradecimento** que as pessoas veem depois de enviar, abaixo do número do que o formulário criou. |
 | **Mais configurações** | A **Lista de IPs permitidos**, recolhida até você abri-la. |
 
 ## Partilhar o link
 
-O cartão **Link de compartilhamento** mostra o link do formulário, como `https://oneuptime.com/accounts/form/<share-key>`:
+O cartão **Link de compartilhamento** lista cada endereço em que o formulário responde: primeiro os seus [domínios personalizados](#domínios-personalizados), depois o seu link no OneUptime, como `https://oneuptime.com/accounts/form/<share-key>`:
 
-- **Copiar link** o copia.
-- **Abrir formulário** abre o formulário em uma nova aba, do jeito que as pessoas o veem.
-- **Redefinir link** dá ao formulário um novo link, depois que você confirma. O link antigo para de funcionar na hora e mostra a mensagem de indisponível, então todos com quem você o partilhou precisam do novo. Use-o quando um link se espalhou mais do que devia.
+- Cada endereço abre o formulário numa nova aba, do jeito que as pessoas o veem, e **Copiar link** ao lado o copia.
+- Um domínio personalizado que ainda não funciona é marcado como **Ainda não ativo**, com o motivo. Sem domínio personalizado, uma linha abaixo do link oferece **Adicionar um domínio personalizado**.
+- **Redefinir link** dá ao formulário um novo link, depois que você confirma. O link antigo para de funcionar na hora e mostra a mensagem de indisponível, então todos com quem você o partilhou precisam do novo. Use-o quando um link se espalhou mais do que devia. Os domínios personalizados do formulário não levam chave nenhuma, e continuam funcionando.
 
 Qualquer pessoa com o link pode abrir o formulário e enviá-lo, sem uma conta do OneUptime e sem fazer login. Estar com a sessão iniciada não muda nada: o OneUptime só sabe quem enviou pelo nome e pelo e-mail digitados no formulário. Então trate o link como um número de telefone da sua equipe de plantão. Partilhe-o onde as pessoas que devem usá-lo vão encontrá-lo — uma página da intranet, um runbook de suporte, uma mensagem fixada em um chat — e não em um site público, a menos que você queira envios de qualquer pessoa.
 
@@ -34,19 +35,71 @@ Links para os antigos formulários de incidente, `/accounts/incident-form/<share
 
 ### Um link para cada modelo
 
-Cada um dos [modelos](/docs/forms/building#modelos) do formulário tem um link próprio: o link do formulário com `?template=` e o id do modelo, como `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copiar link** na página **Modelos** do formulário o copia. Ele abre o formulário com esse modelo preenchido, então uma equipe pode salvar um favorito por caso enquanto você mantém um único formulário. Quando o remetente escolhe outro modelo, o endereço no navegador dele acompanha, então o link que ele copia é o formulário como ele o vê.
+Cada um dos [modelos](/docs/forms/building#modelos) do formulário tem um link próprio: o link do formulário com `?template=` e o id do modelo, como `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copiar link** na página **Modelos** do formulário o copia. Ele abre o formulário com esse modelo preenchido, então uma equipe pode salvar um favorito por caso enquanto você mantém um único formulário. Quando o remetente escolhe outro modelo, o endereço no navegador dele acompanha, então o link que ele copia é o formulário como ele o vê. Num [domínio personalizado](#domínios-personalizados), o link de um modelo é o domínio com o mesmo `?template=`, como `https://report.acme.com/?template=<template-id>`, e **Redefinir link** o deixa funcionando.
 
 O link de um modelo é o link do formulário: funciona enquanto o formulário estiver em **Aceita envios**, e **Redefinir link** o retira junto com o resto. Um link que indica um modelo que você excluiu abre o formulário como se não indicasse nenhum — com o modelo padrão, se houver um.
 
 ### Desativar um formulário
 
-Para parar de aceitar envios sem excluir o formulário, desative **Aceita envios**. O link passa a mostrar "Este formulário não está disponível. Ele pode ter sido desativado ou o link pode estar desatualizado.", e o cartão **Link de compartilhamento** lembra você de que o formulário está desativado. Ative-o de novo e o mesmo link volta a funcionar.
+Para parar de aceitar envios sem excluir o formulário, desative **Aceita envios**. O link passa a mostrar "Este formulário não está disponível. Ele pode ter sido desativado ou o link pode estar desatualizado.", e o cartão **Link de compartilhamento** lembra você de que o formulário está desativado. Ative-o de novo e o mesmo link volta a funcionar. Os domínios personalizados do formulário mostram a mesma mensagem enquanto ele está desativado.
 
 ### A mensagem de agradecimento
 
 Depois de um envio, a página diz "Obrigado — sua resposta foi enviada." e dá o número do que foi criado, e depois a sua **Mensagem de agradecimento**, em Markdown. Use-a para dizer o que acontece a seguir, e a quem recorrer quando algo for urgente. Sem ela, a página mostra só a mensagem padrão.
 
 Uma imagem na descrição ou na mensagem de agradecimento do formulário é mostrada a todos que abrem o link enquanto o formulário estiver em **Aceita envios**. Desative o formulário, ou tire a imagem, e a imagem volta a ser privada, a menos que outra coisa que todos veem ainda a contenha.
+
+## Domínios personalizados
+
+Por padrão, um formulário é servido no seu link, no endereço do próprio OneUptime. Para servi-lo num domínio seu, como `report.acme.com`, abra a página **Domínios personalizados** do formulário, logo depois de **Partilhar** no seu menu lateral. Ela funciona como os [domínios personalizados de uma página de status](/docs/status-pages/branding-and-domains#domínios-personalizados).
+
+Colocar o formulário no seu próprio domínio leva três etapas, e só as duas primeiras são com você:
+
+1. **Adicionar o domínio**: um subdomínio e um dos seus domínios verificados.
+2. **Adicionar o registro CNAME dele** no seu provedor de DNS. A caixa de diálogo **Configuração de DNS** abre com o registro assim que você adiciona o domínio.
+3. **O certificado SSL gratuito é emitido automaticamente** assim que o registro é encontrado. Não há botão para apertar.
+
+Quando o domínio está no ar, o cartão **Link de compartilhamento** o lista acima do link do formulário. Os dois abrem o mesmo formulário.
+
+### Adicionar um domínio
+
+Clique em **Criar: Domínio do formulário**. A caixa de diálogo é uma página só:
+
+- **Subdomínio**: só o rótulo, com o texto de exemplo `report (leave blank for root)`. Digite apenas `report`, não o nome de host completo. Deixe em branco ou digite `@` para usar o domínio raiz.
+- **Domínio**: um dos domínios verificados em **Configurações do projeto** > **Avançado** > **Domínios**, onde você prova com um registro TXT que um domínio é seu. O link **Adicionar um domínio** ao lado do campo abre essa página numa nova aba.
+- **Mais campos**: recolhido. Abra-o só para usar um certificado seu: ative **Carregar Certificado Personalizado** e cole o **Certificado** e a sua **Chave privada do certificado**.
+
+Clique de novo em **Criar: Domínio do formulário** para adicioná-lo. A caixa de diálogo fecha e a **Configuração de DNS** do novo domínio abre. O nome de um domínio e o seu formulário ficam fixos assim que ele é adicionado, então **Editar** muda apenas o seu certificado: para mudar qualquer um dos dois, adicione o novo domínio e exclua o antigo.
+
+Um domínio mostra uma única página de status, um único painel ou um único formulário, então um nome que qualquer um deles já tenha, em qualquer projeto, é recusado: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
+
+### Configuração de DNS e Verificar agora
+
+A caixa de diálogo **Configuração de DNS** mostra o registro a adicionar no seu provedor de DNS, cada campo com um botão de copiar: **Tipo** `CNAME`, **Nome** o domínio completo que você adicionou, e **Valor** o registro CNAME da sua instalação. Para um domínio raiz, muitos provedores de DNS não permitem um registro CNAME: use no lugar o registro ALIAS, ANAME ou CNAME achatado do seu provedor, com o mesmo valor.
+
+O OneUptime verifica cada domínio não verificado a cada 15 minutos, e quando encontra o registro pede o certificado gratuito da Let's Encrypt do domínio na mesma verificação. Para verificar na hora, clique em **Verificar agora**. Enquanto um domínio não está no ar, a sua linha tem uma ação **Configuração de DNS** que abre a mesma caixa de diálogo, onde **Verificar agora** também pede de novo um certificado que falhou ou expirou, no máximo uma vez por domínio a cada 15 minutos. A renovação é automática, bem antes de o certificado expirar.
+
+A coluna **Status** diz em que ponto cada domínio está no caminho até o HTTPS, nos mesmos oito estados dos domínios de uma página de status: veja [Ler a coluna Status do domínio](/docs/status-pages/branding-and-domains#ler-a-coluna-status-do-domínio). Quando um pedido falhou, o motivo está na linha de baixo: em geral um registro CAA do seu domínio que não permite `letsencrypt.org` ou, numa instalação auto-hospedada, um servidor que a Let's Encrypt não consegue alcançar na porta 80.
+
+Depois que um certificado gratuito foi pedido para um domínio, a sua linha mostra **Reissue SSL**, que pede à Let's Encrypt um certificado totalmente novo antes da renovação automática, uma vez a cada 24 horas por domínio. O formulário continua no ar com o certificado atual nesse meio-tempo. Um certificado que você carregou é você quem renova: edite o domínio e cole o novo.
+
+### O que o domínio mostra
+
+Um domínio mostra o seu formulário na raiz, como `https://report.acme.com`, e nada mais do OneUptime: nenhuma página de login e nenhum outro formulário. Qualquer outro endereço no domínio abre o formulário na raiz, mantendo a sua query, então o link de um modelo também funciona ali. A página é do formulário: o logotipo dele ou nenhum, nunca o do OneUptime, o nome dele como título da aba, no tema claro e sem as análises do OneUptime. O captcha, os arquivos e a mensagem de agradecimento funcionam ali como no link, e cada verificação de [O que protege um formulário](#o-que-protege-um-formulário) vale, com o domínio como página própria do formulário.
+
+- **Redefinir link** muda apenas o link do formulário no OneUptime: os seus domínios não levam chave nenhuma, então continuam funcionando.
+- Desativar **Aceita envios** fecha o formulário também nos seus domínios, com a mensagem de indisponível.
+- Excluir o formulário exclui os seus domínios, e **Duplicar formulário** não copia nenhum deles. Um domínio excluído deixa de mostrar o formulário na hora.
+
+### Numa instalação auto-hospedada
+
+Os formulários usam o registro CNAME das páginas de status: `STATUS_PAGE_CNAME_RECORD` em `config.env`, ou `statusPage.cnameRecord` no chart do Helm. Para dar aos domínios de formulários um destino próprio, defina `FORM_CNAME_RECORD`: em `config.env` para o Docker Compose, ou com o `extraEnv` do chart inteiro no Helm. Sem nenhum dos dois, a página **Domínios personalizados** diz que os domínios personalizados não estão ativados em vez de mostrar um registro, e o OneUptime não verifica domínios de formulários nem pede certificados para eles.
+
+O servidor precisa responder na porta 80, onde a Let's Encrypt verifica cada domínio. Uma instalação sem chave de conta da Let's Encrypt, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` no chart do Helm), não pede certificados: o domínio de um formulário fica no ar assim que o seu registro é verificado, servido com o HTTPS do seu próprio proxy ou com um certificado que você carregar. Com o captcha ativado, uma chave de site que lista os nomes de host em que funciona precisa listar também os domínios do formulário.
+
+### Quem pode gerenciar os domínios
+
+Os proprietários e administradores do projeto, e qualquer pessoa com **Edit Form**, podem adicionar os domínios de um formulário, verificá-los, reemitir os seus certificados e excluí-los. As permissões só para os domínios de um formulário também podem, como **Edit Form Domain**: a [Visão geral dos formulários](/docs/forms/index#permissões) as lista. Quem pode ler um formulário vê os seus domínios, o **Status** deles e o registro em **Configuração de DNS**; para essas pessoas, **Verificar agora** e **Reissue SSL** ficam bloqueados e dizem qual permissão é preciso ter. Uma chave de API funciona do mesmo jeito em `/form-domain`: `verify-cname`, `order-ssl` e `reissue-ssl` precisam de **Edit Form Domain** ou **Edit Form**.
 
 ## O que protege um formulário
 
@@ -145,6 +198,10 @@ Quando a sua instância do OneUptime tem o hCaptcha ativado, o formulário mostr
 - O formulário foi excluído.
 - No OneUptime Cloud, o projeto está abaixo do plano **Growth**, ou a assinatura dele não foi paga.
 - O link foi cortado quando foi copiado.
+:::
+
+:::details O domínio do formulário não mostra o formulário
+Abra a página **Domínios personalizados** do formulário e leia a coluna **Status** do domínio: até que o seu registro seja verificado e o seu certificado esteja pronto, um navegador mostra um aviso de certificado, ou nada. Um domínio que não está mais na página, porque foi excluído ele ou o seu formulário, mostra uma página de não encontrado, e um cujo domínio principal não está mais verificado mostra a mensagem de indisponível. Numa instalação auto-hospedada, verifique se o registro aponta para o seu servidor OneUptime e se o servidor responde nas portas 80 e 443.
 :::
 
 :::details O formulário só pode ser aberto a partir de uma rede permitida

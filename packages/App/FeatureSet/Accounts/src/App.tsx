@@ -17,6 +17,7 @@ import {
 } from "react-router-dom";
 import Navigation from "Common/UI/Utils/Navigation";
 import AccountsTheme from "./Utils/AccountsTheme";
+import { isFormDomainPage } from "./Utils/FormDomainPage";
 import { MASTER_ADMIN_SIGN_IN_PATH } from "Common/Types/SSO/SignInMethods";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Footer from "./Components/Footer/Footer";
@@ -65,7 +66,10 @@ const ResetPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
 const VerifyEmail: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/VerifyEmail");
 });
-const FormPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+// On a form's own domain, the page is drawn with isOnCustomDomain.
+const FormPage: React.LazyExoticComponent<
+  ComponentType<{ isOnCustomDomain?: boolean | undefined }>
+> = lazy(() => {
   return import("./Pages/Form");
 });
 const McpAuthorizePage: React.LazyExoticComponent<() => JSX.Element> = lazy(
@@ -110,6 +114,25 @@ function App(): ReactElement {
   useEffect(() => {
     AccountsTheme.followPage();
   }, [location.pathname]);
+
+  /*
+   * A form on its owner's own domain (Utils/FormDomainPage): the form, and
+   * nothing else, whatever the address - the server sends every other
+   * address there to the root anyway. No sign-in page, no other route, and
+   * none of OneUptime's links in the footer: the page is its owner's.
+   */
+  if (isFormDomainPage()) {
+    return (
+      <div className="m-auto flex min-h-screen flex-col">
+        <Suspense fallback={<PageLoader isVisible={true} />}>
+          <div className="flex flex-grow flex-col justify-center">
+            <FormPage isOnCustomDomain={true} />
+          </div>
+          <Footer isOnFormDomain={true} />
+        </Suspense>
+      </div>
+    );
+  }
 
   return (
     <div className="m-auto flex min-h-screen flex-col">

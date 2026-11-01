@@ -27,6 +27,7 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
 import StatusPageDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Domains";
 import DashboardCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/CustomDomains";
+import FormCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/CustomDomains";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   CUSTOM_DOMAIN_STATUS,
@@ -35,6 +36,7 @@ import {
   CustomDomainState,
   DASHBOARD_CUSTOM_DOMAIN_COPY,
   DNS_SETUP_TEST_IDS,
+  FORM_CUSTOM_DOMAIN_COPY,
   STATUS_PAGE_CUSTOM_DOMAIN_COPY,
   STATUS_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
@@ -46,6 +48,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
+import FormDomain from "../../../Models/DatabaseModels/FormDomain";
 import Domain from "../../../Models/DatabaseModels/Domain";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
@@ -72,7 +75,8 @@ import Permission from "../../../Types/Permission";
  * SSL" while the Status column said "Action Required: Please order SSL
  * certificate." for an order the worker placed on its own anyway. The
  * dashboard page kept all of that after the status page lost it. Both pages
- * are one table now, and every test here runs on both:
+ * are one table now - and a form's (Forms > <form> > Custom Domains) is the
+ * same table - and every test here runs on all three:
  *
  *   - adding a domain is one page: Subdomain and Domain - verified domains
  *     only, with a link to add one - and the certificate options folded
@@ -120,6 +124,7 @@ jest.mock("../../../UI/Config", () => {
 
   Object.defineProperty(mocked, "StatusPageCNameRecord", cnameRecord);
   Object.defineProperty(mocked, "DashboardCNameRecord", cnameRecord);
+  Object.defineProperty(mocked, "FormCNameRecord", cnameRecord);
 
   // Whether the installation issues free certificates: yes unless a test says.
   Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
@@ -241,12 +246,18 @@ interface PageCase {
   name: string;
   Page: React.FunctionComponent<PageComponentProps>;
   modelType: { new (): CustomDomainModel };
-  parentColumn: "statusPageId" | "dashboardId";
+  parentColumn: "statusPageId" | "dashboardId" | "formId";
   cnameRecord: string;
   route: string;
   crudApiPath: string;
   copy: CustomDomainKindCopy;
   cardDescription: string;
+  /*
+   * A role that may change the kind's domains: a member, for a status page's
+   * and a dashboard's; an admin, for a form's, which a member tier never
+   * manages (Models/DatabaseModels/FormDomain).
+   */
+  editorRole: Permission;
   table: {
     id: string;
     name: string;
@@ -267,6 +278,7 @@ const PAGES: Array<PageCase> = [
     copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY,
     cardDescription:
       "Serve this status page on your own domain. Point each domain's CNAME record to statuspage.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+    editorRole: Permission.ProjectMember,
     table: {
       id: "domains-table",
       name: "Status Page > Domains",
@@ -285,11 +297,31 @@ const PAGES: Array<PageCase> = [
     copy: DASHBOARD_CUSTOM_DOMAIN_COPY,
     cardDescription:
       "Serve this dashboard on your own domain. Point each domain's CNAME record to dashboards.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+    editorRole: Permission.ProjectMember,
     table: {
       id: "dashboard-domains-table",
       name: "Dashboard > Domains",
       userPreferencesKey: "dashboard-domains-table",
       saveFilterTableId: "dashboard-domains-table",
+    },
+  },
+  {
+    name: "a form",
+    Page: FormCustomDomains,
+    modelType: FormDomain,
+    parentColumn: "formId",
+    cnameRecord: "forms.oneuptime.com",
+    route: "/dashboard/forms",
+    crudApiPath: "/form-domain",
+    copy: FORM_CUSTOM_DOMAIN_COPY,
+    cardDescription:
+      "Serve this form on your own domain, at its root. Point each domain's CNAME record to forms.oneuptime.com, and we issue its SSL certificate and renew it for you.",
+    editorRole: Permission.ProjectAdmin,
+    table: {
+      id: "form-domains-table",
+      name: "Form > Custom Domains",
+      userPreferencesKey: "form-domains-table",
+      saveFilterTableId: "form-domains-table",
     },
   },
 ];
@@ -1011,9 +1043,16 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
           new page.modelType().getUpdatePermissions(),
         )}`,
       );
-      expect(reissue.getAttribute("data-tooltip")).toContain(
-        " You need this permission: ",
-      );
+      /*
+       * One permission of its own for a status page's and a dashboard's
+       * domains; a form's take Edit Form too.
+       */
+      const tooltip: string = reissue.getAttribute("data-tooltip") || "";
+
+      expect(
+        tooltip.includes(" You need this permission: ") ||
+          tooltip.includes(" You need one of these permissions: "),
+      ).toBe(true);
       expect(reissue.getAttribute("data-tooltip")).not.toContain(
         "Project Owner",
       );
@@ -1063,7 +1102,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
     });
 
     test.each([
-      ["an editor role", [Permission.ProjectMember]],
+      ["an editor role", [page.editorRole]],
       ["read and edit on the domain", "own"],
     ])(
       "%s gets Reissue SSL and Check now unlocked",

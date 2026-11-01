@@ -360,12 +360,18 @@ describe("the glossary's words", () => {
     ).toBe("Scheduled Maintenance");
   });
 
+  /*
+   * The card lists the form's addresses with the shared list
+   * (PublicAddresses), which has its own Copy link and opens each address
+   * itself: of its own words, the card keeps Reset Link. Copy Link stays,
+   * on the Templates page's links.
+   */
   test("the Share Link card", () => {
-    expect([
-      FormsCopy.copyLink,
-      FormsCopy.openForm,
-      FormsCopy.resetLink,
-    ]).toEqual(["Copy Link", "Open Form", "Reset Link"]);
+    expect([FormsCopy.copyLink, FormsCopy.resetLink]).toEqual([
+      "Copy Link",
+      "Reset Link",
+    ]);
+    expect(Object.keys(FormsCopy)).not.toContain("openForm");
     expect(FormsCopy.formTurnedOff).toBe(
       "This form is turned off, so its link shows a 'not available' message.",
     );
@@ -786,11 +792,21 @@ describe("the dashboard renders the strings", () => {
       "Components/FormBuilder/FormShareLinkCard.tsx",
     );
 
-    // CopyTextButton looks its label and title up itself.
-    expect(card).toContain("label={FormsCopy.copyLink}");
-    expect(card).toContain("title={FormsCopy.copyLink}");
-    expect(card).not.toContain("translateString(FormsCopy.copyLink)");
-    expect(card).toContain("translateString(FormsCopy.openForm)");
+    /*
+     * The addresses are the shared list's (PublicAddresses), which looks up
+     * its own words: the card hands it the form's kind of domain and draws
+     * no text of its own beside them.
+     */
+    expect(card).toContain("<PublicAddresses kind={FORM_CUSTOM_DOMAINS}");
+    expect(card).not.toContain("translateString(");
+
+    // The Templates page's links still copy with CopyTextButton's own lookup.
+    const templates: string = readCode(
+      "Components/FormBuilder/Templates/FormTemplates.tsx",
+    );
+
+    expect(templates).toContain("label={FormsCopy.copyLink}");
+    expect(templates).not.toContain("translateString(FormsCopy.copyLink)");
 
     /*
      * What goes with a form is said by ModelDelete itself, from the shared

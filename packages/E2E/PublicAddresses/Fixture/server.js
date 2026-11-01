@@ -1,7 +1,8 @@
 /*
- * Offline fixture server for the addresses a status page or a public
- * dashboard answers at: a status page's Overview (its Status Page Link card)
- * and a dashboard's Sharing page, bundled with the app's esbuild config and
+ * Offline fixture server for the addresses a status page, a public
+ * dashboard or a form answers at: a status page's Overview (its Status Page
+ * Link card), a dashboard's Sharing page and a form's Share page (its Share
+ * Link card), bundled with the app's esbuild config and
  * drawn with the Dashboard's Tailwind, theme and font. No app/API server
  * needed.
  */

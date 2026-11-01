@@ -59,10 +59,11 @@ import React, {
 } from "react";
 
 /*
- * Every address a status page or a public dashboard answers at: its custom
- * domains first, then its address on OneUptime's own domain. Drawn the same
- * on a status page's Overview (the Status Page Link card) and under a
- * dashboard's public choice on its Sharing page. The rules - what is live,
+ * Every address a status page, a public dashboard or a form answers at: its
+ * custom domains first, then its address on OneUptime's own domain. Drawn
+ * the same on a status page's Overview (the Status Page Link card), under a
+ * dashboard's public choice on its Sharing page, and on a form's Share page
+ * (the Share Link card). The rules - what is live,
  * the order, what a domain that is not live yet says - are in
  * PublicAddressCopy.
  *
@@ -81,9 +82,9 @@ import React, {
  */
 
 export interface ComponentProps {
-  // Whose custom domains: a status page's or a dashboard's.
+  // Whose custom domains: a status page's, a dashboard's or a form's.
   kind: CustomDomainKind;
-  // The status page or dashboard.
+  // The status page, dashboard or form.
   parentId: ObjectID;
   // Its address on OneUptime's own domain, which always works.
   oneUptimeUrl: URL;

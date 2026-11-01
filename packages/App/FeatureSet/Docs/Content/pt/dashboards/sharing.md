@@ -146,7 +146,7 @@ Quem só pode ler o domínio, como um Viewer ou um Settings Viewer, ainda vê a 
 
 O mesmo vale para as chaves de API. Uma chave que só pode ler domínios de painéis não pode chamar `verify-cname`, `order-ssl` ou `reissue-ssl` em `/dashboard-domain`. Dê a ela **Read Dashboard Domain** e **Edit Dashboard Domain** se ela precisar.
 
-Um domínio pertence a um único painel do projeto por vez. Você pode associar mais de um domínio personalizado a um único painel se servir o mesmo conteúdo a vários públicos: um painel para clientes com a sua marca, um painel de parceiro com as duas marcas, ou uma página pública de saúde com a própria URL.
+Um domínio pertence a um único painel do projeto por vez. Você pode associar mais de um domínio personalizado a um único painel se servir o mesmo conteúdo a vários públicos: um painel para clientes com a sua marca, um painel de parceiro com as duas marcas, ou uma página pública de saúde com a própria URL. Um nome que uma página de status ou um formulário já usa, em qualquer projeto, é recusado: um domínio mostra uma única página de status, um único painel ou um único formulário.
 
 ## Marca
 

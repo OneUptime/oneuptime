@@ -94,6 +94,7 @@ flowchart TB
 | **템플릿** | 양식을 시작할 때 고를 수 있는 이름 있는 답변 묶음, 각 템플릿이 질문하는 방식, 양식이 처음 열 때 쓰는 템플릿, 템플릿마다의 링크. |
 | **제출 시** | 각 제출이 만드는 항목과 그 모든 필드가 채워지는 방식. **설정 편집** 으로 기본값과 항상 적용되는 내용을 바꿉니다. |
 | **공유** | **제출 받기**, **공유 링크**, 제출 후 표시되는 메시지, **추가 설정**의 **IP 허용 목록**. |
+| **사용자 정의 도메인** | `report.acme.com` 같은 양식 자체 도메인과 그 DNS 레코드, 인증서. [사용자 정의 도메인](/docs/forms/sharing-and-security#사용자-정의-도메인) 을 참고하세요. |
 | **제출 내역** | 양식으로 이루어진 모든 제출. 최신순이며 답변과 만들어진 항목이 함께 표시됩니다. |
 | **양식 복제** | **고급** 아래: 이름이 자동으로 붙는 양식의 사본으로, 질문, 템플릿, 제출 시 설정, 브랜딩, 감사 메시지, IP 허용 목록, 그리고 자체 링크를 가집니다. 사본은 꺼진 상태로 시작하며 빌더에서 열립니다. |
 | **양식 삭제** | **고급** 아래에 있는 양식 삭제. 제출 내역도 함께 삭제되지만, 양식이 만든 인시던트와 이벤트는 삭제되지 않습니다. |
@@ -135,6 +136,10 @@ flowchart TB
 | **Read Form** | 양식과 그 질문, 설정, 링크 보기. | 위의 역할과 Project Member, Viewer, 인시던트 및 예정된 유지 관리 역할 |
 | **Read Form Submission** | 제출과 그 답변 보기. | Project Owner, Project Admin |
 | **Delete Form Submission** | 제출 삭제. | Project Owner, Project Admin |
+| **Create Form Domain** | 양식에 [사용자 정의 도메인](/docs/forms/sharing-and-security#사용자-정의-도메인) 추가. | Project Owner, Project Admin, **Edit Form** |
+| **Edit Form Domain** | 양식의 사용자 정의 도메인 확인, 그리고 인증서 주문, 재발급 또는 변경. | Project Owner, Project Admin, **Edit Form** |
+| **Delete Form Domain** | 양식의 사용자 정의 도메인 제거. | Project Owner, Project Admin, **Edit Form** |
+| **Read Form Domain** | 양식의 사용자 정의 도메인, 그 DNS 레코드, 각 도메인이 HTTPS까지 어느 단계에 있는지 보기. | **Read Form** 이 있는 모든 사람 |
 
 제출에는 모르는 사람이 입력한 내용 (이름, 이메일 주소, 레코드에 들어가지 않을 수도 있는 답변) 이 담겨 있으므로, **Read Form Submission** 을 부여하지 않으면 프로젝트 소유자와 관리자만 볼 수 있습니다. 양식을 볼 수 있는 사람은 누구나 그 링크를 보고 공유할 수 있습니다. 양식을 제출하는 데에는 아무 권한도 필요 없습니다. 역할과 세분화된 권한이 어떻게 결합되는지는 [사용자, 팀 및 권한](/docs/permissions/index) 을 참조하세요.
 
@@ -144,7 +149,7 @@ OneUptime Cloud에서 양식을 쓰려면 **Growth** 이상의 요금제가 필�
 
 ## API로 양식 사용하기
 
-양식은 `/api/form` 에 있는 일반적인 API 리소스이며, 제출은 `/api/form-submission` 에 있습니다. 제출은 읽고 삭제할 수는 있지만 만들거나 편집할 수는 없습니다. 요청과 응답의 전체 형식은 [API 레퍼런스](/reference) 에 있습니다.
+양식은 `/api/form` 에 있는 일반적인 API 리소스이며, 제출은 `/api/form-submission` 에 있습니다. 제출은 읽고 삭제할 수는 있지만 만들거나 편집할 수는 없습니다. 요청과 응답의 전체 형식은 [API 레퍼런스](/reference) 에 있습니다. 양식의 사용자 정의 도메인은 `/api/form-domain` 에 있습니다.
 
 ### 질문과 설정
 
@@ -255,7 +260,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
 
 ### 공개 페이지 전용 엔드포인트
 
-공개 페이지는 API 키가 필요 없는 두 경로와 통신합니다. `GET /api/form/public/<shareKey>` 는 양식의 이름, 설명, 질문을 반환하며, 있으면 로고, 로고의 대체 텍스트, 파비콘 (이미지는 base64) 과, 페이지가 묻는 질문에 대한 답변이 담긴 템플릿도 반환합니다. `POST /api/form/public/<shareKey>/submit` 은 양식을 제출하며, 제출자가 시작한 템플릿을 `templateId` 로 지정합니다. 이것들은 페이지 전용 엔드포인트이지, 무언가를 만들 기반이 되는 API가 아닙니다. 모든 호출은 양식의 보호 장치를 거치며 ([공유 및 보안](/docs/forms/sharing-and-security) 참조), 페이지와 함께 바뀝니다. 자신의 코드에서 인시던트를 만들려면 API 키로 `POST /api/incident` 를 사용하세요. [인시던트 선언](/docs/incidents/declaring-incidents) 을 참조하세요.
+공개 페이지는 API 키가 필요 없는 두 경로와 통신합니다. `GET /api/form/public/<shareKey>` 는 양식의 이름, 설명, 질문을 반환하며, 있으면 로고, 로고의 대체 텍스트, 파비콘 (이미지는 base64) 과, 페이지가 묻는 질문에 대한 답변이 담긴 템플릿도 반환합니다. `POST /api/form/public/<shareKey>/submit` 은 양식을 제출하며, 제출자가 시작한 템플릿을 `templateId` 로 지정합니다. 이것들은 페이지 전용 엔드포인트이지, 무언가를 만들 기반이 되는 API가 아닙니다. 모든 호출은 양식의 보호 장치를 거치며 ([공유 및 보안](/docs/forms/sharing-and-security) 참조), 페이지와 함께 바뀝니다. 자신의 코드에서 인시던트를 만들려면 API 키로 `POST /api/incident` 를 사용하세요. [인시던트 선언](/docs/incidents/declaring-incidents) 을 참조하세요. 양식의 [사용자 정의 도메인](/docs/forms/sharing-and-security#사용자-정의-도메인) 에서는 페이지가 대신 그 도메인의 `GET /api/form/custom-domain` 과 `POST /api/form/custom-domain/submit` 을 사용하며, 여기에는 키가 없고 도메인이 양식을 가리킵니다.
 
 ## 인시던트 양식이 옮겨 간 곳
 

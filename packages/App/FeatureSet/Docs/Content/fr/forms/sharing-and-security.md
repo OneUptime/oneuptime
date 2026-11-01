@@ -1,10 +1,11 @@
 # Partage et sécurité
 
-Un formulaire est ouvert à toute personne qui a son lien, et chaque soumission peut alerter votre équipe d'astreinte ou mettre une fenêtre de maintenance dans votre calendrier. Cette page couvre la page **Partager** du formulaire — le lien, la désactivation du formulaire, le message après la soumission et la liste d'adresses IP autorisées — et chaque autre vérification qu'une requête passe en chemin.
+Un formulaire est ouvert à toute personne qui a son lien, et chaque soumission peut alerter votre équipe d'astreinte ou mettre une fenêtre de maintenance dans votre calendrier. Cette page couvre la page **Partager** du formulaire — le lien, la désactivation du formulaire, le message après la soumission et la liste d'adresses IP autorisées — et chaque autre vérification qu'une requête passe en chemin. Elle explique aussi comment servir le formulaire sur votre propre domaine.
 
 :::cards
 - [Partager le lien](#partager-le-lien): Le copier, l'ouvrir et le réinitialiser quand il circule trop.
 - [Un lien pour chaque modèle](#un-lien-pour-chaque-modèle): Un favori par cas, un seul formulaire derrière.
+- [Domaines personnalisés](#domaines-personnalisés): Servir le formulaire sur votre propre domaine, avec un certificat gratuit.
 - [Ce qui protège un formulaire](#ce-qui-protège-un-formulaire): Chaque vérification qu'une requête passe, dans l'ordre.
 - [Dépannage](#dépannage): Ce que veut dire chaque message de la page du formulaire, et quoi faire.
 :::
@@ -14,17 +15,17 @@ Un formulaire est ouvert à toute personne qui a son lien, et chaque soumission 
 | Carte | Ce qu'elle contient |
 | --- | --- |
 | **Statut** | **Accepte les soumissions** — si le lien du formulaire fonctionne. |
-| **Lien de partage** | Le lien, avec **Copier le lien**, **Ouvrir le formulaire** et **Réinitialiser le lien**. |
+| **Lien de partage** | Chaque adresse à laquelle le formulaire répond, chacune avec **Copier le lien**, et **Réinitialiser le lien**. |
 | **Après la soumission** | Le **Message de remerciement** que les gens voient une fois qu'ils ont soumis, sous le numéro de ce que le formulaire a créé. |
 | **Plus de paramètres** | La **Liste d'autorisation IP**, repliée jusqu'à ce que vous l'ouvriez. |
 
 ## Partager le lien
 
-La carte **Lien de partage** montre le lien du formulaire, comme `https://oneuptime.com/accounts/form/<share-key>` :
+La carte **Lien de partage** liste chaque adresse à laquelle le formulaire répond : d'abord ses [domaines personnalisés](#domaines-personnalisés), puis son lien sur OneUptime, comme `https://oneuptime.com/accounts/form/<share-key>` :
 
-- **Copier le lien** le copie.
-- **Ouvrir le formulaire** ouvre le formulaire dans un nouvel onglet, comme les gens le voient.
-- **Réinitialiser le lien** donne au formulaire un nouveau lien, après confirmation. L'ancien lien cesse aussitôt de fonctionner et affiche le message d'indisponibilité, donc toutes les personnes avec qui vous l'avez partagé ont besoin du nouveau. Utilisez-le quand un lien a circulé plus loin qu'il ne devrait.
+- Chaque adresse ouvre le formulaire dans un nouvel onglet, tel que les gens le voient, et **Copier le lien** à côté la copie.
+- Un domaine personnalisé qui ne fonctionne pas encore est marqué **Pas encore en ligne**, avec la raison. Sans domaine personnalisé, une ligne sous le lien propose **Ajouter un domaine personnalisé**.
+- **Réinitialiser le lien** donne au formulaire un nouveau lien, après confirmation. L'ancien lien cesse aussitôt de fonctionner et affiche le message d'indisponibilité, donc toutes les personnes avec qui vous l'avez partagé ont besoin du nouveau. Utilisez-le quand un lien a circulé plus loin qu'il ne devrait. Les domaines personnalisés du formulaire ne portent aucune clé, et continuent de fonctionner.
 
 Toute personne qui a le lien peut ouvrir le formulaire et le soumettre, sans compte OneUptime et sans se connecter. Être connecté ne change rien : OneUptime ne sait qui a soumis que par le nom et l'e-mail saisis dans le formulaire. Traitez donc le lien comme un numéro de téléphone de votre équipe d'astreinte. Partagez-le là où les personnes qui doivent l'utiliser le trouveront — une page d'intranet, un runbook de support, un message épinglé dans une discussion — et pas sur un site web public, sauf si vous voulez des soumissions de n'importe qui.
 
@@ -34,19 +35,71 @@ Les liens vers les anciens formulaires d'incident, `/accounts/incident-form/<sha
 
 ### Un lien pour chaque modèle
 
-Chacun des [modèles](/docs/forms/building#modèles) du formulaire a son propre lien : le lien du formulaire avec `?template=` et l'ID du modèle, comme `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copier le lien** sur la page **Modèles** du formulaire le copie. Il ouvre le formulaire rempli avec ce modèle, si bien qu'une équipe peut garder en favori un lien par cas pendant que vous gardez un seul formulaire. Quand la personne qui soumet choisit un autre modèle, l'adresse dans son navigateur suit, donc le lien qu'elle copie est le formulaire tel qu'elle le voit.
+Chacun des [modèles](/docs/forms/building#modèles) du formulaire a son propre lien : le lien du formulaire avec `?template=` et l'ID du modèle, comme `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copier le lien** sur la page **Modèles** du formulaire le copie. Il ouvre le formulaire rempli avec ce modèle, si bien qu'une équipe peut garder en favori un lien par cas pendant que vous gardez un seul formulaire. Quand la personne qui soumet choisit un autre modèle, l'adresse dans son navigateur suit, donc le lien qu'elle copie est le formulaire tel qu'elle le voit. Sur un [domaine personnalisé](#domaines-personnalisés), le lien d'un modèle est le domaine avec le même `?template=`, comme `https://report.acme.com/?template=<template-id>`, et **Réinitialiser le lien** le laisse fonctionner.
 
 Le lien d'un modèle est le lien du formulaire : il fonctionne tant que le formulaire est en **Accepte les soumissions**, et **Réinitialiser le lien** le retire avec les autres. Un lien qui nomme un modèle supprimé ouvre le formulaire comme s'il n'en nommait aucun — avec le modèle par défaut, s'il y en a un.
 
 ### Désactiver un formulaire
 
-Pour ne plus accepter de soumissions sans supprimer le formulaire, désactivez **Accepte les soumissions**. Le lien affiche alors "Ce formulaire n'est pas disponible. Il a peut-être été désactivé, ou le lien n'est plus à jour.", et la carte **Lien de partage** vous rappelle que le formulaire est désactivé. Réactivez-le et le même lien fonctionne à nouveau.
+Pour ne plus accepter de soumissions sans supprimer le formulaire, désactivez **Accepte les soumissions**. Le lien affiche alors "Ce formulaire n'est pas disponible. Il a peut-être été désactivé, ou le lien n'est plus à jour.", et la carte **Lien de partage** vous rappelle que le formulaire est désactivé. Réactivez-le et le même lien fonctionne à nouveau. Les domaines personnalisés du formulaire affichent le même message tant qu'il est désactivé.
 
 ### Le message de remerciement
 
 Après une soumission, la page dit "Merci — votre réponse a été envoyée." et donne le numéro de ce qui a été créé, puis votre **Message de remerciement**, en Markdown. Utilisez-le pour dire ce qui se passe ensuite, et où aller quand quelque chose est urgent. Sans lui, la page n'affiche que le message standard.
 
 Une image dans la description ou le message de remerciement du formulaire est montrée à toute personne qui ouvre le lien tant que le formulaire est en **Accepte les soumissions**. Désactivez le formulaire, ou retirez l'image, et l'image redevient privée, sauf si un autre élément visible de tous la contient encore.
+
+## Domaines personnalisés
+
+Par défaut, un formulaire est servi à son lien, sur l'adresse de OneUptime. Pour le servir sur un domaine à vous, comme `report.acme.com`, ouvrez la page **Domaines personnalisés** du formulaire, juste après **Partager** dans son menu latéral. Elle fonctionne comme les [domaines personnalisés d'une page de statut](/docs/status-pages/branding-and-domains#domaines-personnalisés).
+
+Placer le formulaire sur votre propre domaine se fait en trois étapes, et seules les deux premières vous reviennent :
+
+1. **Ajouter le domaine** : un sous-domaine et l'un de vos domaines vérifiés.
+2. **Ajouter son enregistrement CNAME** chez votre fournisseur DNS. La boîte de dialogue **Configuration DNS** s'ouvre avec l'enregistrement dès que vous ajoutez le domaine.
+3. **Le certificat SSL gratuit est émis automatiquement** une fois l'enregistrement trouvé. Il n'y a aucun bouton à presser.
+
+Une fois le domaine en service, la carte **Lien de partage** le liste au-dessus du lien du formulaire. Les deux ouvrent le même formulaire.
+
+### Ajouter un domaine
+
+Cliquez sur **Créer : Domaine de formulaire**. La boîte de dialogue tient sur une page :
+
+- **Sous-domaine** : le libellé seul, avec le texte indicatif `report (leave blank for root)`. Saisissez juste `report`, pas le nom d'hôte complet. Laissez-le vide ou saisissez `@` pour utiliser le domaine racine.
+- **Domaine** : l'un des domaines vérifiés sous **Paramètres du projet** > **Avancé** > **Domaines**, où vous prouvez qu'un domaine vous appartient avec un enregistrement TXT. Le lien **Ajouter un domaine** à côté du champ ouvre cette page dans un nouvel onglet.
+- **Plus de champs** : replié. Ne l'ouvrez que pour utiliser votre propre certificat : activez **Téléverser un certificat personnalisé**, puis collez le **Certificat** et sa **Clé privée du certificat**.
+
+Cliquez de nouveau sur **Créer : Domaine de formulaire** pour l'ajouter. La boîte de dialogue se ferme et la **Configuration DNS** du nouveau domaine s'ouvre. Le nom d'un domaine et son formulaire sont fixés dès qu'il est ajouté, donc **Modifier** ne change que son certificat : pour changer l'un ou l'autre, ajoutez le nouveau domaine et supprimez l'ancien.
+
+Un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire, donc un nom que l'un d'eux a déjà, dans n'importe quel projet, est refusé : "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
+
+### Configuration DNS et Vérifier maintenant
+
+La boîte de dialogue **Configuration DNS** montre l'enregistrement à ajouter chez votre fournisseur DNS, chaque champ avec un bouton de copie : **Type** `CNAME`, **Nom** le domaine complet que vous avez ajouté, et **Valeur** l'enregistrement CNAME de votre installation. Pour un domaine racine, beaucoup de fournisseurs DNS n'acceptent pas d'enregistrement CNAME : utilisez plutôt l'enregistrement ALIAS, ANAME ou CNAME aplati de votre fournisseur, avec la même valeur.
+
+OneUptime vérifie chaque domaine non vérifié toutes les 15 minutes, et quand il trouve l'enregistrement, il commande le certificat Let's Encrypt gratuit du domaine lors de la même vérification. Pour vérifier tout de suite, cliquez sur **Vérifier maintenant**. Tant qu'un domaine n'est pas en service, sa ligne a une action **Configuration DNS** qui ouvre la même boîte de dialogue, où **Vérifier maintenant** commande aussi de nouveau un certificat qui a échoué ou expiré, au plus une fois par domaine toutes les 15 minutes. Le renouvellement est automatique, bien avant l'expiration du certificat.
+
+La colonne **Statut** indique où en est chaque domaine sur son chemin vers HTTPS, avec les huit mêmes états que les domaines d'une page de statut : voir [Lire la colonne Statut du domaine](/docs/status-pages/branding-and-domains#lire-la-colonne-statut-du-domaine). Quand une commande a échoué, la raison est sur la ligne du dessous : le plus souvent un enregistrement CAA de votre domaine qui n'autorise pas `letsencrypt.org` ou, sur une installation auto-hébergée, un serveur que Let's Encrypt ne peut pas joindre sur le port 80.
+
+Une fois qu'un certificat gratuit a été commandé pour un domaine, sa ligne affiche **Reissue SSL**, qui demande à Let's Encrypt un tout nouveau certificat avant le renouvellement automatique, une fois toutes les 24 heures par domaine. Le formulaire reste en ligne avec le certificat actuel pendant ce temps. Un certificat que vous avez téléversé est à renouveler par vous : modifiez le domaine et collez le nouveau.
+
+### Ce que montre le domaine
+
+Un domaine montre son formulaire à sa racine, comme `https://report.acme.com`, et rien d'autre de OneUptime : aucune page de connexion, et aucun autre formulaire. Toute autre adresse du domaine ouvre le formulaire à sa racine, en gardant sa requête, si bien que le lien d'un modèle y fonctionne aussi. La page est celle du formulaire : son logo ou aucun, jamais celui de OneUptime, son nom comme titre de l'onglet, dans le thème clair, et sans les analyses de OneUptime. Le captcha, les fichiers et le message de remerciement y fonctionnent comme sur le lien, et chaque vérification de [Ce qui protège un formulaire](#ce-qui-protège-un-formulaire) s'applique, avec le domaine comme page propre du formulaire.
+
+- **Réinitialiser le lien** ne change que le lien du formulaire sur OneUptime : ses domaines ne portent aucune clé, donc ils continuent de fonctionner.
+- Désactiver **Accepte les soumissions** ferme aussi le formulaire sur ses domaines, avec le message d'indisponibilité.
+- Supprimer le formulaire supprime ses domaines, et **Dupliquer le formulaire** n'en copie aucun. Un domaine supprimé cesse aussitôt de montrer le formulaire.
+
+### Sur une installation auto-hébergée
+
+Les formulaires utilisent l'enregistrement CNAME des pages de statut : `STATUS_PAGE_CNAME_RECORD` dans `config.env`, ou `statusPage.cnameRecord` dans le chart Helm. Pour donner aux domaines de formulaire une cible à eux, définissez `FORM_CNAME_RECORD` : dans `config.env` pour Docker Compose, ou avec le `extraEnv` global du chart Helm. Sans l'un ni l'autre, la page **Domaines personnalisés** indique que les domaines personnalisés ne sont pas activés au lieu de montrer un enregistrement, et OneUptime ne vérifie aucun domaine de formulaire et ne commande aucun certificat pour eux.
+
+Le serveur doit répondre sur le port 80, où Let's Encrypt vérifie chaque domaine. Une installation sans clé de compte Let's Encrypt, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` dans le chart Helm), ne commande aucun certificat : le domaine d'un formulaire est en service dès que son enregistrement est vérifié, servi avec le HTTPS de votre propre proxy ou un certificat que vous téléversez. Avec le captcha activé, une clé de site qui liste les noms d'hôte sur lesquels elle fonctionne doit aussi lister les domaines du formulaire.
+
+### Qui peut gérer les domaines
+
+Les propriétaires et administrateurs du projet, et toute personne qui a **Edit Form**, peuvent ajouter les domaines d'un formulaire, les vérifier, réémettre leurs certificats et les supprimer. Les permissions propres aux domaines d'un formulaire le peuvent aussi, comme **Edit Form Domain** : la [Vue d'ensemble des formulaires](/docs/forms/index#autorisations) les liste. Toute personne qui peut lire un formulaire voit ses domaines, leur **Statut** et l'enregistrement dans **Configuration DNS** ; pour elle, **Vérifier maintenant** et **Reissue SSL** sont verrouillés et disent quelle permission il faut. Une clé d'API fonctionne de la même façon sur `/form-domain` : `verify-cname`, `order-ssl` et `reissue-ssl` demandent **Edit Form Domain** ou **Edit Form**.
 
 ## Ce qui protège un formulaire
 
@@ -145,6 +198,10 @@ Quand votre instance OneUptime a activé hCaptcha, le formulaire affiche un capt
 - Le formulaire a été supprimé.
 - Sur OneUptime Cloud, le projet est sous le plan **Growth**, ou son abonnement est impayé.
 - Le lien a été tronqué lors de la copie.
+:::
+
+:::details Le domaine du formulaire ne montre pas le formulaire
+Ouvrez la page **Domaines personnalisés** du formulaire et lisez la colonne **Statut** du domaine : tant que son enregistrement n'est pas vérifié et que son certificat n'est pas en place, un navigateur affiche un avertissement de certificat, ou rien du tout. Un domaine qui n'est plus sur la page, parce qu'il a été supprimé ou que son formulaire l'a été, affiche une page introuvable, et un domaine dont le domaine parent n'est plus vérifié affiche le message d'indisponibilité. Sur une installation auto-hébergée, vérifiez que l'enregistrement pointe vers votre serveur OneUptime, et que le serveur répond sur les ports 80 et 443.
 :::
 
 :::details Le formulaire ne s'ouvre que depuis un réseau autorisé
