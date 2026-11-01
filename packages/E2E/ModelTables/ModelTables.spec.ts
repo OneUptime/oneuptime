@@ -1909,7 +1909,7 @@ test.describe("a row's labels, one under another, in natural order", () => {
 });
 
 test.describe("a value too long for its column", () => {
-  test("is cut short with an ellipsis inside its column, and shows in full under the pointer", async ({
+  test("is cut short inside its column - two lines, then an ellipsis - and shows in full under the pointer", async ({
     page,
   }: {
     page: Page;
@@ -2162,17 +2162,20 @@ test.describe("a row's name uses the room its row has", () => {
 
   /*
    * Its row's View is "View" now, not "View Status Page": 900px fits too.
-   * Below about 840px even 10rem does not fit, and in a card narrower than
-   * 48rem (754px here) a table that does not fit is drawn as cards
-   * (TableFit) - its rows no longer scroll under their sticky View, a
-   * row's name and its buttons in sight and nothing between them.
+   * Below about 840px even 10rem does not fit; a table only up to 2rem too
+   * wide stays given way, and further past a card narrower than 48rem
+   * (724px here) a table that does not fit is drawn as cards (TableFit) -
+   * its rows no longer scroll under their sticky View, a row's name and
+   * its buttons in sight and nothing between them. (Its Owners header,
+   * which no longer sorts by a record's id, is 18px narrower than it was:
+   * at 820px the list is within those 2rem now.)
    */
-  test("at 820px even 10rem does not fit: in a card that narrow each row is a card, its name whole", async ({
+  test("at 790px even 10rem does not fit: in a card that narrow each row is a card, its name whole", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, `${STATUS_PAGES}?data=long`, 820);
+    await open(page, `${STATUS_PAGES}?data=long`, 790);
 
     const cards: Locator = page.locator("#status-page-table-body > div");
 
@@ -2204,7 +2207,7 @@ test.describe("a row's name uses the room its row has", () => {
       }),
     ).toBe(0);
 
-    await screenshot(page, "status-pages-long-820");
+    await screenshot(page, "status-pages-long-790");
   });
 
   test("a window made narrower and wider again moves between the two, and settles - with no error on the page", async ({
@@ -2220,9 +2223,9 @@ test.describe("a row's name uses the room its row has", () => {
 
     // Cards where the rows cannot fit a card narrower than 48rem; rows otherwise.
     for (const [width, isCards] of [
-      [820, true],
+      [790, true],
       [1000, false],
-      [800, true],
+      [780, true],
       [1280, false],
     ] as Array<[number, boolean]>) {
       await page.setViewportSize({ width: width, height: 900 });
@@ -2237,10 +2240,10 @@ test.describe("a row's name uses the room its row has", () => {
     }
 
     // A window's edge dragged across both, a few pixels a frame, and back.
-    for (let width: number = 1280; width >= 800; width -= 7) {
+    for (let width: number = 1280; width >= 780; width -= 7) {
       await page.setViewportSize({ width: width, height: 900 });
     }
-    for (let width: number = 800; width <= 1280; width += 9) {
+    for (let width: number = 780; width <= 1280; width += 9) {
       await page.setViewportSize({ width: width, height: 900 });
     }
     await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
@@ -4061,12 +4064,150 @@ test.describe("a table fits its own card", () => {
     ).toBe(0);
   });
 
+  test("folded, a row's title reads whole on two lines - not one line cut after a few words - and its duration breaks only between its units", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich`);
+
+    const row: Locator = bodyRows(page, "incidents-table").filter({
+      hasText: "Primary database unreachable from the EU West workers",
+    });
+    const title: Locator = row.locator("[data-table-folded-main]").first();
+
+    // Folded: the labels and owners on lines of their own under the title.
+    await expect(row.getByTestId("table-folded-value").first()).toBeVisible();
+    await expect(title).toHaveText(
+      "Primary database unreachable from the EU West workers",
+    );
+
+    const drawn: {
+      lineClamp: string;
+      whiteSpace: string;
+      scrollWidth: number;
+      clientWidth: number;
+      scrollHeight: number;
+      clientHeight: number;
+    } = await title.evaluate((element: Element) => {
+      const style: CSSStyleDeclaration = getComputedStyle(element);
+      return {
+        lineClamp: style.getPropertyValue("-webkit-line-clamp"),
+        whiteSpace: style.whiteSpace,
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+      };
+    });
+
+    // Wrapped, up to two lines: nothing of it cut, sideways or below.
+    expect(drawn.lineClamp).toBe("2");
+    expect(drawn.whiteSpace).toBe("normal");
+    expect(drawn.scrollWidth).toBeLessThanOrEqual(drawn.clientWidth);
+    expect(drawn.scrollHeight).toBeLessThanOrEqual(drawn.clientHeight + 1);
+    await title.hover();
+    await expect(title).not.toHaveAttribute("title", /.+/);
+
+    /*
+     * The duration folded under when it was declared, in a column as wide
+     * as the date: a number never parts from its unit ("1 hour, / 35
+     * minutes", never "1 hour, 35 / minutes").
+     */
+    const duration: string =
+      (await row.getByTestId("live-duration").textContent()) || "";
+
+    expect(duration).toMatch(/^\d+\u00a0\S+(, \d+\u00a0\S+)?$/);
+    await screenshot(page, "incidents-rich-folded-titles-1280");
+  });
+
+  test("in Persian, a folded English title starts where it starts: its first letter is in sight, not cut off at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich&lang=fa`);
+
+    const title: Locator = bodyRows(page, "incidents-table")
+      .filter({
+        hasText: "Primary database unreachable from the EU West workers",
+      })
+      .locator("[data-table-folded-main]")
+      .first();
+
+    await expect(title).toBeVisible();
+
+    const firstLetter: {
+      letterLeft: number;
+      letterRight: number;
+      left: number;
+      right: number;
+    } = await title.evaluate((element: Element) => {
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+      const text: Text = walker.nextNode() as Text;
+      const range: Range = document.createRange();
+
+      range.setStart(text, 0);
+      range.setEnd(text, 1);
+
+      const letter: DOMRect = range.getBoundingClientRect();
+      const frame: DOMRect = element.getBoundingClientRect();
+
+      return {
+        letterLeft: letter.left,
+        letterRight: letter.right,
+        left: frame.left,
+        right: frame.right,
+      };
+    });
+
+    expect(firstLetter.letterLeft).toBeGreaterThanOrEqual(firstLetter.left - 1);
+    expect(firstLetter.letterRight).toBeLessThanOrEqual(firstLetter.right + 1);
+    await screenshot(page, "incidents-rich-folded-titles-fa-1280");
+  });
+
+  test("owners on their way draw no line under a folded title: no row grows a line of 'Loading...' and shrinks back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich&ownersDelay=3000`);
+
+    const owned: Locator = bodyRows(page, "incidents-table").filter({
+      hasText: "Checkout latency above 2 seconds",
+    });
+    const unowned: Locator = bodyRows(page, "incidents-table").filter({
+      hasText: "Marketing site serves an old build",
+    });
+    const ownersLine: (row: Locator) => Locator = (row: Locator): Locator => {
+      return row
+        .getByTestId("table-folded-value")
+        .filter({ hasText: "Owners" });
+    };
+
+    // On their way: the cell says so, and the folded line is not drawn.
+    await expect(owned.getByText("Loading...", { exact: true })).toHaveCount(1);
+    await expect(ownersLine(owned)).toBeHidden();
+    await expect(ownersLine(unowned)).toBeHidden();
+
+    const unownedHeight: number = Math.round((await box(unowned)).height);
+
+    // In: the owners' line under the title, and a row with none as it was.
+    await expect(ownersLine(owned)).toBeVisible({ timeout: 10000 });
+    await expect(owned.getByText("Loading...", { exact: true })).toHaveCount(0);
+    await expect(ownersLine(unowned)).toBeHidden();
+    expect(Math.round((await box(unowned)).height)).toBe(unownedHeight);
+  });
+
   test("as cards, a list is sorted from the band over them: it says its order, and a column picked asks the server for it", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, `${STATUS_PAGES}?data=long`, 820);
+    await open(page, `${STATUS_PAGES}?data=long`, 790);
 
     const band: Locator = page.getByTestId("table-cards-header");
     const sort: Locator = band.getByTestId("table-cards-sort");
@@ -4098,7 +4239,7 @@ test.describe("a table fits its own card", () => {
 
     await expect.poll(lastSort).toEqual({ name: "ASC" });
     await expect(page.locator("table")).toHaveCount(0);
-    await screenshot(page, "status-pages-cards-sorted-820");
+    await screenshot(page, "status-pages-cards-sorted-790");
   });
 
   test("compact rows: the card's ⋯ makes every row 40px and the header band 32px, kept on the next visit, and back again", async ({

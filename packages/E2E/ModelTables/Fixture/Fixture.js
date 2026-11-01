@@ -69,6 +69,9 @@
  *                     Status Pages lists deny every column
  *   - delay=<ms>      each list read takes this long (40 ms otherwise), to
  *                     see the tables while they load
+ *   - ownersDelay=<ms> each read of a list's owners (an ...OwnerUser or
+ *                     ...OwnerTeam table) takes this long more: the rows
+ *                     drawn while their owners are on the way
  *   - fail=<table>    every read of that table fails (Incident, Monitor,
  *                     ... or all), as a server that cannot be reached does
  *   - lang=de|ja|fa   the Dashboard's German, Japanese or Persian words
@@ -181,6 +184,7 @@ const isNumberedLabels = dataKind === "labels";
 const extraRows = Math.max(0, Number(params.get("rows") || 0));
 const role = params.get("role") || "owner";
 const delay = Number(params.get("delay") || 40);
+const ownersDelay = Number(params.get("ownersDelay") || 0);
 const failingTable = params.get("fail") || "";
 const galleryTable = params.get("table") || "kinds";
 const language = ["de", "ja", "fa"].includes(params.get("lang"))
@@ -1239,6 +1243,13 @@ ModelAPI.getList = async (options) => {
   });
 
   await waitFor(delay);
+
+  if (
+    ownersDelay &&
+    (tableName.endsWith("OwnerUser") || tableName.endsWith("OwnerTeam"))
+  ) {
+    await waitFor(ownersDelay);
+  }
 
   if (failsFor(tableName)) {
     throw new Error(`Could not reach the server to load ${tableName}.`);
