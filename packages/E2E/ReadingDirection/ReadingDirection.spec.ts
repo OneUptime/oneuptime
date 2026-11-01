@@ -931,6 +931,111 @@ test.describe("what reads left to right in every language", () => {
   });
 });
 
+interface KoreanWordLines {
+  word: string;
+  // The lines the word's letters are drawn on.
+  lines: number;
+}
+
+interface KoreanWordsLayout {
+  wordBreak: string;
+  words: Array<KoreanWordLines>;
+}
+
+/*
+ * How the narrow box draws its Korean words: each word and the lines it is
+ * drawn on, read in one evaluate. The box is first made three and a half
+ * syllables wide, measured in the font the runner draws Hangul in, so every
+ * word (three syllables at most) fits a line of its own, while a line that
+ * breaks between any two syllables splits a two-syllable word after
+ * another one ("로드 시" / "간").
+ */
+const koreanWordsLayout: (page: Page) => Promise<KoreanWordsLayout> = async (
+  page: Page,
+): Promise<KoreanWordsLayout> => {
+  return page
+    .getByTestId("korean-words")
+    .evaluate((element: Element): KoreanWordsLayout => {
+      const text: Text = element.firstChild as Text;
+      const content: string = text.data;
+      const syllable: Range = document.createRange();
+      syllable.setStart(text, 0);
+      syllable.setEnd(text, 1);
+      const syllableWidth: number = syllable.getBoundingClientRect().width;
+      const box: HTMLElement = element.parentElement as HTMLElement;
+      box.style.padding = "0";
+      box.style.width = `${syllableWidth * 3.5}px`;
+
+      const words: Array<KoreanWordLines> = [];
+      let from: number = 0;
+
+      for (const word of content.split(" ")) {
+        const start: number = content.indexOf(word, from);
+        const range: Range = document.createRange();
+        range.setStart(text, start);
+        range.setEnd(text, start + word.length);
+        const tops: Set<number> = new Set<number>(
+          Array.from(range.getClientRects()).map((rect: DOMRect): number => {
+            return Math.round(rect.top);
+          }),
+        );
+        words.push({ word: word, lines: tops.size });
+        from = start + word.length;
+      }
+
+      return {
+        wordBreak: window.getComputedStyle(element).wordBreak,
+        words: words,
+      };
+    });
+};
+
+test.describe("Korean keeps its words whole", () => {
+  test("ko: <html lang=\"ko\">, and every word stays on one line in a narrow box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=ko");
+
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.getAttribute("lang") || "";
+      }),
+    ).toBe("ko");
+
+    const layout: KoreanWordsLayout = await koreanWordsLayout(page);
+
+    // Inherited from <html> (Theme.css, html:lang(ko)).
+    expect(layout.wordBreak).toBe("keep-all");
+    expect(layout.words.length).toBe(7);
+
+    for (const word of layout.words) {
+      expect(word, word.word).toEqual({ word: word.word, lines: 1 });
+    }
+  });
+
+  for (const language of ["en", "de"]) {
+    test(`${language}: a page in another language breaks Korean anywhere, as before`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `lang=${language}`);
+
+      const layout: KoreanWordsLayout = await koreanWordsLayout(page);
+
+      expect(layout.wordBreak).toBe("normal");
+      // The check sees a broken word when there is one.
+      expect(
+        layout.words.some((word: KoreanWordLines): boolean => {
+          return word.lines > 1;
+        }),
+      ).toBe(true);
+    });
+  }
+});
+
 test.describe("dates in the reader's digits", () => {
   test("fa: a date is written in Persian digits on the Gregorian calendar", async ({
     page,

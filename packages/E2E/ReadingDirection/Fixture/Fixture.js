@@ -7,7 +7,7 @@
  * (Common/UI/Utils/DateDisplayLanguage).
  *
  * One page, /reading-direction, steered by the query string:
- *   - lang=en|de|fa      the language (and so the direction) of the page
+ *   - lang=en|de|fa|ko   the language (and so the direction) of the page
  *   - theme=dark         (read by server.js) the Dashboard's dark mode
  *   - dialog=open        a dialog over the page
  *   - drawer=open        a side panel (SideOver) over the page
@@ -19,7 +19,8 @@
  * Markdown viewer and editor, a
  * folded More fields line (FoldedSection), a side menu section, the
  * breadcrumbs, the product bar (NavBar: Home and Products, and a product
- * that is open), pagination, a keyboard shortcut, code, and dates.
+ * that is open), pagination, a keyboard shortcut, code, dates, and Korean
+ * words in a box too narrow for them.
  */
 import "Common/UI/Styles/Theme.css";
 import React, { useState } from "react";
@@ -68,9 +69,10 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import KO from "../../../App/FeatureSet/Dashboard/src/Locales/ko.json";
 
 const params = new URLSearchParams(window.location.search);
-const language = ["de", "fa"].includes(params.get("lang"))
+const language = ["de", "fa", "ko"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const isDialogOpen = params.get("dialog") === "open";
@@ -92,6 +94,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     de: { translation: DE },
     fa: { translation: FA },
+    ko: { translation: KO },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -135,6 +138,14 @@ const MIXED_LIST_NOTE = [
   "- صف پیام‌ها را خالی کنید",
   "- Restart the checkout service.",
 ].join("\n");
+
+/*
+ * Korean words as a narrow metric tile's title would draw them, on every
+ * page: page load time, throughput, error rate, response time. Korean puts
+ * spaces between its words; a browser breaks it between any two syllables
+ * unless the page says it is Korean (Theme.css, html:lang(ko)).
+ */
+const KOREAN_WORDS = "페이지 로드 시간 처리량 오류율 응답 시간";
 
 // A Persian sentence that starts with an English word.
 const PERSIAN_FROM_AN_ENGLISH_WORD_NOTE =
@@ -503,6 +514,14 @@ function Page() {
             {language === "fa" ? "متغیر " : "The variable "}
             <code data-testid="code-inline">{"{{alertname}}"}</code>
             {language === "fa" ? " را بنویسید." : " is written as is."}
+          </p>
+        </div>
+      </Section>
+
+      <Section name="korean-words">
+        <div className="bg-white p-2" style={{ width: "72px" }}>
+          <p className="text-sm text-gray-900" data-testid="korean-words">
+            {KOREAN_WORDS}
           </p>
         </div>
       </Section>
