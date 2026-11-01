@@ -53,6 +53,7 @@ beforeAll(async () => {
     resources: {
       de: { translation: readLocale("de") },
       ja: { translation: readLocale("ja") },
+      fa: { translation: readLocale("fa") },
     },
     interpolation: { escapeValue: false },
   });
@@ -240,5 +241,83 @@ describe("the grouping rule pages in Japanese", () => {
     ).toHaveTextContent(
       "新しいインシデントがないまま 2 時間 経過すると解決します",
     );
+  });
+});
+
+/*
+ * In Persian the box sits at the start of "Wait {{minutes}} minutes" -
+ * "{{minutes}} دقیقه صبر کن". The words around the box are items of the row,
+ * boxes of their own: the box is not set apart from them in an isolate
+ * (translateTemplateAround's setsSlotApart), whose mark, alone in the empty
+ * half before the box, was one more item of the row and a gap before it.
+ */
+describe("the grouping rule pages in Persian", () => {
+  const ISOLATE_MARKS: RegExp = /[\u2066-\u2069]/;
+
+  test("a box at the start of its sentence is the row's first item, with no gap before it", async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("fa");
+    });
+
+    render(
+      <MinutesSettingField
+        title={GROUPING_RULE_COPY.resolveDelayTitle}
+        description={
+          GROUPING_RULE_COPY.resolveDelayDescription[GroupingRuleKind.Incident]
+        }
+        sentence={GROUPING_RULE_COPY.resolveDelaySentence}
+        minutesLabel="Resolve Delay"
+        enabled={true}
+        minutes={5}
+        defaultMinutes={5}
+        dataTestId="resolve-delay-setting"
+        onChange={(): void => {}}
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId(
+      "resolve-delay-setting-minutes-row",
+    );
+
+    // The box, then the words after it: no item before the box.
+    expect(row.children).toHaveLength(2);
+    expect(
+      within(row.children[0] as HTMLElement).getByRole("spinbutton"),
+    ).toHaveValue(5);
+    expect(row.lastElementChild).toHaveTextContent(/^دقیقه صبر کن$/);
+    expect(row.textContent).not.toMatch(ISOLATE_MARKS);
+  });
+
+  test("a box in the middle of its sentence keeps its words on both sides, with no marks", async () => {
+    await act(async (): Promise<void> => {
+      await i18next.changeLanguage("fa");
+    });
+
+    render(
+      <MinutesSettingField
+        title={GROUPING_RULE_COPY.timeWindowTitle[GroupingRuleKind.Incident]}
+        description={
+          GROUPING_RULE_COPY.timeWindowDescription[GroupingRuleKind.Incident]
+        }
+        sentence={
+          GROUPING_RULE_COPY.timeWindowSentence[GroupingRuleKind.Incident]
+        }
+        minutesLabel="Time Window"
+        enabled={true}
+        minutes={30}
+        defaultMinutes={30}
+        dataTestId="time-window-setting"
+        onChange={(): void => {}}
+      />,
+    );
+
+    const row: HTMLElement = screen.getByTestId(
+      "time-window-setting-minutes-row",
+    );
+
+    expect(row.children).toHaveLength(3);
+    expect(row.firstElementChild).toHaveTextContent(/^تا$/);
+    expect(row.lastElementChild).toHaveTextContent(/^دقیقه پس از حادثه قبلی$/);
+    expect(row.textContent).not.toMatch(ISOLATE_MARKS);
   });
 });

@@ -160,7 +160,8 @@ describe("Calendar: an action beside a day's number", () => {
       .parentElement as HTMLElement;
 
     expect(header).toHaveClass("oneuptime-calendar-date-header");
-    expect(within(header).getByRole("button")).toHaveTextContent("01");
+    // The first of the month, as a calendar writes it: "1", not "01".
+    expect(within(header).getByRole("button")).toHaveTextContent(/^1$/);
   });
 
   test("a day the caller gives no action to has its number alone", () => {
@@ -262,10 +263,22 @@ describe("Calendar: the dates and times in the reader's language", () => {
     return (formats[name] as (range: DateRange) => string)(range);
   }
 
-  test("English keeps react-big-calendar's own wording", () => {
+  /*
+   * English keeps react-big-calendar's own wording, but for the day's
+   * number: "1", as every wall and phone calendar writes it, where the
+   * library writes "01" - and so wrote Persian "۰۱".
+   */
+  test("English keeps react-big-calendar's own wording, its day numbers without a leading zero", () => {
     const english: Formats = getCalendarFormats("en");
 
-    expect(Object.keys(english)).toEqual(["eventTimeRangeStartFormat"]);
+    expect(Object.keys(english)).toEqual([
+      "dateFormat",
+      "dayFormat",
+      "eventTimeRangeStartFormat",
+    ]);
+    // Moment's formats: the day of the month, and that day beside its name.
+    expect(english.dateFormat).toBe("D");
+    expect(english.dayFormat).toBe("D ddd");
     expect(getCalendarFormats(undefined)).toBe(english);
     expect(getCalendarFormats("en-GB")).toBe(english);
   });
@@ -319,14 +332,22 @@ describe("Calendar: the dates and times in the reader's language", () => {
 
     // The grid's day numbers and its hours, in the same digits.
     expect(format(persian, "dateFormat", THURSDAY)).toBe("۱۵");
-    expect(format(persian, "dateFormat", new Date(2026, 9, 1))).toBe("۰۱");
+    expect(format(persian, "dateFormat", new Date(2026, 9, 1))).toBe("۱");
+    // The day beside its name above a week's columns: no leading zero either.
+    expect(format(persian, "dayFormat", new Date(2026, 9, 1))).toContain("۱");
+    expect(format(persian, "dayFormat", new Date(2026, 9, 1))).not.toContain(
+      "۰",
+    );
     expect(format(persian, "timeGutterFormat", THURSDAY)).toContain("۱۰:۲۰");
   });
 
-  test("German writes the grid's day numbers as the English grid does, two digits", () => {
+  test("German writes the grid's day numbers as the English grid does, without a leading zero", () => {
     expect(
       format(getCalendarFormats("de"), "dateFormat", new Date(2026, 9, 1)),
-    ).toBe("01");
+    ).toBe("1");
+    expect(
+      format(getCalendarFormats("de"), "dateFormat", new Date(2026, 9, 15)),
+    ).toBe("15");
   });
 
   test("a language Intl does not know falls back to English words", () => {

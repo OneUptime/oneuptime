@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Input from "../Input/Input";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -73,11 +74,7 @@ const IDGenerator: FunctionComponent<ComponentProps> = (
           </div>
         </div>
       </>
-      {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError message={props.error} announce="none" />}
     </>
   );
 };

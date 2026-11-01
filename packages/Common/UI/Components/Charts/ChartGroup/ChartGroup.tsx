@@ -21,6 +21,11 @@ import IconProp from "../../../../Types/Icon/IconProp";
 import Modal, { ModalWidth } from "../../Modal/Modal";
 import { Translator } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "../../../Utils/LineDirection";
+import { ReadingDirection } from "../../../../Types/ReadingDirection";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export enum ChartType {
@@ -353,6 +358,31 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A chart's title and description are its metric's, often in English: on
+   * a Persian page each line reads the way it is written, so a title too
+   * long for its card is cut short at its own end, not at its start, and a
+   * short one still starts where the page's lines do (LineDirection).
+   */
+  type LineFunction = (text: string | undefined) => {
+    dir: ReadingDirection | undefined;
+    alignment: string;
+  };
+
+  const lineOf: LineFunction = (
+    text: string | undefined,
+  ): { dir: ReadingDirection | undefined; alignment: string } => {
+    const dir: ReadingDirection | undefined = getLineDirection(
+      text,
+      translator.language,
+    );
+
+    return {
+      dir,
+      alignment: dir ? ` ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}` : "",
+    };
+  };
+
   // When hideCard is true, render charts in a clean vertical stack with dividers
   if (props.hideCard) {
     return (
@@ -369,7 +399,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   <div className="mb-3 pb-3 border-b border-gray-100">
                     <div className="flex items-center">
                       <h3
-                        className="min-w-0 truncate text-sm font-semibold text-gray-800 tracking-tight"
+                        className={`min-w-0 truncate text-sm font-semibold text-gray-800 tracking-tight${
+                          lineOf(chart.title).alignment
+                        }`}
+                        dir={lineOf(chart.title).dir}
                         title={chart.title}
                       >
                         {chart.title}
@@ -379,7 +412,12 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       {getDragToZoomHint(chart)}
                     </div>
                     {chart.description && (
-                      <p className="mt-1 text-xs text-gray-500 max-md:hidden md:block">
+                      <p
+                        className={`mt-1 text-xs text-gray-500 max-md:hidden md:block${
+                          lineOf(chart.description).alignment
+                        }`}
+                        dir={lineOf(chart.description).dir}
+                      >
                         {chart.description}
                       </p>
                     )}
@@ -429,7 +467,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                   <h2
                     data-testid="card-details-heading"
                     id="card-details-heading"
-                    className="min-w-0 truncate text-sm font-semibold leading-6 text-gray-900"
+                    className={`min-w-0 truncate text-sm font-semibold leading-6 text-gray-900${
+                      lineOf(chart.title).alignment
+                    }`}
+                    dir={lineOf(chart.title).dir}
                     title={chart.title}
                   >
                     {chart.title}
@@ -441,7 +482,10 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                 {chart.description && (
                   <p
                     data-testid="card-description"
-                    className="mt-0.5 w-full truncate text-xs text-gray-500 max-md:hidden md:block"
+                    className={`mt-0.5 w-full truncate text-xs text-gray-500 max-md:hidden md:block${
+                      lineOf(chart.description).alignment
+                    }`}
+                    dir={lineOf(chart.description).dir}
                     title={chart.description}
                   >
                     {chart.description}
