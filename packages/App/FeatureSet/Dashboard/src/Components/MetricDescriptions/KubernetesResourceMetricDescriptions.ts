@@ -48,6 +48,12 @@ export type KubernetesResourceMetric =
   | "namespaceMemory"
   // List pages: custom metric columns.
   | "podContainers"
+  // A workload's or node's Pods tab, and the Pods list.
+  | "podStatus"
+  | "podReady"
+  | "podNode"
+  | "podWorkload"
+  | "podJob"
   | "containerRestarts"
   | "deploymentReady"
   | "statefulSetReady"
@@ -154,6 +160,21 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
 
   podContainers: translationKey(
     "How many main containers this pod runs, not counting init containers, which Kubernetes starts first to prepare the pod.",
+  ),
+  podStatus: translationKey(
+    "The pod's state in Kubernetes' own words, from the latest inventory: Running, Pending, Completed, or why it cannot run, such as CrashLoopBackOff. Red is broken, amber needs a look.",
+  ),
+  podReady: translationKey(
+    "This pod's containers that pass their readiness checks, out of all of them. A pod with a container that is not ready gets no traffic from its Services.",
+  ),
+  podNode: translationKey(
+    "The node Kubernetes scheduled this pod on; a dash while it waits for one.",
+  ),
+  podWorkload: translationKey(
+    "The workload this pod belongs to - its Deployment, StatefulSet, DaemonSet or Job - or a dash for a pod nothing owns.",
+  ),
+  podJob: translationKey(
+    "The run of this CronJob the pod belongs to: Kubernetes names each run (a Job) after the minute it was scheduled for.",
   ),
   containerRestarts: translationKey(
     "How many times Kubernetes has restarted this container in its pod. A count that keeps climbing usually means it is crashing or failing its liveness check.",

@@ -723,16 +723,33 @@ export function buildKubernetesTopology(
     link: { page: PageMap.KUBERNETES_CLUSTER_VIEW, modelId: clusterId },
   };
 
+  /*
+   * A namespaced part's page opens in its namespace, so a same-named part
+   * elsewhere never opens instead (KubernetesPartRoutes).
+   */
   const linkFor: (
     kind: string,
     name: string,
+    namespace?: string | undefined,
   ) => ResourceTopologyNodeInput["link"] = (
     kind: string,
     name: string,
+    namespace?: string | undefined,
   ): ResourceTopologyNodeInput["link"] => {
     const page: PageMap | undefined = DETAIL_PAGE_BY_KIND[kind];
 
-    return page ? { page: page, modelId: clusterId, subModelId: name } : null;
+    if (!page) {
+      return null;
+    }
+
+    return namespace && kind !== "k8s.namespace" && kind !== "k8s.node"
+      ? {
+          page: page,
+          modelId: clusterId,
+          subModelId: name,
+          queryParams: { namespace: namespace },
+        }
+      : { page: page, modelId: clusterId, subModelId: name };
   };
 
   // Every part once, with its own facts; parents are set per reading below.
@@ -768,7 +785,7 @@ export function buildKubernetesTopology(
         facts: assessment.facts,
         context: namespace || undefined,
         keywords: keywords,
-        link: linkFor(kind, row.name!),
+        link: linkFor(kind, row.name!, namespace),
       });
     }
 

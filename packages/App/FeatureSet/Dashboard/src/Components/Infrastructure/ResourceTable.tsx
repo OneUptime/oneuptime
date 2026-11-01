@@ -53,9 +53,28 @@ export interface InfrastructureResource {
    */
   memoryUtilization?: number | null;
   status: string;
+  /*
+   * How the status reads when the product's own rules say so (a Kubernetes
+   * pod's "CrashLoopBackOff" in red): the word may be translated or a
+   * template's, so its colour cannot be read off it. Unset, the colour
+   * follows the word (getStatusBadgeClass).
+   */
+  statusTone?: ResourceStatusTone | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
 }
+
+export type ResourceStatusTone = "positive" | "warning" | "danger" | "neutral";
+
+export const RESOURCE_STATUS_TONE_CLASS_NAMES: Record<
+  ResourceStatusTone,
+  string
+> = {
+  positive: "bg-green-50 text-green-700",
+  warning: "bg-yellow-50 text-yellow-700",
+  danger: "bg-red-50 text-red-700",
+  neutral: "bg-gray-50 text-gray-700",
+};
 
 /*
  * How a column's cell reads beside the plain ones: a failed backup in red,
@@ -433,7 +452,12 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         }
         return (
           <span
-            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${getStatusBadgeClass(resource.status)}`}
+            data-tone={resource.statusTone}
+            className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
+              resource.statusTone
+                ? RESOURCE_STATUS_TONE_CLASS_NAMES[resource.statusTone]
+                : getStatusBadgeClass(resource.status)
+            }`}
           >
             {resource.status}
           </span>

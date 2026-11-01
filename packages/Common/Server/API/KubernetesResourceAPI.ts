@@ -5,8 +5,10 @@ import ObjectID from "../../Types/ObjectID";
 import KubernetesResourceService, {
   InventorySummary,
   KubernetesNeedsAttention,
+  KubernetesPart,
   Service as KubernetesResourceServiceType,
 } from "../Services/KubernetesResourceService";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import KubernetesClusterService from "../Services/KubernetesClusterService";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import Response from "../Utils/Response";
@@ -21,6 +23,25 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 
+// The kinds the inventory holds, and so the only ones a part read asks for.
+export const KUBERNETES_PART_KINDS: ReadonlySet<string> = new Set<string>([
+  "Pod",
+  "Node",
+  "Namespace",
+  "Deployment",
+  "StatefulSet",
+  "DaemonSet",
+  "Job",
+  "CronJob",
+  "PersistentVolumeClaim",
+  "PersistentVolume",
+  "HorizontalPodAutoscaler",
+  "VerticalPodAutoscaler",
+  "DeploymentConfig",
+  "Route",
+  "Service",
+]);
+
 /*
  * ------------------------------------------------------------------
  * KubernetesResourceAPI
@@ -31,6 +52,7 @@ import { JSONObject } from "../../Types/JSON";
  *
  *   POST /kubernetes-resource/inventory-summary/:clusterId
  *   POST /kubernetes-resource/needs-attention/:clusterId
+ *   POST /kubernetes-resource/part/:clusterId  { kind, name, namespace? }
  *
  * The standard CRUD endpoints (list / get) are still registered by
  * BaseAPI; the UI uses them via ModelAPI for detail-page reads.
@@ -72,6 +94,23 @@ export default class KubernetesResourceAPI extends BaseAPI<
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.getNeedsAttention(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * One object with what it runs - a workload's pods, a node's pods, a
+     * CronJob's Jobs - for its own page: its hero, what needs attention
+     * on it and its Pods tab (KubernetesResourceService.getPart).
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/part/:clusterId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.getPart(req, res);
         } catch (err) {
           next(err);
         }
@@ -273,6 +312,55 @@ export default class KubernetesResourceAPI extends BaseAPI<
     });
   }
 
+  private async getPart(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    const body: JSONObject = (req.body as JSONObject) || {};
+    const kind: unknown = body["kind"];
+    const name: unknown = body["name"];
+    const namespace: unknown = body["namespace"];
+
+    // Only the kinds the inventory holds: anything else is no query at all.
+    if (typeof kind !== "string" || !KUBERNETES_PART_KINDS.has(kind)) {
+      throw new BadDataException("Unsupported kind");
+    }
+    if (
+      typeof name !== "string" ||
+      !name.trim() ||
+      name.length > ColumnLength.LongText
+    ) {
+      throw new BadDataException("Name is required");
+    }
+    if (
+      namespace !== undefined &&
+      namespace !== null &&
+      (typeof namespace !== "string" ||
+        namespace.length > ColumnLength.ShortText)
+    ) {
+      throw new BadDataException("Invalid namespace");
+    }
+
+    const { projectId, kubernetesClusterId } =
+      await this.resolveClusterForRequest(req);
+
+    const result: KubernetesPart = await this.service.getPart({
+      projectId,
+      kubernetesClusterId,
+      kind,
+      name,
+      namespace:
+        typeof namespace === "string" && namespace ? namespace : undefined,
+    });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      part: result.part as unknown as JSONObject,
+      pods: result.pods as unknown as JSONObject,
+      jobs: result.jobs as unknown as JSONObject,
+      isPodsTruncated: result.isPodsTruncated,
+    });
+  }
+
   private async getInventorySummary(
     req: ExpressRequest,
     res: ExpressResponse,
@@ -308,8 +396,6 @@ export default class KubernetesResourceAPI extends BaseAPI<
       serviceCount: summary.countsByKind["Service"] || 0,
       clusterOperatorCount: summary.countsByKind["ClusterOperator"] || 0,
       containerCount: summary.containerCount,
-      degradedPods: summary.degradedPods as unknown as JSONObject,
-      degradedNodes: summary.degradedNodes as unknown as JSONObject,
     };
 
     return Response.sendJsonObjectResponse(req, res, responseBody);

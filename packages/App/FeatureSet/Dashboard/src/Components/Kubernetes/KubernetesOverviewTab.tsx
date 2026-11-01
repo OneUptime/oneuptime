@@ -60,15 +60,15 @@ const KubernetesOverviewTab: FunctionComponent<ComponentProps> = (
         modelId
           ? (ref: OwnerReference): ReactElement => {
               return (
+                /*
+                 * An owner lives in its object's namespace; the link keeps it
+                 * for every namespaced kind (KubernetesResourceLink).
+                 */
                 <KubernetesResourceLink
                   modelId={modelId}
                   resourceKind={ref.kind}
                   resourceName={ref.name}
-                  namespace={
-                    ref.kind === "DeploymentConfig"
-                      ? props.namespace
-                      : undefined
-                  }
+                  namespace={props.namespace}
                 />
               );
             }

@@ -1,6 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import { getKubernetesNamespaceParam } from "../Utils/KubernetesPartRoutes";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import React, {
   FunctionComponent,
@@ -33,6 +34,8 @@ const KubernetesClusterPVCDetail: FunctionComponent<
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const pvcName: string = Navigation.getLastParamAsString();
+  // Which one: names repeat across namespaces.
+  const namespaceParam: string | undefined = getKubernetesNamespaceParam();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -76,6 +79,7 @@ const KubernetesClusterPVCDetail: FunctionComponent<
             clusterIdentifier: cluster.clusterIdentifier || "",
             resourceType: "persistentvolumeclaims",
             resourceName: pvcName,
+            namespace: namespaceParam,
           });
         setPvcObject(obj);
       } catch {
@@ -85,7 +89,7 @@ const KubernetesClusterPVCDetail: FunctionComponent<
     };
 
     fetchPvcObject().catch(() => {});
-  }, [cluster?.clusterIdentifier, pvcName]);
+  }, [cluster?.clusterIdentifier, pvcName, namespaceParam]);
 
   /*
    * The PVC's Events, read as the page opens: the Events tab says how

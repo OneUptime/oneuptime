@@ -55,9 +55,6 @@ import { APP_API_URL } from "Common/UI/Config";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
-import AlertBanner, {
-  AlertBannerType,
-} from "Common/UI/Components/AlertBanner/AlertBanner";
 import OneUptimeDate from "Common/Types/Date";
 import StackedProgressBar, {
   type StackedProgressBarSegment,
@@ -141,13 +138,21 @@ import useAiAgentAccessStatus, {
 } from "../../../Components/AiAccess/useAiAgentAccessStatus";
 import { KubernetesClusterAiAccessStatus } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
+import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import { ResourceAttentionItem } from "../../../Components/ResourcePart/ResourceAttention";
+import {
+  KubernetesAttentionFinding,
+  getKubernetesClusterHealth,
+} from "Common/Types/Kubernetes/KubernetesHealth";
+import {
+  KubernetesNeedsAttentionRead,
+  parseKubernetesNeedsAttention,
+  toKubernetesAttentionItem,
+} from "../Utils/KubernetesAttention";
+import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 import { getKubernetesClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  translatableTerm,
-  translateText,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface ResourceLink {
   title: string;
@@ -400,8 +405,14 @@ const KubernetesClusterOverview: FunctionComponent<
     ready: number;
     notReady: number;
   }>({ ready: 0, notReady: 0 });
-  const [clusterHealth, setClusterHealth] =
-    useState<KubernetesClusterHealth>("Healthy");
+  /*
+   * What needs attention, the most urgent first
+   * (Common/Types/Kubernetes/KubernetesHealth, read on the server): the
+   * Needs attention card and the health pill. Null until the first read.
+   */
+  const [attention, setAttention] =
+    useState<KubernetesNeedsAttentionRead | null>(null);
+  const [attentionError, setAttentionError] = useState<string>("");
   // Null unless the cluster reports ClusterOperators.
   const [openShiftHealth, setOpenShiftHealth] =
     useState<OpenShiftClusterHealth | null>(null);
@@ -411,31 +422,6 @@ const KubernetesClusterOverview: FunctionComponent<
   );
   const [recentWarnings, setRecentWarnings] = useState<
     Array<KubernetesWarningSummary>
-  >([]);
-  const [nodePressure, setNodePressure] = useState<{
-    memoryPressure: number;
-    diskPressure: number;
-    pidPressure: number;
-  }>({ memoryPressure: 0, diskPressure: 0, pidPressure: 0 });
-  const [degradedPods, setDegradedPods] = useState<
-    Array<{
-      name: string;
-      namespace: string;
-      phase: string;
-      reason: string;
-      message: string;
-    }>
-  >([]);
-  const [degradedNodes, setDegradedNodes] = useState<
-    Array<{
-      name: string;
-      isReady: boolean;
-      hasMemoryPressure: boolean;
-      hasDiskPressure: boolean;
-      hasPidPressure: boolean;
-      reason: string;
-      message: string;
-    }>
   >([]);
 
   // Golden metrics state — independent of the inventory summary.
@@ -571,78 +557,6 @@ const KubernetesClusterOverview: FunctionComponent<
       const notReady: number =
         typeof nodeReady["notReady"] === "number" ? nodeReady["notReady"] : 0;
       setNodeHealthSummary({ ready, notReady });
-
-      const pressure: JSONObject =
-        (summary["nodePressureCounts"] as JSONObject) || {};
-      const memoryPressure: number =
-        typeof pressure["memoryPressure"] === "number"
-          ? pressure["memoryPressure"]
-          : 0;
-      const diskPressure: number =
-        typeof pressure["diskPressure"] === "number"
-          ? pressure["diskPressure"]
-          : 0;
-      const pidPressure: number =
-        typeof pressure["pidPressure"] === "number"
-          ? pressure["pidPressure"]
-          : 0;
-      setNodePressure({ memoryPressure, diskPressure, pidPressure });
-
-      const degradedPodsRaw: unknown = summary["degradedPods"];
-      if (Array.isArray(degradedPodsRaw)) {
-        setDegradedPods(
-          degradedPodsRaw.map((p: unknown) => {
-            const item: Record<string, unknown> =
-              (p as Record<string, unknown>) || {};
-            return {
-              name: typeof item["name"] === "string" ? item["name"] : "",
-              namespace:
-                typeof item["namespace"] === "string" ? item["namespace"] : "",
-              phase: typeof item["phase"] === "string" ? item["phase"] : "",
-              reason: typeof item["reason"] === "string" ? item["reason"] : "",
-              message:
-                typeof item["message"] === "string" ? item["message"] : "",
-            };
-          }),
-        );
-      } else {
-        setDegradedPods([]);
-      }
-
-      const degradedNodesRaw: unknown = summary["degradedNodes"];
-      if (Array.isArray(degradedNodesRaw)) {
-        setDegradedNodes(
-          degradedNodesRaw.map((n: unknown) => {
-            const item: Record<string, unknown> =
-              (n as Record<string, unknown>) || {};
-            return {
-              name: typeof item["name"] === "string" ? item["name"] : "",
-              isReady: item["isReady"] === true,
-              hasMemoryPressure: item["hasMemoryPressure"] === true,
-              hasDiskPressure: item["hasDiskPressure"] === true,
-              hasPidPressure: item["hasPidPressure"] === true,
-              reason: typeof item["reason"] === "string" ? item["reason"] : "",
-              message:
-                typeof item["message"] === "string" ? item["message"] : "",
-            };
-          }),
-        );
-      } else {
-        setDegradedNodes([]);
-      }
-
-      if (failed > 0 || notReady > 0) {
-        setClusterHealth("Unhealthy");
-      } else if (
-        pending > 0 ||
-        memoryPressure > 0 ||
-        diskPressure > 0 ||
-        pidPressure > 0
-      ) {
-        setClusterHealth("Degraded");
-      } else {
-        setClusterHealth("Healthy");
-      }
     } catch (err) {
       /*
        * Surface the failure instead of silently rendering zero counts,
@@ -750,6 +664,37 @@ const KubernetesClusterOverview: FunctionComponent<
       // Top-N is supplementary; leave lists empty on failure.
     } finally {
       setIsTopPodsLoading(false);
+    }
+  };
+
+  /*
+   * What needs attention: every object the ingest flagged, with why, the
+   * most urgent first (KubernetesResourceService.getNeedsAttention). A
+   * failed read leaves the last answer in place and says so.
+   */
+  const loadAttention: (clusterId: ObjectID) => Promise<void> = async (
+    clusterId: ObjectID,
+  ): Promise<void> => {
+    try {
+      const attentionUrl: URL = URL.fromString(APP_API_URL.toString())
+        .addRoute("/kubernetes-resource/needs-attention/")
+        .addRoute(clusterId.toString());
+
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.post({
+          url: attentionUrl,
+          data: {},
+          headers: {
+            ...ModelAPI.getCommonHeaders(),
+          },
+        });
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+      setAttention(parseKubernetesNeedsAttention(response.data));
+      setAttentionError("");
+    } catch (err) {
+      setAttentionError(API.getFriendlyMessage(err));
     }
   };
 
@@ -1268,6 +1213,7 @@ const KubernetesClusterOverview: FunctionComponent<
          * the other sections.
          */
         void loadSummary(modelId, item.clusterIdentifier);
+        void loadAttention(modelId);
         void loadTopPods(item.clusterIdentifier);
         void loadWarnings(item.clusterIdentifier);
         void loadGoldenMetricsRef.current(item.clusterIdentifier);
@@ -1322,6 +1268,7 @@ const KubernetesClusterOverview: FunctionComponent<
          */
         void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
         void loadSummary(modelId, cluster.clusterIdentifier);
+        void loadAttention(modelId);
         void loadTopPods(cluster.clusterIdentifier);
         void loadWarnings(cluster.clusterIdentifier);
         setDetailsRefresher((prev: boolean) => {
@@ -1347,6 +1294,7 @@ const KubernetesClusterOverview: FunctionComponent<
     if (cluster?.clusterIdentifier) {
       void loadGoldenMetricsRef.current(cluster.clusterIdentifier);
       void loadSummary(modelId, cluster.clusterIdentifier);
+      void loadAttention(modelId);
       void loadTopPods(cluster.clusterIdentifier);
       void loadWarnings(cluster.clusterIdentifier);
       setDetailsRefresher((prev: boolean) => {
@@ -1381,12 +1329,41 @@ const KubernetesClusterOverview: FunctionComponent<
   }
 
   /*
-   * What the cluster's health says: its pods and nodes, and on OpenShift its
-   * operators and update too, which fail while every pod still runs.
+   * What the cluster's health says: what needs attention in it - the same
+   * findings the Needs attention card lists, so the pill and the card never
+   * disagree - and on OpenShift its operators and update too, which fail
+   * while every pod still runs.
    */
+  const attentionFindings: Array<KubernetesAttentionFinding> =
+    attention?.findings || [];
   const overallHealth: KubernetesClusterHealth = getWorseClusterHealth(
-    clusterHealth,
+    getKubernetesClusterHealth(attentionFindings),
     openShiftHealth?.health,
+  );
+  const attentionItems: Array<ResourceAttentionItem> = attentionFindings.map(
+    (finding: KubernetesAttentionFinding): ResourceAttentionItem => {
+      return toKubernetesAttentionItem(
+        finding,
+        (part: { kind: string; name: string; namespace: string }) => {
+          return getKubernetesPartRoute(modelId, part);
+        },
+      );
+    },
+  );
+  /*
+   * Health is a reading of what the agent reported: before it reported any
+   * node or pod, or while what needs attention cannot be read, there is
+   * nothing to say, and no pill guesses Healthy.
+   */
+  const hasReported: boolean = nodeCount > 0 || podCount > 0;
+  const isHealthKnown: boolean =
+    !isSummaryLoading &&
+    !summaryError &&
+    attention !== null &&
+    !attentionError &&
+    hasReported;
+  const isClusterConnected: boolean = ["connected", "active"].includes(
+    ((cluster.otelCollectorStatus as string) || "").toLowerCase(),
   );
 
   const workloadLinks: Array<ResourceLink> = [
@@ -1554,34 +1531,6 @@ const KubernetesClusterOverview: FunctionComponent<
       label: "Failed",
     },
   ];
-
-  // Build pressure badges
-  const pressureBadges: Array<{
-    count: number;
-    label: string;
-    description: string;
-  }> = [];
-  if (nodePressure.memoryPressure > 0) {
-    pressureBadges.push({
-      count: nodePressure.memoryPressure,
-      label: "Memory Pressure",
-      description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.memoryPressure,
-    });
-  }
-  if (nodePressure.diskPressure > 0) {
-    pressureBadges.push({
-      count: nodePressure.diskPressure,
-      label: "Disk Pressure",
-      description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.diskPressure,
-    });
-  }
-  if (nodePressure.pidPressure > 0) {
-    pressureBadges.push({
-      count: nodePressure.pidPressure,
-      label: "PID Pressure",
-      description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.pidPressure,
-    });
-  }
 
   const renderRefreshControl: () => ReactElement = (): ReactElement => {
     return (
@@ -2182,8 +2131,10 @@ const KubernetesClusterOverview: FunctionComponent<
                       />
                       {connectionLabel}
                     </span>
-                    {!isSummaryLoading && !summaryError && (
+                    {isHealthKnown && (
                       <span
+                        data-testid="kubernetes-cluster-health"
+                        data-health={isConnected ? overallHealth : "Unknown"}
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
                       >
                         <span
@@ -2314,205 +2265,36 @@ const KubernetesClusterOverview: FunctionComponent<
        */}
       {openShiftHealth && <OpenShiftHealthCard health={openShiftHealth} />}
 
+      {/*
+       * What needs someone, most urgent first, before any chart: a crash
+       * loop, a node not ready, a rollout past its deadline, each with why
+       * and one step to its page (KubernetesHealth). A pod's problem shows on
+       * its workload's row. While the agent is disconnected its last snapshot
+       * is no longer the truth: the hero says Health Unknown instead.
+       */}
+      {isClusterConnected && attention && !attentionError && (
+        <NeedsAttentionCard
+          testId="kubernetes-needs-attention"
+          items={attentionItems}
+          description={
+            attention.isTruncated
+              ? "What is broken or needs a look, the most urgent first. More need attention than one page holds: these are the most urgent."
+              : undefined
+          }
+        />
+      )}
+
+      {attentionError && (
+        <div className="mb-6" data-testid="kubernetes-needs-attention-error">
+          <ErrorMessage message={attentionError} />
+        </div>
+      )}
+
       {/* Golden metrics — at-a-glance cluster health */}
       {renderGoldenMetrics()}
 
       {/* Golden charts — availability + cluster resource usage */}
       {renderGoldenCharts()}
-
-      {/* Why is this cluster degraded? */}
-      {clusterHealth !== "Healthy" &&
-        (degradedPods.length > 0 || degradedNodes.length > 0) && (
-          <Card
-            title="Why is this cluster degraded?"
-            description="Specific pods and nodes that are driving the current health status. Click through to investigate."
-          >
-            <div className="divide-y divide-gray-100">
-              {degradedNodes.map(
-                (
-                  node: {
-                    name: string;
-                    isReady: boolean;
-                    hasMemoryPressure: boolean;
-                    hasDiskPressure: boolean;
-                    hasPidPressure: boolean;
-                    reason: string;
-                    message: string;
-                  },
-                  index: number,
-                ) => {
-                  const pressureLabels: Array<string> = [];
-                  if (!node.isReady) {
-                    pressureLabels.push("Not Ready");
-                  }
-                  if (node.hasMemoryPressure) {
-                    pressureLabels.push("Memory Pressure");
-                  }
-                  if (node.hasDiskPressure) {
-                    pressureLabels.push("Disk Pressure");
-                  }
-                  if (node.hasPidPressure) {
-                    pressureLabels.push("PID Pressure");
-                  }
-                  const chipClass: string = !node.isReady
-                    ? "bg-red-50 text-red-700 border-red-200"
-                    : "bg-amber-50 text-amber-700 border-amber-200";
-                  return (
-                    <div
-                      key={`node-${index}`}
-                      onClick={() => {
-                        Navigation.navigate(
-                          RouteUtil.populateRouteParams(
-                            RouteMap[
-                              PageMap.KUBERNETES_CLUSTER_VIEW_NODE_DETAIL
-                            ] as Route,
-                            {
-                              modelId: modelId,
-                              subModelId: new ObjectID(node.name),
-                            },
-                          ),
-                        );
-                      }}
-                      className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <div className="flex-shrink-0 mt-0.5 w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
-                        <Icon
-                          icon={IconProp.Server}
-                          className="h-3.5 w-3.5 text-red-600"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <span className="text-sm font-medium text-gray-900 truncate">
-                            {node.name}
-                          </span>
-                          <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-slate-100 text-slate-600">
-                            {translator.translateText("Node")}
-                          </span>
-                          {pressureLabels.map((label: string) => {
-                            return (
-                              <span
-                                key={label}
-                                className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded border ${chipClass}`}
-                              >
-                                {label}
-                              </span>
-                            );
-                          })}
-                          {node.reason && (
-                            <span className="inline-flex px-1.5 py-0.5 text-xs font-semibold rounded bg-red-100 text-red-700">
-                              {node.reason}
-                            </span>
-                          )}
-                        </div>
-                        {node.message && (
-                          <p className="text-sm text-gray-600 line-clamp-2">
-                            {node.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                },
-              )}
-
-              {degradedPods.map(
-                (
-                  pod: {
-                    name: string;
-                    namespace: string;
-                    phase: string;
-                    reason: string;
-                    message: string;
-                  },
-                  index: number,
-                ) => {
-                  const isFailed: boolean = pod.phase === "Failed";
-                  const phaseChipClass: string = isFailed
-                    ? "bg-red-100 text-red-700"
-                    : pod.phase === "Pending"
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-gray-100 text-gray-700";
-                  const iconBgClass: string = isFailed
-                    ? "bg-red-100"
-                    : "bg-amber-100";
-                  const iconColorClass: string = isFailed
-                    ? "text-red-600"
-                    : "text-amber-600";
-                  return (
-                    <div
-                      key={`pod-${index}`}
-                      onClick={() => {
-                        Navigation.navigate(
-                          RouteUtil.populateRouteParams(
-                            RouteMap[
-                              PageMap.KUBERNETES_CLUSTER_VIEW_POD_DETAIL
-                            ] as Route,
-                            {
-                              modelId: modelId,
-                              subModelId: new ObjectID(pod.name),
-                            },
-                          ),
-                        );
-                      }}
-                      className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <div
-                        className={`flex-shrink-0 mt-0.5 w-6 h-6 rounded-full ${iconBgClass} flex items-center justify-center`}
-                      >
-                        <Icon
-                          icon={IconProp.Circle}
-                          className={`h-3.5 w-3.5 ${iconColorClass}`}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                          <span className="text-sm font-medium text-gray-900 truncate">
-                            {pod.name}
-                          </span>
-                          {pod.namespace && (
-                            <span className="inline-flex px-1.5 py-0.5 text-xs font-medium rounded bg-indigo-50 text-indigo-600">
-                              {pod.namespace}
-                            </span>
-                          )}
-                          <span
-                            className={`inline-flex px-1.5 py-0.5 text-xs font-medium rounded ${phaseChipClass}`}
-                          >
-                            {pod.phase}
-                          </span>
-                          {pod.reason && (
-                            <span
-                              className={`inline-flex px-1.5 py-0.5 text-xs font-semibold rounded ${
-                                isFailed
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-amber-100 text-amber-700"
-                              }`}
-                            >
-                              {pod.reason}
-                            </span>
-                          )}
-                        </div>
-                        {pod.message ? (
-                          <p className="text-sm text-gray-600 line-clamp-2">
-                            {pod.message}
-                          </p>
-                        ) : (
-                          !pod.reason && (
-                            <p className="text-sm text-gray-400 italic">
-                              {translator.translateText(
-                                "No reason reported yet — click to inspect the pod.",
-                              )}
-                            </p>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  );
-                },
-              )}
-            </div>
-          </Card>
-        )}
 
       {/* Summary Cards — show a subtle placeholder for each value while
           the inventory summary is loading. Agent Status comes from
@@ -2531,21 +2313,32 @@ const KubernetesClusterOverview: FunctionComponent<
               : KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth
           }
           value={
-            isSummaryLoading ? (
+            isSummaryLoading || (attention === null && !attentionError) ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
-            ) : summaryError ? (
+            ) : !isHealthKnown ? (
               <span className="text-2xl font-semibold text-gray-300">—</span>
             ) : (
+              /*
+               * The hero's words and colour: Health Unknown in grey while
+               * the agent is disconnected, as its pill says.
+               */
               <span
+                data-testid="kubernetes-cluster-health-card"
                 className={`whitespace-nowrap text-xl font-semibold ${
-                  overallHealth === "Healthy"
-                    ? "text-emerald-600"
-                    : overallHealth === "Degraded"
-                      ? "text-amber-600"
-                      : "text-red-600"
+                  !isClusterConnected
+                    ? "text-gray-500"
+                    : overallHealth === "Healthy"
+                      ? "text-emerald-600"
+                      : overallHealth === "Degraded"
+                        ? "text-amber-600"
+                        : "text-red-600"
                 }`}
               >
-                {overallHealth}
+                {getResourceHealthLabel({
+                  translator: translator,
+                  health: overallHealth,
+                  isConnected: isClusterConnected,
+                })}
               </span>
             )
           }
@@ -2721,45 +2514,6 @@ const KubernetesClusterOverview: FunctionComponent<
           renderResourceLinks(infraLinks)
         )}
       </Card>
-
-      {/* Node Pressure Indicators */}
-      {pressureBadges.length > 0 && (
-        <AlertBanner
-          title="Node Pressure Detected"
-          type={AlertBannerType.Danger}
-          className="mb-5"
-        >
-          <div className="flex flex-wrap gap-2 pt-1">
-            {pressureBadges.map(
-              (badge: {
-                count: number;
-                label: string;
-                description: string;
-              }) => {
-                return (
-                  <span
-                    key={badge.label}
-                    className="inline-flex items-center gap-1"
-                  >
-                    <StatusBadge
-                      text={translator.translatePlural(
-                        {
-                          one: "{{count}} node: {{label}}",
-                          other: "{{count}} nodes: {{label}}",
-                        },
-                        badge.count,
-                        { label: translatableTerm(badge.label) },
-                      )}
-                      type={StatusBadgeType.Danger}
-                    />
-                    <InfoTooltip label={badge.label} text={badge.description} />
-                  </span>
-                );
-              },
-            )}
-          </div>
-        </AlertBanner>
-      )}
 
       {/* Pod Health Visual Breakdown */}
       {podCount > 0 && (

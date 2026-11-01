@@ -46,6 +46,20 @@ import StatusBadge, {
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import {
+  getKubernetesPodsTab,
+  getKubernetesWorkloadLogsTab,
+} from "../../../Components/Kubernetes/Part/KubernetesPartTabs";
+import useKubernetesPart, {
+  KubernetesPartState,
+} from "../Utils/UseKubernetesPart";
+import {
+  KubernetesPartRoutes,
+  getKubernetesNamespaceParam,
+  getKubernetesPartRoutes,
+} from "../Utils/KubernetesPartRoutes";
 
 const KubernetesClusterStatefulSetDetail: FunctionComponent<
   PageComponentProps
@@ -53,6 +67,8 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const statefulSetName: string = Navigation.getLastParamAsString();
+  // Which one: names repeat across namespaces.
+  const namespaceParam: string | undefined = getKubernetesNamespaceParam();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -69,6 +85,8 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          // The hero's link back to the cluster, and the Logs tab's chip.
+          name: true,
         },
       });
       setCluster(item);
@@ -98,6 +116,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
             clusterIdentifier: cluster.clusterIdentifier || "",
             resourceType: "statefulsets",
             resourceName: statefulSetName,
+            namespace: namespaceParam,
           });
         setObjectData(obj);
       } catch {
@@ -107,7 +126,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     };
 
     fetchObject().catch(() => {});
-  }, [cluster?.clusterIdentifier, statefulSetName]);
+  }, [cluster?.clusterIdentifier, statefulSetName, namespaceParam]);
 
   // Per-node allocatable CPU — denominator for the true CPU% transform.
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
@@ -136,6 +155,18 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     resourceKind: "StatefulSet",
   });
 
+  /*
+   * The StatefulSet as the cluster's rules read it, with what it runs: its
+   * hero, what needs attention on it and its Pods tab (KubernetesPartFacts).
+   */
+  const partState: KubernetesPartState = useKubernetesPart({
+    clusterId: modelId,
+    kind: "StatefulSet",
+    name: statefulSetName,
+    namespace: namespaceParam,
+  });
+  const routes: KubernetesPartRoutes = getKubernetesPartRoutes(modelId);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -149,6 +180,8 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   }
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
+  const resourceNamespace: string | undefined =
+    objectData?.metadata.namespace || namespaceParam || undefined;
 
   const getSeries: (data: AggregateModel) => ChartSeries = (
     data: AggregateModel,
@@ -177,6 +210,9 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.statefulset.name": statefulSetName,
+          ...(resourceNamespace
+            ? { "resource.k8s.namespace.name": resourceNamespace }
+            : {}),
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -206,6 +242,9 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.statefulset.name": statefulSetName,
+          ...(resourceNamespace
+            ? { "resource.k8s.namespace.name": resourceNamespace }
+            : {}),
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -285,15 +324,36 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={objectData?.metadata.labels || {}}
-          annotations={objectData?.metadata.annotations || {}}
-          isLoading={isLoadingObject}
-        />
+        <KubernetesPartOverview
+          clusterId={modelId}
+          clusterIdentifier={clusterIdentifier}
+          kind="StatefulSet"
+          read={partState.read}
+          error={partState.error}
+          routes={routes}
+        >
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={objectData?.metadata.labels || {}}
+            annotations={objectData?.metadata.annotations || {}}
+            isLoading={isLoadingObject}
+          />
+        </KubernetesPartOverview>
       ),
     },
+    getKubernetesPodsTab({
+      kind: "StatefulSet",
+      part: partState,
+      routes: routes,
+    }),
     eventsTab,
+    getKubernetesWorkloadLogsTab({
+      kind: "StatefulSet",
+      name: statefulSetName,
+      namespace: resourceNamespace,
+      clusterIdentifier: clusterIdentifier,
+      clusterName: cluster.name,
+    }),
     {
       name: "Metrics",
       children: (
@@ -315,7 +375,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
           clusterIdentifier={clusterIdentifier}
           resourceType="statefulsets"
           resourceName={statefulSetName}
-          namespace={objectData?.metadata.namespace}
+          namespace={resourceNamespace}
         />
       ),
     },
@@ -323,6 +383,17 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * What it is and how it is doing, in Kubernetes' own words, above its
+       * tabs (KubernetesPartHero).
+       */}
+      <KubernetesPartHero
+        kind="StatefulSet"
+        name={statefulSetName}
+        read={partState.read}
+        clusterName={cluster.name || clusterIdentifier}
+        routes={routes}
+      />
       {/*
        * The Database discovered on this StatefulSet, if any — by its name,
        * or the cluster its labels place it in (an operator's, a Helm

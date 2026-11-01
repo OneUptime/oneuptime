@@ -39,6 +39,8 @@ export interface KubernetesResource {
    */
   memoryUtilization?: number | null;
   status: string;
+  // The status's colour, from the cluster's rules (ResourceTable).
+  statusTone?: "positive" | "warning" | "danger" | "neutral" | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
 }
@@ -395,7 +397,7 @@ export default class KubernetesResourceUtils {
    * resource that's actually fallen off the metric stream.
    * Matches the cleanup worker's stale-resource cutoff.
    */
-  private static readonly METRIC_STALE_MS: number = 15 * 60 * 1000;
+  public static readonly METRIC_STALE_MS: number = 15 * 60 * 1000;
 
   /**
    * Fetch the list of Kubernetes resources of a given kind from the

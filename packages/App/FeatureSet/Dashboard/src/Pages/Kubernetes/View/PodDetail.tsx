@@ -50,6 +50,16 @@ import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesRes
 import KubernetesImageReferenceView from "../../../Components/Kubernetes/KubernetesImageReferenceView";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import useKubernetesPart, {
+  KubernetesPartState,
+} from "../Utils/UseKubernetesPart";
+import {
+  KubernetesPartRoutes,
+  getKubernetesNamespaceParam,
+  getKubernetesPartRoutes,
+} from "../Utils/KubernetesPartRoutes";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -57,6 +67,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const podName: string = Navigation.getLastParamAsString();
+  // Which one: a StatefulSet's postgres-0 can run in every namespace.
+  const namespaceParam: string | undefined = getKubernetesNamespaceParam();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -106,6 +118,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
             clusterIdentifier: cluster.clusterIdentifier || "",
             resourceType: "pods",
             resourceName: podName,
+            namespace: namespaceParam,
           });
         setPodObject(obj);
       } catch {
@@ -115,7 +128,19 @@ const KubernetesClusterPodDetail: FunctionComponent<
     };
 
     fetchPodObject().catch(() => {});
-  }, [cluster?.clusterIdentifier, podName]);
+  }, [cluster?.clusterIdentifier, podName, namespaceParam]);
+
+  /*
+   * The pod as the cluster's rules read it, for its hero and what needs
+   * attention on it (KubernetesPartFacts).
+   */
+  const partState: KubernetesPartState = useKubernetesPart({
+    clusterId: modelId,
+    kind: "Pod",
+    name: podName,
+    namespace: namespaceParam,
+  });
+  const routes: KubernetesPartRoutes = getKubernetesPartRoutes(modelId);
 
   // Per-node allocatable CPU — denominator for the true CPU% transform.
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
@@ -155,6 +180,12 @@ const KubernetesClusterPodDetail: FunctionComponent<
   }
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
+  const podNamespace: string | undefined =
+    podObject?.metadata.namespace || namespaceParam;
+  // Its metrics only: a same-named pod in another namespace is another pod.
+  const namespaceAttribute: Record<string, string> = podNamespace
+    ? { "resource.k8s.namespace.name": podNamespace }
+    : {};
 
   const getContainerSeries: (data: AggregateModel) => ChartSeries = (
     data: AggregateModel,
@@ -184,6 +215,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.pod.name": podName,
+          ...namespaceAttribute,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -213,6 +245,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.pod.name": podName,
+          ...namespaceAttribute,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -242,6 +275,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.pod.name": podName,
+          ...namespaceAttribute,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -270,6 +304,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.pod.name": podName,
+          ...namespaceAttribute,
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -394,18 +429,27 @@ const KubernetesClusterPodDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={podObject?.metadata.labels || {}}
-          annotations={podObject?.metadata.annotations || {}}
-          conditions={podObject?.status.conditions}
-          ownerReferences={
-            podObject ? getPodOwnerReferences(podObject.metadata) : undefined
-          }
-          namespace={podObject?.metadata.namespace}
-          modelId={modelId}
-          isLoading={isLoadingObject}
-        />
+        <KubernetesPartOverview
+          clusterId={modelId}
+          clusterIdentifier={clusterIdentifier}
+          kind="Pod"
+          read={partState.read}
+          error={partState.error}
+          routes={routes}
+        >
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={podObject?.metadata.labels || {}}
+            annotations={podObject?.metadata.annotations || {}}
+            conditions={podObject?.status.conditions}
+            ownerReferences={
+              podObject ? getPodOwnerReferences(podObject.metadata) : undefined
+            }
+            namespace={podObject?.metadata.namespace}
+            modelId={modelId}
+            isLoading={isLoadingObject}
+          />
+        </KubernetesPartOverview>
       ),
     },
     {
@@ -473,7 +517,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
           clusterIdentifier={clusterIdentifier}
           clusterName={cluster.name}
           podName={podName}
-          namespace={podObject?.metadata.namespace}
+          namespace={podNamespace}
         />
       ),
     },
@@ -499,7 +543,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
           clusterIdentifier={clusterIdentifier}
           resourceType="pods"
           resourceName={podName}
-          namespace={podObject?.metadata.namespace}
+          namespace={podNamespace}
         />
       ),
     },
@@ -507,6 +551,17 @@ const KubernetesClusterPodDetail: FunctionComponent<
 
   return (
     <Fragment>
+      {/*
+       * What the pod is and how it is doing, in Kubernetes' own words,
+       * above its tabs (KubernetesPartHero).
+       */}
+      <KubernetesPartHero
+        kind="Pod"
+        name={podName}
+        read={partState.read}
+        clusterName={cluster.name || clusterIdentifier}
+        routes={routes}
+      />
       {/*
        * The Database this pod is a member of, if any — by the workloads
        * that own it and by how discovery classifies it — or the one whose

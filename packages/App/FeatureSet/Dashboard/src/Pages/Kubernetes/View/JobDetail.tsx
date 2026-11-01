@@ -9,6 +9,7 @@ import MetricQueryConfigData, {
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -43,6 +44,20 @@ import StatusBadge, {
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import {
+  getKubernetesPodsTab,
+  getKubernetesWorkloadLogsTab,
+} from "../../../Components/Kubernetes/Part/KubernetesPartTabs";
+import useKubernetesPart, {
+  KubernetesPartState,
+} from "../Utils/UseKubernetesPart";
+import {
+  KubernetesPartRoutes,
+  getKubernetesNamespaceParam,
+  getKubernetesPartRoutes,
+} from "../Utils/KubernetesPartRoutes";
 
 const KubernetesClusterJobDetail: FunctionComponent<
   PageComponentProps
@@ -50,6 +65,8 @@ const KubernetesClusterJobDetail: FunctionComponent<
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(2);
   const jobName: string = Navigation.getLastParamAsString();
+  // Which one: names repeat across namespaces.
+  const namespaceParam: string | undefined = getKubernetesNamespaceParam();
 
   const [cluster, setCluster] = useState<KubernetesCluster | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -65,6 +82,8 @@ const KubernetesClusterJobDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          // The hero's link back to the cluster, and the Logs tab's chip.
+          name: true,
         },
       });
       setCluster(item);
@@ -94,6 +113,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
             clusterIdentifier: cluster.clusterIdentifier || "",
             resourceType: "jobs",
             resourceName: jobName,
+            namespace: namespaceParam,
           });
         setJobObject(obj);
       } catch {
@@ -103,7 +123,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
     };
 
     fetchJobObject().catch(() => {});
-  }, [cluster?.clusterIdentifier, jobName]);
+  }, [cluster?.clusterIdentifier, jobName, namespaceParam]);
 
   // Per-node allocatable CPU — denominator for the true CPU% transform.
   const allocatable: NodeAllocatableCpu | null = useNodeAllocatableCpu(
@@ -132,6 +152,18 @@ const KubernetesClusterJobDetail: FunctionComponent<
     resourceKind: "Job",
   });
 
+  /*
+   * The Job as the cluster's rules read it, with what it runs: its
+   * hero, what needs attention on it and its Pods tab (KubernetesPartFacts).
+   */
+  const partState: KubernetesPartState = useKubernetesPart({
+    clusterId: modelId,
+    kind: "Job",
+    name: jobName,
+    namespace: namespaceParam,
+  });
+  const routes: KubernetesPartRoutes = getKubernetesPartRoutes(modelId);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -145,6 +177,8 @@ const KubernetesClusterJobDetail: FunctionComponent<
   }
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
+  const resourceNamespace: string | undefined =
+    jobObject?.metadata.namespace || namespaceParam || undefined;
 
   const getSeries: (data: AggregateModel) => ChartSeries = (
     data: AggregateModel,
@@ -173,6 +207,9 @@ const KubernetesClusterJobDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.job.name": jobName,
+          ...(resourceNamespace
+            ? { "resource.k8s.namespace.name": resourceNamespace }
+            : {}),
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -202,6 +239,9 @@ const KubernetesClusterJobDetail: FunctionComponent<
         attributes: {
           "resource.k8s.cluster.name": clusterIdentifier,
           "resource.k8s.job.name": jobName,
+          ...(resourceNamespace
+            ? { "resource.k8s.namespace.name": resourceNamespace }
+            : {}),
         },
         aggegationType: AggregationType.Avg,
         aggregateBy: {},
@@ -310,16 +350,33 @@ const KubernetesClusterJobDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={jobObject?.metadata.labels || {}}
-          annotations={jobObject?.metadata.annotations || {}}
-          conditions={jobObject?.status.conditions}
-          isLoading={isLoadingObject}
-        />
+        <KubernetesPartOverview
+          clusterId={modelId}
+          clusterIdentifier={clusterIdentifier}
+          kind="Job"
+          read={partState.read}
+          error={partState.error}
+          routes={routes}
+        >
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={jobObject?.metadata.labels || {}}
+            annotations={jobObject?.metadata.annotations || {}}
+            conditions={jobObject?.status.conditions}
+            isLoading={isLoadingObject}
+          />
+        </KubernetesPartOverview>
       ),
     },
+    getKubernetesPodsTab({ kind: "Job", part: partState, routes: routes }),
     eventsTab,
+    getKubernetesWorkloadLogsTab({
+      kind: "Job",
+      name: jobName,
+      namespace: resourceNamespace,
+      clusterIdentifier: clusterIdentifier,
+      clusterName: cluster.name,
+    }),
     {
       name: "Metrics",
       children: (
@@ -340,13 +397,28 @@ const KubernetesClusterJobDetail: FunctionComponent<
           clusterIdentifier={clusterIdentifier}
           resourceType="jobs"
           resourceName={jobName}
-          namespace={jobObject?.metadata.namespace}
+          namespace={resourceNamespace}
         />
       ),
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * What it is and how it is doing, in Kubernetes' own words, above its
+       * tabs (KubernetesPartHero).
+       */}
+      <KubernetesPartHero
+        kind="Job"
+        name={jobName}
+        read={partState.read}
+        clusterName={cluster.name || clusterIdentifier}
+        routes={routes}
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterJobDetail;

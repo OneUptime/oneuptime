@@ -7,6 +7,7 @@ import Card from "Common/UI/Components/Card/Card";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -42,6 +43,19 @@ import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/Met
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import KubernetesPartHero from "../../../Components/Kubernetes/Part/KubernetesPartHero";
+import KubernetesPartOverview from "../../../Components/Kubernetes/Part/KubernetesPartOverview";
+import {
+  getKubernetesPodsTab,
+  getKubernetesWorkloadLogsTab,
+} from "../../../Components/Kubernetes/Part/KubernetesPartTabs";
+import useKubernetesPart, {
+  KubernetesPartState,
+} from "../Utils/UseKubernetesPart";
+import {
+  KubernetesPartRoutes,
+  getKubernetesPartRoutes,
+} from "../Utils/KubernetesPartRoutes";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -66,6 +80,8 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         id: modelId,
         select: {
           clusterIdentifier: true,
+          // The hero's link back to the cluster, and the Logs tab's chip.
+          name: true,
         },
       });
       setCluster(item);
@@ -118,6 +134,18 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     description: "Kubernetes events for this node in the last 24 hours.",
     resourceKind: "Node",
   });
+
+  /*
+   * The node as the cluster's rules read it, with the pods scheduled on it:
+   * its hero, what needs attention on it and its Pods tab
+   * (KubernetesPartFacts).
+   */
+  const partState: KubernetesPartState = useKubernetesPart({
+    clusterId: modelId,
+    kind: "Node",
+    name: nodeName,
+  });
+  const routes: KubernetesPartRoutes = getKubernetesPartRoutes(modelId);
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -387,16 +415,32 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesOverviewTab
-          summaryFields={summaryFields}
-          labels={nodeObject?.metadata.labels || {}}
-          annotations={nodeObject?.metadata.annotations || {}}
-          conditions={nodeObject?.status.conditions}
-          isLoading={isLoadingObject}
-        />
+        <KubernetesPartOverview
+          clusterId={modelId}
+          clusterIdentifier={clusterIdentifier}
+          kind="Node"
+          read={partState.read}
+          error={partState.error}
+          routes={routes}
+        >
+          <KubernetesOverviewTab
+            summaryFields={summaryFields}
+            labels={nodeObject?.metadata.labels || {}}
+            annotations={nodeObject?.metadata.annotations || {}}
+            conditions={nodeObject?.status.conditions}
+            isLoading={isLoadingObject}
+          />
+        </KubernetesPartOverview>
       ),
     },
+    getKubernetesPodsTab({ kind: "Node", part: partState, routes: routes }),
     eventsTab,
+    getKubernetesWorkloadLogsTab({
+      kind: "Node",
+      name: nodeName,
+      clusterIdentifier: clusterIdentifier,
+      clusterName: cluster.name,
+    }),
     {
       name: "Metrics",
       children: (
@@ -456,7 +500,22 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * What the node is and how it is doing, in Kubernetes' own words,
+       * above its tabs (KubernetesPartHero).
+       */}
+      <KubernetesPartHero
+        kind="Node"
+        name={nodeName}
+        read={partState.read}
+        clusterName={cluster.name || clusterIdentifier}
+        routes={routes}
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterNodeDetail;

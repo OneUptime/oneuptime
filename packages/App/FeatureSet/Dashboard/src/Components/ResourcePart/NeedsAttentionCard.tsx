@@ -203,8 +203,15 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
                       {isCurrent ? (
                         <></>
                       ) : (
-                        <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                          {tx(item.kind)}
+                        <span
+                          data-testid={`${testId}-kind`}
+                          className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600"
+                        >
+                          {item.kindAsWritten ? (
+                            <bdi>{item.kind}</bdi>
+                          ) : (
+                            tx(item.kind)
+                          )}
                         </span>
                       )}
                       {item.reasons.map(
@@ -227,6 +234,21 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
                         <bdi>
                           <BreakableName text={item.detail} />
                         </bdi>
+                      </p>
+                    ) : (
+                      <></>
+                    )}
+                    {/*
+                     * The resource's own words, as it wrote them: two lines
+                     * at most, the whole of it on hover.
+                     */}
+                    {item.message ? (
+                      <p
+                        data-testid={`${testId}-message`}
+                        title={item.message}
+                        className="mt-1 line-clamp-2 text-xs text-gray-600 [overflow-wrap:anywhere]"
+                      >
+                        <bdi>{item.message}</bdi>
                       </p>
                     ) : (
                       <></>
