@@ -84,7 +84,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` con `"valid": true` significa que OneUptime acepta la clave; `401` significa que es desconocida, está revocada, desactivada o caducada. Después invoca la función. En cuanto envía un span, un registro o una métrica, aparece en **Productos → Infraestructura → Serverless → Todas las funciones**.
+`200` con `"valid": true` significa que OneUptime acepta la clave; `401` significa que es desconocida, está revocada, desactivada o caducada. Después invoca la función. En cuanto envía un span, un registro o una métrica, aparece en **Productos → Nube → Serverless → Todas las funciones**.
 :::
 
 ## Azure Functions
@@ -197,7 +197,7 @@ Un atributo de recurso que empieza por `oneuptime.label.` se convierte en una et
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Para etiquetar funciones o asignar propietarios por sus nombres, abre **Productos → Infraestructura → Serverless** y usa **Reglas de etiquetas** y **Reglas del propietario** en el menú lateral. Las reglas se ejecutan cuando se crea una función, incluidas las descubiertas automáticamente. Para aplicar una regla a las funciones que ya tienes, usa su **Ejecutar ahora** (consulta [Ejecutar reglas sobre recursos existentes](/docs/configuration/run-rules-now)).
+Para etiquetar funciones o asignar propietarios por sus nombres, abre **Productos → Nube → Serverless** y usa **Reglas de etiquetas** y **Reglas del propietario** en el menú lateral. Las reglas se ejecutan cuando se crea una función, incluidas las descubiertas automáticamente. Para aplicar una regla a las funciones que ya tienes, usa su **Ejecutar ahora** (consulta [Ejecutar reglas sobre recursos existentes](/docs/configuration/run-rules-now)).
 
 ## Solución de problemas
 

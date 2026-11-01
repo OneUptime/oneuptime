@@ -84,7 +84,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` con `"valid": true` significa che OneUptime accetta la chiave; `401` significa che è sconosciuta, revocata, disattivata o scaduta. Poi invoca la funzione. Appena invia uno span, un log o una metrica, compare in **Prodotti → Infrastruttura → Serverless → Tutte le funzioni**.
+`200` con `"valid": true` significa che OneUptime accetta la chiave; `401` significa che è sconosciuta, revocata, disattivata o scaduta. Poi invoca la funzione. Appena invia uno span, un log o una metrica, compare in **Prodotti → Cloud → Serverless → Tutte le funzioni**.
 :::
 
 ## Azure Functions
@@ -197,7 +197,7 @@ Un attributo di risorsa che inizia con `oneuptime.label.` diventa un'etichetta d
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Per etichettare le funzioni o assegnare i proprietari in base ai nomi, apri **Prodotti → Infrastruttura → Serverless** e usa **Regole etichette** e **Regole del proprietario** nel menu laterale. Le regole vengono eseguite quando si crea una funzione, comprese quelle rilevate automaticamente. Per applicare una regola alle funzioni che hai già, usa il suo **Esegui ora** (vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now)).
+Per etichettare le funzioni o assegnare i proprietari in base ai nomi, apri **Prodotti → Cloud → Serverless** e usa **Regole etichette** e **Regole del proprietario** nel menu laterale. Le regole vengono eseguite quando si crea una funzione, comprese quelle rilevate automaticamente. Per applicare una regola alle funzioni che hai già, usa il suo **Esegui ora** (vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now)).
 
 ## Risoluzione dei problemi
 

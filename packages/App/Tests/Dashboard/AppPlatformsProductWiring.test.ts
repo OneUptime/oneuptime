@@ -249,7 +249,7 @@ describe("finding the product", () => {
       navigation.indexOf(
         'title: t("navbar.items.appPlatformsTitle", "App Platforms")',
       ),
-      navigation.indexOf('title: t("navbar.items.cloudTitle")'),
+      navigation.indexOf('title: t("navbar.items.serverlessTitle")'),
     );
 
     expect(entry).toContain(
@@ -259,7 +259,21 @@ describe("finding the product", () => {
       "activeRoute: RouteMap[PageMap.APP_PLATFORMS_ROOT]",
     );
     expect(entry).toContain("icon: IconProp.RocketLaunch");
-    expect(entry).toContain("category: infrastructureCategory");
+    /*
+     * In the Products menu's Cloud section, with Cloud before it and
+     * Serverless after it: what a cloud runs for you.
+     */
+    expect(entry).toContain("category: cloudCategory");
+    expect(navigation).toContain(
+      'const cloudCategory: string = t("navbar.categories.cloud", "Cloud");',
+    );
+    expect(
+      navigation.indexOf('title: t("navbar.items.cloudTitle")'),
+    ).toBeLessThan(
+      navigation.indexOf(
+        'title: t("navbar.items.appPlatformsTitle", "App Platforms")',
+      ),
+    );
 
     // The platforms' names find it; "paas" is no longer Cloud's.
     for (const keyword of ["paas", "fargate", "cloud run", "app service"]) {
@@ -270,13 +284,16 @@ describe("finding the product", () => {
   test("Cloud opens on its accounts, and is found by a cloud's words, not a platform's", () => {
     const cloud: string = navigation.slice(
       navigation.indexOf('title: t("navbar.items.cloudTitle")'),
-      navigation.indexOf('title: t("navbar.items.proxmoxTitle", "Proxmox")'),
+      navigation.indexOf(
+        'title: t("navbar.items.appPlatformsTitle", "App Platforms")',
+      ),
     );
 
     expect(cloud).toContain(
       "route: RouteUtil.populateRouteParams(RouteMap[PageMap.CLOUD_ACCOUNTS] as Route)",
     );
     expect(cloud).toContain("activeRoute: RouteMap[PageMap.CLOUD_ROOT]");
+    expect(cloud).toContain("category: cloudCategory");
     expect(cloud).not.toContain('"paas"');
   });
 
