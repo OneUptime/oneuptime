@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39461,
-    "untranslated": 7472
+    "keys": 39489,
+    "untranslated": 7471
   },
   "sameAsEnglish": [
     " incidents",
@@ -420,6 +420,8 @@
     "Type",
     "UTC",
     "Up · In",
+    "Uplink",
+    "Uplink {{uplink}}",
     "Uplinks",
     "VLAN",
     "VM",
@@ -495,6 +497,7 @@
     "{{count}} actions",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} client",
     "{{count}} cluster",
     "{{count}} clusters",
     "{{count}} datacenter",
@@ -503,6 +506,7 @@
     "{{count}} datastores",
     "{{count}} exception",
     "{{count}} exceptions",
+    "{{count}} flow",
     "{{count}} incident",
     "{{count}} incidents",
     "{{count}} minute",
