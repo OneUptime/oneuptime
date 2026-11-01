@@ -184,12 +184,13 @@ const ROWS = [
 /*
  * A feed's owner and its last poll's summary: an English name and an
  * English sentence, each longer than its column, which cuts them short.
+ * The owners have no id, so each is drawn with the blank picture the
+ * fixture serves rather than one from a server it does not have.
  */
 const FEED_ROWS = [
   {
     _id: "row-feed-1",
     owner: {
-      _id: "44000000-0000-4000-8000-000000000011",
       name: "José Ignacio Negro de la Vega Fernández de Córdoba",
       email: "jose.ignacio.negro@acme-commerce.example",
     },
@@ -199,7 +200,6 @@ const FEED_ROWS = [
   {
     _id: "row-feed-2",
     owner: {
-      _id: "44000000-0000-4000-8000-000000000012",
       name: "سارا احمدی",
       email: "sara@acme-commerce.example",
     },
@@ -242,7 +242,9 @@ const FLOW_NODES = [
   },
 ];
 
-const FLOW_EDGES = [{ id: "payments-checkout", source: "payments", target: "checkout" }];
+const FLOW_EDGES = [
+  { id: "payments-checkout", source: "payments", target: "checkout" },
+];
 
 const COLUMNS = [
   { title: "Name", type: FieldType.Text, key: "name" },
@@ -453,7 +455,7 @@ function Page() {
        */}
       <Section name="people">
         <div style={{ width: `${tableWidth}px` }}>
-          <Card title="Feeds" description="Where the indicators come from.">
+          <Card title="Threat Intel Feeds">
             <Table
               id="reading-direction-people"
               data={FEED_ROWS}

@@ -867,20 +867,26 @@ test.describe("what a page says back", () => {
     expect(Math.abs(stop.right - line.right)).toBeLessThan(2);
   });
 
-  test("fa: a check in the page's own words reads right to left", async ({
+  test("fa: a check in the page's own words is drawn as it always was, right to left", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, "lang=fa");
 
-    const words: Locator = page
-      .getByTestId("error-check-field")
-      .getByTestId("error-message")
-      .locator("bdi");
+    const field: Locator = page.getByTestId("error-check-field");
+    const line: Locator = field.getByTestId("error-message");
 
-    expect(await words.getAttribute("dir")).toBe("rtl");
-    expect(await words.textContent()).toBe("توضیحات الزامی است");
+    // The page's own words need no isolate: the line reads the page's way.
+    await expect(line).toHaveText("توضیحات الزامی است");
+    await expect(line.locator("bdi")).toHaveCount(0);
+    expect(await styleOf(line, "direction")).toBe("rtl");
+
+    // Under the field, starting at its right as the page's lines do.
+    const input: Box = await boxOf(field.locator("input"));
+    const first: Box = await boxOfText(line, "توضیحات");
+
+    expect(Math.abs(input.right - first.right)).toBeLessThan(2);
   });
 
   test("fa: a form's English error reads left to right, its full stop at its end", async ({
@@ -934,7 +940,7 @@ test.describe("what a page says back", () => {
     }
   });
 
-  test("en: an error reads as it always did, from the field's left", async ({
+  test("en: an error is drawn as it always was, from the field's left", async ({
     page,
   }: {
     page: Page;
@@ -942,14 +948,19 @@ test.describe("what a page says back", () => {
     await open(page, "lang=en");
 
     const field: Locator = page.getByTestId("error-server-field");
-    const words: Locator = field.getByTestId("error-message").locator("bdi");
+    const line: Locator = field.getByTestId("error-message");
 
-    expect(await words.getAttribute("dir")).toBe("ltr");
+    // English on an English page: no isolate, the same line as before.
+    await expect(line).toHaveText("Promo code is invalid.");
+    await expect(line.locator("bdi")).toHaveCount(0);
+    expect(await styleOf(line, "direction")).toBe("ltr");
 
     const input: Box = await boxOf(field.locator("input"));
-    const line: Box = await boxOf(words);
+    const first: Box = await boxOfText(line, "Promo");
+    const stop: Box = await boxOfText(line, ".");
 
-    expect(Math.abs(input.left - line.left)).toBeLessThan(2);
+    expect(Math.abs(input.left - first.left)).toBeLessThan(2);
+    expect(stop.left).toBeGreaterThan(first.right);
   });
 });
 
