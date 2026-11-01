@@ -39,7 +39,7 @@ export const KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT: string =
   "https://10.0.0.10:10257/metrics";
 
 /*
- * Where the cluster runs. The chart only distinguishes four presets
+ * Where the cluster runs. The chart only distinguishes a few presets
  * (KubernetesAgentPreset); the guide offers the managed services by name
  * because that is how people know their cluster, and because connecting
  * kubectl to each one is a different command.
@@ -53,7 +53,13 @@ export type KubernetesPlatform =
   | "gke-autopilot"
   | "eks-fargate";
 
-// The chart's `preset` value (HelmChart/Public/kubernetes-agent/values.yaml).
+/*
+ * The chart's `preset` values the guide installs with
+ * (HelmChart/Public/kubernetes-agent/values.yaml). openshift-restricted is
+ * not a platform of its own: `openshift` is the one to install on OpenShift,
+ * and the OpenShift troubleshooting names it for an admin who will not add
+ * SCCs.
+ */
 export type KubernetesAgentPreset =
   | "standard"
   | "gke-autopilot"
@@ -795,7 +801,10 @@ ${codeBlock("bash", `kubectl get events -n ${namespace} --field-selector reason=
 ${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set preset=openshift"]))}
 
 - **The SCCs are missing:** check with \`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\`. Creating them takes cluster-admin rights, so an install by anyone else fails when it gets to them.
-- **\`violates PodSecurity\`:** the namespace's Pod Security level is stricter than the eBPF pods, which run privileged, need. Label it \`pod-security.kubernetes.io/enforce=privileged\`, or turn eBPF off with \`--set ebpf.enabled=false\`.`,
+- **\`violates PodSecurity\`:** the namespace's Pod Security level is stricter than the eBPF pods, which run privileged, need. Label it \`pod-security.kubernetes.io/enforce=privileged\`, or turn eBPF off with \`--set ebpf.enabled=false\`.
+- **Your cluster admin will not add SCCs:** use the \`openshift-restricted\` preset. The chart then creates no SCC and every pod runs under \`restricted-v2\`, so pod logs come through the Kubernetes API, and there are no host metrics, eBPF traces or profiles:
+
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set preset=openshift-restricted"]))}`,
     });
   } else if (!isRestrictedPlatform(platform)) {
     topics.push({

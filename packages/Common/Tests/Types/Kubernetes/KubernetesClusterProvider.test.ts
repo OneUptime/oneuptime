@@ -4,6 +4,7 @@ import {
   KUBERNETES_DISTRIBUTION_PROVIDERS,
   getKubernetesClusterProvider,
   getKubernetesClusterProviderLabel,
+  isOpenShiftClusterProvider,
 } from "../../../Types/Kubernetes/KubernetesClusterProvider";
 import {
   CLOUD_PLATFORM_ALIASES,
@@ -327,6 +328,52 @@ describe("the label tables", () => {
       expect(label.length).toBeLessThanOrEqual(20);
       expect(label).toBe(label.trim());
     }
+  });
+});
+
+/*
+ * What the stored value is, not what the distribution attribute is: ingest
+ * stores the label, "OpenShift", so a page asking `provider === "openshift"`
+ * would never match.
+ */
+describe("isOpenShiftClusterProvider", () => {
+  test("is true of what ingest stores for an OpenShift cluster, every way it gets there", () => {
+    for (const provider of [
+      getKubernetesClusterProvider({ distribution: "openshift" }),
+      getKubernetesClusterProvider({ cloudPlatform: "aws_openshift" }),
+      getKubernetesClusterProvider({ cloudPlatform: "azure_openshift" }),
+      getKubernetesClusterProvider({ cloudPlatform: "gcp_openshift" }),
+      getKubernetesClusterProvider({ cloudPlatform: "ibm_cloud_openshift" }),
+    ]) {
+      expect(provider).toBe("OpenShift");
+      expect(isOpenShiftClusterProvider(provider)).toBe(true);
+    }
+  });
+
+  test.each(["OpenShift", "openshift", "OPENSHIFT", " OpenShift "])(
+    "reads %j, whatever its case",
+    (provider: string) => {
+      expect(isOpenShiftClusterProvider(provider)).toBe(true);
+    },
+  );
+
+  test.each([
+    ...Object.values(KUBERNETES_CLOUD_PLATFORM_PROVIDERS).filter(
+      (label: string): boolean => {
+        return label !== "OpenShift";
+      },
+    ),
+    "unknown",
+    "",
+    "OpenShift on AWS",
+    "not-openshift",
+  ])("is false of %j", (provider: string) => {
+    expect(isOpenShiftClusterProvider(provider)).toBe(false);
+  });
+
+  test("is false with no provider at all", () => {
+    expect(isOpenShiftClusterProvider(null)).toBe(false);
+    expect(isOpenShiftClusterProvider(undefined)).toBe(false);
   });
 });
 

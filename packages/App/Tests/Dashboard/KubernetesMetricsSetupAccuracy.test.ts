@@ -5,12 +5,15 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import {
   CLUSTER_NAME_PLACEHOLDER,
   getAllKubernetesMetricsSetups,
+  getKubernetesMetricsSetup,
   getKubernetesMetricsSetupCommand,
+  getOpenShiftKubernetesMetricsSetups,
   IN_CLUSTER_API_SERVER_METRICS_URL,
   KUBERNETES_AGENT_DOCS_ROUTE,
   KUBERNETES_CLUSTER_NAME_ATTRIBUTE,
   KubernetesMetricsSetup,
   KubernetesMetricsSource,
+  OPENSHIFT_ETCD_CLIENT_CERT_SECRET,
 } from "../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesMetricsSetup";
 import {
   KUBERNETES_AGENT_HELM_NAMESPACE,
@@ -467,6 +470,221 @@ describe("the commands", () => {
   );
 });
 
+/*
+ * On an OpenShift cluster the chart's presets find the scheduler, the
+ * controller manager and etcd through service discovery, so a hint that says
+ * to list node addresses is wrong. KubernetesCluster.provider says which
+ * cluster it is: the label "OpenShift", which is what ingest stores.
+ */
+describe("the hints on an OpenShift cluster", () => {
+  const OPENSHIFT: string = "OpenShift";
+  const HELPERS: string = fs.readFileSync(
+    path.join(CHART_DIR, "templates/_helpers.tpl"),
+    "utf8",
+  );
+  const OPENSHIFT_ROWS: Array<[string, KubernetesMetricsSetup]> =
+    getOpenShiftKubernetesMetricsSetups().map(
+      (setup: KubernetesMetricsSetup): [string, KubernetesMetricsSetup] => {
+        return [setup.source, setup];
+      },
+    );
+
+  test("are the scheduler's, the controller manager's and etcd's, and no other tab's", () => {
+    const sources: Array<KubernetesMetricsSource> = [
+      KubernetesMetricsSource.Etcd,
+      KubernetesMetricsSource.Scheduler,
+      KubernetesMetricsSource.ControllerManager,
+    ];
+
+    expect(
+      getOpenShiftKubernetesMetricsSetups()
+        .map((setup: KubernetesMetricsSetup): string => {
+          return setup.source;
+        })
+        .sort(),
+    ).toEqual([...sources].sort());
+
+    for (const source of Object.values(KubernetesMetricsSource)) {
+      const onOpenShift: KubernetesMetricsSetup = getKubernetesMetricsSetup(
+        source,
+        OPENSHIFT,
+      );
+
+      expect({ source, differs: onOpenShift !== setupOf(source) }).toEqual({
+        source,
+        differs: sources.includes(source),
+      });
+    }
+  });
+
+  test.each(OPENSHIFT_ROWS)(
+    "%s: keeps its heading and docs section, and is what a provider of any case gets",
+    (_source: string, setup: KubernetesMetricsSetup) => {
+      expect(setup.title).toBe(setupOf(setup.source).title);
+      expect(setup.docsRoute).toBe(setupOf(setup.source).docsRoute);
+
+      for (const provider of ["OpenShift", "openshift", "OPENSHIFT"]) {
+        expect(getKubernetesMetricsSetup(setup.source, provider)).toBe(setup);
+      }
+    },
+  );
+
+  test.each([undefined, null, "", "unknown", "EKS", "GKE", "AKS"])(
+    "a provider of %j keeps the hints that list addresses",
+    (provider: string | null | undefined) => {
+      for (const setup of getOpenShiftKubernetesMetricsSetups()) {
+        expect(getKubernetesMetricsSetup(setup.source, provider)).toBe(
+          setupOf(setup.source),
+        );
+      }
+    },
+  );
+
+  test.each(OPENSHIFT_ROWS)(
+    "%s: asks for no address, and says what a hosted control plane does",
+    (_source: string, setup: KubernetesMetricsSetup) => {
+      expect(setup.description).not.toContain("{{endpoints}}");
+      expect(Object.values(setup.code).join(" ")).not.toContain("endpoints");
+      expect(setup.description).not.toContain("EKS");
+      expect(setup.description).toContain(
+        "A hosted control plane, such as ROSA with HCP",
+      );
+      expect(setup.description).toContain("so this stays empty there.");
+    },
+  );
+
+  test.each(OPENSHIFT_ROWS)(
+    "%s: every value it names and every --set flag it gives is in the chart's schema",
+    (_source: string, setup: KubernetesMetricsSetup) => {
+      for (const helmPath of helmValuesNamed(setup)) {
+        expect({ helmPath, inSchema: Boolean(schemaAt(helmPath)) }).toEqual({
+          helmPath,
+          inSchema: true,
+        });
+      }
+
+      for (const flag of setup.helmFlags) {
+        const { key, value }: SetFlag = parseFlag(flag);
+        const node: SchemaNode | undefined = schemaAt(key);
+
+        expect({ key, inSchema: Boolean(node) }).toEqual({
+          key,
+          inSchema: true,
+        });
+
+        if (node!.type === "boolean") {
+          expect(value).toBe("true");
+        } else {
+          expect(node!.type).toBe("string");
+        }
+      }
+
+      expect(setup.helmFlags).toContain(`--set ${setup.code["enabled"]}=true`);
+    },
+  );
+
+  test("the chart finds the scheduler and the controller manager on both OpenShift presets, with controlPlane.enabled alone", () => {
+    expect(HELPERS).toContain(
+      '{{- if or (eq $preset "openshift") (eq $preset "openshift-restricted") -}}',
+    );
+    expect(HELPERS).toContain(
+      '{{- $discoverable := has .component (list "scheduler" "controllerManager") -}}',
+    );
+    expect(HELPERS).toContain(
+      '{{- if and $controlPlane.enabled (eq (include "kubernetes-agent.openshift" .root) "true") $discoverable (not $values.endpoints) -}}',
+    );
+
+    for (const [component, job] of [
+      ["scheduler", "kube-scheduler"],
+      ["controllerManager", "kube-controller-manager"],
+    ] as Array<[string, string]>) {
+      const block: string = blockAfter(
+        `{{- with .Values.controlPlane.${component} }}`,
+      );
+
+      expect(block).toContain(
+        `(dict "root" $ "component" "${component}")) "true" }}`,
+      );
+      expect(block.split(`- job_name: ${job}`).length - 1).toBe(2);
+      expect(block).toContain("kubernetes-agent.controlPlaneDiscoveryConfig");
+    }
+  });
+
+  test("etcd's hint makes the Secret the chart reads, with the keys it reads, and the upgrade that names it", () => {
+    const command: string = getKubernetesMetricsSetupCommand(
+      KubernetesMetricsSource.Etcd,
+      OPENSHIFT,
+    )!;
+    const lines: Array<string> = command.split("\n");
+
+    // Red Hat's own: the ServiceMonitor in cluster-etcd-operator reads these.
+    expect(lines[0]).toBe(
+      "oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm",
+    );
+    expect(lines[1]).toBe(
+      "oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm",
+    );
+
+    // The three keys templates/configmap-deployment.yaml reads.
+    for (const key of ["ca.crt", "tls.crt", "tls.key"]) {
+      expect(command).toContain(`--from-file=${key}=etcd-cert/`);
+
+      expect(blockAfter("{{- with .Values.controlPlane.etcd }}")).toContain(
+        `/etc/oneuptime/etcd-client-cert/${key}`,
+      );
+    }
+    expect(command).toContain("--from-file=ca.crt=etcd-cert/ca-bundle.crt");
+    expect(command).toContain(
+      `--namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\`,
+    );
+    expect(command).toContain(
+      `oc create secret generic ${OPENSHIFT_ETCD_CLIENT_CERT_SECRET} \\`,
+    );
+
+    // The key material does not stay on disk.
+    expect(command).toContain("\nrm -r etcd-cert\n");
+
+    // A complete upgrade of the installed agent, last.
+    expect(command.indexOf("rm -r etcd-cert")).toBeLessThan(
+      command.indexOf("helm upgrade"),
+    );
+    expect(lines[lines.length - 1]).toBe(
+      `  --set controlPlane.etcd.clientCertSecret=${OPENSHIFT_ETCD_CLIENT_CERT_SECRET}`,
+    );
+  });
+
+  test("the chart gives etcd its job only with that Secret, on the port the hint's certificate opens", () => {
+    expect(HELPERS).toContain(
+      '{{- if eq .component "etcd" -}}\n{{- $discoverable = not (empty $values.clientCertSecret) -}}',
+    );
+    expect(blockAfter("{{- with .Values.controlPlane.etcd }}")).toContain(
+      '(dict "namespace" "openshift-etcd" "service" "etcd" "port" "etcd-metrics")',
+    );
+  });
+
+  test("the commands the hints give are the docs'", () => {
+    const section: string = docsSection("Enable Control Plane Monitoring");
+
+    expect(section).toContain(
+      getKubernetesMetricsSetupCommand(
+        KubernetesMetricsSource.Etcd,
+        OPENSHIFT,
+      )!,
+    );
+    expect(section).toContain("`--set controlPlane.enabled=true`");
+  });
+
+  test("the page hands the cluster's provider to the hint", () => {
+    const page: string = fs.readFileSync(
+      path.join(DASHBOARD_PAGES_DIR, "ControlPlane.tsx"),
+      "utf8",
+    );
+
+    expect(page).toContain("provider: true,");
+    expect(page).toContain("clusterProvider={cluster.provider}");
+  });
+});
+
 describe("the docs each hint links to", () => {
   const HEADINGS: Array<string> = DOCS.split("\n")
     .filter((line: string): boolean => {
@@ -527,6 +745,11 @@ describe("the docs each hint links to", () => {
     expect(section).toContain("`controlPlane.etcd.clientCertSecret`");
     expect(section).toContain("`--bind-address`");
     expect(section).not.toContain("https://localhost");
+
+    // The line about managed services stays true beside OpenShift's paragraph.
+    expect(section).toContain(
+      "Managed Kubernetes services (EKS, GKE, AKS) do not expose etcd, the scheduler or the controller manager",
+    );
   });
 
   test("the CoreDNS section gives the hint's command and names its settings", () => {
