@@ -210,6 +210,68 @@ describe("monitorTrace", () => {
   });
 });
 
+describe("where a log or span check says its window ended", () => {
+  const heldBack: Date = new Date("2026-11-02T09:40:00.000Z");
+
+  test("a log check held back by the ingest queue says where to", async () => {
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+      evaluateUntil: heldBack,
+    });
+
+    expect(response.evaluatedUntil).toBe(heldBack);
+  });
+
+  test("a span check held back by the ingest queue says where to", async () => {
+    const response: TraceMonitorResponse = await monitorTrace({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+      evaluateUntil: heldBack,
+    });
+
+    expect(response.evaluatedUntil).toBe(heldBack);
+  });
+
+  test("the window a log check counts is the one it says", async () => {
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    const counted: JSONObject = (
+      (LogService.countBy as unknown as jest.Mock).mock.calls.at(
+        -1,
+      ) as Array<JSONObject>
+    )[0]!;
+
+    expect(
+      (counted["query"] as { time: InBetween<Date> }).time.endValue,
+    ).toBe(response.evaluatedUntil);
+  });
+
+  test("the window a span check counts is the one it says", async () => {
+    const response: TraceMonitorResponse = await monitorTrace({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    const counted: JSONObject = (
+      (SpanService.countBy as unknown as jest.Mock).mock.calls.at(
+        -1,
+      ) as Array<JSONObject>
+    )[0]!;
+
+    expect(
+      (counted["query"] as { startTime: InBetween<Date> }).startTime.endValue,
+    ).toBe(response.evaluatedUntil);
+  });
+});
+
 describe("monitorException", () => {
   test("falls back to the default query when exceptionMonitor config is missing", async () => {
     exceptionCountBy.mockResolvedValue(new PositiveNumber(3));

@@ -1540,9 +1540,13 @@ export const monitorTrace: MonitorTraceFunction = async (data: {
     data.monitorStep.data?.traceMonitor ||
     MonitorStepTraceMonitorUtil.getDefault();
 
+  // One clock read: the window counted is the window an anomaly compares.
+  const evaluateUntil: Date =
+    data.evaluateUntil || OneUptimeDate.getCurrentDate();
+
   const query: Query<Log> = MonitorStepTraceMonitorUtil.toQuery(
     traceQuery,
-    data.evaluateUntil,
+    evaluateUntil,
   );
 
   query.projectId = data.projectId;
@@ -1561,6 +1565,7 @@ export const monitorTrace: MonitorTraceFunction = async (data: {
     spanCount: countTraces.toNumber(),
     spanQuery: query,
     monitorId: data.monitorId,
+    evaluatedUntil: evaluateUntil,
   };
 };
 
@@ -4197,9 +4202,13 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
   const logQuery: MonitorStepLogMonitor =
     data.monitorStep.data?.logMonitor || MonitorStepLogMonitorUtil.getDefault();
 
+  // One clock read: the window counted is the window an anomaly compares.
+  const evaluateUntil: Date =
+    data.evaluateUntil || OneUptimeDate.getCurrentDate();
+
   const query: Query<Log> = MonitorStepLogMonitorUtil.toQuery(
     logQuery,
-    data.evaluateUntil,
+    evaluateUntil,
   );
   query.projectId = data.projectId;
 
@@ -4250,6 +4259,7 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
     logCount: countLogs.toNumber(),
     logQuery: JSONFunctions.anyObjectToJSONObject(query),
     monitorId: data.monitorId,
+    evaluatedUntil: evaluateUntil,
   };
 };
 

@@ -1514,7 +1514,8 @@ describe("criteria", () => {
       "projectId",
       "telemetryServiceIds",
       "severityTexts",
-      "hourOfWeek",
+      "windowEnd",
+      "windowSeconds",
       "windowDays",
       "minSamples",
     ]);
@@ -1524,7 +1525,8 @@ describe("criteria", () => {
       "projectId",
       "telemetryServiceIds",
       "spanStatusCodes",
-      "hourOfWeek",
+      "windowEnd",
+      "windowSeconds",
       "windowDays",
       "minSamples",
     ]);

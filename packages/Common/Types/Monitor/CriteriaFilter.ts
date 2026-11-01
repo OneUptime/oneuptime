@@ -393,7 +393,7 @@ export interface MetricAnomalyDetectionOptions {
    */
   sigmaCount?: number | undefined;
   /**
-   * Exception counts only: the fewest exceptions a window needs to read as
+   * Log, span and exception counts: the fewest a window needs to read as
    * unusually high, in place of what the sensitivity sets, so a quiet
    * service does not alert on its first few.
    */
