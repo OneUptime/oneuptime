@@ -2,12 +2,14 @@ import Modal, { ModalWidth } from "../Modal/Modal";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "../Button/Button";
+import { LicenseDetailsComponent, LicenseSnapshot } from "./LicenseDetails";
+import { subscribeToLicenseChanged } from "./LicenseEvents";
 import {
-  LicenseManagerComponent,
-  LicenseManagerDialogParts,
-  LicenseSnapshot,
+  getLicenseSeatUsage,
+  LicenseSeatUsage,
   SeatTone,
-} from "./LicenseManager";
+} from "./LicenseSeatUsage";
+import { getLicenseSettingsPageUrl } from "./LicenseSettingsPage";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -36,6 +38,7 @@ import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
 } from "../../../Types/EnterpriseLicense/EnterpriseLicensePeriods";
+import Navigation from "../../Utils/Navigation";
 import UserUtil from "../../Utils/User";
 import CloudMarketplace, {
   CloudMarketplaceUtil,
@@ -61,19 +64,21 @@ import UpdateStatusUtil, {
 /*
  * The edition pill and its dialog. This component only READS the license
  * (GET /global-config/license): the pill, the status notices and the version
- * card. Activating, refreshing and replacing a license, and the seat usage and
- * instance tables, are the Enterprise Edition's license manager (see
- * ./LicenseManager.ts), which the Dashboard and the Admin Dashboard pass in.
+ * card, for whoever opens it. The seat usage and instance tables are the
+ * Enterprise Edition's license details (see ./LicenseDetails.ts), which the
+ * Dashboard and the Admin Dashboard pass in. Activating, refreshing and
+ * replacing a license are done on Settings > License in the Admin Dashboard,
+ * and the dialog's one action takes a master admin there.
  */
 export interface ComponentProps {
   className?: string | undefined;
   /*
-   * The Enterprise plugin's LicenseManager, read from the plugin door inside
+   * The Enterprise plugin's LicenseDetails, read from the plugin door inside
    * the caller's render (never at module load). Undefined in the Community
    * Edition and on the login page: the dialog then shows the license status
    * only.
    */
-  licenseManager?: LicenseManagerComponent | undefined;
+  licenseDetails?: LicenseDetailsComponent | undefined;
 }
 
 const ENTERPRISE_URL: string = "https://oneuptime.com/enterprise/demo";
@@ -163,13 +168,6 @@ const parseLicenseStatus: ParseLicenseStatusFunction = (
   return null;
 };
 
-/*
- * Seat usage at or above this percent asks the admin to talk to OneUptime about
- * expanding. Matches CRITICAL_CAPACITY_PERCENT in
- * App/FeatureSet/Workers/Jobs/InstanceHealth/EvaluateClickhouseCapacity.ts.
- */
-const SEAT_WARNING_PERCENT: number = 90;
-
 type PillTone = "normal" | "warning" | "alerted";
 
 const EditionLabel: FunctionComponent<ComponentProps> = (
@@ -180,7 +178,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   const [globalConfig, setGlobalConfig] = useState<GlobalConfig | null>(null);
   /*
    * The last successful license GET, as the server sent it. Handed to the
-   * license manager, which reads its own fields (the instances, the
+   * license details, which read their own fields (the instances, the
    * activation mode) from it.
    */
   const [licensePayload, setLicensePayload] = useState<JSONObject | null>(null);
@@ -257,13 +255,13 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   }, []);
 
   /*
-   * The Enterprise Edition's license manager, when the caller passed one (the
+   * The Enterprise Edition's license details, when the caller passed them (the
    * Dashboard and the Admin Dashboard of the Enterprise image do). Never on
    * the Community Edition, whatever the bundle holds: there is no license to
    * manage there.
    */
-  const LicenseManager: LicenseManagerComponent | undefined =
-    IS_ENTERPRISE_EDITION ? props.licenseManager : undefined;
+  const LicenseDetails: LicenseDetailsComponent | undefined =
+    IS_ENTERPRISE_EDITION ? props.licenseDetails : undefined;
 
   /*
    * Activating, replacing and refreshing the license are master-admin actions:
@@ -271,15 +269,16 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
    * enforces against, so being able to rewrite it is being able to raise the
    * ceiling on the whole installation. The server enforces this
    * (MasterAdminAuthorization on both POSTs, and it answers everybody else
-   * with the edition pill's fields only); hiding the controls just stops
-   * everyone else being offered a button that can only fail.
+   * with the edition pill's fields only). The dialog never writes the license
+   * for anybody: this only decides who is sent to the page that does, and who
+   * is told to ask a master admin instead.
    *
-   * It also takes a license manager to manage the license with. The login
-   * page (where a signed-out visitor sees the same pill) and a Community
-   * build pass none, and telling somebody to "add a license below" there
-   * would point at nothing.
+   * It also takes the Enterprise frontend the page ships in. The login page
+   * (where a signed-out visitor sees the same pill) and a Community build pass
+   * no details, and sending somebody to the license page there would point at
+   * nothing.
    */
-  const canManageLicense: boolean = isMasterAdmin && Boolean(LicenseManager);
+  const canManageLicense: boolean = isMasterAdmin && Boolean(LicenseDetails);
 
   /*
    * The server says it was asked for the Enterprise Edition
@@ -293,9 +292,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     env("ENTERPRISE_EDITION_REQUESTED_BUT_NOT_LOADED") === "true";
 
   /*
-   * The license GET and the license manager's writes answer with the same
-   * seat fields, so every response is unpacked in one place (the manager
-   * calls this through applySeatEnforcement).
    * isSeatLimitEnforced is what tells "this installation does not enforce a
    * seat limit" apart from "this build did not report one" - without it, an
    * older server's silence would read as a limit of zero.
@@ -478,6 +474,17 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     }
 
     void fetchGlobalConfig();
+  }, [fetchGlobalConfig]);
+
+  /*
+   * The Admin Dashboard's license page changed the license: this pill sits in
+   * the header above it, and reads the license again rather than keep saying
+   * what it said when the page loaded.
+   */
+  useEffect(() => {
+    return subscribeToLicenseChanged((): void => {
+      void fetchGlobalConfig();
+    });
   }, [fetchGlobalConfig]);
 
   const licenseValid: boolean = useMemo(() => {
@@ -766,120 +773,28 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       : null;
   }, [globalConfig?.enterpriseLicenseCurrentUserCount]);
 
-  /*
-   * The seat figure everything below is measured against.
-   *
-   * currentUserCount is what oneuptime.com last computed across every instance
-   * on this license, which is up to a day old. On an installation that
-   * enforces a seat limit the server also sends seatsInUse: the same
-   * cross-instance figure reconciled with the live User table here, and the
-   * number invitations are actually refused on. Showing anything else would
-   * leave the card reading "98 of 100" next to an invitation that had just
-   * bounced.
-   */
-  const effectiveUserCount: number | null = useMemo(() => {
-    if (isSeatLimitEnforced && typeof enforcedSeatsInUse === "number") {
-      return enforcedSeatsInUse;
-    }
-
-    return currentUserCount;
-  }, [isSeatLimitEnforced, enforcedSeatsInUse, currentUserCount]);
-
-  const isUserLimitBreached: boolean = useMemo(() => {
-    if (!licenseValid) {
-      return false;
-    }
-
-    if (typeof userLimit !== "number" || userLimit <= 0) {
-      return false;
-    }
-
-    if (typeof effectiveUserCount !== "number") {
-      return false;
-    }
-
-    return effectiveUserCount > userLimit;
-  }, [licenseValid, userLimit, effectiveUserCount]);
-
-  /*
-   * Unclamped and unrounded. The only value that can tell 120/120 apart from
-   * 240/120. Null means there is no seat limit to measure against, either
-   * because the license is unlimited or because usage has not been reported.
-   */
-  const rawUserUsagePercent: number | null = useMemo(() => {
-    if (typeof userLimit !== "number" || userLimit <= 0) {
-      return null;
-    }
-
-    if (typeof effectiveUserCount !== "number") {
-      return null;
-    }
-
-    return Math.max(0, (effectiveUserCount / userLimit) * 100);
-  }, [userLimit, effectiveUserCount]);
-
-  /*
-   * The percent the admin reads, and the one the warning fires on. May exceed
-   * 100 so a breach shows a real figure. Floored to 99 when rounding would
-   * claim 100% while a seat is genuinely free, so 599/600 never reads
-   * "100% of licensed seats in use" next to "1 seat remaining".
-   */
-  const seatUsageDisplayPercent: number | null = useMemo(() => {
-    if (rawUserUsagePercent === null) {
-      return null;
-    }
-
-    const rounded: number = Math.round(rawUserUsagePercent);
-
-    if (rounded >= 100 && rawUserUsagePercent < 100) {
-      return 99;
-    }
-
-    return rounded;
-  }, [rawUserUsagePercent]);
-
-  /*
-   * Total and mutually exclusive. isUserLimitBreached is tested first, so
-   * reaching the >= 90 test structurally guarantees the limit is not exceeded
-   * and the amber nudge can never co-fire with the red breach.
-   *
-   * The test runs on the displayed percent rather than the raw ratio so that
-   * the number triggering the warning is the number printed under the bar.
-   */
-  const seatTone: SeatTone = useMemo(() => {
-    if (!licenseValid) {
-      return "healthy";
-    }
-
-    if (isUserLimitBreached) {
-      return "breached";
-    }
-
-    /*
-     * Exactly at the limit is not over it, but it is the point where the
-     * installation starts refusing new users - so it gets the red treatment
-     * rather than the amber "nearly full" nudge, which would understate a
-     * door that is already shut.
-     */
-    if (isSeatLimitEnforced && !canAddMoreUsers) {
-      return "breached";
-    }
-
-    if (
-      typeof seatUsageDisplayPercent === "number" &&
-      seatUsageDisplayPercent >= SEAT_WARNING_PERCENT
-    ) {
-      return "approaching";
-    }
-
-    return "healthy";
+  const seatUsage: LicenseSeatUsage = useMemo(() => {
+    return getLicenseSeatUsage({
+      licenseValid: licenseValid,
+      userLimit: userLimit,
+      currentUserCount: currentUserCount,
+      isSeatLimitEnforced: isSeatLimitEnforced,
+      enforcedSeatsInUse: enforcedSeatsInUse,
+      canAddMoreUsers: canAddMoreUsers,
+    });
   }, [
     licenseValid,
-    isUserLimitBreached,
+    userLimit,
+    currentUserCount,
     isSeatLimitEnforced,
+    enforcedSeatsInUse,
     canAddMoreUsers,
-    seatUsageDisplayPercent,
   ]);
+
+  const effectiveUserCount: number | null = seatUsage.effectiveUserCount;
+  const seatUsageDisplayPercent: number | null =
+    seatUsage.seatUsageDisplayPercent;
+  const seatTone: SeatTone = seatUsage.seatTone;
 
   // In the reader's language: the pill, the dialog title and the pill's name.
   const editionName: string = ((): string => {
@@ -954,6 +869,21 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       return translationKey("Checking");
     }
 
+    /*
+     * Every label below asks for something only a master admin can do. The
+     * same pill is in everybody's footer, and on the login page: nobody else
+     * is told to "Add license" and then shown that they cannot.
+     */
+    if (
+      !canManageLicense &&
+      (!licenseValid ||
+        isUnlicensedTrial ||
+        isExpiredGrace ||
+        isMarketplaceReportingGrace)
+    ) {
+      return translationKey("View details");
+    }
+
     if (isUnlicensedTrial) {
       return translationKey("Add license");
     }
@@ -1001,6 +931,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     isMarketplaceReportingGrace,
     licenseMarketplace,
     showEditionMismatchNotice,
+    canManageLicense,
   ]);
 
   const pillTone: PillTone = useMemo(() => {
@@ -1131,10 +1062,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     ];
   }, []);
 
-  /*
-   * The license manager clears its own messages (and abandons a license
-   * change in progress) when the dialog opens or closes.
-   */
   const openDialog: () => void = () => {
     setIsDialogOpen(true);
 
@@ -1160,6 +1087,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     closeDialog();
   };
 
+  // The dialog's one action: where a master admin changes the license.
+  const handleManageLicense: () => void = () => {
+    closeDialog();
+    Navigation.navigate(getLicenseSettingsPageUrl());
+  };
+
   const handleRetryFetch: () => void = () => {
     if (!isConfigLoading) {
       void fetchGlobalConfig();
@@ -1179,8 +1112,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   /*
    * Collapses the !configError && !isConfigLoading && licenseValid chain that
-   * gates the stat strip here, and the license manager's seat card, instances
-   * card and footer actions.
+   * gates the stat strip here, and the license details' seat and instances
+   * cards.
    */
   const showLicenseDetails: boolean =
     IS_ENTERPRISE_EDITION &&
@@ -1728,8 +1661,8 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
             {translator.translateText(
               canManageLicense
                 ? hasLicenseInstalled
-                  ? "Re-activate the license below before the trial ends, or let the daily license sync fetch its expiry from OneUptime, to keep SCIM provisioning and audit logging running and enterprise configuration editable."
-                  : "Add a license below before the trial ends to keep SCIM provisioning and audit logging running and enterprise configuration editable."
+                  ? "Re-activate the license in the Admin Dashboard before the trial ends, or let the daily license sync fetch its expiry from OneUptime, to keep SCIM provisioning and audit logging running and enterprise configuration editable."
+                  : "Add a license in the Admin Dashboard before the trial ends to keep SCIM provisioning and audit logging running and enterprise configuration editable."
                 : hasLicenseInstalled
                   ? "Ask a master admin of this installation to re-activate the license."
                   : "Ask a master admin of this installation to add a license.",
@@ -1778,7 +1711,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           <p className="mt-2 text-xs leading-relaxed text-amber-800">
             {translator.translateText(
               canManageLicense
-                ? "Renew the license with OneUptime, then refresh it here."
+                ? "Renew the license with OneUptime, then refresh it in the Admin Dashboard."
                 : "Ask a master admin of this installation to renew the license.",
             )}
           </p>
@@ -1884,16 +1817,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   })();
 
   /*
-   * What the license manager needs to know, all of it read from the license
-   * GET (see LicenseManager.ts).
+   * What the license details need to know, all of it read from the license
+   * GET (see LicenseDetails.ts).
    */
   const licenseSnapshot: LicenseSnapshot = {
     payload: licensePayload,
-    isLoading: isConfigLoading,
-    loadError: configError,
     canManageLicense: canManageLicense,
-    licenseValid: licenseValid,
-    isUnlicensedTrial: isUnlicensedTrial,
     showLicenseDetails: showLicenseDetails,
     companyName: globalConfig?.enterpriseCompanyName || "",
     licenseKey: globalConfig?.enterpriseLicenseKey || "",
@@ -1910,17 +1839,20 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The dialog, with whatever the license manager adds to it: its messages,
-   * the seat usage and instance cards, the activation input and the footer
-   * actions. With no manager (the Community Edition, the login page) the
-   * parts are empty and the dialog shows the license status only.
+   * The dialog is read-only for everybody. With the license details (the
+   * Dashboard and the Admin Dashboard of the Enterprise image) it adds the
+   * seat usage and instance cards, and a master admin gets one action: to the
+   * page that manages the license. Without them (the Community Edition, the
+   * login page) it shows the license status only.
    */
-  const renderDialog: (parts: LicenseManagerDialogParts) => ReactElement = (
-    parts: LicenseManagerDialogParts,
-  ): ReactElement => {
+  const renderDialog: () => ReactElement = (): ReactElement => {
     if (!isDialogOpen) {
       return <></>;
     }
+
+    const enterpriseActionText: string | undefined = canManageLicense
+      ? translationKey("Manage license")
+      : undefined;
 
     return (
       <Modal
@@ -1928,26 +1860,23 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         description={translator.translateText(modalDescription)}
         rightElement={modalRightElement}
         submitButtonText={
-          IS_ENTERPRISE_EDITION ? parts.submitButtonText : "Talk to Sales"
+          IS_ENTERPRISE_EDITION ? enterpriseActionText : "Talk to Sales"
         }
         closeButtonText="Close"
         onClose={closeDialog}
-        onSubmit={IS_ENTERPRISE_EDITION ? parts.onSubmit : handlePrimaryAction}
+        onSubmit={
+          IS_ENTERPRISE_EDITION
+            ? enterpriseActionText
+              ? handleManageLicense
+              : undefined
+            : handlePrimaryAction
+        }
         modalWidth={ModalWidth.Medium}
-        isLoading={IS_ENTERPRISE_EDITION ? Boolean(parts.isSubmitting) : false}
-        disableSubmitButton={
-          IS_ENTERPRISE_EDITION ? parts.disableSubmitButton : false
-        }
         isBodyLoading={IS_ENTERPRISE_EDITION ? isConfigLoading : false}
-        leftFooterElement={
-          IS_ENTERPRISE_EDITION ? parts.leftFooterElement : undefined
-        }
       >
         <div className="space-y-4 text-sm text-gray-600">
           {IS_ENTERPRISE_EDITION ? (
             <>
-              {parts.messages}
-
               {configError && (
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4">
                   <div className="flex items-start gap-2.5">
@@ -2014,7 +1943,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
               {versionCardElement}
 
-              {parts.usage}
+              {LicenseDetails && <LicenseDetails license={licenseSnapshot} />}
 
               {showLicenseAdminRequiredNotice && (
                 <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
@@ -2025,13 +1954,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   </h4>
                   <p className="mt-1 text-xs leading-relaxed text-amber-800">
                     {translator.translateText(
-                      "This installation does not have a valid enterprise license. Ask a master admin of this OneUptime installation to enter or refresh the license key from this dialog.",
+                      "This installation does not have a valid enterprise license. Ask a master admin of this OneUptime installation to add or refresh the license in the Admin Dashboard.",
                     )}
                   </p>
                 </section>
               )}
-
-              {parts.activation}
 
               {showEnterpriseFeatureList && (
                 <section
@@ -2223,17 +2150,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         </span>
       </button>
 
-      {LicenseManager ? (
-        <LicenseManager
-          license={licenseSnapshot}
-          isDialogOpen={isDialogOpen}
-          reloadLicense={fetchGlobalConfig}
-          applySeatEnforcement={applySeatEnforcementPayload}
-          renderDialog={renderDialog}
-        />
-      ) : (
-        renderDialog({})
-      )}
+      {renderDialog()}
     </>
   );
 };

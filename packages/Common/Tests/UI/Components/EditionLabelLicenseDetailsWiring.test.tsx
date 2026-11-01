@@ -14,7 +14,7 @@ import path from "path";
 
 /*
  * The core Header (Admin Dashboard) and Footer (Dashboard) hand their edition
- * pill the Enterprise plugin's LicenseManager, read from the plugin door
+ * pill the Enterprise plugin's LicenseDetails, read from the plugin door
  * inside render. With the Community stub - which is what this jest config
  * resolves the plugin specifiers to - they hand it nothing, and the pill
  * shows the license status only.
@@ -24,13 +24,13 @@ import path from "path";
  * default). This is core, and must pass with ee/ deleted.
  */
 
-const receivedManagers: Array<unknown> = [];
+const receivedDetails: Array<unknown> = [];
 
 jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
   return {
     __esModule: true,
-    default: (props: { licenseManager?: unknown }): ReactElement => {
-      receivedManagers.push(props.licenseManager);
+    default: (props: { licenseDetails?: unknown }): ReactElement => {
+      receivedDetails.push(props.licenseDetails);
 
       return <span data-testid="edition-label" />;
     },
@@ -112,11 +112,11 @@ import DashboardFooter from "../../../../App/FeatureSet/Dashboard/src/Components
 import { ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS } from "../../../../App/FeatureSet/AdminDashboard/src/Enterprise/EnterprisePlugins";
 import { DASHBOARD_ENTERPRISE_PLUGIN_KEYS } from "../../../../App/FeatureSet/Dashboard/src/Enterprise/EnterprisePlugins";
 
-const FakeAdminLicenseManager: () => ReactElement = (): ReactElement => {
+const FakeAdminLicenseDetails: () => ReactElement = (): ReactElement => {
   return <span />;
 };
 
-const FakeDashboardLicenseManager: () => ReactElement = (): ReactElement => {
+const FakeDashboardLicenseDetails: () => ReactElement = (): ReactElement => {
   return <span />;
 };
 
@@ -146,7 +146,7 @@ const CALLERS: Array<Caller> = [
       mockAdminPlugins = plugins;
     },
     communityStub: AdminCommunityPlugins as Record<string, unknown>,
-    fake: FakeAdminLicenseManager,
+    fake: FakeAdminLicenseDetails,
     doorReads: (): number => {
       return adminDoorReads;
     },
@@ -164,7 +164,7 @@ const CALLERS: Array<Caller> = [
       mockDashboardPlugins = plugins;
     },
     communityStub: DashboardCommunityPlugins as Record<string, unknown>,
-    fake: FakeDashboardLicenseManager,
+    fake: FakeDashboardLicenseDetails,
     doorReads: (): number => {
       return dashboardDoorReads;
     },
@@ -172,7 +172,7 @@ const CALLERS: Array<Caller> = [
 ];
 
 beforeEach(() => {
-  receivedManagers.length = 0;
+  receivedDetails.length = 0;
   adminDoorReads = 0;
   dashboardDoorReads = 0;
   mockAdminPlugins = AdminCommunityPlugins as Record<string, unknown>;
@@ -183,36 +183,36 @@ afterEach(() => {
   cleanup();
 });
 
-describe("LicenseManager is a key of both plugin contracts", () => {
+describe("LicenseDetails is a key of both plugin contracts", () => {
   test("the Admin Dashboard's", () => {
-    expect(ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS).toContain("LicenseManager");
+    expect(ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS).toContain("LicenseDetails");
   });
 
   test("the Dashboard's", () => {
-    expect(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).toContain("LicenseManager");
+    expect(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).toContain("LicenseDetails");
   });
 
   test("and neither Community stub provides it", () => {
     expect(
-      (AdminCommunityPlugins as Record<string, unknown>)["LicenseManager"],
+      (AdminCommunityPlugins as Record<string, unknown>)["LicenseDetails"],
     ).toBeUndefined();
     expect(
-      (DashboardCommunityPlugins as Record<string, unknown>)["LicenseManager"],
+      (DashboardCommunityPlugins as Record<string, unknown>)["LicenseDetails"],
     ).toBeUndefined();
   });
 });
 
 describe.each(CALLERS)("$name", (caller: Caller) => {
-  test("passes the plugin's LicenseManager to the edition pill", async () => {
-    caller.setPlugins({ LicenseManager: caller.fake });
+  test("passes the plugin's LicenseDetails to the edition pill", async () => {
+    caller.setPlugins({ LicenseDetails: caller.fake });
 
     await act(async () => {
       caller.render();
     });
 
-    expect(receivedManagers).toContain(caller.fake);
+    expect(receivedDetails).toContain(caller.fake);
     expect(
-      receivedManagers.every((value: unknown): boolean => {
+      receivedDetails.every((value: unknown): boolean => {
         return value === caller.fake;
       }),
     ).toBe(true);
@@ -225,9 +225,9 @@ describe.each(CALLERS)("$name", (caller: Caller) => {
       caller.render();
     });
 
-    expect(receivedManagers.length).toBeGreaterThan(0);
+    expect(receivedDetails.length).toBeGreaterThan(0);
     expect(
-      receivedManagers.every((value: unknown): boolean => {
+      receivedDetails.every((value: unknown): boolean => {
         return value === undefined;
       }),
     ).toBe(true);
@@ -248,7 +248,7 @@ describe.each(CALLERS)("$name", (caller: Caller) => {
     const source: string = fs.readFileSync(caller.file, "utf8");
 
     expect(source).toMatch(
-      /licenseManager=\{get(AdminDashboard|Dashboard)Plugins\(\)\.LicenseManager\}/,
+      /licenseDetails=\{get(AdminDashboard|Dashboard)Plugins\(\)\.LicenseDetails\}/,
     );
   });
 });

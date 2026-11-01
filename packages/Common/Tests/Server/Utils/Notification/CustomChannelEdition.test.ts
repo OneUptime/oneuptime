@@ -271,7 +271,7 @@ describe("isActive", () => {
         return String(call[0]);
       }),
     ).toEqual([
-      "The OneUptime Enterprise license does not include custom notification channels: it has stopped until a license that includes it is activated. A master admin can activate or renew the license from the edition label in the Admin Dashboard header.",
+      "The OneUptime Enterprise license does not include custom notification channels: it has stopped until a license that includes it is activated. A master admin can activate or renew the license on Settings > License in the Admin Dashboard.",
     ]);
   });
 });

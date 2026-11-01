@@ -122,7 +122,7 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   // The Admin Dashboard's switch that turns push off, which has no locale key.
   [PUSH_PAGE]: ["Send push notifications"],
-  // The edition label's button, which has no locale key.
+  // The license page's button, which has no locale key.
   [ENTERPRISE_PAGE]: ["Refresh license"],
 };
 
@@ -242,6 +242,13 @@ const ADMIN_PATHS: Record<string, Record<string, Array<string | null>>> = {
       null,
       "breadcrumbs.settings",
       null,
+    ],
+  },
+  [ENTERPRISE_PAGE]: {
+    "Admin Dashboard > Settings > License": [
+      null,
+      "breadcrumbs.settings",
+      "breadcrumbs.enterpriseLicense",
     ],
   },
 };
