@@ -9,12 +9,13 @@ import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOr
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * A connection's official logo on AI / LLM > Connect (the catalog's logo,
- * drawn by ProviderLogoImage): its tile, its form and its row of the list
- * show the same one, so they read as the same product at a glance. A
- * provider this build does not know is drawn as AI's sparkles. The
- * product's name is always written beside it, so the logo is not read out
- * again.
+ * A connection's official mark on AI / LLM > Connect (the catalog's logo,
+ * drawn by ProviderLogoImage in one colour, as icons are): its tile, its
+ * form and its row of the list show the same one, so they read as the same
+ * product at a glance. A provider whose brand allows no logo here is drawn
+ * by the icon the registry gives it, and one this build does not know as
+ * AI's sparkles. The product's name is always written beside it, so the
+ * mark is not read out again.
  */
 
 const TILE_SIZES: Readonly<Record<"sm" | "md" | "lg", ProviderLogoSize>> = {

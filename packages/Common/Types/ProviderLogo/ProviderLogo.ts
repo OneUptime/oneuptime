@@ -1,20 +1,22 @@
 /*
- * THE OTHER COMPANIES' PRODUCTS ONEUPTIME SHOWS BY THEIR OWN LOGO.
+ * THE OTHER COMPANIES' PRODUCTS ONEUPTIME SHOWS BY THEIR OWN MARK.
  *
  * Wherever the product names a service someone connects, sends to, imports
- * from or instruments with - Amazon S3 in the audit log export, Slack on a
- * workspace page, PagerDuty in Import from another tool, Python in the
- * telemetry guide - it shows that service's official logo next to its name,
- * so it is recognised at a glance. A generic thing (a webhook, syslog, any
- * S3-compatible storage) keeps a generic icon.
+ * from or instruments with - Google Cloud Storage in the audit log export,
+ * Slack on a workspace page, PagerDuty in Import from another tool, Python
+ * in the telemetry guide - it shows that service's official mark next to its
+ * name, so it is recognised at a glance. A generic thing (a webhook, syslog,
+ * any S3-compatible storage) keeps a generic icon.
  *
- * Each value names one logo: the file of the same name in
- * Common/UI/Images/ProviderLogos (with a "-dark" file where the brand has a
- * mark of its own for dark backgrounds), drawn by
- * Common/UI/Components/ProviderLogo. Where each mark comes from, and the
- * brand's rules for using it, are in that folder's README.
+ * Every mark is drawn as an icon is: an inline SVG in one colour, the colour
+ * of the icons around it (currentColor), so it sits with OneUptime's own
+ * icons in the light and the dark theme. Never an image, never in the
+ * brand's colours. How each value is drawn - its own mark, its maker's mark,
+ * or one of OneUptime's icons where the brand's rules allow no logo in a
+ * product like this - is in ProviderLogoMarks.ts; where each mark comes
+ * from, and the brand's rules, in this folder's README.
  *
- * React-free and free of the images themselves, so catalogs the server
+ * React-free and free of the drawings themselves, so catalogs the server
  * reads too (audit log destinations, security connectors, cloud and AI
  * connections) can name a logo.
  */
@@ -125,6 +127,22 @@ enum ProviderLogo {
   Slim = "slim",
   ActixWeb = "actix-web",
   Phoenix = "phoenix",
+
+  /*
+   * Drawn by the icon set (Common/UI/Components/Icon) and the code pages:
+   * the chat apps and infrastructure the side menus and buttons name, and
+   * the places a repository can be hosted.
+   */
+  WhatsApp = "whatsapp",
+  Docker = "docker",
+  Terraform = "terraform",
+  Proxmox = "proxmox",
+  Ceph = "ceph",
+  GitHub = "github",
+  GitLab = "gitlab",
+  Forgejo = "forgejo",
+  Gitea = "gitea",
+  Git = "git",
 }
 
 export default ProviderLogo;
@@ -224,6 +242,16 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.Slim]: "Slim",
   [ProviderLogo.ActixWeb]: "Actix Web",
   [ProviderLogo.Phoenix]: "Phoenix",
+  [ProviderLogo.WhatsApp]: "WhatsApp",
+  [ProviderLogo.Docker]: "Docker",
+  [ProviderLogo.Terraform]: "Terraform",
+  [ProviderLogo.Proxmox]: "Proxmox",
+  [ProviderLogo.Ceph]: "Ceph",
+  [ProviderLogo.GitHub]: "GitHub",
+  [ProviderLogo.GitLab]: "GitLab",
+  [ProviderLogo.Forgejo]: "Forgejo",
+  [ProviderLogo.Gitea]: "Gitea",
+  [ProviderLogo.Git]: "Git",
 };
 
 export const ALL_PROVIDER_LOGOS: ReadonlyArray<ProviderLogo> = Object.values(

@@ -3,33 +3,23 @@ import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import Icon from "../Icon/Icon";
 import ProviderLogoImage, {
   getProviderLogoTileSizeClassName,
+  PROVIDER_LOGO_COLOR_CLASS_NAME,
   PROVIDER_LOGO_TILE_CLASS_NAME,
+  PROVIDER_LOGO_TILE_ICON_CLASS_NAMES,
   ProviderLogoSize,
 } from "./ProviderLogoImage";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * What stands for something that goes to, or comes from, another product:
- * that product's logo (Amazon S3), or, for a generic thing that has none
- * (a webhook, syslog, any S3-compatible storage), its icon - on the same
- * neutral tile as a logo, so a list that mixes the two reads as one set.
+ * that product's mark (Google Cloud Storage), or, for a generic thing that
+ * has none (a webhook, syslog, any S3-compatible storage), its icon - on the
+ * same tile, in the same colour, at the same size, so a list that mixes the
+ * two reads as one set.
  *
- * Bare (isBare), it is the logo alone or the icon alone, beside words: the
+ * Bare (isBare), it is the mark alone or the icon alone, beside words: the
  * icon then takes iconClassName, the colour and place an icon there has.
  */
-
-// The icon on a tile of each size: an outline icon reads larger than a logo.
-const ICON_CLASS_NAMES: Readonly<Record<ProviderLogoSize, string>> = {
-  16: "h-2.5 w-2.5",
-  20: "h-3 w-3",
-  24: "h-3.5 w-3.5",
-  28: "h-3.5 w-3.5",
-  32: "h-4 w-4",
-  36: "h-5 w-5",
-  40: "h-5 w-5",
-  44: "h-6 w-6",
-  48: "h-6 w-6",
-};
 
 export const PROVIDER_ICON_TILE_TEST_ID: string = "provider-icon-tile";
 
@@ -45,6 +35,11 @@ export interface ComponentProps {
   iconClassName?: string | undefined;
   // Its name is written right beside it, so it is not read out again.
   isDecorative?: boolean | undefined;
+  /*
+   * The colour the mark, or the icon on a tile, is drawn in: the grey of a
+   * tile's icon when left out. A picked row passes its indigo.
+   */
+  colorClassName?: string | undefined;
   className?: string | undefined;
 }
 
@@ -60,6 +55,7 @@ const ProviderLogoOrIcon: FunctionComponent<ComponentProps> = (
         size={size}
         isBare={props.isBare}
         isDecorative={props.isDecorative}
+        colorClassName={props.colorClassName}
         className={props.className}
       />
     );
@@ -70,7 +66,7 @@ const ProviderLogoOrIcon: FunctionComponent<ComponentProps> = (
     return (
       <Icon
         icon={props.icon}
-        className={`${props.iconClassName || "h-4 w-4 text-gray-500"} ${props.className || ""}`}
+        className={`${props.iconClassName || `h-4 w-4 ${props.colorClassName || PROVIDER_LOGO_COLOR_CLASS_NAME}`} ${props.className || ""}`}
         data-testid={PROVIDER_ICON_TILE_TEST_ID}
       />
     );
@@ -80,9 +76,12 @@ const ProviderLogoOrIcon: FunctionComponent<ComponentProps> = (
     <span
       aria-hidden="true"
       data-testid={PROVIDER_ICON_TILE_TEST_ID}
-      className={`inline-flex flex-shrink-0 items-center justify-center text-gray-500 ${PROVIDER_LOGO_TILE_CLASS_NAME} ${getProviderLogoTileSizeClassName(size)} ${props.className || ""}`}
+      className={`inline-flex flex-shrink-0 items-center justify-center ${props.colorClassName || PROVIDER_LOGO_COLOR_CLASS_NAME} ${PROVIDER_LOGO_TILE_CLASS_NAME} ${getProviderLogoTileSizeClassName(size)} ${props.className || ""}`}
     >
-      <Icon icon={props.icon} className={ICON_CLASS_NAMES[size]} />
+      <Icon
+        icon={props.icon}
+        className={PROVIDER_LOGO_TILE_ICON_CLASS_NAMES[size]}
+      />
     </span>
   );
 };
