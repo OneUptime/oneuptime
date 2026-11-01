@@ -5,6 +5,7 @@ import {
   ControllerInventoryConnection,
   ControllerInventoryMatch,
   ControllerMatchRule,
+  MergeControllerReadingsFunction,
 } from "../../../../Server/Utils/NetworkController/NetworkControllerInventory";
 import NetworkControllerTopology, {
   ControllerClientCandidate,
@@ -13,7 +14,9 @@ import NetworkControllerTopology, {
   ControllerPlacedDevice,
   ControllerPlacementPlan,
   ControllerTopologyOutcome,
+  FindClientCandidatesFunction,
   LearnClientMacsFunction,
+  UpsertControllerClientsFunction,
   getClientBindingsBySite,
   getPlacedDevicesBySerial,
   planClientPlacements,
@@ -32,7 +35,7 @@ import {
   buildControllerLinks,
 } from "../../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import ObjectID from "../../../../Types/ObjectID";
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
 /*
  * What a read says is plugged into what, turned into what the map reads
@@ -51,6 +54,11 @@ const OTHER_ID: string = "40000000-0000-4000-8000-000000000003";
 const SITE_ID: string = "50000000-0000-4000-8000-000000000001";
 const OTHER_SITE_ID: string = "50000000-0000-4000-8000-000000000002";
 const NOW: Date = new Date("2026-11-01T12:00:00Z");
+
+type UpsertData = Parameters<UpsertControllerClientsFunction>[0];
+type MergeData = Parameters<MergeControllerReadingsFunction>[0];
+type LearnData = Parameters<LearnClientMacsFunction>[0];
+type LookupData = Parameters<FindClientCandidatesFunction>[0];
 
 const CONNECTION: ControllerInventoryConnection = {
   id: CONNECTION_ID,
@@ -580,22 +588,9 @@ describe("recording one read", () => {
   };
 
   test("writes the clients, teaches the MACs, merges the links and says what it did", async () => {
-    const upsertClients: jest.Mock<
-      (data: {
-        clients: Array<EndpointControllerClient>;
-        source: string;
-      }) => Promise<number>
-    > = jest.fn(async (): Promise<number> => {
-      return 1;
-    });
-    const merge: jest.Mock<
-      (data: { patches: Array<DiscoveredDetailsMerge> }) => Promise<number>
-    > = jest.fn(async (): Promise<number> => {
-      return 1;
-    });
-    const learnClientMacs: jest.Mock<LearnClientMacsFunction> = jest.fn(
-      async (): Promise<void> => {},
-    );
+    const upserts: Array<UpsertData> = [];
+    const merges: Array<MergeData> = [];
+    const learned: Array<LearnData> = [];
 
     const outcome: ControllerTopologyOutcome =
       await NetworkControllerTopology.record({
@@ -610,9 +605,17 @@ describe("recording one read", () => {
         ],
         links: [CABLE],
         linkNetworkIds: ["L_660"],
-        upsertClients,
-        merge,
-        learnClientMacs,
+        upsertClients: async (data: UpsertData): Promise<number> => {
+          upserts.push(data);
+          return 1;
+        },
+        merge: async (data: MergeData): Promise<number> => {
+          merges.push(data);
+          return 1;
+        },
+        learnClientMacs: async (data: LearnData): Promise<void> => {
+          learned.push(data);
+        },
       });
 
     expect(outcome).toEqual({
@@ -621,10 +624,11 @@ describe("recording one read", () => {
       linkedDeviceCount: 1,
     });
 
-    const written: EndpointControllerClient =
-      upsertClients.mock.calls[0]![0].clients[0]!;
+    expect(upserts).toHaveLength(1);
+    expect(upserts[0]?.source).toBe("meraki");
 
-    expect(upsertClients.mock.calls[0]![0].source).toBe("meraki");
+    const written: EndpointControllerClient = upserts[0]!.clients[0]!;
+
     expect(written).toMatchObject({
       macAddress: "aa:bb:cc:00:00:51",
       ipAddress: "10.18.166.51",
@@ -637,13 +641,11 @@ describe("recording one read", () => {
     expect(written.deviceId.toString()).toBe(SWITCH_ID);
     expect(written.deviceSiteId?.toString()).toBe(SITE_ID);
 
-    expect(merge).toHaveBeenCalledTimes(1);
-    expect(learnClientMacs).toHaveBeenCalledTimes(1);
-    expect(learnClientMacs.mock.calls[0]![0]).toMatchObject({
+    expect(merges).toHaveLength(1);
+    expect(learned).toHaveLength(1);
+    expect(learned[0]).toMatchObject({
       siteId: SITE_ID,
-      bindings: [
-        { macAddress: "aa:bb:cc:00:00:51", ipAddress: "10.18.166.51" },
-      ],
+      bindings: [{ macAddress: "aa:bb:cc:00:00:51", ipAddress: "10.18.166.51" }],
       reader: {
         type: "networkController",
         id: CONNECTION_ID,
@@ -653,53 +655,37 @@ describe("recording one read", () => {
   });
 
   test("a read with nothing to say writes nothing and asks nothing", async () => {
-    const upsertClients: jest.Mock<() => Promise<number>> = jest.fn(
-      async (): Promise<number> => {
-        return 0;
-      },
-    );
-    const merge: jest.Mock<() => Promise<number>> = jest.fn(
-      async (): Promise<number> => {
-        return 0;
-      },
-    );
-    const findClientCandidates: jest.Mock<
-      () => Promise<Array<ControllerClientCandidate>>
-    > = jest.fn(async (): Promise<Array<ControllerClientCandidate>> => {
-      return [];
-    });
+    let calls: number = 0;
 
     expect(
       await NetworkControllerTopology.record({
         ...inputs(),
-        upsertClients,
-        merge,
-        findClientCandidates,
+        upsertClients: async (): Promise<number> => {
+          calls++;
+          return 0;
+        },
+        merge: async (): Promise<number> => {
+          calls++;
+          return 0;
+        },
+        findClientCandidates: async (): Promise<
+          Array<ControllerClientCandidate>
+        > => {
+          calls++;
+          return [];
+        },
       }),
     ).toEqual({
       placedClientCount: 0,
       unplacedDeviceCount: 0,
       linkedDeviceCount: 0,
     });
-    expect(upsertClients).not.toHaveBeenCalled();
-    expect(merge).not.toHaveBeenCalled();
-    expect(findClientCandidates).not.toHaveBeenCalled();
+    expect(calls).toBe(0);
   });
 
   test("only a Wi-Fi client on a device here costs a lookup, and it asks about those alone", async () => {
-    const findClientCandidates: jest.Mock<
-      (data: {
-        macs: Array<string>;
-        addresses: Array<string>;
-      }) => Promise<Array<ControllerClientCandidate>>
-    > = jest.fn(async (): Promise<Array<ControllerClientCandidate>> => {
-      return [{ macAddress: "aa:bb:cc:00:00:02" }];
-    });
-    const upsertClients: jest.Mock<
-      (data: { clients: Array<EndpointControllerClient> }) => Promise<number>
-    > = jest.fn(async (): Promise<number> => {
-      return 0;
-    });
+    const lookups: Array<LookupData> = [];
+    const upserts: Array<UpsertData> = [];
 
     const outcome: ControllerTopologyOutcome =
       await NetworkControllerTopology.record({
@@ -714,22 +700,29 @@ describe("recording one read", () => {
             deviceSerial: "Q2AP-UNKNOWN",
           }),
         ],
-        findClientCandidates,
-        upsertClients,
+        findClientCandidates: async (
+          data: LookupData,
+        ): Promise<Array<ControllerClientCandidate>> => {
+          lookups.push(data);
+          return [{ macAddress: "aa:bb:cc:00:00:02" }];
+        },
+        upsertClients: async (data: UpsertData): Promise<number> => {
+          upserts.push(data);
+          return 0;
+        },
         learnClientMacs: async (): Promise<void> => {},
       });
 
-    expect(findClientCandidates.mock.calls[0]![0]).toMatchObject({
+    expect(lookups).toHaveLength(1);
+    expect(lookups[0]).toMatchObject({
       macs: ["aa:bb:cc:00:00:02", "aa:bb:cc:00:00:03"],
       addresses: ["10.0.0.2", "10.0.0.3"],
     });
     expect(outcome.placedClientCount).toBe(2);
     expect(
-      upsertClients.mock.calls[0]![0].clients.map(
-        (client: EndpointControllerClient): string => {
-          return client.macAddress;
-        },
-      ),
+      upserts[0]?.clients.map((client: EndpointControllerClient): string => {
+        return client.macAddress;
+      }),
     ).toEqual(["aa:bb:cc:00:00:01", "aa:bb:cc:00:00:02"]);
   });
 

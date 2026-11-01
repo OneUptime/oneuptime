@@ -1094,7 +1094,12 @@ describe("what a read tells the map (#5379)", () => {
           hostname: "10.18.166.51",
           siteId: SITE,
         },
-        { id: "rtr", name: "UN0660WANRTR01", hostname: "10.1.1.1", siteId: SITE },
+        {
+          id: "rtr",
+          name: "UN0660WANRTR01",
+          hostname: "10.1.1.1",
+          siteId: SITE,
+        },
       ],
       START,
       [],

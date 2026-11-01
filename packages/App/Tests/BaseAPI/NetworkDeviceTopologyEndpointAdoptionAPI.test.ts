@@ -813,15 +813,12 @@ describe("POST /network-device/topology — what a network controller reported (
     row.hostname = "wb-0660-kds01";
     row.attachmentSource = "meraki";
     // What the column holds for a row a controller wrote, as Postgres says it.
-    row.attachedInterfaceIndex = null as unknown as undefined;
+    row.attachedInterfaceIndex = null as unknown as number;
 
     return row;
   }
 
-  function linksOf(
-    readAt: Date,
-    links: Array<JSONObject>,
-  ): NetworkDevice["discoveredDetails"] {
+  function linksOf(readAt: Date, links: Array<JSONObject>): JSONObject {
     return {
       controllerLinks: {
         provider: "meraki",
@@ -829,7 +826,7 @@ describe("POST /network-device/topology — what a network controller reported (
         readAt: readAt.toISOString(),
         links: links,
       },
-    } as unknown as NetworkDevice["discoveredDetails"];
+    };
   }
 
   beforeEach(() => {
@@ -888,9 +885,9 @@ describe("POST /network-device/topology — what a network controller reported (
       reportedBy: "meraki",
       parentNodeId: accessSwitch.id!.toString(),
     });
-    expect(
-      (edges[0]!["fromInterface"] as JSONObject)["interfaceIndex"],
-    ).toBe(7);
+    expect((edges[0]!["fromInterface"] as JSONObject)["interfaceIndex"]).toBe(
+      7,
+    );
   });
 
   test("a reading of a device's links is drawn, with who reported it", async () => {
@@ -922,16 +919,13 @@ describe("POST /network-device/topology — what a network controller reported (
     const router: NetworkDevice = makeDevice("rtr");
     const accessSwitch: NetworkDevice = makeDevice("sw");
 
-    accessSwitch.discoveredDetails = linksOf(
-      new Date(Date.now() - 25 * HOUR),
-      [
-        {
-          port: "Port 49",
-          peerDeviceId: router.id!.toString(),
-          protocols: ["lldp"],
-        },
-      ],
-    );
+    accessSwitch.discoveredDetails = linksOf(new Date(Date.now() - 25 * HOUR), [
+      {
+        port: "Port 49",
+        peerDeviceId: router.id!.toString(),
+        protocols: ["lldp"],
+      },
+    ]);
     deviceService.findBy.mockResolvedValue([accessSwitch, router] as never);
 
     await callTopology({});
@@ -954,8 +948,7 @@ describe("POST /network-device/topology — what a network controller reported (
     const router: NetworkDevice = makeDevice("a-name-nothing-advertises");
     const accessSwitch: NetworkDevice = makeDevice("sw");
 
-    router.discoveredDetails =
-      reading as unknown as NetworkDevice["discoveredDetails"];
+    router.discoveredDetails = reading;
     accessSwitch.lldpNeighbors = [
       {
         localInterfaceIndex: 49,
