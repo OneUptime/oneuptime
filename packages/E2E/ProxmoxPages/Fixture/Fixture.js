@@ -447,7 +447,9 @@ const store = {
     {
       _id: uuid("59000000", 1),
       name: "Proxmox agent",
-      secretValue: uuid("5a000000", 1),
+      secretKey: uuid("5a000000", 1),
+      // A server key: the setup guide lists only those.
+      keyType: "Server",
       description: "",
     },
   ],

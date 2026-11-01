@@ -1445,7 +1445,8 @@ const ProxmoxClusterOverview: FunctionComponent<
             other: "{{online}}/{{count}} nodes online",
           },
           nodesTotal,
-          { online: nodesOnline },
+          // In the reader's digits, as the count beside it is.
+          { online: translator.formatNumber(nodesOnline) },
         ),
       });
     }
@@ -1461,7 +1462,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                 other: "{{running}}/{{count}} guests running",
               },
               guestsTotal,
-              { running: guestsRunning },
+              { running: translator.formatNumber(guestsRunning) },
             )
           : translator.translatePlural(
               { one: "{{count}} guest", other: "{{count}} guests" },
@@ -1584,23 +1585,30 @@ const ProxmoxClusterOverview: FunctionComponent<
                         text={PROXMOX_METRIC_DESCRIPTIONS.agentStatus}
                       />
                     </span>
-                    {!isInventoryLoading && !inventoryError && (
-                      <span className="inline-flex items-center gap-1">
-                        <span
-                          data-testid="proxmox-hero-health"
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
-                        >
+                    {/*
+                     * A cluster that has reported no node, guest or storage
+                     * yet has no health to tell: "Healthy" there would be a
+                     * guess.
+                     */}
+                    {!isInventoryLoading &&
+                      !inventoryError &&
+                      (inventory?.rows.length ?? 0) > 0 && (
+                        <span className="inline-flex items-center gap-1">
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                            data-testid="proxmox-hero-health"
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${healthBadgeClass}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${healthDotClass}`}
+                            />
+                            {healthLabel}
+                          </span>
+                          <InfoTooltip
+                            label="Cluster Health"
+                            text={PROXMOX_METRIC_DESCRIPTIONS.clusterHealth}
                           />
-                          {healthLabel}
                         </span>
-                        <InfoTooltip
-                          label="Cluster Health"
-                          text={PROXMOX_METRIC_DESCRIPTIONS.clusterHealth}
-                        />
-                      </span>
-                    )}
+                      )}
                   </div>
                   <ResourceHeroDescription
                     text={cluster.description as string | undefined}
@@ -1840,7 +1848,11 @@ const ProxmoxClusterOverview: FunctionComponent<
           title={tx("Guests")}
           icon={IconProp.Cube}
           iconColor="sky"
-          value={guestsTotal > 0 ? `${guestsRunning}/${guestsTotal}` : "—"}
+          value={
+            inventory && guestsTotal > 0
+              ? `${guestsRunning}/${guestsTotal}`
+              : "—"
+          }
           sublabel={
             netTotal === null
               ? tx("running")
@@ -1848,7 +1860,7 @@ const ProxmoxClusterOverview: FunctionComponent<
                   throughput: ValueFormatter.formatValue(netTotal, "By/s"),
                 })
           }
-          percent={guestsRunningPct}
+          percent={inventory ? guestsRunningPct : null}
           thresholds={{ warn: 99, danger: 50 }}
           higherIsBetter={true}
           description={PROXMOX_METRIC_DESCRIPTIONS.guestsRunning}

@@ -57,10 +57,29 @@ export interface InfrastructureResource {
   additionalAttributes: Record<string, string>;
 }
 
+/*
+ * How a column's cell reads beside the plain ones: a failed backup in red,
+ * a guest in no backup job in amber - the word a reader scans the column
+ * for, never the colour alone.
+ */
+export type ResourceColumnTone = "danger" | "warning";
+
+export const RESOURCE_COLUMN_TONE_CLASS_NAMES: Record<
+  ResourceColumnTone,
+  string
+> = {
+  danger: "font-medium text-red-700",
+  warning: "text-amber-700",
+};
+
 export interface ResourceColumn {
   title: string;
   key: string;
   getValue?: (resource: InfrastructureResource) => string;
+  // A cell that needs a look; undefined for a plain one.
+  getTone?:
+    | ((resource: InfrastructureResource) => ResourceColumnTone | undefined)
+    | undefined;
   // What the column's values mean, in an (i) beside the header.
   description?: string | undefined;
 }
@@ -89,6 +108,12 @@ export interface ComponentProps {
   /* Badge text when `resource.namespace` is empty. Defaults to "-". */
   groupFallbackLabel?: string | undefined;
   showStatus?: boolean | undefined;
+  /*
+   * The Age column, beside Status; defaults to true. A list whose rows never
+   * report an age - a Proxmox storage has no uptime - leaves it out rather
+   * than drawing a column of dashes.
+   */
+  showAge?: boolean | undefined;
   showResourceMetrics?: boolean | undefined;
   getViewRoute?: ((resource: InfrastructureResource) => Route) | undefined;
   emptyMessage?: string | undefined;
@@ -429,7 +454,19 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
           const value: string = col.getValue
             ? col.getValue(resource)
             : resource.additionalAttributes[col.key] || "";
-          return <span>{value}</span>;
+          const tone: ResourceColumnTone | undefined = col.getTone
+            ? col.getTone(resource)
+            : undefined;
+          return (
+            <span
+              className={
+                tone ? RESOURCE_COLUMN_TONE_CLASS_NAMES[tone] : undefined
+              }
+              data-tone={tone}
+            >
+              {value}
+            </span>
+          );
         },
       });
     }
@@ -558,7 +595,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
     );
   }
 
-  if (showStatus) {
+  if (showStatus && props.showAge !== false) {
     tableColumns.push({
       title: "Age",
       type: FieldType.Element,

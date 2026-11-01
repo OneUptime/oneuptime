@@ -32,7 +32,10 @@ import {
  * for every part that crosses it, which the card's description says.
  *
  * It is supplementary: when the monitors cannot be read (a role without
- * monitor access) the card is left out rather than showing an error.
+ * monitor access) the card is left out rather than showing an error. An
+ * alert that is not set up reads grey, as "Not set up" does everywhere in
+ * the product: a row of amber pills would read as that many warnings, and
+ * the one button is what to do about them.
  */
 
 export const RESOURCE_PART_TURN_ON_CLASS_NAME: string =
@@ -134,7 +137,7 @@ const ResourcePartAlertsCard: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <span className="inline-flex whitespace-nowrap rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-200">
+      <span className="inline-flex whitespace-nowrap rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-200">
         {tx("Not set up")}
       </span>
     );

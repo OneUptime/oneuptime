@@ -1,9 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -13,6 +13,7 @@ import {
   ResourceAttentionText,
   countResourceAttention,
 } from "./ResourceAttention";
+import ResourcePartRow from "./ResourcePartRow";
 
 /*
  * "What needs me?" first on a resource's Overview, and on a part's own
@@ -23,10 +24,24 @@ import {
  * It draws nothing while nothing needs attention: the resource's health
  * pill says it is healthy, and an empty card would only push the rest down.
  * A long list shows its first rows and opens the rest in place.
+ *
+ * Each row is a link to its part's page, the whole row as on Home's Needs
+ * attention card (ResourcePartRow). The part whose page this is says so -
+ * "This node" - rather than repeating the name, kind and identifier its
+ * hero shows just above, and is not a link to the page the reader is on.
  */
 
 // How many items the card shows before "Show all".
 export const NEEDS_ATTENTION_SHOWN: number = 6;
+
+/*
+ * The item that is the part whose page this is, and how its row names it
+ * (English, looked up in the reader's language): "This node".
+ */
+export interface ResourceAttentionCurrent {
+  key: string;
+  label: string;
+}
 
 export interface ComponentProps {
   items: Array<ResourceAttentionItem>;
@@ -37,6 +52,7 @@ export interface ComponentProps {
   testId?: string | undefined;
   // How many rows show before "Show all" (NEEDS_ATTENTION_SHOWN).
   shown?: number | undefined;
+  current?: ResourceAttentionCurrent | undefined;
 }
 
 const SEVERITY_CLASS_NAMES: Record<
@@ -151,60 +167,72 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
           {shown.map((item: ResourceAttentionItem): ReactElement => {
             const classNames: { icon: string; reason: string } =
               SEVERITY_CLASS_NAMES[item.severity];
+            const isCurrent: boolean = Boolean(
+              props.current && props.current.key === item.key,
+            );
             return (
               <li
                 key={item.key}
                 data-testid={`${testId}-item`}
                 data-key={item.key}
                 data-severity={item.severity}
-                className="flex items-start gap-3 px-5 py-3 md:px-6"
+                data-current={isCurrent ? "true" : undefined}
               >
-                <div
-                  className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${classNames.icon}`}
-                  aria-hidden="true"
+                <ResourcePartRow
+                  to={isCurrent ? undefined : item.route}
+                  className="flex items-start gap-3"
                 >
-                  <Icon icon={item.icon} className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    {item.route ? (
-                      <Link
-                        to={item.route}
-                        className="min-w-0 break-all text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline"
+                  <div
+                    className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${classNames.icon}`}
+                    aria-hidden="true"
+                  >
+                    <Icon icon={item.icon} className="h-3.5 w-3.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span
+                        data-testid={`${testId}-name`}
+                        className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
                       >
-                        {item.name}
-                      </Link>
-                    ) : (
-                      <span className="min-w-0 break-all text-sm font-medium text-gray-900">
-                        {item.name}
+                        {isCurrent && props.current ? (
+                          tx(props.current.label)
+                        ) : (
+                          <BreakableName text={item.name} />
+                        )}
                       </span>
-                    )}
-                    <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
-                      {tx(item.kind)}
-                    </span>
-                    {item.reasons.map(
-                      (reason: ResourceAttentionText): ReactElement => {
-                        const text: string = reasonText(reason);
-                        return (
-                          <span
-                            key={`${reason.text}-${text}`}
-                            data-testid={`${testId}-reason`}
-                            className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${classNames.reason}`}
-                          >
-                            {text}
-                          </span>
-                        );
-                      },
+                      {isCurrent ? (
+                        <></>
+                      ) : (
+                        <span className="inline-flex rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-600">
+                          {tx(item.kind)}
+                        </span>
+                      )}
+                      {item.reasons.map(
+                        (reason: ResourceAttentionText): ReactElement => {
+                          const text: string = reasonText(reason);
+                          return (
+                            <span
+                              key={`${reason.text}-${text}`}
+                              data-testid={`${testId}-reason`}
+                              className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium ring-1 ring-inset ${classNames.reason}`}
+                            >
+                              {text}
+                            </span>
+                          );
+                        },
+                      )}
+                    </div>
+                    {item.detail && !isCurrent ? (
+                      <p className="mt-0.5 font-mono text-xs text-gray-500 [overflow-wrap:anywhere]">
+                        <bdi>
+                          <BreakableName text={item.detail} />
+                        </bdi>
+                      </p>
+                    ) : (
+                      <></>
                     )}
                   </div>
-                  {item.detail ? (
-                    <p className="mt-0.5 break-all font-mono text-xs text-gray-500">
-                      <bdi>{item.detail}</bdi>
-                    </p>
-                  ) : (
-                    <></>
-                  )}
-                </div>
+                </ResourcePartRow>
               </li>
             );
           })}

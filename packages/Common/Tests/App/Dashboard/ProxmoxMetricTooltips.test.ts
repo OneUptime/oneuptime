@@ -127,7 +127,6 @@ const TITLES: Record<ProxmoxMetric, string> = {
   guestsTableBackup: "Backup",
   storageTableStatus: "Status",
   storageTableUsage: "Used / Total",
-  storageTableAge: "Age",
   insightsDiskThroughput: "Disk Throughput",
 };
 
@@ -646,9 +645,15 @@ describe("replication, forecast and uptime", () => {
     },
   );
 
-  test("the storage Age column admits Proxmox reports no uptime for storage", () => {
-    expect(D.storageTableAge).toMatch(/does not report an uptime/);
-    expect(D.storageTableAge).toMatch(/dash/);
+  /*
+   * Proxmox reports no uptime for a storage: its lists leave the Age column
+   * out instead of explaining a column of dashes.
+   */
+  test("no storage list column is explained as a column of dashes", () => {
+    expect(Object.keys(D)).not.toContain("storageTableAge");
+    for (const text of Object.values(D)) {
+      expect(text).not.toContain("this column normally shows a dash");
+    }
   });
 
   test("the QEMU disk field names the guest agent it depends on", () => {

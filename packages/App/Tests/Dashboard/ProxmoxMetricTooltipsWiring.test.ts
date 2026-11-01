@@ -610,8 +610,9 @@ describe("a node's page", () => {
     expect(NODE_DETAIL).toContain(
       "builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.guestsTableStatus, cpu: PROXMOX_METRIC_DESCRIPTIONS.guestsTableCpu, memory: PROXMOX_METRIC_DESCRIPTIONS.guestsTableMemory, age: PROXMOX_METRIC_DESCRIPTIONS.guestsTableUptime, }}",
     );
+    // A storage reports no uptime: no Age column to explain.
     expect(NODE_DETAIL).toContain(
-      "builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus, age: PROXMOX_METRIC_DESCRIPTIONS.storageTableAge, }}",
+      "showAge={false} builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus, }}",
     );
   });
 });
@@ -697,10 +698,12 @@ describe("list pages", () => {
     ).not.toContain("description:");
   });
 
-  test("Storage explains its Status and Age columns, whether a storage is shared, and its usage", () => {
+  test("Storage explains its Status column, whether a storage is shared, and its usage - and has no Age column", () => {
     expect(STORAGE).toContain(
-      "builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus, age: PROXMOX_METRIC_DESCRIPTIONS.storageTableAge, }}",
+      "builtInColumnDescriptions={{ status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus, }}",
     );
+    // A storage reports no uptime: no column of dashes.
+    expect(STORAGE).toContain("showAge={false}");
     expect(COLUMNS).toContain(
       'title: "Shared", key: "shared", description: PROXMOX_METRIC_DESCRIPTIONS.storageShared,',
     );

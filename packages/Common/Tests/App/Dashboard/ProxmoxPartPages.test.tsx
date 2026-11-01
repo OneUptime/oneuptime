@@ -320,8 +320,7 @@ function attentionRows(testId: string): Array<string> {
           return reason.textContent || "";
         });
       const name: string =
-        (item.querySelector("a, span.font-medium") as HTMLElement | null)
-          ?.textContent || "";
+        within(item).getByTestId(`${testId}-name`).textContent || "";
       return `${name}: ${reasons.join(", ")}`;
     });
 }
@@ -408,7 +407,7 @@ describe("a node's page", () => {
     );
   });
 
-  test("an offline node is on its own list, without a link to the page it is on", async () => {
+  test("an offline node is on its own list as This node, without a link to the page it is on", async () => {
     mockInventory = mockInventory.map((row: Row): Row => {
       return row["externalId"] === "node/pve1" ? { ...row, isUp: false } : row;
     });
@@ -418,12 +417,20 @@ describe("a node's page", () => {
       "proxmox-node-hero",
     );
 
-    expect(attentionRows("proxmox-node-attention")[0]).toBe("pve1: Offline");
+    expect(attentionRows("proxmox-node-attention")[0]).toBe(
+      "This node: Offline",
+    );
+    const own: HTMLElement = screen.getAllByTestId(
+      "proxmox-node-attention-item",
+    )[0]!;
+    expect(own).toHaveAttribute("data-key", "Node:node/pve1");
+    expect(within(own).queryByRole("link")).toBeNull();
+    // Its storage and guests keep their names and their pages.
     expect(
-      within(screen.getByTestId("proxmox-node-attention"))
-        .getByText("pve1")
-        .closest("a"),
-    ).toBeNull();
+      within(
+        screen.getAllByTestId("proxmox-node-attention-item")[1]!,
+      ).getByRole("link"),
+    ).toHaveAttribute("href", expect.stringContaining("/storage/"));
   });
 
   test("its tiles: CPU of its cores, memory, root disk, and the guests it runs", async () => {
@@ -455,10 +462,24 @@ describe("a node's page", () => {
     );
 
     expect(
-      screen.getAllByTestId("proxmox-busy-guest").map((row: HTMLElement) => {
-        return within(row).getByRole("link").textContent;
-      }),
+      screen
+        .getAllByTestId("proxmox-busy-guest-name")
+        .map((name: HTMLElement) => {
+          return name.textContent;
+        }),
     ).toEqual(["ci-runner", "web-01"]);
+    // Each whole row opens the guest; its bar says it is CPU.
+    expect(
+      within(screen.getAllByTestId("proxmox-busy-guest")[0]!).getByRole("link"),
+    ).toHaveAttribute(
+      "href",
+      `${CLUSTER_PATH}/guests/${encodeURIComponent("lxc/105")}`,
+    );
+    expect(
+      within(screen.getAllByTestId("proxmox-busy-guest")[0]!).getByTestId(
+        "proxmox-busy-guest-cpu",
+      ),
+    ).toHaveTextContent("CPU");
 
     fireEvent.click(
       within(screen.getByTestId("proxmox-busiest-guests-all")).getByRole(
@@ -631,7 +652,7 @@ describe("a guest's page", () => {
       "Failedfinished 2 hours ago · last good yesterday",
     );
     expect(attentionRows("proxmox-guest-attention")).toEqual([
-      "ci-runner: Last backup failed",
+      "This guest: Last backup failed",
     ]);
     expect(
       screen
@@ -678,7 +699,7 @@ describe("a guest's page", () => {
       "warning",
     );
     expect(attentionRows("proxmox-guest-attention")).toEqual([
-      "mail: Stopped, but starts on boot, In no backup job",
+      "This guest: Stopped, but starts on boot, In no backup job",
     ]);
     expect(tile("proxmox-guest-tiles", "Last Backup")).toHaveTextContent(
       "Nonein no backup job",
@@ -723,7 +744,7 @@ describe("a storage's page", () => {
       screen.getByTestId("proxmox-storage-hero-location"),
     ).toHaveTextContent("Storage on node pve1 of cluster pve-prod");
     expect(attentionRows("proxmox-storage-attention")).toEqual([
-      "pbs: Unavailable",
+      "This storage: Unavailable",
     ]);
     expect(
       screen.getByTestId("proxmox-storage-details-content"),
@@ -744,7 +765,7 @@ describe("a storage's page", () => {
       "9.0 GiBof 100 GiB",
     );
     expect(attentionRows("proxmox-storage-attention")).toEqual([
-      "local-zfs: 91% full",
+      "This storage: 91% full",
     ]);
     expect(
       screen.getByTestId("proxmox-storage-details-type"),

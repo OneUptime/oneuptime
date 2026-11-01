@@ -606,8 +606,8 @@ function attentionRows(): Array<string> {
           return reason.textContent || "";
         });
       const name: string =
-        (item.querySelector("a, span.font-medium") as HTMLElement | null)
-          ?.textContent || "";
+        within(item).getByTestId("proxmox-needs-attention-name").textContent ||
+        "";
       return `${name}: ${reasons.join(", ")}`;
     });
 }
@@ -811,6 +811,15 @@ describe("Proxmox cluster overview: what needs attention", () => {
       "href",
       `${CLUSTER_PATH}/nodes/${encodeURIComponent("node/pve3")}`,
     );
+    // Each row is one link, the whole row; a node's row has no id line.
+    const rows: Array<HTMLElement> = screen.queryAllByTestId(
+      "proxmox-needs-attention-item",
+    );
+    for (const row of rows) {
+      expect(within(row).getAllByRole("link")).toHaveLength(1);
+    }
+    expect(rows[0]).toHaveTextContent(/^pve3NodeOffline$/);
+    expect(rows[2]).toHaveTextContent("lxc/101");
     expect(
       screen.getByTestId("proxmox-needs-attention-summary"),
     ).toHaveTextContent("1 critical3 to look at");

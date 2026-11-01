@@ -85,11 +85,12 @@ const ProxmoxClusterStorage: FunctionComponent<
       description="Storage volumes in this cluster with their type and current usage."
       resources={resources}
       showGroupColumn={true}
+      // Proxmox reports no uptime for a storage: no column of dashes.
+      showAge={false}
       groupColumnTitle="Node"
       showResourceMetrics={false}
       builtInColumnDescriptions={{
         status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus,
-        age: PROXMOX_METRIC_DESCRIPTIONS.storageTableAge,
       }}
       tableIdPrefix="proxmox"
       emptyMessage="No storage volumes reported yet. Make sure the Proxmox agent is sending metrics."

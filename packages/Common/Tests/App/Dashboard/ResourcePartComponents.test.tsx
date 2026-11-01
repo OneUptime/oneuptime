@@ -127,6 +127,7 @@ import ResourcePartOpenEventsCard, {
   RESOURCE_PART_OPEN_EVENTS_SHOWN,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartOpenEventsCard";
 import ResourcePartAlertsCard from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartAlertsCard";
+import ResourcePartRow from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartRow";
 import { RecommendationStatus } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationViewModel";
 import { OpenIssueRecord } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceTopology/ResourceTopologyIssues";
 
@@ -269,8 +270,21 @@ describe("the Needs attention card", () => {
       "href",
       "/nodes/node%2Fpve3",
     );
-    // Without a page to go to, the name is plain text.
+    /*
+     * The whole row is the link, as on Home's Needs attention card: its
+     * name, kind, reasons and identifier are all inside it.
+     */
+    const link: HTMLElement = within(rows[0]!).getByRole("link");
+    expect(link).toHaveTextContent("pve3NodeOfflinenode/pve3");
+    expect(within(rows[0]!).getAllByRole("link")).toHaveLength(1);
+    // Without a page to go to, the row is plain text.
     expect(within(rows[1]!).getByText("local-zfs").closest("a")).toBeNull();
+    expect(within(rows[1]!).queryByRole("link")).toBeNull();
+    expect(
+      screen.getAllByTestId("attention-name").map((name: HTMLElement) => {
+        return name.textContent;
+      }),
+    ).toEqual(["pve3", "local-zfs", "101-0 (web)"]);
     expect(within(rows[0]!).getByText("Node")).toBeInTheDocument();
     expect(
       screen.getAllByTestId("attention-reason").map((reason: HTMLElement) => {
@@ -340,6 +354,109 @@ describe("the Needs attention card", () => {
       />,
     );
     expect(screen.queryByTestId("needs-attention-toggle")).toBeNull();
+  });
+
+  test("the part whose page this is says so, and is no link to the page the reader is on", () => {
+    render(
+      <NeedsAttentionCard
+        testId="attention"
+        current={{ key: "Node:node/pve3", label: "This node" }}
+        items={[
+          item("pve3", ResourceAttentionSeverity.Critical, {
+            key: "Node:node/pve3",
+            kind: "Node",
+            detail: "node/pve3",
+            reasons: [{ text: "Offline" }],
+            route: new Route("/nodes/node%2Fpve3"),
+          }),
+          item("mail", ResourceAttentionSeverity.Critical, {
+            key: "Guest:qemu/104",
+            detail: "qemu/104",
+            reasons: [
+              { text: "HA state: {{state}}", values: { state: "error" } },
+            ],
+            route: new Route("/guests/qemu%2F104"),
+          }),
+        ]}
+      />,
+    );
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId("attention-item");
+    // The node's own row: what is wrong, without its name, kind and id again.
+    expect(rows[0]).toHaveAttribute("data-current", "true");
+    expect(within(rows[0]!).getByTestId("attention-name")).toHaveTextContent(
+      /^This node$/,
+    );
+    expect(rows[0]).toHaveTextContent(/^This nodeOffline$/);
+    expect(within(rows[0]!).queryByRole("link")).toBeNull();
+    // Every other part keeps its name and its one step to its page.
+    expect(rows[1]).not.toHaveAttribute("data-current");
+    expect(within(rows[1]!).getByRole("link")).toHaveAttribute(
+      "href",
+      "/guests/qemu%2F104",
+    );
+    expect(rows[1]).toHaveTextContent("mailGuestHA state: errorqemu/104");
+  });
+
+  test("a long name breaks after its own dots and slashes, never mid-letter where a word fits", () => {
+    render(
+      <NeedsAttentionCard
+        testId="attention"
+        items={[
+          item(
+            "backup-store.example.internal",
+            ResourceAttentionSeverity.Warning,
+            {
+              key: "Storage:storage/pve-node-number-one/backup-store",
+              detail: "storage/pve-node-number-one/backup-store",
+            },
+          ),
+        ]}
+      />,
+    );
+
+    const name: HTMLElement = screen.getByTestId("attention-name");
+    expect(name.className).toContain("[overflow-wrap:anywhere]");
+    expect(name.className).not.toContain("break-all");
+    expect(name.querySelectorAll("wbr").length).toBeGreaterThan(0);
+    // The text itself is unchanged: a copy or a search reads it as written.
+    expect(name.textContent).toBe("backup-store.example.internal");
+  });
+});
+
+describe("a row that opens a page", () => {
+  test("the whole row is one link, with a chevron at its end", () => {
+    render(
+      <ul>
+        <li>
+          <ResourcePartRow to={new Route("/nodes/node%2Fpve1")}>
+            <span>pve1</span>
+            <span>Online</span>
+          </ResourcePartRow>
+        </li>
+      </ul>,
+    );
+
+    const link: HTMLElement = screen.getByRole("link");
+    expect(link).toHaveAttribute("href", "/nodes/node%2Fpve1");
+    expect(link).toHaveTextContent("pve1Online");
+    // A tint under the pointer and a focus ring for a keyboard.
+    expect(link.className).toContain("hover:bg-gray-50");
+    expect(link.className).toContain("focus-visible:ring-2");
+    // The chevron is decoration: a screen reader hears the row's words only.
+    expect(link.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  test("a row with nowhere to go is plain, with no chevron", () => {
+    render(
+      <ResourcePartRow dataTestId="row">
+        <span>pve1</span>
+      </ResourcePartRow>,
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByTestId("row").querySelector("svg")).toBeNull();
+    expect(screen.getByTestId("row")).toHaveTextContent("pve1");
   });
 });
 
@@ -549,14 +666,20 @@ describe("what is open on a part", () => {
       expect(screen.getAllByTestId("open-item")).toHaveLength(3);
     });
     expect(
-      screen.getAllByTestId("open-item").map((row: HTMLElement) => {
-        return within(row).getByRole("link").textContent;
+      screen.getAllByTestId("open-title").map((title: HTMLElement) => {
+        return title.textContent;
       }),
     ).toEqual(["incident 3", "incident 2", "alert 1"]);
-    expect(screen.getByText("incident 3").closest("a")).toHaveAttribute(
+    // The whole row opens its record, as Home's Needs attention rows do.
+    expect(
+      within(screen.getAllByTestId("open-item")[0]!).getByRole("link"),
+    ).toHaveAttribute(
       "href",
       "/incidents/63000000-0000-4000-8000-000000000001",
     );
+    expect(
+      within(screen.getAllByTestId("open-item")[2]!).getByRole("link"),
+    ).toHaveAttribute("href", "/alerts/61000000-0000-4000-8000-000000000001");
     expect(screen.getAllByTestId("open-item")[0]).toHaveTextContent(
       "Incident · #3 · Created · 10 minutes ago",
     );
@@ -720,7 +843,13 @@ describe("which of a part's alerts are on", () => {
       "/monitors/70000000-0000-4000-8000-000000000001",
     );
     expect(screen.getByText("Dismissed")).toBeInTheDocument();
-    expect(screen.getByText("Not set up")).toBeInTheDocument();
+    /*
+     * Not set up reads grey, as it does everywhere in the product: a row of
+     * amber pills read as that many warnings.
+     */
+    const notSetUp: HTMLElement = screen.getByText("Not set up");
+    expect(notSetUp.className).toContain("text-gray-600");
+    expect(notSetUp.className).not.toContain("amber");
     // Only what nobody turned on or dismissed is ticked.
     const turnOn: HTMLElement = screen.getByTestId("alerts-turn-on");
     expect(turnOn).toHaveTextContent("Turn on 1 alert");

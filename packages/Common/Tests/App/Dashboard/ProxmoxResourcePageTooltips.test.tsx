@@ -934,14 +934,13 @@ describe("Proxmox guests list", () => {
 });
 
 describe("Proxmox storage list", () => {
-  test("Status, Used / Total and Age explain themselves; there are no CPU or memory columns", async () => {
+  test("Status and Used / Total explain themselves; there are no CPU, memory or Age columns", async () => {
     await renderPage(ProxmoxClusterStorage, CLUSTER_ID, "local");
 
-    expect(infoLabels()).toEqual(["Status", "Used / Total", "Age"]);
+    expect(infoLabels()).toEqual(["Status", "Used / Total"]);
     await expectExplained([
       ["Status", "storageTableStatus"],
       ["Used / Total", "storageTableUsage"],
-      ["Age", "storageTableAge"],
     ]);
     expect(screen.queryByText("CPU")).not.toBeInTheDocument();
   });
@@ -953,15 +952,13 @@ describe("Proxmox storage list", () => {
     expect(rowOf("backup")).toHaveTextContent("N/A");
   });
 
-  test("storage reports no uptime, so Age is a dash", async () => {
+  test("storage reports no uptime, so there is no Age column of dashes", async () => {
     await renderPage(ProxmoxClusterStorage, CLUSTER_ID, "local");
 
-    const ageIndex: number = Array.from(
-      columnHeader("Age").parentElement!.children,
-    ).indexOf(columnHeader("Age"));
-    for (const name of ["local", "backup"]) {
-      expect(rowOf(name).children[ageIndex]).toHaveTextContent("-");
-    }
+    expect(
+      screen.queryByRole("columnheader", { name: /^Age/ }),
+    ).not.toBeInTheDocument();
+    expect(rowOf("local")).not.toHaveTextContent("-");
   });
 });
 

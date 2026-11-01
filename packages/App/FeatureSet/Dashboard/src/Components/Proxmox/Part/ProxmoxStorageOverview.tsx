@@ -6,7 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
@@ -42,6 +42,9 @@ import { ProxmoxPartRoutes } from "./ProxmoxPartRoutes";
  * and when it will be full at its recent growth, what is open on it,
  * whether anyone will hear when it fills or goes away, and its details.
  */
+
+// How the storage's own row reads in its Needs attention card.
+const THIS_STORAGE: string = translationKey("This storage");
 
 export interface ComponentProps {
   clusterId: ObjectID;
@@ -87,10 +90,7 @@ const ProxmoxStorageOverview: FunctionComponent<ComponentProps> = (
       rows: [row],
       routeFor: props.routes.getPartRoute,
     },
-  ).map((item: ResourceAttentionItem): ResourceAttentionItem => {
-    // The storage's own row needs no link to the page it is on.
-    return { ...item, route: undefined };
-  });
+  );
 
   const used: number | null = toProxmoxNumber(row.latestDiskBytes);
   const total: number | null = toProxmoxNumber(row.maxDiskBytes);
@@ -170,6 +170,7 @@ const ProxmoxStorageOverview: FunctionComponent<ComponentProps> = (
       <NeedsAttentionCard
         testId="proxmox-storage-attention"
         items={attentionItems}
+        current={{ key: `Storage:${props.externalId}`, label: THIS_STORAGE }}
         description="What about this storage is broken or needs a look."
       />
 

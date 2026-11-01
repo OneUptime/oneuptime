@@ -23,6 +23,7 @@ import {
   ResourcePartOpenEvents,
   loadResourcePartOpenEvents,
 } from "./ResourcePartOpenEvents";
+import ResourcePartRow from "./ResourcePartRow";
 
 /*
  * What is wrong with a part right now, near the top of its page: the
@@ -33,7 +34,9 @@ import {
  * says how the records are found).
  *
  * Draws nothing while nothing is open - the part's status and its alerts
- * card say the rest - and nothing when neither kind can be read.
+ * card say the rest - and nothing when neither kind can be read. Each row
+ * opens its record, the whole row (ResourcePartRow), as Home's Needs
+ * attention rows do.
  */
 
 // How many open records the card lists before it points to the rest.
@@ -141,71 +144,75 @@ const ResourcePartOpenEventsCard: FunctionComponent<ComponentProps> = (
                 key={`${record.type}-${record.id}`}
                 data-testid={`${props.testId}-item`}
                 data-kind={record.type}
-                className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:gap-3 md:px-6"
               >
-                <div className="flex min-w-0 items-start gap-3 sm:flex-1">
-                  <div
-                    className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${
-                      isIncident
-                        ? "bg-red-50 text-red-600 ring-red-200"
-                        : "bg-amber-50 text-amber-600 ring-amber-200"
-                    }`}
-                    aria-hidden="true"
-                  >
-                    <Icon
-                      icon={
+                <ResourcePartRow
+                  to={
+                    isIncident
+                      ? props.getIncidentRoute(id)
+                      : props.getAlertRoute(id)
+                  }
+                  className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
+                >
+                  <div className="flex min-w-0 items-start gap-3 sm:flex-1">
+                    <div
+                      className={`mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md ring-1 ring-inset ${
                         isIncident
-                          ? IconProp.Alert
-                          : IconProp.ExclaimationCircle
-                      }
-                      className="h-3.5 w-3.5"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <Link
-                      to={
-                        isIncident
-                          ? props.getIncidentRoute(id)
-                          : props.getAlertRoute(id)
-                      }
-                      className="break-words text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline"
+                          ? "bg-red-50 text-red-600 ring-red-200"
+                          : "bg-amber-50 text-amber-600 ring-amber-200"
+                      }`}
+                      aria-hidden="true"
                     >
-                      {record.title ||
-                        (isIncident
-                          ? tx("Untitled incident")
-                          : tx("Untitled alert"))}
-                    </Link>
-                    <div className="mt-0.5 text-xs text-gray-500">
-                      {[
-                        isIncident ? tx("Incident") : tx("Alert"),
-                        record.number,
-                        record.stateName,
-                        record.createdAt
-                          ? formatRelativeTime({
-                              date: record.createdAt,
-                              now: new Date(),
-                              language: translator.language,
-                            })
-                          : "",
-                      ]
-                        .filter((part: string): boolean => {
-                          return Boolean(part);
-                        })
-                        .join(" · ")}
+                      <Icon
+                        icon={
+                          isIncident
+                            ? IconProp.Alert
+                            : IconProp.ExclaimationCircle
+                        }
+                        className="h-3.5 w-3.5"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div
+                        data-testid={`${props.testId}-title`}
+                        className="text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
+                      >
+                        {record.title ||
+                          (isIncident
+                            ? tx("Untitled incident")
+                            : tx("Untitled alert"))}
+                      </div>
+                      <div className="mt-0.5 text-xs text-gray-500">
+                        {[
+                          isIncident ? tx("Incident") : tx("Alert"),
+                          record.number,
+                          record.stateName,
+                          record.createdAt
+                            ? formatRelativeTime({
+                                date: record.createdAt,
+                                now: new Date(),
+                                language: translator.language,
+                              })
+                            : "",
+                        ]
+                          .filter((part: string): boolean => {
+                            return Boolean(part);
+                          })
+                          .join(" · ")}
+                      </div>
                     </div>
                   </div>
-                </div>
-                {record.severityName ? (
-                  <div className="pl-10 sm:flex-none sm:pl-0">
-                    <Pill
-                      text={record.severityName}
-                      color={toColor(record.severityColor) || Red500}
-                      size={PillSize.Small}
-                    />
-                  </div>
-                ) : (
-                  <></>
-                )}
+                  {record.severityName ? (
+                    <div className="pl-10 sm:flex-none sm:pl-0">
+                      <Pill
+                        text={record.severityName}
+                        color={toColor(record.severityColor) || Red500}
+                        size={PillSize.Small}
+                      />
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                </ResourcePartRow>
               </li>
             );
           })}

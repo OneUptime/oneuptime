@@ -94,7 +94,6 @@ export type ProxmoxMetric =
   // Storage list.
   | "storageTableStatus"
   | "storageTableUsage"
-  | "storageTableAge"
   // Insights.
   | "insightsDiskThroughput";
 
@@ -298,9 +297,6 @@ export const PROXMOX_METRIC_DESCRIPTIONS: Record<ProxmoxMetric, string> = {
   ),
   storageTableUsage: translationKey(
     "Space used compared with the volume's total size, with the percentage used, at its latest report. Shows N/A when Proxmox has not reported both numbers.",
-  ),
-  storageTableAge: translationKey(
-    "Proxmox does not report an uptime for storage volumes, so this column normally shows a dash.",
   ),
 
   // Insights.

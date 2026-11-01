@@ -299,7 +299,11 @@ export function getProxmoxAttentionItems(data: {
       kind: kindWordOf(kind),
       icon: iconOf(kind),
       name: getProxmoxDisplayName(row),
-      detail: externalId,
+      /*
+       * A guest's id says its VMID ("qemu/104") and a storage's its node
+       * ("storage/pve3/local"); a node's only repeats its name.
+       */
+      detail: kind === "Node" ? undefined : externalId,
       severity: assessment.severity,
       reasons: assessment.reasons,
       route: externalId ? data.routeFor(kind, externalId) : undefined,

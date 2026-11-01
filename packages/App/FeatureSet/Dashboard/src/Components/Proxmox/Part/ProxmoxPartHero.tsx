@@ -195,7 +195,8 @@ const ProxmoxPartHero: FunctionComponent<ComponentProps> = (
             other: "{{running}}/{{count}} guests running",
           },
           props.guestSummary.total,
-          { running: String(props.guestSummary.running) },
+          // In the reader's digits, as the count beside it is.
+          { running: translator.formatNumber(props.guestSummary.running) },
         ),
       });
     }

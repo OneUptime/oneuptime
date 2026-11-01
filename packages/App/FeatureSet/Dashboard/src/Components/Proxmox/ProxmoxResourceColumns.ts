@@ -7,6 +7,7 @@ import {
 import {
   InfrastructureResource,
   ResourceColumn,
+  ResourceColumnTone,
 } from "../Infrastructure/ResourceTable";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../MetricDescriptions/ProxmoxMetricDescriptions";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
@@ -44,6 +45,27 @@ const STORAGE_SHARED: string = translationKey("Shared");
 const STORAGE_LOCAL: string = translationKey("Local");
 
 const NO_VALUE: string = "-";
+
+/*
+ * A guest's backup cell needs a look when its last backup failed (red) or no
+ * job includes it (amber), as Needs attention says of the same guest - and,
+ * as there, never a template's: a template never runs.
+ */
+export function getProxmoxBackupCellTone(data: {
+  backup: ProxmoxGuestBackup;
+  isTemplate: boolean;
+}): ResourceColumnTone | undefined {
+  if (data.isTemplate) {
+    return undefined;
+  }
+  if (data.backup.state === "failed") {
+    return "danger";
+  }
+  if (data.backup.state === "not-in-job") {
+    return "warning";
+  }
+  return undefined;
+}
 
 // One guest's backup, in a cell: how its last one went and when, or its job coverage.
 export function formatProxmoxBackupCell(data: {
@@ -131,9 +153,13 @@ export function getProxmoxGuestColumns(data: {
   };
 
   const backups: Map<string, ProxmoxGuestBackup> = new Map();
+  const templates: Set<string> = new Set();
   for (const row of data.rows) {
     if (row.kind === "Guest" && row.externalId) {
       backups.set(row.externalId, getProxmoxGuestBackup(row));
+      if (row.isTemplate === true) {
+        templates.add(row.externalId);
+      }
     }
   }
 
@@ -179,6 +205,19 @@ export function getProxmoxGuestColumns(data: {
         translator: data.translator,
         now: data.now,
       });
+    },
+    getTone: (
+      resource: InfrastructureResource,
+    ): ResourceColumnTone | undefined => {
+      const externalId: string =
+        resource.additionalAttributes["externalId"] || "";
+      const backup: ProxmoxGuestBackup | undefined = backups.get(externalId);
+      return backup
+        ? getProxmoxBackupCellTone({
+            backup: backup,
+            isTemplate: templates.has(externalId),
+          })
+        : undefined;
     },
   });
 
@@ -288,7 +327,8 @@ export function getProxmoxNodeColumns(data: {
             other: "{{running}}/{{count}} running",
           },
           summary.total,
-          { running: String(summary.running) },
+          // In the reader's digits, as the count beside it is.
+          { running: data.translator.formatNumber(summary.running) },
         );
       },
     },

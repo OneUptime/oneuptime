@@ -364,7 +364,12 @@ describe("the attention list", () => {
     expect(byName.get("pve3")?.route?.toString()).toBe(
       `/node/${encodeURIComponent("node/pve3")}`,
     );
-    expect(byName.get("pve3")?.detail).toBe("node/pve3");
+    /*
+     * A node's id would only repeat its name ("node/pve3" under "pve3"); a
+     * guest's says its VMID and a storage's its node.
+     */
+    expect(byName.get("pve3")?.detail).toBeUndefined();
+    expect(byName.get("101-0 (web-10)")?.detail).toBe("qemu/101");
     expect(byName.get("101-0 (web-10)")?.route?.toString()).toBe(
       `/guest/${encodeURIComponent("qemu/101")}`,
     );

@@ -6,7 +6,11 @@ import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  composedValue,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { formatRelativeTime } from "../../Home/HomeRelativeTime";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
@@ -49,8 +53,13 @@ import { ProxmoxPartRoutes } from "./ProxmoxPartRoutes";
  * VE's own notifications.
  *
  * The tiles are the guest's latest report, as a detail page always shows
- * it: the last value the agent sent, however old.
+ * it: the last value the agent sent, however old. A template never runs, so
+ * it has no CPU, memory or disk tile - three dashes and a hint to install
+ * the QEMU guest agent in a guest that never starts - only its last backup.
  */
+
+// How the guest's own row reads in its Needs attention card.
+const THIS_GUEST: string = translationKey("This guest");
 
 export interface ComponentProps {
   clusterId: ObjectID;
@@ -108,10 +117,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
       rows: [row],
       routeFor: props.routes.getPartRoute,
     },
-  ).map((item: ResourceAttentionItem): ResourceAttentionItem => {
-    // The guest's own row needs no link to the page it is on.
-    return { ...item, route: undefined };
-  });
+  );
 
   const isQemu: boolean =
     row.guestType === "qemu" || props.externalId.startsWith("qemu/");
@@ -309,6 +315,7 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
       <NeedsAttentionCard
         testId="proxmox-guest-attention"
         items={attentionItems}
+        current={{ key: `Guest:${props.externalId}`, label: THIS_GUEST }}
         description="What about this guest is broken or needs a look, the most urgent first."
       />
 
@@ -316,61 +323,69 @@ const ProxmoxGuestOverview: FunctionComponent<ComponentProps> = (
         className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
         data-testid="proxmox-guest-tiles"
       >
-        <GoldenMetricTile
-          title={tx("CPU")}
-          icon={IconProp.CPUChip}
-          iconColor="blue"
-          value={formatPercent(cpu)}
-          sublabel={
-            cpu !== null && cores !== null && cores > 0
-              ? translator.translatePlural(
-                  { one: "of {{count}} core", other: "of {{count}} cores" },
-                  cores,
-                )
-              : undefined
-          }
-          percent={cpu}
-          thresholds={{ warn: 80, danger: 90 }}
-          description={PROXMOX_METRIC_DESCRIPTIONS.guestCpu}
-        />
-        <GoldenMetricTile
-          title={tx("Memory")}
-          icon={IconProp.SquareStack}
-          iconColor="violet"
-          value={formatPercent(memoryPercent)}
-          sublabel={
-            memoryUsed !== null && memoryTotal !== null
-              ? translator.translateTemplate("{{used}} of {{total}}", {
-                  used: formatBytes(memoryUsed),
-                  total: formatBytes(memoryTotal),
-                })
-              : undefined
-          }
-          percent={memoryPercent}
-          thresholds={{ warn: 80, danger: 95 }}
-          description={PROXMOX_METRIC_DESCRIPTIONS.guestMemory}
-        />
-        <GoldenMetricTile
-          title={tx("Disk")}
-          icon={IconProp.Database}
-          iconColor="amber"
-          value={
-            diskUsed === null && isQemu ? tx("N/A") : formatPercent(diskPercent)
-          }
-          sublabel={
-            diskUsed === null && isQemu
-              ? tx("install the QEMU guest agent for disk usage")
-              : diskUsed !== null && diskTotal !== null
-                ? translator.translateTemplate("{{used}} of {{total}}", {
-                    used: formatBytes(diskUsed),
-                    total: formatBytes(diskTotal),
-                  })
-                : undefined
-          }
-          percent={diskPercent}
-          thresholds={{ warn: 80, danger: 90 }}
-          description={PROXMOX_METRIC_DESCRIPTIONS.guestDisk}
-        />
+        {row.isTemplate ? (
+          <></>
+        ) : (
+          <>
+            <GoldenMetricTile
+              title={tx("CPU")}
+              icon={IconProp.CPUChip}
+              iconColor="blue"
+              value={formatPercent(cpu)}
+              sublabel={
+                cpu !== null && cores !== null && cores > 0
+                  ? translator.translatePlural(
+                      { one: "of {{count}} core", other: "of {{count}} cores" },
+                      cores,
+                    )
+                  : undefined
+              }
+              percent={cpu}
+              thresholds={{ warn: 80, danger: 90 }}
+              description={PROXMOX_METRIC_DESCRIPTIONS.guestCpu}
+            />
+            <GoldenMetricTile
+              title={tx("Memory")}
+              icon={IconProp.SquareStack}
+              iconColor="violet"
+              value={formatPercent(memoryPercent)}
+              sublabel={
+                memoryUsed !== null && memoryTotal !== null
+                  ? translator.translateTemplate("{{used}} of {{total}}", {
+                      used: formatBytes(memoryUsed),
+                      total: formatBytes(memoryTotal),
+                    })
+                  : undefined
+              }
+              percent={memoryPercent}
+              thresholds={{ warn: 80, danger: 95 }}
+              description={PROXMOX_METRIC_DESCRIPTIONS.guestMemory}
+            />
+            <GoldenMetricTile
+              title={tx("Disk")}
+              icon={IconProp.Database}
+              iconColor="amber"
+              value={
+                diskUsed === null && isQemu
+                  ? tx("N/A")
+                  : formatPercent(diskPercent)
+              }
+              sublabel={
+                diskUsed === null && isQemu
+                  ? tx("install the QEMU guest agent for disk usage")
+                  : diskUsed !== null && diskTotal !== null
+                    ? translator.translateTemplate("{{used}} of {{total}}", {
+                        used: formatBytes(diskUsed),
+                        total: formatBytes(diskTotal),
+                      })
+                    : undefined
+              }
+              percent={diskPercent}
+              thresholds={{ warn: 80, danger: 90 }}
+              description={PROXMOX_METRIC_DESCRIPTIONS.guestDisk}
+            />
+          </>
+        )}
         <GoldenMetricTile
           title={tx("Last Backup")}
           icon={IconProp.Archive}

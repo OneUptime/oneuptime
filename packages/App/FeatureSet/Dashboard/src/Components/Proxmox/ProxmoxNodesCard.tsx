@@ -2,6 +2,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledListClassName } from "Common/UI/Components/Card/CardSurface";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -9,6 +10,7 @@ import Link from "Common/UI/Components/Link/Link";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { RESOURCE_PART_TONE_CLASS_NAMES } from "../ResourcePart/ResourcePartHero";
+import ResourcePartRow from "../ResourcePart/ResourcePartRow";
 import { ResourcePartStatus } from "../ResourcePart/ResourcePartTypes";
 import {
   ProxmoxGuestSummary,
@@ -33,7 +35,8 @@ import {
  * then the nodes in name order, as people number them (pve2 before pve10).
  *
  * The bars are the node's latest report. A node that has sent nothing for
- * 15 minutes shows no numbers rather than old ones (the lists' rule).
+ * 15 minutes shows no numbers rather than old ones (the lists' rule). Each
+ * row is a link to the node's page, the whole row (ResourcePartRow).
  */
 
 // How many nodes the card lists before it points to the node list.
@@ -183,7 +186,8 @@ const ProxmoxNodesCard: FunctionComponent<ComponentProps> = (
                     other: "{{running}}/{{count}} guests running",
                   },
                   guests.total,
-                  { running: String(guests.running) },
+                  // Written as the count beside it is, in the reader's digits.
+                  { running: translator.formatNumber(guests.running) },
                 ),
               );
             }
@@ -209,72 +213,73 @@ const ProxmoxNodesCard: FunctionComponent<ComponentProps> = (
                 key={externalId || name}
                 data-testid="proxmox-nodes-card-item"
                 data-node={name}
-                className="flex flex-col gap-3 px-5 py-3 md:flex-row md:items-center md:gap-6 md:px-6"
               >
-                <div className="flex min-w-0 items-start gap-3 md:w-2/5">
-                  <div
-                    className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200"
-                    aria-hidden="true"
-                  >
-                    <Icon icon={IconProp.ServerStack} className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      {externalId ? (
-                        <Link
-                          to={props.getNodeRoute(externalId)}
-                          className="min-w-0 break-all text-sm font-medium text-gray-900 hover:text-indigo-600 hover:underline"
-                        >
-                          {name}
-                        </Link>
-                      ) : (
-                        <span className="min-w-0 break-all text-sm font-medium text-gray-900">
-                          {name}
-                        </span>
-                      )}
-                      {status ? (
+                <ResourcePartRow
+                  to={externalId ? props.getNodeRoute(externalId) : undefined}
+                  className="flex flex-col gap-3 md:flex-row md:items-center md:gap-6"
+                >
+                  <div className="flex min-w-0 items-start gap-3 md:w-2/5">
+                    <div
+                      className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-600 ring-1 ring-inset ring-slate-200"
+                      aria-hidden="true"
+                    >
+                      <Icon
+                        icon={IconProp.ServerStack}
+                        className="h-3.5 w-3.5"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                         <span
-                          data-testid="proxmox-nodes-card-status"
-                          className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].badge}`}
+                          data-testid="proxmox-nodes-card-name"
+                          className="min-w-0 text-sm font-medium text-gray-900 [overflow-wrap:anywhere]"
                         >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].dot}`}
-                            aria-hidden="true"
-                          />
-                          {tx(status.label)}
+                          <BreakableName text={name} />
                         </span>
+                        {status ? (
+                          <span
+                            data-testid="proxmox-nodes-card-status"
+                            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].badge}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${RESOURCE_PART_TONE_CLASS_NAMES[status.tone].dot}`}
+                              aria-hidden="true"
+                            />
+                            {tx(status.label)}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                      </div>
+                      {facts.length > 0 ? (
+                        <div className="mt-0.5 text-xs text-gray-500">
+                          {facts.join(" · ")}
+                        </div>
                       ) : (
                         <></>
                       )}
                     </div>
-                    {facts.length > 0 ? (
-                      <div className="mt-0.5 text-xs text-gray-500">
-                        {facts.join(" · ")}
-                      </div>
-                    ) : (
-                      <></>
-                    )}
                   </div>
-                </div>
-                <div className="flex min-w-0 flex-1 gap-4 pl-10 md:pl-0">
-                  {renderBar({
-                    key: "cpu",
-                    label: "CPU",
-                    percent: isFresh
-                      ? toProxmoxNumber(node.latestCpuPercent)
-                      : null,
-                  })}
-                  {renderBar({
-                    key: "memory",
-                    label: "Memory",
-                    percent: isFresh ? getProxmoxMemoryPercent(node) : null,
-                  })}
-                  {renderBar({
-                    key: "disk",
-                    label: "Disk",
-                    percent: isFresh ? getProxmoxDiskPercent(node) : null,
-                  })}
-                </div>
+                  <div className="flex min-w-0 flex-1 gap-4 pl-10 md:pl-0">
+                    {renderBar({
+                      key: "cpu",
+                      label: "CPU",
+                      percent: isFresh
+                        ? toProxmoxNumber(node.latestCpuPercent)
+                        : null,
+                    })}
+                    {renderBar({
+                      key: "memory",
+                      label: "Memory",
+                      percent: isFresh ? getProxmoxMemoryPercent(node) : null,
+                    })}
+                    {renderBar({
+                      key: "disk",
+                      label: "Disk",
+                      percent: isFresh ? getProxmoxDiskPercent(node) : null,
+                    })}
+                  </div>
+                </ResourcePartRow>
               </li>
             );
           })}

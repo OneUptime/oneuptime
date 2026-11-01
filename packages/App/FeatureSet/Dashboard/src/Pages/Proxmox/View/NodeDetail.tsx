@@ -446,9 +446,10 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
           isLoading={isLoadingRow}
           showGroupColumn={false}
           showResourceMetrics={false}
+          // Proxmox reports no uptime for a storage: no column of dashes.
+          showAge={false}
           builtInColumnDescriptions={{
             status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus,
-            age: PROXMOX_METRIC_DESCRIPTIONS.storageTableAge,
           }}
           tableIdPrefix="proxmox-node-storage"
           emptyMessage="No storage reported for this node."

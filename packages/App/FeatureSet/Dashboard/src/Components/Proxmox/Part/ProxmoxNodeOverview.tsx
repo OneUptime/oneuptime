@@ -6,7 +6,7 @@ import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommen
 import Link from "Common/UI/Components/Link/Link";
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../MetricDescriptions/ProxmoxMetricDescriptions";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
@@ -56,6 +56,9 @@ import { ProxmoxPartRoutes } from "./ProxmoxPartRoutes";
  * a part's own page says when it last reported, in its hero).
  */
 
+// How the node's own row reads in its Needs attention card.
+const THIS_NODE: string = translationKey("This node");
+
 export interface ComponentProps {
   clusterId: ObjectID;
   clusterName: string;
@@ -93,12 +96,7 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
       rows: [...(row ? [row] : []), ...props.nodeRows],
       routeFor: props.routes.getPartRoute,
     },
-  ).map((item: ResourceAttentionItem): ResourceAttentionItem => {
-    // The node's own row needs no link to the page it is on.
-    return item.key === `Node:${props.externalId}`
-      ? { ...item, route: undefined }
-      : item;
-  });
+  );
 
   const busiest: Array<ProxmoxBusyGuest> = getProxmoxBusiestGuests({
     rows: guests,
@@ -219,6 +217,7 @@ const ProxmoxNodeOverview: FunctionComponent<ComponentProps> = (
       <NeedsAttentionCard
         testId="proxmox-node-attention"
         items={attentionItems}
+        current={{ key: `Node:${props.externalId}`, label: THIS_NODE }}
         description="What on this node, its guests and its storage is broken or needs a look, the most urgent first."
       />
 

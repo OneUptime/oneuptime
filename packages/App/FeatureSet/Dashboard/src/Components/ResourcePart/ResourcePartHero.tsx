@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -122,11 +123,16 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {/*
+               * A long name breaks after its own dots and slashes first
+               * (BreakableName), anywhere only where a part is still too
+               * long - never mid-word in a name that fits.
+               */}
               <h2
-                className="min-w-0 break-all text-xl font-semibold text-gray-900"
+                className="min-w-0 text-xl font-semibold text-gray-900 [overflow-wrap:anywhere]"
                 data-testid={`${props.testId}-name`}
               >
-                {props.name}
+                <BreakableName text={props.name} />
               </h2>
               {status ? (
                 <span

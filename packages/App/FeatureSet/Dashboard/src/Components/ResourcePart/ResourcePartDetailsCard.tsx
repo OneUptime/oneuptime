@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
@@ -18,7 +19,10 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  * value, three columns on a wide screen, rules between the rows), with the
  * values a reader pastes elsewhere one copy away. Nothing to edit: the
  * product that reports the part owns these. The ESXi host page's card,
- * generalized for every resource product's parts.
+ * generalized for every resource product's parts. A value breaks as the
+ * resource overviews' Details values do: after its own dots and slashes
+ * first (BreakableName), anywhere only where a part is still too long for
+ * the line - never break-all, which split dates and words mid-letter.
  */
 
 // The card's columns on a wide screen (two from sm, one on a phone).
@@ -98,9 +102,13 @@ const ResourcePartDetailsCard: FunctionComponent<ComponentProps> = (
                       className={`${DETAIL_VALUE_CLASS_NAME} flex items-start gap-2`}
                     >
                       <div
-                        className={`min-w-0 break-all${row.mono ? " font-mono" : ""}`}
+                        className={`min-w-0 [overflow-wrap:anywhere]${row.mono ? " font-mono" : ""}`}
                       >
-                        {row.value}
+                        {typeof row.value === "string" ? (
+                          <BreakableName text={row.value} />
+                        ) : (
+                          row.value
+                        )}
                       </div>
                       {/*
                        * Beside the value and always in view, as on every

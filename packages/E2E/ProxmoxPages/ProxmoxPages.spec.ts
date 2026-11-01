@@ -246,6 +246,29 @@ async function expectNoSidewaysScroll(page: Page): Promise<void> {
   expect(widths.page).toBeLessThanOrEqual(widths.window);
 }
 
+// The colour a pill or a cell is drawn in, as the browser computed it.
+async function colourOf(locator: Locator): Promise<string> {
+  return await locator.evaluate((element: Element): string => {
+    return getComputedStyle(element).color;
+  });
+}
+
+// Tailwind's gray-600, red-700 and amber-700, as computed colours.
+const GREY_600: string = "rgb(75, 85, 99)";
+const RED_700: string = "rgb(185, 28, 28)";
+const AMBER_700: string = "rgb(180, 83, 9)";
+
+// A Latin digit, which a Persian count chip should not mix with its own.
+const LATIN_DIGIT: RegExp = /[0-9]/;
+
+// A golden tile on the Overview, found by its title in the reader's language.
+function goldenTile(page: Page, title: string): Locator {
+  return page
+    .locator("span.uppercase", { hasText: title })
+    .first()
+    .locator("xpath=ancestor::div[contains(@class, 'rounded-xl')][1]");
+}
+
 async function selectedRecommendations(page: Page): Promise<Array<string>> {
   await expect(page).toHaveURL((url: URL): boolean => {
     return url.pathname === `${CLUSTER_PATH}/recommendations`;
@@ -296,10 +319,23 @@ test.describe("the cluster's Overview", () => {
 
     await screenshot(page, "overview-attention");
 
-    // One step to the part's own page.
-    await card
-      .locator('[data-key="Node:node/pve3"]')
-      .getByRole("link", { name: "pve3" })
+    /*
+     * Each row is one link, the whole row, as on Home's Needs attention
+     * card: its reasons are inside it, and a node's row has no id line that
+     * would only repeat its name.
+     */
+    const pve3: Locator = card.locator('[data-key="Node:node/pve3"]');
+    await expect(pve3.getByRole("link")).toHaveCount(1);
+    await expect(pve3.getByRole("link")).toContainText("Offline");
+    await expect(pve3).not.toContainText("node/pve3");
+    await expect(
+      card.locator('[data-key="Guest:qemu/104"]').getByRole("link"),
+    ).toContainText("qemu/104");
+
+    // One step to the part's own page, from anywhere on its row.
+    await pve3
+      .getByTestId("proxmox-needs-attention-reason")
+      .getByText("Offline")
       .click();
     await expect(page).toHaveURL((url: URL): boolean => {
       return url.pathname === nodePath("pve3");
@@ -342,6 +378,17 @@ test.describe("the cluster's Overview", () => {
     await expect(page).toHaveURL((url: URL): boolean => {
       return url.pathname === `${CLUSTER_PATH}/guests`;
     });
+
+    // A node's whole row is the step to its page, its bars included.
+    await openOverview(page);
+    await page
+      .getByTestId("proxmox-nodes-card-item")
+      .nth(2)
+      .getByTestId("proxmox-nodes-card-cpu")
+      .click();
+    await expect(page).toHaveURL((url: URL): boolean => {
+      return url.pathname === nodePath("pve2");
+    });
   });
 
   test("a cluster that has never sent Proxmox VE's notifications says how to, and the guide ends on it", async ({
@@ -376,6 +423,12 @@ test.describe("the cluster's Overview", () => {
     ).toBeVisible();
     await expect(
       page.getByText(/Needs Proxmox VE 8\.3 or later\./),
+    ).toBeVisible();
+    // With a key picked in step 1, the two commands are there to copy.
+    await expect(
+      page.getByText("pvesh create /cluster/notifications/matchers", {
+        exact: false,
+      }),
     ).toBeVisible();
   });
 
@@ -439,6 +492,26 @@ test.describe("the cluster's Overview", () => {
     ).toBeVisible();
     await expect(page.getByTestId("proxmox-needs-attention")).toHaveCount(0);
     await expect(page.getByTestId("proxmox-nodes-card")).toHaveCount(0);
+    // The guests are unknown, not "0/13 running" with a red bar.
+    const guests: Locator = goldenTile(page, "Guests");
+    await expect(guests).toContainText("—");
+    await expect(guests).not.toContainText("0/13");
+  });
+
+  test("a cluster that has reported no part yet has no health to tell", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, CLUSTER_PATH, "estate=new");
+
+    await expect(page.getByTestId("proxmox-hero-connection")).toHaveText(
+      "Connected",
+    );
+    await expect(goldenTile(page, "Guests")).toContainText("—");
+    // "Healthy" with nothing reported would be a guess.
+    await expect(page.getByTestId("proxmox-hero-health")).toHaveCount(0);
+    await expect(page.getByTestId("proxmox-needs-attention")).toHaveCount(0);
   });
 });
 
@@ -486,6 +559,13 @@ test.describe("a node's page", () => {
       "vpn",
     ]);
     await expect(busy.first()).toContainText("91.6%");
+    await expect(
+      busy.first().getByTestId("proxmox-busy-guest-cpu"),
+    ).toContainText("CPU");
+    await expect(busy.first().getByRole("link")).toHaveAttribute(
+      "href",
+      guestPath("qemu/102"),
+    );
 
     await expect(page.getByTestId("proxmox-node-details-id")).toContainText(
       "node/pve2",
@@ -538,10 +618,14 @@ test.describe("a node's page", () => {
     const rows: Array<{ key: string; severity: string }> =
       await attentionRows(card);
     expect(rows[0]).toEqual({ key: "Node:node/pve3", severity: "critical" });
-    // The node's own row needs no link to the page it is on.
-    await expect(
-      card.locator('[data-key="Node:node/pve3"]').getByRole("link"),
-    ).toHaveCount(0);
+    // The node's own row says so, and needs no link to the page it is on.
+    const own: Locator = card.locator('[data-key="Node:node/pve3"]');
+    await expect(own.getByTestId("proxmox-node-attention-name")).toHaveText(
+      "This node",
+    );
+    await expect(own.getByRole("link")).toHaveCount(0);
+    // Nothing runs on it: no busiest guests to rank.
+    await expect(page.getByTestId("proxmox-busiest-guests")).toHaveCount(0);
     // Its guest, one step away.
     await card
       .locator('[data-key="Guest:qemu/104"]')
@@ -563,6 +647,15 @@ test.describe("a node's page", () => {
     await expect(page.getByTestId("proxmox-node-alerts-turn-on")).toHaveText(
       "Turn on 5 alerts",
     );
+    // Not set up reads grey, never five amber warnings.
+    expect(
+      await colourOf(
+        page
+          .getByTestId("proxmox-node-alerts-item")
+          .first()
+          .getByText("Not set up"),
+      ),
+    ).toBe(GREY_600);
     await page.getByTestId("proxmox-node-alerts-turn-on").click();
 
     const selected: Array<string> = await selectedRecommendations(page);
@@ -628,6 +721,9 @@ test.describe("a guest's page", () => {
     expect(
       await attentionRows(page.getByTestId("proxmox-guest-attention")),
     ).toEqual([{ key: "Guest:qemu/102", severity: "warning" }]);
+    await expect(page.getByTestId("proxmox-guest-attention-name")).toHaveText(
+      "This guest",
+    );
     await expect(page.getByTestId("proxmox-guest-tiles")).toContainText(
       "Failed",
     );
@@ -683,6 +779,13 @@ test.describe("a guest's page", () => {
     await expect(page.getByTestId("proxmox-guest-attention")).toHaveCount(0);
     await expect(page.getByTestId("proxmox-guest-tiles")).toContainText(
       "in a backup job, no result yet",
+    );
+    // It never runs: no CPU, memory or disk tile, and no guest agent hint.
+    await expect(
+      page.getByTestId("proxmox-guest-tiles").locator(":scope > div"),
+    ).toHaveCount(1);
+    await expect(page.getByTestId("proxmox-guest-tiles")).not.toContainText(
+      "QEMU guest agent",
     );
   });
 });
@@ -775,6 +878,34 @@ test.describe("the lists", () => {
     await expect(dbRow).toContainText("Failed");
     const vpnRow: Locator = page.getByRole("row").filter({ hasText: "vpn" });
     await expect(vpnRow).toContainText("In no backup job");
+    // The cells that need a look stand out, in words and in colour.
+    expect(await colourOf(dbRow.getByText("Failed", { exact: false }))).toBe(
+      RED_700,
+    );
+    expect(await colourOf(vpnRow.getByText("In no backup job"))).toBe(
+      AMBER_700,
+    );
+    await expectNoSidewaysScroll(page);
+  });
+
+  test("Storage: its type and sharing, and no Age column of dashes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openPage(page, `${CLUSTER_PATH}/storage`);
+
+    await expect(
+      page.getByRole("columnheader", { name: "Shared" }).first(),
+    ).toBeVisible();
+    // Proxmox reports no uptime for a storage.
+    await expect(
+      page.getByRole("columnheader", { name: "Age", exact: true }),
+    ).toHaveCount(0);
+    const pbsRow: Locator = page
+      .getByRole("row")
+      .filter({ hasText: "pbs-offsite" });
+    await expect(pbsRow).toContainText("Proxmox Backup Server");
     await expectNoSidewaysScroll(page);
   });
 });
@@ -836,6 +967,28 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
         .getByText(GERMAN["Needs attention"] as string, { exact: true }),
     ).toBeVisible();
     expect(GERMAN["Needs attention"]).not.toBe("Needs attention");
+    // The count chips speak German too.
+    await expect(page.getByTestId("proxmox-hero-nodes")).toHaveText(
+      (GERMAN["{{online}}/{{count}} nodes online"] as string)
+        .replace("{{online}}", "2")
+        .replace("{{count}}", "3"),
+    );
+    // A tile's one long German word breaks inside its box, not under its icon.
+    const availability: Locator = goldenTile(
+      page,
+      GERMAN["Node Availability"] as string,
+    );
+    const title: Locator = availability.locator("span.uppercase").first();
+    const icon: Locator = availability
+      .locator(":scope > div")
+      .first()
+      .locator(":scope > div")
+      .last();
+    const titleBox: { x: number; width: number } | null =
+      await title.boundingBox();
+    const iconBox: { x: number } | null = await icon.boundingBox();
+    expect(titleBox && iconBox).toBeTruthy();
+    expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(iconBox!.x);
 
     await openNode(page, "pve2", "lang=de");
     await expect(page.getByTestId("proxmox-node-hero-location")).toHaveText(
@@ -858,6 +1011,11 @@ test.describe("at a phone's width, in dark mode, in German and in Persian", () =
   }) => {
     await openOverview(page, "lang=fa");
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    // "2/۳" read as two kinds of digit: the chip writes both its own way.
+    const nodesChip: string =
+      (await page.getByTestId("proxmox-hero-nodes").textContent()) || "";
+    expect(nodesChip).toContain("۲/۳");
+    expect(nodesChip).not.toMatch(LATIN_DIGIT);
     await expect(
       page
         .getByTestId("proxmox-needs-attention")
