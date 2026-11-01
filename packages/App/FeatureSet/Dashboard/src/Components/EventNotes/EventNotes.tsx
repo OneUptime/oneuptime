@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "Common/Models/DatabaseModels/Project";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import Sort from "Common/Types/BaseDatabase/Sort";
@@ -757,7 +758,9 @@ function EventNotes<TNote extends BaseModel>(
               onClick={() => {
                 fetchNotes({ mode: "more" });
               }}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:opacity-60"
+              className={`inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3.5 text-sm font-medium text-gray-700 shadow-sm transition ${getHandDrawnButtonStateClassName(
+                { isBusy: isLoadingMore, hoverClassName: "hover:bg-gray-50" },
+              )}`}
             >
               {isLoadingMore && (
                 <Icon
@@ -856,7 +859,13 @@ function EventNotes<TNote extends BaseModel>(
               onClick={() => {
                 refresh();
               }}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 shadow-sm transition hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                {
+                  isLocked: isLoading,
+                  isBusy: isRefreshing,
+                  hoverClassName: "hover:bg-gray-50 hover:text-gray-700",
+                },
+              )}`}
             >
               <Icon
                 icon={IconProp.Refresh}

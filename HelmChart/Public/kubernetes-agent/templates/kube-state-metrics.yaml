@@ -92,11 +92,7 @@ spec:
       nodeSelector:
         {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 65534
-        fsGroup: 65534
-        seccompProfile:
-          type: RuntimeDefault
+        {{- include "kubernetes-agent.nonRootPodSecurityContext" (dict "root" $ "runAsUser" 65534 "fsGroup" 65534) | nindent 8 }}
       containers:
         - name: kube-state-metrics
           image: "{{ .Values.kubeStateMetrics.image.repository }}:{{ .Values.kubeStateMetrics.image.tag }}"

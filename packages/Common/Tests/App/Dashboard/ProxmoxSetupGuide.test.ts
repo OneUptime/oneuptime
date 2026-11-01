@@ -753,9 +753,15 @@ describe("the install script", () => {
         hasApiKey: true,
       }),
     ).toBe(
+      /*
+       * One value a line, so the key and the script it runs read without
+       * scrolling sideways; a shell joins them into one command.
+       */
       [
         `curl -fsSL ${SERVED} -o install.sh`,
-        `ONEUPTIME_URL=${URL} ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} bash install.sh`,
+        `ONEUPTIME_URL=${URL} \\`,
+        `  ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} \\`,
+        "  bash install.sh",
       ].join("\n"),
     );
     expect(installStep(guideFor("install-script"))).toContain(

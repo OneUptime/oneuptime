@@ -23,7 +23,7 @@ spec:
         # renders), so only a change OBI would see rolls them.
         checksum/config: {{ include "kubernetes-agent.obiConfig" . | sha256sum }}
     spec:
-      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      serviceAccountName: {{ include "kubernetes-agent.ebpfServiceAccountName" . }}
       hostPID: true
       # kubernetes.io/os=linux is always merged in (user keys win): the
       # image is linux-only and eBPF needs a Linux kernel, and the blanket

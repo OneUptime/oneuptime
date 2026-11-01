@@ -7,6 +7,7 @@ import useTranslateValue from "../../Utils/Translation";
 import joinAriaIds from "../../Utils/AriaIds";
 import Icon from "../Icon/Icon";
 import { PeopleChip } from "./PeopleList";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import PeopleSearchPopup, {
   PEOPLE_SEARCH_POPUP_MAX_HEIGHT_PX,
   PEOPLE_SEARCH_POPUP_WIDTH_PX,
@@ -293,7 +294,13 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
           }
         }}
         onKeyDown={isInteractive ? popup.onTriggerKeyDown : undefined}
-        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-600 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+        className={`inline-flex items-center gap-1.5 rounded-full border border-dashed border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: !isInteractive,
+            hoverClassName:
+              "hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900",
+          },
+        )}`}
       >
         <Icon
           icon={isChangingSinglePick ? IconProp.Pencil : IconProp.Add}

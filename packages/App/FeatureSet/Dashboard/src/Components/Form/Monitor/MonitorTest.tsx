@@ -57,8 +57,11 @@ export interface ComponentProps {
   /*
    * Classes for the wrapper around the trigger button. The default cancels the
    * `md:ml-3` that ButtonStyleType.NORMAL carries for a modal footer, which is
-   * what a card's right-hand slot wants. A caller that places the button in a
-   * row which already spaces its children passes its own.
+   * what a card's right-hand slot wants - from md up only, where the button
+   * has it: on a phone it has no margin to take back, and a bare -ml-3 pulled
+   * it 12px past the gutter of Create Monitor's criteria step. A caller that
+   * places the button in a row which already spaces its children passes its
+   * own.
    */
   className?: string | undefined;
 }
@@ -252,7 +255,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className={props.className ?? "-ml-3 mr-2"}>
+      <div className={props.className ?? "md:-ml-3 md:mr-2"}>
         <Button
           buttonStyle={ButtonStyleType.NORMAL}
           buttonSize={props.buttonSize}

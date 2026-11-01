@@ -4,7 +4,7 @@
 
 :::cards
 - [Установите агент](#установка-агента): Четыре шага с Helm.
-- [Выберите пресет](#выбор-пресета): Стандартные кластеры, GKE Autopilot или EKS Fargate.
+- [Выберите пресет](#выбор-пресета): Стандартные кластеры, GKE Autopilot, EKS Fargate или OpenShift.
 - [Основные параметры](#основные-параметры): Настройки, которые меняют в большинстве кластеров.
 - [Устранение неполадок](#устранение-неполадок): Диагностический скрипт и типичные проблемы.
 :::
@@ -92,10 +92,13 @@ kubectl get pods -n oneuptime-agent
 | `standard` (по умолчанию) | Самостоятельно управляемые кластеры, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Сборщик узла читает `/var/log/pods` | Метрики kubelet, cAdvisor и ОС |
 | `gke-autopilot` | **GKE Autopilot** | Считыватель логов читает их через Kubernetes API | Метрики kubelet и cAdvisor, без `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Считыватель логов читает их через Kubernetes API | Ничего: Fargate не запускает DaemonSet |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Сборщик узла читает `/var/log/pods` | Метрики kubelet, cAdvisor и ОС |
 
 Если не уверены, оставьте `preset` пустым, чтобы получить `standard`. Если установка завершается ошибкой Pod Security с упоминанием `hostPath`, установите заново с `gke-autopilot` или с `eks-fargate` в EKS Fargate.
 
-GKE Autopilot и EKS Fargate также отклоняют привилегированные поды, которые нужны eBPF-инструментированию и профилированию, поэтому их пресеты не включают ни то, ни другое:
+GKE Autopilot и EKS Fargate также отклоняют привилегированные поды, которые нужны eBPF-инструментированию и профилированию, поэтому их пресеты не включают ни то, ни другое.
+
+В OpenShift используемое по умолчанию ограничение контекста безопасности (SCC) `restricted-v2` отклоняет сборщик узла и поды eBPF. Пресет `openshift` создаёт для каждого из них отдельное SCC, которым пользуется только его собственный сервисный аккаунт, и позволяет OpenShift выбирать идентификатор пользователя для всех остальных подов:
 
 :::tabs
 @tab Standard
@@ -123,6 +126,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
 ```
 :::
 
@@ -355,7 +367,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `oneuptime.url` | (обязательно) | Ваш URL OneUptime. |
 | `oneuptime.apiKey` | (обязательно) | Ключ приема из **Настройки проекта → Телеметрия и APM → Ключи приема**. Отправляется в заголовке `x-oneuptime-token`; ключ API проекта не подойдёт. |
 | `clusterName` | (обязательно) | Имя кластера, уникальное в проекте. Каждая запись несёт его как `k8s.cluster.name`. |
-| `preset` | (пусто: `standard`) | `standard`, `gke-autopilot` или `eks-fargate`. См. [Выбор пресета](#выбор-пресета). |
+| `preset` | (пусто: `standard`) | `standard`, `gke-autopilot`, `eks-fargate` или `openshift`. См. [Выбор пресета](#выбор-пресета). |
 | `oneuptime.labels` | `{}` | Метки для каждой записи от этого агента. См. [Метки для кластера](#метки-для-кластера). |
 | `namespaceFilters.rules` | Исключает `kube-system` из `podLogs` и `ebpfDiscovery` | Правила, которые включают или исключают пространства имён, для `podLogs`, `ebpfDiscovery`, `metrics` и `traces`. Шаблоны могут использовать `*`, и исключение всегда побеждает. |
 | `filters.logs.minSeverity` | `""` | Отбрасывает строки логов подов ниже этого уровня: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` или `FATAL`. |

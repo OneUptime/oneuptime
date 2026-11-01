@@ -266,7 +266,7 @@ const StatusPageMonitorRulesPage: FunctionComponent<RuleSettingsPageProps> = (
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitor Labels (optional)",
+            placeholder: "Select Monitor Labels",
           },
           {
             field: { monitorNamePattern: true },

@@ -532,6 +532,35 @@ export interface KubernetesHPAObject {
   };
 }
 
+export interface KubernetesServicePort {
+  name: string;
+  protocol: string;
+  port: number;
+  // The pod's port: a number or a port name, as written.
+  targetPort: string;
+  // 0 unless the Service opens one.
+  nodePort: number;
+}
+
+export interface KubernetesServiceObject {
+  metadata: KubernetesObjectMetadata;
+  spec: {
+    // ClusterIP, NodePort, LoadBalancer or ExternalName.
+    type: string;
+    // An IP, "None" for a headless Service, or "" for an ExternalName.
+    clusterIP: string;
+    externalName: string;
+    sessionAffinity: string;
+    // The pods it sends traffic to: a plain label map, like a Pod's labels.
+    selector: Record<string, string>;
+    ports: Array<KubernetesServicePort>;
+  };
+  status: {
+    // A LoadBalancer's addresses, each a hostname or an IP.
+    loadBalancerIngress: Array<string>;
+  };
+}
+
 export interface KubernetesVPAContainerRecommendation {
   containerName: string;
   target: Record<string, string>;
@@ -564,7 +593,7 @@ export interface KubernetesVPAObject {
  * ============================================================
  */
 
-function parseMetadata(kvList: JSONObject): KubernetesObjectMetadata {
+export function parseMetadata(kvList: JSONObject): KubernetesObjectMetadata {
   const labelsKvList: string | JSONObject | null = getKvValue(kvList, "labels");
   const annotationsKvList: string | JSONObject | null = getKvValue(
     kvList,
@@ -772,7 +801,7 @@ function parseContainerSpec(kvList: JSONObject): KubernetesContainerSpec {
   };
 }
 
-function parseConditions(
+export function parseConditions(
   conditionsArrayValue: JSONObject | null,
 ): Array<KubernetesCondition> {
   if (!conditionsArrayValue) {
@@ -1787,6 +1816,89 @@ export function parseHPAObject(
       metadata: parseMetadata(metadataKv),
       spec: { minReplicas, maxReplicas, scaleTargetRef, metrics },
       status: { currentReplicas, desiredReplicas, conditions },
+    };
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * A core Service. The kubernetes-agent chart's openshift preset pulls these
+ * with the Routes that send traffic to them.
+ */
+export function parseServiceObject(
+  objectKvList: JSONObject,
+): KubernetesServiceObject | null {
+  try {
+    const metadataKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "metadata",
+    );
+    if (!metadataKv || typeof metadataKv === "string") {
+      return null;
+    }
+
+    const specKv: string | JSONObject | null = getKvValue(objectKvList, "spec");
+    const statusKv: string | JSONObject | null = getKvValue(
+      objectKvList,
+      "status",
+    );
+    const spec: JSONObject | undefined =
+      specKv && typeof specKv !== "string" ? specKv : undefined;
+
+    const selectorKv: string | JSONObject | null = getKvValue(spec, "selector");
+    const portsKv: string | JSONObject | null = getKvValue(spec, "ports");
+    const ports: Array<KubernetesServicePort> =
+      portsKv && typeof portsKv !== "string"
+        ? getArrayValues(portsKv).map(
+            (portKv: JSONObject): KubernetesServicePort => {
+              return {
+                name: getKvStringValue(portKv, "name"),
+                protocol: getKvStringValue(portKv, "protocol"),
+                port: parseInt(getKvStringValue(portKv, "port")) || 0,
+                targetPort: getKvStringValue(portKv, "targetPort"),
+                nodePort: parseInt(getKvStringValue(portKv, "nodePort")) || 0,
+              };
+            },
+          )
+        : [];
+
+    const loadBalancerKv: string | JSONObject | null =
+      statusKv && typeof statusKv !== "string"
+        ? getKvValue(statusKv, "loadBalancer")
+        : null;
+    const ingressKv: string | JSONObject | null =
+      loadBalancerKv && typeof loadBalancerKv !== "string"
+        ? getKvValue(loadBalancerKv, "ingress")
+        : null;
+    const loadBalancerIngress: Array<string> =
+      ingressKv && typeof ingressKv !== "string"
+        ? getArrayValues(ingressKv)
+            .map((addressKv: JSONObject): string => {
+              return (
+                getKvStringValue(addressKv, "hostname") ||
+                getKvStringValue(addressKv, "ip")
+              );
+            })
+            .filter((address: string): boolean => {
+              return address.length > 0;
+            })
+        : [];
+
+    return {
+      metadata: parseMetadata(metadataKv),
+      spec: {
+        type: getKvStringValue(spec, "type"),
+        clusterIP: getKvStringValue(spec, "clusterIP"),
+        externalName: getKvStringValue(spec, "externalName"),
+        sessionAffinity: getKvStringValue(spec, "sessionAffinity"),
+        selector:
+          selectorKv && typeof selectorKv !== "string"
+            ? getKvListAsRecord(selectorKv)
+            : {},
+        ports: ports,
+      },
+      status: { loadBalancerIngress: loadBalancerIngress },
     };
   } catch {
     return null;

@@ -284,8 +284,9 @@ describeInContainers("an agent's install command, run in a container", () => {
       });
       const before: number = served.requests.length;
 
+      // One value a line, as the guide shows it: the shell joins them.
       expect(command).toBe(
-        `curl -fsSL ${served.url}/install/proxmox-agent -o install.sh\nONEUPTIME_URL=${served.url} ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} bash install.sh`,
+        `curl -fsSL ${served.url}/install/proxmox-agent -o install.sh\nONEUPTIME_URL=${served.url} \\\n  ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} \\\n  bash install.sh`,
       );
 
       // The answers the maintainer's screenshot lists, in the script's order.

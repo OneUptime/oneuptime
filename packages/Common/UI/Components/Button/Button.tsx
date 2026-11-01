@@ -4,9 +4,29 @@ import ShortcutKey from "../ShortcutKey/ShortcutKey";
 import ButtonType from "./ButtonTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import Tooltip from "../Tooltip/Tooltip";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
+import {
+  BUTTON_DISABLED_CLASS_NAME,
+  BUTTON_DISABLED_CURSOR_CLASS_NAME,
+  getHandDrawnButtonStateClassName,
+  getInertButtonFocusRingClassName,
+  getInertButtonWrapperClassName,
+  HandDrawnButtonState,
+  INERT_BUTTON_WRAPPER_FOCUS_CLASS_NAME,
+} from "./ButtonStates";
+
+/*
+ * How soon after a press a button that goes busy (or locked) counts as made
+ * so by the press, and keeps the keyboard's place (see Button).
+ */
+export const FOCUS_KEEPING_PRESS_MS: number = 2000;
 
 export enum ButtonStyleType {
   PRIMARY,
@@ -36,23 +56,17 @@ export enum ButtonSize {
 }
 
 /*
- * How a button that cannot be pressed looks - a locked action, a Next with
- * nothing chosen yet - whatever its style: faded as a whole, with the
- * not-allowed cursor, and no hover (the style leaves its hover classes off).
- * Before, a disabled plain or outline button looked exactly like one that
- * works until it was hovered, so a locked action looked pressable ("Turn
- * monitoring on", a viewer's Triage again, a Reset the reader may not make),
- * and the three styles that had a disabled look swapped their fill for a
- * paler one - indigo-300, red-300 - which in the dark theme was a bright
- * block brighter than the button it stood for, and on SECONDARY darker than
- * its own light fill. A loading button is busy, not locked: it keeps its
- * look and shows its spinner.
+ * How a button that cannot be pressed looks, whatever its style - faded,
+ * with the not-allowed cursor and no hover - and how a busy one does, kept
+ * React-free in ButtonStates so a button drawn by hand takes the same look
+ * (getHandDrawnButtonStateClassName).
  */
-export const BUTTON_DISABLED_CLASS_NAME: string =
-  "cursor-not-allowed opacity-50";
-
-// The cursor of a locked button's tooltip wrapper, which takes the pointer.
-export const BUTTON_DISABLED_CURSOR_CLASS_NAME: string = "cursor-not-allowed";
+export {
+  BUTTON_DISABLED_CLASS_NAME,
+  BUTTON_DISABLED_CURSOR_CLASS_NAME,
+  getHandDrawnButtonStateClassName,
+};
+export type { HandDrawnButtonState };
 
 /*
  * SECONDARY_LINK's words, and its words under the pointer: a muted link that
@@ -233,6 +247,60 @@ const Button: FunctionComponent<ComponentProps> = ({
    */
   const isInert: boolean = Boolean(disabled || isLoading);
   const isLocked: boolean = Boolean(disabled) && !isLoading;
+
+  const buttonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const wrapperRef: React.RefObject<HTMLSpanElement> =
+    useRef<HTMLSpanElement>(null);
+  // When the button was last pressed while it had the focus.
+  const focusedPressAtRef: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
+  // Whether it went busy (or locked) because of that press.
+  const keepsFocusRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+
+  /*
+   * A button pressed from the keyboard keeps the keyboard's place while it
+   * works. A busy or locked button is disabled, and the browser moves the
+   * focus off a disabled control - to the page itself - and the reason a
+   * locked one gives sits in a wrapper of its own, which the button is
+   * moved into: Enter on a Save or a Refresh left the reader at the top of
+   * the page, with Tab starting over. Now, if that press made it busy:
+   *
+   *   - while it works, the wrapper that says why takes the focus, where
+   *     there is one;
+   *   - when it is done, the button takes the focus back.
+   *
+   * Only while the focus is lost (on the page itself): someone who moved
+   * on keeps their place. And only for a press that made it busy - a
+   * button that goes busy on its own (an automatic refresh) never pulls
+   * the focus to itself.
+   */
+  useEffect(() => {
+    const activeElement: Element | null = document.activeElement;
+    const isFocusLost: boolean =
+      !activeElement || activeElement === document.body;
+
+    if (isInert) {
+      const pressedAt: number | null = focusedPressAtRef.current;
+
+      keepsFocusRef.current =
+        pressedAt !== null && Date.now() - pressedAt < FOCUS_KEEPING_PRESS_MS;
+
+      if (keepsFocusRef.current && isFocusLost && wrapperRef.current) {
+        wrapperRef.current.focus({ preventScroll: true });
+      }
+
+      return;
+    }
+
+    if (keepsFocusRef.current && isFocusLost && buttonRef.current) {
+      buttonRef.current.focus({ preventScroll: true });
+    }
+
+    keepsFocusRef.current = false;
+    focusedPressAtRef.current = null;
+  }, [isInert]);
 
   /*
    * The focus ring is for keyboard focus only (focus-visible). Drawn on every
@@ -419,6 +487,17 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   /*
+   * Wrapped - a locked or busy button with a reason - the button's own
+   * focus ring is drawn round it while the wrapper, which takes the
+   * keyboard's stop in its place, has the keyboard's focus.
+   */
+  if (isInert && translatedTooltip) {
+    buttonStyleCssClass += ` ${getInertButtonFocusRingClassName(
+      buttonStyleCssClass,
+    )}`;
+  }
+
+  /*
    * An icon button, or any button with no words (a phone's menu toggle, a
    * row's trash can), is named by its title or else its tooltip.
    */
@@ -433,9 +512,14 @@ const Button: FunctionComponent<ComponentProps> = ({
   const getButton: GetReactElementFunction = (): ReactElement => {
     return (
       <button
+        ref={buttonRef}
         style={style}
         id={id}
         onClick={() => {
+          // A press from where the focus is: it is kept if the press makes it busy.
+          focusedPressAtRef.current =
+            document.activeElement === buttonRef.current ? Date.now() : null;
+
           if (onClick) {
             onClick();
           }
@@ -497,15 +581,17 @@ const Button: FunctionComponent<ComponentProps> = ({
          */
         <Tooltip text={translatedTooltip} isShownOnPress={isLocked}>
           <span
+            ref={wrapperRef}
             /*
              * The button takes no pointer here (see above), so the
-             * not-allowed cursor of a locked one is this wrapper's.
+             * not-allowed cursor of a locked one is this wrapper's. It
+             * takes the button's place in its row - as wide as a phone,
+             * where the button is - not only as wide as its words.
              */
-            className={
-              isLocked
-                ? `inline-flex ${BUTTON_DISABLED_CURSOR_CLASS_NAME}`
-                : "inline-flex"
-            }
+            className={`${getInertButtonWrapperClassName({
+              buttonClassName: buttonStyleCssClass,
+              isLocked: isLocked,
+            })} ${INERT_BUTTON_WRAPPER_FOCUS_CLASS_NAME}`}
             tabIndex={0}
             data-testid={
               dataTestId ? `${dataTestId}-disabled-wrapper` : undefined

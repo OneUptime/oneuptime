@@ -175,18 +175,46 @@ describe("ConversationComposer — sending", () => {
     expect(document.activeElement).toBe(box());
   });
 
-  test("lights Send in the page's primary colour once there is something to send", () => {
+  /*
+   * Send is the page's primary colour throughout: with nothing to send it
+   * is locked as every button is - faded, with the not-allowed cursor and
+   * no hover - rather than a grey of its own; with something to send it is
+   * at full strength and answers the pointer.
+   */
+  test("Send is faded in the page's primary colour until there is something to send", () => {
     render(<Harness />);
 
     expect(send()).toBeDisabled();
-    expect(send()).toHaveClass("bg-gray-100", "text-gray-400");
-    expect(send()).not.toHaveClass("bg-indigo-600");
+    expect(send()).toHaveClass(
+      "bg-indigo-600",
+      "text-white",
+      "opacity-50",
+      "cursor-not-allowed",
+    );
+    expect(send()).not.toHaveClass("hover:bg-indigo-500");
+    expect(send()).not.toHaveClass("bg-gray-100");
 
     type("What changed?");
 
     expect(send()).toBeEnabled();
+    expect(send()).toHaveClass(
+      "bg-indigo-600",
+      "text-white",
+      "hover:bg-indigo-500",
+    );
+    expect(send()).not.toHaveClass("opacity-50");
+    expect(send()).not.toHaveClass("cursor-not-allowed");
+  });
+
+  test("while the AI works, Send is busy: its own colour and no fade", () => {
+    render(<Harness canSend={false} isWorking={true} />);
+
+    type("And the node?");
+
+    expect(send()).toBeDisabled();
     expect(send()).toHaveClass("bg-indigo-600", "text-white");
-    expect(send()).not.toHaveClass("bg-gray-100");
+    expect(send()).not.toHaveClass("opacity-50");
+    expect(send()).not.toHaveClass("hover:bg-indigo-500");
   });
 });
 

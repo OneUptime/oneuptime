@@ -33,6 +33,16 @@ chartDefaultsVersion: "0.7.3"
 #   eks-fargate   — EKS Fargate. Same config as gke-autopilot (no host
 #                   access, no privileged pods, no DaemonSets on Fargate).
 #
+#   openshift     — OpenShift: OpenShift Container Platform, ROSA, ARO,
+#                   OKD. Logs and node metrics come from the DaemonSet, as
+#                   on standard. OpenShift's default SCC, restricted-v2,
+#                   refuses hostPath, privileged pods and fixed user IDs,
+#                   so the chart creates an SCC for the node collector
+#                   (read-only hostPath, root, SELinux type spc_t) and one
+#                   for the eBPF and profiler pods (privileged), each used
+#                   only by those pods' own service account, and lets
+#                   OpenShift assign every other pod's user and group IDs.
+#
 # If unset, "standard" is assumed. Individual values (logs.mode, etc.) can
 # still be overridden explicitly — they always win over preset defaults.
 # The one exception is the privileged pods: on gke-autopilot and
@@ -513,7 +523,11 @@ logs:
 
 # Resource spec collection — pulls full K8s resource objects (pods, nodes,
 # deployments, etc.) for displaying labels, annotations, env vars, status,
-# and other details in the dashboard.
+# and other details in the dashboard. On the openshift preset it also pulls
+# OpenShift's own objects: ClusterOperators, the ClusterVersion, Routes and
+# DeploymentConfigs (a Route's TLS key is replaced before it leaves the
+# cluster), and the Services those Routes send traffic to. Those need
+# collector 0.125.0 or later.
 resourceSpecs:
   enabled: true
   interval: 300s  # How often to pull full resource specs (default: 5 minutes)

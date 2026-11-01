@@ -398,7 +398,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
   describe("presets", () => {
     const helpers: string = chartFile("templates/_helpers.tpl");
 
-    it("are the chart's three, in the table's order", () => {
+    it("are the chart's four, in the table's order", () => {
       const schema: {
         properties: { preset: { enum: Array<string> } };
       } = JSON.parse(chartFile("values.schema.json"));
@@ -408,12 +408,18 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         "standard",
         "gke-autopilot",
         "eks-fargate",
+        "openshift",
       ]);
       expect(
         tableAfter("## Pick a preset").map((row: Array<string>): string => {
           return row[0] as string;
         }),
-      ).toEqual(["`standard` (default)", "`gke-autopilot`", "`eks-fargate`"]);
+      ).toEqual([
+        "`standard` (default)",
+        "`gke-autopilot`",
+        "`eks-fargate`",
+        "`openshift`",
+      ]);
     });
 
     it("read logs through the API on GKE Autopilot and EKS Fargate, where hostPath is refused", () => {
@@ -427,11 +433,32 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       const rows: Array<Array<string>> = tableAfter("## Pick a preset");
 
       expect(rows[0]![2]).toBe("The node collector reads `/var/log/pods`");
-      for (const row of rows.slice(1)) {
+      for (const row of rows.slice(1, 3)) {
         expect(row[2]).toBe(
           "The log tailer reads them through the Kubernetes API",
         );
       }
+    });
+
+    it("on OpenShift keep the node collector, under an SCC the chart creates, and let OpenShift choose every other pod's user", () => {
+      // hostPath and privileged pods stay allowed: the chart's SCCs allow them.
+      expect(helpers).not.toMatch(
+        /define "kubernetes-agent\.(hostPathAvailable|privilegedPodsAllowed|daemonSetSchedulable)" -}}\n[^\n]*\n[^\n]*openshift/,
+      );
+      expect(chartFile("templates/openshift-scc.yaml")).toContain(
+        "kind: SecurityContextConstraints",
+      );
+      expect(helpers).toContain(
+        'define "kubernetes-agent.nonRootPodSecurityContext" -}}\nrunAsNonRoot: true\n{{- if ne (include "kubernetes-agent.openshift" .root) "true" }}',
+      );
+
+      const rows: Array<Array<string>> = tableAfter("## Pick a preset");
+
+      expect(rows[3]![2]).toBe("The node collector reads `/var/log/pods`");
+      expect(rows[3]![3]).toBe("Kubelet, cAdvisor and OS metrics");
+      expect(english).toContain(
+        "On OpenShift, the default security context constraint (SCC), `restricted-v2`, refuses the node collector and the eBPF pods. The `openshift` preset creates an SCC for each, used only by its own service account, and lets OpenShift choose the user ID of every other pod:",
+      );
     });
 
     it("run no DaemonSet on EKS Fargate, and the node collector without hostPath on GKE Autopilot", () => {
@@ -521,7 +548,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       }
 
       expect(english).toContain(
-        "GKE Autopilot and EKS Fargate also refuse privileged pods, which the eBPF instrumentation and profiling need, so their presets leave both out:",
+        "GKE Autopilot and EKS Fargate also refuse privileged pods, which the eBPF instrumentation and profiling need, so their presets leave both out.",
       );
       expect(english).toContain(
         "- The cluster is **GKE Autopilot** or **EKS Fargate**. Their presets do it for you: those platforms refuse privileged pods, and OBI must be privileged to load its programs.",

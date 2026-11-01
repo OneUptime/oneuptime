@@ -22,6 +22,15 @@ export enum CardSurface {
   Page = "page",
   // One section of the card it is in.
   Section = "section",
+  /*
+   * A card of its own from sm up, and one section of the card or dialog it
+   * is drawn in on a phone (CardSectionsOnPhones): there every frame and
+   * its padding come off the width of the fields inside it, and the card or
+   * dialog around it already frames it. Not a Section: what reads the
+   * surface for a section's look (a table, a list, a detail card, a ruled
+   * body) draws a card's here.
+   */
+  SectionOnPhones = "section-on-phones",
 }
 
 export const CardSurfaceContext: React.Context<CardSurface> =
@@ -34,6 +43,11 @@ export const useCardSurface: () => CardSurface = (): CardSurface => {
 // Whether a card here is drawn as a section of the card it is in.
 export const useIsCardSection: () => boolean = (): boolean => {
   return useCardSurface() === CardSurface.Section;
+};
+
+// Whether a card here is a section of the card it is in on a phone only.
+export const useIsCardSectionOnPhones: () => boolean = (): boolean => {
+  return useCardSurface() === CardSurface.SectionOnPhones;
 };
 
 /*

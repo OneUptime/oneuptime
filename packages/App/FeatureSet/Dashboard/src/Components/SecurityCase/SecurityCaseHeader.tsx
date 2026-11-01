@@ -13,7 +13,6 @@ import SecurityCaseTargetChip from "./ResponseTargets/SecurityCaseTargetChip";
 import { SecurityCaseValueLists } from "./SecurityCaseValues";
 import {
   SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME,
-  SECURITY_CASE_HEADER_BUTTON_CLASS_NAME,
   SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME,
   SECURITY_CASE_HEADER_BUTTONS_CLASS_NAME,
   SECURITY_CASE_HEADER_CHIPS_CLASS_NAME,
@@ -23,12 +22,11 @@ import {
   SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME,
   SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME,
   SECURITY_CASE_HEADER_MORE_TRIGGER_CLASS_NAME,
-  SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
-  SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME,
   SECURITY_CASE_HEADER_TITLE_CLASS_NAME,
   SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME,
   SECURITY_CASE_HEADER_TEST_IDS,
   SecurityCaseHeaderLayout,
+  getSecurityCaseHeaderButtonClassName,
 } from "./SecurityCaseHeaderLayout";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
@@ -150,11 +148,10 @@ export const HeaderActionButton: FunctionComponent<{
           action.onClick();
         }
       }}
-      className={`${SECURITY_CASE_HEADER_BUTTON_CLASS_NAME} ${
-        action.isPrimary
-          ? SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME
-          : SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME
-      }${hasReachableTooltip ? " pointer-events-none w-full" : ""}`}
+      className={`${getSecurityCaseHeaderButtonClassName({
+        isPrimary: Boolean(action.isPrimary),
+        isLocked: Boolean(action.isDisabled),
+      })}${hasReachableTooltip ? " pointer-events-none w-full" : ""}`}
     >
       <span className={SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME}>
         <Icon icon={action.icon} className="h-4 w-4 shrink-0" />

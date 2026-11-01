@@ -5,6 +5,7 @@ OneUptime Kubernetes 代理程式是一個 Helm chart，它會收集叢集的指
 :::cards
 - [安裝代理程式](#安裝代理程式): 使用 Helm 的四個步驟。
 - [作為 Amazon EKS 附加元件安裝](#作為-amazon-eks-附加元件安裝): 從 EKS 主控台安裝，不需要 Helm。
+- [OpenShift](#openshift): 預設集、它建立的安全性內容限制，以及 OpenShift 本身的警示。
 - [設定選項](#設定選項): 篩選器、取樣、控制平面、服務網格、成本和標籤。
 - [Kubernetes AI 代理程式](#kubernetes-ai-代理程式): 供 OneUptime AI 使用的唯讀 `kubectl`，以及在你允許時進行的修正。
 - [減少傳送量](#減少收集的資料量): 依影響大小排列的調整手段。
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,25 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `standard`（預設） | 自行管理的叢集、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | 節點 Collector 透過 `hostPath` 讀取 `/var/log/pods`（負擔最低） | Kubelet、cAdvisor 和節點的作業系統指標 |
 | `gke-autopilot` | **GKE Autopilot** | 日誌追蹤器透過 Kubernetes API 讀取（沒有 `hostPath`，沒有主機存取權） | Kubelet 和 cAdvisor，不使用 `hostPath` |
 | `eks-fargate` | **EKS Fargate** | 日誌追蹤器透過 Kubernetes API 讀取（沒有 `hostPath`，沒有主機存取權） | 無：Fargate 不執行 DaemonSet |
+| `openshift` | **OpenShift**：OpenShift Container Platform、ROSA、ARO、OKD | 節點 Collector 在 chart 為其建立的安全性內容限制下，透過 `hostPath` 讀取 `/var/log/pods` | Kubelet、cAdvisor 和節點的作業系統指標 |
 
-如果不確定，請從 `standard` 開始。如果安裝因提到 `hostPath` 的 Pod Security 錯誤而失敗，請使用 `preset=gke-autopilot`（在 Fargate 上為 `eks-fargate`）重新安裝。GKE Autopilot 和 EKS Fargate 也會拒絕 eBPF 和效能分析工具所需的特權 Pod，因此這兩個預設集會將它們都排除在外。
+如果不確定，請從 `standard` 開始。如果安裝因提到 `hostPath` 的 Pod Security 錯誤而失敗，請使用 `preset=gke-autopilot`（在 Fargate 上為 `eks-fargate`）重新安裝。GKE Autopilot 和 EKS Fargate 也會拒絕 eBPF 和效能分析工具所需的特權 Pod，因此這兩個預設集會將它們都排除在外。在 OpenShift 上，請使用 `openshift`，詳見 [OpenShift](#openshift)。
+
+## OpenShift
+
+依照上方 **OpenShift** 分頁所示，使用 `--set preset=openshift` 安裝。OpenShift 只有在 Pod 的服務帳戶有權使用某個安全性內容限制（SCC）時，才會在該 SCC 下接受這個 Pod；在管理員授予更多權限之前，這個 SCC 就是 `restricted-v2`（OpenShift 4.11 及更新版本）：不允許 `hostPath` 磁碟區，不允許特權容器，使用者 ID 取自命名空間本身的範圍。因此，此預設集會：
+
+- 建立兩個 SCC，每個只供其對應 Pod 自己的服務帳戶使用：
+  - 一個用於節點 Collector：唯讀的 `hostPath` 掛載，以 root 身分搭配 SELinux 類型 `spc_t` 執行，非特權，並移除所有 capability；
+  - 一個用於 eBPF 檢測和效能分析工具：特權，位於主機的 PID 命名空間中。僅在兩者之一開啟時存在。
+- 讓 OpenShift 為其他每個 Pod 選擇使用者 ID，這些 Pod 都在 `restricted-v2` 下執行。
+- 在代理程式的遙測資料上標記 `oneuptime.kubernetes.distribution=openshift`，讓叢集的 **平台** 顯示為 **OpenShift**，並在叢集執行於雲端上時加入所在的雲端（`cloud.provider`、`cloud.platform`）。
+
+建立這些 SCC 需要 cluster-admin 權限。不使用此預設集時，發行版本仍可安裝，但 OpenShift 永遠不會啟動代理程式的節點 Collector 和 eBPF Pod，Helm 在安裝後輸出的說明也會指出這一點。
+
+**OpenShift 本身的警示。** OpenShift 內建 Prometheus 和 Alertmanager，並為其 Operator、etcd 和節點提供警示。若要為每則警示在 OneUptime 中建立一個事件，請在 Web 主控台的 **Administration → Cluster Settings → Configuration → Alertmanager** 下為 OneUptime 新增一個 Webhook 接收器，詳情請參閱 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。
+
+**來自你程式碼的追蹤。** eBPF 檢測不需修改程式碼即可追蹤 HTTP、gRPC 和 SQL。若要從 OpenTelemetry SDK 或 Red Hat build of OpenTelemetry 傳送追蹤，請將它們的 OTLP 匯出器指向 OneUptime，詳情請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry)。
 
 ## 收集的內容
 

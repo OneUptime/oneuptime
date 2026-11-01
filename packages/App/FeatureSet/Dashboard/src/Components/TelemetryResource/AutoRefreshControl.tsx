@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -169,7 +170,12 @@ const AutoRefreshControl: FunctionComponent<AutoRefreshControlProps> = (
         onClick={props.onManualRefresh}
         disabled={props.isRefreshing}
         title={translator.translateText("Refresh now")}
-        className="inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
+        className={`inline-flex h-8 items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-700 shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${getHandDrawnButtonStateClassName(
+          {
+            isBusy: props.isRefreshing,
+            hoverClassName: "hover:border-gray-300 hover:bg-gray-50",
+          },
+        )}`}
       >
         <Icon
           icon={IconProp.Refresh}

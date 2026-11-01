@@ -2,6 +2,7 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import DROPDOWN_MENU_Z_INDEX from "Common/UI/Components/Dropdown/DropdownMenuZIndex";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Link from "Common/UI/Components/Link/Link";
 import useAnchoredFieldPopup, {
   AnchoredFieldPopup,
@@ -304,7 +305,12 @@ const NoteTemplateMenu: FunctionComponent<ComponentProps> = (
           popup.togglePopup();
         }}
         onKeyDown={popup.onTriggerKeyDown}
-        className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+        className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: props.isDisabled,
+            hoverClassName: "hover:bg-gray-100 hover:text-gray-900",
+          },
+        )}`}
       >
         <Icon icon={IconProp.Template} className="h-4 w-4" />
         <span>{tx("Templates")}</span>

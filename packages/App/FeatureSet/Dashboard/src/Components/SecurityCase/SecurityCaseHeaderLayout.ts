@@ -1,3 +1,5 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+
 /*
  * How a case's header is laid out (SecurityCaseHeader.tsx), kept free of
  * React so the rules are pinned in a plain test.
@@ -113,7 +115,7 @@ export const SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME: string =
   "absolute right-4 top-3 sm:right-5 [@container(min-width:58rem)]:static [@container(min-width:58rem)]:shrink-0";
 
 export const SECURITY_CASE_HEADER_BUTTON_CLASS_NAME: string =
-  "inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [@container(min-width:36rem)]:max-w-64 [@container(min-width:36rem)]:flex-none";
+  "inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 [@container(min-width:36rem)]:max-w-64 [@container(min-width:36rem)]:flex-none";
 
 /*
  * A button's icon, left out on a phone: the label says it, and without the
@@ -131,13 +133,41 @@ export const SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME: string =
   "inline-flex min-w-[7rem] max-w-full flex-auto rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 [@container(min-width:36rem)]:max-w-64 [@container(min-width:36rem)]:flex-none";
 
 export const SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME: string =
-  "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700";
+  "border-indigo-600 bg-indigo-600 text-white";
+
+export const SECURITY_CASE_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME: string =
+  "hover:border-indigo-700 hover:bg-indigo-700";
 
 export const SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME: string =
-  "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+  "border-gray-300 bg-white text-gray-700";
 
+export const SECURITY_CASE_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME: string =
+  "hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+
+/*
+ * A header button, the main move in indigo, as an incident's header draws
+ * its own. A locked one keeps its colours, faded, with the not-allowed
+ * cursor and no hover (getHandDrawnButtonStateClassName).
+ */
+export const getSecurityCaseHeaderButtonClassName: (data: {
+  isPrimary: boolean;
+  isLocked: boolean;
+}) => string = (data: { isPrimary: boolean; isLocked: boolean }): string => {
+  return `${SECURITY_CASE_HEADER_BUTTON_CLASS_NAME} ${
+    data.isPrimary
+      ? SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME
+      : SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME
+  } ${getHandDrawnButtonStateClassName({
+    isLocked: data.isLocked,
+    hoverClassName: data.isPrimary
+      ? SECURITY_CASE_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME
+      : SECURITY_CASE_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
+  })}`;
+};
+
+// The ⋯, which nothing locks.
 export const SECURITY_CASE_HEADER_MORE_TRIGGER_CLASS_NAME: string =
-  "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
 // The header's test ids: the actions keep the ones the case page always had.
 export const SECURITY_CASE_HEADER_TEST_IDS: {

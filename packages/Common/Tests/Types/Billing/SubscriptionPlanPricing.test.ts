@@ -13,6 +13,8 @@ import {
   getYearlySaving,
   getYearlySavingPercent,
   isPlanFree,
+  isPlanFreeEitherWay,
+  isSamePlanChoice,
 } from "../../../Types/Billing/SubscriptionPlanPricing";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
@@ -363,6 +365,74 @@ describe("SubscriptionPlanPricing", () => {
       expect(
         getDefaultPlanIdForNewProject([], BillingPeriod.Yearly),
       ).toBeNull();
+    });
+  });
+
+  /*
+   * Whether a plan change would leave the project on what it pays for now -
+   * Change Plan's Save Changes with nothing changed (Dashboard
+   * ChangePlanBilling.getChangePlanError).
+   */
+  describe("the same plan choice", () => {
+    it("is the same price", () => {
+      expect(
+        isSamePlanChoice(CLOUD_PLANS, "price_growth_year", "price_growth_year"),
+      ).toBe(true);
+    });
+
+    it("is not another plan", () => {
+      expect(
+        isSamePlanChoice(CLOUD_PLANS, "price_growth_year", "price_scale_year"),
+      ).toBe(false);
+      expect(
+        isSamePlanChoice(CLOUD_PLANS, "price_free_month", "price_growth_month"),
+      ).toBe(false);
+    });
+
+    it("is not the other period of a paid plan: Growth billed monthly costs more", () => {
+      expect(
+        isSamePlanChoice(
+          CLOUD_PLANS,
+          "price_growth_year",
+          "price_growth_month",
+        ),
+      ).toBe(false);
+      // A custom-priced plan's two prices are two contracts.
+      expect(
+        isSamePlanChoice(
+          CLOUD_PLANS,
+          "price_enterprise_month",
+          "price_enterprise_year",
+        ),
+      ).toBe(false);
+    });
+
+    it("is the other period of a plan that costs nothing either way", () => {
+      expect(
+        isSamePlanChoice(CLOUD_PLANS, "price_free_month", "price_free_year"),
+      ).toBe(true);
+      expect(
+        isSamePlanChoice(CLOUD_PLANS, "price_free_year", "price_free_month"),
+      ).toBe(true);
+    });
+
+    it("is never a price no plan has, or nothing", () => {
+      expect(
+        isSamePlanChoice(CLOUD_PLANS, "price_retired", "price_free_month"),
+      ).toBe(false);
+      expect(isSamePlanChoice(CLOUD_PLANS, null, "price_free_month")).toBe(
+        false,
+      );
+      expect(isSamePlanChoice(CLOUD_PLANS, "price_free_month", "")).toBe(false);
+      expect(isSamePlanChoice(CLOUD_PLANS, undefined, undefined)).toBe(false);
+    });
+
+    it("knows a plan free at both periods from one free at one only", () => {
+      expect(isPlanFreeEitherWay(FREE)).toBe(true);
+      expect(isPlanFreeEitherWay(GROWTH)).toBe(false);
+      expect(isPlanFreeEitherWay(ENTERPRISE)).toBe(false);
+      // Free for a year up front, paid month by month: not free either way.
+      expect(isPlanFreeEitherWay(plan({ monthly: 5, yearly: 0 }))).toBe(false);
     });
   });
 

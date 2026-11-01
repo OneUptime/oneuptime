@@ -93,6 +93,42 @@ data:
             group: autoscaling.k8s.io
           {{- end }}
           {{- end }}
+      {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+
+      # OpenShift's own objects, on the openshift preset, pulled with the
+      # other resource specs: the cluster's operators and version, Routes and
+      # DeploymentConfigs, and the Services those Routes send traffic to.
+      # Pulled, never watched, as inventory keeps an object only while its
+      # snapshots arrive. A receiver of their own, with error_mode: ignore,
+      # so a cluster that does not serve one of them skips it instead of
+      # stopping the events and every other spec
+      # (kubernetes-agent.openshiftObjectsEnabled). Each names its group:
+      # another API may serve the same name (OpenShift Serverless's
+      # routes.serving.knative.dev and services.serving.knative.dev). A
+      # Service names none: the receiver takes no group as the core one.
+      k8sobjects/openshift:
+        error_mode: ignore
+        objects:
+          - name: clusteroperators
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: config.openshift.io
+          - name: clusterversions
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: config.openshift.io
+          - name: routes
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: route.openshift.io
+          - name: deploymentconfigs
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps.openshift.io
+          - name: services
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+      {{- end }}
 
       {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
       # Scrape metrics via Prometheus endpoints (control plane, service
@@ -392,6 +428,9 @@ data:
             - tag_name: k8s.pod.label.app.kubernetes.io/name
               key: app.kubernetes.io/name
               from: pod
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            {{- include "kubernetes-agent.deploymentConfigPodLabel" . | nindent 12 }}
+            {{- end }}
         pod_association:
           - sources:
               - from: resource_attribute
@@ -456,7 +495,26 @@ data:
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}
             action: insert
+          {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+          {{- include "kubernetes-agent.distributionAttribute" (dict "action" "insert") | nindent 10 }}
+          {{- end }}
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
+      {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+      {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
+      {{- end }}
+      {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+
+      # A Route can carry its TLS private key inline, in spec.tls.key. It never
+      # leaves the cluster: the key is replaced before the record is exported,
+      # and OneUptime's Route parser reads nothing of spec.tls but how the
+      # route terminates TLS. The certificates beside it are public.
+      transform/openshift-route-tls:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(body["spec"]["tls"]["key"], "REDACTED") where IsMap(body) and body["kind"] == "Route" and body["spec"]["tls"]["key"] != nil
+      {{- end }}
 
       # The k8sobjects receiver emits LogRecords without a severity, so
       # Kubernetes events and resource snapshots arrive at OneUptime with
@@ -795,6 +853,9 @@ data:
             - filter/telemetry
             {{- end }}
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
             # Before batch, so a dropped datapoint never takes a batch slot.
             - filter/ebpf-node-inspector
@@ -805,10 +866,20 @@ data:
         logs:
           receivers:
             - k8sobjects
+            {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+            - k8sobjects/openshift
+            {{- end }}
           processors:
             - memory_limiter
+            {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+            # First, so no other processor holds a Route's key.
+            - transform/openshift-route-tls
+            {{- end }}
             - k8sattributes
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             - transform/severity
             # Intentionally NOT filtered by filters.logs.minSeverity — see the
             # note on $signals above. Kubernetes events are a low-volume,
@@ -842,6 +913,9 @@ data:
             - k8sattributes
             - transform/pod-level-unmark
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
             # Before the user's filters and the sampler, so neither spends
             # work on spans that are about to be dropped anyway.

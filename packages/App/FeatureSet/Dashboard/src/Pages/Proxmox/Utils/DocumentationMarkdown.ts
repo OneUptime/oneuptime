@@ -15,6 +15,7 @@ import {
   INSTALL_SCRIPT_READ_FIRST_NOTE,
   getAgentFileDownloadCommand,
   getInstallScriptDownloadCommand,
+  getInstallScriptRunCommand,
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
@@ -408,7 +409,7 @@ export function getProxmoxInstallScriptCommand(data: {
       data.oneuptimeUrl,
       PROXMOX_AGENT_INSTALL_NAME,
     ),
-    [...environment, "bash install.sh"].join(" "),
+    getInstallScriptRunCommand(environment, "bash install.sh"),
   ].join("\n");
 }
 

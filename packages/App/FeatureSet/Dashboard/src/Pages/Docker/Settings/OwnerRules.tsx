@@ -118,7 +118,7 @@ const DockerHostOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Docker Host Labels (optional)",
+          placeholder: "Select Docker Host Labels",
         },
         {
           field: { dockerHostNamePattern: true },

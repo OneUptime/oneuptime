@@ -1212,17 +1212,40 @@ describe("Billing & Usage", () => {
   it("names the Current Plan card, Seats and Change Plan as the Billing page draws them", () => {
     expect(billingPage).toContain('title: "Current Plan"');
     expect(billingPage).toContain('editButtonText={"Change Plan"}');
+    expect(billingPage).toContain('editModalTitle={"Change Plan"}');
     expect(billingPage).toContain('title: "Seats"');
-    expect(billingPage).toContain('title="Yearly Plan"');
+    /*
+     * Change Plan is the plan picker a new project starts on, for a plan
+     * change: it marks the plan the project is on, and a marketplace
+     * project sees the monthly prices alone.
+     */
+    expect(billingPage).toContain("<PlanPicker");
+    expect(billingPage).toContain("isPlanChange={true}");
+    expect(billingPage).toContain("currentPlanId={currentPlanId || undefined}");
+    expect(billingPage).toContain("? [BillingPeriod.Monthly]");
+    expect(billingPage).not.toContain('title="Yearly Plan"');
+    expect(billingPage).not.toContain(
+      "FormFieldSchemaType.OptionChooserButton",
+    );
+
+    const picker: string = readCommonSource(
+      "UI/Components/Billing/PlanPicker/PlanPicker.tsx",
+    );
+    const pickerCopy: string = readCommonSource(
+      "UI/Components/Billing/PlanPicker/PlanPickerCopy.ts",
+    );
+
+    // It opens at the period the project is billed for.
+    expect(picker).toContain(
+      "allowedPeriod(periodOf(props.plans, props.value))",
+    );
+    // The switch is Monthly | Yearly, and the pill says Current plan.
+    expect(pickerCopy).toContain('monthly: translationKey("Monthly")');
+    expect(pickerCopy).toContain('yearly: translationKey("Yearly")');
+    expect(pickerCopy).toContain('currentPlan: translationKey("Current plan")');
     // What yearly saves is worked out from the prices, never written in.
-    expect(billingPage).toContain(
-      "description={yearlySavingText || undefined}",
-    );
-    expect(billingPage).not.toContain('description="(Save 20%)"');
-    // Yearly starts on, unless a marketplace bills the project.
-    expect(billingPage).toContain(
-      "const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =\n    useState<boolean>(true);",
-    );
+    expect(picker).toContain("getYearlySavingText({");
+    expect(billingPage).not.toContain("(Save 20%)");
     expect(billingPage).toContain("title={`Add a Payment Method`}");
 
     const plan: string = section(page, "## Change the plan");
@@ -1231,13 +1254,20 @@ describe("Billing & Usage", () => {
       "Change Plan",
       "Add a Payment Method",
       "Current Plan",
-      "Yearly Plan",
+      "Monthly",
+      "Yearly",
+      "Current plan",
       "Your free trial carries over",
       "Changing plan does not start a free trial",
       "Not included in this plan",
     ]) {
       expect(boldNames(plan)).toContain(label);
     }
+
+    expect(boldNames(plan)).not.toContain("Yearly Plan");
+    expect(plan).toContain(
+      "The plans open at the period the project is billed for; switch between **Monthly** and **Yearly** to see the other prices.",
+    );
 
     const copy: string = readDashboardSource(
       "Components/Billing/ChangePlanBilling.ts",

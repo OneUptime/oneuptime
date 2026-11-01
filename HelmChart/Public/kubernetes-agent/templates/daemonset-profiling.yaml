@@ -20,7 +20,7 @@ spec:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-profiling.yaml") . | sha256sum }}
     spec:
-      serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      serviceAccountName: {{ include "kubernetes-agent.ebpfServiceAccountName" . }}
       hostPID: true
       # Linux nodes only — the profiler is eBPF-based and its image is
       # linux-only; the blanket toleration below would otherwise land

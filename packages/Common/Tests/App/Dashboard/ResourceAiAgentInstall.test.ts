@@ -17,6 +17,8 @@ import {
   getResourceAiAgentComposeSnippet,
   getResourceAiAgentDirectory,
   getHostAiAgentInstallCommand,
+  HOST_AI_AGENT_INSTALLER_ASKS_WITHOUT_NAME,
+  HOST_AI_AGENT_INSTALLER_ASKS_WITH_NAME,
   getHostAiAgentInstallerAsksText,
   getResourceAiAgentInstall,
   getResourceAiAgentLogsCommand,
@@ -892,17 +894,32 @@ describe("what the installer asks for, and needs", () => {
     "It runs privileged, as root, in the host's pid namespace: the host's own systemctl, journalctl and ps run through nsenter. Rootless Docker cannot do that.";
 
   test("the Host AI agent's names this OneUptime's URL and the host's name", () => {
+    const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
+      resourceType: AiResourceType.Host,
+      resourceId: RESOURCE_ID,
+      identity: "web-prod-01",
+      oneuptimeUrl: "https://oneuptime.acme.internal:8443",
+    });
+
+    /*
+     * The sentence as data, for the page to draw the URL and the name as
+     * values of their own; and as text, in the reader's language.
+     */
+    expect(install.installerAsks).toEqual({
+      template: HOST_AI_AGENT_INSTALLER_ASKS_WITH_NAME,
+      url: "https://oneuptime.acme.internal:8443",
+      hostName: "web-prod-01",
+    });
     expect(
-      getResourceAiAgentInstall({
-        resourceType: AiResourceType.Host,
-        resourceId: RESOURCE_ID,
-        identity: "web-prod-01",
+      getHostAiAgentInstallerAsksText({
         oneuptimeUrl: "https://oneuptime.acme.internal:8443",
-      }).installerNotes,
-    ).toEqual([
+        hostName: "web-prod-01",
+      }),
+    ).toBe(
       "It asks for your OneUptime URL (https://oneuptime.acme.internal:8443), your project's telemetry ingestion key and this host's name (web-prod-01).",
-      PRIVILEGED,
-    ]);
+    );
+    // What it needs besides, once: never the question again.
+    expect(install.installerNotes).toEqual([PRIVILEGED]);
   });
 
   test("without the host's name, it names the installer's own default, the hostname", () => {
@@ -911,7 +928,17 @@ describe("what the installer asks for, and needs", () => {
         resourceType: AiResourceType.Host,
         resourceId: RESOURCE_ID,
         oneuptimeUrl: "https://oneuptime.com",
-      }).installerNotes[0],
+      }).installerAsks,
+    ).toEqual({
+      template: HOST_AI_AGENT_INSTALLER_ASKS_WITHOUT_NAME,
+      url: "https://oneuptime.com",
+      hostName: null,
+    });
+    expect(
+      getHostAiAgentInstallerAsksText({
+        oneuptimeUrl: "https://oneuptime.com",
+        hostName: null,
+      }),
     ).toBe(
       "It asks for your OneUptime URL (https://oneuptime.com), your project's telemetry ingestion key and this host's name: leave it empty to use the hostname.",
     );
@@ -944,14 +971,15 @@ describe("what the installer asks for, and needs", () => {
   )(
     "%s: no installer, so nothing under one",
     (type: ComposeInstalledAiResourceType) => {
-      expect(
-        getResourceAiAgentInstall({
-          resourceType: type,
-          resourceId: RESOURCE_ID,
-          identity: "x",
-          oneuptimeUrl: "https://oneuptime.com",
-        }).installerNotes,
-      ).toEqual([]);
+      const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+        identity: "x",
+        oneuptimeUrl: "https://oneuptime.com",
+      });
+
+      expect(install.installerAsks).toBeNull();
+      expect(install.installerNotes).toEqual([]);
     },
   );
 });

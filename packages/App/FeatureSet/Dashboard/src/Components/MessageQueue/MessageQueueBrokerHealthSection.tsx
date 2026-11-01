@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CLASS_NAME } from "Common/UI/Components/Button/ButtonStates";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -459,7 +460,7 @@ const MessageQueueBrokerHealthSection: FunctionComponent<ComponentProps> = (
                         title={translator.translateText(
                           BROKER_HEALTH_MONITOR_UNAVAILABLE_REASON,
                         )}
-                        className="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400"
+                        className={`inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 ${BUTTON_DISABLED_CLASS_NAME}`}
                       >
                         {translator.translateText(
                           BROKER_HEALTH_CREATE_MONITOR_LABEL,

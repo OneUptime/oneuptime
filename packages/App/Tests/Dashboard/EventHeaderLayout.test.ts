@@ -10,11 +10,14 @@ import {
   EVENT_HEADER_FACT_VALUE_CLASS_NAME,
   EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME,
   EVENT_HEADER_MENU_WRAPPER_CLASS_NAME,
+  EVENT_HEADER_MORE_TRIGGER_CLASS_NAME,
   EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+  EVENT_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
   EVENT_HEADER_NOTICE_CLASS_NAMES,
   EVENT_HEADER_NUMBER_CLASS_NAME,
   EVENT_HEADER_PHONE_WIDTH_REM,
   EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME,
+  EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME,
   EVENT_HEADER_TEST_IDS,
   EVENT_HEADER_TITLE_CLASS_NAME,
   EventHeaderActionWidthInput,
@@ -26,10 +29,13 @@ import {
   estimateEventHeaderChipsWidthPx,
   estimateTextWidthEm,
   getEventHeaderActionsBesideWidth,
+  getEventHeaderButtonClassName,
   getEventHeaderFactColumns,
   getEventHeaderFactsClassName,
+  getEventHeaderMoreTriggerClassName,
   getEventHeaderTopRowClassNames,
 } from "../../FeatureSet/Dashboard/src/Components/EventView/EventHeaderLayout";
+import { BUTTON_DISABLED_CLASS_NAME } from "Common/UI/Components/Button/ButtonStates";
 
 /*
  * How the header of an incident, an alert, an episode and a scheduled
@@ -558,6 +564,8 @@ describe("the buttons", () => {
       "border-indigo-600",
       "bg-indigo-600",
       "text-white",
+    ]);
+    expect(classesOf(EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME)).toEqual([
       "hover:border-indigo-700",
       "hover:bg-indigo-700",
     ]);
@@ -584,16 +592,96 @@ describe("the buttons", () => {
     }
   });
 
-  test("a locked button looks locked and keeps its height", () => {
-    expect(classesOf(EVENT_HEADER_BUTTON_CLASS_NAME)).toEqual(
-      expect.arrayContaining([
-        "h-9",
-        "disabled:cursor-not-allowed",
-        "disabled:opacity-50",
-        "focus-visible:ring-2",
-        "whitespace-nowrap",
-      ]),
+  test("a button that can be pressed has its colours and its hover", () => {
+    for (const isPrimary of [true, false]) {
+      const classes: Array<string> = classesOf(
+        getEventHeaderButtonClassName({ isPrimary, isLocked: false }),
+      );
+
+      expect(classes).toEqual(
+        expect.arrayContaining([
+          ...classesOf(EVENT_HEADER_BUTTON_CLASS_NAME),
+          ...classesOf(
+            isPrimary
+              ? EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME
+              : EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+          ),
+          ...classesOf(
+            isPrimary
+              ? EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME
+              : EVENT_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
+          ),
+        ]),
+      );
+      expect(classes).not.toContain("opacity-50");
+      expect(classes).not.toContain("cursor-not-allowed");
+    }
+  });
+
+  /*
+   * As every locked button looks (Button's BUTTON_DISABLED_CLASS_NAME): its
+   * own colours, faded, the not-allowed cursor, and no hover - it used to
+   * keep its hover wash and border when it could not be pressed.
+   */
+  test("a locked button looks locked, keeps its colours and its height, and gives no hover", () => {
+    for (const isPrimary of [true, false]) {
+      const classes: Array<string> = classesOf(
+        getEventHeaderButtonClassName({ isPrimary, isLocked: true }),
+      );
+
+      expect(classes).toEqual(
+        expect.arrayContaining([
+          "h-9",
+          "focus-visible:ring-2",
+          "whitespace-nowrap",
+          ...classesOf(BUTTON_DISABLED_CLASS_NAME),
+          isPrimary ? "bg-indigo-600" : "bg-white",
+        ]),
+      );
+      expect(
+        classes.filter((className: string) => {
+          return className.startsWith("hover:");
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("no button class says disabled: on its own", () => {
+    for (const className of [
+      EVENT_HEADER_BUTTON_CLASS_NAME,
+      EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME,
+      EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+      EVENT_HEADER_MORE_TRIGGER_CLASS_NAME,
+    ]) {
+      expect(
+        classesOf(className).filter((token: string) => {
+          return token.startsWith("disabled:");
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("the ⋯ is locked with the header the same way, and points only while it can be pressed", () => {
+    const pressable: Array<string> = classesOf(
+      getEventHeaderMoreTriggerClassName(false),
     );
+    const locked: Array<string> = classesOf(
+      getEventHeaderMoreTriggerClassName(true),
+    );
+
+    expect(pressable).toEqual(
+      expect.arrayContaining(["cursor-pointer", "hover:bg-gray-50"]),
+    );
+    expect(pressable).not.toContain("opacity-50");
+    expect(locked).toEqual(
+      expect.arrayContaining(classesOf(BUTTON_DISABLED_CLASS_NAME)),
+    );
+    expect(locked).not.toContain("cursor-pointer");
+    expect(
+      locked.filter((className: string) => {
+        return className.startsWith("hover:");
+      }),
+    ).toEqual([]);
   });
 });
 

@@ -79,8 +79,13 @@ function setCommonHeaders(
 
 /*
  * What a request that names no entry or file of one is told: the scripts
- * this OneUptime serves. Nothing from the request is in it.
+ * this OneUptime serves. Nothing from the request is in it, and no product
+ * name either: a licence can rename the product, and this text knows no
+ * project's branding.
  */
+export const NOT_FOUND_HEADLINE: string =
+  "Not found. These install scripts are served here:";
+
 export function getNotFoundText(): string {
   const scripts: Array<InstallScriptEntry> = INSTALL_SCRIPTS.filter(
     (entry: InstallScriptEntry): boolean => {
@@ -107,12 +112,7 @@ export function getNotFoundText(): string {
     },
   );
 
-  return [
-    "Not found. This OneUptime serves these install scripts:",
-    "",
-    ...lines,
-    "",
-  ].join("\n");
+  return [NOT_FOUND_HEADLINE, "", ...lines, ""].join("\n");
 }
 
 function sendNotFound(

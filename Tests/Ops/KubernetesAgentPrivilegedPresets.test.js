@@ -122,7 +122,29 @@ describe("the kubernetes-agent chart reads ebpf.enabled and profiling.enabled th
       "standard",
       "gke-autopilot",
       "eks-fargate",
+      "openshift",
     ]);
+  });
+
+  test("the openshift preset keeps the privileged pods, which run under an SCC of their own", () => {
+    // Not among the presets that refuse hostPath and privileged pods...
+    expect(
+      defineBody(helpers, "kubernetes-agent.privilegedPodsAllowed"),
+    ).not.toContain("openshift");
+    expect(
+      defineBody(helpers, "kubernetes-agent.hostPathAvailable"),
+    ).not.toContain("openshift");
+
+    // ...because the chart lets exactly those pods run that way there.
+    const scc = read(`${TEMPLATES_DIR}/openshift-scc.yaml`);
+
+    expect(scc).toContain(
+      '{{- if eq (include "kubernetes-agent.ebpfPodsEnabled" .) "true" }}',
+    );
+    expect(scc).toContain("allowPrivilegedContainer: true");
+    expect(defineBody(helpers, "kubernetes-agent.ebpfPodsEnabled")).toContain(
+      '{{- if or (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (include "kubernetes-agent.profilingEnabled" .) "true") -}}',
+    );
   });
 
   test("the eBPF resources open with the eBPF gate", () => {
@@ -191,10 +213,12 @@ describe("the README and values.yaml say what the presets do", () => {
     );
     const commands = presets.match(/```bash\n[\s\S]*?```/g) || [];
 
-    expect(commands.length).toBe(2);
+    expect(commands.length).toBe(3);
 
     for (const command of commands) {
-      expect(command).toMatch(/--set preset=(gke-autopilot|eks-fargate)\n```$/);
+      expect(command).toMatch(
+        /--set preset=(gke-autopilot|eks-fargate|openshift)\n```$/,
+      );
     }
   });
 

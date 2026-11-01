@@ -39,7 +39,7 @@ export const KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT: string =
   "https://10.0.0.10:10257/metrics";
 
 /*
- * Where the cluster runs. The chart only distinguishes three presets
+ * Where the cluster runs. The chart only distinguishes four presets
  * (KubernetesAgentPreset); the guide offers the managed services by name
  * because that is how people know their cluster, and because connecting
  * kubectl to each one is a different command.
@@ -49,6 +49,7 @@ export type KubernetesPlatform =
   | "eks"
   | "gke"
   | "aks"
+  | "openshift"
   | "gke-autopilot"
   | "eks-fargate";
 
@@ -56,7 +57,8 @@ export type KubernetesPlatform =
 export type KubernetesAgentPreset =
   | "standard"
   | "gke-autopilot"
-  | "eks-fargate";
+  | "eks-fargate"
+  | "openshift";
 
 export const KUBERNETES_PLATFORMS: Array<SetupGuideOption<KubernetesPlatform>> =
   [
@@ -80,6 +82,11 @@ export const KUBERNETES_PLATFORMS: Array<SetupGuideOption<KubernetesPlatform>> =
       key: "aks",
       label: "Azure AKS",
       description: "Azure Kubernetes Service.",
+    },
+    {
+      key: "openshift",
+      label: "Red Hat OpenShift",
+      description: "OpenShift Container Platform, ROSA, ARO and OKD.",
     },
     {
       key: "gke-autopilot",
@@ -107,7 +114,11 @@ export function resolveKubernetesPlatform(
 export function getKubernetesAgentPreset(
   platform: KubernetesPlatform,
 ): KubernetesAgentPreset {
-  if (platform === "gke-autopilot" || platform === "eks-fargate") {
+  if (
+    platform === "gke-autopilot" ||
+    platform === "eks-fargate" ||
+    platform === "openshift"
+  ) {
     return platform;
   }
   return "standard";
@@ -119,9 +130,11 @@ export function getKubernetesAgentPreset(
  * Kubernetes API, and leaves out the eBPF and profiling DaemonSets, which
  * must run privileged to load eBPF programs (the chart's
  * kubernetes-agent.privilegedPodsAllowed), whatever ebpf.enabled says.
+ * OpenShift's preset keeps both: it creates the security context
+ * constraints they need instead.
  */
 function isRestrictedPlatform(platform: KubernetesPlatform): boolean {
-  return getKubernetesAgentPreset(platform) !== "standard";
+  return platform === "gke-autopilot" || platform === "eks-fargate";
 }
 
 export interface KubernetesSetupGuideOptions {
@@ -151,15 +164,18 @@ export const KUBERNETES_AI_INVESTIGATION_OPT_OUT_FLAG: string =
 
 /**
  * The `--set` flags the install command adds for a platform, after the
- * connection values every install needs.
+ * connection values every install needs: its preset, unless that is the
+ * chart's default.
  */
 export function getKubernetesPlatformInstallFlags(
   platform: KubernetesPlatform,
 ): Array<string> {
-  if (!isRestrictedPlatform(platform)) {
+  const preset: KubernetesAgentPreset = getKubernetesAgentPreset(platform);
+
+  if (preset === "standard") {
     return [];
   }
-  return [`--set preset=${getKubernetesAgentPreset(platform)}`];
+  return [`--set preset=${preset}`];
 }
 
 function helmInstallCommand(data: {
@@ -257,10 +273,25 @@ function getPrerequisites(platform: KubernetesPlatform): Array<string> {
     );
   } else if (platform === "aks") {
     lines.push("The Azure CLI (`az`), signed in to the cluster's subscription");
+  } else if (platform === "openshift") {
+    lines.push(
+      "OpenShift 4.11 or later, and the OpenShift CLI (`oc`) logged in with cluster-admin rights: the install creates security context constraints",
+    );
   }
 
   return lines;
 }
+
+/*
+ * The security context constraints the chart's openshift preset creates
+ * for the release the guide installs (templates/openshift-scc.yaml names
+ * them after the release's full name, which for this release is the
+ * release itself).
+ */
+export const KUBERNETES_AGENT_OPENSHIFT_SCCS: Array<string> = [
+  `${KUBERNETES_AGENT_HELM_RELEASE}-node-collector`,
+  `${KUBERNETES_AGENT_HELM_RELEASE}-ebpf`,
+];
 
 function getConnectStep(platform: KubernetesPlatform): SetupGuideStep {
   const check: string = "kubectl get nodes";
@@ -321,6 +352,18 @@ ${check}`,
           `az aks get-credentials --resource-group <resource-group> --name <cluster-name>\n${check}`,
         ),
       };
+    case "openshift":
+      return {
+        title: "Connect kubectl to your OpenShift cluster",
+        description:
+          "Log in with the OpenShift CLI, which points kubectl and helm at the cluster too, then check that kubectl can reach it.",
+        markdown: `${codeBlock(
+          "bash",
+          `oc login --token=<token> --server=https://api.<cluster-domain>:6443\n${check}`,
+        )}
+
+The web console gives the exact command, token included: **Copy login command**, under your user name. Log in as a cluster admin: the install creates security context constraints.`,
+      };
     default:
       return {
         title: "Check kubectl points at your cluster",
@@ -371,6 +414,10 @@ ${helmInstallCommand({
       data.platform === "gke-autopilot" ? "GKE Autopilot" : "EKS Fargate";
     notes.push(
       `\`preset=${getKubernetesAgentPreset(data.platform)}\` collects pod logs through the Kubernetes API instead of reading them from each node, and leaves out eBPF tracing and profiling, which need privileged pods that ${platformName} does not allow.`,
+    );
+  } else if (data.platform === "openshift") {
+    notes.push(
+      "`preset=openshift` creates two security context constraints (SCCs), one for the node collector and one for the eBPF pods, each used only by its own service account. Every other pod runs under OpenShift's default `restricted-v2`, with the user ID OpenShift assigns.",
     );
   }
 
@@ -429,14 +476,23 @@ function getExpectedPods(preset: KubernetesAgentPreset): {
     };
   }
 
+  const listing: string = [
+    header,
+    row(`${release}-xxxxxxxxxx-xxxxx`),
+    row(`${release}-ai-agent-xxxxxxxxxx-xxxxx`),
+    row(`${release}-ebpf-xxxxx`),
+    row(`${release}-logs-xxxxx`),
+  ].join("\n");
+
+  if (preset === "openshift") {
+    return {
+      listing: listing,
+      explanation: `The collector and the Kubernetes AI agent, plus one \`-logs\` and one \`-ebpf\` pod on every node, which run under the SCCs the chart created for them: \`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\` lists both.`,
+    };
+  }
+
   return {
-    listing: [
-      header,
-      row(`${release}-xxxxxxxxxx-xxxxx`),
-      row(`${release}-ai-agent-xxxxxxxxxx-xxxxx`),
-      row(`${release}-ebpf-xxxxx`),
-      row(`${release}-logs-xxxxx`),
-    ].join("\n"),
+    listing: listing,
     explanation:
       "The collector and the Kubernetes AI agent, plus one `-logs` and one `-ebpf` pod on every node.",
   };
@@ -724,10 +780,24 @@ kubectl rollout restart deployment -n ${namespace}`,
     });
   }
 
-  if (!isRestrictedPlatform(platform)) {
+  if (platform === "openshift") {
+    topics.push({
+      title: "Agent pods are missing: a security context constraint error",
+      markdown: `OpenShift admits a pod only under a security context constraint (SCC) its service account may use, and the release installs either way, so a refused pod simply never appears. Look for the refusal:
+
+${codeBlock("bash", `kubectl get events -n ${namespace} --field-selector reason=FailedCreate`)}
+
+- **\`unable to validate against any security context constraint\`:** the release was installed without the openshift preset, so the chart created no SCCs. \`helm get values ${release} --namespace ${namespace}\` shows the values it was given. Add the preset:
+
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set preset=openshift"]))}
+
+- **The SCCs are missing:** check with \`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\`. Creating them takes cluster-admin rights, so an install by anyone else fails when it gets to them.
+- **\`violates PodSecurity\`:** the namespace's Pod Security level is stricter than the eBPF pods, which run privileged, need. Label it \`pod-security.kubernetes.io/enforce=privileged\`, or turn eBPF off with \`--set ebpf.enabled=false\`.`,
+    });
+  } else if (!isRestrictedPlatform(platform)) {
     topics.push({
       title: "Install fails with a hostPath or Pod Security error",
-      markdown: `Your cluster blocks \`hostPath\` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps.
+      markdown: `Your cluster blocks \`hostPath\` volumes or privileged pods. That is normal on **GKE Autopilot** and **EKS Fargate** — pick that platform at the top of this guide and follow its steps. On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.
 
 On any other cluster with a restrictive Pod Security policy, remove the failed release:
 

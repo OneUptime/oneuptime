@@ -108,6 +108,11 @@ import {
   isKubernetesEventLogRecord,
   parseKubernetesEventFromLogBody,
 } from "Common/Types/Kubernetes/KubernetesEvent";
+import { extractObjectFromLogBody } from "Common/Types/Kubernetes/KubernetesObjectParser";
+import {
+  getOpenShiftStatusLogAttributes,
+  isOpenShiftStatusLogRecord,
+} from "Common/Types/Kubernetes/OpenShiftObjectAttributes";
 import {
   ProxmoxBackupGuestResult,
   ProxmoxNotificationStamp,
@@ -903,6 +908,24 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                         timeUnixNanoNumeric =
                           OneUptimeDate.toUnixNano(timeDate);
                       }
+                    }
+                  }
+
+                  /*
+                   * A ClusterOperator or ClusterVersion the agent's
+                   * openshift preset pulls: stamp its state and conditions
+                   * onto the record, which the OpenShift alert templates
+                   * filter on. Before the drop filters and the pipelines,
+                   * as for Events. Only those two resource types are read.
+                   */
+                  if (isOpenShiftStatusLogRecord(attributesObject) && body) {
+                    if (
+                      this.stampOpenShiftStatus({
+                        attributes: attributesObject,
+                        body: body,
+                      })
+                    ) {
+                      attributeKeys = Object.keys(attributesObject);
                     }
                   }
 
@@ -1977,6 +2000,31 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             now: data.now || OneUptimeDate.getCurrentDate(),
           }),
     };
+  }
+
+  /*
+   * Stamps a pulled ClusterOperator's or ClusterVersion's record with its
+   * state, conditions and versions (getOpenShiftStatusLogAttributes),
+   * written over whatever the record carried under the same keys, as
+   * stampKubernetesEvent does: they are read from the object the record IS.
+   * True when anything was stamped; a body that does not parse leaves the
+   * attributes untouched.
+   */
+  public static stampOpenShiftStatus(data: {
+    attributes: Dictionary<AttributeType | Array<AttributeType>>;
+    body: string;
+  }): boolean {
+    const stamped: Record<string, string> = getOpenShiftStatusLogAttributes({
+      attributes: data.attributes as Record<string, unknown>,
+      objectKvList: extractObjectFromLogBody(data.body),
+    });
+
+    if (Object.keys(stamped).length === 0) {
+      return false;
+    }
+
+    Object.assign(data.attributes, stamped);
+    return true;
   }
 
   private static getSeverityText(severityNumber: number): LogSeverity {

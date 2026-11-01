@@ -531,9 +531,13 @@ describe("the install script", () => {
         hasApiKey: true,
         platform: platform,
       });
+      // One value a line, so all of it reads without scrolling sideways.
       expect(command.split("\n")).toEqual([
         `curl -fsSL ${SERVED} -o install.sh`,
-        `ONEUPTIME_URL=${URL} ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} STORAGE_ARRAY_COLLECTOR_CONFIG=${STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile} bash install.sh`,
+        `ONEUPTIME_URL=${URL} \\`,
+        `  ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY} \\`,
+        `  STORAGE_ARRAY_COLLECTOR_CONFIG=${STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile} \\`,
+        "  bash install.sh",
       ]);
     },
   );

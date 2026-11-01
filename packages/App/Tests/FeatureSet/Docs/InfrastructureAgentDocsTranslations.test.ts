@@ -186,11 +186,15 @@ const PERMISSIONS: Record<string, Array<string>> = {
  * Client, the FlashArray GUI and Azure's role names.
  */
 const OTHER_CONSOLES: Record<string, Array<string>> = {
-  // The Amazon EKS console, where the agent is an add-on.
+  /*
+   * The Amazon EKS console, where the agent is an add-on, and OpenShift's
+   * web console, where its Alertmanager is given a receiver.
+   */
   [KUBERNETES]: [
     "Add-ons",
     "Get more add-ons",
     "Optional configuration settings",
+    "Administration → Cluster Settings → Configuration → Alertmanager",
   ],
   [PROXMOX]: [
     "Add",
@@ -235,6 +239,7 @@ const NAMES: Record<string, Array<string>> = {
     "AKS",
     "GKE Autopilot",
     "EKS Fargate",
+    "OpenShift",
     "etcd",
     "CoreDNS",
     "kube-proxy",
@@ -317,6 +322,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   [HOST]: ["AI investigations are on by default."],
   [KUBERNETES]: [
     "AI investigations are on by default.",
+    "OpenShift's own alerts.",
+    "Traces from your code.",
     "You get whole traces, not fragments.",
     "Your metric-based monitors do not move.",
     "Your span-based monitors do.",
@@ -1046,11 +1053,14 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("know every path on the English pages as a path of Dashboard labels", () => {
+  it("know every path on the English pages as a path of Dashboard labels, or another console's", () => {
     for (const page of PAGE_NAMES) {
       const unknown: Array<string> = menuPaths(englishPage(page)).filter(
         (path: string): boolean => {
-          return !segmentsOf(path).every(isDrawnLabel);
+          return (
+            !listed(OTHER_CONSOLES, page).includes(path) &&
+            !segmentsOf(path).every(isDrawnLabel)
+          );
         },
       );
 
@@ -1323,6 +1333,10 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     it("gives every menu path, segment by segment, as this language's Dashboard draws it", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = menuPaths(english)
+        // Another console's path is kept as that console writes it (below).
+        .filter((path: string): boolean => {
+          return !listed(OTHER_CONSOLES, entry.page).includes(path);
+        })
         .map((path: string): string => {
           return drawnMenuPath(language, segmentsOf(path));
         })

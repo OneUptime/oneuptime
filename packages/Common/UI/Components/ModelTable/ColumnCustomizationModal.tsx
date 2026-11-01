@@ -10,6 +10,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement, useMemo, useState } from "react";
 import { translatableTerm, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import {
   DragDropContext,
   Draggable,
@@ -396,7 +397,13 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
         data-testid={data.dataTestId}
         disabled={data.disabled}
         onClick={data.onClick}
-        className="rounded-md px-2 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-white hover:text-gray-900 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent disabled:hover:shadow-none"
+        className={`rounded-md px-2 py-1 text-xs font-medium text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: data.disabled,
+            hoverClassName:
+              "hover:bg-white hover:text-gray-900 hover:shadow-sm",
+          },
+        )}`}
       >
         {translator.translateText(data.title)}
       </button>
@@ -464,7 +471,11 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             ariaLabel={translator.translateTemplate("Move {{column}} up", {
               column: translatableTerm(entry.column.title),
             })}
-            className="text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:hover:bg-transparent"
+            className={`text-gray-400 ${
+              isSearching || index === 0
+                ? ""
+                : "hover:bg-gray-200 hover:text-gray-700"
+            }`}
             dataTestId={`column-move-up-${entry.id}`}
             disabled={isSearching || index === 0}
             onClick={() => {
@@ -480,7 +491,11 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             ariaLabel={translator.translateTemplate("Move {{column}} down", {
               column: translatableTerm(entry.column.title),
             })}
-            className="text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:hover:bg-transparent"
+            className={`text-gray-400 ${
+              isSearching || index === entries.length - 1
+                ? ""
+                : "hover:bg-gray-200 hover:text-gray-700"
+            }`}
             dataTestId={`column-move-down-${entry.id}`}
             disabled={isSearching || index === entries.length - 1}
             onClick={() => {
@@ -497,7 +512,9 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
               ariaLabel={translator.translateTemplate("Remove {{column}}", {
                 column: translatableTerm(entry.column.title),
               })}
-              className="text-gray-400 hover:bg-red-100 hover:text-red-600 disabled:hover:bg-transparent"
+              className={`text-gray-400 ${
+                isOnlyVisibleColumn ? "" : "hover:bg-red-100 hover:text-red-600"
+              }`}
               dataTestId={`column-remove-${entry.id}`}
               disabled={isOnlyVisibleColumn}
               onClick={() => {
