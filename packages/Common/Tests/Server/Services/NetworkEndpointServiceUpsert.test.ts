@@ -1,4 +1,6 @@
-import NetworkEndpointService from "../../../Server/Services/NetworkEndpointService";
+import NetworkEndpointService, {
+  EndpointControllerClient,
+} from "../../../Server/Services/NetworkEndpointService";
 import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -39,8 +41,8 @@ const TEN_MINUTES_AGO: Date = new Date("2026-07-22T11:50:00Z");
 // A MAC whose OUI is in the bundled registry slice (Cisco 00:00:0c).
 const CISCO_MAC: string = "00:00:0c:aa:bb:01";
 
-const INSERT_PARAMS_PER_ROW: number = 12;
-const UPDATE_PARAMS_PER_ROW: number = 9;
+const INSERT_PARAMS_PER_ROW: number = 14;
+const UPDATE_PARAMS_PER_ROW: number = 11;
 
 type QueryCall = [string, Array<unknown>];
 
@@ -180,6 +182,8 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       NOW, // firstSeenAt
       NOW, // lastSeenAt
       0, // version
+      null, // hostname: a walk knows no name
+      null, // attachmentSource: a walk found it
     ]);
   });
 
@@ -213,6 +217,8 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       NOW,
       NOW,
       0,
+      null,
+      null,
     ]);
   });
 
@@ -307,6 +313,8 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       SITE_ID.toString(),
       null, // no IP observed
       NOW, // lastSeenAt
+      null, // no name: the stored one stays
+      null, // a walk's row, so no controller's
     ]);
 
     const sql: string = updateCalls()[0]![0];
@@ -358,6 +366,8 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
       null, // siteId not written either
       "10.0.0.99", // but the IP still refreshes
       NOW,
+      null,
+      null,
     ]);
   });
 
@@ -544,6 +554,231 @@ describe("NetworkEndpointService.upsertDiscoveredEndpoints", () => {
 
       expect(updateCalls()).toHaveLength(1);
       expect(updateCalls()[0]![1][7]).toBe(OTHER_SWITCH_ID.toString());
+    });
+  });
+
+  describe("what a network controller's client list writes", () => {
+    const KDS_MAC: string = "aa:bb:cc:00:00:51";
+
+    const row: (data: Partial<NetworkEndpoint>) => NetworkEndpoint = (
+      data: Partial<NetworkEndpoint>,
+    ): NetworkEndpoint => {
+      const existing: NetworkEndpoint = new NetworkEndpoint();
+      existing._id = ROW_ID.toString();
+      existing.macAddress = KDS_MAC;
+      existing.attachedNetworkDeviceId = OTHER_SWITCH_ID;
+      existing.firstSeenAt = EARLIER;
+      existing.lastSeenAt = EARLIER;
+      Object.assign(existing, data);
+      return existing;
+    };
+
+    const upsertOne: (
+      client?: Partial<EndpointControllerClient>,
+    ) => Promise<number> = (
+      client: Partial<EndpointControllerClient> = {},
+    ): Promise<number> => {
+      return NetworkEndpointService.upsertControllerClients({
+        projectId: PROJECT_ID,
+        source: "meraki",
+        now: NOW,
+        clients: [
+          {
+            macAddress: KDS_MAC,
+            ipAddress: "10.18.166.51",
+            hostname: "wb-0660-kds01",
+            vendor: "Elo Touch",
+            portName: "Port 7",
+            vlanId: 18,
+            seenAt: ONE_MINUTE_AGO,
+            deviceId: SWITCH_ID,
+            deviceSiteId: SITE_ID,
+            ...client,
+          },
+        ],
+      });
+    };
+
+    it("creates the row on the device the client is on, with what the controller knows", async () => {
+      expect(await upsertOne()).toBe(1);
+
+      expect(insertCalls()).toHaveLength(1);
+      expect(insertCalls()[0]![1]).toEqual([
+        PROJECT_ID.toString(),
+        KDS_MAC,
+        "10.18.166.51",
+        "Elo Touch", // the registry has no such OUI
+        SWITCH_ID.toString(),
+        null, // a controller names a port and knows no ifIndex
+        "Port 7",
+        18,
+        SITE_ID.toString(),
+        ONE_MINUTE_AGO, // firstSeenAt
+        ONE_MINUTE_AGO, // lastSeenAt: when it saw the client, not the read
+        0,
+        "wb-0660-kds01",
+        "meraki",
+      ]);
+    });
+
+    it("prefers the registry's vendor to what the controller says", async () => {
+      await upsertOne({ macAddress: CISCO_MAC });
+
+      expect(insertCalls()[0]![1][3]).toBe("Cisco Systems, Inc");
+    });
+
+    it("takes a row a walk attached to another switch, and clears the ifIndex that was the old port's", async () => {
+      findBySpy.mockResolvedValue([
+        row({ attachedInterfaceIndex: 3, attachedPortName: "port3" }),
+      ]);
+
+      await upsertOne();
+
+      expect(insertCalls()).toHaveLength(0);
+      const params: Array<unknown> = updateCalls()[0]![1];
+      expect(params.slice(1)).toEqual([
+        KDS_MAC,
+        true,
+        SWITCH_ID.toString(),
+        null,
+        "Port 7",
+        18,
+        SITE_ID.toString(),
+        "10.18.166.51",
+        ONE_MINUTE_AGO,
+        "wb-0660-kds01",
+        "meraki",
+      ]);
+      expect(updateCalls()[0]![0]).toContain(
+        'WHEN v."setAttachment" AND v."attachmentSource" IS NOT NULL THEN v."attachedInterfaceIndex"',
+      );
+    });
+
+    it("keeps the ifIndex when it is the same port on the same switch, so the link keeps its counters", async () => {
+      findBySpy.mockResolvedValue([
+        row({
+          attachedNetworkDeviceId: SWITCH_ID,
+          attachedInterfaceIndex: 7,
+          attachedPortName: "Port 7",
+        }),
+      ]);
+
+      await upsertOne();
+
+      expect(updateCalls()[0]![1][4]).toBe(7);
+    });
+
+    it("never moves lastSeenAt backwards: a walk may have seen the client since", async () => {
+      findBySpy.mockResolvedValue([row({ lastSeenAt: NOW })]);
+
+      await upsertOne({ seenAt: EARLIER });
+
+      expect(updateCalls()[0]![1][9]).toEqual(NOW);
+    });
+
+    it("writes a client it has nothing new about, unlike a walk: a list is read every two hours", async () => {
+      findBySpy.mockResolvedValue([
+        row({
+          attachedNetworkDeviceId: SWITCH_ID,
+          attachedPortName: "Port 7",
+          vlanId: 18,
+          ipAddress: "10.18.166.51",
+          siteId: SITE_ID,
+          hostname: "wb-0660-kds01",
+          attachmentSource: "meraki",
+          lastSeenAt: TEN_MINUTES_AGO,
+        }),
+      ]);
+
+      await upsertOne();
+
+      expect(updateCalls()).toHaveLength(1);
+      expect(insertCalls()).toHaveLength(0);
+    });
+
+    it("looks every MAC up once, even across chunks, and counts what it wrote", async () => {
+      const clients: Array<EndpointControllerClient> = [];
+
+      for (let index: number = 0; index < 5100; index++) {
+        const low: string = (index % 256).toString(16).padStart(2, "0");
+        const high: string = (index >> 8).toString(16).padStart(2, "0");
+
+        clients.push({
+          macAddress: `aa:bb:cc:dd:${high}:${low}`,
+          seenAt: NOW,
+          deviceId: SWITCH_ID,
+        });
+      }
+
+      const written: number =
+        await NetworkEndpointService.upsertControllerClients({
+          projectId: PROJECT_ID,
+          source: "meraki",
+          now: NOW,
+          // The same list twice: a client is written once.
+          clients: [...clients, ...clients],
+        });
+
+      expect(written).toBe(5100);
+      expect(findBySpy).toHaveBeenCalledTimes(2);
+      expect(insertCalls()).toHaveLength(11);
+    });
+  });
+
+  describe("a walk that meets a row a controller placed", () => {
+    const placed: (lastSeenAt: Date) => NetworkEndpoint = (
+      lastSeenAt: Date,
+    ): NetworkEndpoint => {
+      const existing: NetworkEndpoint = new NetworkEndpoint();
+      existing._id = ROW_ID.toString();
+      existing.macAddress = CISCO_MAC;
+      existing.attachedNetworkDeviceId = OTHER_SWITCH_ID;
+      existing.attachedPortName = "Port 7";
+      existing.attachmentSource = "meraki";
+      existing.firstSeenAt = EARLIER;
+      existing.lastSeenAt = lastSeenAt;
+      return existing;
+    };
+
+    const walk: () => Promise<void> = (): Promise<void> => {
+      return NetworkEndpointService.upsertDiscoveredEndpoints({
+        projectId: PROJECT_ID,
+        deviceId: SWITCH_ID,
+        attachments: [
+          {
+            macAddress: CISCO_MAC,
+            attachedInterfaceIndex: 49,
+            attachedPortName: "port49",
+          },
+        ],
+        ipBindings: [],
+        now: NOW,
+      });
+    };
+
+    it("writes nothing while the placement is current: an uplink is no access port", async () => {
+      findBySpy.mockResolvedValue([placed(new Date("2026-07-22T09:00:00Z"))]);
+
+      await walk();
+
+      expect(insertCalls()).toHaveLength(0);
+      expect(updateCalls()).toHaveLength(0);
+    });
+
+    it("takes the row over once the controller has stopped reporting it, and says so", async () => {
+      findBySpy.mockResolvedValue([placed(new Date("2026-07-22T01:00:00Z"))]);
+
+      await walk();
+
+      const params: Array<unknown> = updateCalls()[0]![1];
+      expect(params.slice(1, 6)).toEqual([
+        CISCO_MAC,
+        true,
+        SWITCH_ID.toString(),
+        49,
+        "port49",
+      ]);
+      expect(params[UPDATE_PARAMS_PER_ROW]).toBeNull();
     });
   });
 

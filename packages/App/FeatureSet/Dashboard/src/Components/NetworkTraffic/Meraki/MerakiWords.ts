@@ -521,6 +521,22 @@ export const DESCRIBED_DEVICES_NOTE: PluralTemplate = {
     "Fills in the model, serial number and firmware of {{count}} network devices.",
 };
 
+export const PLACED_CLIENTS_NOTE: PluralTemplate = {
+  one: "Puts {{count}} client on its switch port on the map.",
+  other: "Puts {{count}} clients on their switch ports on the map.",
+};
+
+export const LINKED_DEVICES_NOTE: PluralTemplate = {
+  one: "Draws the links of {{count}} network device on the map.",
+  other: "Draws the links of {{count}} network devices on the map.",
+};
+
+export const UNPLACED_DEVICES_NOTE: PluralTemplate = {
+  one: "{{count}} Meraki device with wired clients is not a network device here, so its clients are not on the map. Add it to place them.",
+  other:
+    "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them.",
+};
+
 export const API_CALL_COUNT: PluralTemplate = {
   one: "{{count}} API call a read",
   other: "{{count}} API calls a read",

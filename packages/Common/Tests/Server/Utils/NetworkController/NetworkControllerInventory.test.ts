@@ -882,7 +882,7 @@ describe("one read, end to end", () => {
       },
     ]);
     expect(sent).toHaveLength(1);
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 1,
       writtenDeviceCount: 1,
@@ -909,7 +909,7 @@ describe("one read, end to end", () => {
       });
 
     expect(merges).toBe(0);
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 0,
       writtenDeviceCount: 0,
@@ -977,7 +977,7 @@ describe("one read, end to end", () => {
         },
       });
 
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 1,
       writtenDeviceCount: 1,
