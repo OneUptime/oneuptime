@@ -1,14 +1,18 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
 import ResourceTable, {
   InfrastructureResource,
 } from "../../../Components/Infrastructure/ResourceTable";
 import {
-  fetchProxmoxInventoryResources,
-  formatBytes,
+  fetchProxmoxInventoryRows,
   routeParamFromExternalId,
 } from "../Utils/ProxmoxResourceUtils";
+import {
+  getProxmoxStorageColumns,
+  toProxmoxListResource,
+} from "../../../Components/Proxmox/ProxmoxResourceColumns";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -23,10 +27,13 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ProxmoxClusterStorage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
   const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
@@ -38,17 +45,17 @@ const ProxmoxClusterStorage: FunctionComponent<
     try {
       /*
        * Postgres inventory read (ProxmoxResource, kind=Storage). Disk
-       * used/total ride additionalAttributes (diskBytes/maxDiskBytes)
-       * for the custom column below; CPU/memory columns are hidden —
-       * storage volumes have neither.
+       * used/total, the storage's type, whether it is shared and what it
+       * holds ride additionalAttributes for the columns below; CPU and
+       * memory columns are hidden — storage volumes have neither.
        */
-      const storageList: Array<InfrastructureResource> =
-        await fetchProxmoxInventoryResources({
+      const storageRows: Array<ProxmoxResourceModel> =
+        await fetchProxmoxInventoryRows({
           proxmoxClusterId: modelId,
           kind: "Storage",
         });
 
-      setResources(storageList);
+      setResources(storageRows.map(toProxmoxListResource));
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -75,7 +82,7 @@ const ProxmoxClusterStorage: FunctionComponent<
         fetchData().catch(() => {});
       }}
       title="Storage"
-      description="Storage volumes in this cluster with their current usage."
+      description="Storage volumes in this cluster with their type and current usage."
       resources={resources}
       showGroupColumn={true}
       groupColumnTitle="Node"
@@ -86,33 +93,10 @@ const ProxmoxClusterStorage: FunctionComponent<
       }}
       tableIdPrefix="proxmox"
       emptyMessage="No storage volumes reported yet. Make sure the Proxmox agent is sending metrics."
-      columns={[
-        {
-          title: "Used / Total",
-          key: "diskBytes",
-          description: PROXMOX_METRIC_DESCRIPTIONS.storageTableUsage,
-          getValue: (resource: InfrastructureResource): string => {
-            const usedRaw: string =
-              resource.additionalAttributes["diskBytes"] || "";
-            const totalRaw: string =
-              resource.additionalAttributes["maxDiskBytes"] || "";
-            if (!usedRaw || !totalRaw) {
-              return "N/A";
-            }
-            const used: number = Number(usedRaw);
-            const total: number = Number(totalRaw);
-            if (
-              !Number.isFinite(used) ||
-              !Number.isFinite(total) ||
-              total <= 0
-            ) {
-              return "N/A";
-            }
-            const pct: number = (used / total) * 100;
-            return `${formatBytes(used)} / ${formatBytes(total)} (${pct.toFixed(1)}%)`;
-          },
-        },
-      ]}
+      columns={getProxmoxStorageColumns({
+        resources: resources,
+        translator: translator,
+      })}
       getViewRoute={(resource: InfrastructureResource) => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_STORAGE_DETAIL] as Route,
