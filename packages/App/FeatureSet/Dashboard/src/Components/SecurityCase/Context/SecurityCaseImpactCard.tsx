@@ -14,6 +14,7 @@ import {
   IMPACT_CALLS,
   IMPACT_CHANGE_AFTER,
   IMPACT_CHANGE_BEFORE,
+  IMPACT_DATA_STORES,
   IMPACT_DESCRIPTION,
   IMPACT_DOWNSTREAM,
   IMPACT_EMPTY_DESCRIPTION,
@@ -53,6 +54,9 @@ import {
   STORY_OUTCOME_LABELS,
 } from "./SecurityCaseContextCopy";
 import SecurityCaseContextApi from "./SecurityCaseContextApi";
+import SecurityCaseDataAtRisk, {
+  hasDataAtRisk,
+} from "./SecurityCaseDataAtRisk";
 import {
   getImpactLeadingChange,
   getImpactOwners,
@@ -114,11 +118,14 @@ import React, {
  *
  * Most important first: one line of figures - reachable from the internet
  * or not known to be, how many records the case names, what they call and
- * what calls them, the monitors and status pages watching them. Then the
- * exposure an analyst acts on: why OneUptime says the records are reachable
- * (only on evidence: "not known" otherwise), who owns them, and what last
- * changed on them before the attack. What is at risk record by record - its
- * calls, callers, hosts, monitors and status pages - and the machines its
+ * what calls them, the monitors and status pages watching them, the stores
+ * with sensitive data at risk. Then the exposure an analyst acts on: why
+ * OneUptime says the records are reachable (only on evidence: "not known"
+ * otherwise), who owns them, and what last changed on them before the
+ * attack. Then the data at risk: the stores the case names and the ones
+ * its identities can reach, the most sensitive first
+ * (SecurityCaseDataAtRisk). What is at risk record by record - its calls,
+ * callers, hosts, monitors and status pages - and the machines its
  * addresses talked to are folded under a button, for when they are wanted.
  */
 
@@ -497,7 +504,8 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
     body = <ComponentLoader />;
   } else if (
     impact.records.length === 0 &&
-    impact.internet.evidence.length === 0
+    impact.internet.evidence.length === 0 &&
+    !hasDataAtRisk(impact.dataAtRisk)
   ) {
     body = (
       <div data-testid={SECURITY_CASE_CONTEXT_TEST_IDS.impactEmpty}>
@@ -521,6 +529,15 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
       impact.flowPeers,
       SECURITY_CASE_IMPACT_MAX_FLOW_PEERS,
     );
+    // The stores at risk that hold Confidential or Restricted data.
+    const sensitiveStoreCount: number = (
+      impact.dataAtRisk?.stores || []
+    ).filter((store: { sensitivity: string }): boolean => {
+      return (
+        store.sensitivity === "Restricted" ||
+        store.sensitivity === "Confidential"
+      );
+    }).length;
     // "Nothing changed" is said only when the changes could be read.
     const canSayNothingChanged: boolean =
       records.length > 0 &&
@@ -594,6 +611,17 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
               text={translator.translatePlural(
                 IMPACT_STATUS_PAGES,
                 summary.statusPageCount,
+              )}
+            />
+          ) : (
+            <></>
+          )}
+          {sensitiveStoreCount > 0 ? (
+            <Figure
+              icon={IconProp.Database}
+              text={translator.translatePlural(
+                IMPACT_DATA_STORES,
+                sensitiveStoreCount,
               )}
             />
           ) : (
@@ -713,6 +741,12 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
             )}
           </dl>
         </section>
+
+        {impact.dataAtRisk && hasDataAtRisk(impact.dataAtRisk) ? (
+          <SecurityCaseDataAtRisk dataAtRisk={impact.dataAtRisk} />
+        ) : (
+          <></>
+        )}
 
         {records.length > 0 || flows.length > 0 ? (
           <div>

@@ -105,7 +105,10 @@ export function getIdentityRiskFactors(
   }
 
   if (reach.isUnused && sensitivityPoints > 0) {
-    factors.push({ label: "Not used lately", points: IDENTITY_UNUSED_POINTS });
+    factors.push({
+      label: "Not used in 90 days",
+      points: IDENTITY_UNUSED_POINTS,
+    });
   }
 
   const breadth: number = Math.min(

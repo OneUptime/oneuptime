@@ -61,7 +61,7 @@ describe("an identity's risk score", () => {
       { label: "Reaches Restricted data", points: 50 },
       { label: "Can change sensitive data", points: 15 },
       { label: "Outside your accounts", points: 15 },
-      { label: "Not used lately", points: 10 },
+      { label: "Not used in 90 days", points: 10 },
       { label: "Sensitive stores it reaches", points: 3 },
     ]);
   });
