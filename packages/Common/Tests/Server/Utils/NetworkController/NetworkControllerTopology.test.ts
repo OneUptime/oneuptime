@@ -679,7 +679,9 @@ describe("recording one read", () => {
     expect(learned).toHaveLength(1);
     expect(learned[0]).toMatchObject({
       siteId: SITE_ID,
-      bindings: [{ macAddress: "aa:bb:cc:00:00:51", ipAddress: "10.18.166.51" }],
+      bindings: [
+        { macAddress: "aa:bb:cc:00:00:51", ipAddress: "10.18.166.51" },
+      ],
       reader: {
         type: "networkController",
         id: CONNECTION_ID,
