@@ -131,7 +131,7 @@ Dessa monitorer utvärderar alltid **Metric Value**: det aggregerade värdet av 
 | **Inga data** | frånvarande: frågan skickade ingenting i fönstret |
 | **Har data** | närvarande: frågan skickade något i fönstret |
 
-Avvikelsevillkoren har inget tröskelvärde. **När det ska larmas** visar i stället **Känslighet** (Låg, Medel, som är standard, eller Hög), och de egna kriterierna även ett **Baslinjefönster** (14 dagar, som är standard, 28, 60 eller 90), och varje datapunkt jämförs med baslinjen för samma timme i veckan, byggd från det fönstret. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och ger inga larm.
+Avvikelsevillkoren har inget tröskelvärde. **När det ska larmas** visar i stället **Känslighet** (Låg, Medel, som är standard, eller Hög), och de egna kriterierna även ett **Baslinjefönster** (14 dagar, som är standard, 28, 60 eller 90), och varje datapunkt jämförs med samma timme i veckan på tidigare dagar, så långt tillbaka som det fönstret räcker. Det som händer nu ingår aldrig i jämförelsen, så en förändring som består fortsätter att larma tills den en vecka senare har kommit in i de tidigare dagarna. Tills den timmen i veckan har två veckors historik lär sig kriteriet fortfarande och ger inga larm.
 
 En metrikmonitor som skapats i Skapa monitor börjar med en regel på sin första fråga: **Genomsnittet** över **Senaste 5 minuterna**, **Över** det **Värde** du anger, och **Skapa ett larm**.
 
@@ -214,7 +214,7 @@ Frågan har ingen **Gruppera efter**, så alla värdar slås ihop till ett tal. 
 :::
 
 :::details Ett avvikelsekriterium utlöses aldrig
-Det lär sig fortfarande: timmen i veckan som det jämför med har ännu inte tillräcklig historik inom **Baslinjefönster**.
+Det lär sig fortfarande: timmen i veckan som det jämför med har ännu inte två veckors historik.
 :::
 
 ## Nästa steg

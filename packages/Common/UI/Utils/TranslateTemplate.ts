@@ -1,5 +1,14 @@
 import i18next from "i18next";
 import { getEnglishOf } from "../../Types/DateLanguage";
+import {
+  FIRST_STRONG_ISOLATE,
+  getReadingDirection,
+  LEFT_TO_RIGHT,
+  POP_DIRECTIONAL_ISOLATE,
+  ReadingDirection,
+  RIGHT_TO_LEFT,
+  setApartInSentence,
+} from "../../Types/ReadingDirection";
 
 /*
  * Translating a sentence that has a value in it.
@@ -95,6 +104,30 @@ export type TextLookup = (text: string) => string | undefined;
 
 export interface TermOptions {
   inSentence?: boolean | undefined;
+}
+
+/*
+ * How a sentence is filled.
+ *
+ * setsValuesApart: each value is set apart from the sentence in a Unicode
+ * isolate where it could move the words around it (setApartValues) - a name
+ * in Latin letters and the time or the count after it in a Persian
+ * sentence, a Persian name in an English one - so the browser draws every
+ * word where the sentence puts it. Only for a sentence that is drawn on the
+ * page and nothing else (TranslatedSentence, translateTemplateAround): the
+ * isolate's marks are characters, and a sentence that becomes a record's
+ * name, a field's value or a request would carry them.
+ */
+export interface SentenceOptions {
+  setsValuesApart?: boolean | undefined;
+  /*
+   * With setsValuesApart, a slot (TranslatedSentence, translateTemplateAround)
+   * is set apart too, in a sentence read right to left: what is drawn there
+   * is not known, so it is set apart whatever it holds. Not for a sentence
+   * whose pieces are drawn as boxes of their own (TranslatedSentence's
+   * renderText, a flex row): an isolate's marks would be pieces of their own.
+   */
+  setsSlotsApart?: boolean | undefined;
 }
 
 export const translatableTerm: (
@@ -294,6 +327,29 @@ export const getPluralCategory: (language: string, count: number) => string = (
 const PLACEHOLDER: RegExp = /\{\{\s*([\w.]+)\s*\}\}/g;
 
 /*
+ * Slot markers are private-use characters, which no translation or name
+ * contains: "\uE000" + the slot's index + "\uE000" (getSentenceParts).
+ */
+const SLOT_PATTERN: RegExp = /\uE000(\d+)\uE000/;
+
+// One slot's marker, alone.
+const WHOLE_SLOT_PATTERN: RegExp = /^\uE000\d+\uE000$/;
+
+/*
+ * A marker no name contains, put where the slot goes so the translated
+ * sentence can be cut around it (translateTemplateAround).
+ */
+const SLOT_MARKER: string = "\u0000";
+
+/*
+ * Whether a value is where a caller draws an element of its own - a name in
+ * bold, a link - between the pieces of the sentence.
+ */
+const isSlotMarker: (value: string) => boolean = (value: string): boolean => {
+  return value === SLOT_MARKER || WHOLE_SLOT_PATTERN.test(value);
+};
+
+/*
  * The {{placeholders}} a template names, each once, in the order they first
  * appear - read with the same rule fillTemplate fills them by. A caller that
  * draws some of them as elements (TranslatedSentence's slots) passes exactly
@@ -359,6 +415,61 @@ const englishDateValues: (values: TemplateValues) => TemplateValues = (
 };
 
 /*
+ * Every value as the English sentence shows it, as text: a date in the
+ * reader's language goes back to its English (englishDateValues).
+ */
+const englishTextValues: (values: TemplateValues) => Record<string, string> = (
+  values: TemplateValues,
+): Record<string, string> => {
+  const dated: TemplateValues = englishDateValues(values);
+  const result: Record<string, string> = {};
+
+  for (const key of Object.keys(dated)) {
+    result[key] = englishValue(dated[key] as TemplateValue);
+  }
+
+  return result;
+};
+
+/*
+ * The values as a sentence that reads `direction` holds them: each set
+ * apart in a Unicode isolate where it could move the words around it
+ * (ReadingDirection's setApartInSentence) - in a Persian sentence a name in
+ * Latin letters, an address, a time or a count; in an English one a
+ * Persian name. A slot's marker (TranslatedSentence, translateTemplateAround)
+ * is set apart in a sentence read right to left when asked to
+ * (SentenceOptions' setsSlotsApart), so what is drawn there as an element is
+ * too; otherwise it is left as it is.
+ */
+const setApartValues: (
+  values: Record<string, string>,
+  direction: ReadingDirection,
+  setsSlotsApart: boolean,
+) => Record<string, string> = (
+  values: Record<string, string>,
+  direction: ReadingDirection,
+  setsSlotsApart: boolean,
+): Record<string, string> => {
+  const result: Record<string, string> = {};
+
+  for (const key of Object.keys(values)) {
+    const value: string = values[key] as string;
+
+    if (isSlotMarker(value)) {
+      result[key] =
+        setsSlotsApart && direction === RIGHT_TO_LEFT
+          ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
+          : value;
+      continue;
+    }
+
+    result[key] = setApartInSentence(value, direction);
+  }
+
+  return result;
+};
+
+/*
  * Fills {{key}} placeholders from values. A placeholder with no value is left
  * as it is, which a test notices and a reader at least recognises as a slot.
  * Each value goes in literally: braces or "$t(" inside a name are never
@@ -390,12 +501,17 @@ export interface Translator {
   // True when the reader's language has its own wording for the text.
   hasTranslation: (text: string) => boolean;
   // A whole sentence with {{placeholders}}, filled after it is translated.
-  translateTemplate: (template: string, values?: TemplateValues) => string;
+  translateTemplate: (
+    template: string,
+    values?: TemplateValues,
+    options?: SentenceOptions,
+  ) => string;
   // A count-dependent sentence, in the form the reader's language uses.
   translatePlural: (
     template: PluralTemplate,
     count: number,
     values?: TemplateValues,
+    options?: SentenceOptions,
   ) => string;
   // A word or name, as written on its own or in the middle of a sentence.
   translateTerm: (text: string | undefined, options?: TermOptions) => string;
@@ -490,36 +606,82 @@ export const createTranslator: (
     return result;
   };
 
+  // The way the reader's language reads: its sentences', and their values'.
+  const readerDirection: ReadingDirection = getReadingDirection(activeLanguage);
+
   /*
    * The sentence is translated when its stored wording differs from the
    * English one; then its terms are translated too. Otherwise the English
    * sentence is filled with the English terms - except for a template with no
    * words of its own ("{{action}} {{itemName}}"), which belongs to no
    * language and always takes the reader's words.
+   *
+   * Asked to (SentenceOptions), each value is set apart from the sentence
+   * where it could move the words around it (setApartValues), by the way the
+   * sentence reads: the reader's language's, or English's.
    */
   const fill: (
     stored: string | undefined,
     english: string,
     values: TemplateValues,
+    options?: SentenceOptions | undefined,
   ) => string = (
     stored: string | undefined,
     english: string,
     values: TemplateValues,
+    options?: SentenceOptions | undefined,
   ): string => {
+    const setsValuesApart: boolean = Boolean(options?.setsValuesApart);
+    const setsSlotsApart: boolean = Boolean(options?.setsSlotsApart);
+
     if (stored === undefined || stored === english) {
-      return hasWords(english)
-        ? fillTemplate(english, englishDateValues(values))
-        : fillTemplate(english, translatedValues(values));
+      if (hasWords(english)) {
+        return setsValuesApart
+          ? fillTemplate(
+              english,
+              setApartValues(
+                englishTextValues(values),
+                LEFT_TO_RIGHT,
+                setsSlotsApart,
+              ),
+            )
+          : fillTemplate(english, englishDateValues(values));
+      }
+
+      return fillTemplate(
+        english,
+        setsValuesApart
+          ? setApartValues(
+              translatedValues(values),
+              readerDirection,
+              setsSlotsApart,
+            )
+          : translatedValues(values),
+      );
     }
 
-    return fillTemplate(stored, translatedValues(values));
+    return fillTemplate(
+      stored,
+      setsValuesApart
+        ? setApartValues(
+            translatedValues(values),
+            readerDirection,
+            setsSlotsApart,
+          )
+        : translatedValues(values),
+    );
   };
 
   const translateTemplate: (
     template: string,
     values?: TemplateValues,
-  ) => string = (template: string, values: TemplateValues = {}): string => {
-    return fill(find(template), template, values);
+    options?: SentenceOptions,
+  ) => string = (
+    template: string,
+    values: TemplateValues = {},
+    options?: SentenceOptions,
+  ): string => {
+    return fill(find(template), template, values, options);
   };
 
   const formatNumber: (value: number) => string = (value: number): string => {
@@ -556,10 +718,12 @@ export const createTranslator: (
     template: PluralTemplate,
     count: number,
     values?: TemplateValues,
+    options?: SentenceOptions,
   ) => string = (
     template: PluralTemplate,
     count: number,
     values: TemplateValues = {},
+    options?: SentenceOptions,
   ): string => {
     // English has two forms: exactly one, and everything else.
     const english: string = count === 1 ? template.one : template.other;
@@ -575,10 +739,15 @@ export const createTranslator: (
       stored === template.one || stored === template.other ? undefined : stored;
 
     // {{count}} is written the reader's way unless the caller passes its own.
-    return fill(translated, english, {
-      count: formatNumber(count),
-      ...values,
-    });
+    return fill(
+      translated,
+      english,
+      {
+        count: formatNumber(count),
+        ...values,
+      },
+      options,
+    );
   };
 
   // A composed value in a translated sentence is built with this translator.
@@ -756,12 +925,6 @@ export type SentencePart =
   | { kind: "text"; text: string }
   | { kind: "slot"; slot: string };
 
-/*
- * Slot markers are private-use characters, which no translation or name
- * contains: "\uE000" + the slot's index + "\uE000".
- */
-const SLOT_PATTERN: RegExp = /\uE000(\d+)\uE000/;
-
 export interface SentenceParts {
   parts: Array<SentencePart>;
   /*
@@ -777,6 +940,12 @@ export interface SentencePartsInput {
   slots: ReadonlyArray<string>;
   values?: TemplateValues | undefined;
   count?: number | undefined;
+  /*
+   * Whether the slots are set apart from the sentence in a right-to-left
+   * language (SentenceOptions' setsSlotsApart): yes for a sentence drawn as
+   * one line of text, no for one whose pieces are boxes of their own.
+   */
+  setsSlotsApart?: boolean | undefined;
 }
 
 /*
@@ -839,10 +1008,24 @@ export const getSentencePartsAndLanguage: (
         ? data.template.one
         : data.template.other;
 
+  /*
+   * Drawn on the page and nothing else: its values (and its slots, in a
+   * sentence read right to left) are set apart from its words
+   * (SentenceOptions).
+   */
+  const options: SentenceOptions = {
+    setsValuesApart: true,
+    setsSlotsApart: Boolean(data.setsSlotsApart),
+  };
   const translated: string =
     typeof data.template === "string"
-      ? data.translator.translateTemplate(data.template, withMarkers)
-      : data.translator.translatePlural(data.template, count, withMarkers);
+      ? data.translator.translateTemplate(data.template, withMarkers, options)
+      : data.translator.translatePlural(
+          data.template,
+          count,
+          withMarkers,
+          options,
+        );
 
   const englishValues: TemplateValues = isPlural
     ? { count: data.translator.formatNumber(count), ...withMarkers }
@@ -859,7 +1042,10 @@ export const getSentencePartsAndLanguage: (
 
   return {
     parts: split(
-      fillTemplate(englishTemplate, englishDateValues(englishValues)),
+      fillTemplate(
+        englishTemplate,
+        setApartValues(englishTextValues(englishValues), LEFT_TO_RIGHT, false),
+      ),
     ) || [
       {
         kind: "text",
@@ -881,11 +1067,20 @@ export interface TemplateAround {
   after: string;
 }
 
-/*
- * A marker no name contains, put where the slot goes so the translated
- * sentence can be cut around it.
- */
-const SLOT_MARKER: string = "\u0000";
+export interface TemplateAroundOptions {
+  /*
+   * Whether the slot is set apart from the words around it in a sentence
+   * read right to left (SentenceOptions' setsSlotsApart): yes, the default,
+   * for halves drawn as text with the slot's element inline between them -
+   * a name in bold in a line of the page. No for halves drawn as boxes of
+   * their own - a flex row, a number box between two labels - where an
+   * isolate's mark at the end of a half is a piece of its own: "Wait
+   * {{minutes}} minutes" is "{{minutes}} دقیقه صبر کن" in Persian, and its
+   * empty first half, holding the mark alone, was drawn as one more item
+   * of the row, a gap before the box.
+   */
+  setsSlotApart?: boolean | undefined;
+}
 
 /*
  * The translated sentence cut in two around one {{slot}}, for a caller that
@@ -898,10 +1093,12 @@ export const translateTemplateAround: (
   template: string,
   slot: string,
   values?: TemplateValues,
+  options?: TemplateAroundOptions,
 ) => TemplateAround = (
   template: string,
   slot: string,
   values: TemplateValues = {},
+  options?: TemplateAroundOptions,
 ): TemplateAround => {
   const withMarker: TemplateValues = { ...values, [slot]: SLOT_MARKER };
 
@@ -920,9 +1117,18 @@ export const translateTemplateAround: (
   /*
    * A translation that lost its slot, or repeated it, cannot be drawn with the
    * name in it - fall back to English rather than drop the name.
+   *
+   * Drawn on the page and nothing else: the values, and the slot in a
+   * sentence read right to left unless its halves are boxes of their own
+   * (TemplateAroundOptions), set apart from its words (SentenceOptions).
    */
   return (
-    split(translateTemplate(template, withMarker)) ||
+    split(
+      getGlobalTranslator().translateTemplate(template, withMarker, {
+        setsValuesApart: true,
+        setsSlotsApart: options?.setsSlotApart !== false,
+      }),
+    ) ||
     split(fillTemplate(template, englishDateValues(withMarker))) || {
       before: fillTemplate(template, englishDateValues(values)),
       after: "",

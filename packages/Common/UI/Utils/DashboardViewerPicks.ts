@@ -29,6 +29,9 @@ import RememberedChoice from "./RememberedChoice";
  * order - forgets the entry, and the dashboard's own default decides again
  * (Types/Dashboard/DashboardViewerChoice.ts).
  *
+ * Signing out forgets them all, as they are this viewer's alone
+ * (KeptAfterSignOut.ts).
+ *
  * React-free.
  */
 

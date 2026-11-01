@@ -661,6 +661,59 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
       expect(result).toBeNull();
     });
 
+    test("a zero-variance baseline it has left fires, and says so in words", async () => {
+      getBaselineSpy.mockResolvedValue({
+        ...buildBaseline({ mean: 0, stddev: 0 }),
+        leftFlatHistory: true,
+      });
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.AnomalouslyHigh,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 40 })],
+      });
+
+      const result: string | null =
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        });
+
+      expect(result).toContain("SNMP interface utilization 40.00% is above");
+      expect(result).toContain("which held at 0.00% for all");
+      expect(result).not.toContain("σ");
+    });
+
+    test("back on the value it held, it does not fire", async () => {
+      getBaselineSpy.mockResolvedValue({
+        ...buildBaseline({ mean: 0, stddev: 0 }),
+        leftFlatHistory: true,
+      });
+
+      const criteriaFilter: CriteriaFilter = {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.Anomalous,
+        value: undefined,
+      };
+
+      const dataToProcess: ProbeMonitorResponse = buildDataToProcess({
+        oidResponses: [],
+        interfaces: [buildInterface({ name: "Gi0/1", utilizationPercent: 0 })],
+      });
+
+      expect(
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter,
+        }),
+      ).toBeNull();
+    });
+
     test("interface scope applies: only the scoped interface's utilization is observed", async () => {
       getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
 

@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import joinAriaIds from "../../Utils/AriaIds";
@@ -103,16 +104,22 @@ const TextArea: FunctionComponent<ComponentProps> = (
      * auto-growing one takes its floor from `rows` instead: with min-h-32 it
      * could never be shorter than six lines, which is the whole point of it.
      */
-    className = `block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm resize-y${
+    /*
+     * Room at the end for the error's icon: pr-10 in place of pr-3, which
+     * Tailwind's stylesheet puts after pr-10 when both are written.
+     */
+    className = `block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 ${
+      props.error ? "pr-10" : "pr-3"
+    } text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm resize-y${
       props.autoGrow ? "" : " min-h-32"
     }`;
   } else {
-    className = props.className;
+    className = props.error ? `${props.className} pr-10` : props.className;
   }
 
   if (props.error) {
     className +=
-      " border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
+      " border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
   }
 
   // Each line reads the way it is written (TypedTextDirection).
@@ -294,16 +301,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
           </div>
         )}
       </div>
-      {props.error && (
-        <p
-          id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          role="alert"
-        >
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
     </>
   );
 };

@@ -131,7 +131,7 @@ Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den 
 | **Har ingen data** | fraværende: forespørgslen sendte intet i vinduet |
 | **Har data** | til stede: forespørgslen sendte noget i vinduet |
 
-Anomalibetingelserne har ingen tærskel. **Hvornår der advares** viser i stedet **Følsomhed** (Lav, Middel, som er standard, eller Høj), og de egne kriterier også et **Baseline-vindue** (14 dage, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med baselinen for samme time på ugen, bygget ud fra det vindue. Indtil den time på ugen har nok historik, er kriteriet stadig ved at lære og giver ingen advarsler.
+Anomalibetingelserne har ingen tærskel. **Hvornår der advares** viser i stedet **Følsomhed** (Lav, Middel, som er standard, eller Høj), og de egne kriterier også et **Baseline-vindue** (14 dage, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med samme time på ugen på tidligere dage, så langt tilbage som det vindue rækker. Det, der sker nu, indgår aldrig i den sammenligning, så en ændring, der varer ved, bliver ved med at advare, indtil den en uge senere er kommet med i de tidligere dage. Indtil den time på ugen har to ugers historik, er kriteriet stadig ved at lære og giver ingen advarsler.
 
 En metrik-monitor, der er oprettet i Opret monitor, starter med én regel på sin første forespørgsel: **Gennemsnittet** over **Seneste 5 minutter**, **Over** den **Værdi**, du angiver, og **Opret en advarsel**.
 
@@ -214,7 +214,7 @@ Forespørgslen har ingen **Gruppér efter**, så alle værter samles i ét tal. 
 :::
 
 :::details Et anomalikriterium udløses aldrig
-Det er stadig ved at lære: den time på ugen, det sammenligner med, har endnu ikke nok historik inden for **Baseline-vindue**.
+Det er stadig ved at lære: den time på ugen, det sammenligner med, har endnu ikke to ugers historik.
 :::
 
 ## Næste skridt

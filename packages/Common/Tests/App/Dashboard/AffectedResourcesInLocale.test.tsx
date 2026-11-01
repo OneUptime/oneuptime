@@ -109,6 +109,7 @@ import AffectedResourcesPicker, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker";
 import AffectedResourcesDisplay from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesDisplay";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import { isolated } from "../../Helpers/IsolateMarks";
 import { AffectedResourceKind } from "../../../Types/AffectedResources/AffectedResourceSearch";
 
 const LOCALES_DIR: string = path.resolve(
@@ -333,10 +334,14 @@ describe("the results' words", () => {
 
     await search("wan");
 
+    /*
+     * The count and the field's name drawn in its slot are each set apart
+     * from the Persian words (TranslatedSentence).
+     */
     expect(
       screen.getByTestId("affected-resources-monitors-hint"),
     ).toHaveTextContent(
-      "۲ مانیتور هم مطابقت دارد. مانیتورها در فیلد «مانیتورها» انتخاب می‌شوند.",
+      `${isolated("۲")} مانیتور هم مطابقت دارد. مانیتورها در فیلد «${isolated("مانیتورها")}» انتخاب می‌شوند.`,
     );
   });
 

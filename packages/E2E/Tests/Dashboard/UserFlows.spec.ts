@@ -273,5 +273,42 @@ test.describe("User Flows", () => {
     await expect(
       page.getByRole("link", { name: "User Flows" }).first(),
     ).toBeVisible();
+
+    /*
+     * One session, asked of the real server: only its journey comes back,
+     * read page by page across its two tabs, with its ids shown and a link
+     * to its recording.
+     */
+    const buyer: string = journeys[0]!.sessionId;
+
+    await gotoProjectPage({
+      page,
+      projectId,
+      url: `${flowsUrl}?sessionId=${buyer}`,
+      ready: page.getByTestId("user-flow-page"),
+    });
+
+    const journey: Locator = page.getByTestId("user-flow-journey");
+
+    await expect(journey).toHaveCount(1, { timeout: 30000 });
+    await expect(journey).toHaveAttribute("data-session-id", buyer);
+    await expect(journey).toHaveAttribute(
+      "data-path",
+      "/ > /products/41 > /cart > /checkout",
+    );
+    await expect(
+      journey.locator(
+        '[data-testid="user-flow-journey-step"][data-page="/checkout"]',
+      ),
+    ).toHaveAttribute("data-exit", "true");
+    await expect(journey.getByTestId("user-flow-journey-watch")).toBeVisible();
+    await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
+      "1",
+    );
+
+    await page.getByTestId("user-flow-scope-clear").click();
+    await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
+      "4",
+    );
   });
 });

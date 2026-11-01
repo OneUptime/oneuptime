@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -640,7 +641,11 @@ const SnmpConfigListEditor: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && (
-        <div className="mt-2 text-sm text-red-600">{props.error}</div>
+        <FieldError
+          message={props.error}
+          className="mt-2 text-sm text-red-600"
+          announce="none"
+        />
       )}
     </div>
   );

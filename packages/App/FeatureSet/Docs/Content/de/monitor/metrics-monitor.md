@@ -131,7 +131,7 @@ Diese Monitore werten immer den **Metric Value** aus – den aggregierten Wert d
 | **Keine Daten** | fehlt: Die Abfrage hat im Zeitfenster nichts gesendet |
 | **Daten vorhanden** | vorhanden ist: Die Abfrage hat im Zeitfenster etwas gesendet |
 
-Die Anomaliebedingungen haben keinen Schwellenwert. **Wann alarmieren** zeigt stattdessen **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch –, die eigenen Kriterien zusätzlich ein **Baseline-Fenster** – 14 Tage (der Standard), 28, 60 oder 90 –, und jeder Datenpunkt wird mit der Baseline derselben Stunde der Woche verglichen, die aus diesem Fenster gebildet wird. Solange diese Stunde der Woche nicht genug Verlauf hat, lernt das Kriterium noch und erzeugt keine Warnungen.
+Die Anomaliebedingungen haben keinen Schwellenwert. **Wann alarmieren** zeigt stattdessen **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch –, die eigenen Kriterien zusätzlich ein **Baseline-Fenster** – 14 Tage (der Standard), 28, 60 oder 90 –, und jeder Datenpunkt wird mit derselben Stunde der Woche an früheren Tagen verglichen, so weit dieses Fenster zurückreicht. Was gerade geschieht, ist nie Teil dieses Vergleichs, daher warnt eine Änderung, die anhält, weiter, bis sie eine Woche später in diese früheren Tage eingegangen ist. Solange diese Stunde der Woche keine zwei Wochen Verlauf hat, lernt das Kriterium noch und erzeugt keine Warnungen.
 
 Ein in „Monitor erstellen“ angelegter Metriken-Monitor beginnt mit einer Regel auf seiner ersten Abfrage: **Der Durchschnitt** über **Letzte 5 Minuten**, **Über** dem **Wert**, den Sie eingeben, und **Warnung erstellen**.
 
@@ -214,7 +214,7 @@ Die Abfrage hat kein **Gruppieren nach**, also werden alle Hosts zu einer Zahl z
 :::
 
 :::details Ein Anomaliekriterium löst nie aus
-Es lernt noch: Die Stunde der Woche, mit der es vergleicht, hat innerhalb des **Baseline-Fenster** noch nicht genug Verlauf.
+Es lernt noch: Die Stunde der Woche, mit der es vergleicht, hat noch keine zwei Wochen Verlauf.
 :::
 
 ## Nächste Schritte

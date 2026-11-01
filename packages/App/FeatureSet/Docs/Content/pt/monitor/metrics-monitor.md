@@ -131,7 +131,7 @@ Estes monitores sempre avaliam o **Metric Value**: o valor agregado da consulta 
 | **Sem dados** | ausente: a consulta não enviou nada na janela |
 | **Com dados** | presente: a consulta enviou algo na janela |
 
-As condições de anomalia não têm limite. Em vez dele, **Quando alertar** mostra **Sensibilidade** (Baixo, Médio, a padrão, ou Alto), e os critérios personalizados também uma **Janela de linha de base** (14 dias, a padrão, 28, 60 ou 90), e cada ponto de dados é comparado com a linha de base da mesma hora da semana, construída a partir dessa janela. Até que essa hora da semana tenha histórico suficiente, o critério ainda está aprendendo e não gera alertas.
+As condições de anomalia não têm limite. Em vez dele, **Quando alertar** mostra **Sensibilidade** (Baixo, Médio, a padrão, ou Alto), e os critérios personalizados também uma **Janela de linha de base** (14 dias, a padrão, 28, 60 ou 90), e cada ponto de dados é comparado com a mesma hora da semana em dias anteriores, até onde alcança essa janela. O que está acontecendo agora nunca entra nessa comparação, então uma mudança que persiste continua alertando até que, uma semana depois, tenha entrado nesses dias anteriores. Até que essa hora da semana tenha duas semanas de histórico, o critério ainda está aprendendo e não gera alertas.
 
 Um monitor de métricas criado em Criar monitor começa com uma regra na sua primeira consulta: **A média** em **Últimos 5 minutos**, **Acima de** o **Valor** que você informar, e **Criar um alerta**.
 
@@ -214,7 +214,7 @@ A consulta não tem **Agrupar por**, então todos os hosts são reduzidos a um s
 :::
 
 :::details Um critério de anomalia nunca dispara
-Ele ainda está aprendendo: a hora da semana com que compara ainda não tem histórico suficiente dentro da **Janela de linha de base**.
+Ele ainda está aprendendo: a hora da semana com que compara ainda não tem duas semanas de histórico.
 :::
 
 ## Próximos passos

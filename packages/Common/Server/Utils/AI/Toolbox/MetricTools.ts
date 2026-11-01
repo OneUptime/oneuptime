@@ -17,6 +17,7 @@ import AggregateBy from "../../../Types/AnalyticsDatabase/AggregateBy";
 import MetricService from "../../../Services/MetricService";
 import MetricBaselineService, {
   BandPoint,
+  BaselineBand,
   BaselineSummary,
   MetricBaselineService as MetricBaselineServiceClass,
 } from "../../../Services/MetricBaselineService";
@@ -455,6 +456,7 @@ export const BaselineAnomalyTool: ObservabilityTool = {
         metricName,
         primaryEntityId: entityId,
         hourOfWeek,
+        judgedAt: atTime,
         windowDays,
       });
 
@@ -479,9 +481,9 @@ export const BaselineAnomalyTool: ObservabilityTool = {
         verdict: "insufficient baseline data",
         detail: `The metric has ${
           baseline
-            ? `only ${baseline.sampleCount} sample(s)`
+            ? `${baseline.sampleCount} earlier sample(s)`
             : "no baseline data"
-        } for this hour of week (needs at least ${MetricBaselineServiceClass.DEFAULT_MIN_SAMPLES}). Baseline coverage overall: ${coverage.totalSamples} total sample(s)${
+        } for this hour of week (needs two earlier weeks of it, and at least ${MetricBaselineServiceClass.DEFAULT_MIN_SAMPLES} samples). Baseline coverage overall: ${coverage.totalSamples} total sample(s)${
           coverage.oldestDay
             ? `, oldest day ${OneUptimeDate.getDateAsFormattedString(coverage.oldestDay)}`
             : ""
@@ -544,6 +546,10 @@ export const BaselineAnomalyTool: ObservabilityTool = {
 
     const sigma: number =
       MetricBaselineServiceClass.sigmaForSensitivity(sensitivity);
+    const band: BaselineBand | null = MetricBaselineServiceClass.getBand({
+      baseline,
+      sigmaCount: sigma,
+    });
     const expectedLow: number = baseline.mean - sigma * baseline.stddev;
     const expectedHigh: number = baseline.mean + sigma * baseline.stddev;
 
@@ -559,7 +565,7 @@ export const BaselineAnomalyTool: ObservabilityTool = {
           return sum + value;
         }, 0) / currentValues.length;
 
-      if (baseline.stddev <= 0) {
+      if (!band) {
         /*
          * Zero-variance baseline: the band collapses to a point and
          * floating-point noise alone would flag every sample. The anomaly
@@ -568,11 +574,15 @@ export const BaselineAnomalyTool: ObservabilityTool = {
          */
         verdict = `cannot judge — the baseline has zero variance (the metric has been constant at ${baseline.mean}), so any band would flag every sample; compare the current value to the baseline mean directly instead`;
       } else {
-        zScore = (currentValue - baseline.mean) / baseline.stddev;
+        // A baseline with no spread has no σ to count: it held one value.
+        zScore =
+          baseline.stddev > 0
+            ? (currentValue - baseline.mean) / baseline.stddev
+            : null;
 
-        if (currentValue > expectedHigh) {
+        if (currentValue > band.expectedHigh) {
           verdict = `ANOMALOUS — above the expected range for this hour of week`;
-        } else if (currentValue < expectedLow) {
+        } else if (currentValue < band.expectedLow) {
           verdict = `ANOMALOUS — below the expected range for this hour of week`;
         } else {
           verdict = `normal — within the expected range for this hour of week`;

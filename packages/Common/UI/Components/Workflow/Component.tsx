@@ -33,6 +33,7 @@ import React, {
   useState,
 } from "react";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import { getTextReadingDirectionByMostLetters } from "../../../Types/ReadingDirection";
 import useTranslator from "../../Utils/UseTranslator";
 import {
   Connection,
@@ -686,6 +687,15 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         <span
           data-testid="workflow-node-title"
           title={props.data.metadata.title}
+          /*
+           * Read the way most of its words are written, as the description
+           * below is: the card itself is laid out as the canvas is, left to
+           * right, in every language.
+           */
+          dir={
+            getTextReadingDirectionByMostLetters(props.data.metadata.title) ||
+            undefined
+          }
           style={{
             color: colors.headerText,
             fontSize: "0.8125rem",
@@ -746,6 +756,18 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             stepSummary ? "workflow-node-summary" : "workflow-node-description"
           }
           title={stepSummary || undefined}
+          /*
+           * Read the way most of its words are written: a step's English
+           * description keeps its full stop at its end on a Persian page, and
+           * a Persian summary that starts with a field's name - "environment
+           * را با ۲ حالت مقایسه می‌کند" - still reads from the right, where
+           * its first letter would read it left to right.
+           */
+          dir={
+            getTextReadingDirectionByMostLetters(
+              stepSummary || props.data.metadata.description,
+            ) || undefined
+          }
           style={{
             color: "var(--ou-text-muted, #64748b)",
             fontSize: "0.75rem",

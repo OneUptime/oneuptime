@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 /*
  * A record step's field list, as chips: Fields to pass on (the On Create and
  * On Update triggers' and the Find steps' "select") and Fields to watch (the
@@ -619,20 +620,19 @@ const ModelFieldPicker: FunctionComponent<ComponentProps> = (
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           {props.error ? (
-            <p
+            /*
+             * A list with nothing in it can only be missing a field, and
+             * says so in its own words: "Fields to pass on is required."
+             * was the form's, for any box left blank.
+             */
+            <FieldError
               className="pt-1 text-sm text-red-600"
-              data-testid="error-message"
-              role="alert"
-            >
-              {/*
-               * A list with nothing in it can only be missing a field, and
-               * says so in its own words: "Fields to pass on is required."
-               * was the form's, for any box left blank.
-               */}
-              {chosen.length === 0
-                ? translator.translateText(ModelFieldPickerCopy.pickAtLeastOne)
-                : props.error}
-            </p>
+              message={
+                chosen.length === 0
+                  ? ModelFieldPickerCopy.pickAtLeastOne
+                  : props.error
+              }
+            />
           ) : null}
         </div>
         <button

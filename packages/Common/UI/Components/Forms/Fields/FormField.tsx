@@ -1,3 +1,4 @@
+import FieldError from "./FieldError";
 import Dictionary from "../../../../Types/Dictionary";
 import { GetReactElementFunction } from "../../../Types/FunctionTypes";
 import CardSelect from "../../CardSelect/CardSelect";
@@ -881,15 +882,7 @@ const FormField: <T extends GenericObject>(
            */}
           {props.field.fieldType === FormFieldSchemaType.Dictionary &&
             props.touched &&
-            props.error && (
-              <p
-                data-testid="error-message"
-                className="mt-1 text-sm text-red-400"
-                role="alert"
-              >
-                {props.error}
-              </p>
-            )}
+            props.error && <FieldError message={props.error} />}
 
           {props.field.fieldType ===
             FormFieldSchemaType.OptionChooserButton && (

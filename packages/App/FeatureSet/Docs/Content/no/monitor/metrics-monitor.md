@@ -131,7 +131,7 @@ Disse monitorene evaluerer alltid **Metric Value**: den aggregerte verdien av de
 | **Ingen data** | fraværende: spørringen sendte ingenting i vinduet |
 | **Har data** | til stede: spørringen sendte noe i vinduet |
 
-Avviksvilkårene har ingen terskel. **Når det skal varsles** viser i stedet **Følsomhet** (Lav, Middels, som er standard, eller Høy), og de egne kriteriene også et **Grunnlinjevindu** (14 dager, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med grunnlinjen for samme time i uken, bygd fra det vinduet. Inntil den timen i uken har nok historikk, lærer kriteriet fortsatt og gir ingen varsler.
+Avviksvilkårene har ingen terskel. **Når det skal varsles** viser i stedet **Følsomhet** (Lav, Middels, som er standard, eller Høy), og de egne kriteriene også et **Grunnlinjevindu** (14 dager, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med samme time i uken på tidligere dager, så langt tilbake som det vinduet rekker. Det som skjer nå, er aldri del av sammenligningen, så en endring som varer, fortsetter å varsle til den en uke senere har kommet inn i de tidligere dagene. Inntil den timen i uken har to ukers historikk, lærer kriteriet fortsatt og gir ingen varsler.
 
 En metrikkmonitor som er opprettet i Opprett monitor, starter med én regel på den første spørringen: **Gjennomsnittet** over **Siste 5 minutter**, **Over** **Verdi** du angir, og **Opprett et varsel**.
 
@@ -214,7 +214,7 @@ Spørringen har ingen **Grupper etter**, så alle verter slås sammen til ett ta
 :::
 
 :::details Et avvikskriterium utløses aldri
-Det lærer fortsatt: timen i uken det sammenligner med, har ikke nok historikk ennå innenfor **Grunnlinjevindu**.
+Det lærer fortsatt: timen i uken det sammenligner med, har ikke to ukers historikk ennå.
 :::
 
 ## Neste steg

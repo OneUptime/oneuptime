@@ -804,16 +804,24 @@ const FlamegraphView: FunctionComponent<FlamegraphViewProps> = (
           {zoomStack.length > 0 && (
             <div className="mb-2 text-xs text-gray-500 flex items-center gap-1.5">
               <Icon icon={IconProp.Filter} className="h-3 w-3" />
-              <TranslatedSentence
-                template="Zoomed into {{name}}"
-                slots={{
-                  name: (
-                    <span className="font-mono text-gray-800">
-                      {activeRoot.name}
-                    </span>
-                  ),
-                }}
-              />
+              {/*
+               * The sentence is one item of the row, its words and the
+               * name a line of text in it: loose in the row, each piece -
+               * and the marks that set the name apart in a language read
+               * right to left - was an item of its own, a gap between.
+               */}
+              <span>
+                <TranslatedSentence
+                  template="Zoomed into {{name}}"
+                  slots={{
+                    name: (
+                      <span className="font-mono text-gray-800">
+                        {activeRoot.name}
+                      </span>
+                    ),
+                  }}
+                />
+              </span>
               {props.onFocusFunction && activeRoot.name !== "(root)" && (
                 <button
                   type="button"
