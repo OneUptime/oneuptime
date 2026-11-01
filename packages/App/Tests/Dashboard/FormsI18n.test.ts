@@ -478,7 +478,8 @@ describe("the composed strings", () => {
 
     /*
      * Each card's edit modal: "Edit <model>", unless the card names its
-     * dialog itself. The Forms cards do not.
+     * dialog itself, or the page names the record (singularName, as App
+     * Platforms names its cloud rules). The Forms cards do neither.
      */
     const cardModelDetail: string = readCommon(
       "ModelDetail",
@@ -486,7 +487,10 @@ describe("the composed strings", () => {
     );
 
     expect(cardModelDetail).toContain(
-      'const editTitle: string = translateNamedAction(translator, { template: "Edit {{itemName}}", itemName: model.singularName || "", });',
+      'const singularName: string = props.singularName?.trim() || model.singularName || "";',
+    );
+    expect(cardModelDetail).toContain(
+      'const editTitle: string = translateNamedAction(translator, { template: "Edit {{itemName}}", itemName: singularName, });',
     );
     expect(cardModelDetail).toContain(
       "title={props.editModalTitle || editTitle}",
