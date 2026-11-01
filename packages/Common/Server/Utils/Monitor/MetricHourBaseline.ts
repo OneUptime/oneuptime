@@ -21,10 +21,11 @@
  *     days alone alerted three times as often on a daily rhythm, and fired on
  *     over half of all checks on anything that climbs, because a steady climb
  *     sits exactly three standard deviations from two earlier weeks.
- *   - Measured, not a share of the center. Rates can take a share of their
- *     center, but a metric's zero may mean nothing, and a steady gauge lost
- *     every change under 12% to it. So nothing here is tuned: the term is the
- *     part of a prediction's variance that the earlier weeks do not hold.
+ *   - Measured, not a share of the center. A rate can take a share of its
+ *     center (COUNT_BASELINE_LEVEL_SPREAD), but a metric's zero may mean
+ *     nothing, and a steady gauge lost every change under 12% to it. So nothing
+ *     here is tuned: the term is the part of a prediction's variance that the
+ *     earlier weeks do not hold.
  *   - Two earlier weeks. One cannot show how far a week moves: on one, a disk
  *     fired on every check. Until then the hour is still learning. The hour's
  *     own samples still count towards minSamples, or a metric reporting every
