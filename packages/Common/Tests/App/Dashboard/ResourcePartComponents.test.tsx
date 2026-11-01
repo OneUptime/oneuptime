@@ -93,7 +93,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/ResourcePartAlertCoverage",
-    );
+    ) as Record<string, unknown>;
     return {
       __esModule: true,
       ...actual,

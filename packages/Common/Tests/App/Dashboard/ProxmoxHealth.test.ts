@@ -34,14 +34,19 @@ import {
 
 const GIB: number = 1024 * 1024 * 1024;
 
-function row(fields: Partial<ProxmoxResource>): ProxmoxResource {
+/*
+ * A row's fields as a test writes them: any of them may be undefined, as a
+ * column whose series never arrived reads.
+ */
+type RowFields = {
+  [Key in keyof ProxmoxResource]?: ProxmoxResource[Key] | undefined;
+};
+
+function row(fields: RowFields): ProxmoxResource {
   return Object.assign(new ProxmoxResource(), fields);
 }
 
-function node(
-  name: string,
-  fields: Partial<ProxmoxResource> = {},
-): ProxmoxResource {
+function node(name: string, fields: RowFields = {}): ProxmoxResource {
   return row({
     kind: "Node",
     externalId: `node/${name}`,
@@ -54,7 +59,7 @@ function node(
 function guest(
   vmid: number,
   name: string,
-  fields: Partial<ProxmoxResource> = {},
+  fields: RowFields = {},
 ): ProxmoxResource {
   return row({
     kind: "Guest",
@@ -71,7 +76,7 @@ function storage(
   id: string,
   usedGiB: number | undefined,
   totalGiB: number | undefined,
-  fields: Partial<ProxmoxResource> = {},
+  fields: RowFields = {},
 ): ProxmoxResource {
   return row({
     kind: "Storage",

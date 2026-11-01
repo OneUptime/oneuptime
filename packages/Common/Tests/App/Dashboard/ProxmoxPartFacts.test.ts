@@ -49,14 +49,19 @@ const MINUTE: number = 60 * 1000;
 const HOUR: number = 60 * MINUTE;
 const GIB: number = 1024 * 1024 * 1024;
 
-function row(fields: Partial<ProxmoxResource>): ProxmoxResource {
+/*
+ * A row's fields as a test writes them: any of them may be undefined, as a
+ * column whose series never arrived reads.
+ */
+type RowFields = {
+  [Key in keyof ProxmoxResource]?: ProxmoxResource[Key] | undefined;
+};
+
+function row(fields: RowFields): ProxmoxResource {
   return Object.assign(new ProxmoxResource(), fields);
 }
 
-function guest(
-  vmid: number,
-  fields: Partial<ProxmoxResource> = {},
-): ProxmoxResource {
+function guest(vmid: number, fields: RowFields = {}): ProxmoxResource {
   return row({
     kind: "Guest",
     externalId: `qemu/${vmid}`,
@@ -69,7 +74,7 @@ function guest(
 }
 
 describe("a part's status", () => {
-  function status(fields: Partial<ProxmoxResource>): ResourcePartStatus | null {
+  function status(fields: RowFields): ResourcePartStatus | null {
     return getProxmoxPartStatus(row(fields));
   }
 
