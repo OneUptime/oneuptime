@@ -665,7 +665,7 @@ describe("a form's pages", () => {
      */
     expect(deletion["confirmationContent"]).toBeUndefined();
     expect(getDeleteConsequence("Form")).toBe(
-      "Deleting a form also deletes its submissions. The incidents and events it created stay.",
+      "Deleting a form also deletes its submissions and custom domains. The incidents and events it created stay.",
     );
 
     (deletion["onDeleteSuccess"] as () => void)();

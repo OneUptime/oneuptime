@@ -29,7 +29,8 @@
  *                     cannot be reached does
  *   - delay=<ms>      each custom domain read takes this long (30 ms
  *                     otherwise), to see the list while it loads
- *   - lang=de|ja|fa   the Dashboard's German, Japanese or Persian words
+ *   - lang=de|ja|fa   the Dashboard's German, Japanese or Persian words;
+ *                     Persian right to left
  *   - theme=dark, cname=0   (read by server.js) the dark theme; an
  *                     installation with no CNAME record
  *
@@ -419,6 +420,12 @@ await i18next.use(initReactI18next).init({
   nsSeparator: false,
 });
 document.documentElement.lang = language;
+/*
+ * Persian reads right to left, as the Dashboard draws it (Common/UI/Utils/
+ * PageLanguage sets dir on <html>, and server.js loads the reading-direction
+ * plugin after Tailwind, as index.ejs does).
+ */
+document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
 
 // What App.tsx does for every page: the router's hooks, handed to Navigation.
 function Shell(props) {

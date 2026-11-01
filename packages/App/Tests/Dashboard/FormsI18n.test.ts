@@ -373,7 +373,7 @@ describe("the glossary's words", () => {
     ]);
     expect(Object.keys(FormsCopy)).not.toContain("openForm");
     expect(FormsCopy.formTurnedOff).toBe(
-      "This form is turned off, so its link shows a 'not available' message.",
+      "This form is turned off, so people who open it see a 'not available' message.",
     );
   });
 
