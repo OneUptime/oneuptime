@@ -1,4 +1,13 @@
 {
+  "Something went wrong": "Noe gikk galt",
+  "An unexpected error has occurred. Please reload the page to continue": "Det oppstod en uventet feil. Last inn siden på nytt for å fortsette",
+  "Error details": "Feildetaljer",
+  "Still stuck?": "Står du fortsatt fast?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Last ned en lokal diagnosefil med feilstakken, komponentstakken, den rensede side-URL-en, nettleserdetaljer og OneUptime-bygget. Den leser aldri informasjonskapsler, lagrede nettleserdata eller skjemainnhold. Se gjennom den før du deler den med OneUptime Support.",
+  "Download support bundle": "Last ned støttepakke",
+  "Send it to {{email}}": "Send den til {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Støttepakken er lastet ned. Se gjennom den, og legg den deretter ved e-posten din.",
+  "The support bundle could not be downloaded. Please try again.": "Støttepakken kunne ikke lastes ned. Prøv igjen.",
   "common": {
     "save": "Lagre",
     "cancel": "Avbryt",

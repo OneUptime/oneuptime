@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39414,
-    "untranslated": 7525
+    "keys": 39420,
+    "untranslated": 7385
   },
   "sameAsEnglish": [
     " incidents",
@@ -467,6 +467,7 @@
     "main",
     "message",
     "name",
+    "p95",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

@@ -78,13 +78,13 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | --- | --- | --- |
 | **IoT Fleet** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avanceret | Valgfrit. Én enhed, via dens `device.id`, som `sensor-001`. |
-| **Device Type** | Custom Metric, Avanceret | Valgfrit. De enheder, der rapporterer dette `iot.device.type`, som `sensor` eller `gateway`. |
+| **Enhedstype** | Custom Metric, Avanceret | Valgfrit. De enheder, der rapporterer dette `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Past 1 Minute**; skabeloner sætter deres eget. |
 | **Vælg målinger** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggregate by**, **Filter by attributes**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
-Filtrene virker sammen: med et **Device ID** og en **Device Type** matcher en enhed af en anden type intet.
+Filtrene virker sammen: med et **Device ID** og en **Enhedstype** matcher en enhed af en anden type intet.
 
 ## Færdige advarselsskabeloner
 
@@ -95,10 +95,10 @@ Et kriterium udløser kun, når betingelsen gælder for hvert minut i dets vindu
 | Skabelon | Kategori | Alvorlighed | Overvåger | Udløser når | Genopretter når |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Tilgængelighed | Kritisk | `iot_device_up`, Min pr. `device.id`, seneste 30 minutter | En måling er under 1, eller en registreret enhed sender intet i hele vinduet | Tilbage på 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg pr. `device.id`, seneste 5 minutter | Under 20 % | Ved 22 % eller derover |
-| Weak Signal | Forbindelse | Warning | `iot_signal_strength_dbm`, Avg pr. `device.id`, seneste 5 minutter | Under -100 dBm | Ved -90 dBm eller derover |
+| Low Battery | Power | Advarsel | `iot_battery_percent`, Avg pr. `device.id`, seneste 5 minutter | Under 20 % | Ved 22 % eller derover |
+| Weak Signal | Forbindelse | Advarsel | `iot_signal_strength_dbm`, Avg pr. `device.id`, seneste 5 minutter | Under -100 dBm | Ved -90 dBm eller derover |
 | High Temperature | Miljø | Kritisk | `iot_temperature_celsius`, Max pr. `device.id`, seneste 5 minutter | Over 70 °C | Ved 63 °C eller derunder |
-| High CPU Usage | System | Warning | `iot_cpu_usage_ratio`, Avg pr. `device.id`, seneste 5 minutter | Over 0.9 (90 % af dens CPU) | Ved 0.81 eller derunder |
+| High CPU Usage | System | Advarsel | `iot_cpu_usage_ratio`, Avg pr. `device.id`, seneste 5 minutter | Over 0.9 (90 % af dens CPU) | Ved 0.81 eller derunder |
 
 **Alvorlighed** er den label, vælgeren viser. Den hændelse og den advarsel, en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; skift dem i kriteriet.
 

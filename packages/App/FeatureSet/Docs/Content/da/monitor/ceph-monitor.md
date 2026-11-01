@@ -116,42 +116,42 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | Kritisk | `ceph_health_status`, Max, seneste minut | 2 eller mere: `HEALTH_ERR` | Under 1,8: `HEALTH_WARN` eller bedre |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 eller mere: `HEALTH_WARN` eller værre | Under 0,9: `HEALTH_OK` |
+| Cluster Health Warning | Advarsel | `ceph_health_status`, Max | 1 eller mere: `HEALTH_WARN` eller værre | Under 0,9: `HEALTH_OK` |
 | Monitor Quorum Degraded | Kritisk | `ceph_mon_quorum_status`, Min pr. `ceph_daemon`, seneste minut | En monitor falder under 1, ude af quorum. Én hændelse pr. monitor | Tilbage på 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | Over 0: Klyngens `SLOW_OPS`-check er aktivt | På 0 |
-| Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` for `type = SLOW_OPS`, Max pr. `ceph_daemon` | Over 0. Én hændelse pr. OSD eller monitor | Serien forsvinder |
+| Slow Operations | Advarsel | `ceph_healthcheck_slow_ops`, Max | Over 0: Klyngens `SLOW_OPS`-check er aktivt | På 0 |
+| Daemon Slow Operations | Advarsel | `ceph_daemon_health_metrics` for `type = SLOW_OPS`, Max pr. `ceph_daemon` | Over 0. Én hændelse pr. OSD eller monitor | Serien forsvinder |
 | Daemon Crash | Kritisk | `ceph_health_detail` for `name = RECENT_CRASH`, Max | Checket er aktivt: Der findes ikke-arkiverede dæmonnedbrud. Mgr'en har ingen `ceph_crash_*`-metrik, så dette er det eneste signal om nedbrud | Nedbruddene arkiveres |
-| Monitor Clock Skew | Warning | `ceph_health_detail` for `name = MON_CLOCK_SKEW`, Max | Checket er aktivt: Monitorernes ure afviger mere end tilladt (standard 0,05 s) | Checket forsvinder |
+| Monitor Clock Skew | Advarsel | `ceph_health_detail` for `name = MON_CLOCK_SKEW`, Max | Checket er aktivt: Monitorernes ure afviger mere end tilladt (standard 0,05 s) | Checket forsvinder |
 | Monitor Disk Critically Low | Kritisk | `ceph_health_detail` for `name = MON_DISK_CRIT`, Max | Checket er aktivt: En monitors databasedisk har under 5 % ledigt (standard) | Checket forsvinder |
-| Monitor Disk Space Low | Warning | `ceph_health_detail` for `name = MON_DISK_LOW`, Max | Checket er aktivt: under 30 % ledigt (standard) | Checket forsvinder |
+| Monitor Disk Space Low | Advarsel | `ceph_health_detail` for `name = MON_DISK_LOW`, Max | Checket er aktivt: under 30 % ledigt (standard) | Checket forsvinder |
 
 ### OSD-skabeloner
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
 | OSD Down | Kritisk | `ceph_osd_up`, Min pr. `ceph_daemon` | En OSD falder under 1. Én hændelse pr. OSD | Tilbage på 1 |
-| OSD Out | Warning | `ceph_osd_in`, Min pr. `ceph_daemon` | En OSD falder under 1: taget ud af datafordelingen | Tilbage på 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, Avg pr. `ceph_daemon` | Over 100 ms. Én hændelse pr. OSD | På eller under 90 ms |
-| OSD Slow Heartbeats | Warning | `ceph_health_detail` for `name = OSD_SLOW_PING_TIME_FRONT` og `name = OSD_SLOW_PING_TIME_BACK`, Max | Et af checkene er aktivt: Heartbeats på det offentlige netværk eller klyngenetværket er langsomme. Mgr'en eksporterer ingen måling af ping-tid | Begge checks forsvinder |
+| OSD Out | Advarsel | `ceph_osd_in`, Min pr. `ceph_daemon` | En OSD falder under 1: taget ud af datafordelingen | Tilbage på 1 |
+| OSD High Latency | Advarsel | `ceph_osd_apply_latency_ms`, Avg pr. `ceph_daemon` | Over 100 ms. Én hændelse pr. OSD | På eller under 90 ms |
+| OSD Slow Heartbeats | Advarsel | `ceph_health_detail` for `name = OSD_SLOW_PING_TIME_FRONT` og `name = OSD_SLOW_PING_TIME_BACK`, Max | Et af checkene er aktivt: Heartbeats på det offentlige netværk eller klyngenetværket er langsomme. Mgr'en eksporterer ingen måling af ping-tid | Begge checks forsvinder |
 
 ### Skabeloner for placement groups
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | Kritisk | `ceph_pg_total` − `ceph_pg_active`, Max pr. `pool_id` | Over 0: PG'er kan ikke håndtere I/O, så klientforespørgsler til dem hænger. Én hændelse pr. pool | På 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, Max pr. `pool_id` | Over 0: Objekter har færre replikaer end konfigureret | På 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, Max pr. `pool_id` | Over 0: PG'er ligger på færre OSD'er end deres antal replikaer | På 0 |
+| Degraded Placement Groups | Advarsel | `ceph_pg_degraded`, Max pr. `pool_id` | Over 0: Objekter har færre replikaer end konfigureret | På 0 |
+| Undersized Placement Groups | Advarsel | `ceph_pg_undersized`, Max pr. `pool_id` | Over 0: PG'er ligger på færre OSD'er end deres antal replikaer | På 0 |
 | Damaged Placement Groups | Kritisk | `ceph_health_detail` for `name = PG_DAMAGED` og `name = OSD_SCRUB_ERRORS`, Max | Et af checkene er aktivt: Scrubbing har fundet skader eller læsefejl | Begge checks forsvinder |
 
 ### Kapacitetsskabeloner
 
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Over 85 %, Cephs standard-nearfull-forhold | På eller under 76,5 % |
+| Cluster Near Full | Advarsel | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Over 85 %, Cephs standard-nearfull-forhold | På eller under 76,5 % |
 | Cluster Full | Kritisk | Samme forhold | Over 95 %, Cephs standard-full-forhold, hvor skrivning stopper i hele klyngen | På eller under 85,5 % |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, pr. `pool_id` | Over 85 % af, hvad poolen kan rumme. Én hændelse pr. pool | På eller under 76,5 % |
-| OSD Nearfull | Warning | `ceph_health_detail` for `name = OSD_NEARFULL`, Max | Checket er aktivt: En OSD har passeret nearfull-tærsklen (standard 85 %). Enkelte OSD'er fyldes længe før klyngens gennemsnit | Checket forsvinder |
-| OSD Backfillfull | Warning | `ceph_health_detail` for `name = OSD_BACKFILLFULL`, Max | Checket er aktivt: Backfill til OSD'en afvises (standard 90 %), så genopretningen går i stå | Checket forsvinder |
+| Pool Near Full | Advarsel | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, pr. `pool_id` | Over 85 % af, hvad poolen kan rumme. Én hændelse pr. pool | På eller under 76,5 % |
+| OSD Nearfull | Advarsel | `ceph_health_detail` for `name = OSD_NEARFULL`, Max | Checket er aktivt: En OSD har passeret nearfull-tærsklen (standard 85 %). Enkelte OSD'er fyldes længe før klyngens gennemsnit | Checket forsvinder |
+| OSD Backfillfull | Advarsel | `ceph_health_detail` for `name = OSD_BACKFILLFULL`, Max | Checket er aktivt: Backfill til OSD'en afvises (standard 90 %), så genopretningen går i stå | Checket forsvinder |
 | OSD Full | Kritisk | `ceph_health_detail` for `name = OSD_FULL`, Max, seneste minut | Checket er aktivt: En OSD har nået full-tærsklen (standard 95 %), og skrivning afvises | Checket forsvinder |
 
 - **Skabeloner for nedbrud og quorum bruger minimum**, så én nede OSD eller én monitor uden for quorum udløser dem i stedet for at blive skjult af det sunde flertal.

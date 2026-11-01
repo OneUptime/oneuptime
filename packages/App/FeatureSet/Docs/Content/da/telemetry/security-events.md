@@ -38,7 +38,7 @@ flowchart TB
 | **Alle sager** | Sikkerhedssager | Hver sag, åben eller lukket |
 | **Begivenheder** | Begivenheder | Søg i og filtrér alle begivenheder, og åbn en for at se alle dens felter |
 | **Hunts** | Begivenheder | Søgninger gemt fra Begivenheder, åbnet igen med ét klik eller kørt efter en tidsplan, der giver personer besked, når de finder noget |
-| **Campaigns** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
+| **Kampagner** | Begivenheder | Hver adresse, der sendte angrebsforespørgsler, og om nogen af dens forespørgsler kom igennem |
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detektionsregler** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |
@@ -266,7 +266,7 @@ En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel,
 
 ### Campaigns
 
-**Campaigns** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
+**Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
 
 ### Korrelér
 

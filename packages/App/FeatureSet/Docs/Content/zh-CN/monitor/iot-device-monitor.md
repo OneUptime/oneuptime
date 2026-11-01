@@ -78,13 +78,13 @@ flowchart TB
 | --- | --- | --- |
 | **IoT Fleet** | 全部 | 必填。把每个查询限定到 `resource.iot.fleet.name`。 |
 | **Device ID** | Custom Metric、高级 | 可选。一个设备，按其 `device.id`，例如 `sensor-001`。 |
-| **Device Type** | Custom Metric、高级 | 可选。上报该 `iot.device.type` 的设备，例如 `sensor` 或 `gateway`。 |
+| **设备类型** | Custom Metric、高级 | 可选。上报该 `iot.device.type` 的设备，例如 `sensor` 或 `gateway`。 |
 | **IoT Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。 |
 | **聚合** | Custom Metric | 如何合并样本：**平均值**、**最大值**、**最小值**、**总和** 或 **计数**。从该指标的常用聚合开始。 |
 | **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **Past 1 Minute** 开始；模板会设置自己的值。 |
 | **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**分组依据**，以及用于合并查询的 **添加指标** 和 **添加公式**。 |
 
-过滤器会同时生效：同时设置了 **Device ID** 和 **Device Type** 时，其他类型的设备什么也匹配不到。
+过滤器会同时生效：同时设置了 **Device ID** 和 **设备类型** 时，其他类型的设备什么也匹配不到。
 
 ## 预置告警模板
 
@@ -95,10 +95,10 @@ flowchart TB
 | 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | 可用性 | 严重 | `iot_device_up`，按 `device.id` 取 Min，过去 30 分钟 | 任一读数低于 1，或某个已注册的设备在整个窗口内什么也没发送 | 恢复为 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`，按 `device.id` 取 Avg，过去 5 分钟 | 低于 20% | 达到或高于 22% |
-| Weak Signal | 连接 | Warning | `iot_signal_strength_dbm`，按 `device.id` 取 Avg，过去 5 分钟 | 低于 -100 dBm | 达到或高于 -90 dBm |
+| Low Battery | Power | 警告 | `iot_battery_percent`，按 `device.id` 取 Avg，过去 5 分钟 | 低于 20% | 达到或高于 22% |
+| Weak Signal | 连接 | 警告 | `iot_signal_strength_dbm`，按 `device.id` 取 Avg，过去 5 分钟 | 低于 -100 dBm | 达到或高于 -90 dBm |
 | High Temperature | 环境 | 严重 | `iot_temperature_celsius`，按 `device.id` 取 Max，过去 5 分钟 | 高于 70 °C | 达到或低于 63 °C |
-| High CPU Usage | 系统 | Warning | `iot_cpu_usage_ratio`，按 `device.id` 取 Avg，过去 5 分钟 | 高于 0.9(其 CPU 的 90%) | 达到或低于 0.81 |
+| High CPU Usage | 系统 | 警告 | `iot_cpu_usage_ratio`，按 `device.id` 取 Avg，过去 5 分钟 | 高于 0.9(其 CPU 的 90%) | 达到或低于 0.81 |
 
 **严重程度** 是选择器显示的标签。模板创建的事件和告警以项目中最严重的事件和告警严重程度开始；可以在条件中修改。
 

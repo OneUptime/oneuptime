@@ -78,13 +78,13 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | --- | --- | --- |
 | **IoT Fleet** | Tutte | Obbligatorio. Limita ogni query a `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avanzato | Facoltativo. Un dispositivo, tramite il suo `device.id`, come `sensor-001`. |
-| **Device Type** | Custom Metric, Avanzato | Facoltativo. I dispositivi che segnalano questo `iot.device.type`, come `sensor` o `gateway`. |
+| **Tipo di dispositivo** | Custom Metric, Avanzato | Facoltativo. I dispositivi che segnalano questo `iot.device.type`, come `sensor` o `gateway`. |
 | **IoT Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
 | **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
-I filtri agiscono insieme: con un **Device ID** e un **Device Type**, un dispositivo di un altro tipo non corrisponde a nulla.
+I filtri agiscono insieme: con un **Device ID** e un **Tipo di dispositivo**, un dispositivo di un altro tipo non corrisponde a nulla.
 
 ## Modelli di avviso predefiniti
 
@@ -95,10 +95,10 @@ Un criterio scatta solo quando la condizione vale per ogni minuto della sua fine
 | Modello | Categoria | Gravità | Osserva | Scatta quando | Rientra quando |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Disponibilità | Critico | `iot_device_up`, Min per `device.id`, ultimi 30 minuti | Una lettura è sotto 1, oppure un dispositivo registrato non invia nulla per tutta la finestra | Di nuovo a 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, ultimi 5 minuti | Sotto il 20 % | Al 22 % o più |
-| Weak Signal | Connettività | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, ultimi 5 minuti | Sotto -100 dBm | A -90 dBm o più |
+| Low Battery | Power | Avviso | `iot_battery_percent`, Avg per `device.id`, ultimi 5 minuti | Sotto il 20 % | Al 22 % o più |
+| Weak Signal | Connettività | Avviso | `iot_signal_strength_dbm`, Avg per `device.id`, ultimi 5 minuti | Sotto -100 dBm | A -90 dBm o più |
 | High Temperature | Ambiente | Critico | `iot_temperature_celsius`, Max per `device.id`, ultimi 5 minuti | Sopra 70 °C | A 63 °C o meno |
-| High CPU Usage | Sistema | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, ultimi 5 minuti | Sopra 0.9 (il 90 % della sua CPU) | A 0.81 o meno |
+| High CPU Usage | Sistema | Avviso | `iot_cpu_usage_ratio`, Avg per `device.id`, ultimi 5 minuti | Sopra 0.9 (il 90 % della sua CPU) | A 0.81 o meno |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del tuo progetto; cambiale nel criterio.
 

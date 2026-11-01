@@ -102,11 +102,11 @@ OneUptime에는 머신용 모니터가 두 가지 있습니다. 같은 호스트
 | 템플릿 | 심각도 | 감시 대상 | 작동 조건 | 회복 조건 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 심각 | `system.memory.usage`, Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
-| High CPU Utilization | Warning | `user`와 `system` 상태의 `system.cpu.utilization`을 더해 퍼센트로 표시, 최근 5분 | 80% 초과 | 72% 이하 |
-| High Memory Utilization | Warning | `used` 상태의 `system.memory.utilization`, 퍼센트, 최근 5분 | 85% 초과 | 76.5% 이하 |
+| High CPU Utilization | 경고 | `user`와 `system` 상태의 `system.cpu.utilization`을 더해 퍼센트로 표시, 최근 5분 | 80% 초과 | 72% 이하 |
+| High Memory Utilization | 경고 | `used` 상태의 `system.memory.utilization`, 퍼센트, 최근 5분 | 85% 초과 | 76.5% 이하 |
 | High Filesystem Usage | 심각 | `system.filesystem.utilization`, `mountpoint`와 `device`별 Max, 퍼센트, 최근 5분 | 90% 초과 | 81% 이하 |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, 최근 5분 | 4 초과 | 3.6 이하 |
-| High Process Count | Warning | `system.processes.count`, Max, 최근 5분 | 2000 초과 | 1800 이하 |
+| High Load Average (1m) | 경고 | `system.cpu.load_average.1m`, Avg, 최근 5분 | 4 초과 | 3.6 이하 |
+| High Process Count | 경고 | `system.processes.count`, Max, 최근 5분 | 2000 초과 | 1800 이하 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
 

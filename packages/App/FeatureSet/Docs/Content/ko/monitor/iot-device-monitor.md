@@ -78,13 +78,13 @@ flowchart TB
 | --- | --- | --- |
 | **IoT Fleet** | 모두 | 필수. 모든 쿼리를 `resource.iot.fleet.name` 으로 한정합니다. |
 | **Device ID** | Custom Metric, 고급 | 선택 사항. `device.id` 로 기기 하나(예: `sensor-001`). |
-| **Device Type** | Custom Metric, 고급 | 선택 사항. 이 `iot.device.type` 을 보고하는 기기(예: `sensor`, `gateway`). |
+| **디바이스 유형** | Custom Metric, 고급 | 선택 사항. 이 `iot.device.type` 을 보고하는 기기(예: `sensor`, `gateway`). |
 | **IoT Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. |
 | **집계** | Custom Metric | 샘플을 합치는 방법: **평균**, **최대**, **최소**, **합계**, **개수**. 메트릭의 일반적인 집계로 시작합니다. |
 | **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **Past 1 Minute** 로 시작하며, 템플릿은 자체 값을 설정합니다. |
 | **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **Aggregate by**, **Filter by attributes**, **그룹화 기준**, 그리고 쿼리를 합치는 **메트릭 추가** 와 **수식 추가**. |
 
-필터는 함께 동작합니다. **Device ID** 와 **Device Type** 을 모두 지정하면 다른 유형의 기기는 아무것과도 일치하지 않습니다.
+필터는 함께 동작합니다. **Device ID** 와 **디바이스 유형** 을 모두 지정하면 다른 유형의 기기는 아무것과도 일치하지 않습니다.
 
 ## 미리 만든 알림 템플릿
 
@@ -95,10 +95,10 @@ flowchart TB
 | 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | 가용성 | 심각 | `iot_device_up`, `device.id` 별 Min, 최근 30분 | 측정값 중 하나가 1보다 낮거나, 등록된 기기가 기간 내내 아무것도 보내지 않음 | 다시 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, `device.id` 별 Avg, 최근 5분 | 20% 미만 | 22% 이상 |
-| Weak Signal | 연결 | Warning | `iot_signal_strength_dbm`, `device.id` 별 Avg, 최근 5분 | -100 dBm 미만 | -90 dBm 이상 |
+| Low Battery | Power | 경고 | `iot_battery_percent`, `device.id` 별 Avg, 최근 5분 | 20% 미만 | 22% 이상 |
+| Weak Signal | 연결 | 경고 | `iot_signal_strength_dbm`, `device.id` 별 Avg, 최근 5분 | -100 dBm 미만 | -90 dBm 이상 |
 | High Temperature | 환경 | 심각 | `iot_temperature_celsius`, `device.id` 별 Max, 최근 5분 | 70 °C 초과 | 63 °C 이하 |
-| High CPU Usage | 시스템 | Warning | `iot_cpu_usage_ratio`, `device.id` 별 Avg, 최근 5분 | 0.9 초과(CPU의 90%) | 0.81 이하 |
+| High CPU Usage | 시스템 | 경고 | `iot_cpu_usage_ratio`, `device.id` 별 Avg, 최근 5분 | 0.9 초과(CPU의 90%) | 0.81 이하 |
 
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하며, 기준에서 바꿀 수 있습니다.
 

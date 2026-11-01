@@ -38,7 +38,7 @@ flowchart TB
 | **Alle Fälle** | Sicherheitsfälle | Jeder Fall, offen oder geschlossen |
 | **Ereignisse** | Ereignisse | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
 | **Bedrohungssuchen** | Ereignisse | Unter Ereignisse gespeicherte Suchen, mit einem Klick wieder geöffnet oder nach einem Zeitplan ausgeführt, der Personen benachrichtigt, wenn sie etwas finden |
-| **Campaigns** | Ereignisse | Jede Adresse, die Angriffsanfragen gesendet hat, und ob eine ihrer Anfragen durchkam |
+| **Kampagnen** | Ereignisse | Jede Adresse, die Angriffsanfragen gesendet hat, und ob eine ihrer Anfragen durchkam |
 | **Entitätsrisiko** | Ereignisse | Jeder Benutzer, Host und jede Adresse, bewertet nach dem, was diese Woche dazu gefunden wurde, die riskantesten zuerst |
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
 | **Erkennungsregeln** | Erkennungen | Sigma-Regeln, die nach Zeitplan laufen und Fälle eröffnen |
@@ -266,7 +266,7 @@ Ein Ereignis aus einer Logzeile, die innerhalb einer getracten Anfrage geschrieb
 
 ### Campaigns
 
-**Campaigns** listet jede Adresse, die Angriffsanfragen gesendet hat, als eine Zeile, mit den Angriffsarten, den Werkzeugen und den Anfragen, die sie gesendet hat, und wie viele durchkamen. Die Adressen, deren Anfragen Ihre App erreicht haben, stehen zuerst.
+**Kampagnen** listet jede Adresse, die Angriffsanfragen gesendet hat, als eine Zeile, mit den Angriffsarten, den Werkzeugen und den Anfragen, die sie gesendet hat, und wie viele durchkamen. Die Adressen, deren Anfragen Ihre App erreicht haben, stehen zuerst.
 
 ### Korrelieren
 

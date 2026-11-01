@@ -117,18 +117,18 @@ Les modèles lisent les 5 dernières minutes, sauf indication contraire dans le 
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Critique | `pve_up`, Count sur l'ensemble du cluster, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | Node Offline | Critique | `pve_up` pour `pve.scope = node`, Min par `id` | Sous 1 | À 1 |
-| Guest Down | Warning | `pve_up` et `pve_onboot_status` pour `pve.scope = guest`, Min par `id` | `pve_up` est sous 1 alors que `pve_onboot_status` vaut 1 | `pve_up` est revenu à 1, ou le démarrage au boot est désactivé |
+| Guest Down | Avertissement | `pve_up` et `pve_onboot_status` pour `pve.scope = guest`, Min par `id` | `pve_up` est sous 1 alors que `pve_onboot_status` vaut 1 | `pve_up` est revenu à 1, ou le démarrage au boot est désactivé |
 | Cluster Quorum at Risk | Critique | `pve_up` ÷ `pve_node_info` × 100 pour `pve.scope = node` (tous deux Somme) : la part des nœuds en ligne | 50 % ou moins | Au-dessus de 55 % |
-| Node Restarted | Warning | `pve_uptime_seconds` et `pve_up` pour `pve.scope = node`, Min par `id` | `pve_uptime_seconds` est sous 900 (15 minutes) alors que `pve_up` vaut 1 | `pve_uptime_seconds` est à 990 ou plus, ou `pve_up` vaut 0 |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` pour `pve.scope = node`, Avg par `id` | Au-dessus de 0,9 (90 % des cœurs du nœud) | À 0,81 ou moins |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 pour `pve.scope = node`, par `id` | Au-dessus de 85 % | À 76,5 % ou moins |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` pour `pve.scope = guest`, Avg par `id`, 15 dernières minutes | Au-dessus de 0,95 (95 % de ses vCPU) pendant les 15 minutes | À 0,855 ou moins |
+| Node Restarted | Avertissement | `pve_uptime_seconds` et `pve_up` pour `pve.scope = node`, Min par `id` | `pve_uptime_seconds` est sous 900 (15 minutes) alors que `pve_up` vaut 1 | `pve_uptime_seconds` est à 990 ou plus, ou `pve_up` vaut 0 |
+| High Node CPU Usage | Avertissement | `pve_cpu_usage_ratio` pour `pve.scope = node`, Avg par `id` | Au-dessus de 0,9 (90 % des cœurs du nœud) | À 0,81 ou moins |
+| High Node Memory Usage | Avertissement | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 pour `pve.scope = node`, par `id` | Au-dessus de 85 % | À 76,5 % ou moins |
+| High Guest CPU Usage | Avertissement | `pve_cpu_usage_ratio` pour `pve.scope = guest`, Avg par `id`, 15 dernières minutes | Au-dessus de 0,95 (95 % de ses vCPU) pendant les 15 minutes | À 0,855 ou moins |
 | Storage Unavailable | Critique | `pve_up` pour `pve.scope = storage`, Min par `id` | Sous 1 | À 1 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 pour `pve.scope = storage`, par `id` | Au-dessus de 85 % | À 76,5 % ou moins |
-| Container Root Disk Near Full | Warning | Le même ratio de disque pour `pve.type = lxc`, par `id` | Au-dessus de 90 % | À 81 % ou moins |
+| Storage Near Full | Avertissement | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 pour `pve.scope = storage`, par `id` | Au-dessus de 85 % | À 76,5 % ou moins |
+| Container Root Disk Near Full | Avertissement | Le même ratio de disque pour `pve.type = lxc`, par `id` | Au-dessus de 90 % | À 81 % ou moins |
 | HA Resource in Error State | Critique | `pve_ha_state` pour `state = error`, Max par `id` | Au-dessus de 0 | À 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (une seule série pour le cluster) | Au-dessus de 0 | À 0 |
-| Backup Running Too Long | Warning | `pve_lock_state` pour `pve.scope = guest` et `state = backup`, Min par `id`, 6 dernières heures | Au-dessus de 0 | À 0 |
+| Guest Not Backed Up | Avertissement | `pve_not_backed_up_total`, Max (une seule série pour le cluster) | Au-dessus de 0 | À 0 |
+| Backup Running Too Long | Avertissement | `pve_lock_state` pour `pve.scope = guest` et `state = backup`, Min par `id`, 6 dernières heures | Au-dessus de 0 | À 0 |
 | Replication Failing | Critique | `pve_replication_failed_syncs`, Max par `id` (l'identifiant de la tâche) | Au-dessus de 0 | À 0 |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
@@ -152,7 +152,7 @@ Deux autres alertes lisent les notifications propres à Proxmox VE, que le clust
 
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Warning | Journaux de notification avec `pve.notification.type = vzdump` et `pve.notification.severity = error`, par nœud et par tâche, 60 dernières minutes | Une tâche de sauvegarde signale un échec | La prochaine exécution de la même tâche réussit |
+| Backup Job Failed | Avertissement | Journaux de notification avec `pve.notification.type = vzdump` et `pve.notification.severity = error`, par nœud et par tâche, 60 dernières minutes | Une tâche de sauvegarde signale un échec | La prochaine exécution de la même tâche réussit |
 | Node Fenced | Critique | Journaux de notification avec `pve.notification.type = fencing`, par nœud, 30 dernières minutes | Proxmox VE isole un nœud (fencing) | Ce nœud n'est pas isolé de nouveau pendant 30 minutes |
 
 Chaque nœud et chaque tâche de sauvegarde reçoit son propre incident et sa propre alerte. L'alerte d'une tâche de sauvegarde en échec reste ouverte jusqu'à ce qu'une exécution ultérieure de la même tâche réussisse, quel que soit le temps que cela prend.

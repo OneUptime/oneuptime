@@ -38,7 +38,7 @@ flowchart TB
 | **Alle saker** | Sikkerhetssaker | Hver sak, åpen eller lukket |
 | **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
 | **Hunts** | Hendelser | Søk lagret fra Hendelser, åpnet igjen med ett klikk eller kjørt etter en tidsplan som varsler personer når de finner noe |
-| **Campaigns** | Hendelser | Hver adresse som sendte angrepsforespørsler, og om noen av forespørslene kom gjennom |
+| **Kampanjer** | Hendelser | Hver adresse som sendte angrepsforespørsler, og om noen av forespørslene kom gjennom |
 | **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
 | **Deteksjonsregler** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |
@@ -266,7 +266,7 @@ En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel,
 
 ### Campaigns
 
-**Campaigns** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først.
+**Kampanjer** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først.
 
 ### Korreler
 

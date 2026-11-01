@@ -38,7 +38,7 @@ flowchart TB
 | **Alla ärenden** | Säkerhetsärenden | Varje ärende, öppet eller stängt |
 | **Händelser** | Händelser | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
 | **Hunts** | Händelser | Sökningar sparade från Händelser, öppnade igen med ett klick eller körda enligt ett schema som aviserar personer när de hittar något |
-| **Campaigns** | Händelser | Varje adress som skickade attackförfrågningar, och om någon av dess förfrågningar kom igenom |
+| **Kampanjer** | Händelser | Varje adress som skickade attackförfrågningar, och om någon av dess förfrågningar kom igenom |
 | **Entitetsrisk** | Händelser | Varje användare, värd och adress, poängsatt efter vad som hittats om den den här veckan, de mest riskfyllda först |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
 | **Detektionsregler** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
@@ -266,7 +266,7 @@ En händelse läst från en loggrad som skrevs inuti en spårad förfrågan föl
 
 ### Campaigns
 
-**Campaigns** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
+**Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
 
 ### Korrelera
 

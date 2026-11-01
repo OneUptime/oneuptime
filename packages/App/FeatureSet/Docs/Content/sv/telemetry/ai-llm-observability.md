@@ -185,12 +185,12 @@ Fliken **Larm** listar de larm som de flesta AI-appar vill ha. När du väljer e
 
 | Larm | När den meddelar dig | Allvarlighetsgrad |
 | --- | --- | --- |
-| Svar går fel | Mer än 5 % av svaren på 15 minuter misslyckas, nekas, kapas, är tomma eller flaggas | Warning |
+| Svar går fel | Mer än 5 % av svaren på 15 minuter misslyckas, nekas, kapas, är tomma eller flaggas | Varning |
 | AI-anrop misslyckas | Mer än 10 % av anropen till modellen på 5 minuter slutar med ett fel | Critical |
-| AI:n vägrar svara | Mer än 5 % av svaren på 30 minuter är vägranden | Warning |
-| Svar kapas | 3 eller fler svar på 30 minuter stannar vid tokengränsen | Warning |
-| Svar flaggas | En utvärdering markerar ett svar som dåligt | Warning |
-| Svar är långsamma | Mer än 10 % av svaren på 15 minuter tar längre än 30 sekunder | Warning |
+| AI:n vägrar svara | Mer än 5 % av svaren på 30 minuter är vägranden | Varning |
+| Svar kapas | 3 eller fler svar på 30 minuter stannar vid tokengränsen | Varning |
+| Svar flaggas | En utvärdering markerar ett svar som dåligt | Varning |
+| Svar är långsamma | Mer än 10 % av svaren på 15 minuter tar längre än 30 sekunder | Varning |
 | AI:n slutar svara | AI:n ger inga svar på 30 minuter | Critical |
 
 Varningarna på en andel av svaren väntar också på minst 3 dåliga svar, så ett dåligt svar av två larmar ingen. En Critical-varning får ditt projekts högsta varningsgrad och en Warning-varning nästa: High och Low i ett nytt projekt.

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39414,
-    "untranslated": 13139
+    "keys": 39420,
+    "untranslated": 12946
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -48,6 +48,7 @@
     "CloudWatch Metric Streams",
     "Cluster",
     "Clusters",
+    "Code",
     "Collector",
     "Component",
     "Component: {{component}}",
@@ -71,6 +72,7 @@
     "Desktop",
     "Details",
     "Diagram",
+    "Direct",
     "Docker Compose",
     "Down · In",
     "Edge",
@@ -102,6 +104,7 @@
     "INP 190 ms",
     "INP 540 ms",
     "Images",
+    "In / Out",
     "In quorum",
     "Incident",
     "Incident {{number}}",
@@ -112,6 +115,7 @@
     "Incident: {{severity}}",
     "Index",
     "Indicator",
+    "Info",
     "Interface",
     "Interface {{index}}",
     "Interfaces",
@@ -127,10 +131,12 @@
     "MITRE ATT&CK Enterprise v{{version}}",
     "Manager",
     "Managers",
+    "Markdown",
     "Marketplace",
     "Matrix",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Messaging",
     "Mexico (+52)",
     "Model",
     "Monitor",
@@ -282,6 +288,7 @@
     "main",
     "message",
     "name",
+    "p95",
     "probe",
     "prod, staging",
     "prod-.*",

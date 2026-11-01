@@ -135,7 +135,7 @@ Potete configurare criteri per decidere quando il servizio esterno è considerat
 | **External Status Page Active Incidents** | Il numero di incidenti attualmente attivi riportati sulla pagina di stato (solo quelli che riguardano un componente dell'ambito, quando sono scelti dei componenti o un gruppo) | Uguale a, Diverso da e i confronti numerici |
 | **External Status Page Response Time (in ms)** | Quanto tempo serve a scaricare i dati della pagina di stato | Maggiore di, Minore di, Maggiore o uguale a, Minore o uguale a |
 
-Lo stato generale è ciò che dice la pagina, quindi i suoi valori variano a seconda del provider: una Atlassian Statuspage riporta la propria descrizione, come `All Systems Operational`; una pagina di stato OneUptime, lo stato peggiore tra i suoi componenti nell'ambito, come `under_maintenance`; un feed riporta `operational` o `degraded_performance`; il controllo di raggiungibilità riporta `reachable` o `unreachable`. Con dei componenti o un gruppo scelti, è lo stato peggiore tra loro, su qualsiasi pagina. Questi confronti distinguono maiuscole e minuscole. Il riepilogo del monitor mostra lo stato generale a parole e a colori, come quello di ogni componente (`under_maintenance` si legge **Under Maintenance**), mentre i criteri confrontano il valore riportato dalla pagina. Per avvisare delle interruzioni, **External Status Page Active Incidents** ed **External Status Page Component Status** sono di solito più affidabili.
+Lo stato generale è ciò che dice la pagina, quindi i suoi valori variano a seconda del provider: una Atlassian Statuspage riporta la propria descrizione, come `All Systems Operational`; una pagina di stato OneUptime, lo stato peggiore tra i suoi componenti nell'ambito, come `under_maintenance`; un feed riporta `operational` o `degraded_performance`; il controllo di raggiungibilità riporta `reachable` o `unreachable`. Con dei componenti o un gruppo scelti, è lo stato peggiore tra loro, su qualsiasi pagina. Questi confronti distinguono maiuscole e minuscole. Il riepilogo del monitor mostra lo stato generale a parole e a colori, come quello di ogni componente (`under_maintenance` si legge **In manutenzione**), mentre i criteri confrontano il valore riportato dalla pagina. Per avvisare delle interruzioni, **External Status Page Active Incidents** ed **External Status Page Component Status** sono di solito più affidabili.
 
 Su un feed RSS o Atom, gli elementi delle ultime 24 ore contano come incidenti attivi: un elemento RSS in base alla data di pubblicazione, una voce Atom in base alla data di aggiornamento. Un elemento con una data futura non conta fino a quella data.
 
@@ -178,7 +178,7 @@ I [criteri predefiniti](#criteri-predefiniti) non scambiano mai una manutenzione
 :::steps
 ### Aggiungere il criterio
 
-Nei criteri del monitor, fate clic su **Aggiungi criteri**. Dategli il filtro **External Status Page Component Status**, **Uguale a**, **Under Maintenance**, e scegliete il vostro stato di manutenzione in **Cambia lo stato del monitor in**.
+Nei criteri del monitor, fate clic su **Aggiungi criteri**. Dategli il filtro **External Status Page Component Status**, **Uguale a**, **In manutenzione**, e scegliete il vostro stato di manutenzione in **Cambia lo stato del monitor in**.
 
 ### Portarlo in cima
 
@@ -186,7 +186,7 @@ Trascinate il nuovo criterio sopra gli altri: vince il primo criterio che corris
 
 ### Verificarlo con Testa il monitor
 
-Fate clic su **Testa il monitor** mentre l'altro progetto ha una manutenzione in corso: il componente che riguarda mostra **Under Maintenance**.
+Fate clic su **Testa il monitor** mentre l'altro progetto ha una manutenzione in corso: il componente che riguarda mostra **In manutenzione**.
 :::
 
 ### Cosa una pagina di stato OneUptime lascia leggere al monitor

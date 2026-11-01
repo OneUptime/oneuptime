@@ -91,11 +91,11 @@ flowchart TB
 | टेम्पलेट | गंभीरता | किस पर नज़र रखता है | कब ट्रिगर होता है | कब ठीक होता है |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | गंभीर | `container.memory.percent`, होस्ट के सभी कंटेनरों पर Count, पिछले 10 मिनट | पूरी विंडो में कोई डेटा नहीं | डेटा फिर से आता है |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, प्रति कंटेनर Max, पिछले 5 मिनट | 80 से ऊपर (एक कोर का %) | 72 या उससे कम |
-| High Container Memory Usage | Warning | `container.memory.percent`, प्रति कंटेनर Max, पिछले 5 मिनट | 85% से ऊपर | 76.5% या उससे कम |
+| High Container CPU Usage | चेतावनी | `container.cpu.utilization`, प्रति कंटेनर Max, पिछले 5 मिनट | 80 से ऊपर (एक कोर का %) | 72 या उससे कम |
+| High Container Memory Usage | चेतावनी | `container.memory.percent`, प्रति कंटेनर Max, पिछले 5 मिनट | 85% से ऊपर | 76.5% या उससे कम |
 | Container Restart Loop | गंभीर | `container.restarts.increase`, प्रति कंटेनर Sum, पिछले 15 मिनट | विंडो में 3 से अधिक रीस्टार्ट (योग) | 2.7 या उससे कम |
-| Container CPU Throttling | Warning | प्रति कंटेनर ms में `container.cpu.throttling_data.throttled_time` की वृद्धि, पिछले 5 मिनट | विंडो में 1000 ms से अधिक (योग) | 900 ms या उससे कम |
-| High Container Process Count | Warning | `container.pids.count`, प्रति कंटेनर Max, पिछले 5 मिनट | 2000 से ऊपर | 1800 या उससे कम |
+| Container CPU Throttling | चेतावनी | प्रति कंटेनर ms में `container.cpu.throttling_data.throttled_time` की वृद्धि, पिछले 5 मिनट | विंडो में 1000 ms से अधिक (योग) | 900 ms या उससे कम |
+| High Container Process Count | चेतावनी | `container.pids.count`, प्रति कंटेनर Max, पिछले 5 मिनट | 2000 से ऊपर | 1800 या उससे कम |
 | Container Restarted (Low Uptime) | गंभीर | `container.uptime`, प्रति कंटेनर Min, पिछला 1 मिनट | 120 सेकंड से कम | 132 सेकंड या उससे अधिक |
 
 **गंभीरता** वह लेबल है जो चयन सूची दिखाती है। टेम्पलेट जो घटना और अलर्ट बनाता है, वे आपके प्रोजेक्ट की सबसे गंभीर घटना और अलर्ट गंभीरता से शुरू होते हैं; इन्हें मानदंडों में बदलें।

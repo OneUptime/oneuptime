@@ -102,9 +102,9 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos os contêineres do cluster, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | Task Down (Low Uptime) | Crítico | `container.uptime`, Min por tarefa, último 1 minuto | Qualquer valor está abaixo de 60 segundos | Todos os valores estão em 66 segundos ou mais |
-| High Task CPU Usage | Warning | `container.cpu.utilization`, Avg por tarefa, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
-| High Task Memory Usage | Warning | `container.memory.percent`, Avg por tarefa, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
-| High Task Process Count | Warning | `container.pids.count`, Max por tarefa, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
+| High Task CPU Usage | Aviso | `container.cpu.utilization`, Avg por tarefa, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
+| High Task Memory Usage | Aviso | `container.memory.percent`, Avg por tarefa, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
+| High Task Process Count | Aviso | `container.pids.count`, Max por tarefa, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39414,
-    "untranslated": 13052
+    "keys": 39420,
+    "untranslated": 12863
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -62,6 +62,7 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
+    "Info",
     "Insight",
     "Insights",
     "Interface",
@@ -77,6 +78,7 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Manual",
+    "Markdown",
     "Marketplace",
     "Merge request !{{number}}",
     "Merge request {{label}}",
@@ -154,6 +156,7 @@
     "VMID {{vmid}}",
     "VMs",
     "VMware vCenter",
+    "Visual",
     "Volume",
     "Volumes",
     "Web",
@@ -182,6 +185,7 @@
     "main",
     "message",
     "name",
+    "p95",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

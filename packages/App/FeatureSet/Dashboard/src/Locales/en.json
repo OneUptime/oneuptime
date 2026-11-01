@@ -14531,7 +14531,6 @@
   "Please add CNAME record to your domain. Details of the CNAME records are:": "Please add CNAME record to your domain. Details of the CNAME records are:",
   "Please add TXT record to your domain. Details of the TXT records are:": "Please add TXT record to your domain. Details of the TXT records are:",
   "Please check the URL in the address bar and try again.": "Please check the URL in the address bar and try again.",
-  "Please check your internet connection.": "Please check your internet connection.",
   "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.": "Please click on the button below to order SSL for this domain. We will use LetsEncrypt to order a certificate. This process is secure and completely free. The certificate takes 3 hours to provision after its been ordered.",
   "Please enter the amount to recharge. It is in USD.": "Please enter the amount to recharge. It is in USD.",
   "Please enter the new name of the view": "Please enter the new name of the view",
@@ -18649,7 +18648,6 @@
   "You are currently a member of the following projects. Please leave or be removed from these projects before deleting your account:": "You are currently a member of the following projects. Please leave or be removed from these projects before deleting your account:",
   "You are editing on behalf of ": "You are editing on behalf of ",
   "You are not on an on-call policy in this project yet. Setting these up now means you are covered the day somebody adds you.": "You are not on an on-call policy in this project yet. Setting these up now means you are covered the day somebody adds you.",
-  "You are offline": "You are offline",
   "You are on call in this project. These four pages decide which of your methods is tried, and in what order, for each severity.": "You are on call in this project. These four pages decide which of your methods is tried, and in what order, for each severity.",
   "You are on this schedule's roster": "You are on this schedule's roster",
   "You are running low. Generate a new set before you run out.": "You are running low. Generate a new set before you run out.",
@@ -39452,5 +39450,13 @@
   "Notify me about my on-call schedule and policy membership.": "Notify me about my on-call schedule and policy membership.",
   "Notify me about scheduled maintenance events I own.": "Notify me about scheduled maintenance events I own.",
   "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.": "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.",
-  "Notify me about status pages I own.": "Notify me about status pages I own."
+  "Notify me about status pages I own.": "Notify me about status pages I own.",
+  "Exceptions over time": "Exceptions over time",
+  "Search security events — e.g. severity:Critical class:Authentication @threat.matched:true": "Search security events — e.g. severity:Critical class:Authentication @threat.matched:true",
+  "Security Event Volume": "Security Event Volume",
+  "Spans over time": "Spans over time",
+  "Traces over time": "Traces over time",
+  "In cluster": "In cluster",
+  "Messaging": "Messaging",
+  "Out of cluster": "Out of cluster"
 }

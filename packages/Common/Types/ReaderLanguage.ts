@@ -28,6 +28,14 @@ export const READER_LANGUAGE_CODES: ReadonlyArray<string> =
 const SUBTAG_SEPARATOR: RegExp = /[-_]/;
 
 /*
+ * Norwegian is written two ways, Bokmål and Nynorsk, and a browser names
+ * the reader's Norwegian with either one's code - "nb-NO" far more often
+ * than "no". OneUptime's Norwegian is under "no", and both read it.
+ */
+const NORWEGIAN_LANGUAGE: string = "no";
+const NORWEGIAN_CODES: ReadonlyArray<string> = ["no", "nb", "nn"];
+
+/*
  * The supported language a language tag stands for, or "" when none: the
  * Chinese tags onto Simplified and Traditional Chinese (zh-TW, zh-HK,
  * zh-MO and Hant are Traditional), the code itself when it is supported,
@@ -66,7 +74,29 @@ export const toSupportedLanguage: (
 
   const base: string = lower.split(SUBTAG_SEPARATOR)[0] || "";
 
+  if (NORWEGIAN_CODES.includes(base)) {
+    return supportedLanguages.includes(NORWEGIAN_LANGUAGE)
+      ? NORWEGIAN_LANGUAGE
+      : "";
+  }
+
   return supportedLanguages.includes(base) ? base : "";
+};
+
+/*
+ * What a frontend's language detector hands i18next for a browser's tag
+ * (each frontend's Utils/i18n, convertDetectedLanguage): the supported
+ * language it stands for, else the tag as it came, so i18next falls back
+ * to English as it always did.
+ */
+export const toDetectedLanguage: (
+  tag: string,
+  supportedLanguages: ReadonlyArray<string>,
+) => string = (
+  tag: string,
+  supportedLanguages: ReadonlyArray<string>,
+): string => {
+  return toSupportedLanguage(tag, supportedLanguages) || tag;
 };
 
 // The first of a browser's languages that is supported, else English.

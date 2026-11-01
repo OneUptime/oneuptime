@@ -180,7 +180,7 @@ Pures semantiske konvensjoner deles av det native FlashArray-endepunktet og begg
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | Siden **Filsystemer**: tildelt og brukt plass, datareduksjon, latens, IOPS og båndbredde per filsystem |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | Siden **Buckets**: plass, kvote, antall objekter og ytelse per bucket, gruppert etter konto |
 
-Arrayets tilstand på siden **Oversikt** er **Kritisk** så lenge det rapporterer et åpent kritisk varsel, eller en maskinvarekomponent, disk eller kontroller som er kritisk, har feilet, mangler eller er usunn; **Warning** så lenge det rapporterer et åpent advarselsvarsel, eller en degradert eller ukjent komponent; og ellers **OK**. I overvåkingskriterier får arrayets attributter prefikset `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens datapunktetikettene står uten prefiks (`name`, `host`, `dimension`, `space`).
+Arrayets tilstand på siden **Oversikt** er **Kritisk** så lenge det rapporterer et åpent kritisk varsel, eller en maskinvarekomponent, disk eller kontroller som er kritisk, har feilet, mangler eller er usunn; **Advarsel** så lenge det rapporterer et åpent advarselsvarsel, eller en degradert eller ukjent komponent; og ellers **OK**. I overvåkingskriterier får arrayets attributter prefikset `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens datapunktetikettene står uten prefiks (`name`, `host`, `dimension`, `space`).
 
 ## Valgfritt — Send arrayets syslog
 

@@ -136,22 +136,22 @@ A lista de **Sobre o que alertar** traz estes modelos, agrupados por categoria. 
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Disponibilidade | Nenhum dado chega do agente do cluster por 10 minutos | Crítico |
 | CrashLoopBackOff Detection | Carga de trabalho | Um contêiner reiniciou em 15 minutos e ficou pronto menos da metade desse tempo | Crítico |
-| Pod Stuck in Pending | Agendamento | Algum pod está na fase Pending em todas as amostras de uma janela de 15 minutos | Warning |
+| Pod Stuck in Pending | Agendamento | Algum pod está na fase Pending em todas as amostras de uma janela de 15 minutos | Aviso |
 | Node Not Ready | Nó | Um nó informa NotReady ou para de informar seu status (Unknown) | Crítico |
-| High Node CPU Utilization | Nó | O uso médio de CPU de um nó passa de 90% da CPU alocável | Warning |
-| High Node Memory Utilization | Nó | O working set médio de memória de um nó passa de 85% da memória alocável | Warning |
-| Deployment Replica Mismatch | Carga de trabalho | Um deployment tem menos réplicas disponíveis do que o desejado por 15 minutos | Warning |
-| Job Failures | Carga de trabalho | Um pod de um job falhou em 15 minutos | Warning |
+| High Node CPU Utilization | Nó | O uso médio de CPU de um nó passa de 90% da CPU alocável | Aviso |
+| High Node Memory Utilization | Nó | O working set médio de memória de um nó passa de 85% da memória alocável | Aviso |
+| Deployment Replica Mismatch | Carga de trabalho | Um deployment tem menos réplicas disponíveis do que o desejado por 15 minutos | Aviso |
+| Job Failures | Carga de trabalho | Um pod de um job falhou em 15 minutos | Aviso |
 | etcd No Leader | Plano de controle | O etcd não tem líder eleito | Crítico |
 | API Server Request Saturation | Plano de controle | O servidor de API mantém 200 ou mais requisições em andamento durante toda a janela | Crítico |
-| Scheduler Backlog | Agendamento | A fila de pods pendentes do scheduler não fica vazia por 5 minutos | Warning |
-| High Node Disk Usage | Armazenamento | O sistema de arquivos de um nó está mais de 90% cheio | Warning |
-| DaemonSet Misscheduled Nodes | Carga de trabalho | Um DaemonSet executa pods em nós que não correspondem mais ao seu seletor de nós, afinidade ou tolerâncias | Warning |
-| High Node CPU Request Commitment | Nó | A soma das requisições de CPU dos contêineres de um nó passa de 90% da CPU alocável | Warning |
-| High Node Memory Request Commitment | Nó | A soma das requisições de memória dos contêineres de um nó passa de 90% da memória alocável | Warning |
+| Scheduler Backlog | Agendamento | A fila de pods pendentes do scheduler não fica vazia por 5 minutos | Aviso |
+| High Node Disk Usage | Armazenamento | O sistema de arquivos de um nó está mais de 90% cheio | Aviso |
+| DaemonSet Misscheduled Nodes | Carga de trabalho | Um DaemonSet executa pods em nós que não correspondem mais ao seu seletor de nós, afinidade ou tolerâncias | Aviso |
+| High Node CPU Request Commitment | Nó | A soma das requisições de CPU dos contêineres de um nó passa de 90% da CPU alocável | Aviso |
+| High Node Memory Request Commitment | Nó | A soma das requisições de memória dos contêineres de um nó passa de 90% da memória alocável | Aviso |
 | HPA Saturated at Max Replicas | Carga de trabalho | Um HPA escalado acima do seu `minReplicas` opera em 90% ou mais do seu `maxReplicas` | Crítico |
 | Pod Memory Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de memória dos seus contêineres | Crítico |
-| Pod CPU Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de CPU dos seus contêineres | Warning |
+| Pod CPU Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de CPU dos seus contêineres | Aviso |
 
 Os modelos baseados em métricas por objeto avaliam cada nó, pod, deployment, job, DaemonSet ou HPA separadamente, então um cluster com vários pods com problema recebe um incidente por pod em vez de um único para o cluster inteiro.
 

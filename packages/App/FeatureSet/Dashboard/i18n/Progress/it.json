@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39414,
-    "untranslated": 13080
+    "keys": 39420,
+    "untranslated": 12889
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -56,6 +56,7 @@
     "Endpoint",
     "Failover",
     "Feed",
+    "File {{number}}",
     "Filesystem",
     "Filesystem %",
     "Fingerprint",
@@ -75,6 +76,7 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
+    "Info",
     "Insight",
     "Job",
     "LXC 201 · pve3",
@@ -82,6 +84,7 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Manager",
+    "Markdown",
     "Marketplace",
     "Max",
     "Merge request !{{number}}",
@@ -196,6 +199,7 @@
     "main",
     "message",
     "name",
+    "p95",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

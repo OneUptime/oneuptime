@@ -1,4 +1,7 @@
 {
+  "Something went wrong": "Något gick fel",
+  "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Läs in sidan igen för att fortsätta",
+  "Error details": "Felinformation",
   "a11y": {
     "skipToMainContent": "Hoppa till huvudinnehåll",
     "loading": "Läser in...",

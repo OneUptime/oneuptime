@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39414,
-    "untranslated": 13088
+    "keys": 39420,
+    "untranslated": 12897
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -54,6 +54,7 @@
     "Diagram",
     "Disk",
     "Disk %",
+    "Disk {{path}}",
     "Docker Compose",
     "Download",
     "Download pprof",
@@ -81,6 +82,7 @@
     "INP 168 ms",
     "INP 190 ms",
     "INP 540 ms",
+    "Info",
     "Information",
     "Interface",
     "Interfaces",
@@ -95,10 +97,12 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Managers",
+    "Markdown",
     "Match",
     "Matrix",
     "Merge request !{{number}}",
     "Merge request {{label}}",
+    "Messaging",
     "Mexico (+52)",
     "Model",
     "N/A",
@@ -157,6 +161,7 @@
     "Samples",
     "Script",
     "Send",
+    "Send (Enter)",
     "Server",
     "Session",
     "Signal",
@@ -225,6 +230,7 @@
     "message",
     "name",
     "over budget",
+    "p95",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

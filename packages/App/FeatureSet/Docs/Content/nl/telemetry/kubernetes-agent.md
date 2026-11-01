@@ -293,7 +293,7 @@ Op een scherm smaller dan 1024 pixels toont de kolom **Gebeurtenis** ook **Aanta
 
 ### Events doorzoeken en erop alarmeren
 
-Elk event is ook een log. Een waarschuwing wordt opgeslagen met de ernst **Warning**, en wat het event zegt staat in de attributen:
+Elk event is ook een log. Een waarschuwing wordt opgeslagen met de ernst **Waarschuwing**, en wat het event zegt staat in de attributen:
 
 | Attribuut | Voorbeeld |
 | --- | --- |

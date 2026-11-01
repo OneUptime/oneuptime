@@ -299,8 +299,8 @@ Applikationens sida **Rekommendationer** erbjuder en färdig övervakare för va
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 ms | **Kritisk** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500 ms | **Kritisk** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0,25 | **Kritisk** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Varning** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Varning** |
 
 De här övervakarna läser bara namnen `web_vital.*`. Om din app skickar en vital under ett annat namn ändrar du mätvärdet i den skapade övervakaren. För att larma på en enda route lägger du till ett filter `app.route` på övervakaren. Du kan också bygga en egen övervakare på vilket som helst av de här mätvärdena: se [Metrikövervakning](/docs/monitor/metrics-monitor).
 

@@ -78,13 +78,13 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | --- | --- | --- |
 | **IoT Fleet** | Alle | Verplicht. Beperkt elke query tot `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Geavanceerd | Optioneel. Eén apparaat, via zijn `device.id`, zoals `sensor-001`. |
-| **Device Type** | Custom Metric, Geavanceerd | Optioneel. De apparaten die deze `iot.device.type` melden, zoals `sensor` of `gateway`. |
+| **Apparaattype** | Custom Metric, Geavanceerd | Optioneel. De apparaten die deze `iot.device.type` melden, zoals `sensor` of `gateway`. |
 | **IoT Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
 | **Tijdsbereik** | Alle | Het voortschrijdende venster dat de query leest, van **Past 1 Minute** tot **Past 365 Days**. Een nieuwe monitor begint bij **Past 1 Minute**; templates stellen hun eigen venster in. |
 | **Selecteer metrieken** | Geavanceerd | De querybouwer: **Metriek**, **Aggregate by**, **Filter by attributes**, **Groeperen op**, plus **Metriek toevoegen** en **Formule toevoegen** om queries te combineren. |
 
-De filters werken samen: met een **Device ID** en een **Device Type** komt een apparaat van een ander type met niets overeen.
+De filters werken samen: met een **Device ID** en een **Apparaattype** komt een apparaat van een ander type met niets overeen.
 
 ## Kant-en-klare waarschuwingstemplates
 
@@ -95,10 +95,10 @@ Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn v
 | Template | Categorie | Ernst | Houdt in de gaten | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Beschikbaarheid | Kritiek | `iot_device_up`, Min per `device.id`, laatste 30 minuten | Een meting ligt onder 1, of een geregistreerd apparaat stuurt het hele venster niets | Weer op 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
-| Weak Signal | Connectiviteit | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
+| Low Battery | Power | Waarschuwing | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
+| Weak Signal | Connectiviteit | Waarschuwing | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
 | High Temperature | Omgeving | Kritiek | `iot_temperature_celsius`, Max per `device.id`, laatste 5 minuten | Boven 70 °C | Op 63 °C of lager |
-| High CPU Usage | Systeem | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, laatste 5 minuten | Boven 0.9 (90 % van zijn CPU) | Op 0.81 of lager |
+| High CPU Usage | Systeem | Waarschuwing | `iot_cpu_usage_ratio`, Avg per `device.id`, laatste 5 minuten | Boven 0.9 (90 % van zijn CPU) | Op 0.81 of lager |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een template maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project; wijzig ze in het criterium.
 

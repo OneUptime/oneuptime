@@ -102,7 +102,7 @@ Todo projeto novo começa com duas gravidades de alerta, da mais grave para a me
 | **Alto**  | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
 | **Baixo**   | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Os incidentes começam com três gravidades e os alertas com duas. Quando o modelo de uma recomendação de monitor diz **Crítico** ou **Warning**, o OneUptime o associa à sua primeira e segunda gravidade de alerta, que em um projeto novo são **Alto** e **Baixo**.
+Os incidentes começam com três gravidades e os alertas com duas. Quando o modelo de uma recomendação de monitor diz **Crítico** ou **Aviso**, o OneUptime o associa à sua primeira e segunda gravidade de alerta, que em um projeto novo são **Alto** e **Baixo**.
 
 ## Editar as gravidades
 

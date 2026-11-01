@@ -266,9 +266,12 @@ export const USER_FACING_PROPS: ReadonlySet<string> = new Set<string>([
   "emptyTitle",
   "errorMessage",
   "explanation",
+  "fileHint",
   "heading",
   "helpText",
   "hint",
+  // A telemetry explorer's chart title (TelemetryViewer looks it up).
+  "histogramTitle",
   "label",
   "legend",
   "linkText",

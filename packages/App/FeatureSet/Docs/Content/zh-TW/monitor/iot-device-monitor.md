@@ -78,13 +78,13 @@ flowchart TB
 | --- | --- | --- |
 | **IoT Fleet** | 全部 | 必填。把每個查詢限定到 `resource.iot.fleet.name`。 |
 | **Device ID** | Custom Metric、進階 | 選填。一個裝置，依其 `device.id`，例如 `sensor-001`。 |
-| **Device Type** | Custom Metric、進階 | 選填。回報該 `iot.device.type` 的裝置，例如 `sensor` 或 `gateway`。 |
+| **裝置類型** | Custom Metric、進階 | 選填。回報該 `iot.device.type` 的裝置，例如 `sensor` 或 `gateway`。 |
 | **IoT Metric** | Custom Metric | [目錄](#收集的指標) 中的一個指標。 |
 | **彙總** | Custom Metric | 如何合併樣本：**平均**、**最大值**、**最小值**、**總和** 或 **計數**。從該指標的常用彙總開始。 |
 | **時間範圍** | 全部 | 查詢讀取的滾動視窗，從 **Past 1 Minute** 到 **Past 365 Days**。新監測器從 **Past 1 Minute** 開始；範本會設定自己的值。 |
 | **選擇指標** | 進階 | 查詢建構器：**指標**、**Aggregate by**、**Filter by attributes**、**分組依據**，以及用於合併查詢的 **新增指標** 和 **新增公式**。 |
 
-篩選器會同時生效：同時設定了 **Device ID** 和 **Device Type** 時，其他類型的裝置什麼也比對不到。
+篩選器會同時生效：同時設定了 **Device ID** 和 **裝置類型** 時，其他類型的裝置什麼也比對不到。
 
 ## 預建警示範本
 
@@ -95,10 +95,10 @@ flowchart TB
 | 範本 | 類別 | 嚴重程度 | 監看內容 | 觸發條件 | 復原條件 |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | 可用性 | 嚴重 | `iot_device_up`，依 `device.id` 取 Min，過去 30 分鐘 | 任一讀數低於 1，或某個已註冊的裝置在整個視窗內什麼也沒傳送 | 恢復為 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`，依 `device.id` 取 Avg，過去 5 分鐘 | 低於 20% | 達到或高於 22% |
-| Weak Signal | 連線 | Warning | `iot_signal_strength_dbm`，依 `device.id` 取 Avg，過去 5 分鐘 | 低於 -100 dBm | 達到或高於 -90 dBm |
+| Low Battery | Power | 警告 | `iot_battery_percent`，依 `device.id` 取 Avg，過去 5 分鐘 | 低於 20% | 達到或高於 22% |
+| Weak Signal | 連線 | 警告 | `iot_signal_strength_dbm`，依 `device.id` 取 Avg，過去 5 分鐘 | 低於 -100 dBm | 達到或高於 -90 dBm |
 | High Temperature | 環境 | 嚴重 | `iot_temperature_celsius`，依 `device.id` 取 Max，過去 5 分鐘 | 高於 70 °C | 達到或低於 63 °C |
-| High CPU Usage | 系統 | Warning | `iot_cpu_usage_ratio`，依 `device.id` 取 Avg，過去 5 分鐘 | 高於 0.9(其 CPU 的 90%) | 達到或低於 0.81 |
+| High CPU Usage | 系統 | 警告 | `iot_cpu_usage_ratio`，依 `device.id` 取 Avg，過去 5 分鐘 | 高於 0.9(其 CPU 的 90%) | 達到或低於 0.81 |
 
 **嚴重程度** 是選擇器顯示的標籤。範本建立的事件和警示會以專案中最嚴重的事件和警示嚴重程度開始；可以在條件中修改。
 

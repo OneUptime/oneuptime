@@ -1,4 +1,13 @@
 {
+  "Something went wrong": "Qualcosa è andato storto",
+  "An unexpected error has occurred. Please reload the page to continue": "Si è verificato un errore imprevisto. Ricarica la pagina per continuare",
+  "Error details": "Dettagli dell'errore",
+  "Still stuck?": "Ancora bloccato?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Scarica un file di diagnostica locale con lo stack dell'errore, lo stack dei componenti, l'URL della pagina ripulito, i dettagli del browser e la build di OneUptime. Non legge mai cookie, dati salvati del browser o contenuti dei moduli. Controllalo prima di condividerlo con il supporto di OneUptime.",
+  "Download support bundle": "Scarica il pacchetto di supporto",
+  "Send it to {{email}}": "Invialo a {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Pacchetto di supporto scaricato. Controllalo, poi allegalo alla tua e-mail.",
+  "The support bundle could not be downloaded. Please try again.": "Impossibile scaricare il pacchetto di supporto. Riprova.",
   "common": {
     "save": "Salva",
     "cancel": "Annulla",

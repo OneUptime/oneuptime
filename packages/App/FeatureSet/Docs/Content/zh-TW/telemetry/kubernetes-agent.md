@@ -293,7 +293,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 ### 搜尋事件並設定警示
 
-每個事件也是一筆日誌。警告以嚴重程度 **Warning** 儲存，事件的內容在其屬性中：
+每個事件也是一筆日誌。警告以嚴重程度 **警告** 儲存，事件的內容在其屬性中：
 
 | 屬性 | 範例 |
 | --- | --- |

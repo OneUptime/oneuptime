@@ -352,9 +352,13 @@ export function getTraceSpanTypeItemLabel(spanType: TraceSpanType): string {
   return spanType === TraceSpanType.Root ? "traces" : "spans";
 }
 
-// The count chart's title, named like the rows it counts.
+/*
+ * The count chart's title, named like the rows it counts. Keys of the
+ * Dashboard's locales: the chart says it in the reader's language
+ * (TelemetryHistogram looks its title up).
+ */
 export function getTraceSpanTypeChartTitle(spanType: TraceSpanType): string {
   return spanType === TraceSpanType.Root
-    ? "Traces over time"
-    : "Spans over time";
+    ? translationKey("Traces over time")
+    : translationKey("Spans over time");
 }

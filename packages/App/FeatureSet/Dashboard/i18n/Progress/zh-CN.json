@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39414,
-    "untranslated": 12705
+    "keys": 39420,
+    "untranslated": 12526
   },
   "sameAsEnglish": [
     "2xx",
@@ -34,6 +34,7 @@
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
+    "Markdown",
     "OK",
     "OSD",
     "OpenShift",
@@ -83,6 +84,7 @@
     "main",
     "message",
     "name",
+    "p95",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

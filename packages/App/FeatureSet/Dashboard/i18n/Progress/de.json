@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39414,
-    "untranslated": 3974
+    "keys": 39420,
+    "untranslated": 3879
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -247,6 +247,7 @@
     "INP 540 ms",
     "Image",
     "Images",
+    "In / Out",
     "Index",
     "Info",
     "Initiator",
@@ -301,6 +302,7 @@
     "Median (P50)",
     "Merge Requests",
     "Mesh / VPN",
+    "Messaging",
     "Microsoft Entra ID",
     "Min",
     "Minimum",

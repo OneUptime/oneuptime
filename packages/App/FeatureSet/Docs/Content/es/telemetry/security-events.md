@@ -38,7 +38,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Todos los casos** | Casos de seguridad | Cada caso, abierto o cerrado |
 | **Eventos** | Eventos | Buscar y filtrar todos los eventos, y abrir uno para ver todos sus campos |
 | **Cacerías** | Eventos | Búsquedas guardadas desde Eventos, abiertas de nuevo con un clic o ejecutadas según una programación que avisa a personas cuando encuentran algo |
-| **Campaigns** | Eventos | Cada dirección que envió solicitudes de ataque, y si alguna de sus solicitudes pasó |
+| **Campañas** | Eventos | Cada dirección que envió solicitudes de ataque, y si alguna de sus solicitudes pasó |
 | **Riesgo de entidades** | Eventos | Cada usuario, host y dirección, puntuado por lo encontrado sobre él esta semana, primero los de mayor riesgo |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
 | **Reglas de detección** | Detecciones | Reglas Sigma que se ejecutan según una programación y abren casos |
@@ -266,7 +266,7 @@ Un evento leído de una línea de log escrita dentro de una solicitud trazada se
 
 ### Campaigns
 
-**Campaigns** muestra cada dirección que envió solicitudes de ataque como una sola fila, con los tipos de ataque, las herramientas y las solicitudes que envió, y cuántas pasaron. Las direcciones cuyas solicitudes llegaron a tu app aparecen primero.
+**Campañas** muestra cada dirección que envió solicitudes de ataque como una sola fila, con los tipos de ataque, las herramientas y las solicitudes que envió, y cuántas pasaron. Las direcciones cuyas solicitudes llegaron a tu app aparecen primero.
 
 ### Correlacionar
 

@@ -91,10 +91,10 @@ Et kriterium utløses bare når betingelsen gjelder i hvert minutt av vinduet, o
 | Mal | Alvorlighetsgrad | Overvåker | Utløses når | Gjenoppretter når |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere på verten, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, siste 5 minutter | Over 80 (% av én kjerne) | På eller under 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, siste 5 minutter | Over 85 % | På eller under 76,5 % |
+| High Container CPU Usage | Advarsel | `container.cpu.utilization`, Avg per container, siste 5 minutter | Over 80 (% av én kjerne) | På eller under 72 |
+| High Container Memory Usage | Advarsel | `container.memory.percent`, Avg per container, siste 5 minutter | Over 85 % | På eller under 76,5 % |
 | Container Restart Loop | Kritisk | `container.restarts.increase`, Sum per container, siste 15 minutter | Mer enn 3 omstarter i vinduet (Sum) | 2,7 eller færre |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, siste 5 minutter | Over 2000 | På eller under 1800 |
+| High Container Process Count | Advarsel | `container.pids.count`, Max per container, siste 5 minutter | Over 2000 | På eller under 1800 |
 | Container Restarted (Low Uptime) | Kritisk | `container.uptime`, Min per container, siste 1 minutt | Under 120 sekunder | På eller over 132 sekunder |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.

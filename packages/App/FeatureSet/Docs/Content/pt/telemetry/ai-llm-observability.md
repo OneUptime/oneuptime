@@ -185,12 +185,12 @@ A aba **Alertas** lista os alertas que a maioria das aplicações de IA quer. Es
 
 | Alerta | Quando avisa você | Severidade |
 | --- | --- | --- |
-| As respostas dão errado | Mais de 5% das respostas em 15 minutos falham, são recusadas, cortadas, vazias ou sinalizadas | Warning |
+| As respostas dão errado | Mais de 5% das respostas em 15 minutos falham, são recusadas, cortadas, vazias ou sinalizadas | Aviso |
 | As chamadas de IA falham | Mais de 10% das chamadas ao modelo em 5 minutos terminam em erro | Critical |
-| A IA se recusa a responder | Mais de 5% das respostas em 30 minutos são recusas | Warning |
-| As respostas são cortadas | 3 ou mais respostas em 30 minutos param no limite de tokens | Warning |
-| As respostas são sinalizadas | Uma avaliação marca uma resposta como ruim | Warning |
-| As respostas estão lentas | Mais de 10% das respostas em 15 minutos levam mais de 30 segundos | Warning |
+| A IA se recusa a responder | Mais de 5% das respostas em 30 minutos são recusas | Aviso |
+| As respostas são cortadas | 3 ou mais respostas em 30 minutos param no limite de tokens | Aviso |
+| As respostas são sinalizadas | Uma avaliação marca uma resposta como ruim | Aviso |
+| As respostas estão lentas | Mais de 10% das respostas em 15 minutos levam mais de 30 segundos | Aviso |
 | A IA para de responder | A IA não dá nenhuma resposta por 30 minutos | Critical |
 
 Os alertas sobre uma parcela das respostas também esperam por pelo menos 3 respostas ruins, então uma resposta ruim em duas não aciona ninguém. Um alerta Critical recebe a severidade de alerta mais alta do seu projeto e um alerta Warning a seguinte: High e Low em um projeto novo.

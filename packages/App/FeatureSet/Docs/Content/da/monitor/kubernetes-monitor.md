@@ -136,22 +136,22 @@ Listen under **Hvad der skal advares om** viser disse skabeloner, grupperet efte
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Tilgængelighed | Der kommer ingen data fra klyngens agent i 10 minutter | Kritisk |
 | CrashLoopBackOff Detection | Arbejdsbyrde | En container genstartede inden for 15 minutter og var klar i mindre end halvdelen af dem | Kritisk |
-| Pod Stuck in Pending | Planlægning | En pod er i fasen Pending i hver måling i et vindue på 15 minutter | Warning |
+| Pod Stuck in Pending | Planlægning | En pod er i fasen Pending i hver måling i et vindue på 15 minutter | Advarsel |
 | Node Not Ready | Node | En node melder NotReady eller holder op med at melde sin status (Unknown) | Kritisk |
-| High Node CPU Utilization | Node | En nodes gennemsnitlige CPU-forbrug er over 90 % af dens allokerbare CPU | Warning |
-| High Node Memory Utilization | Node | En nodes gennemsnitlige working set-hukommelse er over 85 % af dens allokerbare hukommelse | Warning |
-| Deployment Replica Mismatch | Arbejdsbyrde | En deployment har færre tilgængelige replikaer end ønsket i 15 minutter | Warning |
-| Job Failures | Arbejdsbyrde | En pod i et job fejlede inden for 15 minutter | Warning |
+| High Node CPU Utilization | Node | En nodes gennemsnitlige CPU-forbrug er over 90 % af dens allokerbare CPU | Advarsel |
+| High Node Memory Utilization | Node | En nodes gennemsnitlige working set-hukommelse er over 85 % af dens allokerbare hukommelse | Advarsel |
+| Deployment Replica Mismatch | Arbejdsbyrde | En deployment har færre tilgængelige replikaer end ønsket i 15 minutter | Advarsel |
+| Job Failures | Arbejdsbyrde | En pod i et job fejlede inden for 15 minutter | Advarsel |
 | etcd No Leader | Kontrolplan | etcd har ingen valgt leder | Kritisk |
 | API Server Request Saturation | Kontrolplan | API-serveren holder 200 eller flere igangværende forespørgsler i hele vinduet | Kritisk |
-| Scheduler Backlog | Planlægning | Schedulerens kø af ventende pods er ikke tom i 5 minutter | Warning |
-| High Node Disk Usage | Lagerplads | En nodes filsystem er mere end 90 % fuldt | Warning |
-| DaemonSet Misscheduled Nodes | Arbejdsbyrde | Et DaemonSet kører pods på noder, der ikke længere matcher dets nodeselector, affinitet eller tolerationer | Warning |
-| High Node CPU Request Commitment | Node | En nodes samlede CPU-requests fra containere overstiger 90 % af dens allokerbare CPU | Warning |
-| High Node Memory Request Commitment | Node | En nodes samlede hukommelses-requests fra containere overstiger 90 % af dens allokerbare hukommelse | Warning |
+| Scheduler Backlog | Planlægning | Schedulerens kø af ventende pods er ikke tom i 5 minutter | Advarsel |
+| High Node Disk Usage | Lagerplads | En nodes filsystem er mere end 90 % fuldt | Advarsel |
+| DaemonSet Misscheduled Nodes | Arbejdsbyrde | Et DaemonSet kører pods på noder, der ikke længere matcher dets nodeselector, affinitet eller tolerationer | Advarsel |
+| High Node CPU Request Commitment | Node | En nodes samlede CPU-requests fra containere overstiger 90 % af dens allokerbare CPU | Advarsel |
+| High Node Memory Request Commitment | Node | En nodes samlede hukommelses-requests fra containere overstiger 90 % af dens allokerbare hukommelse | Advarsel |
 | HPA Saturated at Max Replicas | Arbejdsbyrde | En HPA, der er skaleret over sin `minReplicas`, kører på 90 % eller mere af sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres hukommelsesgrænse | Kritisk |
-| Pod CPU Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres CPU-grænse | Warning |
+| Pod CPU Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres CPU-grænse | Advarsel |
 
 Skabeloner på metrikker pr. objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for sig, så en klynge med flere usunde pods får en hændelse pr. pod i stedet for én for hele klyngen.
 

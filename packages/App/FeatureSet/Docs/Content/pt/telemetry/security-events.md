@@ -38,7 +38,7 @@ Abra **Produtos → Eventos de segurança**, em **Observabilidade**. O menu dele
 | **Todos os casos** | Casos de segurança | Todo caso, aberto ou fechado |
 | **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
 | **Caçadas** | Eventos | Pesquisas salvas a partir de Eventos, abertas de novo com um clique ou executadas em um agendamento que avisa pessoas quando encontram algo |
-| **Campaigns** | Eventos | Cada endereço que enviou requisições de ataque, e se alguma de suas requisições passou |
+| **Campanhas** | Eventos | Cada endereço que enviou requisições de ataque, e se alguma de suas requisições passou |
 | **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
 | **Regras de detecção** | Detections | Regras Sigma que rodam em uma programação e abrem casos |
@@ -266,7 +266,7 @@ Um evento lido de uma linha de log escrita dentro de uma requisição rastreada 
 
 ### Campaigns
 
-**Campaigns** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro.
+**Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro.
 
 ### Correlacionar
 

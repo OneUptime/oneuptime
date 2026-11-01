@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39414,
-    "untranslated": 13072
+    "keys": 39420,
+    "untranslated": 12882
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -38,6 +38,7 @@
     "Diagram",
     "Disk",
     "Disk %",
+    "Disk {{path}}",
     "Docker Compose",
     "Edge",
     "Embedding",
@@ -70,6 +71,7 @@
     "Incident: {{policies}}",
     "Incident: {{severity}}",
     "Index",
+    "Info",
     "Information",
     "Israel (+972)",
     "Japan (+81)",
@@ -79,6 +81,7 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Managers",
+    "Markdown",
     "Max",
     "Merge request !{{number}}",
     "Merge request {{label}}",
@@ -180,6 +183,7 @@
     "main",
     "message",
     "name",
+    "p95",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

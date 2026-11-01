@@ -91,10 +91,10 @@ Un critère ne se déclenche que si la condition est remplie à chaque minute de
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs de l'hôte, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Avg par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
-| High Container Memory Usage | Warning | `container.memory.percent`, Avg par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
+| High Container CPU Usage | Avertissement | `container.cpu.utilization`, Avg par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
+| High Container Memory Usage | Avertissement | `container.memory.percent`, Avg par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
 | Container Restart Loop | Critique | `container.restarts.increase`, Sum par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
-| High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
+| High Container Process Count | Avertissement | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
 | Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Sous 120 secondes | À 132 secondes ou plus |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
