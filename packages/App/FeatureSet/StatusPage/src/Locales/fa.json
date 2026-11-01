@@ -1,7 +1,4 @@
 {
-  "Phone number of subscriber": "شماره تلفن مشترک",
-  "Email address of the subscriber.": "نشانی ایمیل مشترک.",
-  "Name of the Slack workspace for validation and identification": "نام فضای کاری Slack برای اعتبارسنجی و شناسایی",
   "Something went wrong": "مشکلی پیش آمد",
   "An unexpected error has occurred. Please reload the page to continue": "خطای غیرمنتظره‌ای رخ داد. برای ادامه، صفحه را دوباره بارگذاری کنید",
   "Error details": "جزئیات خطا",

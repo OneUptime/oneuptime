@@ -103,6 +103,11 @@ const NetworkDeviceLinks: FunctionComponent<
             },
             title: "From Device",
             stepId: "link",
+            /*
+             * Its column's help ("Relation to the Network Device this link
+             * starts from") is the API's: the title says it.
+             */
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkDevice,
@@ -118,6 +123,7 @@ const NetworkDeviceLinks: FunctionComponent<
             },
             title: "To Device",
             stepId: "link",
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {
               type: NetworkDevice,

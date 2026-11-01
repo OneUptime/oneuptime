@@ -40,6 +40,7 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSubscriberNotificationsSection } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import { SCHEDULED_NOTIFICATION_DESCRIPTION } from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
 import { getStatusPageSuggestionsFooter } from "../../../Components/StatusPage/StatusPageSuggestions";
 import StatusPageEventType from "Common/Types/StatusPage/StatusPageEventType";
 import ObjectID from "Common/Types/ObjectID";
@@ -389,11 +390,18 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
      * Folded to one line that says what happens; it opens by itself on a
      * template that keeps subscribers quiet or sends reminders.
      */
+    /*
+     * As on the event's own Create form: the 'scheduled' notification goes
+     * out when the event shows on its status pages, and the start and end
+     * boxes say what they are in their names - their columns' own help
+     * ("this event event is changed to ongoing?") only repeated them.
+     */
     {
       field: {
         shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
       },
       title: "When the event is scheduled",
+      description: SCHEDULED_NOTIFICATION_DESCRIPTION,
       stepId: "resources-affected",
       collapsibleSection: subscriberNotificationsSection,
       fieldType: FormFieldSchemaType.Checkbox,
@@ -405,6 +413,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
       },
       title: "When the event starts",
+      hideColumnDescription: true,
       stepId: "resources-affected",
       collapsibleSection: subscriberNotificationsSection,
       fieldType: FormFieldSchemaType.Checkbox,
@@ -416,6 +425,7 @@ export const getTemplateFormFields: GetTemplateFormFieldsFunction = (data: {
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
       },
       title: "When the event ends",
+      hideColumnDescription: true,
       stepId: "resources-affected",
       collapsibleSection: subscriberNotificationsSection,
       fieldType: FormFieldSchemaType.Checkbox,

@@ -198,6 +198,12 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       showEvenIfPermissionDoesNotExist: true,
       title: t("subscribe.email.yourEmail"),
+      /*
+       * Where this subscription sends its updates, shown as written: the
+       * model's column help ("Email address of the subscriber.") is the
+       * API's, as on the subscribe forms.
+       */
+      hideColumnDescription: true,
       fieldType: FormFieldSchemaType.Email,
       required: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.subscriberEmail);
@@ -214,6 +220,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       showEvenIfPermissionDoesNotExist: true,
       title: t("subscribe.slack.workspaceName"),
+      hideColumnDescription: true,
       fieldType: FormFieldSchemaType.Text,
       required: (model: FormValues<StatusPageSubscriber>) => {
         return model && Boolean(model.slackWorkspaceName);
@@ -230,6 +237,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       },
       showEvenIfPermissionDoesNotExist: true,
       title: t("subscribe.sms.yourPhoneNumber"),
+      hideColumnDescription: true,
       // A phone number: read as an email address, it never validated, so an SMS subscriber could not save.
       fieldType: FormFieldSchemaType.Phone,
       required: (model: FormValues<StatusPageSubscriber>) => {

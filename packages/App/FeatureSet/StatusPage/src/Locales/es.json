@@ -1,7 +1,4 @@
 {
-  "Phone number of subscriber": "Número de teléfono del suscriptor",
-  "Email address of the subscriber.": "Dirección de correo electrónico del suscriptor.",
-  "Name of the Slack workspace for validation and identification": "Nombre del espacio de trabajo de Slack para la validación y la identificación",
   "Something went wrong": "Algo salió mal",
   "An unexpected error has occurred. Please reload the page to continue": "Se produjo un error inesperado. Vuelve a cargar la página para continuar",
   "Error details": "Detalles del error",

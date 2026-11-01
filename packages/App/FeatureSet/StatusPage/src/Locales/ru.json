@@ -1,7 +1,4 @@
 {
-  "Phone number of subscriber": "Номер телефона подписчика",
-  "Email address of the subscriber.": "Адрес электронной почты подписчика.",
-  "Name of the Slack workspace for validation and identification": "Название рабочего пространства Slack для проверки и идентификации",
   "Something went wrong": "Что-то пошло не так",
   "An unexpected error has occurred. Please reload the page to continue": "Произошла непредвиденная ошибка. Перезагрузите страницу, чтобы продолжить",
   "Error details": "Подробности ошибки",

@@ -1,7 +1,4 @@
 {
-  "Phone number of subscriber": "Prenumerantens telefonnummer",
-  "Email address of the subscriber.": "Prenumerantens e-postadress.",
-  "Name of the Slack workspace for validation and identification": "Namnet på Slack-arbetsytan för validering och identifiering",
   "Something went wrong": "Något gick fel",
   "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Läs in sidan igen för att fortsätta",
   "Error details": "Felinformation",

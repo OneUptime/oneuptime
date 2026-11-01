@@ -20,7 +20,10 @@ import ts from "typescript";
  * hideColumnDescription: true, is not a color (the swatches say something
  * plainer), and the description is not one that only restates the field
  * ("Any friendly name of this object" - ColumnDescriptionOnForm, the rule
- * BasicModelForm applies). Its model is the modelType of the nearest JSX
+ * BasicModelForm applies). A rule's match conditions on a rule model draw
+ * none either: the form puts one conditions builder in their place, which
+ * names each condition by its title alone (RuleCriteriaModelForm). Its
+ * model is the modelType of the nearest JSX
  * element around it (a ModelTable, a ModelFormModal, a CardModelDetail's
  * modelDetailProps), or the model a typed list of fields names
  * (Fields<Monitor>, Array<ModelField<Probe>>), as App's DescriptionScan
@@ -61,6 +64,21 @@ const MODEL_MODULE: RegExp = /Models\/(DatabaseModels|AnalyticsModels)\//;
 // A type parameter (TBaseModel, T), never a model.
 const TYPE_PARAMETER_NAME: RegExp = /^T([A-Z]\w*)?$/;
 
+/*
+ * The step a rule form's match conditions are on: on a rule model, every
+ * field of it is replaced by one conditions builder (Common/UI/Components/
+ * RuleCriteria/RuleCriteriaModelForm, MATCH_CRITERIA_STEP_ID), so none of
+ * them shows its column's description.
+ */
+const MATCH_CRITERIA_STEP: RegExp =
+  /^(?:"match-criteria"|'match-criteria'|MATCH_CRITERIA_STEP_ID)$/;
+
+// The class every rule model extends, itself or through another rule base.
+const RULE_BASE_MODEL: string = "RuleBaseModel";
+
+// How many base classes up a model's class is followed.
+const MAX_BASE_CLASS_DEPTH: number = 8;
+
 // Module aliases the frontends import through, to the directory each stands for.
 const MODULE_ALIASES: ReadonlyArray<{ prefix: string; directory: string }> = [
   { prefix: "Common/", directory: "packages/Common" },
@@ -72,6 +90,11 @@ export class FormColumnDescriptionFinder {
   private readonly descriptions: Map<string, Map<string, string>> = new Map<
     string,
     Map<string, string>
+  >();
+  // Whether each model file's class is a rule model's (isRuleModel).
+  private readonly ruleModels: Map<string, boolean> = new Map<
+    string,
+    boolean
   >();
 
   public constructor(
@@ -155,6 +178,18 @@ export class FormColumnDescriptionFinder {
     }
 
     const modelFile: string | null = this.modelFile(file, sourceFile, model);
+
+    // A rule's match condition, drawn by the conditions builder.
+    if (
+      modelFile &&
+      MATCH_CRITERIA_STEP.test(
+        properties.get("stepId")?.getText(sourceFile) || "",
+      ) &&
+      this.isRuleModel(modelFile)
+    ) {
+      return null;
+    }
+
     const description: string | null = modelFile
       ? this.columnDescription(modelFile, column)
       : null;
@@ -197,6 +232,72 @@ export class FormColumnDescriptionFinder {
       }
 
       return this.resolveModule(file, specifier);
+    }
+
+    return null;
+  }
+
+  /*
+   * Whether a model's class extends RuleBaseModel, itself or through a base
+   * of its own (OnCallRuleBaseModel, RelationOnlyRuleBaseModel).
+   */
+  private isRuleModel(modelFile: string, depth: number = 0): boolean {
+    const known: boolean | undefined = this.ruleModels.get(modelFile);
+
+    if (known !== undefined) {
+      return known;
+    }
+
+    const text: string | null = this.reader.read(modelFile);
+    let isRule: boolean = false;
+
+    if (text !== null && depth < MAX_BASE_CLASS_DEPTH) {
+      const sourceFile: ts.SourceFile = ts.createSourceFile(
+        modelFile,
+        text,
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TS,
+      );
+
+      for (const base of baseClassNames(sourceFile)) {
+        if (base === RULE_BASE_MODEL) {
+          isRule = true;
+          break;
+        }
+
+        const baseFile: string | null = this.importedFile(
+          modelFile,
+          sourceFile,
+          base,
+        );
+
+        if (baseFile && this.isRuleModel(baseFile, depth + 1)) {
+          isRule = true;
+          break;
+        }
+      }
+    }
+
+    this.ruleModels.set(modelFile, isRule);
+
+    return isRule;
+  }
+
+  // The file a default import names, wherever it is.
+  private importedFile(
+    file: string,
+    sourceFile: ts.SourceFile,
+    name: string,
+  ): string | null {
+    for (const statement of sourceFile.statements) {
+      if (
+        ts.isImportDeclaration(statement) &&
+        statement.importClause?.name?.text === name &&
+        ts.isStringLiteral(statement.moduleSpecifier)
+      ) {
+        return this.resolveModule(file, statement.moduleSpecifier.text);
+      }
     }
 
     return null;
@@ -272,6 +373,31 @@ export class FormColumnDescriptionFinder {
 
     return byColumn.get(column) || null;
   }
+}
+
+// The classes a file's classes extend, by name.
+function baseClassNames(sourceFile: ts.SourceFile): Array<string> {
+  const names: Array<string> = [];
+
+  for (const statement of sourceFile.statements) {
+    if (!ts.isClassDeclaration(statement)) {
+      continue;
+    }
+
+    for (const clause of statement.heritageClauses || []) {
+      if (clause.token !== ts.SyntaxKind.ExtendsKeyword) {
+        continue;
+      }
+
+      for (const type of clause.types) {
+        if (ts.isIdentifier(type.expression)) {
+          names.push(type.expression.text);
+        }
+      }
+    }
+  }
+
+  return names;
 }
 
 // The description a property's @TableColumn({ ... }) gives, when it is a literal.

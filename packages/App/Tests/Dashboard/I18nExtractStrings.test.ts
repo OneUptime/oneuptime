@@ -258,6 +258,71 @@ describe("plural templates", () => {
       textsOf(scan(`const a = { one: "a", other: "b", third: "c" };`)),
     ).toEqual([]);
   });
+
+  /*
+   * A .ts module marks its words as keys, the PluralTemplates among them.
+   * Read only as two keys, the template had no "_one" sentence, so its
+   * translation could not be written: a count of one would have read the
+   * "other" sentence ("1 Anfragen"), and the Campaigns page's counts stayed
+   * English in every language.
+   */
+  test("a template whose forms are marked as keys is one too, with its one form", () => {
+    const result: SourceScanResult = scan(`
+      export const REQUESTS_COUNT: PluralTemplate = {
+        one: translationKey("{{count}} request"),
+        other: translationKey("{{count}} requests"),
+      };
+    `);
+
+    expect(
+      result.strings.filter((entry: ExtractedString): boolean => {
+        return entry.kind === "plural";
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        text: "{{count}} requests",
+        pluralOne: "{{count}} request",
+        kind: "plural",
+      }),
+    ]);
+    expect(getEnglishEntries(result.strings)).toEqual(
+      expect.objectContaining({
+        "{{count}} requests": "{{count}} requests",
+        "{{count}} requests_one": "{{count}} request",
+      }),
+    );
+  });
+
+  test("a keys root reads a template only when both its forms are marked", () => {
+    const marked: SourceScanResult = scan(
+      `const A = { one: translationKey("{{count}} span"), other: translationKey("{{count}} spans") };`,
+      "packages/Common/Types/Telemetry/Example.ts",
+      "keys",
+    );
+    const plain: SourceScanResult = scan(
+      `const B = { one: "{{count}} trace", other: "{{count}} traces" };`,
+      "packages/Common/Types/Telemetry/Example.ts",
+      "keys",
+    );
+
+    expect(getEnglishEntries(marked.strings)).toEqual({
+      "{{count}} span": "{{count}} span",
+      "{{count}} spans": "{{count}} spans",
+      "{{count}} spans_one": "{{count}} span",
+    });
+    expect(plain.strings).toEqual([]);
+  });
+
+  test("a form marked by another call, or not a string, is no template", () => {
+    expect(
+      scan(`
+        const a = { one: translateText("{{count}} row"), other: translationKey("{{count}} rows") };
+        const b = { one: translationKey(ROW), other: translationKey("{{count}} rows") };
+      `).strings.filter((entry: ExtractedString): boolean => {
+        return entry.kind === "plural";
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("user-facing properties and attributes", () => {
@@ -1297,6 +1362,101 @@ const page = (
     ).toEqual([
       "Widget.pattern: Regex matched against the widget name. Leave empty to match any name.",
     ]);
+  });
+
+  /*
+   * A rule form's match conditions on a rule model are drawn as one
+   * conditions builder (Common/UI/Components/RuleCriteria/
+   * RuleCriteriaModelForm), which names each condition by its title alone:
+   * none of those fields draws its column's description, so none is a key
+   * to translate. 179 of the 288 sentences the first column pass took were
+   * such fields' (#5512).
+   */
+  describe("a rule's match conditions draw none", () => {
+    const RULE_FILE: string = path.join(
+      ROOT,
+      "packages/Common/Models/DatabaseModels/WidgetRule.ts",
+    );
+    const ON_CALL_RULE_FILE: string = path.join(
+      ROOT,
+      "packages/Common/Models/DatabaseModels/WidgetOnCallRule.ts",
+    );
+    const ON_CALL_BASE_FILE: string = path.join(
+      ROOT,
+      "packages/Common/Models/DatabaseModels/DatabaseBaseModel/OnCallRuleBaseModel.ts",
+    );
+    const RULE_COLUMNS: string = `
+      @TableColumn({ title: "Monitors", description: "Only trigger for widgets from these monitors. Leave empty to match any monitor." })
+      public monitors?: Array<Monitor> = undefined;
+
+      @TableColumn({ title: "Note", description: "What the rule's note is for." })
+      public note?: string = undefined;
+    `;
+
+    const ruleFinder: () => FormColumnDescriptionFinder =
+      (): FormColumnDescriptionFinder => {
+        return new FormColumnDescriptionFinder(
+          ROOT,
+          memoryReader({
+            [MODEL_FILE]: WIDGET,
+            [RULE_FILE]: `import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
+export default class WidgetRule extends RuleBaseModel {${RULE_COLUMNS}}`,
+            [ON_CALL_RULE_FILE]: `import OnCallRuleBaseModel from "./DatabaseBaseModel/OnCallRuleBaseModel";
+export default class WidgetOnCallRule extends OnCallRuleBaseModel {${RULE_COLUMNS}}`,
+            [ON_CALL_BASE_FILE]: `import RuleBaseModel from "./RuleBaseModel";
+export default class OnCallRuleBaseModel extends RuleBaseModel {}`,
+          }),
+        );
+      };
+
+    const findIn: (model: string, fields: string) => Array<string> = (
+      model: string,
+      fields: string,
+    ): Array<string> => {
+      return ruleFinder()
+        .find(
+          PAGE_FILE,
+          `import ${model} from "Common/Models/DatabaseModels/${model}";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+const page = <ModelTable modelType={${model}} formFields={[${fields}]} />;`,
+        )
+        .map((field: FormColumnDescription): string => {
+          return `${field.model}.${field.column}: ${field.text}`;
+        });
+    };
+
+    test("a rule model's match-criteria field is drawn by the builder; its other steps' fields still draw theirs", () => {
+      expect(
+        findIn(
+          "WidgetRule",
+          `{ field: { monitors: true }, stepId: "match-criteria", fieldType: FormFieldSchemaType.MultiSelectDropdown },
+           { field: { note: true }, stepId: "details", fieldType: FormFieldSchemaType.LongText },
+           { field: { monitors: true }, fieldType: FormFieldSchemaType.MultiSelectDropdown }`,
+        ),
+      ).toEqual([
+        "WidgetRule.note: What the rule's note is for.",
+        "WidgetRule.monitors: Only trigger for widgets from these monitors. Leave empty to match any monitor.",
+      ]);
+    });
+
+    test("through a rule base of its own, and with the step named by its constant", () => {
+      expect(
+        findIn(
+          "WidgetOnCallRule",
+          `{ field: { monitors: true }, stepId: MATCH_CRITERIA_STEP_ID, fieldType: FormFieldSchemaType.MultiSelectDropdown },
+           { field: { note: true }, stepId: 'match-criteria', fieldType: FormFieldSchemaType.LongText }`,
+        ),
+      ).toEqual([]);
+    });
+
+    test("a model that is no rule draws its match step's descriptions: no builder replaces them", () => {
+      expect(
+        findIn(
+          "Widget",
+          `{ field: { notes: true }, stepId: "match-criteria", fieldType: FormFieldSchemaType.LongText }`,
+        ),
+      ).toEqual(["Widget.notes: What the notes are for."]);
+    });
   });
 
   test("the model is read from a models directory only, through the Common alias or a relative path", () => {

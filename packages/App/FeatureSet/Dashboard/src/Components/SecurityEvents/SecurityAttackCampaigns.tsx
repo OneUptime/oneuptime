@@ -17,6 +17,7 @@ import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import { PillSize } from "Common/UI/Components/Pill/Pill";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -194,9 +195,22 @@ const CampaignRow: FunctionComponent<{
       />
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
-          <span className="font-mono text-sm font-semibold text-gray-900">
-            {campaign.sourceIp || translator.translateText(UNKNOWN_ADDRESS)}
-          </span>
+          {/*
+            An IPv6 address is longer than a phone's row: it wraps inside its
+            column rather than run under View requests, and reads left to
+            right on a Persian page (an isolate, IsolatedText) - read there
+            in the page's direction, "2001:db8::7334" came out as
+            "db8::7334:2001".
+          */}
+          <IsolatedText
+            text={
+              campaign.sourceIp ||
+              translator.translateText(UNKNOWN_ADDRESS) ||
+              UNKNOWN_ADDRESS
+            }
+            dataTestId="security-attack-campaign-address"
+            className="min-w-0 max-w-full font-mono text-sm font-semibold text-gray-900 [overflow-wrap:anywhere]"
+          />
           {campaign.userAgents[0] && (
             <span
               className="min-w-0 max-w-full truncate text-xs text-gray-500"

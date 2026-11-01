@@ -1,4 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
+import {
+  createTranslator,
+  PluralTemplate,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import fs from "fs";
 import path from "path";
 
@@ -322,6 +327,193 @@ describe("the Products menu's titles", () => {
         code,
         menu: navbarTitle(code, "storageArraysTitle"),
       }).toEqual({ code, menu: valueOf(code, "Storage Arrays") });
+    }
+  });
+
+  /*
+   * The menu's AI section and its AI / LLM product say AI the same way: the
+   * section read "AI" in German, French, Italian, Portuguese and Russian
+   * over a product named KI / IA / ИИ (UI review of #5512).
+   */
+  test.each(LANGUAGES)(
+    "the AI section says AI as the AI / LLM product beside it does in %s",
+    (code: string) => {
+      const navbar: Record<string, Record<string, string>> = readLocale(code)[
+        "navbar"
+      ] as Record<string, Record<string, string>>;
+      const product: string = navbar["items"]!["llmObservabilityTitle"]!;
+
+      expect(navbar["categories"]!["ai"]).toBe(product.split(" / ")[0]);
+    },
+  );
+});
+
+// A translator that reads one language's locale file, as the Dashboard does.
+function translatorFor(code: string): Translator {
+  const locale: Locale = readLocale(code);
+
+  return createTranslator((key: string): string | undefined => {
+    const value: unknown = locale[key];
+
+    return typeof value === "string" ? value : undefined;
+  }, code);
+}
+
+/*
+ * The Campaigns page's count lines - "412 requests", "32 requests got
+ * through", "14 different requests" - stayed English in every language:
+ * their templates were marked as keys, so the extractor gave them no "_one"
+ * sentence, and a translated "other" sentence alone would read "1 Anfragen".
+ * The extractor reads marked templates now (I18nExtractStrings), and each
+ * "one" form carries the count, since Russian reads 21 with it and French 0.
+ */
+describe("the Campaigns page's counts", () => {
+  const TEMPLATES: ReadonlyArray<PluralTemplate> = [
+    { one: "{{count}} request", other: "{{count}} requests" },
+    {
+      one: "{{count}} different request",
+      other: "{{count}} different requests",
+    },
+    {
+      one: "{{count}} request got through",
+      other: "{{count}} requests got through",
+    },
+  ];
+
+  test("each has a one form of its own in English, written with the count", () => {
+    for (const template of TEMPLATES) {
+      expect(valueOf("en", template.other)).toBe(template.other);
+      expect(valueOf("en", `${template.other}_one`)).toBe(template.one);
+    }
+  });
+
+  test.each(LANGUAGES)(
+    "are words of %s in both forms, each keeping the count",
+    (code: string) => {
+      for (const template of TEMPLATES) {
+        for (const key of [template.other, `${template.other}_one`]) {
+          const value: string = valueOf(code, key) || "";
+
+          expect({ key, translated: value !== "" && value !== key }).toEqual({
+            key,
+            translated: true,
+          });
+          expect({ key, count: value.includes("{{count}}") }).toEqual({
+            key,
+            count: true,
+          });
+        }
+      }
+    },
+  );
+
+  test("read each language's own form for the count", () => {
+    const [requests, , gotThrough] = TEMPLATES as Array<PluralTemplate>;
+
+    expect(translatorFor("de").translatePlural(requests!, 1)).toBe("1 Anfrage");
+    expect(translatorFor("de").translatePlural(requests!, 412)).toBe(
+      "412 Anfragen",
+    );
+    expect(translatorFor("ru").translatePlural(gotThrough!, 21)).toBe(
+      "21 запрос прошёл",
+    );
+    expect(translatorFor("ru").translatePlural(gotThrough!, 32)).toBe(
+      "Прошло запросов: 32",
+    );
+    // French counts 0 as one.
+    expect(translatorFor("fr").translatePlural(requests!, 0)).toBe("0 requête");
+    expect(translatorFor("ja").translatePlural(requests!, 1)).toBe(
+      "1 件のリクエスト",
+    );
+    // English, as the page drew it.
+    expect(translatorFor("en").translatePlural(gotThrough!, 1)).toBe(
+      "1 request got through",
+    );
+  });
+
+  // DataTypes' "Found 1 value." had the same gap: it read "1 Werte gefunden."
+  test.each(LANGUAGES)(
+    "a count of one found reads its own sentence in %s",
+    (code: string) => {
+      expect(valueOf(code, "Found {{count}} values._one")).toBe(
+        valueOf(code, "Found {{count}} value."),
+      );
+    },
+  );
+});
+
+/*
+ * An OSD's page explains In and Out - under the list's In / Out column, in
+ * the detail's Placement tooltip and in the page's description - in the
+ * words its cells draw. The cells said "Dans le cluster" while the
+ * description explained "In" (French, Spanish, Japanese), and the tooltips
+ * were English in fifteen languages.
+ */
+describe("Ceph's OSD placement, explained", () => {
+  const DESCRIPTION: string =
+    "Object storage daemons in this cluster. Up means the daemon is running; In means it participates in data placement.";
+  const TOOLTIPS: ReadonlyArray<string> = [
+    "In means Ceph places data on this OSD. Out means it was taken out of data placement, by an admin or automatically after being down for a while, and its data lives on other OSDs.",
+    "In means Ceph is placing data on this OSD. Out means it has been removed from data placement, by an admin or automatically after being down, and its data is served from other OSDs.",
+  ];
+
+  test.each(LANGUAGES)(
+    "names the cells' In and Out words in %s",
+    (code: string) => {
+      const inCluster: string = valueOf(code, "In cluster") || "";
+      const outOfCluster: string = valueOf(code, "Out of cluster") || "";
+
+      expect(valueOf(code, DESCRIPTION)).toContain(inCluster);
+
+      for (const tooltip of TOOLTIPS) {
+        const value: string = valueOf(code, tooltip) || "";
+
+        expect(value).not.toBe(tooltip);
+        expect(value).toContain(inCluster);
+        expect(value).toContain(outOfCluster);
+      }
+    },
+  );
+});
+
+describe("German's own voice and articles", () => {
+  // Every Notification Settings card speaks as the reader, the same way.
+  test("each Notify me card description reads Benachrichtige mich", () => {
+    const german: Locale = readLocale("de");
+    const cards: Array<string> = Object.keys(readLocale("en")).filter(
+      (key: string): boolean => {
+        return (
+          (key.startsWith("Notify me about ") ||
+            key.startsWith("Notify me when ")) &&
+          key.endsWith(".")
+        );
+      },
+    );
+
+    expect(cards.length).toBeGreaterThan(10);
+    expect(
+      cards.filter((key: string): boolean => {
+        return !String(german[key]).startsWith("Benachrichtige mich");
+      }),
+    ).toEqual([]);
+  });
+
+  /*
+   * "this {{resourceName}}" as German writes it everywhere else: a noun
+   * with no article ("für Vorfall") read wrong, so the owners card says
+   * diesen Eintrag (Vorfall), as "Möchten Sie diesen Eintrag ({{itemName}})
+   * wirklich löschen?" does.
+   */
+  test("the owners card names its record as diesen Eintrag ({{resourceName}})", () => {
+    for (const key of [
+      "People and teams responsible for this {{resourceName}}. They are notified about changes.",
+      "Add a teammate or a team so they get notified about changes to this {{resourceName}}.",
+      "Are you sure you want to remove {{name}} as an owner of this {{resourceName}}?",
+      "Are you sure you want to remove {{name}} (Team) as an owner of this {{resourceName}}?",
+    ]) {
+      expect(valueOf("de", key)).toMatch(
+        /(diese[ns]|diesem) Eintrag[s]? \(\{\{resourceName\}\}\)/,
+      );
     }
   });
 });

@@ -191,7 +191,12 @@ function byFile(
 
 describe("the column descriptions forms draw are in every frontend's locales", () => {
   test("the scan finds the forms that draw them, in more than one frontend", () => {
-    expect(COLUMN_DESCRIPTIONS.length).toBeGreaterThan(400);
+    /*
+     * About 170 fields: the 480 of #5292 counted a rule's match conditions
+     * too, which the conditions builder draws in their place, help and all
+     * (RuleCriteriaModelForm).
+     */
+    expect(COLUMN_DESCRIPTIONS.length).toBeGreaterThan(150);
 
     const frontends: Set<string | null> = new Set<string | null>(
       COLUMN_DESCRIPTIONS.map((description: FoundDescription) => {
@@ -199,9 +204,53 @@ describe("the column descriptions forms draw are in every frontend's locales", (
       }),
     );
 
+    /*
+     * The status page's subscriber forms draw none: their fields say what
+     * they are in the reader's words, and the model's column help ("Phone
+     * number of subscriber") is the API's (hideColumnDescription).
+     */
     expect(Array.from(frontends).sort()).toEqual(
-      expect.arrayContaining(["AdminDashboard", "Dashboard", "StatusPage"]),
+      expect.arrayContaining(["AdminDashboard", "Dashboard"]),
     );
+  });
+
+  /*
+   * Column help a form's field said nothing with, in any language: the
+   * field's name again ("Status Page Favicon" under Favicon), the API's
+   * words ("Relation to the Network Device this link starts from" under
+   * From Device, "Phone number of subscriber" on a subscriber's own form),
+   * a name the product no longer uses (a Runner's "agent"), or English
+   * that was never right ("this event event is changed to ongoing?"). Each
+   * field says nothing more now (hideColumnDescription), or, for a
+   * template's "When the event is scheduled", what the event's own Create
+   * form says (UI review of #5512).
+   */
+  test("help that only repeats its field, or is the API's, is drawn by no form", () => {
+    const REPEATING: ReadonlyArray<string> = [
+      "Status Page Cover Image",
+      "Status Page Favicon",
+      "Dashboard Favicon",
+      "Copyright Text",
+      "Relation to the Network Device this link starts from",
+      "Relation to the Network Device this link ends at",
+      "Relation to the Network Site this link starts from",
+      "Relation to the Network Site this link ends at",
+      "Optional description for this agent",
+      "Should subscribers be notified about this event creation?",
+      "Should subscribers be notified about this event event is changed to ongoing?",
+      "Should subscribers be notified about this event event is changed to ended?",
+      "Phone number of subscriber",
+      "Email address of the subscriber.",
+      "Name of the Slack workspace for validation and identification",
+    ];
+
+    expect(
+      COLUMN_DESCRIPTIONS.filter((description: FoundDescription): boolean => {
+        return REPEATING.includes(description.text);
+      }).map((description: FoundDescription): string => {
+        return `${description.where}: ${description.text}`;
+      }),
+    ).toEqual([]);
   });
 
   test("each is drawn by a frontend with locales of its own", () => {
@@ -288,7 +337,7 @@ describe("the extractor reads the same form fields DescriptionScan does", () => 
   }
 
   test("finds the fields of the Dashboard's forms", () => {
-    expect(extracted.length).toBeGreaterThan(400);
+    expect(extracted.length).toBeGreaterThan(150);
     expect(
       extracted.every((field: FormColumnDescription): boolean => {
         return field.text.length > 0 && field.model.length > 0;

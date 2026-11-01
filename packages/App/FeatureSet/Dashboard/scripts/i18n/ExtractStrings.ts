@@ -20,7 +20,10 @@ import ts from "typescript";
  *                       translationKey(), any translate*() helper - or the
  *                       text of a translatableTerm(), which is looked up
  *                       when the sentence it goes into is translated;
- *   - "plural":         a PluralTemplate, { one: "...", other: "..." };
+ *   - "plural":         a PluralTemplate, { one: "...", other: "..." },
+ *                       its forms written as literals or marked as keys
+ *                       (translationKey("...")) - its "one" sentence goes
+ *                       under the "other" sentence's key plus "_one";
  *   - "prop":           a JSX attribute or object property whose name says
  *                       it is shown (title, description, placeholder, label,
  *                       noItemsMessage... - USER_FACING_PROPS), a tab's
@@ -662,6 +665,78 @@ const unwrap: (expression: ts.Expression) => ts.Expression = (
 };
 
 /*
+ * A PluralTemplate's form: a string literal, or a literal marked as a key
+ * - one: translationKey("{{count}} request") - as the templates a .ts
+ * module keeps are written. Read either way, so a marked template gets its
+ * "_one" sentence too: without it a translated "other" sentence was all a
+ * language had for a count of one ("1 Anfragen"), so the Campaigns page's
+ * counts stayed English in every language.
+ */
+const getPluralFormText: (
+  expression: ts.Expression,
+  options: { markedOnly: boolean },
+) => string | undefined = (
+  expression: ts.Expression,
+  options: { markedOnly: boolean },
+): string | undefined => {
+  let value: ts.Expression = unwrap(expression);
+  let isMarked: boolean = false;
+
+  if (
+    ts.isCallExpression(value) &&
+    getCalleeName(value.expression) === "translationKey" &&
+    value.arguments.length === 1
+  ) {
+    value = unwrap(value.arguments[0]!);
+    isMarked = true;
+  }
+
+  if (options.markedOnly && !isMarked) {
+    return undefined;
+  }
+
+  return ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value)
+    ? value.text
+    : undefined;
+};
+
+/*
+ * { one: "...", other: "..." }: the two forms of a count-dependent sentence,
+ * or null when the object is not one. A "keys" root reads only marked forms.
+ */
+const getPluralForms: (
+  node: ts.ObjectLiteralExpression,
+  options: { markedOnly: boolean },
+) => { one: string; other: string } | null = (
+  node: ts.ObjectLiteralExpression,
+  options: { markedOnly: boolean },
+): { one: string; other: string } | null => {
+  if (node.properties.length !== 2) {
+    return null;
+  }
+
+  const forms: Record<string, string> = {};
+
+  for (const property of node.properties) {
+    if (ts.isPropertyAssignment(property)) {
+      const name: string | undefined = getPropertyName(property.name);
+      const text: string | undefined = getPluralFormText(
+        property.initializer,
+        options,
+      );
+
+      if (name && text !== undefined) {
+        forms[name] = text;
+      }
+    }
+  }
+
+  return forms["one"] !== undefined && forms["other"] !== undefined
+    ? { one: forms["one"], other: forms["other"] }
+    : null;
+};
+
+/*
  * The string literals an expression can evaluate to directly: "a",
  * cond ? "a" : "b", x || "a", x ?? "a". Calls and concatenations are not
  * looked into.
@@ -1159,27 +1234,15 @@ export const scanSourceText: (
       }
     }
 
-    // { one: "...", other: "..." }
-    if (ts.isObjectLiteralExpression(node) && node.properties.length === 2) {
-      const forms: Record<string, string> = {};
+    // { one: "...", other: "..." }, its forms literal or marked as keys.
+    if (ts.isObjectLiteralExpression(node)) {
+      const forms: { one: string; other: string } | null = getPluralForms(
+        node,
+        { markedOnly: false },
+      );
 
-      for (const property of node.properties) {
-        if (ts.isPropertyAssignment(property)) {
-          const name: string | undefined = getPropertyName(property.name);
-          const value: ts.Expression = unwrap(property.initializer);
-
-          if (
-            name &&
-            (ts.isStringLiteral(value) ||
-              ts.isNoSubstitutionTemplateLiteral(value))
-          ) {
-            forms[name] = value.text;
-          }
-        }
-      }
-
-      if (forms["one"] !== undefined && forms["other"] !== undefined) {
-        add(forms["other"], "plural", node, { pluralOne: forms["one"] });
+      if (forms) {
+        add(forms.other, "plural", node, { pluralOne: forms.one });
       }
     }
 
@@ -1336,6 +1399,18 @@ export const scanSourceText: (
             add(literal.text, "call", literal.node);
           }
         }
+      }
+    }
+
+    // A count-dependent sentence whose two forms are marked as keys.
+    if (ts.isObjectLiteralExpression(node)) {
+      const forms: { one: string; other: string } | null = getPluralForms(
+        node,
+        { markedOnly: true },
+      );
+
+      if (forms) {
+        add(forms.other, "plural", node, { pluralOne: forms.one });
       }
     }
 

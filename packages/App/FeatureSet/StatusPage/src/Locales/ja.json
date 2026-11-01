@@ -1,7 +1,4 @@
 {
-  "Phone number of subscriber": "購読者の電話番号",
-  "Email address of the subscriber.": "購読者のメールアドレス。",
-  "Name of the Slack workspace for validation and identification": "検証と識別に使う Slack ワークスペースの名前",
   "Something went wrong": "問題が発生しました",
   "An unexpected error has occurred. Please reload the page to continue": "予期しないエラーが発生しました。続行するにはページを再読み込みしてください",
   "Error details": "エラーの詳細",
