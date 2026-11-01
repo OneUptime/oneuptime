@@ -304,7 +304,8 @@ export default class SubscriberMessageText {
       unsubscribeUrl: string;
     },
   ): string {
-    let message: string = mdText`🚨 ## ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: data.title || " - " })}
+    let message: string =
+      mdText`🚨 ## ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: data.title || " - " })}
 
 `.toString();
 

@@ -65,10 +65,7 @@ import SubscriberMessageText, {
 } from "Common/Server/Utils/StatusPage/SubscriberMessageText";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words a note's default Slack and Teams messages share, in each
@@ -618,10 +615,8 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
 
         // The default Slack and Teams message, in the subscriber's language.
         const getChatMessage: () => string = (): string => {
-          return writeInLanguage(
-            language,
-            (translator: Translator): string => {
-              return mdText`## ${translator.translateTemplate(NOTE_CHAT_TEXT.heading, { statusPageName: statusPageName })}
+          return writeInLanguage(language, (translator: Translator): string => {
+            return mdText`## ${translator.translateTemplate(NOTE_CHAT_TEXT.heading, { statusPageName: statusPageName })}
 
 ${SubscriberMessageText.chatLine(translator, NOTE_CHAT_TEXT.event, event.title || "")}
 ${getChatStatusLine(translator)}
@@ -630,8 +625,7 @@ ${getChatStatusLine(translator)}
 ${SubscriberMessageText.chatLine(translator, SubscriberChatText.note, FeedMarkdown.asMarkdown(publicNote.note || ""))}
 
 ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
-            },
-          );
+          });
         };
 
         logger.debug(
@@ -819,23 +813,20 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
                   emailTemplate.emailSubject,
                   subscriberPlainTextTemplateVariables,
                 )
-              : writeInLanguage(
-                  language,
-                  (translator: Translator): string => {
-                    return stateChange
-                      ? StateChangeNoteMessage.getScheduledMaintenanceCustomTemplateEmailSubject(
-                          {
-                            stateName: stateChangeName,
-                            eventTitle: event.title || "",
-                            translator: translator,
-                          },
-                        )
-                      : translator.translateTemplate(
-                          copy.customTemplateEmailSubject,
-                          { title: event.title || "" },
-                        );
-                  },
-                );
+              : writeInLanguage(language, (translator: Translator): string => {
+                  return stateChange
+                    ? StateChangeNoteMessage.getScheduledMaintenanceCustomTemplateEmailSubject(
+                        {
+                          stateName: stateChangeName,
+                          eventTitle: event.title || "",
+                          translator: translator,
+                        },
+                      )
+                    : translator.translateTemplate(
+                        copy.customTemplateEmailSubject,
+                        { title: event.title || "" },
+                      );
+                });
 
             MailService.sendMail(
               {

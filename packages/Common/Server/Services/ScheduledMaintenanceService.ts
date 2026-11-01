@@ -130,10 +130,7 @@ import SubscriberMessageText, {
 } from "../Utils/StatusPage/SubscriberMessageText";
 import { writeInLanguage } from "../Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "../../Types/ReaderLanguage";
-import {
-  translationKey,
-  Translator,
-} from "../../UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../UI/Utils/TranslateTemplate";
 
 /*
  * What subscribers are told when an event is scheduled, in each

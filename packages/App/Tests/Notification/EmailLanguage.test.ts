@@ -233,7 +233,7 @@ const wordsOf: (sentence: string) => Array<string> = (
 const email: (
   templateType: EmailTemplateType,
   language: string | undefined,
-  variables: Record<string, string> = SUBSCRIBER_VARIABLES,
+  variables?: Record<string, string>,
 ) => EmailMessage = (
   templateType: EmailTemplateType,
   language: string | undefined,
@@ -439,7 +439,9 @@ describe("MailService.render", () => {
 
     expect(attributeOf(html, "lang")).toBe("en");
     expect(attributeOf(html, "dir")).toBeUndefined();
-    expect(visibleText(rendered.body)).toContain("New Incident: Zorbex checkout");
+    expect(visibleText(rendered.body)).toContain(
+      "New Incident: Zorbex checkout",
+    );
     expect(visibleText(rendered.body)).toContain("Powered by OneUptime");
   });
 
@@ -475,9 +477,9 @@ describe("MailService.render", () => {
 
     expect(attributeOf(startTagOf(rendered.body, "<html"), "dir")).toBe("rtl");
     expect(attributeOf(startTagOf(rendered.body, "<body"), "dir")).toBe("rtl");
-    expect(attributeOf(startTagOf(rendered.body, 'class="st-Wrapper"'), "dir")).toBe(
-      "rtl",
-    );
+    expect(
+      attributeOf(startTagOf(rendered.body, 'class="st-Wrapper"'), "dir"),
+    ).toBe("rtl");
 
     const dot: string = startTagOf(rendered.body, 'class="st-ColorDot"');
 

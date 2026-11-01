@@ -8,17 +8,23 @@ import ObjectID from "Common/Types/ObjectID";
 import BaseAPI from "Common/UI/Utils/API/API";
 import { STATUS_PAGE_IDENTITY_API_URL } from "./Config";
 import UserUtil from "./User";
-import i18next from "i18next";
 
 /*
  * The language the reader reads the page in, as a request's Accept-Language
  * says it: what a sign-up stores, so their notifications are written in it
- * (Common/Server/Utils/StatusPage/SubscriberLanguage). Empty before the
- * page's translation is set up.
+ * (Common/Server/Utils/StatusPage/SubscriberLanguage).
+ *
+ * Read from <html lang>, which the server writes in the page's default
+ * language and the page keeps on the language the reader sees, on every
+ * switch (Utils/i18n.ts, Common/UI/Utils/PageLanguage). Read from the page
+ * rather than from i18next, so the server code that shares this module
+ * needs no i18next of its own. Empty when the page names no language.
  */
 export const getReaderLanguageHeaders: () => Headers = (): Headers => {
-  const language: string | undefined =
-    i18next.resolvedLanguage || i18next.language || undefined;
+  const language: string =
+    typeof document !== "undefined" && document.documentElement
+      ? (document.documentElement.getAttribute("lang") || "").trim()
+      : "";
 
   return language ? { "accept-language": language } : {};
 };

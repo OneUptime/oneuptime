@@ -2757,9 +2757,7 @@ describe("Announcement notifications, in the subscriber's language", () => {
 
     await runJob(UPDATED_JOB);
 
-    expect(sentMail()[0]!.mail["subject"]).toBe(
-      `[공지사항 업데이트] ${TITLE}`,
-    );
+    expect(sentMail()[0]!.mail["subject"]).toBe(`[공지사항 업데이트] ${TITLE}`);
     expect(sentSms()[0]).toContain("공지사항 업데이트:");
     expect(sentSms()[0]).toContain(` ${DETAILS_URL}`);
     expect(sentTeams()[0]).toContain(`공지사항 업데이트 - ${TITLE}`);

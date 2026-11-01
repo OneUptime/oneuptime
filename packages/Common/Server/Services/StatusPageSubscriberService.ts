@@ -119,10 +119,7 @@ import {
   DEFAULT_READER_LANGUAGE,
   READER_LANGUAGE_CODES,
 } from "../../Types/ReaderLanguage";
-import {
-  createTranslator,
-  Translator,
-} from "../../UI/Utils/TranslateTemplate";
+import { createTranslator, Translator } from "../../UI/Utils/TranslateTemplate";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -2893,26 +2890,23 @@ export class Service extends ProjectReferencesService<Model> {
           id: createdItem.statusPageId,
           callSmsConfig: statusPage.callSmsConfig,
         } as Pick<StatusPage, "id" | "callSmsConfig">,
-        message: writeInLanguage(
-          language,
-          (translator: Translator): string => {
-            return isPhoneToConfirm
-              ? getConfirmSubscriptionTextMessage({
-                  statusPageName: statusPageName,
-                  confirmationUrl: this.getConfirmSubscriptionLink({
-                    statusPageUrl: statusPageURL,
-                    confirmationToken: confirmationCode,
-                    statusPageSubscriberId: createdItem.id!,
-                  }).toString(),
-                  translator: translator,
-                })
-              : getYouHaveSubscribedTextMessage({
-                  statusPageName: statusPageName,
-                  unsubscribeUrl: unsubscribeLink,
-                  translator: translator,
-                });
-          },
-        ),
+        message: writeInLanguage(language, (translator: Translator): string => {
+          return isPhoneToConfirm
+            ? getConfirmSubscriptionTextMessage({
+                statusPageName: statusPageName,
+                confirmationUrl: this.getConfirmSubscriptionLink({
+                  statusPageUrl: statusPageURL,
+                  confirmationToken: confirmationCode,
+                  statusPageSubscriberId: createdItem.id!,
+                }).toString(),
+                translator: translator,
+              })
+            : getYouHaveSubscribedTextMessage({
+                statusPageName: statusPageName,
+                unsubscribeUrl: unsubscribeLink,
+                translator: translator,
+              });
+        }),
       });
     }
 

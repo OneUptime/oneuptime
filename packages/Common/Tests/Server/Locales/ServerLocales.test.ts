@@ -264,11 +264,7 @@ describe("every language's file", () => {
           while (at >= 0) {
             const before: string = at === 0 ? " " : value[at - 1]!;
 
-            expect([language, key, before.trim()]).toEqual([
-              language,
-              key,
-              "",
-            ]);
+            expect([language, key, before.trim()]).toEqual([language, key, ""]);
 
             at = value.indexOf(placeholder, at + placeholder.length);
           }
@@ -309,7 +305,7 @@ describe("findKeysInSource", () => {
         "  { x: 1 },",
         ");",
         'translator.translatePlural({ one: "{{count}} row", other: "{{count}} rows" }, 2);',
-        'translator.translateText(SOME_CONSTANT);',
+        "translator.translateText(SOME_CONSTANT);",
         'translationKey("With \\"quotes\\" inside");',
       ].join("\n"),
     });

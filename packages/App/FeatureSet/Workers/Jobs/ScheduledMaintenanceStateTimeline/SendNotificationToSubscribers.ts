@@ -64,10 +64,7 @@ import StateChangeNoteMessage, {
 } from "Common/Types/StatusPage/StateChangeNoteMessage";
 import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
 import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
-import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What subscribers are told when an event's state changes, in each

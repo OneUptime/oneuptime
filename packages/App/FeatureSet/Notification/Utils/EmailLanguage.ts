@@ -10,10 +10,7 @@ import {
   RIGHT_TO_LEFT,
 } from "Common/Types/ReadingDirection";
 import { getServerTranslator } from "Common/Server/Utils/ServerTranslation";
-import {
-  TemplateValues,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * AN EMAIL'S OWN WORDS, IN ITS READER'S LANGUAGE.
@@ -142,7 +139,7 @@ const toTemplateValues: (options: unknown) => TemplateValues = (
     return values;
   }
 
-  for (const [name, value] of Object.entries(hash as object)) {
+  for (const [name, value] of Object.entries(hash as Record<string, unknown>)) {
     if (typeof value === "number") {
       values[name] = value;
     } else if (value === null || value === undefined) {

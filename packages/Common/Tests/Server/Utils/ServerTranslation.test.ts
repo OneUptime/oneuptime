@@ -51,9 +51,7 @@ describe("getServerTranslator", () => {
 
   test("reads a regional or another-script tag as its language", () => {
     expect(getServerTranslator("de-AT").language).toBe("de");
-    expect(getServerTranslator("zh-HK").translateText("Incident")).toBe(
-      "事件",
-    );
+    expect(getServerTranslator("zh-HK").translateText("Incident")).toBe("事件");
     expect(getServerTranslator("fa-IR").translateText("Incident")).toBe(
       "حادثه",
     );
@@ -97,9 +95,8 @@ describe("getServerTranslator", () => {
 
 describe("writeInLanguage", () => {
   test("writes the work's dates in the language, and English again after", () => {
-    const english: string = OneUptimeDate.getDateAsUserFriendlyFormattedString(
-      MAY_2026,
-    );
+    const english: string =
+      OneUptimeDate.getDateAsUserFriendlyFormattedString(MAY_2026);
 
     const german: string = writeInLanguage("de", (): string => {
       return OneUptimeDate.getDateAsUserFriendlyFormattedString(MAY_2026);

@@ -1,7 +1,4 @@
-import {
-  translationKey,
-  Translator,
-} from "../../UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "../../UI/Utils/TranslateTemplate";
 
 /*
  * THE NAMES ONEUPTIME GIVES EVERY NEW PROJECT'S STATES, SEVERITIES AND
@@ -30,10 +27,11 @@ export const DEFAULT_STATUS_NAMES: ReadonlyArray<string> = [
 ];
 
 // Whether `name` is one of OneUptime's default names, as it gave it.
-export const isDefaultStatusName: (name: string | null | undefined) => boolean =
-  (name: string | null | undefined): boolean => {
-    return typeof name === "string" && DEFAULT_STATUS_NAMES.includes(name.trim());
-  };
+export const isDefaultStatusName: (
+  name: string | null | undefined,
+) => boolean = (name: string | null | undefined): boolean => {
+  return typeof name === "string" && DEFAULT_STATUS_NAMES.includes(name.trim());
+};
 
 /*
  * A state's, a severity's or a status's name as `translator`'s reader reads

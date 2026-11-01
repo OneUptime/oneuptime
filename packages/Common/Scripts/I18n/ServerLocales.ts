@@ -25,7 +25,13 @@ import path from "path";
  * it. Pure but for reading and writing the files, linear in what it reads.
  */
 
-export const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
+export const REPOSITORY_ROOT: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+);
 
 export const SERVER_LOCALES_DIRECTORY: string = path.join(
   REPOSITORY_ROOT,

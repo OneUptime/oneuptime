@@ -228,17 +228,15 @@ describe("the Slack and Microsoft Teams messages", () => {
   });
 
   test("a state change's message in German names OneUptime's state and severity in German", () => {
-    const message: string = SubscriberMessageText.incidentStateChangeChatMessage(
-      GERMAN,
-      {
+    const message: string =
+      SubscriberMessageText.incidentStateChangeChatMessage(GERMAN, {
         title: "Checkout is down",
         resourcesAffected: "",
         severityName: "Major Incident",
         stateName: "Resolved",
         statusPageUrl: STATUS_PAGE_URL,
         unsubscribeUrl: UNSUBSCRIBE_URL,
-      },
-    );
+      });
 
     expect(message).toContain("Vorfall - Checkout is down");
     expect(message).toContain("**Schweregrad:** Schwerwiegender Vorfall");

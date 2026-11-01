@@ -1109,9 +1109,9 @@ describe("the subscriber's language", () => {
     expect(email.envelope.templateType).toBe(EmailTemplateType.BlankTemplate);
     expect(email.envelope.language).toBeUndefined();
     expect(email.subject).toBe("[Incident] Checkout requests failing");
-    expect(
-      String((email.envelope.vars as JSONObject)["body"]),
-    ).toContain("Hallo Checkout requests failing");
+    expect(String((email.envelope.vars as JSONObject)["body"])).toContain(
+      "Hallo Checkout requests failing",
+    );
 
     // German words OneUptime's subject, Dutch reads it as English does.
     expect(

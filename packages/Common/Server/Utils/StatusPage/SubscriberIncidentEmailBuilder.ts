@@ -420,10 +420,9 @@ export default class SubscriberIncidentEmailBuilder {
                           translator: translator,
                         },
                       )
-                    : translator.translateTemplate(
-                        copy.customTemplateSubject,
-                        { title: incidentTitle },
-                      );
+                    : translator.translateTemplate(copy.customTemplateSubject, {
+                        title: incidentTitle,
+                      });
                 },
               );
 

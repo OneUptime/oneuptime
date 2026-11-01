@@ -264,7 +264,9 @@ describe("the welcome a Slack or Teams channel gets", () => {
 
     for (const message of [slack, teams]) {
       expect(message).toContain("## 📢 Neues Abonnement von Acme Status");
-      expect(message).toContain("**Sie haben Status-Updates erfolgreich abonniert!**");
+      expect(message).toContain(
+        "**Sie haben Status-Updates erfolgreich abonniert!**",
+      );
       expect(message).toContain(`[Acme Status](${STATUS_PAGE_URL})`);
       expect(message).toContain("Diese Benachrichtigungen beenden");
       expect(message).not.toContain("You will receive");

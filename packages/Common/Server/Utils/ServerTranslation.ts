@@ -20,10 +20,7 @@ import {
   DEFAULT_READER_LANGUAGE,
   toReaderLanguage,
 } from "../../Types/ReaderLanguage";
-import {
-  createTranslator,
-  Translator,
-} from "../../UI/Utils/TranslateTemplate";
+import { createTranslator, Translator } from "../../UI/Utils/TranslateTemplate";
 
 /*
  * TEXT THE SERVER WRITES, IN ITS READER'S LANGUAGE.
