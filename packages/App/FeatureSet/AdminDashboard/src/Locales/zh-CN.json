@@ -924,6 +924,7 @@
   "{{price}} per user, billed yearly from today.": "每位用户 {{price}}，自今日起按年计费。",
   "{{price}} per user, billed monthly from today.": "每位用户 {{price}}，自今日起按月计费。",
   "Our sales team will contact you to agree on a price.": "我们的销售团队会联系您商定价格。",
+  "Current plan": "当前套餐",
   "{{count}}-day free trial": "{{count}} 天免费试用",
   "{{count}}-day free trial_one": "{{count}} 天免费试用",
   "Free for {{count}} days, no card needed to start.": "免费 {{count}} 天，开始时无需绑卡。",

@@ -39136,5 +39136,6 @@
   "Serve this form on your own domain, at its root. Point each domain's CNAME record to {{cnameRecord}}.": "このフォームを独自ドメインのルートで公開します。各ドメインの CNAME レコードを {{cnameRecord}} に向けてください。",
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "Let's Encrypt にこのドメインの新しい証明書を要求し、現在提供しているものと置き換えます。その間もフォームは既存の証明書でオンラインのままで、新しい証明書は 15 分以内に提供されます。",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "フォームを公開する独自ドメイン（report.acmeinc.com など）。確認済みで、HTTPS で提供されます。",
-  "report (leave blank for root)": "report（ルートの場合は空欄）"
+  "report (leave blank for root)": "report（ルートの場合は空欄）",
+  "Current plan": "現在のプラン"
 }

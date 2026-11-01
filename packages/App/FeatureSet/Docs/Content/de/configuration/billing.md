@@ -52,11 +52,11 @@ Ein Tarifwechsel braucht eine Zahlungsmethode. Ohne eine öffnet **Tarif ändern
 
 ### Auf Tarif ändern klicken
 
-Klicken Sie auf der Karte **Aktueller Tarif** auf **Tarif ändern**. **Jahresplan** ist anfangs eingeschaltet: Schalten Sie ihn aus, um die monatlichen Preise zu sehen.
+Klicken Sie auf der Karte **Aktueller Tarif** auf **Tarif ändern**. Die Tarife öffnen sich mit dem Zeitraum, für den das Projekt abgerechnet wird; wechseln Sie zwischen **Monatlich** und **Jährlich**, um die anderen Preise zu sehen.
 
 ### Den Tarif wählen
 
-Jeder Tarif zeigt seinen Preis pro Benutzer. Der Hinweis unter den Tarifen sagt, was mit Ihrer Testphase geschieht: **Your free trial carries over**, solange das Projekt noch in seiner Testphase ist, und **Changing plan does not start a free trial**, sobald nicht mehr.
+Jeder Tarif zeigt seinen Preis pro Benutzer, und **Aktueller Tarif** markiert den Tarif, auf dem das Projekt ist. Der Hinweis unter den Tarifen sagt, was mit Ihrer Testphase geschieht: **Your free trial carries over**, solange das Projekt noch in seiner Testphase ist, und **Changing plan does not start a free trial**, sobald nicht mehr.
 
 ### Die Änderung speichern
 

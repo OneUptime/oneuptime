@@ -52,11 +52,11 @@ flowchart TB
 
 ### 点击 Change Plan
 
-在**当前套餐**卡片上点击 **Change Plan**。**年度套餐**默认打开：将其关闭可查看按月价格。
+在**当前套餐**卡片上点击 **Change Plan**。套餐按项目当前的计费周期打开：在**按月**和**按年**之间切换可查看另一种价格。
 
 ### 选择套餐
 
-每个套餐都显示其每位用户的价格。套餐下方的说明会告诉你试用期会怎样：项目仍在试用期内时显示 **Your free trial carries over**，不在试用期时显示 **Changing plan does not start a free trial**。
+每个套餐都显示其每位用户的价格，项目当前所用的套餐标有**当前套餐**。套餐下方的说明会告诉你试用期会怎样：项目仍在试用期内时显示 **Your free trial carries over**，不在试用期时显示 **Changing plan does not start a free trial**。
 
 ### 保存更改
 

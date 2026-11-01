@@ -52,11 +52,11 @@ Ett planbyte kräver en betalningsmetod. Utan en öppnar **Change Plan** i stäl
 
 ### Klicka på Change Plan
 
-Klicka på **Change Plan** på kortet **Aktuell plan**. **Årsplan** är påslagen från början: stäng av den för att se månadspriserna.
+Klicka på **Change Plan** på kortet **Aktuell plan**. Planerna öppnas med den period som projektet faktureras för; växla mellan **Månadsvis** och **Årsvis** för att se de andra priserna.
 
 ### Välj planen
 
-Varje plan visar sitt pris per användare. Anteckningen under planerna säger vad som händer med din provperiod: **Your free trial carries over** så länge projektet fortfarande är i sin provperiod, och **Changing plan does not start a free trial** när det inte längre är det.
+Varje plan visar sitt pris per användare, och **Aktuell plan** markerar den som projektet har. Anteckningen under planerna säger vad som händer med din provperiod: **Your free trial carries over** så länge projektet fortfarande är i sin provperiod, och **Changing plan does not start a free trial** när det inte längre är det.
 
 ### Spara ändringen
 

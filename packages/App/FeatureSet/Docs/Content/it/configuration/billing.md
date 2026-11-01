@@ -52,11 +52,11 @@ Un cambio di piano richiede un metodo di pagamento. Senza, **Change Plan** apre 
 
 ### Fare clic su Change Plan
 
-Nella scheda **Piano attuale**, fai clic su **Change Plan**. **Piano annuale** parte attivo: disattivalo per vedere i prezzi mensili.
+Nella scheda **Piano attuale**, fai clic su **Change Plan**. I piani si aprono sul periodo per cui il progetto è fatturato; passa da **Mensile** ad **Annuale** per vedere gli altri prezzi.
 
 ### Scegliere il piano
 
-Ogni piano mostra il suo prezzo per utente. La nota sotto i piani dice che cosa succede alla tua prova: **Your free trial carries over** finché il progetto è ancora in prova, e **Changing plan does not start a free trial** quando non lo è più.
+Ogni piano mostra il suo prezzo per utente, e **Piano attuale** segna quello su cui si trova il progetto. La nota sotto i piani dice che cosa succede alla tua prova: **Your free trial carries over** finché il progetto è ancora in prova, e **Changing plan does not start a free trial** quando non lo è più.
 
 ### Salvare la modifica
 

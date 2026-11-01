@@ -52,11 +52,11 @@ Een abonnementswijziging heeft een betaalmethode nodig. Zonder betaalmethode ope
 
 ### Op Change Plan klikken
 
-Klik op de kaart **Huidig abonnement** op **Change Plan**. **Jaarplan** staat bij het begin aan: zet het uit om de maandprijzen te zien.
+Klik op de kaart **Huidig abonnement** op **Change Plan**. De abonnementen openen op de periode waarvoor het project wordt gefactureerd; schakel tussen **Maandelijks** en **Jaarlijks** om de andere prijzen te zien.
 
 ### Het abonnement kiezen
 
-Elk abonnement toont zijn prijs per gebruiker. De opmerking onder de abonnementen zegt wat er met uw proefperiode gebeurt: **Your free trial carries over** zolang het project nog in de proefperiode zit, en **Changing plan does not start a free trial** zodra dat niet meer zo is.
+Elk abonnement toont zijn prijs per gebruiker, en **Huidig abonnement** markeert het abonnement waarop het project zit. De opmerking onder de abonnementen zegt wat er met uw proefperiode gebeurt: **Your free trial carries over** zolang het project nog in de proefperiode zit, en **Changing plan does not start a free trial** zodra dat niet meer zo is.
 
 ### De wijziging opslaan
 

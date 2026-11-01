@@ -23,8 +23,9 @@ import URL from "Common/Types/API/URL";
 import SubscriptionPlan, {
   PlanType,
 } from "Common/Types/Billing/SubscriptionPlan";
-import { getYearlySaving } from "Common/Types/Billing/SubscriptionPlanPricing";
-import { getYearlySavingText } from "Common/UI/Components/Billing/PlanPicker/PlanPickerCopy";
+import { BillingPeriod } from "Common/Types/Billing/SubscriptionPlanPricing";
+import PlanPicker from "Common/UI/Components/Billing/PlanPicker/PlanPicker";
+import { joinSentences } from "Common/UI/Components/Billing/PlanPicker/PlanPickerCopy";
 import {
   getStopSentences,
   getStoppedByMove,
@@ -45,16 +46,15 @@ import Card from "Common/UI/Components/Card/Card";
 import MarketplaceUsageCard from "../../Components/Billing/MarketplaceUsageCard";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import Modal from "Common/UI/Components/Modal/Modal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
-import Toggle from "Common/UI/Components/Toggle/Toggle";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import {
   APP_API_URL,
@@ -62,7 +62,6 @@ import {
   BILLING_PUBLIC_KEY,
   getAllEnvVars,
 } from "Common/UI/Config";
-import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import BaseAPI from "Common/UI/Utils/API/API";
 import UiAnalytics from "Common/UI/Utils/Analytics";
 import Analytics, { PurchaseData } from "Common/Utils/Analytics";
@@ -105,8 +104,6 @@ const Settings: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const theme: Theme = useTheme();
-  const [isSubscriptionPlanYearly, setIsSubscriptionPlanYearly] =
-    useState<boolean>(true);
   const [showPaymentMethodModal, setShowPaymentMethodModal] =
     useState<boolean>(false);
   const [isModalLoading, setIsModalLoading] = useState<boolean>(false);
@@ -448,8 +445,6 @@ const Settings: FunctionComponent<ComponentProps> = (
         CloudMarketplaceUtil.isCloudMarketplace(project.billingMarketplace)
       ) {
         setBillingMarketplace(project.billingMarketplace);
-        // A marketplace bills month to month; a yearly price is a private offer there.
-        setIsSubscriptionPlanYearly(false);
       }
 
       if (project?.reseller) {
@@ -668,41 +663,29 @@ const Settings: FunctionComponent<ComponentProps> = (
   const setDefaultLockedReason: string | undefined =
     getBillingActionLockedReason(getSetDefaultPaymentMethodGate());
 
-  const getFooter: GetReactElementFunction = (): ReactElement => {
-    if (!BILLING_ENABLED) {
-      return <></>;
+  /*
+   * What moving to a plan stops, said on its row before it is picked: the
+   * API keys and SCIM connections a lower plan does not include
+   * (Components/Billing/PlanCutoff). Null when it stops nothing, or while
+   * the counts are not read yet.
+   */
+  const getPlanCutoffNote: (plan: SubscriptionPlan) => string | null = (
+    plan: SubscriptionPlan,
+  ): string | null => {
+    if (!planCutoffCounts) {
+      return null;
     }
 
-    /*
-     * What yearly billing saves, worked out from the plans' prices - the
-     * switch used to promise "(Save 20%)" whatever they were (Growth saves
-     * 9% on OneUptime Cloud, Scale 15%). Nothing is said when no plan is
-     * cheaper yearly.
-     */
-    const yearlySavingText: string | null = getYearlySavingText({
-      saving: getYearlySaving(
-        SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()),
-      ),
+    const sentences: Array<string> = getStopSentences({
       translator,
+      stopped: getStoppedByMove({
+        counts: planCutoffCounts,
+        fromPlan: currentPlanType,
+        toPlan: plan.getName() as PlanType,
+      }),
     });
 
-    return (
-      <>
-        {billingMarketplace ? (
-          <></>
-        ) : (
-          <Toggle
-            title="Yearly Plan"
-            value={isSubscriptionPlanYearly}
-            description={yearlySavingText || undefined}
-            onChange={(value: boolean) => {
-              setIsSubscriptionPlanYearly(value);
-            }}
-          />
-        )}
-        <ChangePlanBillingNote trialEndsAt={trialEndsAt} />
-      </>
-    );
+    return sentences.length > 0 ? joinSentences(sentences) : null;
   };
 
   return (
@@ -773,6 +756,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                 paymentMethodsCount !== null || Boolean(billingMarketplace)
               }
               editButtonText={"Change Plan"}
+              // The dialog is the plan change itself, as wide as Create New Project's.
+              editModalTitle={"Change Plan"}
+              createEditModalWidth={ModalWidth.Medium}
               onBeforeEdit={() => {
                 if (!billingMarketplace && paymentMethodsCount === 0) {
                   setShowNoPaymentMethodModal(true);
@@ -791,98 +777,50 @@ const Settings: FunctionComponent<ComponentProps> = (
                   field: {
                     paymentProviderPlanId: true,
                   },
-                  validation: {
-                    minLength: 6,
-                  },
-                  fieldType: FormFieldSchemaType.OptionChooserButton,
-                  radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
-                    getAllEnvVars(),
-                  ).map((plan: SubscriptionPlan): RadioButton => {
-                    /*
-                     * No trial is offered here. A plan's trial period is
-                     * what a new project on it gets (ProjectPicker); a plan
-                     * change only keeps a trial the project is already on,
-                     * and the note under the plans says which applies
-                     * (ChangePlanBillingNote).
-                     */
-                    let description: string = plan.isCustomPricing()
-                      ? translator.translateTemplate(
-                          "Our sales team will contact you soon.",
-                        )
-                      : isSubscriptionPlanYearly
-                        ? translator.translateTemplate("Billed yearly.")
-                        : translator.translateTemplate("Billed monthly.");
-
-                    if (
-                      isSubscriptionPlanYearly &&
-                      plan.getYearlySubscriptionAmountInUSD() === 0
-                    ) {
-                      description = translator.translateTemplate(
-                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
-                      );
-                    }
-
-                    if (
-                      !isSubscriptionPlanYearly &&
-                      plan.getMonthlySubscriptionAmountInUSD() === 0
-                    ) {
-                      description = translator.translateTemplate(
-                        "$0 subscription. Paid features are billed separately when pay as you go is enabled.",
-                      );
-                    }
-
-                    // What moving to this plan stops, named before it is picked.
-                    if (planCutoffCounts) {
-                      description = [
-                        description,
-                        ...getStopSentences({
-                          translator,
-                          stopped: getStoppedByMove({
-                            counts: planCutoffCounts,
-                            fromPlan: currentPlanType,
-                            toPlan: plan.getName() as PlanType,
-                          }),
-                        }),
-                      ]
-                        .filter((sentence: string) => {
-                          return Boolean(sentence);
-                        })
-                        .join(" ");
-                    }
-
-                    return {
-                      value: isSubscriptionPlanYearly
-                        ? plan.getYearlyPlanId()
-                        : plan.getMonthlyPlanId(),
-                      title: plan.getName(),
-                      description: description,
-                      sideTitle: plan.isCustomPricing()
-                        ? translator.translateTerm("Custom Price")
-                        : isSubscriptionPlanYearly
-                          ? translator.translateTemplate(
-                              "${{amount}}/mo billed yearly",
-                              {
-                                amount: plan.getYearlySubscriptionAmountInUSD(),
-                              },
-                            )
-                          : "$" +
-                            plan.getMonthlySubscriptionAmountInUSD().toString(),
-                      sideDescription: plan.isCustomPricing()
-                        ? ""
-                        : isSubscriptionPlanYearly
-                          ? translator.translateTemplate(
-                              "~ ${{amount}} per user / year",
-                              {
-                                amount:
-                                  plan.getYearlySubscriptionAmountInUSD() * 12,
-                              },
-                            )
-                          : translator.translateTemplate("/month per user"),
-                    };
-                  }),
-                  title: "Please select a plan.",
+                  title: "Plan",
+                  fieldType: FormFieldSchemaType.CustomComponent,
+                  // The picker draws "Plan" itself, with the Monthly | Yearly switch beside it.
+                  customElementDrawsOwnLabel: true,
                   required: true,
-                  footerElement: getFooter(),
+                  /*
+                   * The plan picker a new project starts on, for a plan
+                   * change: it opens at the period the project is billed
+                   * for, marks the plan it is on, offers no trial (a change
+                   * keeps a running trial and never starts one, which the
+                   * note under the plans says), and names what moving to a
+                   * plan stops. A cloud marketplace bills month to month, so
+                   * a project it bills sees the monthly prices alone: a
+                   * yearly price is a private offer there.
+                   */
+                  getCustomElement: (
+                    _values: FormValues<Project>,
+                    props: CustomElementProps,
+                  ): ReactElement => {
+                    return (
+                      <PlanPicker
+                        plans={SubscriptionPlan.getSubscriptionPlans(
+                          getAllEnvVars(),
+                        )}
+                        value={(props.initialValue as string) || ""}
+                        isPlanChange={true}
+                        currentPlanId={currentPlanId || undefined}
+                        periods={
+                          billingMarketplace
+                            ? [BillingPeriod.Monthly]
+                            : undefined
+                        }
+                        getPlanNote={getPlanCutoffNote}
+                        error={props.error}
+                        dataTestId="change-plan-picker"
+                        onChange={(planId: string) => {
+                          props.onChange?.(planId);
+                        }}
+                      />
+                    );
+                  },
+                  footerElement: BILLING_ENABLED ? (
+                    <ChangePlanBillingNote trialEndsAt={trialEndsAt} />
+                  ) : undefined,
                 },
               ]}
               modelDetailProps={{

@@ -263,6 +263,55 @@ describe("PlanPickerCopy: each plan's row", () => {
     ).toBe("30-day free trial");
   });
 
+  /*
+   * A plan change keeps a trial the project is on and never starts one
+   * (BillingService.changePlan), so the Change Plan picker offers none: a
+   * plan's own trial period is what a NEW project on it gets.
+   */
+  it("offers no trial pill in a plan change, whatever the plan's trial", () => {
+    for (const plan of [GROWTH, withTrial(GROWTH, 1), ENTERPRISE]) {
+      for (const period of [BillingPeriod.Monthly, BillingPeriod.Yearly]) {
+        expect(
+          getPlanPickerOptionText({
+            plan,
+            period,
+            translator: english,
+            showsTrial: false,
+          }).trialBadge,
+        ).toBeNull();
+      }
+    }
+
+    // Left out, it is a new project's picker: the trial is offered.
+    expect(
+      getPlanPickerOptionText({
+        plan: GROWTH,
+        period: BillingPeriod.Yearly,
+        translator: english,
+      }).trialBadge,
+    ).toBe("14-day free trial");
+  });
+
+  it("a plan change's row is otherwise the same row: name, line and price", () => {
+    const newProject: ReturnType<typeof getPlanPickerOptionText> =
+      getPlanPickerOptionText({
+        plan: SCALE,
+        period: BillingPeriod.Yearly,
+        translator: english,
+      });
+    const planChange: ReturnType<typeof getPlanPickerOptionText> =
+      getPlanPickerOptionText({
+        plan: SCALE,
+        period: BillingPeriod.Yearly,
+        translator: english,
+        showsTrial: false,
+      });
+
+    expect({ ...planChange, trialBadge: newProject.trialBadge }).toEqual(
+      newProject,
+    );
+  });
+
   it("a plan name OneUptime Cloud does not sell keeps its name and gets no line", () => {
     const other: SubscriptionPlan = new SubscriptionPlan(
       "m",

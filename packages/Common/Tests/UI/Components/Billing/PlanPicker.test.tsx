@@ -472,3 +472,167 @@ describe("PlanPicker", () => {
     expect(within(switcher).getByText("Yearly")).toBeVisible();
   });
 });
+
+/*
+ * The same picker for a plan change (the Billing page's Change Plan): the
+ * plan the project is on is marked, no plan offers a trial - a change keeps
+ * a running trial and never starts one, which the dialog says under the
+ * plans - a new project's terms are not drawn, and what a move to a plan
+ * stops is said on its row. A project a cloud marketplace bills sees one
+ * period.
+ */
+describe("PlanPicker for a plan change", () => {
+  const PlanChange: (props: {
+    value?: string;
+    currentPlanId?: string;
+    getPlanNote?: (plan: SubscriptionPlan) => string | null;
+    periods?: Array<BillingPeriod>;
+  }) => ReactElement = (props: {
+    value?: string;
+    currentPlanId?: string;
+    getPlanNote?: (plan: SubscriptionPlan) => string | null;
+    periods?: Array<BillingPeriod>;
+  }): ReactElement => {
+    const [value, setValue] = useState<string>(props.value || "");
+
+    return (
+      <PlanPicker
+        plans={CLOUD_PLANS}
+        value={value}
+        isPlanChange={true}
+        currentPlanId={props.currentPlanId}
+        getPlanNote={props.getPlanNote}
+        periods={props.periods}
+        onChange={(planId: string) => {
+          onChange(planId);
+          setValue(planId);
+        }}
+      />
+    );
+  };
+
+  it("offers no trial on any plan, and draws no new project's terms", () => {
+    render(
+      <PlanChange
+        value="price_growth_month"
+        currentPlanId="price_growth_month"
+      />,
+    );
+
+    for (const plan of ["Free", "Growth", "Scale", "Enterprise"]) {
+      expect(row(plan).textContent || "").not.toMatch(/trial/i);
+      expect(describedText(radio(plan))).not.toMatch(/trial/i);
+    }
+
+    expect(screen.queryByTestId("plan-picker-terms")).toBeNull();
+  });
+
+  it("opens at the period of the plan the project is on, and marks that plan", () => {
+    render(
+      <PlanChange
+        value="price_growth_month"
+        currentPlanId="price_growth_month"
+      />,
+    );
+
+    expect(period("monthly")).toHaveAttribute("aria-pressed", "true");
+    expect(radio("Growth")).toBeChecked();
+    expect(
+      within(row("Growth")).getByTestId("plan-picker-current-plan"),
+    ).toHaveTextContent("Current plan");
+    expect(screen.getAllByTestId("plan-picker-current-plan")).toHaveLength(1);
+  });
+
+  it("reads Current plan with the plan's radio, and keeps the plan's name its name", () => {
+    render(
+      <PlanChange value="price_scale_year" currentPlanId="price_scale_year" />,
+    );
+
+    expect(radio("Scale")).toBeChecked();
+    expect(describedText(radio("Scale"))).toContain("Current plan");
+    expect(describedText(radio("Growth"))).not.toContain("Current plan");
+  });
+
+  it("marks the plan only at the period it is billed for", () => {
+    render(
+      <PlanChange value="price_scale_year" currentPlanId="price_scale_year" />,
+    );
+
+    expect(screen.getByTestId("plan-picker-current-plan")).toBeInTheDocument();
+
+    fireEvent.click(period("monthly"));
+
+    // Scale billed monthly is another price to move to.
+    expect(screen.queryByTestId("plan-picker-current-plan")).toBeNull();
+    expect(onChange).toHaveBeenLastCalledWith("price_scale_month");
+
+    fireEvent.click(period("yearly"));
+
+    expect(screen.getByTestId("plan-picker-current-plan")).toBeInTheDocument();
+  });
+
+  it("says on a plan's row what moving to it stops, and reads it with the radio", () => {
+    render(
+      <PlanChange
+        value="price_growth_year"
+        currentPlanId="price_growth_year"
+        getPlanNote={(plan: SubscriptionPlan): string | null => {
+          return plan.getName() === "Free"
+            ? "Your 3 API keys stop working on this plan."
+            : null;
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId("plan-picker-note-Free")).toHaveTextContent(
+      "Your 3 API keys stop working on this plan.",
+    );
+    expect(screen.queryByTestId("plan-picker-note-Growth")).toBeNull();
+    expect(describedText(radio("Free"))).toContain(
+      "Your 3 API keys stop working on this plan.",
+    );
+    // After who the plan is for, before its price.
+    expect(describedText(radio("Free"))).toBe(
+      "For one person getting started. | Your 3 API keys stop working on this plan. | $0",
+    );
+  });
+
+  it("with one period, draws no switch and says nothing of what yearly saves", () => {
+    render(
+      <PlanChange
+        value="price_growth_month"
+        currentPlanId="price_growth_month"
+        periods={[BillingPeriod.Monthly]}
+      />,
+    );
+
+    expect(screen.queryByRole("group", { name: "Billing period" })).toBeNull();
+    expect(screen.queryByTestId("plan-picker-saving")).toBeNull();
+    expect(radio("Scale").value).toBe("price_scale_month");
+    expect(within(row("Growth")).getByText("billed monthly")).toBeVisible();
+  });
+
+  it("shows a period it may be billed for even when the value is another one", () => {
+    render(
+      <PlanChange
+        value="price_growth_year"
+        currentPlanId="price_growth_year"
+        periods={[BillingPeriod.Monthly]}
+      />,
+    );
+
+    expect(radio("Growth").value).toBe("price_growth_month");
+    expect(radio("Growth")).toBeChecked();
+    expect(screen.queryByTestId("plan-picker-current-plan")).toBeNull();
+    // Nothing is changed for the reader until they pick.
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("a new project's picker is unchanged: trials offered, terms drawn, nothing marked", () => {
+    render(<Controlled initialValue="price_growth_year" />);
+
+    expect(row("Growth").textContent || "").toContain("14-day free trial");
+    expect(termsText()).toContain("Free for 14 days");
+    expect(screen.queryByTestId("plan-picker-current-plan")).toBeNull();
+  });
+});

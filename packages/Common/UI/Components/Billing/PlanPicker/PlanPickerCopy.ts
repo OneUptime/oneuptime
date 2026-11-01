@@ -60,6 +60,7 @@ export const PlanPickerCopy: {
   billedYearlyFromToday: string;
   billedMonthlyFromToday: string;
   salesWillContact: string;
+  currentPlan: string;
 } = {
   label: translationKey("Plan"),
   monthly: translationKey("Monthly"),
@@ -92,6 +93,8 @@ export const PlanPickerCopy: {
   salesWillContact: translationKey(
     "Our sales team will contact you to agree on a price.",
   ),
+  // In a plan change: the pill on the plan, at the period, the project is on.
+  currentPlan: translationKey("Current plan"),
 };
 
 // The pill on a plan that a new project tries for free first.
@@ -155,10 +158,16 @@ export const getPlanPickerOptionText: (data: {
   plan: SubscriptionPlan;
   period: BillingPeriod;
   translator: Translator;
+  /*
+   * Whether the plan's trial is offered: a new project's is, a plan change
+   * keeps a running trial and never starts one, so it offers none.
+   */
+  showsTrial?: boolean | undefined;
 }) => PlanPickerOptionText = (data: {
   plan: SubscriptionPlan;
   period: BillingPeriod;
   translator: Translator;
+  showsTrial?: boolean | undefined;
 }): PlanPickerOptionText => {
   const { plan, period, translator } = data;
   const audience: string | null = getPlanAudience(plan);
@@ -166,7 +175,7 @@ export const getPlanPickerOptionText: (data: {
   const isFree: boolean = isPlanFree(plan, period);
 
   const trialBadge: string | null =
-    trialDays > 0 && !isFree
+    data.showsTrial !== false && trialDays > 0 && !isFree
       ? translator.translatePlural(TRIAL_BADGE, trialDays)
       : null;
 

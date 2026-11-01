@@ -52,11 +52,11 @@ Un changement de forfait demande un moyen de paiement. Sans lui, **Changer de fo
 
 ### Cliquer sur Changer de forfait
 
-Sur la carte **Forfait actuel**, cliquez sur **Changer de forfait**. **Plan annuel** est activé au départ : désactivez-le pour voir les prix mensuels.
+Sur la carte **Forfait actuel**, cliquez sur **Changer de forfait**. Les forfaits s'ouvrent sur la période pour laquelle le projet est facturé ; passez de **Mensuel** à **Annuel** pour voir les autres prix.
 
 ### Choisir le forfait
 
-Chaque forfait affiche son prix par utilisateur. La note sous les forfaits dit ce qu'il advient de votre essai : **Your free trial carries over** tant que le projet est encore en période d'essai, et **Changing plan does not start a free trial** une fois qu'il ne l'est plus.
+Chaque forfait affiche son prix par utilisateur, et **Forfait actuel** marque celui du projet. La note sous les forfaits dit ce qu'il advient de votre essai : **Your free trial carries over** tant que le projet est encore en période d'essai, et **Changing plan does not start a free trial** une fois qu'il ne l'est plus.
 
 ### Enregistrer le changement
 

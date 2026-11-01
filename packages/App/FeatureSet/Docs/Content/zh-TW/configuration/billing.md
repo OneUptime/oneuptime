@@ -52,11 +52,11 @@ flowchart TB
 
 ### 點選 Change Plan
 
-在**目前方案**卡片上點選 **Change Plan**。**年度方案**預設開啟：將其關閉可查看按月價格。
+在**目前方案**卡片上點選 **Change Plan**。方案會以專案目前的計費週期開啟：在**按月**與**按年**之間切換可查看另一種價格。
 
 ### 選擇方案
 
-每個方案都顯示其每位使用者的價格。方案下方的說明會告訴你試用期會怎樣：專案仍在試用期內時顯示 **Your free trial carries over**，不在試用期時顯示 **Changing plan does not start a free trial**。
+每個方案都顯示其每位使用者的價格，專案目前使用的方案標有**目前方案**。方案下方的說明會告訴你試用期會怎樣：專案仍在試用期內時顯示 **Your free trial carries over**，不在試用期時顯示 **Changing plan does not start a free trial**。
 
 ### 儲存變更
 

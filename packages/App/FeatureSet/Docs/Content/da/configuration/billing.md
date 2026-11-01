@@ -52,11 +52,11 @@ Et planskift kræver en betalingsmetode. Uden en åbner **Change Plan** i stedet
 
 ### Klik på Change Plan
 
-Klik på **Change Plan** på kortet **Aktuel plan**. **Årlig plan** er slået til fra start: slå den fra for at se månedspriserne.
+Klik på **Change Plan** på kortet **Aktuel plan**. Planerne åbner med den periode, projektet faktureres for; skift mellem **Månedlig** og **Årlig** for at se de andre priser.
 
 ### Vælg planen
 
-Hver plan viser sin pris pr. bruger. Noten under planerne siger, hvad der sker med din prøveperiode: **Your free trial carries over**, så længe projektet stadig er i sin prøveperiode, og **Changing plan does not start a free trial**, når det ikke længere er.
+Hver plan viser sin pris pr. bruger, og **Aktuel plan** markerer den, projektet er på. Noten under planerne siger, hvad der sker med din prøveperiode: **Your free trial carries over**, så længe projektet stadig er i sin prøveperiode, og **Changing plan does not start a free trial**, når det ikke længere er.
 
 ### Gem ændringen
 

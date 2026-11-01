@@ -52,11 +52,11 @@ Uma mudança de plano precisa de um método de pagamento. Sem um, **Change Plan*
 
 ### Clicar em Change Plan
 
-No cartão **Plano Atual**, clique em **Change Plan**. **Plano anual** começa ativado: desative para ver os preços mensais.
+No cartão **Plano Atual**, clique em **Change Plan**. Os planos abrem no período em que o projeto é cobrado; alterne entre **Mensal** e **Anual** para ver os outros preços.
 
 ### Escolher o plano
 
-Cada plano mostra o preço por usuário. A nota abaixo dos planos diz o que acontece com o seu teste: **Your free trial carries over** enquanto o projeto ainda está no período de teste, e **Changing plan does not start a free trial** quando não está mais.
+Cada plano mostra o preço por usuário, e **Plano atual** marca aquele em que o projeto está. A nota abaixo dos planos diz o que acontece com o seu teste: **Your free trial carries over** enquanto o projeto ainda está no período de teste, e **Changing plan does not start a free trial** quando não está mais.
 
 ### Salvar a mudança
 

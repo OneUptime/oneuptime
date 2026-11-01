@@ -52,11 +52,11 @@ flowchart TB
 
 ### Change Plan 클릭
 
-**현재 요금제** 카드에서 **Change Plan**을 클릭합니다. **연간 플랜**은 처음에 켜져 있습니다. 월간 가격을 보려면 끄세요.
+**현재 요금제** 카드에서 **Change Plan**을 클릭합니다. 요금제는 프로젝트가 청구되는 기간으로 열립니다. 다른 가격을 보려면 **월간**과 **연간** 사이를 전환하세요.
 
 ### 요금제 선택
 
-각 요금제에는 사용자당 가격이 표시됩니다. 요금제 아래의 안내에는 평가판이 어떻게 되는지 나옵니다. 프로젝트가 아직 평가판 기간이면 **Your free trial carries over**, 그렇지 않으면 **Changing plan does not start a free trial**입니다.
+각 요금제에는 사용자당 가격이 표시되고, 프로젝트가 사용 중인 요금제에는 **현재 요금제**가 표시됩니다. 요금제 아래의 안내에는 평가판이 어떻게 되는지 나옵니다. 프로젝트가 아직 평가판 기간이면 **Your free trial carries over**, 그렇지 않으면 **Changing plan does not start a free trial**입니다.
 
 ### 변경 저장
 

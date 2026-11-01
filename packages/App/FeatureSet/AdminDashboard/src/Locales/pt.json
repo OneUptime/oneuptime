@@ -924,6 +924,7 @@
   "{{price}} per user, billed yearly from today.": "{{price}} por usuário, cobrado anualmente a partir de hoje.",
   "{{price}} per user, billed monthly from today.": "{{price}} por usuário, cobrado mensalmente a partir de hoje.",
   "Our sales team will contact you to agree on a price.": "Nossa equipe de vendas entrará em contato para combinar um preço.",
+  "Current plan": "Plano atual",
   "{{count}}-day free trial": "Teste grátis de {{count}} dias",
   "{{count}}-day free trial_one": "Teste grátis de {{count}} dia",
   "Free for {{count}} days, no card needed to start.": "Grátis por {{count}} dias, sem cartão para começar.",
