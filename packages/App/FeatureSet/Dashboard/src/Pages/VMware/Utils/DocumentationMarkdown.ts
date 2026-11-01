@@ -15,6 +15,7 @@ import {
   INSTALL_SCRIPT_READ_FIRST_NOTE,
   getAgentFileDownloadCommand,
   getInstallScriptDownloadCommand,
+  getInstallScriptRunCommand,
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import {
@@ -585,7 +586,7 @@ export function getVMwareInstallScriptCommand(data: {
       data.oneuptimeUrl,
       VMWARE_AGENT_INSTALL_NAME,
     ),
-    [...environment, "bash install.sh"].join(" "),
+    getInstallScriptRunCommand(environment, "bash install.sh"),
   ].join("\n");
 }
 

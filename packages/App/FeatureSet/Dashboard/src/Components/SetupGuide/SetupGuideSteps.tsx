@@ -51,7 +51,12 @@ const SetupGuideSteps: FunctionComponent<ComponentProps> = (
               {!isLast && <div className="mt-2 w-0.5 flex-1 bg-gray-200" />}
             </div>
             <div className={`min-w-0 flex-1 ${isLast ? "pb-0" : "pb-8"}`}>
-              <h3 className="text-sm font-semibold leading-9 text-gray-900">
+              {/*
+               * As tall as the number beside it (36px) for one line, its
+               * text centred on the number; a title that wraps (a phone, a
+               * long language) continues at the text's own line height.
+               */}
+              <h3 className="py-1.5 text-sm font-semibold leading-6 text-gray-900">
                 {/* What a screen reader says before the title, in its language. */}
                 <span className="sr-only">
                   {translator.translateTemplate("Step {{number}}:", {

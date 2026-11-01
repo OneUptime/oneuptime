@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
+import { joinContinuedLines } from "./InstallCommandLines";
 import {
   DATABASE_AGENT_CONFIGS,
   DATABASE_AGENT_DOCKER_COMPOSE,
@@ -219,9 +220,12 @@ function codeBlocks(
   return blocks;
 }
 
-// The line of some markdown that runs install.sh (the first one).
+/*
+ * The line of some markdown that runs install.sh (the first one), as a
+ * shell reads it: the guide puts each of its values on a line of its own.
+ */
 function installCommandOf(markdown: string): string {
-  const command: string | undefined = markdown
+  const command: string | undefined = joinContinuedLines(markdown)
     .split("\n")
     .find((line: string): boolean => {
       return line.endsWith(" bash install.sh");
@@ -232,11 +236,13 @@ function installCommandOf(markdown: string): string {
   return command;
 }
 
-// Every line of some markdown that runs install.sh.
+// Every line of some markdown that runs install.sh, as a shell reads it.
 function installCommandsOf(markdown: string): Array<string> {
-  return markdown.split("\n").filter((line: string): boolean => {
-    return line.endsWith("bash install.sh");
-  });
+  return joinContinuedLines(markdown)
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.endsWith("bash install.sh");
+    });
 }
 
 /* The fenced block that sets ONEUPTIME_URL: the `.env` file. */

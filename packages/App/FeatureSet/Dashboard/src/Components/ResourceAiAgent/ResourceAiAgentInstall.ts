@@ -106,9 +106,13 @@ export interface ResourceAiAgentInstall {
    */
   installerCommand: string | null;
   /*
-   * Under the installer, whole sentences in the reader's language: what it
-   * asks for, with the answers this page knows (this OneUptime's URL, the
-   * resource's name), and what it needs. Empty without an installer.
+   * Under the installer: what it asks for, with the answers this page knows
+   * (this OneUptime's URL, the resource's name). Null without an installer.
+   */
+  installerAsks: ResourceAiAgentInstallerAsks | null;
+  /*
+   * Under that, whole sentences in the reader's language: what the
+   * installer needs besides. Empty without an installer.
    */
   installerNotes: Array<string>;
   // The variables the agent reads, the resource's own first.
@@ -885,19 +889,50 @@ sudo bash install.sh`;
  * the agent must register with - or, when the page could not read it, the
  * installer's own default, the hostname.
  */
+export const HOST_AI_AGENT_INSTALLER_ASKS_WITH_NAME: string = translationKey(
+  "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name ({{name}}).",
+);
+
+export const HOST_AI_AGENT_INSTALLER_ASKS_WITHOUT_NAME: string = translationKey(
+  "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name: leave it empty to use the hostname.",
+);
+
+/*
+ * The sentence as data: the page draws the URL and the name as values of
+ * their own - kept whole, and read left to right inside a Persian sentence
+ * - in the template's places.
+ */
+export interface ResourceAiAgentInstallerAsks {
+  // A translation key, with {{url}} and, when the name is known, {{name}}.
+  template: string;
+  url: string;
+  hostName: string | null;
+}
+
+export function getHostAiAgentInstallerAsks(data: {
+  oneuptimeUrl: string;
+  hostName: string | null;
+}): ResourceAiAgentInstallerAsks {
+  return {
+    template: data.hostName
+      ? HOST_AI_AGENT_INSTALLER_ASKS_WITH_NAME
+      : HOST_AI_AGENT_INSTALLER_ASKS_WITHOUT_NAME,
+    url: data.oneuptimeUrl,
+    hostName: data.hostName,
+  };
+}
+
+// The same sentence as text, in the reader's language.
 export function getHostAiAgentInstallerAsksText(data: {
   oneuptimeUrl: string;
   hostName: string | null;
 }): string {
-  return data.hostName
-    ? translateTemplate(
-        "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name ({{name}}).",
-        { url: data.oneuptimeUrl, name: data.hostName },
-      )
-    : translateTemplate(
-        "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name: leave it empty to use the hostname.",
-        { url: data.oneuptimeUrl },
-      );
+  const asks: ResourceAiAgentInstallerAsks = getHostAiAgentInstallerAsks(data);
+
+  return translateTemplate(
+    asks.template,
+    asks.hostName ? { url: asks.url, name: asks.hostName } : { url: asks.url },
+  );
 }
 
 export function getResourceAiAgentInstall(data: {
@@ -1014,17 +1049,18 @@ export function getResourceAiAgentInstall(data: {
       spec.installScript === InstallScriptName.HostAiAgent
         ? getHostAiAgentInstallCommand(oneuptimeUrl)
         : null,
+    installerAsks:
+      spec.installScript === InstallScriptName.HostAiAgent
+        ? getHostAiAgentInstallerAsks({
+            oneuptimeUrl: oneuptimeUrl,
+            hostName: identity,
+          })
+        : null,
     installerNotes:
       spec.installScript === InstallScriptName.HostAiAgent
-        ? [
-            getHostAiAgentInstallerAsksText({
-              oneuptimeUrl: oneuptimeUrl,
-              hostName: identity,
-            }),
-            ...(spec.installerNotes || []).map((note: string): string => {
-              return translateTemplate(note);
-            }),
-          ]
+        ? (spec.installerNotes || []).map((note: string): string => {
+            return translateTemplate(note);
+          })
         : [],
     variables: [
       {

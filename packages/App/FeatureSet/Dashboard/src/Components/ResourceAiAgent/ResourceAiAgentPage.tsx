@@ -69,6 +69,7 @@ import {
 import {
   ResourceAiAgentInstall,
   ResourceAiAgentInstallVariable,
+  ResourceAiAgentInstallerAsks,
   ResourceAiAgentWriteAccessCommands,
   getResourceAiAgentInstall,
   getResourceAiAgentLogsCommand,
@@ -740,6 +741,7 @@ function InstallInstructions(props: {
       {installerCommand ? (
         <InstallerInstructions
           command={installerCommand}
+          asks={props.install.installerAsks}
           notes={props.install.installerNotes}
         />
       ) : (
@@ -770,6 +772,7 @@ function InstallInstructions(props: {
  */
 function InstallerInstructions(props: {
   command: string;
+  asks: ResourceAiAgentInstallerAsks | null;
   notes: Array<string>;
 }): ReactElement {
   const translator: Translator = useTranslator();
@@ -785,11 +788,50 @@ function InstallerInstructions(props: {
         data-testid="ai-agent-install-installer-notes"
       >
         <li>{translator.translateText(INSTALL_SCRIPT_READ_FIRST_NOTE)}</li>
+        {props.asks ? (
+          <li data-testid="ai-agent-install-installer-asks">
+            <TranslatedSentence
+              template={props.asks.template}
+              slots={{
+                url: <InstallerAnswer value={props.asks.url} />,
+                ...(props.asks.hostName
+                  ? { name: <InstallerAnswer value={props.asks.hostName} /> }
+                  : {}),
+              }}
+            />
+          </li>
+        ) : (
+          <></>
+        )}
         {props.notes.map((note: string): ReactElement => {
           return <li key={note}>{note}</li>;
         })}
       </ul>
     </div>
+  );
+}
+
+/*
+ * An answer the page gives the installer in its sentence - this
+ * OneUptime's URL, the host's name - as a value of its own: read left to
+ * right inside a Persian sentence, where its brackets stayed on the wrong
+ * side of it ("(prod-" at a line's end), and kept on one line when it is
+ * short enough, never broken at a hyphen ("prod-web-" / "01").
+ */
+export const INSTALLER_ANSWER_KEPT_WHOLE_MAX_LENGTH: number = 40;
+
+function InstallerAnswer(props: { value: string }): ReactElement {
+  return (
+    <bdi
+      className={
+        props.value.length <= INSTALLER_ANSWER_KEPT_WHOLE_MAX_LENGTH
+          ? "whitespace-nowrap"
+          : "[overflow-wrap:anywhere]"
+      }
+      data-testid="ai-agent-install-installer-answer"
+    >
+      {props.value}
+    </bdi>
   );
 }
 
@@ -868,7 +910,13 @@ function ComposeInstructions(props: {
                     <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-800">
                       {variable.name}
                     </td>
-                    <td className="break-all px-3 py-2 font-mono text-gray-800">
+                    {/*
+                     * A value is one short token ("from .env", "(empty)",
+                     * the host's name, a database's id): kept whole, never
+                     * broken mid-word to a column a few letters wide. The
+                     * table scrolls inside its box when it runs out of room.
+                     */}
+                    <td className="whitespace-nowrap px-3 py-2 font-mono text-gray-800">
                       {variable.value}
                     </td>
                     <td className="px-3 py-2 text-gray-600">

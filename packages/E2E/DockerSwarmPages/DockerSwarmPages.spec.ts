@@ -612,6 +612,85 @@ test.describe("the Swarm agent's version on the Overview", () => {
     await expectNoSidewaysScroll(page);
   });
 
+  /*
+   * On a phone the command wraps, a line at a time: the rest of a line that
+   * wraps starts past the line's own start (a hanging indent), never at the
+   * left edge where it read as a command of its own ("install.sh" alone on
+   * a line). And what a reader selects to copy by hand is the command as
+   * written: one line break between its lines, none where a line wrapped.
+   */
+  test("on a phone: a wrapped line goes on under its own start, and copies by hand as written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openOverview(page);
+
+    await page.getByRole("button", { name: OUTDATED_NAME }).click();
+    const dialog: Locator = page.getByRole("dialog");
+    const code: Locator = dialog.locator("pre code");
+    await expect(code).toHaveCount(1);
+
+    const lines: Locator = code.locator(":scope > span");
+    await expect(lines).toHaveCount(2);
+
+    // Where each row of the download's line starts, top to bottom.
+    const rowStarts: Array<number> = await lines
+      .first()
+      .evaluate((element: Element): Array<number> => {
+        const range: Range = document.createRange();
+        range.selectNodeContents(element);
+        const starts: Map<number, number> = new Map();
+
+        for (const rect of Array.from(range.getClientRects())) {
+          if (rect.width === 0) {
+            continue;
+          }
+          const top: number = Math.round(rect.top);
+          starts.set(top, Math.min(starts.get(top) ?? Infinity, rect.left));
+        }
+
+        return Array.from(starts.entries())
+          .sort((a: [number, number], b: [number, number]): number => {
+            return a[0] - b[0];
+          })
+          .map((entry: [number, number]): number => {
+            return entry[1];
+          });
+      });
+
+    expect(rowStarts.length).toBeGreaterThan(1);
+    for (const start of rowStarts.slice(1)) {
+      expect(start).toBeGreaterThan(rowStarts[0]! + 8);
+    }
+
+    // The next line, the one that runs the script, starts where the first did.
+    const runStart: number = (await boxOf(lines.nth(1))).x;
+    expect(Math.abs(runStart - rowStarts[0]!)).toBeLessThan(1);
+
+    const copied: { selected: string; written: string } = await code.evaluate(
+      (element: Element): { selected: string; written: string } => {
+        const range: Range = document.createRange();
+        range.selectNodeContents(element);
+        const selection: Selection = window.getSelection()!;
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        return {
+          selected: selection.toString(),
+          written: element.textContent || "",
+        };
+      },
+    );
+
+    expect(copied.selected).toBe(copied.written);
+    expect(copied.written.split("\n")).toHaveLength(2);
+    expect(copied.written).toContain(
+      "/install/docker-swarm-agent -o install.sh\n",
+    );
+  });
+
   test("in German: the sign and its dialog read in German", async ({
     page,
   }: {

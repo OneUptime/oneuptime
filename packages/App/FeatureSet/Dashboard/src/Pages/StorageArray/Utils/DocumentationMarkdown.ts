@@ -13,6 +13,7 @@ import {
   getAgentFileDownloadCommand,
   getAgentFileDownloadToCommand,
   getInstallScriptDownloadCommand,
+  getInstallScriptRunCommand,
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
@@ -890,7 +891,7 @@ function installScriptCommand(
       oneuptimeUrl,
       STORAGE_ARRAY_AGENT_INSTALL_NAME,
     ),
-    [...words, "bash install.sh"].join(" "),
+    getInstallScriptRunCommand(words, "bash install.sh"),
   ].join("\n");
 }
 
