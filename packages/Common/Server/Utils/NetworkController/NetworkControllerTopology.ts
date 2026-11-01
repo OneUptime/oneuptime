@@ -118,12 +118,13 @@ export interface ControllerLinkPlan {
   linkedDeviceCount: number;
 }
 
-// The strongest match first: a serial number outranks a MAC, a MAC a name.
-const MATCH_RULE_ORDER: ReadonlyArray<ControllerMatchRule> = [
-  ControllerMatchRule.SerialNumber,
-  ControllerMatchRule.MacAddress,
-  ControllerMatchRule.AddressAndName,
-];
+// The strongest match lowest: a serial number outranks a MAC, a MAC a name.
+const MATCH_RULE_RANK: Readonly<Record<ControllerMatchRule, number>> = {
+  [ControllerMatchRule.SerialNumber]: 0,
+  [ControllerMatchRule.MacAddress]: 1,
+  [ControllerMatchRule.AddressAndName]: 2,
+  [ControllerMatchRule.NameAndMacBlock]: 3,
+};
 
 /*
  * Which device here each Meraki device is, by serial number. Two devices here
@@ -147,9 +148,9 @@ export function getPlacedDevicesBySerial(data: {
   for (const [id, match] of data.matches) {
     const held: { id: string; match: ControllerInventoryMatch } | undefined =
       chosen.get(match.device.serial);
-    const rank: number = MATCH_RULE_ORDER.indexOf(match.rule);
+    const rank: number = MATCH_RULE_RANK[match.rule];
     const heldRank: number = held
-      ? MATCH_RULE_ORDER.indexOf(held.match.rule)
+      ? MATCH_RULE_RANK[held.match.rule]
       : Number.POSITIVE_INFINITY;
 
     if (rank < heldRank || (rank === heldRank && held && id < held.id)) {

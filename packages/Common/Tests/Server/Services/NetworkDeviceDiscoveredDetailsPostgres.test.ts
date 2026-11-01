@@ -839,7 +839,7 @@ describePostgres("a device's discovered details merged on Postgres", () => {
       await NetworkDeviceService.findControllerMatchCandidates({
         projectId: PROJECT_ID,
         connectionId: CONNECTION_ID,
-        lookup: { serials: [], macs: [], addresses: [] },
+        lookup: { serials: [], macs: [], addresses: [], names: [] },
         limit: 10,
       });
 

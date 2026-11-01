@@ -148,6 +148,40 @@ describe("which device here each Meraki device is", () => {
     expect(placed.get(SWITCH.serial)?.id).toBe(OTHER_ID);
   });
 
+  test.each([
+    ControllerMatchRule.SerialNumber,
+    ControllerMatchRule.MacAddress,
+    ControllerMatchRule.AddressAndName,
+  ])(
+    "a name and a MAC block is the weakest match: %s beats it, whichever came first",
+    (rule: ControllerMatchRule) => {
+      const entries: Array<[string, ControllerInventoryMatch]> = [
+        [SWITCH_ID, matchOf(SWITCH, ControllerMatchRule.NameAndMacBlock)],
+        [OTHER_ID, matchOf(SWITCH, rule)],
+      ];
+
+      for (const order of [entries, [...entries].reverse()]) {
+        expect(
+          getPlacedDevicesBySerial({
+            matches: new Map(order),
+            candidates: [],
+          }).get(SWITCH.serial)?.id,
+        ).toBe(OTHER_ID);
+      }
+    },
+  );
+
+  test("a device only a name and a MAC block match, as an MX is, still gets its clients", () => {
+    expect(
+      getPlacedDevicesBySerial({
+        matches: new Map([
+          [ROUTER_ID, matchOf(SWITCH, ControllerMatchRule.NameAndMacBlock)],
+        ]),
+        candidates: [{ id: ROUTER_ID, siteId: SITE_ID }],
+      }).get(SWITCH.serial),
+    ).toEqual({ id: ROUTER_ID, siteId: SITE_ID });
+  });
+
   test("at equal strength the lower id, in whatever order they came", () => {
     const entries: Array<[string, ControllerInventoryMatch]> = [
       [OTHER_ID, matchOf(SWITCH)],
