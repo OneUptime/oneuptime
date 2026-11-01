@@ -35,6 +35,7 @@ The `preset` option picks compatible defaults for your Kubernetes distribution �
 | `standard` *(default)* | Self-managed, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | DaemonSet reading `/var/log/pods` via hostPath (lowest overhead) |
 | `gke-autopilot` | **GKE Autopilot** | Kubernetes API log tailer Deployment (no hostPath) |
 | `eks-fargate` | **EKS Fargate** | Kubernetes API log tailer Deployment (no hostPath) |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | DaemonSet reading `/var/log/pods` via hostPath, under a security context constraint (SCC) the chart creates for it |
 
 On `gke-autopilot` and `eks-fargate` the preset also leaves out the eBPF auto-instrumentation and the continuous profiler, whatever `ebpf.enabled` and `profiling.enabled` say. Both run a privileged pod on every node: GKE Autopilot refuses privileged pods, and EKS Fargate runs neither privileged pods nor DaemonSets. To get application traces there, send them from your services with an OpenTelemetry SDK.
 
@@ -62,7 +63,29 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set preset=eks-fargate
 ```
 
-If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works.
+**OpenShift:**
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
+```
+
+OpenShift admits a pod only under an SCC its service account may use, and until an admin grants more, that is `restricted-v2` (OpenShift 4.11 and later): no hostPath volumes, no privileged containers, and user IDs from the namespace's own range only. On the `openshift` preset the chart:
+
+- Creates two SCCs, each used only by its pods' own service account. For a release named `kubernetes-agent`:
+  - `kubernetes-agent-node-collector`, for the node collector: read-only hostPath mounts, as root with the SELinux type `spc_t`, since pod log files are not world-readable and RHCOS enforces SELinux. It stays unprivileged, with every capability dropped.
+  - `kubernetes-agent-ebpf`, for the eBPF auto-instrumentation and the continuous profiler: privileged, in the host's PID namespace. Only while `ebpf.enabled` or `profiling.enabled` is on.
+- Lets OpenShift assign the user and group IDs of every other pod, which then runs under `restricted-v2`.
+- Stamps `oneuptime.kubernetes.distribution=openshift` on the agent's telemetry, and turns on the collector's `openshift` resource detector, which adds `cloud.provider` and `cloud.platform` (for example `aws_openshift`) on a cloud.
+
+Creating the SCCs takes cluster-admin rights, as the chart's ClusterRole already does. With `serviceAccount.create=false`, every pod runs as the service account you name, and both SCCs are granted to it.
+
+If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works. On OpenShift the install itself succeeds, but the pods that need more than `restricted-v2` are never created; the install notes say so, and `--set preset=openshift` fixes it.
 
 ## Kubernetes AI agent (AI investigations and fixes)
 
@@ -462,7 +485,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-agent` to see a
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, or `eks-fargate`. See table above. |
+| `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, `eks-fargate`, or `openshift`. See table above. |
 | `namespaceFilters.rules` | Exclude `kube-system` from `podLogs` and `ebpfDiscovery` | Scoped namespace rules. Patterns match the full namespace name and support `*`; any include rule creates an allowlist for its scope, and exclude rules always win. |
 | `namespaceFilters.rules[].action` | — | `include` or `exclude`. |
 | `namespaceFilters.rules[].namespaces` | — | Namespace names or patterns such as `team-*`. |
@@ -553,7 +576,7 @@ The agent ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](h
 Requirements:
 
 - **Linux kernel 5.8+** with BTF. This is the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, and RHEL/Stream 9+. Kernel 4.18+ works on RHEL-family distros with vendor backports. `ebpf.contextPropagation`, on by default, has **no** additional kernel floor — do not assume an older kernel makes it inert. See **Cross-service trace linking** below.
-- The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). GKE Autopilot and EKS Fargate refuse privileged pods, so the `gke-autopilot` and `eks-fargate` presets leave it out for you. On any other cluster that blocks privileged pods, turn it off: `--set ebpf.enabled=false`.
+- The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). GKE Autopilot and EKS Fargate refuse privileged pods, so the `gke-autopilot` and `eks-fargate` presets leave it out for you. On OpenShift, the `openshift` preset creates an SCC that lets only its pods run privileged. On any other cluster that blocks privileged pods, turn it off: `--set ebpf.enabled=false`.
 
 Turn it off if you don't want it:
 

@@ -456,7 +456,13 @@ data:
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}
             action: insert
+          {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+          {{- include "kubernetes-agent.distributionAttribute" (dict "action" "insert") | nindent 10 }}
+          {{- end }}
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
+      {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+      {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
+      {{- end }}
 
       # The k8sobjects receiver emits LogRecords without a severity, so
       # Kubernetes events and resource snapshots arrive at OneUptime with
@@ -795,6 +801,9 @@ data:
             - filter/telemetry
             {{- end }}
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
             # Before batch, so a dropped datapoint never takes a batch slot.
             - filter/ebpf-node-inspector
@@ -809,6 +818,9 @@ data:
             - memory_limiter
             - k8sattributes
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             - transform/severity
             # Intentionally NOT filtered by filters.logs.minSeverity — see the
             # note on $signals above. Kubernetes events are a low-volume,
@@ -842,6 +854,9 @@ data:
             - k8sattributes
             - transform/pod-level-unmark
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
             # Before the user's filters and the sampler, so neither spends
             # work on spans that are about to be dropped anyway.
