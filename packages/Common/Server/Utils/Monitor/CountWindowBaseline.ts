@@ -29,10 +29,10 @@ import CountAnomaly, {
  *     range narrow enough to alert about three times as often. An hour either
  *     side keeps alerts near what they were and loses little of what they
  *     catch. Exceptions do not need this: a sparse count's range is chance.
- *   - No narrower than a rate's level moves (COUNT_BASELINE_LEVEL_SPREAD).
- *     Two weeks cannot measure how far a rate moves from one day to the next,
- *     so a flat one reads as steadier than it is: without this, simulated flat
- *     traffic went from 2 alerts a day to 30.
+ *   - A level that moves (COUNT_BASELINE_LEVEL_SPREAD). Two weeks cannot
+ *     measure how far a rate moves from one day to the next, and today's
+ *     level is not in them, so that is added to the spread they measured:
+ *     without it, simulated flat traffic went from 2 alerts a day to 30.
  *   - One sample per window, in the window's own unit. A long window's average
  *     varies less than one minute does, and a short window's more. A window
  *     of a minute reads the minutes it always read, and a busy scope's spread
@@ -67,11 +67,13 @@ const WEEK_IN_MS: number = 7 * 24 * HOUR_IN_MS;
 export const COUNT_BASELINE_REACH_IN_WINDOWS: number = 3;
 
 /*
- * The least a window's spread is taken as, as a share of its center: at Medium,
- * a window within 12% of normal is normal. This is a judgement, not a
- * measurement: it is where simulated flat traffic, moving 3% from day to day,
- * alerts as often as it did. A rate with a rhythm or real noise of its own is
- * wider than this already, and a quiet one is wider by chance.
+ * How far a rate's level moves from one day to the next, as a share of its
+ * center, beyond what two weeks can show. It adds to the measured spread in
+ * quadrature, as a variance independent of it, so a busy flat rate reads as
+ * this and a rate that is noisy anyway hardly moves. At Medium a window within
+ * 12% of normal is therefore normal. This is a judgement, not a measurement:
+ * it is where simulated traffic alerts about as often as it did. No real
+ * traffic has been measured.
  */
 export const COUNT_BASELINE_LEVEL_SPREAD: number = 0.04;
 
@@ -469,11 +471,13 @@ export default class CountWindowBaseline {
       sampleCount: inWindow.sampleCount,
       mean: inWindow.mean * perMinute,
       stddev:
-        Math.max(inWindow.stddev, COUNT_BASELINE_LEVEL_SPREAD * inWindow.mean) *
-        perMinute,
+        Math.hypot(
+          inWindow.stddev,
+          COUNT_BASELINE_LEVEL_SPREAD * inWindow.mean,
+        ) * perMinute,
       median: inWindow.median * perMinute,
       madSigma:
-        Math.max(
+        Math.hypot(
           inWindow.madSigma,
           COUNT_BASELINE_LEVEL_SPREAD * inWindow.median,
         ) * perMinute,

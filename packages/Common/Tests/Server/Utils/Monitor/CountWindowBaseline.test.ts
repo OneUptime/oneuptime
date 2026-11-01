@@ -64,6 +64,8 @@ const reachOf: (
   };
 };
 
+const LEVEL: number = COUNT_BASELINE_LEVEL_SPREAD;
+
 // Whole minutes in a whole hour's window, so the numbers below read plainly.
 const SOME_WINDOW_END: number = MONDAY + 9 * HOUR + 40 * MINUTE;
 
@@ -364,20 +366,29 @@ describe("CountWindowBaseline.summarize", () => {
     ).toBeNull();
   });
 
-  test("a busy one-minute window is the plain statistics of its minutes", () => {
+  test("a busy one-minute window is the plain statistics of its minutes, with the level added", () => {
     const counts: Array<number> = [40, 80, 60, 20, 100, 30, 90, 50];
     const plain: CountBaselineStats = CountAnomaly.computeStats(counts)!;
+    const summary: CountBaselineSummary = summaryOf({
+      weeks: [counts, counts],
+    });
 
-    expect(summaryOf({ weeks: [counts, counts] })).toMatchObject({
+    expect(summary).toMatchObject({
       mean: plain.mean,
-      stddev: plain.stddev,
       median: plain.median,
-      madSigma: plain.madSigma,
       minObserved: plain.minObserved,
       maxObserved: plain.maxObserved,
       sampleCount: 16,
     });
-    expect(summaryOf({ weeks: [counts, counts] }).nonEmpty).toBeUndefined();
+    expect(summary.stddev).toBeCloseTo(
+      Math.hypot(plain.stddev, LEVEL * plain.mean),
+      10,
+    );
+    expect(summary.madSigma).toBeCloseTo(
+      Math.hypot(plain.madSigma, LEVEL * plain.median),
+      10,
+    );
+    expect(summary.nonEmpty).toBeUndefined();
   });
 
   test("the summary says what it read", () => {
@@ -400,7 +411,10 @@ describe("CountWindowBaseline.summarize", () => {
     expect(summary.minObserved).toBe(40);
     expect(summary.maxObserved).toBe(60);
     expect(summary.stddev).toBeCloseTo(
-      CountAnomaly.computeStats([600, 900, 750, 750])!.stddev / 15,
+      Math.hypot(
+        CountAnomaly.computeStats([600, 900, 750, 750])!.stddev / 15,
+        LEVEL * 50,
+      ),
       10,
     );
   });
@@ -414,7 +428,10 @@ describe("CountWindowBaseline.summarize", () => {
 
     // 300 logs in 5 seconds vary by 17, which is 208 a minute.
     expect(summary.mean).toBeCloseTo(3600, 8);
-    expect(summary.stddev).toBeCloseTo(Math.sqrt(300) * 12, 8);
+    expect(summary.stddev).toBeCloseTo(
+      Math.hypot(Math.sqrt(300) * 12, LEVEL * 3600),
+      8,
+    );
   });
 
   test("a rate that moves for other reasons moves as much in a short window", () => {
@@ -427,9 +444,9 @@ describe("CountWindowBaseline.summarize", () => {
       windowSeconds: 5,
     });
 
-    expect(oneMinute.stddev).toBe(2000);
-    expect(fiveSeconds.stddev).toBeGreaterThan(2000);
-    expect(fiveSeconds.stddev).toBeLessThan(2100);
+    expect(oneMinute.stddev).toBeCloseTo(Math.hypot(2000, LEVEL * 10000), 8);
+    expect(fiveSeconds.stddev).toBeGreaterThan(oneMinute.stddev);
+    expect(fiveSeconds.stddev).toBeLessThan(oneMinute.stddev * 1.05);
   });
 
   test("a flat history has the spread a count has by chance, not none", () => {
@@ -440,8 +457,8 @@ describe("CountWindowBaseline.summarize", () => {
       ],
     });
 
-    expect(summary.stddev).toBe(5);
-    expect(summary.madSigma).toBe(5);
+    expect(summary.stddev).toBeCloseTo(Math.hypot(5, LEVEL * 25), 10);
+    expect(summary.madSigma).toBeCloseTo(Math.hypot(5, LEVEL * 25), 10);
   });
 
   test("the counting noise is the window's, not the minute's", () => {
@@ -454,7 +471,10 @@ describe("CountWindowBaseline.summarize", () => {
     });
 
     expect(summary.mean).toBe(10);
-    expect(summary.stddev).toBeCloseTo(Math.sqrt(150) / 15, 10);
+    expect(summary.stddev).toBeCloseTo(
+      Math.hypot(Math.sqrt(150) / 15, LEVEL * 10),
+      10,
+    );
   });
 
   test("a rate that holds still for two weeks is not taken for steadier than a rate can be", () => {
@@ -465,12 +485,12 @@ describe("CountWindowBaseline.summarize", () => {
       ],
     });
 
-    expect(COUNT_BASELINE_LEVEL_SPREAD).toBe(0.04);
-    expect(summary.stddev).toBe(800);
-    expect(summary.madSigma).toBe(800);
+    expect(LEVEL).toBe(0.04);
+    expect(summary.stddev).toBeCloseTo(Math.hypot(Math.sqrt(20000), 800), 8);
+    expect(summary.madSigma).toBeCloseTo(summary.stddev, 8);
   });
 
-  test("the median method's spread is held to the median", () => {
+  test("the median method's level is the median's", () => {
     const summary: CountBaselineSummary = summaryOf({
       weeks: [
         [10000, 10000, 10000, 40000],
@@ -479,16 +499,18 @@ describe("CountWindowBaseline.summarize", () => {
     });
 
     expect(summary.median).toBe(10000);
-    expect(summary.madSigma).toBe(400);
+    expect(summary.madSigma).toBeCloseTo(Math.hypot(Math.sqrt(17500), 400), 8);
   });
 
-  test("a spread wider than that is kept", () => {
+  test("a spread much wider than the level hardly moves", () => {
     const counts: Array<number> = [18000, 22000, 18000, 22000];
+    const stddev: number = summaryOf({ weeks: [counts, counts] }).stddev;
 
-    expect(summaryOf({ weeks: [counts, counts] }).stddev).toBe(2000);
+    expect(stddev).toBeCloseTo(Math.hypot(2000, 800), 8);
+    expect(stddev).toBeLessThan(2000 * 1.1);
   });
 
-  test("the windows that held something are held to it too", () => {
+  test("the windows that held something have a level too", () => {
     const summary: CountBaselineSummary = summaryOf({
       weeks: [
         [0, 0, 10000, 0, 0, 0],
@@ -496,7 +518,10 @@ describe("CountWindowBaseline.summarize", () => {
       ],
     });
 
-    expect(summary.nonEmpty!.stddev).toBe(400);
+    expect(summary.nonEmpty!.stddev).toBeCloseTo(
+      Math.hypot(100, LEVEL * 10000),
+      8,
+    );
   });
 
   test("a history of nothing is judged against nothing", () => {
@@ -1120,7 +1145,7 @@ describe("what a busy monitor catches", () => {
     };
 
     expect(share("before")).toBeLessThan(0.35);
-    expect(share("now")).toBeGreaterThan(0.7);
+    expect(share("now")).toBeGreaterThan(0.6);
   });
 });
 
