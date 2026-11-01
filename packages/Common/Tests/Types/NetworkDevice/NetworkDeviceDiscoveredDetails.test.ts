@@ -87,6 +87,7 @@ const SAMPLE: Readonly<Record<NetworkDeviceDiscoveredField, string>> = {
   [NetworkDeviceDiscoveredField.NetbiosName]: "FILESRV01",
   [NetworkDeviceDiscoveredField.MacAddress]: "00:1b:54:c2:7a:01",
   [NetworkDeviceDiscoveredField.IpAddress]: "10.20.0.1",
+  [NetworkDeviceDiscoveredField.OwnMacAddress]: "00:1b:54:c2:7a:02",
 };
 
 function entryOf(
@@ -108,7 +109,7 @@ function entryOf(
 }
 
 describe("the fields, and how each one is read", () => {
-  test("nine fields, the five of the SNMP system group first", () => {
+  test("ten fields, the five of the SNMP system group first", () => {
     expect([...NETWORK_DEVICE_DISCOVERED_FIELDS]).toEqual([
       "sysName",
       "sysDescr",
@@ -119,6 +120,7 @@ describe("the fields, and how each one is read", () => {
       "netbiosName",
       "macAddress",
       "ipAddress",
+      "ownMacAddress",
     ]);
     expect([...NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS]).toEqual(
       NETWORK_DEVICE_DISCOVERED_FIELDS.slice(0, 5),
@@ -354,6 +356,7 @@ describe("normalizeDiscoveredValue", () => {
       netbiosName: 15,
       macAddress: 17,
       ipAddress: 45,
+      ownMacAddress: 17,
     });
   });
 });
@@ -779,5 +782,109 @@ describe("a sweep of arbitrary column contents", () => {
         expect(isDiscoveredDetailsKey(key)).toBe(true);
       }
     }
+  });
+});
+
+/*
+ * The MAC of the device's own port, read by its poll (issue #5384). It is
+ * read over SNMP like a scan's values, but by the device's probe, and it must
+ * never pass for either a scan's reading or an ARP table's: the card says
+ * where a value came from by these two.
+ */
+describe("the MAC of a device's own port", () => {
+  const PROBE: NetworkDeviceDiscoveryReader = {
+    type: NetworkDeviceDiscoveryReaderType.Probe,
+    id: "30000000-0000-4000-8000-000000000001",
+  };
+  const FIELD: NetworkDeviceDiscoveredField =
+    NetworkDeviceDiscoveredField.OwnMacAddress;
+
+  test("is read over SNMP by the device's probe", () => {
+    expect(getDiscoveryMethodForField(FIELD)).toBe("snmp");
+    expect(getDiscoveryReaderTypeForField(FIELD)).toBe(
+      NetworkDeviceDiscoveryReaderType.Probe,
+    );
+  });
+
+  test("is no part of what a scan's SNMP query reads, so a scan never drops it", () => {
+    expect(NETWORK_DEVICE_DISCOVERED_FIELDS).toContain(FIELD);
+    expect(NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS).not.toContain(FIELD);
+    expect(isNetworkDeviceDiscoveredField("ownMacAddress")).toBe(true);
+    expect(isDiscoveredDetailsKey("ownMacAddress")).toBe(true);
+  });
+
+  test("is kept in the one MAC spelling, and only a MAC is", () => {
+    expect(normalizeDiscoveredValue(FIELD, "AA-BB-CC-06-25-ED")).toBe(
+      "aa:bb:cc:06:25:ed",
+    );
+    expect(normalizeDiscoveredValue(FIELD, "aabb.cc06.25ed")).toBe(
+      "aa:bb:cc:06:25:ed",
+    );
+    expect(normalizeDiscoveredValue(FIELD, "not a mac")).toBeUndefined();
+    expect(normalizeDiscoveredValue(FIELD, 42)).toBeUndefined();
+    expect(MAX_DISCOVERED_VALUE_LENGTH[FIELD]).toBe(17);
+  });
+
+  test("is built by a probe, and by nothing else", () => {
+    const built: NetworkDeviceDiscoveredValue | undefined =
+      buildDiscoveredValue({
+        field: FIELD,
+        value: "aa:bb:cc:06:25:ed",
+        readBy: PROBE,
+        readAt: "2026-10-28T10:00:00.000Z",
+      });
+
+    expect(built).toEqual({
+      value: "aa:bb:cc:06:25:ed",
+      method: "snmp",
+      readBy: PROBE,
+      readAt: "2026-10-28T10:00:00.000Z",
+    });
+    expect(
+      buildDiscoveredValue({
+        field: FIELD,
+        value: "aa:bb:cc:06:25:ed",
+        readBy: SCAN,
+        readAt: "2026-10-28T10:00:00.000Z",
+      }),
+    ).toBeUndefined();
+  });
+
+  test("comes back through the reader and out again unchanged", () => {
+    const entry: NetworkDeviceDiscoveredValue = buildDiscoveredValue({
+      field: FIELD,
+      value: "aa:bb:cc:06:25:ed",
+      readBy: PROBE,
+      readAt: "2026-10-28T10:00:00.000Z",
+    })!;
+
+    const read: NetworkDeviceDiscoveredDetails =
+      readNetworkDeviceDiscoveredDetails({ ownMacAddress: entry });
+
+    expect(read.values.ownMacAddress).toEqual(entry);
+    expect(toDiscoveredDetailsJson(read)).toEqual({ ownMacAddress: entry });
+    expect(sanitizeDiscoveredDetailsOnWrite({ ownMacAddress: entry })).toEqual({
+      ownMacAddress: entry,
+    });
+  });
+
+  test("an entry claiming an ARP table's method, or a scan as its reader, is dropped", () => {
+    const entry: Record<string, unknown> = {
+      value: "aa:bb:cc:06:25:ed",
+      method: "snmp",
+      readBy: PROBE,
+      readAt: "2026-10-28T10:00:00.000Z",
+    };
+
+    expect(
+      readNetworkDeviceDiscoveredDetails({
+        ownMacAddress: { ...entry, method: "arpTable" },
+      }).values.ownMacAddress,
+    ).toBeUndefined();
+    expect(
+      readNetworkDeviceDiscoveredDetails({
+        ownMacAddress: { ...entry, readBy: SCAN },
+      }).values.ownMacAddress,
+    ).toBeUndefined();
   });
 });

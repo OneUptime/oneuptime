@@ -40,11 +40,12 @@ import { normalizeReverseDnsName } from "../../Utils/NetworkDiscovery/ReverseDns
  *
  * FLAT, ON PURPOSE. Each entry is a top-level key of the jsonb column, so the
  * four writers - the discovery engine (scan results), the ARP learner (MACs),
- * the poll pipeline (resolved addresses) and a network controller connection
- * (what the device's controller says it is and what it says it is cabled to,
- * under one key each) - each merge their own keys with jsonb `||` in one
- * statement (NetworkDeviceService.mergeDiscoveredDetails) and never overwrite
- * one another's.
+ * the poll pipeline (resolved addresses and the device's own MAC) and a
+ * network controller connection (what the device's controller says it is and
+ * what it says it is cabled to, under one key each) - each merge their own
+ * keys with jsonb `||` in one statement
+ * (NetworkDeviceService.mergeDiscoveredDetails) and never overwrite one
+ * another's.
  *
  * EVERY VALUE IS UNTRUSTED. A PTR name is chosen by whoever runs DNS for the
  * scanned subnet, a NetBIOS name and an SNMP system group by the machine at
@@ -69,6 +70,15 @@ export enum NetworkDeviceDiscoveredField {
   MacAddress = "macAddress",
   // The address the device's probe resolved the DNS name it is polled at to.
   IpAddress = "ipAddress",
+  /*
+   * The MAC of one of the device's own ports, out of the interface table its
+   * SNMP poll read (DeviceOwnMacUtil, issue #5384). Apart from the ARP
+   * reading above because it says something else: that is the MAC behind the
+   * address the device is polled at, as seen from outside; this is a MAC the
+   * device owns. A device holds many, so one that differs from a typed or an
+   * ARP table's MAC contradicts neither.
+   */
+  OwnMacAddress = "ownMacAddress",
 }
 
 // How a value was read.
@@ -320,6 +330,7 @@ export const NETWORK_DEVICE_DISCOVERED_FIELDS: ReadonlyArray<NetworkDeviceDiscov
     NetworkDeviceDiscoveredField.NetbiosName,
     NetworkDeviceDiscoveredField.MacAddress,
     NetworkDeviceDiscoveredField.IpAddress,
+    NetworkDeviceDiscoveredField.OwnMacAddress,
   ];
 
 // The SNMP system group: the fields a discovery scan's SNMP query reads.
@@ -356,6 +367,8 @@ const METHOD_BY_FIELD: Readonly<
   [NetworkDeviceDiscoveredField.MacAddress]:
     NetworkDeviceDiscoveryMethod.ArpTable,
   [NetworkDeviceDiscoveredField.IpAddress]: NetworkDeviceDiscoveryMethod.Dns,
+  [NetworkDeviceDiscoveredField.OwnMacAddress]:
+    NetworkDeviceDiscoveryMethod.Snmp,
 };
 
 const READER_TYPE_BY_FIELD: Readonly<
@@ -379,6 +392,8 @@ const READER_TYPE_BY_FIELD: Readonly<
     NetworkDeviceDiscoveryReaderType.NetworkDevice,
   [NetworkDeviceDiscoveredField.IpAddress]:
     NetworkDeviceDiscoveryReaderType.Probe,
+  [NetworkDeviceDiscoveredField.OwnMacAddress]:
+    NetworkDeviceDiscoveryReaderType.Probe,
 };
 
 /*
@@ -400,6 +415,7 @@ export const MAX_DISCOVERED_VALUE_LENGTH: Readonly<
   [NetworkDeviceDiscoveredField.NetbiosName]: 15,
   [NetworkDeviceDiscoveredField.MacAddress]: 17,
   [NetworkDeviceDiscoveredField.IpAddress]: 45,
+  [NetworkDeviceDiscoveredField.OwnMacAddress]: 17,
 };
 
 // A reader's id and name, cut to these.
@@ -583,6 +599,7 @@ export function normalizeDiscoveredValue(
     case NetworkDeviceDiscoveredField.NetbiosName:
       return normalizeNetbiosName(value);
     case NetworkDeviceDiscoveredField.MacAddress:
+    case NetworkDeviceDiscoveredField.OwnMacAddress:
       return typeof value === "string" ? normalizeMac(value) : undefined;
     case NetworkDeviceDiscoveredField.IpAddress: {
       const text: string | undefined = cleanDiscoveredText(

@@ -506,7 +506,7 @@ An investigation by OneUptime AI of an incident or alert from a Network Device m
 
 ### Device Identity
 
-After the first successful walk, OneUptime reads the SNMPv2 system group and, where the device supports it, ENTITY-MIB, and fills in the device record: system name, description, location, contact, uptime, vendor, model, serial number and firmware version. The vendor's enterprise OID (`sysObjectID`) is the device's fingerprint: it names the vendor and picks the matching vendor template. The same facts appear in [Inventory](/docs/inventory/cmdb-sync#network-device-asset-attributes) with every other asset.
+After the first successful walk, OneUptime reads the SNMPv2 system group and, where the device supports it, ENTITY-MIB, and fills in the device record: system name, description, location, contact, uptime, vendor, model, serial number and firmware version. On FortiGate, Juniper, MikroTik and Sophos devices, one more request reads what ENTITY-MIB leaves empty from the vendor's own MIB. The vendor's enterprise OID (`sysObjectID`) is the device's fingerprint: it names the vendor and picks the matching vendor template. The same facts appear in [Inventory](/docs/inventory/cmdb-sync#network-device-asset-attributes) with every other asset.
 
 A ping-only device keeps the name and address you, or a discovery scan, gave it. What its own poll has not read, it takes from discovery:
 
@@ -516,7 +516,7 @@ A ping-only device keeps the name and address you, or a discovery scan, gave it.
 
 These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. The device's Overview and its Inventory item say which scan, router or probe read each value, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
 
-A Meraki switch, access point or appliance reads no serial number, model or firmware over SNMP: Meraki implements no ENTITY-MIB. When a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization, the device takes those, and whatever else its poll leaves empty, from the Meraki dashboard, and its **Inventory** card names the connection in a **Meraki** row.
+A Meraki switch, access point or appliance reads no serial number or firmware over SNMP: polled directly, it answers the system group and the interface tables, which give its model and its MAC address, and nothing more. When a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization, the device takes those, and whatever else its poll leaves empty, from the Meraki dashboard, and its **Inventory** card names the connection in a **Meraki** row.
 
 To read a device again now, press **Refresh** on its **Inventory** card. Its probe polls it within a minute, and its Meraki connection reads the organization again. The card says when the new reading has landed, or that the probe could not reach the device. **Refresh** is there for whoever may edit network devices, on a device a probe polls or a Meraki connection describes.
 

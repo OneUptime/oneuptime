@@ -506,7 +506,7 @@ Een onderzoek door OneUptime AI van een incident of waarschuwing van een netwerk
 
 ### Apparaatidentiteit
 
-Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het apparaat dat ondersteunt, ENTITY-MIB, en vult het apparaatrecord in: systeemnaam, beschrijving, locatie, contact, uptime, leverancier, model, serienummer en firmwareversie. De enterprise-OID van de leverancier (`sysObjectID`) is de vingerafdruk van het apparaat: ze noemt de leverancier en kiest het bijbehorende leverancierssjabloon. Dezelfde gegevens verschijnen in de [inventaris](/docs/inventory/cmdb-sync#assetattributen-van-netwerkapparaten) naast al je andere assets.
+Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het apparaat dat ondersteunt, ENTITY-MIB, en vult het apparaatrecord in: systeemnaam, beschrijving, locatie, contact, uptime, leverancier, model, serienummer en firmwareversie. Op FortiGate-, Juniper-, MikroTik- en Sophos-apparaten leest één extra verzoek wat ENTITY-MIB leeg laat uit de eigen MIB van de leverancier. De enterprise-OID van de leverancier (`sysObjectID`) is de vingerafdruk van het apparaat: ze noemt de leverancier en kiest het bijbehorende leverancierssjabloon. Dezelfde gegevens verschijnen in de [inventaris](/docs/inventory/cmdb-sync#assetattributen-van-netwerkapparaten) naast al je andere assets.
 
 Een apparaat met alleen ping houdt de naam en het adres die jij, of een discovery-scan, het gaf. Wat zijn eigen poll niet heeft gelezen, haalt het uit discovery:
 
@@ -516,7 +516,7 @@ Een apparaat met alleen ping houdt de naam en het adres die jij, of een discover
 
 Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Het overzicht van het apparaat en zijn item in de inventaris tonen welke scan, router of probe elke waarde las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
 
-Een Meraki-switch, -access point of -appliance levert over SNMP geen serienummer, model of firmware: Meraki implementeert geen ENTITY-MIB. Wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest, neemt het apparaat die, en alles wat zijn poll verder leeg laat, over uit het Meraki-dashboard, en zijn kaart **Inventaris** noemt de koppeling in een rij **Meraki**.
+Een Meraki-switch, -access point of -appliance levert over SNMP geen serienummer of firmware: rechtstreeks gepold antwoordt het apparaat op de systeemgroep en de interfacetabellen, die zijn model en zijn MAC-adres geven, en verder niets. Wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest, neemt het apparaat die, en alles wat zijn poll verder leeg laat, over uit het Meraki-dashboard, en zijn kaart **Inventaris** noemt de koppeling in een rij **Meraki**.
 
 Om een apparaat nu opnieuw te lezen, klik je op **Vernieuwen** op zijn kaart **Inventaris**. Zijn probe pollt het binnen een minuut, en zijn Meraki-koppeling leest de organisatie opnieuw. De kaart zegt wanneer de nieuwe leesbeurt binnen is, of dat de probe het apparaat niet kon bereiken. **Vernieuwen** is er voor wie netwerkapparaten mag bewerken, bij een apparaat dat een probe pollt of dat een Meraki-koppeling beschrijft.
 

@@ -14,6 +14,7 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import { normalizeMac } from "../../../Utils/Monitor/EndpointAttachmentUtil";
 import { normalizeSystemName } from "../../../Utils/NetworkDevice/DeviceNameRule";
+import { isInMacBlock } from "../../../Utils/NetworkDevice/DeviceOwnMacUtil";
 import NetworkDeviceService, {
   DiscoveredDetailsMerge,
 } from "../../Services/NetworkDeviceService";
@@ -42,19 +43,34 @@ import { NetworkControllerDevice } from "./NetworkControllerTypes";
  *   1. the device's serial number is the controller device's (typed, or read
  *      off the device by its SNMP walk) - exact, as the traffic matcher
  *      matches appliances;
- *   2. else one of the device's MAC addresses is (typed, or learned from a
- *      router's ARP table), and its serial number, if it has one, does not
- *      say it is another box;
+ *   2. else one of the device's MAC addresses is (typed, learned from a
+ *      router's ARP table, or one of its own ports), and its serial number,
+ *      if it has one, does not say it is another box;
  *   3. else its polled address is the controller device's management
  *      address AND it is called what the controller calls it (its name, or
  *      the system name it reports), with the address held by no other
  *      device on either side. An address alone is never enough: a private
  *      address repeats from branch to branch, and from organization to
  *      organization of one project. So is a name, which is why the two are
- *      asked for together.
+ *      asked for together;
+ *   4. else it is called what the controller calls it AND one of its MAC
+ *      addresses is numbered up from the controller device's (isInMacBlock),
+ *      with the name held by no other device on either side.
+ *
+ * Rule 4 is the MX's (issue #5384). An MX can pass none of the others:
+ * nothing can read its serial number but the dashboard; Meraki lists no LAN
+ * address for an appliance ("The MX does not have LAN IP"), so rule 3 has
+ * nothing to compare; and the MAC the dashboard lists is on no port of it
+ * ("The MAC addresses of the uplink interfaces are different from this,
+ * typically offset by 4 or 5"), so its own ports fail rule 2. They sit just
+ * above that MAC, though, which is as good as an address: another box's MAC
+ * block with the same name on it does not happen by accident, in a way a
+ * private address with the same name can.
  *
  * A device whose serial number or MAC contradicts the controller device is
- * never matched by a weaker rule. Archived devices are left alone.
+ * never matched by a weaker rule - and a MAC in the controller device's block
+ * contradicts nothing: it is the same box, seen from another port. Archived
+ * devices are left alone.
  *
  * WHEN IT IS WRITTEN. One batched merge per 500 devices
  * (NetworkDeviceService.mergeDiscoveredDetails), and only for a device whose
@@ -113,6 +129,7 @@ export enum ControllerMatchRule {
   SerialNumber = "serialNumber",
   MacAddress = "macAddress",
   AddressAndName = "addressAndName",
+  NameAndMacBlock = "nameAndMacBlock",
 }
 
 export interface ControllerInventoryMatch {
@@ -139,6 +156,8 @@ export interface ControllerInventoryLookup {
   serials: Array<string>;
   macs: Array<string>;
   addresses: Array<string>;
+  // In lower case: a name is matched without it.
+  names: Array<string>;
 }
 
 function readText(value: unknown): string {
@@ -155,7 +174,7 @@ function toNameKey(value: unknown): string {
 
 /*
  * What the database is asked for: the controller devices' serial numbers
- * (as Meraki prints them), MACs and management addresses.
+ * (as Meraki prints them), MACs, management addresses and names.
  */
 export function getControllerInventoryLookup(
   devices: Array<NetworkControllerDevice>,
@@ -163,6 +182,7 @@ export function getControllerInventoryLookup(
   const serials: Set<string> = new Set<string>();
   const macs: Set<string> = new Set<string>();
   const addresses: Set<string> = new Set<string>();
+  const names: Set<string> = new Set<string>();
 
   for (const device of devices) {
     if (device.serial) {
@@ -176,19 +196,27 @@ export function getControllerInventoryLookup(
     if (device.lanIp) {
       addresses.add(device.lanIp);
     }
+
+    if (toNameKey(device.name)) {
+      names.add(toNameKey(device.name));
+    }
   }
 
   return {
     serials: Array.from(serials),
     macs: Array.from(macs),
     addresses: Array.from(addresses),
+    names: Array.from(names),
   };
 }
 
 // What a device says it is, without anything a controller said about it.
 interface CandidateIdentity {
   serial: string;
+  // The MACs it is known by: typed, or an ARP table's.
   macs: Array<string>;
+  // One of its own ports, which its poll read. "" until a poll has.
+  ownMac: string;
   names: Set<string>;
   address: string;
   details: NetworkDeviceDiscoveredDetails;
@@ -229,6 +257,8 @@ function identityOf(
   return {
     serial: toSerialKey(candidate.serialNumber),
     macs: macs,
+    ownMac:
+      details.values[NetworkDeviceDiscoveredField.OwnMacAddress]?.value || "",
     names: names,
     address: IP.isIP(address) ? address : "",
     details: details,
@@ -253,6 +283,11 @@ function countBy<T>(
   return counts;
 }
 
+// True when `mac` is the controller device's MAC, or one of its ports'.
+function isMacOfBox(device: NetworkControllerDevice, mac: string): boolean {
+  return Boolean(device.mac) && isInMacBlock({ baseMac: device.mac, mac: mac });
+}
+
 /*
  * True when what the device says contradicts the controller device: a serial
  * number, or a MAC, that is another box's.
@@ -272,7 +307,9 @@ function isContradicted(
   return Boolean(
     device.mac &&
       identity.macs.length > 0 &&
-      !identity.macs.includes(device.mac),
+      !identity.macs.some((mac: string): boolean => {
+        return isMacOfBox(device, mac);
+      }),
   );
 }
 
@@ -287,6 +324,7 @@ export function matchControllerDevices(data: {
   const bySerial: Map<string, NetworkControllerDevice> = new Map();
   const byMac: Map<string, NetworkControllerDevice> = new Map();
   const byAddress: Map<string, NetworkControllerDevice> = new Map();
+  const byName: Map<string, NetworkControllerDevice> = new Map();
 
   for (const device of data.devices) {
     const serial: string = toSerialKey(device.serial);
@@ -302,6 +340,12 @@ export function matchControllerDevices(data: {
     if (device.lanIp && !byAddress.has(device.lanIp)) {
       byAddress.set(device.lanIp, device);
     }
+
+    const name: string = toNameKey(device.name);
+
+    if (name && !byName.has(name)) {
+      byName.set(name, device);
+    }
   }
 
   // An address held by two controller devices, or two devices here, matches nothing.
@@ -309,6 +353,14 @@ export function matchControllerDevices(data: {
     data.devices,
     (device: NetworkControllerDevice): string => {
       return device.lanIp;
+    },
+  );
+
+  // So is a name held by two of them, for the rule that asks for a name.
+  const controllerNameCounts: Map<string, number> = countBy(
+    data.devices,
+    (device: NetworkControllerDevice): string => {
+      return toNameKey(device.name);
     },
   );
 
@@ -336,6 +388,16 @@ export function matchControllerDevices(data: {
     },
   );
 
+  // A device counts once for a name, however many of its names are that one.
+  const deviceNameCounts: Map<string, number> = countBy(
+    live.flatMap((entry: { identity: CandidateIdentity }): Array<string> => {
+      return Array.from(entry.identity.names);
+    }),
+    (name: string): string => {
+      return name;
+    },
+  );
+
   const matches: Map<string, ControllerInventoryMatch> = new Map();
 
   for (const { candidate, identity } of live) {
@@ -355,7 +417,10 @@ export function matchControllerDevices(data: {
     }
 
     // 2. One of its MAC addresses, unless its serial number says otherwise.
-    const byMacAddress: NetworkControllerDevice | undefined = identity.macs
+    const byMacAddress: NetworkControllerDevice | undefined = [
+      ...identity.macs,
+      identity.ownMac,
+    ]
       .map((mac: string): NetworkControllerDevice | undefined => {
         return byMac.get(mac);
       })
@@ -375,31 +440,79 @@ export function matchControllerDevices(data: {
     }
 
     // 3. Its address and its name, the address held once on both sides.
-    if (!identity.address) {
-      continue;
-    }
-
     const byManagementAddress: NetworkControllerDevice | undefined =
-      byAddress.get(identity.address);
+      identity.address ? byAddress.get(identity.address) : undefined;
 
     if (
-      !byManagementAddress ||
-      controllerAddressCounts.get(identity.address) !== 1 ||
-      deviceAddressCounts.get(identity.address) !== 1 ||
-      !byManagementAddress.name ||
-      !identity.names.has(toNameKey(byManagementAddress.name)) ||
-      isContradicted(identity, byManagementAddress)
+      byManagementAddress &&
+      controllerAddressCounts.get(identity.address) === 1 &&
+      deviceAddressCounts.get(identity.address) === 1 &&
+      byManagementAddress.name &&
+      identity.names.has(toNameKey(byManagementAddress.name)) &&
+      !isContradicted(identity, byManagementAddress)
     ) {
+      matches.set(id, {
+        device: byManagementAddress,
+        rule: ControllerMatchRule.AddressAndName,
+      });
       continue;
     }
 
-    matches.set(id, {
-      device: byManagementAddress,
-      rule: ControllerMatchRule.AddressAndName,
-    });
+    // 4. Its name and a MAC of the same box, the name held once on both sides.
+    const byNameAndMacBlock: NetworkControllerDevice | undefined =
+      findByNameAndMacBlock({
+        identity,
+        byName,
+        controllerNameCounts,
+        deviceNameCounts,
+      });
+
+    if (byNameAndMacBlock) {
+      matches.set(id, {
+        device: byNameAndMacBlock,
+        rule: ControllerMatchRule.NameAndMacBlock,
+      });
+    }
   }
 
   return matches;
+}
+
+/*
+ * The controller device a device is by rule 4, or undefined: the one called
+ * what the device is called, the name held once on both sides, with one of
+ * the device's MACs in its block and nothing the device says against it.
+ */
+function findByNameAndMacBlock(data: {
+  identity: CandidateIdentity;
+  byName: Map<string, NetworkControllerDevice>;
+  controllerNameCounts: Map<string, number>;
+  deviceNameCounts: Map<string, number>;
+}): NetworkControllerDevice | undefined {
+  const macs: Array<string> = [
+    ...data.identity.macs,
+    data.identity.ownMac,
+  ].filter((mac: string): boolean => {
+    return Boolean(mac);
+  });
+
+  for (const name of data.identity.names) {
+    const device: NetworkControllerDevice | undefined = data.byName.get(name);
+
+    if (
+      device &&
+      data.controllerNameCounts.get(name) === 1 &&
+      data.deviceNameCounts.get(name) === 1 &&
+      macs.some((mac: string): boolean => {
+        return isMacOfBox(device, mac);
+      }) &&
+      !isContradicted(data.identity, device)
+    ) {
+      return device;
+    }
+  }
+
+  return undefined;
 }
 
 /*

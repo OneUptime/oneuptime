@@ -140,8 +140,8 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | --- | --- | --- | --- |
 | ホスト名 | `host.name` | ホストの名前。ホストの識別情報なので `identifyingAttributes` に入ります | デバイス自身の名前。SNMP の `sysName`、なければ検出時に見つかった NetBIOS 名または DNS 名。IP アドレスになることはありません |
 | IP アドレス | `host.ip` | コレクターが報告するすべてのアドレス | OneUptime がポーリングするアドレス (IP アドレスの場合)。それ以外はプローブがその DNS 名を解決したアドレス |
-| MAC アドレス | `host.mac` | 検出 | デバイスに入力された値、または巡回したルーターの ARP テーブルから学習した値 |
-| シリアル番号 | `host.serial_number` | 付与 | ENTITY-MIB |
+| MAC アドレス | `host.mac` | 検出 | デバイスに入力された値、巡回したルーターの ARP テーブルから学習した値、またはデバイス自身のポートから読み取った値 |
+| シリアル番号 | `host.serial_number` | 付与 | ENTITY-MIB、なければベンダー独自の MIB |
 | メーカー | `device.manufacturer` | 付与 | ENTITY-MIB、なければ `sysDescr` または `sysObjectID` が示すもの |
 | モデル | `device.model.name` | 付与 | ENTITY-MIB、なければ `sysDescr` が示すもの |
 | ファームウェアバージョン | `device.firmware.version` | 付与 | ENTITY-MIB、なければ `sysDescr` が示すもの |
@@ -191,22 +191,22 @@ CMDB がすでにハードウェア識別子をキーにしているなら、`ho
 | ホスト名 | `host.name` | デバイス自身の名前。SNMP の `sysName`、なければ検出時に見つかった NetBIOS 名または逆引き DNS 名。IP アドレスでしか名前が付かない場合は省かれます |
 | IP アドレス | `host.ip` | OneUptime がポーリングするアドレス (IP アドレスの場合)。DNS 名でポーリングするデバイスでは、プローブがその名前を最後に解決したアドレス |
 | DNS 名 | `net.device.dns_name` | 検出時に見つかった逆引き DNS 名、または OneUptime がポーリングする DNS 名 |
-| MAC アドレス | `host.mac` | デバイスに入力された値、または巡回したルーターの ARP テーブルから学習した値 |
+| MAC アドレス | `host.mac` | デバイスに入力された値、または巡回したルーターの ARP テーブルから学習した値。なければ SNMP ウォークが読み取った、デバイスの最初の Ethernet ポートの MAC |
 | メーカー | `device.manufacturer` | ENTITY-MIB の `entPhysicalMfgName`、なければ `sysDescr` が示すメーカー、なければ `sysObjectID` のベンダー |
 | モデル | `device.model.name` | ENTITY-MIB の `entPhysicalModelName`、なければ `sysDescr` が示すモデル |
-| シリアル番号 | `host.serial_number` | ENTITY-MIB の `entPhysicalSerialNum` |
-| ファームウェアバージョン | `device.firmware.version` | ENTITY-MIB の `entPhysicalFirmwareRev`、なければ Ubiquiti、HPE、Aruba のデバイスで `sysDescr` が示すファームウェア |
-| オペレーティングシステム | `os.name` | `sysDescr` が示すオペレーティングシステム |
-| ソフトウェアまたは OS のバージョン | `os.version` | ENTITY-MIB の `entPhysicalSoftwareRev`、なければ `sysDescr` が示すリリース |
+| シリアル番号 | `host.serial_number` | ENTITY-MIB の `entPhysicalSerialNum`、なければ FortiGate、Juniper、MikroTik、Sophos のデバイスではベンダー独自の MIB |
+| ファームウェアバージョン | `device.firmware.version` | ENTITY-MIB の `entPhysicalFirmwareRev`、なければ FortiGate、MikroTik、Sophos のデバイスではベンダー独自の MIB、なければ Ubiquiti、HPE、Aruba のデバイスで `sysDescr` が示すファームウェア |
+| オペレーティングシステム | `os.name` | `sysDescr` が示すオペレーティングシステム、またはプラットフォームが常に実行するもの: FortiGate では FortiOS、MX では Meraki の MX ファームウェア |
+| ソフトウェアまたは OS のバージョン | `os.version` | ENTITY-MIB の `entPhysicalSoftwareRev`、なければベンダー独自の MIB、なければ `sysDescr` が示すリリース |
 | システムの説明 | `os.description` | `sysDescr` |
 | デバイスの種類 | `device.type` | デバイスに割り当てたロール、なければトポロジーマップが分類したロール。プロジェクトでの呼び名で入ります |
 | 場所 | `device.location` | `sysLocation`。ただし Net-SNMP の「Sitting on the Dock of the Bay」のようなエージェントの既定値は除きます |
 | サイト | `oneuptime.site.name` | デバイスが割り当てられている Network Site |
 | ポーリング先のアドレス | `net.device.hostname` | OneUptime がポーリングするアドレス。IP アドレスまたは DNS 名です。`host.name` と `host.ip` ができる前に書かれた同期のために残されています |
 
-ENTITY-MIB の行はデバイスの最初の SNMP ウォークの後に埋まります。ping だけで監視しているデバイスや、まだポーリングされていないデバイスのようにウォークされないデバイスでも、名前、メーカー、オペレーティングシステム、場所は、アドレスに対する最後の検出スキャンが SNMP で読み取った内容から、MAC アドレスは巡回したルーターの ARP テーブルから得られます。ENTITY-MIB を実装していないデバイスには、報告できるシリアル番号やファームウェアがありません。それでも多くのプラットフォームでは `sysDescr` がモデルとオペレーティングシステムを示します。Cisco Meraki MX は `Meraki MX85` を報告し、それでメーカーとモデルが埋まります。`sysDescr` が既知の形式でないプラットフォームでは、推測で埋めずに何も追加しません。
+ENTITY-MIB の行はデバイスの最初の SNMP ウォークの後に埋まります。ping だけで監視しているデバイスや、まだポーリングされていないデバイスのようにウォークされないデバイスでも、名前、メーカー、オペレーティングシステム、場所は、アドレスに対する最後の検出スキャンが SNMP で読み取った内容から、MAC アドレスは巡回したルーターの ARP テーブルから得られます。ENTITY-MIB を実装していないデバイスには、報告できるシリアル番号やファームウェアがありません。ただし、OneUptime が読み取る独自の MIB にベンダーがそれらを保持している場合は別で、FortiGate、Juniper、MikroTik、Sophos が該当します。それでも多くのプラットフォームでは `sysDescr` がモデルとオペレーティングシステムを示します。Cisco Meraki MX は `Meraki MX85` を報告し、それでメーカー、モデル、オペレーティングシステムが埋まります。`sysDescr` が既知の形式でないプラットフォームでは、推測で埋めずに何も追加しません。
 
-[Meraki 接続](/docs/monitor/network-traffic#netflow-を使わない-cisco-meraki) が組織を読み取ると、Meraki デバイスは自身のポーリングで空のままの情報を Meraki ダッシュボードから取得します。シリアル番号、モデル、ファームウェア、メーカー、MAC アドレス、名前、管理アドレス、登録されている住所、種類です。シリアル番号または MAC アドレスが Meraki デバイスと同じデバイスと、OneUptime が Meraki デバイスの管理アドレスでポーリングしていて名前も同じデバイスが、組織のデバイスとみなされます。デバイスに保存された値と、デバイス自身のポーリングで読み取った値が優先されます。
+[Meraki 接続](/docs/monitor/network-traffic#netflow-を使わない-cisco-meraki) が組織を読み取ると、Meraki デバイスは自身のポーリングで空のままの情報を Meraki ダッシュボードから取得します。シリアル番号、モデル、ファームウェア、メーカー、MAC アドレス、名前、管理アドレス、登録されている住所、種類です。モデルとファームウェアからは、オペレーティングシステムと OS バージョンもわかります。シリアル番号または MAC アドレスが Meraki デバイスと同じデバイスと、OneUptime が Meraki デバイスの管理アドレスでポーリングしていて名前も同じデバイスが、組織のデバイスとみなされます。Meraki は MX についてそのようなアドレスを示さず、示す MAC も MX のどのポートにもないため、MX は名前と、その MAC のすぐ上のポート MAC で照合されます。デバイスに保存された値と、デバイス自身のポーリングで読み取った値が優先されます。唯一の例外は MAC アドレスです。本体のラベルに記載された Meraki の MAC アドレスが、デバイス自身のポートから読み取った MAC アドレスより優先されます。
 
 デバイスに保存された値 (入力した値や API で設定した値) が、検出で読み取った内容に置き換えられることはありません。デバイス自身のウォークが読み取った値とスキャンが読み取った値では、新しい方が使われます。スキャンが読み取った内容は、そのアドレスで同じマシンを見つけた場合にだけ使われます。読み取ったシステム名、`sysObjectID`、NetBIOS 名がデバイスのものと食い違う場合、そこで読み取った内容は何も使われません。項目の **資産の詳細** カードには、各値の出どころと時刻が表示されます。
 
