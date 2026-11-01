@@ -21,14 +21,7 @@ import ExceptionMonitorResponse, {
   ExceptionLearnedBaseline,
 } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import ExceptionLearnedBaselineUtil from "Common/Server/Utils/Monitor/ExceptionLearnedBaseline";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, describe, expect, test, beforeEach } from "@jest/globals";
 import {
   RumAlertTemplate,
   getRumAlertTemplateById,
@@ -446,10 +439,9 @@ describe("monitorException's learned baseline", () => {
     exceptionCountBy.mockResolvedValue(new PositiveNumber(40));
     resolvedFingerprints.mockResolvedValue(["resolved-one"]);
 
-    const read: jest.SpiedFunction<typeof ExceptionLearnedBaselineUtil.read> =
-      jest
-        .spyOn(ExceptionLearnedBaselineUtil, "read")
-        .mockResolvedValue(baseline);
+    const read: jest.SpyInstance = jest
+      .spyOn(ExceptionLearnedBaselineUtil, "read")
+      .mockResolvedValue(baseline);
 
     const evaluateUntil: Date = new Date("2026-11-02T09:40:00.000Z");
 
@@ -479,8 +471,10 @@ describe("monitorException's learned baseline", () => {
   test("a plain count reads no baseline, and carries none", async () => {
     exceptionCountBy.mockResolvedValue(new PositiveNumber(3));
 
-    const read: jest.SpiedFunction<typeof ExceptionLearnedBaselineUtil.read> =
-      jest.spyOn(ExceptionLearnedBaselineUtil, "read");
+    const read: jest.SpyInstance = jest.spyOn(
+      ExceptionLearnedBaselineUtil,
+      "read",
+    );
 
     const response: ExceptionMonitorResponse = await monitorException({
       monitorStep: new MonitorStep(),

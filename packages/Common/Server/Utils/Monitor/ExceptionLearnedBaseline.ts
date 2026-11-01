@@ -520,10 +520,11 @@ export default class ExceptionLearnedBaselineUtil {
       return resolveTelemetryRetentionInDays({
         pillar: "traces",
         bucketKey: SpanStatus.Error,
-        serviceConfig: service?.telemetryRetentionConfig,
-        serviceRetentionInDays: service?.retainTelemetryDataForDays,
-        projectConfig: project?.telemetryRetentionConfig,
-        projectRetentionInDays: project?.defaultTelemetryRetentionInDays,
+        serviceConfig: service?.telemetryRetentionConfig ?? null,
+        serviceRetentionInDays: service?.retainTelemetryDataForDays ?? null,
+        projectConfig: project?.telemetryRetentionConfig ?? null,
+        projectRetentionInDays:
+          project?.defaultTelemetryRetentionInDays ?? null,
       });
     };
 
