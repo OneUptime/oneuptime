@@ -102,9 +102,9 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | بحرانی | `container.memory.percent`، Count روی همه کانتینرهای خوشه، ۱۰ دقیقه گذشته | در تمام پنجره هیچ داده‌ای نیست | داده دوباره می‌رسد |
 | Task Down (Low Uptime) | بحرانی | `container.uptime`، Min به ازای هر وظیفه، ۱ دقیقه گذشته | هر مقداری کمتر از ۶۰ ثانیه باشد | همه مقدارها ۶۶ ثانیه یا بیشتر باشند |
-| High Task CPU Usage | Warning | `container.cpu.utilization`، Avg به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۸۰ (درصدِ یک هسته) | ۷۲ یا کمتر |
-| High Task Memory Usage | Warning | `container.memory.percent`، Avg به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
-| High Task Process Count | Warning | `container.pids.count`، Max به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۲۰۰۰ | ۱۸۰۰ یا کمتر |
+| High Task CPU Usage | هشدار | `container.cpu.utilization`، Avg به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۸۰ (درصدِ یک هسته) | ۷۲ یا کمتر |
+| High Task Memory Usage | هشدار | `container.memory.percent`، Avg به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
+| High Task Process Count | هشدار | `container.pids.count`، Max به ازای هر وظیفه، ۵ دقیقه گذشته | بیش از ۲۰۰۰ | ۱۸۰۰ یا کمتر |
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک الگو می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.
 

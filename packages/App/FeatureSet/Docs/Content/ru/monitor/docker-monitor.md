@@ -91,11 +91,11 @@ flowchart TB
 | Шаблон | Серьёзность | Что отслеживает | Срабатывает, когда | Восстанавливается, когда |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Критический | `container.memory.percent`, Count по всем контейнерам на хосте, последние 10 минут | Нет данных за всё окно | Данные снова поступают |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Max по контейнеру, последние 5 минут | Выше 80 (% одного ядра) | 72 или ниже |
-| High Container Memory Usage | Warning | `container.memory.percent`, Max по контейнеру, последние 5 минут | Выше 85 % | 76,5 % или ниже |
+| High Container CPU Usage | Предупреждение | `container.cpu.utilization`, Max по контейнеру, последние 5 минут | Выше 80 (% одного ядра) | 72 или ниже |
+| High Container Memory Usage | Предупреждение | `container.memory.percent`, Max по контейнеру, последние 5 минут | Выше 85 % | 76,5 % или ниже |
 | Container Restart Loop | Критический | `container.restarts.increase`, Sum по контейнеру, последние 15 минут | Более 3 перезапусков в окне (Сумма) | 2,7 или меньше |
-| Container CPU Throttling | Warning | Рост `container.cpu.throttling_data.throttled_time` в мс по контейнеру, последние 5 минут | Более 1000 мс в окне (Сумма) | 900 мс или меньше |
-| High Container Process Count | Warning | `container.pids.count`, Max по контейнеру, последние 5 минут | Выше 2000 | 1800 или ниже |
+| Container CPU Throttling | Предупреждение | Рост `container.cpu.throttling_data.throttled_time` в мс по контейнеру, последние 5 минут | Более 1000 мс в окне (Сумма) | 900 мс или меньше |
+| High Container Process Count | Предупреждение | `container.pids.count`, Max по контейнеру, последние 5 минут | Выше 2000 | 1800 или ниже |
 | Container Restarted (Low Uptime) | Критический | `container.uptime`, Min по контейнеру, последняя 1 минута | Меньше 120 секунд | 132 секунды или больше |
 
 **Серьёзность** – это метка, которую показывает список выбора. Инцидент и оповещение, которые создаёт шаблон, начинаются с самого серьёзного уровня инцидентов и оповещений вашего проекта; измените их в критериях.

@@ -1,13 +1,19 @@
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
+import ProxmoxResourceModel from "Common/Models/DatabaseModels/ProxmoxResource";
 import ResourceTable, {
   InfrastructureResource,
 } from "../../../Components/Infrastructure/ResourceTable";
 import {
-  fetchProxmoxInventoryResources,
+  fetchProxmoxInventoryRows,
   routeParamFromExternalId,
 } from "../Utils/ProxmoxResourceUtils";
+import { sortProxmoxGuests } from "../Utils/ProxmoxPartFacts";
+import {
+  getProxmoxGuestColumns,
+  toProxmoxListResource,
+} from "../../../Components/Proxmox/ProxmoxResourceColumns";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -18,17 +24,21 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import OneUptimeDate from "Common/Types/Date";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 const ProxmoxClusterGuests: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [resources, setResources] = useState<Array<InfrastructureResource>>([]);
+  const [rows, setRows] = useState<Array<ProxmoxResourceModel>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
@@ -36,17 +46,16 @@ const ProxmoxClusterGuests: FunctionComponent<
     setIsLoading(true);
     try {
       /*
-       * Postgres inventory read (ProxmoxResource, kind=Guest). VMID,
-       * guest type and HA state ride additionalAttributes for the
-       * custom columns below.
+       * Postgres inventory read (ProxmoxResource, kind=Guest), in VMID
+       * order as people number their guests.
        */
-      const guestList: Array<InfrastructureResource> =
-        await fetchProxmoxInventoryResources({
+      const guestRows: Array<ProxmoxResourceModel> =
+        await fetchProxmoxInventoryRows({
           proxmoxClusterId: modelId,
           kind: "Guest",
         });
 
-      setResources(guestList);
+      setRows(sortProxmoxGuests(guestRows));
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -67,13 +76,17 @@ const ProxmoxClusterGuests: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
+  const resources: Array<InfrastructureResource> = rows.map(
+    toProxmoxListResource,
+  );
+
   return (
     <ResourceTable
       onRefreshClick={() => {
         fetchData().catch(() => {});
       }}
       title="Guests"
-      description="QEMU VMs and LXC containers in this cluster with their current resource usage."
+      description="The VMs, containers and templates in this cluster, with their current resource usage and last backup."
       resources={resources}
       showGroupColumn={true}
       groupColumnTitle="Node"
@@ -85,47 +98,12 @@ const ProxmoxClusterGuests: FunctionComponent<
       }}
       tableIdPrefix="proxmox"
       emptyMessage="No guests reported yet. Make sure the Proxmox agent is sending metrics."
-      columns={[
-        {
-          title: "VMID",
-          key: "vmid",
-        },
-        {
-          title: "Type",
-          key: "guestType",
-        },
-        {
-          title: "HA State",
-          key: "haState",
-          description: PROXMOX_METRIC_DESCRIPTIONS.guestsTableHaState,
-          getValue: (resource: InfrastructureResource): string => {
-            return resource.additionalAttributes["haState"] || "-";
-          },
-        },
-        {
-          /*
-           * WI-24: backup-JOB coverage from pve_not_backed_up_info —
-           * "In job" means the guest is selected by some backup job,
-           * not that recent backups succeeded (that needs the PVE/PBS
-           * API — v4). Empty until the cluster reports the
-           * backup-info series.
-           */
-          title: "Backup",
-          key: "backedUp",
-          description: PROXMOX_METRIC_DESCRIPTIONS.guestsTableBackup,
-          getValue: (resource: InfrastructureResource): string => {
-            const backedUp: string =
-              resource.additionalAttributes["backedUp"] || "";
-            if (backedUp === "true") {
-              return "In job";
-            }
-            if (backedUp === "false") {
-              return "Not backed up";
-            }
-            return "-";
-          },
-        },
-      ]}
+      columns={getProxmoxGuestColumns({
+        rows: rows,
+        resources: resources,
+        translator: translator,
+        now: OneUptimeDate.getCurrentDate(),
+      })}
       getViewRoute={(resource: InfrastructureResource) => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_GUEST_DETAIL] as Route,

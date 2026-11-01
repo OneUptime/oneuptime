@@ -119,16 +119,16 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 嚴重 | `purefa_info`，Count，過去 10 分鐘 | 整個視窗內都沒有資料 — Storage Array Agent 已停止、失去通往 OneUptime 的路由或權杖被撤銷，或者陣列不再回應它；資料再次送達時復原 |
 | Critical Array Alert | Array Health | 嚴重 | `purefa_alerts_open` 篩選到 `severity=critical`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的嚴重警示(元件故障、容量緊急、複寫失敗)。每個警示一個事件；警示關閉時復原 |
-| Warning Array Alert | Array Health | Warning | `purefa_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
-| Capacity Above 80% | 容量 | Warning | `purefa_array_space_utilization`，Max，過去 15 分鐘 | > 80 — Pure 自己的第一個容量臨界值；≤ 72 時復原 |
+| Warning Array Alert | Array Health | 警告 | `purefa_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — 陣列有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
+| Capacity Above 80% | 容量 | 警告 | `purefa_array_space_utilization`，Max，過去 15 分鐘 | > 80 — Pure 自己的第一個容量臨界值；≤ 72 時復原 |
 | Capacity Above 90% | 容量 | 嚴重 | `purefa_array_space_utilization`，Max，過去 5 分鐘 | > 90 — 陣列即將拒絕寫入；≤ 81 時復原 |
-| High Read Latency | 效能 | Warning | `purefa_array_performance_latency_usec` 篩選到 `dimension=usec_per_read_op`，Avg，過去 10 分鐘 | > 5000 µs (5 ms) — FlashArray 的讀取通常遠低於 1 ms；≤ 4500 時復原 |
-| High Write Latency | 效能 | Warning | `purefa_array_performance_latency_usec` 篩選到 `dimension=usec_per_write_op`，Avg，過去 10 分鐘 | > 5000 µs (5 ms)；≤ 4500 時復原 |
+| High Read Latency | 效能 | 警告 | `purefa_array_performance_latency_usec` 篩選到 `dimension=usec_per_read_op`，Avg，過去 10 分鐘 | > 5000 µs (5 ms) — FlashArray 的讀取通常遠低於 1 ms；≤ 4500 時復原 |
+| High Write Latency | 效能 | 警告 | `purefa_array_performance_latency_usec` 篩選到 `dimension=usec_per_write_op`，Avg，過去 10 分鐘 | > 5000 µs (5 ms)；≤ 4500 時復原 |
 | Hardware Component Failed | 硬體 | 嚴重 | `purefa_hw_component_status` 篩選到 `component_status=critical`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個控制器、電源供應器、風扇、槽位或連接埠處於嚴重狀態，備援已經喪失。每個元件一個事件；它回報 ok 時復原 |
-| Hardware Component Degraded | 硬體 | Warning | `purefa_hw_component_status` 篩選到 `component_status=degraded`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個元件已降級。每個元件一個事件；它回報 ok 時復原 |
+| Hardware Component Degraded | 硬體 | 警告 | `purefa_hw_component_status` 篩選到 `component_status=degraded`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個元件已降級。每個元件一個事件；它回報 ok 時復原 |
 | Drive Failed | 硬體 | 嚴重 | `purefa_drive_capacity_bytes` 篩選到 `component_status=failed`，依 `component_name` 取 Max，過去 5 分鐘 | > 0 — 某個 DirectFlash 模組或 SSD 故障，陣列正在其餘磁碟機上重建。每個磁碟機一個事件；更換後復原 |
-| Host Lost Redundant Paths | 主機 | Warning | `purefa_host_connectivity_info` 篩選到 `status=critical`，依 `host` 取 Max，過去 5 分鐘 | > 0 — 主機只能透過一個控制器連線到陣列，或完全無法連線；一次控制器容錯移轉就會讓它的儲存離線。每台主機一個事件；路徑恢復時復原 |
-| Replication Lag Above 1 Minute | Replication | Warning | `purefa_pod_replica_links_lag_max_msec`，依 `local_pod` 取 Max，過去 10 分鐘 | > 60000 ms (60 s) — 此時容錯移轉會遺失比計畫更多的近期寫入。每個 Pod 一個事件；≤ 54000 時復原 |
+| Host Lost Redundant Paths | 主機 | 警告 | `purefa_host_connectivity_info` 篩選到 `status=critical`，依 `host` 取 Max，過去 5 分鐘 | > 0 — 主機只能透過一個控制器連線到陣列，或完全無法連線；一次控制器容錯移轉就會讓它的儲存離線。每台主機一個事件；路徑恢復時復原 |
+| Replication Lag Above 1 Minute | 複寫 | 警告 | `purefa_pod_replica_links_lag_max_msec`，依 `local_pod` 取 Max，過去 10 分鐘 | > 60000 ms (60 s) — 此時容錯移轉會遺失比計畫更多的近期寫入。每個 Pod 一個事件；≤ 54000 時復原 |
 
 ### FlashBlade
 
@@ -136,12 +136,12 @@ OneUptime 提供 20 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | 可用性 | 嚴重 | `purefb_info`，Count，過去 10 分鐘 | 整個視窗內都沒有資料 — 代理程式、其匯出器或 FlashBlade 不再回應；資料再次送達時復原 |
 | Critical Array Alert | Array Health | 嚴重 | `purefb_alerts_open` 篩選到 `severity=critical`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的嚴重警示。每個警示一個事件；警示關閉時復原 |
-| Warning Array Alert | Array Health | Warning | `purefb_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
-| Capacity Above 80% | 容量 | Warning | `purefb_array_space_utilization` 篩選到 `type=array`，Max，過去 15 分鐘 | > 80；≤ 72 時復原 |
+| Warning Array Alert | Array Health | 警告 | `purefb_alerts_open` 篩選到 `severity=warning`，依 `summary` 取 Max，過去 5 分鐘 | > 0 — FlashBlade 有一個未關閉的警告層級警示。每個警示一個事件；警示關閉時復原 |
+| Capacity Above 80% | 容量 | 警告 | `purefb_array_space_utilization` 篩選到 `type=array`，Max，過去 15 分鐘 | > 80；≤ 72 時復原 |
 | Capacity Above 90% | 容量 | 嚴重 | `purefb_array_space_utilization` 篩選到 `type=array`，Max，過去 5 分鐘 | > 90 — 寫滿時每個用戶端的寫入都會失敗；≤ 81 時復原 |
 | Hardware Component Unhealthy | 硬體 | 嚴重 | `purefb_hardware_health`，依 `name` 取 Min，過去 5 分鐘 | < 1 — 某個刀鋒、交換模組、電源供應器或風扇不健康(未使用的插槽回報 2)。每個元件一個事件；≥ 1 時復原 |
-| High Read Latency | 效能 | Warning | `purefb_array_performance_latency_usec` 篩選到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，過去 10 分鐘 | > 10000 µs (10 ms)，跨所有通訊協定；≤ 9000 時復原 |
-| File System Near Full | 檔案系統 | Warning | `purefb_file_systems_space_bytes` 篩選到 `space=available_ratio`，依 `name` 取 Min，過去 15 分鐘 | < 0.1 — 檔案系統佈建大小的剩餘不足 10%。每個檔案系統一個事件；≥ 0.11 時復原 |
+| High Read Latency | 效能 | 警告 | `purefb_array_performance_latency_usec` 篩選到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，過去 10 分鐘 | > 10000 µs (10 ms)，跨所有通訊協定；≤ 9000 時復原 |
+| File System Near Full | 檔案系統 | 警告 | `purefb_file_systems_space_bytes` 篩選到 `space=available_ratio`，依 `name` 取 Min，過去 15 分鐘 | < 0.1 — 檔案系統佈建大小的剩餘不足 10%。每個檔案系統一個事件；≥ 0.11 時復原 |
 
 **嚴重程度** 是選擇器顯示的標籤。範本建立的事件和警示會以專案中最嚴重的事件和警示嚴重程度開始；可以在條件中修改。
 

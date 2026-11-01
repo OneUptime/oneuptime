@@ -4,6 +4,7 @@ import fsp from "fs/promises";
 import Handlebars from "handlebars";
 import Path from "path";
 import { registerEmailDetailCardHelpers } from "./EmailDetailCard";
+import { registerEmailLanguageHelpers } from "./EmailLanguage";
 
 const loadPartials: PromiseVoidFunction = async (): Promise<void> => {
   // get all partials in the partial folder and comile then and register then as partials in handlebars.
@@ -123,3 +124,9 @@ Handlebars.registerHelper("brandNameHtml", (options: unknown) => {
  * one (EmailDetailCard.ts).
  */
 registerEmailDetailCardHelpers(Handlebars);
+
+/*
+ * An email's own words in its reader's language - t, tHtml, tt, ttHtml, tp,
+ * emailStart and emailEnd (EmailLanguage.ts).
+ */
+registerEmailLanguageHelpers(Handlebars);

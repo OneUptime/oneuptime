@@ -60,7 +60,7 @@ Klicka på ett värde i sidopanelen **Filter** för att lägga till det som ett 
 
 ### Öppna ett span
 
-Klicka på en rad för att fälla ut den: dess attribut, och loggarna och undantagen som den registrerade. Klicka på **See full trace** för att öppna hela spåret.
+Klicka på en rad för att fälla ut den: dess attribut, och loggarna och undantagen som den registrerade. Klicka på **Visa hela spåret** för att öppna hela spåret.
 :::
 
 Din sökning, dina chips och tidsintervallet sparas i sidans adress, så att en omladdning, ett bokmärke eller en delad länk öppnar samma spans.
@@ -97,7 +97,7 @@ Ett stort spår läser in 500 spans åt gången. Klicka på knappen längst ned 
 
 Diagrammet ovanför listan visar antalet spans över tid, uppdelat på status. Välj ett annat mått i diagrammets rubrik för att i stället visa deras genomsnittliga svarstid, median (P50) eller P95.
 
-För mer byter du listan från **Spans** till **Analytics**. Välj en tidsserie, en topplista eller en tabell; mät antal förfrågningar, antal fel eller svarstider (genomsnitt, P50, P90, P95, P99, minimum eller maximum); och gruppera på span-namn, tjänst, status, span-typ eller valfritt attribut, och sedan på ett andra fält. En topplista eller en tabell visar de 5 till 100 största grupperna.
+För mer byter du listan från **Spans** till **Analyser**. Välj en tidsserie, en topplista eller en tabell; mät antal förfrågningar, antal fel eller svarstider (genomsnitt, P50, P90, P95, P99, minimum eller maximum); och gruppera på span-namn, tjänst, status, span-typ eller valfritt attribut, och sedan på ett andra fält. En topplista eller en tabell visar de 5 till 100 största grupperna.
 
 ## Följ, spara och dela
 

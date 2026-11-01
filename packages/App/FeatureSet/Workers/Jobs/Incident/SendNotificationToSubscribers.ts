@@ -68,7 +68,13 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "Common/Utils/Markdown/FeedMarkdown";
-import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberChatText,
+  SubscriberSmsText,
+} from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 // The status message of a 'created' notification that reached everyone.
 const SENT_MESSAGE: string =
@@ -622,6 +628,15 @@ RunCron(
                       subscriber,
                     ).toString();
 
+                  /*
+                   * The language this subscriber's messages are written in:
+                   * their own, else the page's (SubscriberLanguage).
+                   */
+                  const language: string = SubscriberLanguage.getLanguage({
+                    subscriber: subscriber,
+                    statusPage: statuspage,
+                  });
+
                   logger.debug(
                     `Prepared unsubscribe link for subscriber ${subscriber._id}.`,
                   );
@@ -658,10 +673,14 @@ RunCron(
 
                     const subscriberEmail: Email = subscriber.subscriberEmail;
 
-                    // The page's email, with this subscriber's unsubscribe link.
+                    /*
+                     * The page's email, with this subscriber's unsubscribe
+                     * link, in their language.
+                     */
                     const email: SubscriberIncidentEmail =
                       pageEmail.forSubscriber({
                         unsubscribeUrl: unsubscribeUrl,
+                        language: language,
                       });
 
                     await pageEmail.recordSending();
@@ -718,9 +737,33 @@ RunCron(
                         smsTemplate.templateBody,
                       ]);
                     } else {
-                      // Use default hard-coded template
-                      smsMessage = writeDefaultSubscriberSms(
-                        `Incident ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                      // OneUptime's own words, in the subscriber's language.
+                      smsMessage = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return SubscriberMessageText.smsWithLinks(
+                            translator,
+                            {
+                              sentences: [
+                                translator.translateTemplate(
+                                  SubscriberSmsText.incidentCreated,
+                                  {
+                                    title: incident.title || "",
+                                    severity: incident.incidentSeverity?.name
+                                      ? SubscriberMessageText.stateName(
+                                          incident.incidentSeverity.name,
+                                        )
+                                      : "-",
+                                    statusPageName: statusPageName,
+                                    resources: resourcesAffectedPlainText,
+                                  },
+                                ),
+                              ],
+                              detailsUrl: incidentDetailsUrl,
+                              unsubscribeUrl: unsubscribeUrl,
+                            },
+                          );
+                        },
                       );
                     }
 
@@ -772,17 +815,21 @@ RunCron(
                         slackTemplate.templateBody,
                       ]);
                     } else {
-                      // Use default hard-coded template
-                      markdownMessage =
-                        mdText`## 🚨 Incident - ${incident.title || ""}
+                      // OneUptime's own words, in the subscriber's language.
+                      markdownMessage = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return mdText`## 🚨 ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: incident.title || "" })}
 
-**Severity:** ${incident.incidentSeverity?.name || " - "}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, incident.incidentSeverity.name) : " - ")}
 
-**Resources Affected:** ${resourcesAffectedPlainText}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
 
-**Description:** ${FeedMarkdown.asMarkdown(incident.description || "")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, FeedMarkdown.asMarkdown(incident.description || ""))}
 
-${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+${slackCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
+                        },
+                      );
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 
@@ -824,13 +871,17 @@ ${slackCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsub
                         teamsTemplate.templateBody,
                       ]);
                     } else {
-                      // Use default hard-coded template
-                      markdownMessage =
-                        mdText`## 🚨 Incident - ${incident.title || ""}
-**Severity:** ${incident.incidentSeverity?.name || " - "}
-**Resources Affected:** ${resourcesAffectedPlainText}
-**Description:** ${FeedMarkdown.asMarkdown(incident.description || "")}
-${teamsCustomFields}[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                      // OneUptime's own words, in the subscriber's language.
+                      markdownMessage = writeInLanguage(
+                        language,
+                        (translator: Translator): string => {
+                          return mdText`## 🚨 ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: incident.title || "" })}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.severity, incident.incidentSeverity?.name ? SubscriberMessageText.nameInLanguage(translator, incident.incidentSeverity.name) : " - ")}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.resourcesAffected, resourcesAffectedPlainText)}
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, FeedMarkdown.asMarkdown(incident.description || ""))}
+${teamsCustomFields}${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
+                        },
+                      );
                       await incidentTemplateVariables.recordIncludedFieldsSent();
                     }
 

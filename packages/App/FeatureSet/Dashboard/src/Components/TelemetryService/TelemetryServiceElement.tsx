@@ -9,6 +9,8 @@ import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import Service from "Common/Models/DatabaseModels/Service";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -20,18 +22,25 @@ export interface ComponentProps {
 const TelemetryServiceElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const serviceName: string =
+    TelemetryServiceUtil.getServiceDisplayName(
+      props.telemetryService.name?.toString(),
+      translator,
+    ) || "";
+
   const getServiceElement: GetReactElementFunction = (): ReactElement => {
     return (
       <div className="flex space-x-2">
         <div className="mt-1">
           <ColorSquareCube
             color={props.telemetryService.serviceColor || Black}
-            tooltip={`${props.telemetryService.name?.toString()} Service Color`}
+            tooltip={translator.translateTemplate("{{name}} Service Color", {
+              name: serviceName,
+            })}
           />
         </div>
-        <div className={props.telemetryServiceNameClassName}>
-          {props.telemetryService.name?.toString()}
-        </div>
+        <div className={props.telemetryServiceNameClassName}>{serviceName}</div>
       </div>
     );
   };

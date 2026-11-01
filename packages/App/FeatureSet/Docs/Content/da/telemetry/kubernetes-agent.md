@@ -293,7 +293,7 @@ På en skærm, der er smallere end 1024 pixels, viser kolonnen **Begivenhed** og
 
 ### Søg i hændelser og få besked
 
-Hver hændelse er også en log. En advarsel gemmes med alvorligheden **Warning**, og det, hændelsen siger, står i dens attributter:
+Hver hændelse er også en log. En advarsel gemmes med alvorligheden **Advarsel**, og det, hændelsen siger, står i dens attributter:
 
 | Attribut | Eksempel |
 | --- | --- |

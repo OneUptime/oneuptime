@@ -102,7 +102,7 @@ Ogni nuovo progetto parte con due gravità di avviso, dalla più grave:
 | **Alto** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
 | **Basso**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Gli incidenti partono con tre gravità e gli avvisi con due. Quando il modello di una raccomandazione di monitor dice **Critico** o **Warning**, OneUptime lo associa alla vostra prima e seconda gravità di avviso, che in un nuovo progetto sono **Alto** e **Basso**.
+Gli incidenti partono con tre gravità e gli avvisi con due. Quando il modello di una raccomandazione di monitor dice **Critico** o **Avviso**, OneUptime lo associa alla vostra prima e seconda gravità di avviso, che in un nuovo progetto sono **Alto** e **Basso**.
 
 ## Modificare le gravità
 

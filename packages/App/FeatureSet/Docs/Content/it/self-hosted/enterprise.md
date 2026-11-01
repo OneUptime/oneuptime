@@ -116,18 +116,18 @@ Il file [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) 
 
 Una nuova installazione della Enterprise Edition funziona come **prova di 14 giorni**, contata dal primo avvio della Enterprise Edition da parte dell'installazione. La prova serve alla valutazione: l'uso in produzione della Enterprise Edition richiede un abbonamento sotto la OneUptime Enterprise License. Attivate una licenza prima che la prova finisca: dopo, SCIM, la registrazione di audit e le sostituzioni della conservazione si fermano e la configurazione enterprise diventa di sola lettura (vedi [Quando una licenza scade o manca](#quando-una-licenza-scade-o-manca)). Per ottenere una licenza, scrivete a [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
-La licenza si gestisce dall'**etichetta dell'edizione**, che i master admin vedono nell'intestazione del pannello amministratore e nel piè di pagina della Dashboard. Mostra lo stato della licenza, l'uso dei posti e, per i master admin, l'ID dell'istanza.
+La licenza si gestisce da **Admin Dashboard > Impostazioni > Licenza**: lì i master admin la aggiungono, la aggiornano e la sostituiscono, e nessun altro può modificarla. L'**etichetta dell'edizione**, nell'intestazione del pannello amministratore e nel piè di pagina della Dashboard, mostra soltanto la situazione: lo stato della licenza e, per i master admin, l'uso dei posti e un pulsante **Gestisci licenza** che porta a quella pagina.
 
 OneUptime Enterprise acquistato su AWS Marketplace, Microsoft Marketplace o Google Cloud Marketplace non richiede una chiave di licenza: l'abbonamento al marketplace ne è la licenza e fattura ogni utente a ore. Vedi [Marketplace cloud](/docs/installation/cloud-marketplaces).
 
 ### Attivazione online (chiave di licenza)
 
 :::steps
-1. Accedete come master admin e aprite l'etichetta dell'edizione.
+1. Accedete come master admin e aprite **Admin Dashboard > Impostazioni > Licenza**.
 2. Inserite la vostra chiave di licenza e convalidatela.
 :::
 
-L'installazione verifica la chiave con OneUptime e memorizza la licenza che riceve. Da quel momento mantiene la licenza aggiornata con una sincronizzazione giornaliera. Usate **Refresh license** nell'etichetta dell'edizione per ricevere subito le modifiche, come posti aggiuntivi o un rinnovo.
+L'installazione verifica la chiave con OneUptime e memorizza la licenza che riceve. Da quel momento mantiene la licenza aggiornata con una sincronizzazione giornaliera. Usate **Refresh license** nella stessa pagina per ricevere subito le modifiche, come posti aggiuntivi o un rinnovo.
 
 L'attivazione online richiede HTTPS in uscita dal server OneUptime verso `https://oneuptime.com`. Se il server raggiunge Internet solo tramite un relay, impostate `ENTERPRISE_LICENSE_SERVER_URL` sull'indirizzo `https://` del relay. Il relay deve inoltrare `/api/enterprise-license/` a oneuptime.com.
 
@@ -136,9 +136,9 @@ L'attivazione online richiede HTTPS in uscita dal server OneUptime verso `https:
 Un'installazione senza una rotta verso Internet può usare un **token di licenza firmato** invece di una chiave:
 
 :::steps
-1. Accedete come master admin, aprite l'etichetta dell'edizione e annotate l'**ID dell'istanza**.
+1. Accedete come master admin, aprite **Admin Dashboard > Impostazioni > Licenza**, passate all'attivazione offline e annotate l'**ID dell'istanza**.
 2. Chiedete a OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) un token di licenza offline per quell'ID dell'istanza.
-3. Incollate il token nel campo del token dell'etichetta dell'edizione e attivatelo.
+3. Incollate il token nel campo del token e attivatelo.
 :::
 
 L'installazione verifica il token da sé, con le chiavi di firma di OneUptime incluse nella vostra release. Non contatta mai OneUptime. Un token emesso per un ID dell'istanza viene rifiutato da ogni altra installazione, e anche un token emesso senza ID dell'istanza (come quello che riceve un'installazione attivata online) viene rifiutato. Per rinnovare o aggiungere posti, attivate un nuovo token prima che quello attuale scada.

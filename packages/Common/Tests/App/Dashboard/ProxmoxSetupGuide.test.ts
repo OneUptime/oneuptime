@@ -26,9 +26,20 @@ import {
   getProxmoxAgentUpgradeCommand,
   getProxmoxInstallScriptCommand,
   getProxmoxPushTarget,
+  PROXMOX_NOTIFICATIONS_STEP_ANCHOR,
+  PROXMOX_NOTIFICATIONS_STEP_TITLE,
   getProxmoxSetupGuide,
   resolveProxmoxConnectMethod,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
+import {
+  PROXMOX_NOTIFICATION_TARGET_NAME,
+  buildProxmoxNotificationRemoveCommands,
+  buildProxmoxNotificationSetupCommands,
+} from "../../../Utils/Proxmox/ProxmoxNotifications";
+import {
+  ProxmoxNotificationAlertTemplate,
+  getAllProxmoxNotificationAlertTemplates,
+} from "../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import {
   PROXMOX_AGENT_COLLECTOR_VERSION,
   PROXMOX_AGENT_VERSION,
@@ -46,6 +57,7 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
+import { isPageAnchorName } from "../../../UI/Utils/PageAnchor";
 import {
   InstallScriptEntry,
   InstallScriptName,
@@ -440,7 +452,7 @@ describe.each(AGENT_METHODS)(
     const guide: SetupGuideContent = guideFor(method);
     const markdown: string = getSetupGuideMarkdown(guide);
 
-    test("is three steps after the key: token, install, verify", () => {
+    test("is four steps after the key: token, install, verify, notifications", () => {
       expect(
         guide.steps.map((step: SetupGuideStep): string => {
           return step.title;
@@ -449,6 +461,7 @@ describe.each(AGENT_METHODS)(
         "Create a read-only API token",
         "Install the agent",
         "Verify the installation",
+        "Send Proxmox VE's notifications",
       ]);
     });
 
@@ -1050,7 +1063,7 @@ describe("the native push", () => {
   const guide: SetupGuideContent = guideFor("native-push");
   const markdown: string = getSetupGuideMarkdown(guide);
 
-  test("is two steps after the key: add the metric server, check the cluster", () => {
+  test("is three steps after the key: add the metric server, check the cluster, notifications", () => {
     expect(
       guide.steps.map((step: SetupGuideStep): string => {
         return step.title;
@@ -1058,6 +1071,7 @@ describe("the native push", () => {
     ).toEqual([
       "Add OneUptime as a metric server",
       "Check that the cluster appears",
+      "Send Proxmox VE's notifications",
     ]);
   });
 
@@ -1217,6 +1231,152 @@ describe("the native push", () => {
       topicTitled(guide.advanced, "Which name the cluster registers under")
         .markdown,
     ).not.toContain("This cluster is");
+  });
+});
+
+describe("the step that sends Proxmox VE's notifications", () => {
+  const notificationsStep: (guide: SetupGuideContent) => SetupGuideStep = (
+    guide: SetupGuideContent,
+  ): SetupGuideStep => {
+    return stepTitled(guide, PROXMOX_NOTIFICATIONS_STEP_TITLE);
+  };
+
+  test.each(METHOD_KEYS)(
+    "is the last step of the %s guide, and optional",
+    (method: ProxmoxConnectMethod) => {
+      const guide: SetupGuideContent = guideFor(method);
+      expect(guide.steps[guide.steps.length - 1]?.title).toBe(
+        PROXMOX_NOTIFICATIONS_STEP_TITLE,
+      );
+      expect(notificationsStep(guide).description).toMatch(/^Optional: /);
+    },
+  );
+
+  test.each(METHOD_KEYS)(
+    "the %s guide shows the commands that create the target and the matcher, with the reader's URL, key and cluster",
+    (method: ProxmoxConnectMethod) => {
+      const step: SetupGuideStep = notificationsStep(
+        guideFor(method, { clusterName: "pve-prod" }),
+      );
+      expect(step.markdown).toContain(
+        codeBlock(
+          "bash",
+          buildProxmoxNotificationSetupCommands({
+            oneUptimeUrl: URL,
+            clusterName: "pve-prod",
+            ingestionKey: KEY,
+          }),
+        ),
+      );
+      expect(step.markdown).toContain(`printf %s '${KEY}' | base64 -w0`);
+      expect(step.markdown).toContain("printf %s 'pve-prod' | base64 -w0");
+      expect(step.markdown).toContain(
+        "The command already names **`pve-prod`**",
+      );
+    },
+  );
+
+  /*
+   * The Overview's "Set up notifications" links here, not to step 1 of an
+   * install the reader has already done.
+   */
+  test.each(METHOD_KEYS)(
+    "has a place of its own on the %s guide's page, for a link to land on",
+    (method: ProxmoxConnectMethod) => {
+      const guide: SetupGuideContent = guideFor(method);
+      expect(notificationsStep(guide).anchor).toBe(
+        PROXMOX_NOTIFICATIONS_STEP_ANCHOR,
+      );
+      expect(isPageAnchorName(PROXMOX_NOTIFICATIONS_STEP_ANCHOR)).toBe(true);
+      // The only step that has one.
+      expect(
+        guide.steps.filter((step: SetupGuideStep): boolean => {
+          return Boolean(step.anchor);
+        }),
+      ).toHaveLength(1);
+    },
+  );
+
+  test("says how to stop sending them", () => {
+    expect(notificationsStep(guideFor("install-script")).markdown).toContain(
+      codeBlock("bash", buildProxmoxNotificationRemoveCommands()),
+    );
+  });
+
+  test("names the release that has webhook targets, and the target it adds", () => {
+    const markdown: string =
+      notificationsStep(guideFor("native-push")).markdown || "";
+    expect(markdown).toContain("Proxmox VE 8.3 or later");
+    expect(markdown).toContain(
+      `a webhook target named \`${PROXMOX_NOTIFICATION_TARGET_NAME}\``,
+    );
+  });
+
+  test("the alerts it names are every notification template, in the picker's order", () => {
+    const markdown: string =
+      notificationsStep(guideFor("docker-compose")).markdown || "";
+    const alertsSentence: RegExp =
+      /\*\*Recommendations\*\* offer the (.+?) alerts\./;
+    const sentence: string = alertsSentence.exec(markdown)?.[1] || "";
+    const named: Array<string> = Array.from(
+      sentence.matchAll(/\*\*([^*]+)\*\*/g),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+    expect(named).toEqual(
+      getAllProxmoxNotificationAlertTemplates().map(
+        (template: ProxmoxNotificationAlertTemplate): string => {
+          return template.name;
+        },
+      ),
+    );
+  });
+
+  test("an unknown cluster is named after the agent's cluster name, or the name the push registered", () => {
+    expect(notificationsStep(guideFor("install-script")).markdown).toContain(
+      `Replace \`${PROXMOX_EXAMPLE_CLUSTER_NAME}\` with the cluster name you gave the agent`,
+    );
+    expect(notificationsStep(guideFor("native-push")).markdown).toContain(
+      `Replace \`${PROXMOX_EXAMPLE_CLUSTER_NAME}\` with the name the cluster appears under in OneUptime: its Proxmox cluster name, or a standalone node's own name.`,
+    );
+    expect(notificationsStep(guideFor("native-push")).markdown).toContain(
+      `printf %s '${PROXMOX_EXAMPLE_CLUSTER_NAME}' | base64 -w0`,
+    );
+  });
+
+  /*
+   * Proxmox VE keeps whatever key the commands give it, so - like the
+   * install script - they never carry a placeholder: a target holding one
+   * fails without a word, at the first failed backup.
+   */
+  test.each(METHOD_KEYS)(
+    "before a key is picked, the %s guide shows no command and says to pick a key",
+    (method: ProxmoxConnectMethod) => {
+      const step: SetupGuideStep = notificationsStep(noKeyGuideFor(method));
+      expect(step.markdown).not.toContain("```");
+      expect(step.markdown).not.toContain(SETUP_GUIDE_API_KEY_PLACEHOLDER);
+      expect(step.markdown).toContain(
+        "Pick an ingestion key in step 1 to show the two commands",
+      );
+      expect(step.markdown).toContain("Proxmox VE 8.3 or later");
+    },
+  );
+
+  test("nor while the dashboard does not know its own URL", () => {
+    const step: SetupGuideStep = notificationsStep(
+      guideFor("native-push", { oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER }),
+    );
+    expect(step.markdown).not.toContain("```");
+    expect(step.markdown).not.toContain(SETUP_GUIDE_URL_PLACEHOLDER);
+  });
+
+  test("the key travels in the target's secrets, never in the body the target sends", () => {
+    const markdown: string =
+      notificationsStep(guideFor("install-script")).markdown || "";
+    expect(markdown).toContain("--secret");
+    expect(markdown).toContain(
+      "keeps the key and the cluster's name in its secrets",
+    );
   });
 });
 

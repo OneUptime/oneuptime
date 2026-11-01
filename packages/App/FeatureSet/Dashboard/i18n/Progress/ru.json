@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 13192
+    "keys": 39461,
+    "untranslated": 12962
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -21,6 +21,7 @@
     "Docker Compose",
     "Edge",
     "Google SecOps",
+    "HA: {{state}}",
     "Hello world",
     "ICMP (ping)",
     "INP 120 ms",
@@ -51,6 +52,7 @@
     "Top P",
     "UTC",
     "VLAN",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

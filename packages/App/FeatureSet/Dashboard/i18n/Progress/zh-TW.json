@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 12869
+    "keys": 39461,
+    "untranslated": 12646
   },
   "sameAsEnglish": [
     "2xx",
@@ -45,6 +45,7 @@
     "Pod · data",
     "Pod · production",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Proxmox ID",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Runner",
@@ -61,6 +62,7 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Web",
     "Webhook",

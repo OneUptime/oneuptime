@@ -327,6 +327,17 @@ Das bearbeitete Element zeigt einen **Status der Aktualisierungsbenachrichtigung
 
 als Body von `PUT /api/status-page-announcement/<announcement-id>` (oder `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Lassen Sie `miscDataProps` weg, bleibt die Bearbeitung wie bisher still.
 
+## Die Sprache der Nachrichten an Abonnenten
+
+Jeder Abonnent wird in seiner eigenen Sprache angeschrieben: die E-Mail oder SMS, die das Abonnement bestätigt, die Begrüßung und der Link zum Verwalten, und jede Benachrichtigung über einen Vorfall, eine Vorfall-Episode, ein geplantes Wartungsereignis oder eine Ankündigung, per E-Mail, SMS, Slack und Microsoft Teams.
+
+- **Ein Besucher, der die Statusseite in ihrer Fußzeile auf eine andere Sprache umstellt** und dann abonniert oder sein Abonnement aktualisiert, wird in dieser Sprache angeschrieben.
+- **Alle anderen** werden in der Standardsprache der Seite angeschrieben, die unter [Weitere Einstellungen](/docs/status-pages/branding-and-domains#weitere-einstellungen) auf ihrer Seite Branding festgelegt wird: ein Besucher, der die Seite in dieser Sprache gelesen hat, ein Abonnent, den Ihr Team im Dashboard, über die API oder per Workflow hinzufügt, und alle, die abonniert haben, bevor OneUptime die Sprache eines Abonnenten speicherte. Ändern Sie die Standardsprache, werden sie ab der nächsten Nachricht in der neuen angeschrieben.
+
+Die eigenen Worte von OneUptime stehen in dieser Sprache: Betreffzeilen, Überschriften, Beschriftungen und Schaltflächen, die Zeile zum Abbestellen, Datumsangaben und die Namen der Vorfallstatus, Schweregrade und Wartungsstatus, mit denen jedes neue Projekt beginnt, etwa Resolved, Major Incident oder Ongoing. Was Ihr Team schreibt, bleibt, wie es geschrieben wurde: Titel, Beschreibungen, Notizen und Postmortems, Ihre eigenen Namen für Status, Schweregrade und Ressourcen, der Name der Statusseite, benutzerdefinierte Felder und eigene Vorlagen, deren Werte so erscheinen, wie sie gespeichert sind. Eine E-Mail auf Persisch liest sich von rechts nach links, und ein englischer Titel oder eine englische Notiz darin weiterhin von links nach rechts. Die Nutzdaten eines Webhooks sind Daten und bleiben, wie sie sind, und der E-Mail-Bericht ist auf Englisch geschrieben.
+
+Über die API ist `language` eines Abonnenten ein Sprachcode wie `de` oder `zh-TW`, oder leer für die Standardsprache der Seite; jeder andere Wert wird abgelehnt.
+
 ## Prüfen, was gesendet wurde
 
 Jede Abonnentenbenachrichtigung hat einen eigenen Status neben dem, worum es geht. Bei einem Vorfall ist das seine Benachrichtigung „erstellt“ auf der **Übersicht** des Vorfalls, jede Zeile seiner **Zustands-Zeitachse**, jede öffentliche Notiz und sein **Postmortem**. Geplante Wartungsereignisse und Ankündigungen zeigen ihre genauso, und Vorfall-Episoden an ihren öffentlichen Notizen. Klicken Sie auf den Status, um seine Meldung zu lesen, die sagt, was passiert ist. Öffentliche Notizen zeigen den Status als Badge mit eigenem Wortlaut:
@@ -446,7 +457,7 @@ Vier weitere Abschnitte unter **Weitere Einstellungen** unten in den **Abonnente
 
 Eigenes SMTP lohnt sich früh, wenn Sie E-Mail-Abonnenten haben: Mail von Ihrer eigenen Domain wird weit seltener gefiltert und weit eher von dem Kunden vertraut, der sie um 2 Uhr nachts liest.
 
-Die Standard-SMS werden in den Zeichen geschrieben, die eine SMS am günstigsten überträgt: Typografische Anführungszeichen, Gedankenstriche und Ähnliches gehen als ihre schlichten Entsprechungen hinaus, und ein Emoji wird weggelassen, sodass ein einzelnes Zeichen in einem Titel eine SMS nie zwei oder drei Teile kosten lässt. Links gehen genau so hinaus, wie sie geschrieben sind. Eine eigene SMS-Vorlage geht so hinaus, wie Sie sie geschrieben haben, mit den Werten, die sie einsetzt.
+Die Standard-SMS werden in den Zeichen geschrieben, die eine SMS am günstigsten überträgt: Typografische Anführungszeichen, Gedankenstriche und Ähnliches gehen als ihre schlichten Entsprechungen hinaus, und ein Emoji wird weggelassen, sodass ein einzelnes Zeichen in einem Titel eine SMS nie zwei oder drei Teile kosten lässt. Eine SMS in einer anderen Schrift, etwa auf Chinesisch oder Persisch, behält ihre Satzzeichen, wie sie geschrieben sind, denn sie kostet so oder so gleich viel. Links gehen genau so hinaus, wie sie geschrieben sind. Eine eigene SMS-Vorlage geht so hinaus, wie Sie sie geschrieben haben, mit den Werten, die sie einsetzt.
 
 ## Ankündigungen
 

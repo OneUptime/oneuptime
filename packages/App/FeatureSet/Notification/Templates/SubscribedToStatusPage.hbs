@@ -1,13 +1,13 @@
 {{> Start this}}
 
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "You have been subscribed to status page - " statusPageName) }}
+{{> EmailTitle title=(tt "You have been subscribed to status page - {{statusPageName}}" statusPageName=statusPageName) }}
 
-{{> InfoBlock info="You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events."}}
+{{> InfoBlock info=(tHtml "You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.")}}
 
-{{> ButtonBlock buttonUrl=statusPageUrl buttonText="Go to Status Page"}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText=(t "Go to Status Page")}}
 
-{{> LinkBlock linkUrl=statusPageUrl linkLabel="You can also view the status page by visiting this link:"}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel=(t "You can also view the status page by visiting this link:")}}
 
 {{> UnsubscribeBlock this}}
 

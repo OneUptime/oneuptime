@@ -116,42 +116,42 @@ flowchart TB
 | 模板 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | 严重 | `ceph_health_status`，Max，过去 1 分钟 | 2 或以上：`HEALTH_ERR` | 低于 1.8：`HEALTH_WARN` 或更好 |
-| Cluster Health Warning | Warning | `ceph_health_status`，Max | 1 或以上：`HEALTH_WARN` 或更差 | 低于 0.9：`HEALTH_OK` |
+| Cluster Health Warning | 警告 | `ceph_health_status`，Max | 1 或以上：`HEALTH_WARN` 或更差 | 低于 0.9：`HEALTH_OK` |
 | Monitor Quorum Degraded | 严重 | `ceph_mon_quorum_status`，按 `ceph_daemon` 取 Min，过去 1 分钟 | 某个 mon 降到 1 以下，退出仲裁。每个 mon 一个事件 | 回到 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`，Max | 高于 0：集群的 `SLOW_OPS` 检查处于活动状态 | 为 0 |
-| Daemon Slow Operations | Warning | `type = SLOW_OPS` 的 `ceph_daemon_health_metrics`，按 `ceph_daemon` 取 Max | 高于 0。每个 OSD 或 mon 一个事件 | 序列消失 |
+| Slow Operations | 警告 | `ceph_healthcheck_slow_ops`，Max | 高于 0：集群的 `SLOW_OPS` 检查处于活动状态 | 为 0 |
+| Daemon Slow Operations | 警告 | `type = SLOW_OPS` 的 `ceph_daemon_health_metrics`，按 `ceph_daemon` 取 Max | 高于 0。每个 OSD 或 mon 一个事件 | 序列消失 |
 | Daemon Crash | 严重 | `name = RECENT_CRASH` 的 `ceph_health_detail`，Max | 检查处于活动状态：存在未归档的守护进程崩溃。mgr 没有 `ceph_crash_*` 指标，所以这是唯一的崩溃信号 | 崩溃已归档 |
-| Monitor Clock Skew | Warning | `name = MON_CLOCK_SKEW` 的 `ceph_health_detail`，Max | 检查处于活动状态：mon 的时钟偏差超过允许值（默认 0.05 秒） | 检查消失 |
+| Monitor Clock Skew | 警告 | `name = MON_CLOCK_SKEW` 的 `ceph_health_detail`，Max | 检查处于活动状态：mon 的时钟偏差超过允许值（默认 0.05 秒） | 检查消失 |
 | Monitor Disk Critically Low | 严重 | `name = MON_DISK_CRIT` 的 `ceph_health_detail`，Max | 检查处于活动状态：mon 数据库磁盘的可用空间低于 5%（默认值） | 检查消失 |
-| Monitor Disk Space Low | Warning | `name = MON_DISK_LOW` 的 `ceph_health_detail`，Max | 检查处于活动状态：可用空间低于 30%（默认值） | 检查消失 |
+| Monitor Disk Space Low | 警告 | `name = MON_DISK_LOW` 的 `ceph_health_detail`，Max | 检查处于活动状态：可用空间低于 30%（默认值） | 检查消失 |
 
 ### OSD 模板
 
 | 模板 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- |
 | OSD Down | 严重 | `ceph_osd_up`，按 `ceph_daemon` 取 Min | 某个 OSD 降到 1 以下。每个 OSD 一个事件 | 回到 1 |
-| OSD Out | Warning | `ceph_osd_in`，按 `ceph_daemon` 取 Min | 某个 OSD 降到 1 以下：被标记为退出数据分布 | 回到 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`，按 `ceph_daemon` 取 Avg | 高于 100 ms。每个 OSD 一个事件 | 不高于 90 ms |
-| OSD Slow Heartbeats | Warning | `name = OSD_SLOW_PING_TIME_FRONT` 和 `name = OSD_SLOW_PING_TIME_BACK` 的 `ceph_health_detail`，Max | 任一检查处于活动状态：公共网络或集群网络上的心跳变慢。mgr 不导出 ping 时间指标 | 两个检查都消失 |
+| OSD Out | 警告 | `ceph_osd_in`，按 `ceph_daemon` 取 Min | 某个 OSD 降到 1 以下：被标记为退出数据分布 | 回到 1 |
+| OSD High Latency | 警告 | `ceph_osd_apply_latency_ms`，按 `ceph_daemon` 取 Avg | 高于 100 ms。每个 OSD 一个事件 | 不高于 90 ms |
+| OSD Slow Heartbeats | 警告 | `name = OSD_SLOW_PING_TIME_FRONT` 和 `name = OSD_SLOW_PING_TIME_BACK` 的 `ceph_health_detail`，Max | 任一检查处于活动状态：公共网络或集群网络上的心跳变慢。mgr 不导出 ping 时间指标 | 两个检查都消失 |
 
 ### 归置组模板
 
 | 模板 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | 严重 | `ceph_pg_total` − `ceph_pg_active`，按 `pool_id` 取 Max | 高于 0：PG 无法处理 I/O，发往它们的客户端请求会挂起。每个存储池一个事件 | 为 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`，按 `pool_id` 取 Max | 高于 0：对象的副本数少于配置值 | 为 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`，按 `pool_id` 取 Max | 高于 0：PG 映射到的 OSD 少于其副本数 | 为 0 |
+| Degraded Placement Groups | 警告 | `ceph_pg_degraded`，按 `pool_id` 取 Max | 高于 0：对象的副本数少于配置值 | 为 0 |
+| Undersized Placement Groups | 警告 | `ceph_pg_undersized`，按 `pool_id` 取 Max | 高于 0：PG 映射到的 OSD 少于其副本数 | 为 0 |
 | Damaged Placement Groups | 严重 | `name = PG_DAMAGED` 和 `name = OSD_SCRUB_ERRORS` 的 `ceph_health_detail`，Max | 任一检查处于活动状态：清洗（scrub）发现了损坏或读取错误 | 两个检查都消失 |
 
 ### 容量模板
 
 | 模板 | 严重程度 | 监视内容 | 触发条件 | 恢复条件 |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 高于 85%，即 Ceph 默认的 nearfull 比例 | 不高于 76.5% |
+| Cluster Near Full | 警告 | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 高于 85%，即 Ceph 默认的 nearfull 比例 | 不高于 76.5% |
 | Cluster Full | 严重 | 同一比例 | 高于 95%，即 Ceph 默认的 full 比例，此时整个集群停止写入 | 不高于 85.5% |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100，按 `pool_id` | 高于存储池可容纳量的 85%。每个存储池一个事件 | 不高于 76.5% |
-| OSD Nearfull | Warning | `name = OSD_NEARFULL` 的 `ceph_health_detail`，Max | 检查处于活动状态：某个 OSD 超过 nearfull 阈值（默认 85%）。单个 OSD 会远早于集群平均值被写满 | 检查消失 |
-| OSD Backfillfull | Warning | `name = OSD_BACKFILLFULL` 的 `ceph_health_detail`，Max | 检查处于活动状态：向该 OSD 的回填被拒绝（默认 90%），恢复停滞 | 检查消失 |
+| Pool Near Full | 警告 | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100，按 `pool_id` | 高于存储池可容纳量的 85%。每个存储池一个事件 | 不高于 76.5% |
+| OSD Nearfull | 警告 | `name = OSD_NEARFULL` 的 `ceph_health_detail`，Max | 检查处于活动状态：某个 OSD 超过 nearfull 阈值（默认 85%）。单个 OSD 会远早于集群平均值被写满 | 检查消失 |
+| OSD Backfillfull | 警告 | `name = OSD_BACKFILLFULL` 的 `ceph_health_detail`，Max | 检查处于活动状态：向该 OSD 的回填被拒绝（默认 90%），恢复停滞 | 检查消失 |
 | OSD Full | 严重 | `name = OSD_FULL` 的 `ceph_health_detail`，Max，过去 1 分钟 | 检查处于活动状态：某个 OSD 达到 full 阈值（默认 95%），写入被拒绝 | 检查消失 |
 
 - **宕机和仲裁模板使用最小值**，因此一个宕机的 OSD 或一个退出仲裁的 mon 就会触发它们，而不会被健康的多数掩盖。

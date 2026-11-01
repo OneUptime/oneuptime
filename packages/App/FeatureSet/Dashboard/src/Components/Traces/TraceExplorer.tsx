@@ -654,8 +654,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   }, [services, waterfallSpans]);
 
   const serviceInfoById: Map<string, TraceServiceInfo> = useMemo(() => {
-    return buildServiceInfoMap(servicesWithUnknown);
-  }, [servicesWithUnknown]);
+    return buildServiceInfoMap(servicesWithUnknown, translator);
+  }, [servicesWithUnknown, translator.language]);
 
   const serviceNameById: Map<string, string> = useMemo(() => {
     const map: Map<string, string> = new Map();
@@ -680,8 +680,9 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       spans: waterfallSpans,
       selfTimes,
       serviceInfoById,
+      translator,
     });
-  }, [waterfallSpans, selfTimes, serviceInfoById]);
+  }, [waterfallSpans, selfTimes, serviceInfoById, translator.language]);
 
   const visibility: Map<string, SpanVisibility> | null = useMemo(() => {
     return filterSpanTree(
@@ -1454,6 +1455,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                     const service: TraceServiceInfo = getServiceInfo(
                       serviceInfoById,
                       serviceId,
+                      translator,
                     );
                     return (
                       <span
@@ -1626,6 +1628,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                     service={getServiceInfo(
                       serviceInfoById,
                       selectedNode.span.serviceId,
+                      translator,
                     )}
                     parentSpan={
                       tree.parentById.has(selectedNode.span.spanId)

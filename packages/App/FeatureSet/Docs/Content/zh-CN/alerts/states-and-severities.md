@@ -102,7 +102,7 @@ flowchart TB
 | **高** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
 | **低**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-事件以三个严重级别开始，警报则以两个开始。当监视器推荐的模板写的是 **严重** 或 **Warning** 时，OneUptime 会把它映射到你的第一个和第二个警报严重级别，在新项目中即 **高** 和 **低**。
+事件以三个严重级别开始，警报则以两个开始。当监视器推荐的模板写的是 **严重** 或 **警告** 时，OneUptime 会把它映射到你的第一个和第二个警报严重级别，在新项目中即 **高** 和 **低**。
 
 ## 编辑严重级别
 

@@ -216,7 +216,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
   const labelForSeries: (seriesKey: string) => string = (
     seriesKey: string,
   ): string => {
-    return formatTraceSeriesLabel(seriesKey, groupByAttribute);
+    return formatTraceSeriesLabel(seriesKey, groupByAttribute, translator);
   };
 
   const valueFormatter: (value: number) => string = isDuration

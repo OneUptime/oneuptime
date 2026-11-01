@@ -60,7 +60,7 @@ Klik op een waarde in de zijbalk **Filters** om die als chip toe te voegen. De z
 
 ### Een span openen
 
-Klik op een rij om hem uit te klappen: de attributen, en de logboeken en uitzonderingen die hij vastlegde. Klik op **See full trace** om de hele trace te openen.
+Klik op een rij om hem uit te klappen: de attributen, en de logboeken en uitzonderingen die hij vastlegde. Klik op **Volledige trace bekijken** om de hele trace te openen.
 :::
 
 Uw zoekopdracht, uw chips en het tijdsbereik staan in het adres van de pagina, dus een vernieuwing, een bladwijzer of een gedeelde link opent dezelfde spans.
@@ -97,7 +97,7 @@ Een grote trace laadt 500 spans tegelijk. Klik op de knop onderaan de trace om m
 
 De grafiek boven de lijst toont het aantal spans in de tijd, verdeeld naar status. Kies in de kop van de grafiek een andere maat om in plaats daarvan hun gemiddelde, mediane (P50) of P95-responstijd te tonen.
 
-Wilt u meer, zet de lijst dan van **Spans** op **Analytics**. Kies een tijdreeks, een toplijst of een tabel; meet verzoekaantallen, foutaantallen of responstijden (gemiddelde, P50, P90, P95, P99, minimum of maximum); en groepeer op spannaam, service, status, spansoort of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont 5 tot 100 groepen.
+Wilt u meer, zet de lijst dan van **Spans** op **Analyses**. Kies een tijdreeks, een toplijst of een tabel; meet verzoekaantallen, foutaantallen of responstijden (gemiddelde, P50, P90, P95, P99, minimum of maximum); en groepeer op spannaam, service, status, spansoort of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont 5 tot 100 groepen.
 
 ## Volgen, opslaan en delen
 

@@ -299,8 +299,8 @@ histogram.record(metric.value, {
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 毫秒 | **嚴重** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500 毫秒 | **嚴重** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0.25 | **嚴重** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 毫秒 | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 毫秒 | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 毫秒 | **警告** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 毫秒 | **警告** |
 
 這些監控器只讀取 `web_vital.*` 名稱。如果你的應用程式以其他名稱傳送某項指標，請編輯所建立監控器的指標。若要針對單一路由警示，請為監控器加入 `app.route` 篩選器。你也可以根據這些指標中的任何一個建立自己的監控器：請參閱 [指標監控](/docs/monitor/metrics-monitor) 。
 

@@ -420,9 +420,12 @@ describe("TracesViewer hosts a stored span query", () => {
   test("the un-carried scope is rendered, not merely computed", () => {
     // The module's whole "never silent" guarantee depends on a consumer.
     expect(TRACES_VIEWER).toContain(
-      'const scopeHint: string = spanScope.notCarried.join(", ");',
+      "const hasScopeHint: boolean = spanScope.notCarried.length > 0;",
     );
-    expect(TRACES_VIEWER).toContain("if (!scopeHint) { return viewer; }");
+    expect(TRACES_VIEWER).toContain("if (!hasScopeHint) { return viewer; }");
+    expect(TRACES_VIEWER).toContain(
+      "{ filters: getNotCarriedList(spanScope.notCarried) },",
+    );
   });
 });
 

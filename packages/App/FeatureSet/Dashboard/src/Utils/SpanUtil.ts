@@ -2,6 +2,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export enum IntervalUnit {
   Nanoseconds = "ns",
@@ -14,6 +15,19 @@ export interface DivisibilityFactor {
   divisibilityFactorNumber: number;
   intervalUnit: IntervalUnit;
 }
+
+/*
+ * What OpenTelemetry's span kinds are called, by the value a span stores: keys
+ * of the Dashboard's locales. Every screen that names a kind reads it here, so
+ * a language words each one once. The `kind:server` search term stays English.
+ */
+const SPAN_KIND_NAMES: Record<SpanKind, string> = {
+  [SpanKind.Server]: translationKey("Server"),
+  [SpanKind.Client]: translationKey("Client"),
+  [SpanKind.Producer]: translationKey("Producer"),
+  [SpanKind.Consumer]: translationKey("Consumer"),
+  [SpanKind.Internal]: translationKey("Internal"),
+};
 
 export default class SpanUtil {
   public static getSpanStatusText(status: SpanStatus): string {
@@ -105,22 +119,31 @@ export default class SpanUtil {
     )} ${divisibilityFactor.intervalUnit}`;
   }
 
-  public static getSpanKindFriendlyName(spanKind: SpanKind): string {
-    let spanKindText: string = "Internal"; // by default spans are always internal
+  /*
+   * A kind's name, in the reader's language with their translator and in
+   * English without one. By default spans are always internal.
+   */
+  public static getSpanKindFriendlyName(
+    spanKind: SpanKind,
+    translator?: Translator | undefined,
+  ): string {
+    const name: string =
+      SPAN_KIND_NAMES[spanKind] || SPAN_KIND_NAMES[SpanKind.Internal];
 
-    if (spanKind === SpanKind.Client) {
-      spanKindText = "Client";
-    } else if (spanKind === SpanKind.Server) {
-      spanKindText = "Server";
-    } else if (spanKind === SpanKind.Producer) {
-      spanKindText = "Producer";
-    } else if (spanKind === SpanKind.Consumer) {
-      spanKindText = "Consumer";
-    } else {
-      spanKindText = "Internal";
+    return translator ? translator.translateTerm(name) : name;
+  }
+
+  // Each kind's name, keyed by the value a span stores: a facet's labels.
+  public static getSpanKindNameMap(
+    translator?: Translator | undefined,
+  ): Record<string, string> {
+    const names: Record<string, string> = {};
+
+    for (const spanKind of Object.values(SpanKind)) {
+      names[spanKind] = SpanUtil.getSpanKindFriendlyName(spanKind, translator);
     }
 
-    return spanKindText;
+    return names;
   }
 
   public static getDivisibilityFactor(

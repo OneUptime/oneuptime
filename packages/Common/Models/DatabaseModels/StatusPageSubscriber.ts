@@ -522,6 +522,57 @@ export default class StatusPageSubscriber extends BaseModel {
   })
   public microsoftTeamsWorkspaceName?: string = undefined;
 
+  /*
+   * The language the subscriber reads the page in, when it is not the
+   * page's default: what a sign-up or a change on the status page sends
+   * (StatusPageAPI, from the visitor's Accept-Language). Their notifications
+   * and the messages about their subscription are written in it; without
+   * one, in the page's default language
+   * (Server/Utils/StatusPage/SubscriberLanguage).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageSubscriber,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageSubscriber,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Language",
+    description:
+      "The language this subscriber is notified in. Empty means the status page's default language.",
+    example: "de",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public language?: string = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

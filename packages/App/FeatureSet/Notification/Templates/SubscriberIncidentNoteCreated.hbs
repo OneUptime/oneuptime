@@ -1,19 +1,19 @@
 {{> Start this}}
 
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
+{{> EmailTitle title=(tt "Incident: {{title}}" title=incidentTitle) }}
 
-{{> InfoBlock info="A new note has been added to the incident. Here are the details:  "}}
+{{> InfoBlock info=(tHtml "A new note has been added to the incident. Here are the details:")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident Title: " plainText=incidentTitle }}
+{{> DetailBoxField title=(t "Incident Title") plainText=incidentTitle }}
 {{#if incidentState}}
-{{> DetailBoxField title="Status: " plainText=incidentState color=incidentStateColor textColor=incidentStateTextColor }}
+{{> DetailBoxField title=(t "Status") plainText=incidentState color=incidentStateColor textColor=incidentStateTextColor }}
 {{/if}}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
+{{> DetailBoxField title=(t "Resources Affected") text=resourcesAffected  }}
+{{> DetailBoxField title=(t "Severity") plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
 {{> IncidentCustomFieldRows this }}
-{{> DetailBoxField title="Note: " text=note  }}
+{{> DetailBoxField title=(t "Note") text=note  }}
 {{> DetailBoxEnd this }}
 
 
@@ -21,9 +21,9 @@
 
 
 {{#if detailsUrl}}
-{{> LinkBlock linkUrl=detailsUrl linkLabel="Find further information here:"}}
+{{> LinkBlock linkUrl=detailsUrl linkLabel=(t "Find further information here:")}}
 {{else}}
-{{> LinkBlock linkUrl=statusPageUrl linkLabel="Find further information here:"}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel=(t "Find further information here:")}}
 {{/if}}
 
 {{> UnsubscribeBlock this}}

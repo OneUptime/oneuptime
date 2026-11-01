@@ -293,7 +293,7 @@ På en skjerm som er smalere enn 1024 piksler, viser kolonnen **Hendelse** også
 
 ### Søk i hendelser og få varsler
 
-Hver hendelse er også en logg. En advarsel lagres med alvorlighetsgraden **Warning**, og det hendelsen sier, står i attributtene:
+Hver hendelse er også en logg. En advarsel lagres med alvorlighetsgraden **Advarsel**, og det hendelsen sier, står i attributtene:
 
 | Attributt | Eksempel |
 | --- | --- |

@@ -206,7 +206,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      */
     [SESSION_REPLAY]: [
       "⋯",
-      "Watch session at this span",
       "View session replay",
       "Other pages",
       "All recordings",

@@ -41,7 +41,7 @@ Klicken Sie unter **Monitortyp** auf **Weitere Monitortypen** und wählen Sie **
 
 ### Wählen, worüber der Monitor informiert
 
-Wählen Sie unter **Worüber soll dieser Monitor Sie informieren?** **Jede Ausnahme** oder **Zu viele Ausnahmen**. Jede Wahl füllt die Regel aus, die Sie darunter ändern können. Wählen Sie **Etwas anderes**, um sie selbst einzurichten. **Eine neue Ausnahme**, **Eine behobene Ausnahme kommt zurück** und **Ausnahmen steigen sprunghaft** alarmieren bei einer Ausnahme, die zum ersten Mal auftritt, bei einer, die nach ihrer Behebung zurückkommt, und bei einem Anstieg weit über das Übliche.
+Wählen Sie unter **Worüber soll dieser Monitor Sie informieren?** **Jede Ausnahme** oder **Zu viele Ausnahmen**. Jede Wahl füllt die Regel aus, die Sie darunter ändern können. Wählen Sie **Etwas anderes**, um sie selbst einzurichten. **Eine neue Ausnahme**, **Eine behobene Ausnahme kommt zurück** und **Ausnahmen steigen sprunghaft** alarmieren bei einer Ausnahme, die zum ersten Mal auftritt, bei einer, die nach ihrer Behebung zurückkommt, und bei einem Anstieg weit über das, was für diese Stunde der Woche normal ist.
 
 ### Die zu zählenden Ausnahmen wählen
 
@@ -53,7 +53,7 @@ Legen Sie in **Zu überwachende Ausnahmen** die Felder **Meldung enthält**, **A
 
 ### Festlegen, wann alarmiert wird
 
-Wählen Sie in **Wann alarmieren** eine **Bedingung**, die **Anzahl der Ausnahmen** und ein **Zeitfenster**. Der Satz darunter gibt die Regel in einfachen Worten wieder. Das Diagramm darunter zählt die passenden Ausnahmen in jedem Fenster der letzten Stunden, zeichnet die Zahl der Regel als Linie ein und sagt, wie oft die Regel alarmiert hätte. Seine Schaltfläche schlägt eine Zahl vor, die die Regel in dieser Zeit nicht überschritten hätte. **Alarm bei** legt fest, was die Regel vergleicht: **Ausnahmen**, **Neue Ausnahmen**, **Zurückgekommene Ausnahmen** oder **Ein Anstieg über das Übliche**. Das Diagramm wird nur für **Ausnahmen** gezeichnet.
+Wählen Sie in **Wann alarmieren** eine **Bedingung**, die **Anzahl der Ausnahmen** und ein **Zeitfenster**. Der Satz darunter gibt die Regel in einfachen Worten wieder. Das Diagramm darunter zählt die passenden Ausnahmen in jedem Fenster der letzten Stunden, zeichnet die Zahl der Regel als Linie ein und sagt, wie oft die Regel alarmiert hätte. Seine Schaltfläche schlägt eine Zahl vor, die die Regel in dieser Zeit nicht überschritten hätte. **Alarm bei** legt fest, was die Regel vergleicht: **Ausnahmen**, **Neue Ausnahmen**, **Zurückgekommene Ausnahmen** oder **Ein Anstieg über das Übliche**. Das Diagramm wird nur für **Ausnahmen** gezeichnet. Mit **Ungewöhnlich hoch**, wie es **Ausnahmen steigen sprunghaft** einrichtet, gibt es keine Zahl einzugeben: Wählen Sie stattdessen eine **Empfindlichkeit**.
 
 ### Wählen, was passiert
 
@@ -116,7 +116,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Exception Count**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **New Exceptions**, **Regressed Exceptions** und **Exception Increase (in %)**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens** oder **Genau** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
+Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Exception Count**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **New Exceptions**, **Regressed Exceptions** und **Exception Increase (in %)**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Ausnahmen … |
 | --- | --- |
@@ -126,8 +126,11 @@ Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Exc
 | **Kleiner als oder gleich** | den Wert erreicht oder darunter liegt |
 | **Gleich** | genau dem Wert entspricht |
 | **Ungleich** | alles außer dem Wert ist |
+| **Anomalously High** | über dem Bereich liegt, der für diese Stunde der Woche erwartet wird |
+| **Anomalously Low** | unter diesem Bereich liegt |
+| **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
-Für Ausnahmeanzahlen gibt es keine Anomaliebedingungen: Es gibt keine Baseline, mit der sie verglichen werden könnten.
+Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. Nur **Exception Count** hat sie: siehe [Sprünge gegenüber dem Normalen](#sprünge-gegenüber-dem-normalen).
 
 Ein in „Monitor erstellen“ angelegter Ausnahmen-Monitor beginnt mit der Regel dessen, was Sie unter **Worüber soll dieser Monitor Sie informieren?** gewählt haben:
 
@@ -137,7 +140,7 @@ Ein in „Monitor erstellen“ angelegter Ausnahmen-Monitor beginnt mit der Rege
 | **Zu viele Ausnahmen** | **Mehr als** `20` in **Letzte 5 Minuten** | Erstellt eine Warnung, die sich selbst behebt |
 | **Eine neue Ausnahme** | **Neue Ausnahmen**: **Mehr als** `0` in **Letzte 10 Minuten** | Erstellt eine Warnung, die sich selbst behebt |
 | **Eine behobene Ausnahme kommt zurück** | **Zurückgekommene Ausnahmen**: **Mehr als** `0` in **Letzte 10 Minuten** | Erstellt eine Warnung, die sich selbst behebt |
-| **Ausnahmen steigen sprunghaft** | **Ein Anstieg über das Übliche**: **Mehr als** `200` in **Letzte 15 Minuten** | Erstellt eine Warnung, die sich selbst behebt |
+| **Ausnahmen steigen sprunghaft** | **Ungewöhnlich hoch** in **Letzte 15 Minuten** | Erstellt eine Warnung, die sich selbst behebt |
 
 Ein über die API oder Terraform ohne Kriterien angelegter Ausnahmen-Monitor beginnt mit diesen Kriterien:
 
@@ -157,6 +160,22 @@ Neben der Anzahl der Ausnahmen kann ein Ausnahmen-Monitor bei dem alarmieren, wo
 | **Exception Increase (in %)** | Wie weit die Anzahl passender Ausnahmen über der üblichen liegt: der Tag vor dem Fenster, je Fenster seiner Länge, mindestens eine. Zehn Ausnahmen nach einem ruhigen Tag ergeben 900 %. |
 
 Neue und zurückgekommene Ausnahmen werden nach Dienst, Ausnahmetyp, Umgebung und Meldung gefiltert und auch nach Infrastruktur-Entität: Eine Ausnahme zählt, wenn eines ihrer Vorkommen im Fenster von einer der gewählten Entitäten kam.
+
+## Sprünge gegenüber dem Normalen
+
+**Ausnahmen steigen sprunghaft** vergleicht das Fenster mit denselben Stunden der Wochen davor, nicht mit einer festen Zahl. Eine Spitze am Montagmorgen ist an einem Montagmorgen normal, dieselbe Anzahl um 3 Uhr an einem Sonntag nicht, und ein langsamer Anstieg über mehrere Tage zeigt sich, sobald er den Bereich der letzten Woche verlässt.
+
+| Einstellung | Was sie bewirkt | Standard |
+| --- | --- | --- |
+| **Empfindlichkeit** | Wie weit außerhalb des üblichen Bereichs ein Fenster liegen muss: 4 Standardabweichungen bei Niedrig, 3 bei Mittel, 2 bei Hoch. | Mittel |
+| **Baseline-Fenster** (unter **Weitere Felder**) | Aus wie viel Verlauf gelernt wird: 14, 28, 60 oder 90 Tage. | 14 Tage |
+| **Standardabweichungen** (unter **Weitere Felder**) | Eine eigene Zahl anstelle dessen, was **Empfindlichkeit** festlegt. | Leer |
+| **Mindestzahl an Ausnahmen** (unter **Weitere Felder**) | Die wenigsten Ausnahmen in einem Fenster, die alarmieren können: 20 bei Niedrig, 10 bei Mittel, 5 bei Hoch. | Leer |
+
+- **Es nutzt Ihre Filter.** Der Verlauf wird mit den eigenen Filtern des Monitors gelesen, daher wird ein Monitor auf einen Ausnahmetyp mit dem Verlauf dieses Typs verglichen, und behobene und archivierte Ausnahmen bleiben bei beidem außen vor.
+- **Ruhige Zeit zählt.** Ein Fenster ohne Ausnahmen gehört zum Normalen, daher bleibt der Bereich eines ruhigen Dienstes klein. Seine ersten Ausnahmen alarmieren wegen **Mindestzahl an Ausnahmen** nicht, ein echter Schub schon.
+- **Ein neuer Dienst wartet.** Bis ein Dienst zwei Wochen Verlauf hat, lernt das Kriterium noch und löst nicht aus, egal wie viele Ausnahmen er wirft. Der Verlauf reicht nur so weit zurück, wie OneUptime Ausnahmen aufbewahrt: 15 Tage, sofern Sie das nicht geändert haben, und ein Dienst mit weniger als zwei Wochen Aufbewahrung hat nie genug.
+- **Die Warnung sagt, warum.** Sie nennt den erwarteten Bereich und wie weit das Fenster außerhalb lag. Jede Prüfung schreibt dasselbe in die **Status-Zeitachse**, oder dass sie noch lernt.
 
 ## Ein Beispiel: nur Produktionsausnahmen
 
@@ -183,6 +202,10 @@ Das ist so gewollt. Behobene Ausnahmen werden nicht gezählt, also fiel die Anza
 
 :::details Ein Filter nach Ausnahmetyp passt auf nichts
 **Ausnahmetypen** werden exakt abgeglichen, mit dem Typnamen, mit dem die Ausnahme gemeldet wurde, etwa `TypeError`. Kopieren Sie den Typ aus dem Ausnahmen-Explorer.
+:::
+
+:::details Eine Regel für sprunghaft steigende Ausnahmen alarmiert nie
+Sehen Sie in der **Status-Zeitachse** nach: Dort steht der erwartete Bereich, die Anzahl, die für eine Warnung nötig ist, oder dass die Regel noch lernt. Ein Dienst braucht zwei Wochen Verlauf, eine Aufbewahrung von unter zwei Wochen lässt ihn also weiter lernen. Bleibt die Anzahl unter **Mindestzahl an Ausnahmen**, senken Sie sie unter **Weitere Felder** oder wählen Sie eine höhere **Empfindlichkeit**.
 :::
 
 ## Nächste Schritte

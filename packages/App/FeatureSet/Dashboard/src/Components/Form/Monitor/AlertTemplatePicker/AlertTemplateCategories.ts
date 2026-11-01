@@ -127,6 +127,22 @@ export const PROXMOX_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+/*
+ * A Proxmox cluster's Recommendations: Quick Setup's headings, then
+ * Notifications - the alerts on what Proxmox VE reports itself (a failed
+ * backup job, a fenced node), Logs monitors over the notifications the
+ * cluster sends (ProxmoxNotificationAlertTemplates), which a Proxmox
+ * monitor's Quick Setup cannot build and so never lists.
+ */
+export const PROXMOX_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> = [
+  ...PROXMOX_TEMPLATE_CATEGORIES,
+  {
+    category: "Notifications",
+    label: "Proxmox VE notifications",
+    icon: IconProp.Bell,
+  },
+];
+
 // VMware.
 export const VMWARE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
@@ -275,7 +291,8 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
     DOCKER_SWARM_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Kubernetes]:
     KUBERNETES_RECOMMENDATION_CATEGORIES,
-  [MonitorRecommendationResourceType.Proxmox]: PROXMOX_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.Proxmox]:
+    PROXMOX_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.VMware]: VMWARE_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Ceph]: CEPH_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.StorageArray]:

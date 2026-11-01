@@ -136,7 +136,7 @@ const TELEMETRY_MONITOR_PAGES: Array<string> = [
   PROFILES_MONITOR,
 ];
 
-// The anomaly conditions of a log count, a span count and a metric value.
+// The anomaly conditions of a log, span or exception count and a metric value.
 const ANOMALY_CONDITIONS: Array<string> = [
   "Anomalously High",
   "Anomalously Low",
@@ -177,6 +177,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "New Exceptions",
     "Regressed Exceptions",
     "Exception Increase (in %)",
+    ...ANOMALY_CONDITIONS,
   ],
   /*
    * Profiles has none: its criteria's labels (Profile Count, Function Share
@@ -460,6 +461,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "No exceptions is a count of 0.",
     "OneUptime's own downtime is not silence.",
     "Criteria from top to bottom.",
+    "It uses your filters.",
+    "Quiet time counts.",
+    "A new service waits.",
+    "The alert says why.",
   ],
   [PROFILES_MONITOR]: [
     "Every minute.",

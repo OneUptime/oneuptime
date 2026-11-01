@@ -102,7 +102,7 @@ Hvert nyt projekt starter med to advarselsalvorsgrader, den mest alvorlige førs
 | **Høj**   | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
 | **Lav**    | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Hændelser starter med tre alvorsgrader og advarsler med to. Når skabelonen i en monitoranbefaling siger **Kritisk** eller **Warning**, oversætter OneUptime det til din første og anden advarselsalvorsgrad, som i et nyt projekt er **Høj** og **Lav**.
+Hændelser starter med tre alvorsgrader og advarsler med to. Når skabelonen i en monitoranbefaling siger **Kritisk** eller **Advarsel**, oversætter OneUptime det til din første og anden advarselsalvorsgrad, som i et nyt projekt er **Høj** og **Lav**.
 
 ## Rediger alvorsgrader
 

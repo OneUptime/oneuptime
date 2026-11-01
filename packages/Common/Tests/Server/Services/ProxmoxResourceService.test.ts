@@ -368,6 +368,14 @@ describe("ProxmoxResourceService.bulkUpsert", () => {
       "onboot",
       "isBackedUp",
       "uptimeSeconds",
+      "isTemplate",
+      "tags",
+      "lockState",
+      "cpuCount",
+      "storageType",
+      "storageContent",
+      "isShared",
+      "subscriptionLevel",
     ]) {
       expect(sql).toContain(
         `"${column}" = COALESCE(EXCLUDED."${column}", "ProxmoxResource"."${column}")`,
@@ -398,12 +406,12 @@ describe("ProxmoxResourceService.bulkUpsert", () => {
 
     const [sql, params] = query.mock.calls[0] as QueryCall;
 
-    // 16 columns per row: a 1-row batch carries exactly $1..$16.
-    expect(params).toHaveLength(16);
+    // 24 columns per row: a 1-row batch carries exactly $1..$24.
+    expect(params).toHaveLength(24);
     expect(sql).toContain(
-      "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)",
+      "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)",
     );
-    expect(sql).not.toContain("$17");
+    expect(sql).not.toContain("$25");
     expect(params).toEqual([
       PROJECT_ID.toString(),
       CLUSTER_ID.toString(),
@@ -418,10 +426,74 @@ describe("ProxmoxResourceService.bulkUpsert", () => {
       true, // onboot
       false, // isBackedUp (WI-24) — false is a value, distinct from null
       3600, // uptimeSeconds truncated
+      null, // isTemplate — not read, so the stored value stays
+      null, // tags
+      null, // lockState
+      null, // cpuCount
+      null, // storageType
+      null, // storageContent
+      null, // isShared
+      null, // subscriptionLevel
       lastSeenAt,
       false, // isNativePush — omitted by the caller, so not native
       0, // version
     ]);
+  });
+
+  test("the facts a page reads ride in the tuple: false and empty strings are values, a fraction of a vCPU is not", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await ProxmoxResourceService.bulkUpsert({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [
+        parsedResource({
+          isTemplate: false,
+          tags: "",
+          lockState: "",
+          cpuCount: 3.9,
+          storageType: "zfspool",
+          storageContent: "images,rootdir",
+          isShared: false,
+          subscriptionLevel: "",
+        }),
+      ],
+    });
+
+    const [, params] = query.mock.calls[0] as QueryCall;
+    expect(params.slice(13, 21)).toEqual([
+      false,
+      "",
+      "",
+      3,
+      "zfspool",
+      "images,rootdir",
+      false,
+      "",
+    ]);
+  });
+
+  test("an oversized fact is clamped to its column, as the identity columns are", async () => {
+    const query: jest.Mock = mockQueryRunner();
+    await ProxmoxResourceService.bulkUpsert({
+      projectId: PROJECT_ID,
+      proxmoxClusterId: CLUSTER_ID,
+      resources: [
+        parsedResource({
+          tags: "t".repeat(700),
+          lockState: "l".repeat(150),
+          storageType: "s".repeat(150),
+          storageContent: "c".repeat(150),
+          subscriptionLevel: "p".repeat(150),
+        }),
+      ],
+    });
+
+    const [, params] = query.mock.calls[0] as QueryCall;
+    expect((params[14] as string).length).toBe(500);
+    expect((params[15] as string).length).toBe(100);
+    expect((params[17] as string).length).toBe(100);
+    expect((params[18] as string).length).toBe(100);
+    expect((params[20] as string).length).toBe(100);
   });
 
   test.each([
@@ -453,11 +525,11 @@ describe("ProxmoxResourceService.bulkUpsert", () => {
       let rowsSeen: number = 0;
       for (const call of query.mock.calls as Array<QueryCall>) {
         const params: Array<unknown> = call[1];
-        for (let offset: number = 0; offset < params.length; offset += 16) {
-          // Column 15 (0-indexed 14) is isNativePush.
-          expect(params[offset + 14]).toBe(expected);
+        for (let offset: number = 0; offset < params.length; offset += 24) {
+          // Column 23 (0-indexed 22) is isNativePush.
+          expect(params[offset + 22]).toBe(expected);
           // …right before the version, which stays last.
-          expect(params[offset + 15]).toBe(0);
+          expect(params[offset + 23]).toBe(0);
           rowsSeen++;
         }
       }
@@ -592,7 +664,7 @@ describe("ProxmoxResourceService.bulkUpsert", () => {
       expect(normalized.substring(guardIndex)).not.toContain(
         "notReportingMarkedAt",
       );
-      expect(params).toHaveLength(16);
+      expect(params).toHaveLength(24);
     },
   );
 
@@ -631,6 +703,14 @@ describe("ProxmoxResourceService.bulkUpsert", () => {
       '"onboot"',
       '"isBackedUp"',
       '"uptimeSeconds"',
+      '"isTemplate"',
+      '"tags"',
+      '"lockState"',
+      '"cpuCount"',
+      '"storageType"',
+      '"storageContent"',
+      '"isShared"',
+      '"subscriptionLevel"',
       '"lastSeenAt"',
       '"isNativePush"',
       '"version"',
@@ -657,8 +737,8 @@ describe("ProxmoxResourceService.bulkUpsert", () => {
     expect(query).toHaveBeenCalledTimes(2);
     const [, firstParams] = query.mock.calls[0] as QueryCall;
     const [, secondParams] = query.mock.calls[1] as QueryCall;
-    expect(firstParams).toHaveLength(500 * 16);
-    expect(secondParams).toHaveLength(16);
+    expect(firstParams).toHaveLength(500 * 24);
+    expect(secondParams).toHaveLength(24);
   });
 });
 
@@ -2214,8 +2294,8 @@ describe("ProxmoxResourceService.markNodesNotReporting", () => {
     expect(params[3]).toBe("node/pve2");
     expect(params[8]).toBe(true); // isUp
     expect(params[12]).toBe(42); // uptimeSeconds
-    expect(params[13]).toBe(pushedAt); // lastSeenAt
-    expect(params[14]).toBe(true); // isNativePush
+    expect(params[21]).toBe(pushedAt); // lastSeenAt
+    expect(params[22]).toBe(true); // isNativePush
     // The column the mark wrote, and the push clears — under the guard.
     expect(setClauseOf(markSql)).toContain('"notReportingMarkedAt" = $5');
     const upsertNormalized: string = normalizeSql(upsertSql);
@@ -2991,11 +3071,23 @@ const MODEL_UPSERT_COLUMNS: Array<string> = [
   "onboot",
   "isBackedUp",
   "uptimeSeconds",
+  "isTemplate",
+  "tags",
+  "lockState",
+  "cpuCount",
+  "storageType",
+  "storageContent",
+  "isShared",
+  "subscriptionLevel",
   "lastSeenAt",
   "isNativePush",
   "version",
 ];
 
+/*
+ * Every identity, status and fact column keeps its value when a batch
+ * lacks it (null). An empty string is a value: "no tags", "no lock".
+ */
 const MODEL_UPSERT_COALESCED_COLUMNS: Array<string> = [
   "name",
   "vmid",
@@ -3006,6 +3098,14 @@ const MODEL_UPSERT_COALESCED_COLUMNS: Array<string> = [
   "onboot",
   "isBackedUp",
   "uptimeSeconds",
+  "isTemplate",
+  "tags",
+  "lockState",
+  "cpuCount",
+  "storageType",
+  "storageContent",
+  "isShared",
+  "subscriptionLevel",
 ];
 
 const MODEL_UPSERT_CONFLICT_SQL: string = [

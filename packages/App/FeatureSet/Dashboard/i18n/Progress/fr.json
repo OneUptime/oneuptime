@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 7637
+    "keys": 39461,
+    "untranslated": 7472
   },
   "sameAsEnglish": [
     " incidents",
@@ -182,6 +182,7 @@
     "Europe",
     "Exception",
     "Exceptions",
+    "Exceptions ({{count}})",
     "Exclusion",
     "Expression",
     "Fatal",
@@ -268,6 +269,7 @@
     "Lesotho",
     "Liberia",
     "Liechtenstein",
+    "Local",
     "Logo",
     "Longitude",
     "Loopback",
@@ -420,11 +422,13 @@
     "Up · In",
     "Uplinks",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Variable",
     "Variables",
@@ -454,6 +458,7 @@
     "cluster {{name}}",
     "customer facing|tier-1",
     "db-primary",
+    "exceptions",
     "failed password",
     "frustration",
     "goroutines",
@@ -473,6 +478,7 @@
     "security-alerts",
     "services",
     "span {{spanId}}",
+    "spans",
     "storefront-web",
     "svc-backup",
     "syslog",

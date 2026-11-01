@@ -461,7 +461,7 @@ SDK 很可能正透過 gRPC 匯出到 HTTP 端點或 `localhost`。設定 `OTEL_
 某個批次超過大小限制。縮小批次大小，例如在 `batch` 處理器上設定 `send_batch_max_size: 1000`。若你在自己的代理伺服器後方自行託管，也要檢查該代理伺服器的本文大小限制。
 :::
 
-:::details 資料進入錯誤的服務，或進入 Unknown Service
+:::details 資料進入錯誤的服務，或進入「未知服務」
 服務來自資源屬性 `service.name`。請在每個應用程式中設定 `OTEL_SERVICE_NAME`。如果金鑰設定了 **固定的服務名稱**，以該金鑰進行的每次 OTLP/HTTP 匯出都會改為歸入這個名稱。
 :::
 

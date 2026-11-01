@@ -171,7 +171,7 @@ På OneUptime Cloud betales hver SMS, hvert anrop og hver WhatsApp- og Telegram-
 - Varslene fortsetter å gå ut på saldoen som er igjen, mens automatisk påfylling ikke får belastet kortet.
 
 > [!IMPORTANT]
-> SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en prosjekteier, en **Faktureringsadministrator** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger** — en prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
+> SMS, telefonanrop, WhatsApp og Telegram er slått av i et nytt prosjekt: på OneUptime Cloud betales hver melding fra prosjektets saldo, og en selvdriftet installasjon trenger først en Twilio-konto, en SMS- og anropsgateway eller en Telegram-bot som er satt opp. Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den. Bare en prosjekteier, en **Faktureringsadministrator** eller noen med tillatelsen **Manage Billing** kan slå en på, i kortet **Varslingskanaler** på **Prosjektinnstillinger > Varsler > Varselinnstillinger** — en prosjektadministrator kan ikke. Alle andre får vite nøyaktig hvem som kan, overalt der en kanal er slått av: over sin egen liste med metoder på den, på oppsettsjekklisten sin og i meldingen de får når noe trenger den.
 
 ## Eskaler til neste person i rotasjonen
 

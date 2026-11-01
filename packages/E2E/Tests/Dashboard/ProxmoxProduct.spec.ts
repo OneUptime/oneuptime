@@ -154,23 +154,27 @@ test.describe.skip("Proxmox Product Onboarding", () => {
     await page.getByTestId("alert-template-change").click();
 
     /*
-     * Every template ProxmoxTemplatePicker renders — all 12 from
+     * Every template ProxmoxTemplatePicker renders — all 15 from
      * Common/Types/Monitor/ProxmoxAlertTemplates.ts, including Stopped
-     * Reporting and the V3 Backup ("Guest Not Backed Up", WI-24) and
-     * Replication ("Replication Failing", WI-25) sections.
+     * Reporting, the V3 Backup ("Guest Not Backed Up", WI-24) and
+     * Replication ("Replication Failing", WI-25) sections, and the
+     * restart, storage and stuck-backup templates.
      */
     const expectedTemplateNames: Array<string> = [
       "Cluster Stopped Reporting",
       "Node Offline",
       "Guest Down",
       "Cluster Quorum at Risk",
+      "Node Restarted",
       "High Node CPU Usage",
       "High Node Memory Usage",
       "High Guest CPU Usage",
+      "Storage Unavailable",
       "Storage Near Full",
       "Container Root Disk Near Full",
       "HA Resource in Error State",
       "Guest Not Backed Up",
+      "Backup Running Too Long",
       "Replication Failing",
     ];
 

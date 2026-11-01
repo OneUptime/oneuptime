@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 13308
+    "keys": 39461,
+    "untranslated": 13077
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -87,6 +87,7 @@
     "Gateway",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "HTML, CSS & JavaScript",
     "Hardware",
     "Headers (JSON)",
@@ -144,6 +145,7 @@
     "Object Gateways",
     "Observables",
     "Offline",
+    "Ok",
     "Online",
     "OpenShift",
     "Operators",
@@ -165,6 +167,7 @@
     "Portugal (+351)",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Privacy",
+    "Producer",
     "Product",
     "Profiler",
     "Project",
@@ -232,12 +235,14 @@
     "Uplinks",
     "Uploads",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Volume",
     "Volumes",
@@ -262,6 +267,7 @@
     "cluster",
     "cluster {{name}}",
     "customer facing|tier-1",
+    "database",
     "db-primary",
     "debug",
     "failed password",
@@ -290,6 +296,7 @@
     "server",
     "services",
     "span {{spanId}}",
+    "spans",
     "status",
     "storefront-web",
     "svc-backup",
@@ -343,6 +350,7 @@
     "{{delta}} pp",
     "{{field}} is {{value}}",
     "{{minutes}} min",
+    "{{size}} in {{duration}}",
     "{{tokens}} tokens"
   ]
 }

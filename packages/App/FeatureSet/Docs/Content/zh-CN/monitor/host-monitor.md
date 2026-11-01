@@ -102,11 +102,11 @@ OneUptime 有两种用于机器的监视器。它们可以在同一台主机上�
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 严重 | `system.memory.usage`，Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
-| High CPU Utilization | Warning | `user` 和 `system` 状态的 `system.cpu.utilization`，相加后以百分比显示，最近 5 分钟 | 高于 80% | 不高于 72% |
-| High Memory Utilization | Warning | `used` 状态的 `system.memory.utilization`，以百分比显示，最近 5 分钟 | 高于 85% | 不高于 76.5% |
+| High CPU Utilization | 警告 | `user` 和 `system` 状态的 `system.cpu.utilization`，相加后以百分比显示，最近 5 分钟 | 高于 80% | 不高于 72% |
+| High Memory Utilization | 警告 | `used` 状态的 `system.memory.utilization`，以百分比显示，最近 5 分钟 | 高于 85% | 不高于 76.5% |
 | High Filesystem Usage | 严重 | `system.filesystem.utilization`，按 `mountpoint` 和 `device` 取 Max，以百分比显示，最近 5 分钟 | 高于 90% | 不高于 81% |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`，Avg，最近 5 分钟 | 高于 4 | 不高于 3.6 |
-| High Process Count | Warning | `system.processes.count`，Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
+| High Load Average (1m) | 警告 | `system.cpu.load_average.1m`，Avg，最近 5 分钟 | 高于 4 | 不高于 3.6 |
+| High Process Count | 警告 | `system.processes.count`，Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。
 

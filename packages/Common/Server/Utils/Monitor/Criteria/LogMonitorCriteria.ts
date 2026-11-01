@@ -201,7 +201,7 @@ export default class LogMonitorCriteria {
     }
 
     const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
-      observedPerMinute,
+      observed: observedPerMinute,
       stats: baseline,
       sigmaCount,
       method,

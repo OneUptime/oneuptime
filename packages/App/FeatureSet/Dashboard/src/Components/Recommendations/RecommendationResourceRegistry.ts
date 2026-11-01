@@ -14,6 +14,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
+import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
 import {
   DATABASE_ENGINE_METRICS_LOOKBACK_DAYS,
@@ -179,6 +180,22 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       return {
         kubernetesProvider: typeof provider === "string" ? provider : null,
       };
+    },
+    /*
+     * Said only where the provider changed the list, by the catalog's own
+     * test: an OpenShift cluster's operator and update alerts. Every other
+     * cluster is offered what every cluster is, which needs no note.
+     */
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      if (context.kubernetesProvider !== OPENSHIFT_KUBERNETES_PROVIDER) {
+        return undefined;
+      }
+
+      return translateTemplate(
+        "This cluster runs OpenShift, so the recommendations below include alerts on its cluster operators and its cluster updates.",
+      );
     },
   },
   {

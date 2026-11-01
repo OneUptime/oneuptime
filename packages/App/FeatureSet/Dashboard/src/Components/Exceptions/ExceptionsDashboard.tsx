@@ -30,6 +30,7 @@ import ServiceType from "Common/Types/Telemetry/ServiceType";
 import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import TelemetryServiceUtil, {
+  UNKNOWN_RESOURCE_LABEL,
   UNKNOWN_SERVICE_NAME,
 } from "Common/UI/Utils/TelemetryService";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
@@ -122,12 +123,15 @@ const ExceptionsDashboard: FunctionComponent = (): ReactElement => {
     });
     if (service) {
       return {
-        name: service.name?.toString() || UNKNOWN_SERVICE_NAME,
+        name: TelemetryServiceUtil.getServiceDisplayName(
+          service.name?.toString() || UNKNOWN_SERVICE_NAME,
+          translator,
+        ) as string,
         color: service.serviceColor?.toString() || "#9ca3af",
       };
     }
     return {
-      name: label || (translator.translateText("Unknown") as string),
+      name: translator.translateTerm(label || UNKNOWN_RESOURCE_LABEL),
       color: "#9ca3af",
     };
   };

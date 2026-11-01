@@ -242,6 +242,8 @@ import { AddDashboardDarkThemeLogoKey1808710000000 } from "./1808710000000-AddDa
 import { AddFormDomain1808712000000 } from "./1808712000000-AddFormDomain";
 import { AddNetworkEndpointHostnameAndAttachmentSource1808720000000 } from "./1808720000000-AddNetworkEndpointHostnameAndAttachmentSource";
 import { AddCloudRuleKind1808760000000 } from "./1808760000000-AddCloudRuleKind";
+import { AddProxmoxInventoryFactsAndBackups1808770000000 } from "./1808770000000-AddProxmoxInventoryFactsAndBackups";
+import { AddStatusPageSubscriberLanguage1808780000000 } from "./1808780000000-AddStatusPageSubscriberLanguage";
 import { AddCloudApps1808783000000 } from "./1808783000000-AddCloudApps";
 import { AddCloudResourceInstanceAppIndexAndKey1808784000000 } from "./1808784000000-AddCloudResourceInstanceAppIndexAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1688,6 +1690,8 @@ export default [
   AddFormDomain1808712000000,
   AddNetworkEndpointHostnameAndAttachmentSource1808720000000,
   AddCloudRuleKind1808760000000,
+  AddProxmoxInventoryFactsAndBackups1808770000000,
+  AddStatusPageSubscriberLanguage1808780000000,
   AddCloudApps1808783000000,
   AddCloudResourceInstanceAppIndexAndKey1808784000000,
 ];

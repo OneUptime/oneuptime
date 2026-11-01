@@ -3599,15 +3599,13 @@ describe("what the pages say about SMS, calls and editions", () => {
     );
   });
 
-  test("the stale line in the notification docs is not what the page rests on", () => {
-    /*
-     * notifications/notification-methods.md still says a self-hosted install
-     * needs a Twilio account for SMS. The gateway's own page is the newer word,
-     * and the provider enum above is what the code does.
-     */
-    const onCall: string = JSON.stringify(getAirGappedTopicPage("on-call"));
-
-    expect(onCall).not.toContain("need a Twilio account");
+  test("the docs agree with the page: SMS and calls need Twilio or a gateway", () => {
+    expect(repoFile(docs("notifications/notification-methods"))).toContain(
+      "SMS and calls also need a Twilio account or a gateway you run",
+    );
+    expect(repoFile(docs("on-call/escalation-rules"))).toContain(
+      "needs a Twilio account, an SMS and call gateway or a Telegram bot",
+    );
   });
 });
 

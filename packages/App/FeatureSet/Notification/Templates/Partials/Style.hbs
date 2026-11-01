@@ -16,7 +16,7 @@
   .st-Rich h1, .st-Rich h2, .st-Rich h3 { color: #0f172a; line-height: 1.4; }
   .st-Rich img { height: auto; }
   .st-Rich table { width: 100%; max-width: 100%; table-layout: fixed; border-collapse: collapse; }
-  .st-Rich th, .st-Rich td { padding: 8px; text-align: left; }
+  .st-Rich th, .st-Rich td { padding: 8px; text-align: {{#if @root.isEmailRightToLeft}}right{{else}}left{{/if}}; }
   .st-Rich pre { white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; padding: 12px; background-color: #f1f5f9; border-radius: 6px; }
   .st-Rich blockquote { margin: 12px 0; padding-left: 16px; border-left: 3px solid #cbd5e1; }
   {{!--
@@ -35,7 +35,7 @@
     body[override] .st-Wrapper { border-radius: 12px !important; }
     body[override] .st-EmailTitle { font-size: 26px !important; line-height: 34px !important; }
     body[override] .st-DetailCard-content { padding: 4px 16px !important; }
-    body[override] .st-Transition-cell { display: block !important; width: auto !important; text-align: left !important; }
+    body[override] .st-Transition-cell { display: block !important; width: auto !important; text-align: {{#if @root.isEmailRightToLeft}}right{{else}}left{{/if}} !important; }
     body[override] .st-Transition-arrow { padding: 4px 0 !important; }
     body[override] .st-ReportIndent { margin-left: 0 !important; }
     body[override] .st-ReportTable th, body[override] .st-ReportTable td { padding: 10px 6px !important; font-size: 12px !important; line-height: 18px !important; }

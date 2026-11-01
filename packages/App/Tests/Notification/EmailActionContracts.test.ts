@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -10,6 +11,8 @@ const TEMPLATES_DIR: string = Path.resolve(
   "../../FeatureSet/Notification/Templates",
 );
 const handlebars: typeof Handlebars = Handlebars.create();
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(handlebars);
 
 /*
  * Every navigation input has a different destination. A logo, preferences link,
