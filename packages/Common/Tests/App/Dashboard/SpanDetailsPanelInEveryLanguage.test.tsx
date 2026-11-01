@@ -110,6 +110,7 @@ import Route from "../../../Types/API/Route";
 import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import {
+  CLOCK_READING,
   ENGLISH,
   LANGUAGES,
   OTHER_LANGUAGES,
@@ -277,6 +278,8 @@ const openTab: (language: string, tab: string) => Promise<void> = async (
 const WATCH_SESSION_HINT: string =
   "Open the session recording one second before this span started, with the span selected in the traces rail";
 
+const YEAR: RegExp = /\b2026\b/;
+
 const isTelemetry: (text: string) => boolean = (text: string): boolean => {
   return (
     [
@@ -296,8 +299,8 @@ const isTelemetry: (text: string) => boolean = (text: string): boolean => {
     Object.keys(ATTRIBUTES).includes(text) ||
     text.startsWith("api-gateway ") ||
     // When something happened, as the reader's clock writes it.
-    /\b2026\b/.test(text) ||
-    /\d{1,2}:\d{2}/.test(text)
+    YEAR.test(text) ||
+    CLOCK_READING.test(text)
   );
 };
 
@@ -426,10 +429,7 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
     expect(textOf(status)).toBe(word(language, "Error"));
     expect(status).toHaveAttribute(
       "title",
-      word(
-        language,
-        getSpanStatusPresentation(SpanStatus.Error).description,
-      ),
+      word(language, getSpanStatusPresentation(SpanStatus.Error).description),
     );
 
     expect(screen.getByText("POST /reserve")).toBeVisible();
@@ -510,9 +510,9 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
 
     // An exception event with no message reads as the word for one.
     expect(screen.getByText("could not serialize access")).toBeVisible();
-    expect(
-      Array.from(document.querySelectorAll("li")).map(textOf),
-    ).toContain(word(language, "Exception"));
+    expect(Array.from(document.querySelectorAll("li")).map(textOf)).toContain(
+      word(language, "Exception"),
+    );
   });
 
   test("each attribute is drawn as written, with its filter and copy buttons and the word for an empty value", async () => {
@@ -609,9 +609,7 @@ describe.each(LANGUAGES)("the span panel in %s", (language: string) => {
     ).toHaveLength(2);
 
     // No message and no type: the word for an exception.
-    expect(
-      Array.from(document.querySelectorAll("li")).map(textOf),
-    ).toEqual(
+    expect(Array.from(document.querySelectorAll("li")).map(textOf)).toEqual(
       expect.arrayContaining([
         expect.stringContaining(word(language, "Exception")),
       ]),
@@ -716,7 +714,9 @@ describe("REGRESSION: the panel drew English in every language", () => {
     );
     expect(screen.getByText("Exceptions (2)")).toBeVisible();
     expect(screen.getByText("Client")).toBeVisible();
-    expect(screen.getByTitle("Filter by http.method: POST")).toBeInTheDocument();
+    expect(
+      screen.getByTitle("Filter by http.method: POST"),
+    ).toBeInTheDocument();
     expect(screen.getByTitle("Copy http.method")).toBeInTheDocument();
   });
 });

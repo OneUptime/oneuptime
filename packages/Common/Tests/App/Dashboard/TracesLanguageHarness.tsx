@@ -230,7 +230,9 @@ export const inLanguage: (
   language: string,
   element: React.ReactElement,
 ): React.ReactElement => {
-  return <I18nextProvider i18n={instanceOf(language)}>{element}</I18nextProvider>;
+  return (
+    <I18nextProvider i18n={instanceOf(language)}>{element}</I18nextProvider>
+  );
 };
 
 export const textOf: (element: Element | null) => string = (
@@ -268,6 +270,9 @@ export const drawnTexts: () => Array<string> = (): Array<string> => {
 
   return Array.from(texts);
 };
+
+// A clock reading, as a date or a time range writes one.
+export const CLOCK_READING: RegExp = /\d{1,2}:\d{2}/;
 
 const WORDS: RegExp = /\p{L}{3,}/u;
 const UNITS: RegExp = /\b(ms|us|μs|ns|min|s)\b/g;

@@ -118,6 +118,7 @@ import {
   TemplateValues,
 } from "../../../UI/Utils/TranslateTemplate";
 import {
+  CLOCK_READING,
   ENGLISH,
   LANGUAGES,
   OTHER_LANGUAGES,
@@ -204,28 +205,33 @@ const SPANS: () => Array<Span> = (): Array<Span> => {
 
 let spansInRange: Array<Span> = [];
 
-const renderDashboard: (language: string, url?: string) => Promise<void> =
-  async (language: string, url: string = "/"): Promise<void> => {
-    await setGlobalLanguage(language);
-    window.history.replaceState({}, "", url);
+const renderDashboard: (
+  language: string,
+  url?: string,
+) => Promise<void> = async (
+  language: string,
+  url: string = "/",
+): Promise<void> => {
+  await setGlobalLanguage(language);
+  window.history.replaceState({}, "", url);
 
-    await act(async () => {
-      render(
-        inLanguage(
-          language,
-          <MemoryRouter>
-            <TracesDashboard />
-          </MemoryRouter>,
-        ),
-      );
-    });
+  await act(async () => {
+    render(
+      inLanguage(
+        language,
+        <MemoryRouter>
+          <TracesDashboard />
+        </MemoryRouter>,
+      ),
+    );
+  });
 
-    await act(async () => {
-      await new Promise<void>((resolve: () => void) => {
-        setTimeout(resolve, 20);
-      });
+  await act(async () => {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 20);
     });
-  };
+  });
+};
 
 const CUSTOM_RANGE: string =
   "/?range=Custom&start=2026-10-01T00:00:00.000Z&end=2026-10-02T00:00:00.000Z";
@@ -235,14 +241,16 @@ const PAST_ONE_DAY: TemplateValues = {
   range: translatableTerm("Past 1 Day", { inSentence: true }),
 };
 
+const HOW_LONG_AGO: RegExp = /\bago$/;
+
 // A person's names and the picker's dates, as they write them.
 const isTelemetry: (text: string) => boolean = (text: string): boolean => {
   return (
     Object.values(SERVICE_NAMES).includes(text) ||
     text === "Checkout errors" ||
     text.startsWith("GET /") ||
-    /\bago$/.test(text) ||
-    /\d{1,2}:\d{2}/.test(text)
+    HOW_LONG_AGO.test(text) ||
+    CLOCK_READING.test(text)
   );
 };
 
@@ -384,9 +392,9 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
       "95th percentile",
       "99th percentile",
     ]) {
-      expect(screen.getAllByText(word(language, english)).length).toBeGreaterThan(
-        0,
-      );
+      expect(
+        screen.getAllByText(word(language, english)).length,
+      ).toBeGreaterThan(0);
     }
 
     // Under Requests: in most languages, the very words the picker shows.
@@ -429,7 +437,9 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
       ).toBeInTheDocument();
     }
 
-    const rowOf: (name: string) => HTMLElement = (name: string): HTMLElement => {
+    const rowOf: (name: string) => HTMLElement = (
+      name: string,
+    ): HTMLElement => {
       return within(table).getByText(name).closest("tr") as HTMLElement;
     };
 
@@ -470,9 +480,9 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
     ).toBeInTheDocument();
 
     // The failed trace with no name, in Recent Errors.
-    expect(screen.getAllByText(word(language, "Unknown")).length).toBeGreaterThan(
-      0,
-    );
+    expect(
+      screen.getAllByText(word(language, "Unknown")).length,
+    ).toBeGreaterThan(0);
   });
 
   test("with no traces it says so over the picked range, and offers the way on", async () => {

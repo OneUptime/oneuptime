@@ -586,8 +586,7 @@ export const getSpanEntityDisplay: GetSpanEntityDisplayFunction = (data: {
       : data.service.name;
 
     return {
-      name:
-        serviceName || data.entity?.name || word(UNKNOWN_SPAN_ENTITY_NAME),
+      name: serviceName || data.entity?.name || word(UNKNOWN_SPAN_ENTITY_NAME),
       typeLabel: word(DEFAULT_TELEMETRY_ENTITY_LABEL),
       color: data.service.serviceColor?.toString() || undefined,
     };

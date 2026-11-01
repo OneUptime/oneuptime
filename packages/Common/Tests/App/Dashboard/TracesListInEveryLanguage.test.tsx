@@ -179,6 +179,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { translatableTerm } from "../../../UI/Utils/TranslateTemplate";
 import TelemetryEntityNameResolver from "../../../UI/Utils/Telemetry/TelemetryEntityNames";
 import {
+  CLOCK_READING,
   ENGLISH,
   LANGUAGES,
   OTHER_LANGUAGES,
@@ -291,8 +292,16 @@ const FACETS: Record<string, unknown> = {
 
 const BUCKETS: Array<Record<string, unknown>> = [
   { time: new Date(NOW - 10 * MINUTE).toISOString(), series: "ok", count: 2 },
-  { time: new Date(NOW - 10 * MINUTE).toISOString(), series: "unset", count: 1 },
-  { time: new Date(NOW - 10 * MINUTE).toISOString(), series: "error", count: 1 },
+  {
+    time: new Date(NOW - 10 * MINUTE).toISOString(),
+    series: "unset",
+    count: 1,
+  },
+  {
+    time: new Date(NOW - 10 * MINUTE).toISOString(),
+    series: "error",
+    count: 1,
+  },
 ];
 
 let listed: Array<Span> = [];
@@ -370,16 +379,19 @@ const AS_WRITTEN: Array<string> = [
   "Enter",
 ];
 
+const SPAN_ID: RegExp = /^span\d+$/;
+const SEARCH_SYNTAX: RegExp = /[:@"<>]/;
+
 const isTelemetry: (text: string) => boolean = (text: string): boolean => {
   return (
     AS_WRITTEN.includes(text) ||
-    /^span\d+$/.test(text) ||
+    SPAN_ID.test(text) ||
     text.startsWith(TRACE_ID.slice(0, 16)) ||
     text.includes(TRACE_ID) ||
     // The picker's clock, the time a row's span started.
-    /\d{1,2}:\d{2}/.test(text) ||
+    CLOCK_READING.test(text) ||
     // A rule the search box draws, or an example it offers.
-    /[:@"<>]/.test(text)
+    SEARCH_SYNTAX.test(text)
   );
 };
 
@@ -625,9 +637,9 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     );
 
     for (const status of SPAN_STATUS_PRESENTATIONS) {
-      expect(screen.getByTitle(word(language, status.description))).toHaveTextContent(
-        word(language, status.displayLabel),
-      );
+      expect(
+        screen.getByTitle(word(language, status.description)),
+      ).toHaveTextContent(word(language, status.displayLabel));
     }
 
     fireEvent.change(measure, { target: { value: "avgDuration" } });
@@ -650,9 +662,9 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
       "Consumer",
       "Internal",
     ]) {
-      expect(screen.getAllByText(word(language, english)).length).toBeGreaterThan(
-        0,
-      );
+      expect(
+        screen.getAllByText(word(language, english)).length,
+      ).toBeGreaterThan(0);
     }
 
     expect(screen.getAllByText("api-gateway").length).toBeGreaterThan(0);
@@ -666,9 +678,9 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     expect(
       screen.getAllByText(word(language, "Client")).length,
     ).toBeGreaterThan(1);
-    expect(
-      screen.getAllByText(word(language, "Error")).length,
-    ).toBeGreaterThan(1);
+    expect(screen.getAllByText(word(language, "Error")).length).toBeGreaterThan(
+      1,
+    );
 
     const logs: HTMLElement = screen.getByRole("button", {
       name: word(language, "View logs for this scope"),
@@ -724,7 +736,9 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     expect(within(failed).getByText("card declined")).toBeVisible();
     expect(within(failed).getByText("api-gateway")).toBeVisible();
     expect(
-      within(failed).getByText(sentence(language, "{{count}}m ago", { count: 5 })),
+      within(failed).getByText(
+        sentence(language, "{{count}}m ago", { count: 5 }),
+      ),
     ).toBeVisible();
     expect(
       within(failed).getByTitle(
@@ -798,9 +812,9 @@ describe.each(LANGUAGES)("the traces list in %s", (language: string) => {
     await renderList(language, { url: "/?spanType=root" });
 
     expect(
-      within(await screen.findByTestId("traces-span-type-empty-state")).getByText(
-        word(language, "No root spans found"),
-      ),
+      within(
+        await screen.findByTestId("traces-span-type-empty-state"),
+      ).getByText(word(language, "No root spans found")),
     ).toBeVisible();
   });
 
@@ -905,7 +919,9 @@ describe("in a language that marks every key, every word the list draws is marke
     await renderList(PSEUDO_LANGUAGE);
 
     fireEvent.click(
-      screen.getByText("POST /api/v1/checkout").closest("button") as HTMLElement,
+      screen
+        .getByText("POST /api/v1/checkout")
+        .closest("button") as HTMLElement,
     );
     await settle();
 

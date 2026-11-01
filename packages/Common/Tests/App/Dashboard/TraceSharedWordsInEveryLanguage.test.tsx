@@ -327,9 +327,9 @@ describe.each(LANGUAGES)("the shared words in %s", (language: string) => {
       ),
     );
 
-    expect(
-      screen.getAllByText(word(language, "Unknown Service")),
-    ).toHaveLength(2);
+    expect(screen.getAllByText(word(language, "Unknown Service"))).toHaveLength(
+      2,
+    );
     expect(
       screen.getAllByTitle(
         sentence(language, "{{name}} Service Color", {
@@ -470,15 +470,15 @@ describe.each(LANGUAGES)("the shared words in %s", (language: string) => {
       ),
     );
 
-    expect(screen.getByTitle(/^operation-nobody/).getAttribute("title")).toContain(
-      `(${word(language, "Unknown")})`,
-    );
+    expect(
+      screen.getByTitle(/^operation-nobody/).getAttribute("title"),
+    ).toContain(`(${word(language, "Unknown")})`);
     expect(
       screen.getByTitle(/^operation-unattributed/).getAttribute("title"),
     ).toContain(`(${word(language, "Unknown Service")})`);
-    expect(screen.getByTitle(/^operation-person/).getAttribute("title")).toContain(
-      "(checkout)",
-    );
+    expect(
+      screen.getByTitle(/^operation-person/).getAttribute("title"),
+    ).toContain("(checkout)");
   });
 
   test("the service map says what it cannot name", () => {
@@ -539,9 +539,8 @@ describe.each(LANGUAGES)("the shared words in %s", (language: string) => {
   });
 
   test("every kind's name reads the same wherever it is drawn", () => {
-    const names: Record<string, string> = SpanUtil.getSpanKindNameMap(
-      translator(),
-    );
+    const names: Record<string, string> =
+      SpanUtil.getSpanKindNameMap(translator());
 
     expect(names[SpanKind.Server]).toBe(word(language, "Server"));
     expect(names[SpanKind.Consumer]).toBe(word(language, "Consumer"));
@@ -679,9 +678,7 @@ describe("a language switch while the data is loaded", () => {
 
     expect(screen.getByText(word("de", "Unknown Service"))).toBeVisible();
     expect(screen.queryByText("Unknown Service")).toBeNull();
-    expect(names[PROJECT.toString()]?.name).toBe(
-      word("de", "Unknown Service"),
-    );
+    expect(names[PROJECT.toString()]?.name).toBe(word("de", "Unknown Service"));
     // The Service itself still says the English the lookups key on.
     expect(service.name).toBe(UNKNOWN_SERVICE_NAME);
   });
