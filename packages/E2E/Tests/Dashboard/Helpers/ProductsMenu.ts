@@ -5,8 +5,8 @@ import { expect, Locator, Page } from "@playwright/test";
  * It always opens with the first of them, Essentials (Monitors, Incidents,
  * Alerts, On-Call Duty, Status Pages, Scheduled Maintenance, SLOs), open,
  * and every other section - Observability, AI, Code, Resources,
- * Infrastructure, Dashboards & Automation, Settings - folded to one row
- * until it is opened.
+ * Infrastructure, Cloud, Dashboards & Automation, Settings - folded to one
+ * row until it is opened.
  *
  * A spec that reaches a product through the menu opens its section first,
  * the way a user does. The menu remembers opened sections on the browser,
