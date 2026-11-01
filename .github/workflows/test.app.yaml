@@ -867,12 +867,16 @@ jobs:
           # minutes and group 14 21.6, and 3.3 minutes locally can be about
           # 4.5 on a slow runner: about 20 here, where group 14 would have
           # come to about 26 of its 28.
+          # 14.0.99's gate took this group 17.9 minutes on cut 1, 23.1 on cut 4
+          # and past its 28 on cut 5 (2026-11-01, run 41281804293), the same
+          # suites and tests each time: its half of Event Overview took 13.3,
+          # 17.4 and 21.3 minutes, on runners slower than the runs before. Data
+          # Security moved on to group 13: about 15 to 24.5.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
               test-dashboard-templates-ui
-              test-data-security-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
           # 03:08 that day, and the group took 26.1 and 26.7 minutes on the
@@ -990,6 +994,10 @@ jobs:
           # backup codes' action, at 1280 and 390 pixels, light and dark,
           # German and Persian) joined them the same day, rather than group 7,
           # which it would have taken to about 21.5: about 20.5.
+          # Data Security (3.3 minutes on 14.0.99's gate cut 4, 59 tests,
+          # Chromium only) joined them from group 10 on 2026-11-01, when cut 5
+          # took that group past its 28 minutes; cut 4 took this group 17.3:
+          # about 20.5.
           - group: 13
             suites: >-
               test-asset-details-ui
@@ -1003,6 +1011,7 @@ jobs:
               test-reading-direction-ui
               test-global-runners-ui
               test-accounts-theme-ui
+              test-data-security-ui
           # Added on 2026-10-29, when group 3's run step reached its 28 minutes
           # on two of master's runs (#5393 grew Monitor Overview from 209 tests
           # to 222) and took 24.6 on the next, and groups 5 and 9 took 25.3 and
