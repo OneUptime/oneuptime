@@ -53,6 +53,10 @@ import {
   getAllProxmoxAlertTemplates,
 } from "../ProxmoxAlertTemplates";
 import {
+  ProxmoxNotificationAlertTemplate,
+  getAllProxmoxNotificationAlertTemplates,
+} from "../ProxmoxNotificationAlertTemplates";
+import {
   RumAlertTemplate,
   getAllRumAlertTemplates,
   getRumAlertTemplates,
@@ -321,23 +325,54 @@ function getPodmanRecommendations(): Array<MonitorRecommendation> {
 }
 
 function getProxmoxRecommendations(): Array<MonitorRecommendation> {
-  return getAllProxmoxAlertTemplates().map((template: ProxmoxAlertTemplate) => {
-    return normalize({
-      resourceType: MonitorRecommendationResourceType.Proxmox,
-      monitorType: MonitorType.Proxmox,
-      template: template,
-      getMonitorStep: (args: MonitorRecommendationArgs) => {
-        return template.getMonitorStep({
-          clusterIdentifier: args.resourceIdentifier,
-          onlineMonitorStatusId: args.onlineMonitorStatusId,
-          offlineMonitorStatusId: args.offlineMonitorStatusId,
-          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
-          defaultAlertSeverityId: args.defaultAlertSeverityId,
-          monitorName: args.monitorName,
+  const metricRecommendations: Array<MonitorRecommendation> =
+    getAllProxmoxAlertTemplates().map((template: ProxmoxAlertTemplate) => {
+      return normalize({
+        resourceType: MonitorRecommendationResourceType.Proxmox,
+        monitorType: MonitorType.Proxmox,
+        template: template,
+        getMonitorStep: (args: MonitorRecommendationArgs) => {
+          return template.getMonitorStep({
+            clusterIdentifier: args.resourceIdentifier,
+            onlineMonitorStatusId: args.onlineMonitorStatusId,
+            offlineMonitorStatusId: args.offlineMonitorStatusId,
+            defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+            defaultAlertSeverityId: args.defaultAlertSeverityId,
+            monitorName: args.monitorName,
+          });
+        },
+      });
+    });
+
+  /*
+   * What Proxmox VE says itself - a failed backup job, a fenced node - are
+   * logs of the cluster once its notifications reach OneUptime
+   * (ProxmoxNotificationAlertTemplates), so their alerts are Logs monitors
+   * scoped to the cluster: offered beside the metric templates, last,
+   * under their own Notifications heading.
+   */
+  const notificationRecommendations: Array<MonitorRecommendation> =
+    getAllProxmoxNotificationAlertTemplates().map(
+      (template: ProxmoxNotificationAlertTemplate) => {
+        return normalize({
+          resourceType: MonitorRecommendationResourceType.Proxmox,
+          monitorType: MonitorType.Logs,
+          template: template,
+          getMonitorStep: (args: MonitorRecommendationArgs) => {
+            return template.getMonitorStep({
+              clusterIdentifier: args.resourceIdentifier,
+              onlineMonitorStatusId: args.onlineMonitorStatusId,
+              offlineMonitorStatusId: args.offlineMonitorStatusId,
+              defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+              defaultAlertSeverityId: args.defaultAlertSeverityId,
+              monitorName: args.monitorName,
+            });
+          },
         });
       },
-    });
-  });
+    );
+
+  return [...metricRecommendations, ...notificationRecommendations];
 }
 
 function getVMwareRecommendations(): Array<MonitorRecommendation> {
@@ -666,7 +701,8 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.Proxmox,
-      monitorTypes: [MonitorType.Proxmox],
+      // Metric templates, and the cluster's notifications' Logs monitors.
+      monitorTypes: [MonitorType.Proxmox, MonitorType.Logs],
       resourceLabel: "Proxmox Cluster",
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Server,
