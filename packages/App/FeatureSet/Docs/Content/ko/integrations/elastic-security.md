@@ -44,7 +44,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Elastic Security**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 키를 **API 키**에 붙여 넣습니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Elastic Security**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 키를 **API 키**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
@@ -154,7 +154,7 @@ Kibana에서 **Stack Management → API keys** 를 열고 **Create API key** 를
 
 ### 대상 추가하기
 
-**제품 → Security Events → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Elastic Security를 고른 뒤 **다음** 을 클릭합니다. **Elasticsearch URL** 에 Kibana가 아니라 배포의 Elasticsearch 엔드포인트를 입력하고, 키를 **API 키** 에 붙여 넣습니다. **데이터 스트림** 은 선택 사항입니다. 비워 두면 문서는 `logs-oneuptime.security-default` 로 가며, Elasticsearch가 처음 쓸 때 이를 만듭니다.
+**제품 → 보안 이벤트 → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Elastic Security를 고른 뒤 **다음** 을 클릭합니다. **Elasticsearch URL** 에 Kibana가 아니라 배포의 Elasticsearch 엔드포인트를 입력하고, 키를 **API 키** 에 붙여 넣습니다. **데이터 스트림** 은 선택 사항입니다. 비워 두면 문서는 `logs-oneuptime.security-default` 로 가며, Elasticsearch가 처음 쓸 때 이를 만듭니다.
 
 ### 테스트 이벤트를 보내고 전송 시작하기
 

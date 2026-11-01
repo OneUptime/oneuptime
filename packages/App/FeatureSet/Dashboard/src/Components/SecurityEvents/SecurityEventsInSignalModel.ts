@@ -269,25 +269,29 @@ export function getWorstSecurityEvent(
 
 // ---------- Words ----------
 
+/*
+ * Count-dependent: a language's "one" form takes the count as {{count}}
+ * (Russian reads 21 with it), never a written 1.
+ */
 export const SECURITY_EVENTS_IN_SIGNAL_TITLES: Record<
   SecurityEventsInSignalKind,
   PluralTemplate
 > = {
   [SecurityEventsInSignalKind.Request]: {
-    one: translationKey("1 security event happened in this request"),
+    one: translationKey("{{count}} security event happened in this request"),
     other: translationKey("{{count}} security events happened in this request"),
   },
   [SecurityEventsInSignalKind.LogLine]: {
-    one: translationKey("This line raised 1 security event"),
+    one: translationKey("This line raised {{count}} security event"),
     other: translationKey("This line raised {{count}} security events"),
   },
   [SecurityEventsInSignalKind.Session]: {
-    one: translationKey("1 security event happened in this session"),
+    one: translationKey("{{count}} security event happened in this session"),
     other: translationKey("{{count}} security events happened in this session"),
   },
   [SecurityEventsInSignalKind.Exception]: {
     one: translationKey(
-      "1 security event happened in a request that threw this exception",
+      "{{count}} security event happened in a request that threw this exception",
     ),
     other: translationKey(
       "{{count}} security events happened in requests that threw this exception",

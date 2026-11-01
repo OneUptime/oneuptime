@@ -44,7 +44,7 @@ Larm sparas per space. Öppna det space där dina regler körs: dess ID är den 
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Elastic Security** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in nyckeln i **API-nyckel**.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Elastic Security** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in nyckeln i **API-nyckel**.
 
 ### Testa den innan du sparar
 
@@ -154,7 +154,7 @@ OneUptime kan också skicka det den hittar till Elasticsearch, som Elastic Commo
 
 ### Lägg till målet
 
-Öppna **Produkter → Security Events → Anslutningar**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Elastic Security under **SIEM** och klicka på **Nästa**. Fyll i **Elasticsearch-URL**, distributionens Elasticsearch-slutpunkt och inte Kibanas, och klistra in nyckeln i **API-nyckel**. **Dataström** är valfri: lämnas den tom går dokumenten till `logs-oneuptime.security-default`, som Elasticsearch skapar vid första skrivningen.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Elastic Security under **SIEM** och klicka på **Nästa**. Fyll i **Elasticsearch-URL**, distributionens Elasticsearch-slutpunkt och inte Kibanas, och klistra in nyckeln i **API-nyckel**. **Dataström** är valfri: lämnas den tom går dokumenten till `logs-oneuptime.security-default`, som Elasticsearch skapar vid första skrivningen.
 
 ### Skicka en testhändelse och börja skicka
 

@@ -48,7 +48,7 @@ x-oneuptime-token: <your telemetry ingestion key>
 
 ### 알림이 도착하는지 확인
 
-플레이북을 실행합니다. 몇 초 안에 그 알림이 **제품 → Security Events**에 표시됩니다.
+플레이북을 실행합니다. 몇 초 안에 그 알림이 **제품 → 보안 이벤트**에 표시됩니다.
 :::
 
 ## UDM 이벤트 전달
@@ -97,7 +97,7 @@ Google SecOps에서 **SIEM Settings → Profile**을 엽니다. 인스턴스 리
 
 ### 연결 추가
 
-**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 선택한 다음, **Google SecOps**를 고르고 아래 표의 설정으로 양식을 채웁니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 선택한 다음, **Google SecOps**를 고르고 아래 표의 설정으로 양식을 채웁니다.
 
 ### 저장하기 전에 테스트
 
@@ -195,7 +195,7 @@ Partial 폴링은 경고도 **마지막 오류**에 저장하며, 경고는 완�
 
 ## 이벤트가 보이지 않는 이유
 
-다음을 순서대로 확인하세요. 각 항목은 **진단**나 **연결 테스트**에서 다음 항목과 구별할 수 있습니다.
+다음을 순서대로 확인하세요. 각 항목은 **진단**이나 **연결 테스트**에서 다음 항목과 구별할 수 있습니다.
 
 1. **Data to import.** 기본적으로 **알림**만 가져오며, 규칙 탐지는 Google SecOps에서 그 규칙에 알림이 켜져 있을 때만 알림이 됩니다. 규칙이 알림 없이 탐지만 만드는 테넌트는 폴링 결과가 정말로 영원히 비어 있습니다. **연결 테스트**를 실행하세요. **Detections available to import** 검사는 **탐지**를 포함할 때와 포함하지 않을 때를 세어, 선택하면 레코드가 늘어나는 경우 그렇다고 알려 줍니다. 연결을 편집해 **Data to import** 아래에서 **탐지**를 선택하거나, 규칙의 알림을 켜세요.
 2. **규칙 실행 빈도와 탐지 지연.** 탐지는 규칙이 실행될 때 생성되며, 이는 탐지가 설명하는 이벤트로부터 최대 한 시간 또는 하루 뒤일 수 있습니다. 커넥터는 생성 시각으로 폴링하므로, 탐지는 탐지 시각이 아니라 Google이 탐지를 만든 뒤의 첫 폴링에 도착합니다. 방금 켠 규칙은 아직 아무것도 만들지 않았고, 조용한 테넌트에는 만들 것이 없습니다. 가용성 검사는 지난 24시간과 7일 동안 생성된 탐지 수를 보고합니다. **탐지**를 포함할 때와 포함하지 않을 때 모두 0이면, Google에 아직 OneUptime이 가져올 것이 없다는 뜻입니다.
@@ -247,7 +247,7 @@ Google Cloud에서 SecOps 인스턴스가 연결된 프로젝트에 서비스 �
 
 ### 대상 추가하기
 
-**제품 → Security Events → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Google SecOps를 고른 뒤 **다음** 을 클릭합니다. **지역**을 선택하고, 위의 커넥터와 같이 **인스턴스 리소스 이름**을 입력한 다음, 키를 **서비스 계정 JSON**에 붙여 넣습니다.
+**제품 → 보안 이벤트 → 연결**을 엽니다. **SIEM으로 보내기**에서 **대상 추가**를 클릭하고, **SIEM** 에서 Google SecOps를 고른 뒤 **다음** 을 클릭합니다. **지역**을 선택하고, 위의 커넥터와 같이 **인스턴스 리소스 이름**을 입력한 다음, 키를 **서비스 계정 JSON**에 붙여 넣습니다.
 
 ### 테스트 이벤트 보내기
 
@@ -321,7 +321,7 @@ OAuth 토큰 교환에 성공했다면 Google이 서비스 계정 자격 증명�
 1. **실행 중인 앱과 워커 이미지 버전**을 확인합니다. 로컬 커넥터 소스 파일을 업데이트하거나 서비스 계정 JSON을 다시 업로드해도 배포된 컨테이너는 업데이트되지 않습니다. 폴링 작업을 실행하는 모든 앱이나 전용 워커에 커넥터 수정이 담긴 이미지를 배포하세요. 직접 이미지를 빌드한다면 수정된 소스로 다시 빌드하고 새로운 불변 태그로 배포하세요. 이전 이미지로 파드를 다시 시작하는 것만으로는 부족합니다.
 2. [Google API 레퍼런스](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView)와 비교해 알림 뷰 요청을 확인합니다. 요청은 `timeRange.startTime`, `timeRange.endTime`, `snapshotQuery=`(빈 값은 모든 알림 상태를 포함), `alertListOptions.maxReturnedAlerts`, 그리고 저장된 **Data to import** 선택에서 명시적으로 설정한 `includeNonAlertingDetections`를 사용합니다. 그 엔드포인트에 `pageSize`나 `pageToken`을 보내면 안 됩니다. 두 생성 시각 패스는 [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections)와 `legacySearchCuratedDetections`를 사용하며, 여기서는 `ruleId`, `listBasis`, `alertState`, `pageSize`, `pageToken`이 문서화된 매개변수이고, 그 실패에는 대신 탐지 검색 접두사가 붙습니다. `legacySearchCuratedDetections`는 항상 큐레이션된 규칙 ID 하나를 받으며, `-`는 절대 받지 않습니다. 닫힌 알림을 제외하는 필터로 대신하지 마세요. 탐지를 잃게 됩니다.
 3. 전체 `projects/{project}/locations/{location}/instances/{instance}` 리소스를 Google SecOps 테넌트 설정의 값과 비교합니다. instance 부분은 SecOps 인스턴스 ID여야 합니다. 연결의 표시 이름이나 서비스 계정 이름으로 대신할 수 없습니다. 지역 엔드포인트가 인스턴스 위치와 일치하는지 확인합니다.
-4. 롤아웃이 끝난 뒤 구성된 다음 폴링 간격까지 기다립니다. 완전한 폴링이 끝나면 **마지막 폴링**이 앞으로 나아가고 **마지막 오류**가 지워져야 합니다. 구간에 탐지가 있다면 **제품 → Security Events** 아래에 나타나야 합니다. 조용한 구간이라면 가져온 이벤트가 0개인 것이 정상일 수 있습니다.
+4. 롤아웃이 끝난 뒤 구성된 다음 폴링 간격까지 기다립니다. 완전한 폴링이 끝나면 **마지막 폴링**이 앞으로 나아가고 **마지막 오류**가 지워져야 합니다. 구간에 탐지가 있다면 **제품 → 보안 이벤트** 아래에 나타나야 합니다. 조용한 구간이라면 가져온 이벤트가 0개인 것이 정상일 수 있습니다.
 
 같은 오류가 계속되면 연결의 **작업** 열에서 **오류 보기**를 열고, 대화 상자의 **오류 복사**를 사용해 그 메시지와 이미지 태그 또는 다이제스트, 지역, 인스턴스 리소스 이름을 지원팀에 제공하세요. 기록된 메시지의 자격 증명은 가려져 있습니다. 서비스 계정 비공개 키, JWT 어설션, 액세스 토큰을 따로 보내지 마세요. 업그레이드 전에 기록된 오류는 이미 잘려 있을 수 있으며, 이후 실패한 폴링이 전체 메시지를 기록합니다. 실패한 폴링은 다시 시도하기 위해 구간을 유지하고, 부분 폴링은 다음 구간을 좁히거나 Last Error에 적힌 1분을 넘어갑니다. 예약된 따라잡기는 실행마다 최대 24시간을 처리합니다.
 
@@ -332,7 +332,7 @@ Google SecOps에는 예전에 자체 연결 카드, API, 폴러가 있었습니�
 - **연결은 자동으로 옮겨집니다.** 업그레이드한 릴리스가 데이터 마이그레이션을 실행하면, 모든 Google SecOps 연결이 공급자 `google-secops`로 Security Event Connections에 복사됩니다. ID, 이름, **지역**, **인스턴스 리소스 이름**, 서비스 계정 키, **활성화됨** 상태, 폴링 간격, **Data to import** 선택, 폴링 커서, Last Polled, Last Successful Poll, Last Event Imported, Last Error가 유지되므로, 폴링은 멈춘 곳에서 다시 시작합니다. 커넥터는 이전 커넥터가 가져올 때 쓰던 `Google` / `Google SecOps` ID를 유지하므로, 이미 가져온 탐지는 두 번 저장되지 않고 **Already imported**로 세어집니다.
 - **최근 실행 기록도 함께 옮겨집니다.** 각 연결의 최근 실행 500개가 **진단**에 있는 그 연결의 실행 기록에 복사됩니다. 아직 대기 중이거나 실행 중이던 실행은 `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`와 함께 실패로 복사됩니다.
 - **이전 행은 삭제되지 않고 비활성화됩니다.** 그래서 롤링 배포 중에 아직 실행 중인 이전 워커가 같은 인스턴스를 두 번 폴링할 수 없습니다. 이전 커넥터가 있는 릴리스로 롤백하려면 그 행들을 다시 활성화해야 합니다.
-- **옮길 수 없는 연결은 원래 자리에 남습니다.** 저장된 키가 없거나, 이 서버의 `ENCRYPTION_SECRET`으로 키를 복호화할 수 없는 연결은 건너뛰고 워커 로그에 이름이 남습니다. **제품 → Security Events → 연결**에서 다시 추가하세요. 저장된 설정이 오늘의 검증을 더 이상 통과하지 못하는 연결도 옮겨지지만, 편집할 때까지 그 폴링은 해당 필드를 밝힌 메시지와 함께 실패합니다. 일시적인 데이터베이스 오류로 중단된 연결은 다음 워커 시작 시 마이그레이션이 다시 실행될 때 옮겨지며, 폴링은 복사된 커서에서 다시 시작합니다.
+- **옮길 수 없는 연결은 원래 자리에 남습니다.** 저장된 키가 없거나, 이 서버의 `ENCRYPTION_SECRET`으로 키를 복호화할 수 없는 연결은 건너뛰고 워커 로그에 이름이 남습니다. **제품 → 보안 이벤트 → 연결**에서 다시 추가하세요. 저장된 설정이 오늘의 검증을 더 이상 통과하지 못하는 연결도 옮겨지지만, 편집할 때까지 그 폴링은 해당 필드를 밝힌 메시지와 함께 실패합니다. 일시적인 데이터베이스 오류로 중단된 연결은 다음 워커 시작 시 마이그레이션이 다시 실행될 때 옮겨지며, 폴링은 복사된 커서에서 다시 시작합니다.
 - **API 경로가 바뀌었습니다.** `/google-secops-connection/test`와 `/google-secops-connection/:connectionId/run`을 포함한 `/google-secops-connection`과 `/google-secops-connection-run` 경로는, 공급자 `google-secops`를 쓰는 `/security-event-connection`과 `/security-event-connection-run`으로 대체됩니다. 작업은 `/security-event-connection/test`와 `/security-event-connection/:connectionId/run`입니다. 이전 최상위 필드는 `config`와 `secrets`로 옮겨집니다:
 
   ```json

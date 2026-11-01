@@ -294,11 +294,6 @@ const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
       literal: /editButtonText=\{"Edit Images"\}/,
     },
     {
-      label: "Edit Favicon",
-      file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
-      literal: /editButtonText=\{"Edit Favicon"\}/,
-    },
-    {
       label: "Edit Default Bar Color",
       file: "App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Branding.tsx",
       literal: /editButtonText=\{"Edit Default Bar Color"\}/,

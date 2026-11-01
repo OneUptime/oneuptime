@@ -34,7 +34,7 @@ Et hul er en alvorlighed uden regel, på fanen for hændelser, hændelsesepisode
 
 ## Siden Parathed
 
-Åbn **Vagtordning → Parathed**. Kortet **On-call readiness** viser alle, som en vagtpolitik i projektet kan nå, med dem, der har brug for noget, først. Alle i projektet kan åbne det.
+Åbn **Vagtordning → Parathed**. Kortet **Vagtparathed** viser alle, som en vagtpolitik i projektet kan nå, med dem, der har brug for noget, først. Alle i projektet kan åbne det.
 
 Over listen tæller felterne **Modtagere**, **Klar**, **Kræver opsætning** og **Utilgængelig**. Klik på **Klar**, **Kræver opsætning** eller **Utilgængelig** for kun at vise de modtagere, og klik igen for at vise alle.
 
@@ -43,10 +43,10 @@ Over listen tæller felterne **Modtagere**, **Klar**, **Kræver opsætning** og 
 | **Modtager** | Personen, med e-mailadresse. |
 | **Status** | **Klar**, **Utilgængelig** eller hvor mange huller personen har. |
 | **Kanaler** | Et segment pr. kanal: udfyldt for en bekræftet metode, hult for en, der ikke er bekræftet endnu. |
-| **Coverage** | Hvor mange alvorligheder der har en regel, på hver fane, ud af dem alle. |
-| **Reached via** | Hvordan politikkerne når personen: hvert team, der tilkalder personen via en eskaleringsregel, med dets navn, eller **Direct**, **Tidsplan** eller **Tilsidesættelse**. |
+| **Dækning** | Hvor mange alvorligheder der har en regel, på hver fane, ud af dem alle. |
+| **Nås via** | Hvordan politikkerne når personen: hvert team, der tilkalder personen via en eskaleringsregel, med dets navn, eller **Direkte**, **Tidsplan** eller **Tilsidesættelse**. |
 
-**Coverage** i en række viser personens notifikationsmetoder, hvorfor personen har sin status, og et gitter over hver alvorlighed med eller uden regel. Tragten filtrerer listen efter **Modtager**, **Status**, **Team** eller **Reached via**. Svaret kan være et minut gammelt: **Opdater** fastlægger det igen.
+**Dækning** i en række viser personens notifikationsmetoder, hvorfor personen har sin status, og et gitter over hver alvorlighed med eller uden regel. Tragten filtrerer listen efter **Modtager**, **Status**, **Team** eller **Nås via**. Svaret kan være et minut gammelt: **Opdater** fastlægger det igen.
 
 ## Mind folk om at gøre opsætningen færdig
 

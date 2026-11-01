@@ -76,7 +76,7 @@ flowchart TB
     done -->|"Nej"| shown["Checklistan med<br/>återstående steg"]
 ```
 
-Checklistan försvinner när alla fyra steg är klara. Klicka på **Stäng** för att dölja den tidigare. Det sparas i den här webbläsaren för det här projektet; allt som stegen öppnar finns kvar i menyn **Produkter**.
+Checklistan försvinner när alla fyra steg är klara. Klicka på **Dölj** för att dölja den tidigare. Det sparas i den här webbläsaren för det här projektet; allt som stegen öppnar finns kvar i menyn **Produkter**.
 
 ### Kräver uppmärksamhet
 

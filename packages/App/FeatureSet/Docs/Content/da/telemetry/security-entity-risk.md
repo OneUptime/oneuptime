@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Ved<br/>tærsklen"| case["En sag åbnes, eller<br/>den åbne sag tager<br/>risikoen ind"]
 ```
 
-Åbn **Produkter → Security Events → Entitetsrisiko**: hver bruger, vært, IP-adresse og hvert datalager med risiko lige nu, de mest risikable først, med niveau, hvor meget den betyder, hvad der fandt den og hvornår. Hver af dem åbner på sin egen side. **Mest risikable entiteter** på oversigten viser toppen af denne liste, og **Slå en entitet op** under den slår enhver værdi op på tværs af 30 dages begivenheder, også et domæne eller en fil-hash.
+Åbn **Produkter → Sikkerhedshændelser → Entitetsrisiko**: hver bruger, vært, IP-adresse og hvert datalager med risiko lige nu, de mest risikable først, med niveau, hvor meget den betyder, hvad der fandt den og hvornår. Hver af dem åbner på sin egen side. **Mest risikable entiteter** på oversigten viser toppen af denne liste, og **Slå en entitet op** under den slår enhver værdi op på tværs af 30 dages begivenheder, også et domæne eller en fil-hash.
 
 ## Før du begynder
 
@@ -65,7 +65,7 @@ Når en entitets risiko når tærsklen, rejses der en detektion fra kilden Entit
 
 Når der er åbnet en sag om en entitets risiko, tælles det, der lå bag, ikke igen: en ny sag åbnes kun, når kilder, der er nye siden da, igen når tærsklen. En sag, der er lukket som håndteret, åbnes ikke igen af de samme fund.
 
-Skift tærsklen under **Produkter → Security Events → Indstillinger → Risikoscoring → Risikotærskel**: et heltal fra 10 til 10000. Mellem starter ved halvdelen og Kritisk ved det dobbelte, på alle sider.
+Skift tærsklen under **Produkter → Sikkerhedshændelser → Indstillinger → Risikoscoring → Risikotærskel**: et heltal fra 10 til 10000. Mellem starter ved halvdelen og Kritisk ved det dobbelte, på alle sider.
 
 ### Slå risikosager til eller fra
 

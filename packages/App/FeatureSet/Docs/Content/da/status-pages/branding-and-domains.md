@@ -63,7 +63,7 @@ Din brugerdefinerede CSS og HTML gælder i begge temaer; [Brugerdefineret HTML, 
 ### Titel, beskrivelse og favicon
 
 - **Titel og beskrivelse**: sidens navn i browserfanen og i e-mails til abonnenter og den beskrivelse, søgemaskiner viser. **Rediger** åbner **Sidetitel** (pladsholder `e.g., Acme Status`) og **Sidebeskrivelse**. Søgemaskiner og linkforhåndsvisninger viser dem, så skriv dem til en kunde, ikke til dit team.
-- **Favicon**: **Edit Favicon** åbner uploaden **Favicon**: det lille ikon i browserfanen.
+- **Favicon**: **Rediger favicon** åbner uploaden **Favicon**: det lille ikon i browserfanen.
 
 ### Header-links
 

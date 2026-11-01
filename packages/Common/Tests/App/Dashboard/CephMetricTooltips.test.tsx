@@ -1500,7 +1500,8 @@ describe("OSD list", () => {
     // Used / Total, PGs and latency all fall back to a dash.
     expect(within(row).getAllByText("—").length).toBeGreaterThanOrEqual(3);
     expect(within(row).getByText("Down")).toBeInTheDocument();
-    expect(within(row).getByText("In")).toBeInTheDocument();
+    // Its placement, in Ceph's own words (not the network legend's In).
+    expect(within(row).getByText("In cluster")).toBeInTheDocument();
 
     const fresh: HTMLElement = screen
       .getByText("osd.1")
@@ -1621,7 +1622,7 @@ describe("OSD detail", () => {
     await screen.findByText("node-d");
 
     expect(screen.getByText("Down")).toBeInTheDocument();
-    expect(screen.getByText("In")).toBeInTheDocument();
+    expect(screen.getByText("In cluster")).toBeInTheDocument();
     // Used / Total and Apply / Commit Latency.
     expect(screen.getAllByText("— / —")).toHaveLength(2);
   });

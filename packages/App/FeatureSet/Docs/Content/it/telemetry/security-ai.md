@@ -82,7 +82,7 @@ Eventi, avvisi e valori delle entità arrivano dall'esterno del progetto, e un a
 
 ## Classificare automaticamente i nuovi casi
 
-Apri **Prodotti → Security Events → IA → Impostazioni** e attiva **Classifica i nuovi casi**: da quel momento ogni caso aperto da un rilevamento viene classificato appena si apre. L'interruttore salva appena lo sposti. Project Owner e Project Admin possono cambiarlo.
+Apri **Prodotti → Eventi di sicurezza → IA → Impostazioni** e attiva **Classifica i nuovi casi**: da quel momento ogni caso aperto da un rilevamento viene classificato appena si apre. L'interruttore salva appena lo sposti. Project Owner e Project Admin possono cambiarlo.
 
 I nuovi progetti partono con l'opzione attiva; un progetto creato prima la tiene spenta finché qualcuno non la attiva. Un caso aperto a mano, e il caso dell'attacco di prova di **Invia un attacco di prova**, vengono classificati quando qualcuno fa clic su **Classifica con l'IA**.
 
@@ -119,7 +119,7 @@ Quando il progetto ha esaurito i crediti IA o ha raggiunto un limite giornaliero
 ## Risoluzione dei problemi
 
 :::details Un nuovo caso non è stato classificato
-Controlla che **Abilita IA** sia attivo, e anche **Classifica i nuovi casi** in **Prodotti → Security Events → IA → Impostazioni**. Un caso aperto a mano e il caso dell'attacco di prova vengono classificati solo quando qualcuno lo chiede. Apri il caso: quando qualcosa impedisce una classificazione, la scheda dice che cosa, e dove sistemarlo.
+Controlla che **Abilita IA** sia attivo, e anche **Classifica i nuovi casi** in **Prodotti → Eventi di sicurezza → IA → Impostazioni**. Un caso aperto a mano e il caso dell'attacco di prova vengono classificati solo quando qualcuno lo chiede. Apri il caso: quando qualcosa impedisce una classificazione, la scheda dice che cosa, e dove sistemarlo.
 :::
 
 :::details La scheda dice che il progetto ha esaurito i crediti IA, o che ha raggiunto il suo limite giornaliero di IA

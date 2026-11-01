@@ -141,7 +141,7 @@ Mens du arbejder med den, skriver du det, du lærer, ned som **Private noter**, 
 
 **Oversigt**, **Undersøgelse**, **Team** og **Noter** er åbne; de andre sektioner er foldet sammen, indtil du klikker på dem.
 
-- **Oversigt** — hovedet nævner advarslens **Ejere**, teams først, ved siden af dens monitor og episode. Feltet **Oprettet** viser, hvornår og af hvad den blev oprettet, to andre, hvor lang tid det tog at bekræfte og løse advarslen; hvor længe den har varet, står først i hovedet. Kortet **Hvad der skete** står øverst på siden — advarslens beskrivelse og dens **Grundårsag** — derefter kortet **OneUptime AI** med **Ask OneUptime AI** nederst, og **Advarsel Feed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Berørte ressourcer**, kortet **Advarselsdetaljer** og advarslens målinger.
+- **Oversigt** — hovedet nævner advarslens **Ejere**, teams først, ved siden af dens monitor og episode. Feltet **Oprettet** viser, hvornår og af hvad den blev oprettet, to andre, hvor lang tid det tog at bekræfte og løse advarslen; hvor længe den har varet, står først i hovedet. Kortet **Hvad der skete** står øverst på siden — advarslens beskrivelse og dens **Grundårsag** — derefter kortet **OneUptime AI** med **Spørg OneUptime AI** nederst, og **Advarsel Feed** registrerer alt, hvad der skete med advarslen. Ved siden af dem står kortet **Berørte ressourcer**, kortet **Advarselsdetaljer** og advarslens målinger.
 - **Tilstandstidslinje** — hver tilstand, advarslen har været i, hvornår og hvor længe. Se [Tilstandstidslinjen](/docs/alerts/states-and-severities#tilstandstidslinjen).
 - **Tilknyttede hændelser** — de hændelser, advarslen er en del af, med **Tilknyt hændelse** og **Erklær hændelse**.
 - **Indstillinger** — **Hvem kan se denne advarsel** med kontakten **Privat advarsel** og **Påmindelser** med **Send påmindelser**. Hver kontakt gemmer i det øjeblik, du slår den om.
@@ -157,7 +157,7 @@ En episode, som en privat advarsel åbner, er ikke privat, så den viser aldrig 
 ## Hvem der hører om en advarsel
 
 - **Vagten.** Advarslens vagtpolitikker tilkalder deres personer, hver på den måde, de har sat det op under **Brugerindstillinger → Vagtregler** på fanen **Advarsler**. Svarer man på tilkaldelsen, bekræftes advarslen, og tilkaldelsen stopper.
-- **Dens ejere.** Via e-mail, medmindre de har valgt andre kanaler under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**: **Advarsel oprettet**, **Advarselstilstand ændret** og **Alert reminder** er slået til som standard, og **Advarselsnote offentliggjort** og **Tilføjet som advarselsejer** er slået fra, indtil nogen slår dem til. En advarsel uden ejere giver i stedet projektets ejere besked.
+- **Dens ejere.** Via e-mail, medmindre de har valgt andre kanaler under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**: **Advarsel oprettet**, **Advarselstilstand ændret** og **Påmindelse om advarsel** er slået til som standard, og **Advarselsnote offentliggjort** og **Tilføjet som advarselsejer** er slået fra, indtil nogen slår dem til. En advarsel uden ejere giver i stedet projektets ejere besked.
 - **Dine chatværktøjer.** **Advarsler → Arbejdsområde** rummer de Slack- og Microsoft Teams-regler, der slår advarsler og episoder op i kanaler. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Fejlfinding

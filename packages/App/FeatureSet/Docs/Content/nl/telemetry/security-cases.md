@@ -29,7 +29,7 @@ flowchart TB
     work --> close["Gesloten met<br/>een oordeel"]
 ```
 
-Open **Producten → Security Events → Beveiligingszaken → Open zaken** voor de wachtrij. **Mijn zaken**, **Niet toegewezen**, **Gesloten zaken** en **Alle zaken** zijn eigen pagina's ernaast, die elk de zaken tonen die hun naam zegt.
+Open **Producten → Beveiligingsgebeurtenissen → Beveiligingszaken → Open zaken** voor de wachtrij. **Mijn zaken**, **Niet toegewezen**, **Gesloten zaken** en **Alle zaken** zijn eigen pagina's ernaast, die elk de zaken tonen die hun naam zegt.
 
 ## Voordat je begint
 
@@ -142,7 +142,7 @@ Een zaak die uit Google SecOps-waarschuwingen is geopend, sluit die ook in Googl
 
 ## Zaakprioriteiten en zaakstatussen
 
-Elk project heeft zijn eigen zaakprioriteiten en zaakstatussen, onder **Producten → Security Events → Instellingen → Zaakprioriteiten** en **Zaakstatussen**. Hernoem ze, geef ze een andere kleur, sleep ze in een andere volgorde en voeg je eigen toe, zoals een status "Triage" of een prioriteit "Noodgeval" boven **Kritiek**. Een nieuwe naam verschijnt overal tegelijk: in de wachtrij, op de zaakpagina's en het overzicht, in meldingen, in Slack en Microsoft Teams, en in playbookberichten.
+Elk project heeft zijn eigen zaakprioriteiten en zaakstatussen, onder **Producten → Beveiligingsgebeurtenissen → Instellingen → Zaakprioriteiten** en **Zaakstatussen**. Hernoem ze, geef ze een andere kleur, sleep ze in een andere volgorde en voeg je eigen toe, zoals een status "Triage" of een prioriteit "Noodgeval" boven **Kritiek**. Een nieuwe naam verschijnt overal tegelijk: in de wachtrij, op de zaakpagina's en het overzicht, in meldingen, in Slack en Microsoft Teams, en in playbookberichten.
 
 Sommige zijn ingebouwd, omdat OneUptime leest wat ze betekenen. Je kunt ze hernoemen en een andere kleur geven, maar niet verwijderen of archiveren, en ze houden hun volgorde:
 
@@ -161,7 +161,7 @@ Wil je een eigen status of prioriteit niet meer gebruiken, gebruik dan **Archive
 
 ## Reactiedoelen
 
-Een reactiedoel bepaalt hoe snel een zaak moet worden afgehandeld: **Bevestigen binnen**, hoe lang een nieuwe zaak mag wachten tot iemand haar oppakt, en **Indammen binnen**, hoe lang het mag duren tot ze is ingedamd of gesloten. Elke zaakprioriteit heeft haar eigen doelen, onder **Producten → Security Events → Instellingen → Reactiedoelen**: met **Bewerken** op de rij van een prioriteit stel je haar twee doelen in, in minuten, uren of dagen, tot een jaar, en een leeg doel betekent geen doel. De prioriteiten van een nieuw project beginnen met deze:
+Een reactiedoel bepaalt hoe snel een zaak moet worden afgehandeld: **Bevestigen binnen**, hoe lang een nieuwe zaak mag wachten tot iemand haar oppakt, en **Indammen binnen**, hoe lang het mag duren tot ze is ingedamd of gesloten. Elke zaakprioriteit heeft haar eigen doelen, onder **Producten → Beveiligingsgebeurtenissen → Instellingen → Reactiedoelen**: met **Bewerken** op de rij van een prioriteit stel je haar twee doelen in, in minuten, uren of dagen, tot een jaar, en een leeg doel betekent geen doel. De prioriteiten van een nieuw project beginnen met deze:
 
 | Prioriteit | Bevestigen binnen | Indammen binnen |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ Voor beveiligingszaken worden geen WhatsApp-berichten verstuurd. Een pushmelding
 
 ### Plaatsen in kanalen van Slack en Microsoft Teams
 
-Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Security Events → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Slack of Teams koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
+Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Beveiligingsgebeurtenissen → Werkruimte → Slack** (of **Microsoft Teams**). Is geen van beide gekoppeld, dan is de enige vermelding in dat onderdeel **Slack of Teams koppelen**. Een regel noemt de kanalen waarin hij plaatst (en, in Microsoft Teams, de chats) en, als je wilt, de zaken waarvoor hij geldt:
 
 | Voorwaarde | Matcht op |
 | --- | --- |
@@ -236,7 +236,7 @@ Elke melding behalve die van een taak wordt geplaatst in de kanalen van elke reg
 
 ## Playbooks
 
-Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan onder **Producten → Security Events → Playbooks**, vanuit een sjabloon of leeg, en voeg de stappen toe op de pagina ervan. Een project zonder playbooks ziet de sjablonen in plaats van een lege lijst; zodra er playbooks zijn, opent **Maken op basis van sjabloon** bij de lijst ze, met **Toegevoegd** bij de sjablonen die het project al heeft.
+Een playbook is een lijst met stappen die op een zaak draaien. Maak er een aan onder **Producten → Beveiligingsgebeurtenissen → Playbooks**, vanuit een sjabloon of leeg, en voeg de stappen toe op de pagina ervan. Een project zonder playbooks ziet de sjablonen in plaats van een lege lijst; zodra er playbooks zijn, opent **Maken op basis van sjabloon** bij de lijst ze, met **Toegevoegd** bij de sjablonen die het project al heeft.
 
 ### Wanneer een playbook draait
 
@@ -375,7 +375,7 @@ Een e-mail of bericht zonder eigen tekst stuurt een samenvatting van de zaak.
 
 ### Uitvoeringen en goedkeuringen
 
-Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Security Events → Playbooks → Uitvoeringen**:
+Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten → Beveiligingsgebeurtenissen → Playbooks → Uitvoeringen**:
 
 | Status van de uitvoering | Betekenis |
 | --- | --- |
@@ -392,7 +392,7 @@ Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstar
 
 ## Het overzicht
 
-**Producten → Security Events → Overzicht** is de pagina waarop het product opent:
+**Producten → Beveiligingsgebeurtenissen → Overzicht** is de pagina waarop het product opent:
 
 - De open zaken die aan jou zijn toegewezen, de open zaken die nog niemand heeft opgepakt, en de playbookstappen die op goedkeuring wachten; elk getal opent de pagina die ze toont.
 - **Gemiddelde tijd tot bevestiging**, **Gemiddelde tijd tot indamming** en **Gemiddelde tijd tot sluiting**, over de zaken die in de afgelopen 30 dagen zijn geopend: van het openen van een zaak tot iemand haar oppakt (een persoon toewijst, of haar in een status zet die als bevestigd telt), tot een status die als ingeperkt telt, en tot een die als gesloten telt. Een zaak die nog wacht, telt niet mee in een gemiddelde.

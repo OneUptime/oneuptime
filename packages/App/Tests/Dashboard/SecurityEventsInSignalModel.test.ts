@@ -405,4 +405,13 @@ describe("the event a callout names", () => {
       ),
     ).toBe("2 security events happened in requests that threw this exception");
   });
+
+  // Russian reads 21 with the "one" form: it takes the count, never a written 1.
+  test("each title's one form carries the count", () => {
+    for (const template of Object.values(
+      Model.SECURITY_EVENTS_IN_SIGNAL_TITLES,
+    )) {
+      expect(template.one).toContain("{{count}}");
+    }
+  });
 });

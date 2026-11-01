@@ -44,7 +44,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Elastic Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把密钥粘贴到 **API 密钥** 中。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Elastic Security**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把密钥粘贴到 **API 密钥** 中。
 
 ### 保存之前先测试
 
@@ -154,7 +154,7 @@ OneUptime 也可以把它发现的内容作为数据流中的 Elastic Common Sch
 
 ### 添加目标
 
-打开 **产品 → Security Events → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Elastic Security，然后点击 **下一步**。在 **Elasticsearch URL** 中填写部署的 Elasticsearch 端点，而不是 Kibana 的端点，并把密钥粘贴到 **API 密钥** 中。**数据流** 是可选的：留空时，文档会进入 `logs-oneuptime.security-default`，Elasticsearch 会在第一次写入时创建它。
+打开 **产品 → 安全事件 → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Elastic Security，然后点击 **下一步**。在 **Elasticsearch URL** 中填写部署的 Elasticsearch 端点，而不是 Kibana 的端点，并把密钥粘贴到 **API 密钥** 中。**数据流** 是可选的：留空时，文档会进入 `logs-oneuptime.security-default`，Elasticsearch 会在第一次写入时创建它。
 
 ### 发送测试事件并开始发送
 

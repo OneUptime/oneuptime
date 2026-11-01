@@ -436,6 +436,34 @@ describe("Create Scheduled Maintenance Template", () => {
     );
   });
 
+  /*
+   * As on the event's own Create form: the 'scheduled' notification goes
+   * out when the event shows on its status pages, and the start and end
+   * boxes say what they are in their names. The columns' own help ("this
+   * event event is changed to ongoing?") repeated them, typo and all.
+   */
+  test("the subscriber boxes say what the event's own Create form says, and no column help", async () => {
+    renderTemplateForm();
+    await screen.findByRole("navigation", { name: "Progress" });
+    await fillTemplateInfo();
+    await goToNextStep("Event");
+    fireEvent.change(labelledControl("Title"), {
+      target: { value: "Database maintenance" },
+    });
+    await act(async () => {});
+    await goToNextStep("Resources Affected");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Subscriber Notifications" }),
+    );
+    await act(async () => {});
+
+    expect(
+      screen.getByText("Sent when the event shows on its status pages."),
+    ).toBeVisible();
+    expect(form()).not.toHaveTextContent("Should subscribers be notified");
+  });
+
   test("a recurring template asks for its whole schedule before it is saved", async () => {
     renderTemplateForm();
     await screen.findByRole("navigation", { name: "Progress" });

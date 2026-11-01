@@ -123,7 +123,7 @@ AWS Marketplace, Microsoft Marketplace 또는 Google Cloud Marketplace에서 구
 ### 온라인 활성화(라이선스 키)
 
 :::steps
-1. 마스터 관리자로 로그인하고 **Admin Dashboard > 설정 > 라이선스** 을(를) 엽니다.
+1. 마스터 관리자로 로그인하고 **Admin Dashboard > 설정 > 라이선스** 를(를) 엽니다.
 2. 라이선스 키를 입력하고 검증합니다.
 :::
 
@@ -136,7 +136,7 @@ AWS Marketplace, Microsoft Marketplace 또는 Google Cloud Marketplace에서 구
 인터넷으로 가는 경로가 없는 설치는 키 대신 **서명된 라이선스 토큰** 을 사용할 수 있습니다.
 
 :::steps
-1. 마스터 관리자로 로그인하고 **Admin Dashboard > 설정 > 라이선스** 을(를) 연 다음 오프라인 활성화로 전환하고 **인스턴스 ID** 를 적어 둡니다.
+1. 마스터 관리자로 로그인하고 **Admin Dashboard > 설정 > 라이선스** 를(를) 연 다음 오프라인 활성화로 전환하고 **인스턴스 ID** 를 적어 둡니다.
 2. OneUptime([sales@oneuptime.com](mailto:sales@oneuptime.com))에 그 인스턴스 ID용 오프라인 라이선스 토큰을 요청합니다.
 3. 토큰을 토큰 필드에 붙여 넣고 활성화합니다.
 :::

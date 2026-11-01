@@ -18,7 +18,7 @@ För att sätta upp säkerhet krävs rollen Project Owner, Project Admin eller S
 :::steps
 ### Slå på det som de flesta team behöver
 
-Öppna **Produkter → Security Events**. Klicka på **Slå på rekommenderat** på **Översikt**. Det slår på tre saker samtidigt: **Hitta säkerhetshändelser i dina loggar**, de rekommenderade detektionsreglerna och **Berika nya ärenden**, en playbook som kontrollerar varje nytt ärende mot hotunderrättelser och lämnar en checklista för triage i det.
+Öppna **Produkter → Säkerhetshändelser**. Klicka på **Slå på rekommenderat** på **Översikt**. Det slår på tre saker samtidigt: **Hitta säkerhetshändelser i dina loggar**, de rekommenderade detektionsreglerna och **Berika nya ärenden**, en playbook som kontrollerar varje nytt ärende mot hotunderrättelser och lämnar en checklista för triage i det.
 
 ### Skicka en testattack
 
@@ -96,7 +96,7 @@ Inget har nått Security sedan dess. Öppna **Anslutningar** och kontrollera att
 :::
 
 :::details Kortet som slår på Security är borta
-Någon stängde det med **Stäng**. Så länge inget bevakas efter hot ännu erbjuder **Översikt** **Konfigurera Security**, som tar tillbaka det.
+Någon lade undan det med **Dölj**. Så länge inget bevakas efter hot ännu erbjuder **Översikt** **Konfigurera Security**, som tar tillbaka det.
 :::
 
 ## Nästa steg

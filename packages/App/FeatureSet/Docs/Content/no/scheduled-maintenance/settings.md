@@ -84,7 +84,7 @@ Under **Påminnelser** stiller du inn **Påminnelsesintervall (minutter)**, hvor
 
 API-et og Terraform avviser en regel som ville ventet til hendelsen starter, og stoppet når den starter: Den ville aldri sende en påminnelse. En eldre regel som er lagret slik, er merket med **Påminner aldri** i listen, og skjemaet ber deg velge når det skal sendes påminnelser.
 
-Eierne får hver påminnelse som **Maintenance reminder**, som er på via e-post for hvert nye medlem. Å lagre, endre eller slette en påminnelsesregel matcher hver hendelse som ikke er fullført, på nytt. For å stoppe påminnelsene for én hendelse slår du av **Send påminnelser** på siden **Innstillinger** for den; den lagres i det øyeblikket du slår den om.
+Eierne får hver påminnelse som **Påminnelse om vedlikehold**, som er på via e-post for hvert nye medlem. Å lagre, endre eller slette en påminnelsesregel matcher hver hendelse som ikke er fullført, på nytt. For å stoppe påminnelsene for én hendelse slår du av **Send påminnelser** på siden **Innstillinger** for den; den lagres i det øyeblikket du slår den om.
 
 Disse påminnelsene er for teamet ditt. Påminnelsene statussideabonnentene dine får før en hendelse starter, stilles inn på selve hendelsen, under **Påminnelser før hendelsen**.
 
@@ -132,7 +132,7 @@ Regler, egendefinerte felt og målinger krever **Prosjekteier** eller **Prosjekt
 :::
 
 :::details Eierne fikk ingen påminnelse
-Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påminnelser** for hendelsen er på, og at **Maintenance reminder** er på i varselinnstillingene til eierne. En regel med **Mens den pågår** sender ingenting før hendelsen starter.
+Sjekk at en påminnelsesregel matcher etikettene til hendelsen, at **Send påminnelser** for hendelsen er på, og at **Påminnelse om vedlikehold** er på i varselinnstillingene til eierne. En regel med **Mens den pågår** sender ingenting før hendelsen starter.
 :::
 
 ## Neste steg

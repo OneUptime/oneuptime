@@ -131,7 +131,7 @@ Met de standaarddrempel van 20% wordt een SLO in gevaar weer gezond bij 25% rest
 Als een SLO naar **Risico** of **Budget uitgeput** gaat, informeert OneUptime zijn eigenaren:
 
 - De eigenaren zijn de gebruikers en teamleden op de pagina **Eigenaren** van de SLO die nog lid van het project zijn. Een SLO zonder eigenaren informeert in plaats daarvan de projecteigenaren.
-- Elke eigenaar krijgt standaard een e-mail, en de melding via elk ander kanaal dat hij aanzet voor **SLO status changed** onder **Gebruikersinstellingen** → **Meldingsinstellingen** → **Bewaking**.
+- Elke eigenaar krijgt standaard een e-mail, en de melding via elk ander kanaal dat hij aanzet voor **SLO-status gewijzigd** onder **Gebruikersinstellingen** → **Meldingsinstellingen** → **Bewaking**.
 - Het onderwerp van de e-mail noemt de status en de SLO, bijvoorbeeld `[SLO At Risk] API Availability`.
 
 Zodat een SLO vlak bij een grens niet blijft melden, krijgen zijn eigenaren hoogstens één melding per uur. Een overgang naar **Budget uitgeput** wordt altijd verstuurd, ook binnen dat uur.

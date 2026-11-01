@@ -253,7 +253,7 @@ Chame um modelo pelo OpenRouter e depois confira IA / LLM como descrito em [Conf
 
 :::steps
 1. Envie uma requisição pelo gateway e espere alguns segundos.
-2. Abra **Produtos → AI / LLM → Chamadas**. A chamada aparece com o provedor, o modelo e os tokens.
+2. Abra **Produtos → IA / LLM → Chamadas**. A chamada aparece com o provedor, o modelo e os tokens.
 3. Clique na chamada para abrir o trace e abra a aba **LLM** do span: o modelo, os tokens, os parâmetros e, a menos que você os tenha desativado, o prompt e a resposta.
 4. Abra **Uso**: a chamada conta nos totais, com o custo informado pelo gateway ou o estimado pelo OneUptime.
 :::

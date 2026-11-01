@@ -1,4 +1,7 @@
 {
+  "Something went wrong": "문제가 발생했습니다",
+  "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 새로 고치세요",
+  "Error details": "오류 세부 정보",
   "a11y": {
     "skipToMainContent": "본문으로 건너뛰기",
     "loading": "불러오는 중...",

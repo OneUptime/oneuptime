@@ -28,9 +28,9 @@ OneUptime zoekt elke waarde op tussen de records van het project, zegt hoe zeker
 
 ## Waar u het ziet
 
-- **Verbonden signalen**, een pagina van elke beveiligingszaak: open een zaak onder **Producten → Security Events → Beveiligingszaken → Open zaken** en daarna **Verbonden signalen** na **Entiteiten** in het menu ervan.
-- **Verbonden**, een tabblad van elke beveiligingsgebeurtenis: open een gebeurtenis onder **Producten → Security Events → Gebeurtenissen**. Het toont wat de gebeurtenis noemt, in het uur eromheen.
-- De pagina van een entiteit, onder **Producten → Security Events → Entiteitrisico**: waar OneUptime de gebruiker, de host of het adres kent, rond de laatste beveiligingsgebeurtenis.
+- **Verbonden signalen**, een pagina van elke beveiligingszaak: open een zaak onder **Producten → Beveiligingsgebeurtenissen → Beveiligingszaken → Open zaken** en daarna **Verbonden signalen** na **Entiteiten** in het menu ervan.
+- **Verbonden**, een tabblad van elke beveiligingsgebeurtenis: open een gebeurtenis onder **Producten → Beveiligingsgebeurtenissen → Gebeurtenissen**. Het toont wat de gebeurtenis noemt, in het uur eromheen.
+- De pagina van een entiteit, onder **Producten → Beveiligingsgebeurtenissen → Entiteitrisico**: waar OneUptime de gebruiker, de host of het adres kent, rond de laatste beveiligingsgebeurtenis.
 - Een kaart **Beveiliging** op de pagina van elke host, Docker-host, Podman-host, Kubernetes-cluster, elk netwerkapparaat, elke service, elk lid en elk inventarisitem: de open beveiligingszaken die het noemen, hoeveel beveiligingsgebeurtenissen en bevindingen het in de afgelopen 7 dagen noemden, de ernstigste daarvan en het risico. **Openen in Security Events** opent het daar.
 - Een kaart **Beveiliging** op de pagina van een incident, wanneer een beveiligingszaak het incident heeft gemeld (**Gemeld vanuit**) of open zaken een host of cluster noemen die het raakt (**Open zaken die noemen wat het raakt**).
 
