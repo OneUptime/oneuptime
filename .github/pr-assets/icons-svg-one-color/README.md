@@ -18,7 +18,8 @@ and load them with the Home stylesheet.
 - `before-export-1280-dark.png`, `after-export-1280-dark.png`: the same
   dialog in the dark theme.
 - `before-export-picked.png`, `after-export-picked.png`: Google Cloud
-  Storage picked: its mark turns indigo like a picked icon.
+  Storage picked: the row turns indigo and its mark stays on its tile in
+  the tile's grey, as the generic icons' do.
 - `after-export-390.png`, `after-export-390-dark.png`: at phone width.
 - `after-export-german.png`, `after-export-persian-390.png`: German, and
   Persian (right to left) at phone width.

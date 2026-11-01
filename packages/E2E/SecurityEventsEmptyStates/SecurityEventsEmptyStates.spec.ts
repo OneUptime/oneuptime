@@ -3359,8 +3359,13 @@ test.describe("connections empty state for a viewer", () => {
       // The logo and the name block: no plus.
       await expect(tile(page, item).locator(":scope > div")).toHaveCount(1);
       await expect(tileBadge(page, item)).toHaveCount(1);
-      // The guide's external-link icon is the tile's only icon.
-      await expect(tile(page, item).locator("svg")).toHaveCount(1);
+      /*
+       * The tile's only drawings: the mark in its badge (or the icon a
+       * brand's rules put there) and the guide's external-link icon.
+       */
+      await expect(tileMark(page, item)).toHaveCount(1);
+      await expect(guideLink(page, item).locator("svg")).toHaveCount(1);
+      await expect(tile(page, item).locator("svg")).toHaveCount(2);
       await expect(tile(page, item).locator("p").first()).toHaveText(
         item.title,
       );

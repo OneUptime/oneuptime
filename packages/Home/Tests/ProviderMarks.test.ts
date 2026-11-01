@@ -337,4 +337,45 @@ describe("the pages draw their marks inline, never as images", () => {
       false,
     );
   });
+
+  test("the colour images the comparisons loaded are gone from the site", () => {
+    // The 29 files the comparisons' iconUrl pointed at, until this change.
+    const oldImages: Array<string> = [
+      "pagerduty.jpeg",
+      "statuspagelogo.png",
+      "pingdom.svg",
+      "datadog.svg",
+      "newrelic.svg",
+      "betterstack.svg",
+      "uptimerobot.svg",
+      "checkly.svg",
+      "incident-io.svg",
+      "signoz.svg",
+      "opsgenie.svg",
+      "squadcast.svg",
+      "firehydrant.svg",
+      "rootly.svg",
+      "xmatters.svg",
+      "grafana.svg",
+      "dynatrace.svg",
+      "splunk.svg",
+      "sentry.svg",
+      "appdynamics.svg",
+      "elastic-stack.svg",
+      "site24x7.svg",
+      "cronitor.svg",
+      "healthchecks.svg",
+      "instatus.svg",
+      "freshping.svg",
+      "prometheus.svg",
+      "zabbix.svg",
+      "nagios.svg",
+    ];
+
+    expect(
+      oldImages.filter((file: string): boolean => {
+        return fs.existsSync(path.join(HOME, "Static", "img", file));
+      }),
+    ).toEqual([]);
+  });
 });
