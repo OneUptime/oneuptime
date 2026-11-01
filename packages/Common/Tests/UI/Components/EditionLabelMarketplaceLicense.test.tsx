@@ -6,7 +6,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import React from "react";
+import React, { ReactElement } from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -72,6 +72,14 @@ jest.mock("../../../UI/Utils/API/API", () => {
     },
   };
 });
+
+/*
+ * What the Enterprise frontends pass: with it a master admin can act on the
+ * license, and the pill asks them to.
+ */
+const EmptyLicenseDetails: () => ReactElement = (): ReactElement => {
+  return <></>;
+};
 
 const HOUR_IN_MS: number = 60 * 60 * 1000;
 const DAY_IN_MS: number = 24 * HOUR_IN_MS;
@@ -299,8 +307,8 @@ describe("EditionLabel - a marketplace that is not accepting the reports", () =>
     });
   });
 
-  it("says so on the pill, and asks to check billing rather than renew a license", async () => {
-    render(<EditionLabel />);
+  it("says so on the pill, and asks a master admin to check billing rather than renew a license", async () => {
+    render(<EditionLabel licenseDetails={EmptyLicenseDetails} />);
 
     await waitFor(() => {
       expect(
@@ -313,6 +321,22 @@ describe("EditionLabel - a marketplace that is not accepting the reports", () =>
     expect(
       screen.getByRole("button", { name: /Enterprise Edition/i }),
     ).not.toHaveTextContent("Renew license");
+  });
+
+  it("asks nothing of somebody who cannot act on it", async () => {
+    render(<EditionLabel />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Enterprise Edition/i }),
+      ).toHaveTextContent("Enterprise Edition (Marketplace Reports Failing)");
+    });
+    expect(
+      screen.getByRole("button", { name: /Enterprise Edition/i }),
+    ).toHaveTextContent("View details");
+    expect(
+      screen.getByRole("button", { name: /Enterprise Edition/i }),
+    ).not.toHaveTextContent("Check billing");
   });
 
   it("explains that features keep working until the grace period ends, and shows the problem", async () => {
@@ -357,7 +381,7 @@ describe("EditionLabel - a marketplace subscription that has ended", () => {
   });
 
   it("says so on the pill, and asks to check the subscription", async () => {
-    render(<EditionLabel />);
+    render(<EditionLabel licenseDetails={EmptyLicenseDetails} />);
 
     await waitFor(() => {
       expect(
@@ -369,6 +393,24 @@ describe("EditionLabel - a marketplace subscription that has ended", () => {
     expect(
       screen.getByRole("button", { name: /Enterprise Edition/i }),
     ).toHaveTextContent("Check subscription");
+  });
+
+  it("asks nothing of somebody who cannot act on it", async () => {
+    render(<EditionLabel />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: /Enterprise Edition/i }),
+      ).toHaveTextContent(
+        "Enterprise Edition (Marketplace Subscription Ended)",
+      );
+    });
+    expect(
+      screen.getByRole("button", { name: /Enterprise Edition/i }),
+    ).toHaveTextContent("View details");
+    expect(
+      screen.getByRole("button", { name: /Enterprise Edition/i }),
+    ).not.toHaveTextContent("Check subscription");
   });
 
   it("says the marketplace no longer licenses the installation, what it said, and what has stopped", async () => {

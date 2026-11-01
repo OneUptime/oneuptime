@@ -1,4 +1,4 @@
-import LicenseManager from "../../../AdminDashboard/License/LicenseManager";
+import LicenseDetails from "../../../AdminDashboard/License/LicenseDetails";
 import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -9,11 +9,11 @@ import React from "react";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
- * The edition dialog with the Enterprise license manager, on an installation
+ * The edition dialog with the Enterprise license details, on an installation
  * licensed through a cloud marketplace. There is no key to refresh - the
- * license renews itself with every usage report the marketplace accepts - so
- * the "Refresh license" button is not offered. A master admin can still put a
- * license key in place of the marketplace subscription.
+ * license renews itself with every usage report the marketplace accepts - and
+ * no seat limit: every user is billed by the hour. A master admin can still
+ * put a license key in place of the subscription, on the license page.
  */
 
 jest.mock("Common/UI/Config", () => {
@@ -109,7 +109,7 @@ const licensePayload: (overrides?: JSONObject) => JSONObject = (
 };
 
 const openDialog: () => Promise<void> = async (): Promise<void> => {
-  render(<EditionLabel licenseManager={LicenseManager} />);
+  render(<EditionLabel licenseDetails={LicenseDetails} />);
 
   await waitFor(() => {
     expect(fetchCount).toBeGreaterThan(0);
@@ -123,7 +123,7 @@ beforeEach(() => {
   payload = licensePayload();
 });
 
-describe("the license manager on a marketplace-licensed installation", () => {
+describe("the license details on a marketplace-licensed installation", () => {
   it("offers no refresh: there is no key, and the license renews itself", async () => {
     await openDialog();
 
@@ -135,15 +135,27 @@ describe("the license manager on a marketplace-licensed installation", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("still lets a master admin put a license key in its place", async () => {
+  it("shows no seat card: there is no seat limit to measure against", async () => {
     await openDialog();
 
     await screen.findByTestId("enterprise-marketplace-license-notice");
 
-    expect(screen.getByText("Change license key")).toBeInTheDocument();
+    expect(screen.queryByText("Licensed seats")).not.toBeInTheDocument();
+    expect(screen.queryByText(/unlimited/)).not.toBeInTheDocument();
   });
 
-  it("keeps the refresh for a license key", async () => {
+  it("leaves a master admin the way to the license page", async () => {
+    await openDialog();
+
+    await screen.findByTestId("enterprise-marketplace-license-notice");
+
+    expect(
+      screen.getByRole("button", { name: "Manage license" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Change license key")).not.toBeInTheDocument();
+  });
+
+  it("keeps the seat card for a license key", async () => {
     payload = licensePayload({
       marketplace: null,
       licenseKey: "acme-license-key",
@@ -155,8 +167,6 @@ describe("the license manager on a marketplace-licensed installation", () => {
 
     await openDialog();
 
-    expect(
-      await screen.findByTestId("refresh-enterprise-license"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Licensed seats")).toBeInTheDocument();
   });
 });

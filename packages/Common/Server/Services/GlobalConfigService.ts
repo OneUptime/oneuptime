@@ -488,7 +488,7 @@ export class Service extends DatabaseService<Model> {
 
     throw new NotAuthorizedException(
       `${writtenColumns.join(", ")} can only be changed by OneUptime itself. ` +
-        "Use the license dialog in the Admin Dashboard to activate or refresh the Enterprise license.",
+        "Use Settings > License in the Admin Dashboard to activate or refresh the Enterprise license.",
     );
   }
 

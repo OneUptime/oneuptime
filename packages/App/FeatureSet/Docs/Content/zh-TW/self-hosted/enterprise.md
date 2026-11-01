@@ -116,18 +116,18 @@ npm run update
 
 新的 Enterprise Edition 安裝會以 **14 天試用期** 執行，從該安裝首次啟動 Enterprise Edition 時開始計算。試用期用於評估：在正式環境中使用 Enterprise Edition 需要依據 OneUptime Enterprise License 訂閱。請在試用期結束前啟用授權：試用期結束後，SCIM、稽核日誌記錄與保留期覆寫都會停止，企業設定會變為唯讀（請參閱[授權到期或缺少時](#授權到期或缺少時)）。如需授權，請聯絡 [sales@oneuptime.com](mailto:sales@oneuptime.com)。
 
-授權透過 **版本標籤** 管理，主管理員可以在管理員儀表板的頁首與 Dashboard 的頁尾看到它。它會顯示授權狀態、席位使用情形，並向主管理員顯示執行個體 ID。
+授權在 **Admin Dashboard > 設定 > 授權** 中管理：主管理員在這裡新增、重新整理和取代授權，其他人都無法變更。管理員儀表板頁首與 Dashboard 頁尾中的 **版本標籤** 只顯示狀況：授權狀態，並向主管理員顯示席位使用情形和前往該頁面的 **管理授權** 按鈕。
 
 在 AWS Marketplace、Microsoft Marketplace 或 Google Cloud Marketplace 上購買的 OneUptime Enterprise 不需要授權金鑰：市集訂閱即是授權，並按小時向每位使用者計費。請參閱[雲端市集](/docs/installation/cloud-marketplaces)。
 
 ### 線上啟用（授權金鑰）
 
 :::steps
-1. 以主管理員身分登入並開啟版本標籤。
+1. 以主管理員身分登入並開啟 **Admin Dashboard > 設定 > 授權**。
 2. 輸入您的授權金鑰並加以驗證。
 :::
 
-安裝會向 OneUptime 核對金鑰，並儲存收到的授權。此後，它會透過每日同步讓授權保持最新。若要立即取得額外席位或續約之類的變更，請在版本標籤上使用 **Refresh license**。
+安裝會向 OneUptime 核對金鑰，並儲存收到的授權。此後，它會透過每日同步讓授權保持最新。若要立即取得額外席位或續約之類的變更，請在同一頁面使用 **Refresh license**。
 
 線上啟用需要從 OneUptime 伺服器到 `https://oneuptime.com` 的對外 HTTPS。如果伺服器只能透過中繼連上網際網路，請將 `ENTERPRISE_LICENSE_SERVER_URL` 設為中繼的 `https://` 位址。中繼必須把 `/api/enterprise-license/` 轉送到 oneuptime.com。
 
@@ -136,9 +136,9 @@ npm run update
 沒有通往網際網路之路由的安裝，可以使用 **簽署的授權權杖** 代替金鑰：
 
 :::steps
-1. 以主管理員身分登入，開啟版本標籤並記下 **執行個體 ID**。
+1. 以主管理員身分登入，開啟 **Admin Dashboard > 設定 > 授權**，切換到離線啟用並記下 **執行個體 ID**。
 2. 向 OneUptime（[sales@oneuptime.com](mailto:sales@oneuptime.com)）申請該執行個體 ID 的離線授權權杖。
-3. 將權杖貼到版本標籤的權杖欄位中並啟用。
+3. 將權杖貼到權杖欄位中並啟用。
 :::
 
 安裝會依據內建在您所用版本中的 OneUptime 簽署金鑰自行驗證權杖。它從不聯絡 OneUptime。為某個執行個體 ID 簽發的權杖會被其他所有安裝拒絕，未指定執行個體 ID 簽發的權杖（例如線上啟用的安裝收到的權杖）也會被拒絕。若要續約或增加席位，請在目前的權杖到期前啟用新的權杖。

@@ -826,7 +826,7 @@ describe("the Community plugin door (what this jest config resolves)", () => {
         "StatusPagePoweredBy",
         "StatusPageSessionLength",
         "StatusPageSubscriberRestrictions",
-        "LicenseManager",
+        "LicenseDetails",
       ].sort(),
     );
     expect(new Set(DASHBOARD_ENTERPRISE_PLUGIN_KEYS).size).toBe(
