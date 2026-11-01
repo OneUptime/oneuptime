@@ -264,6 +264,10 @@ OneUptime 卡片上的按鈕以按下者的身分執行，無論是在個人聊�
 - **在哪裡收到回覆。** 在同一個對話中（在頻道中即卡片的討論串中）以提及此人的回覆答覆，因此 Microsoft Teams 會通知此人。按得太晚的按鈕會說明誰先操作了、何時操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **如果此人的帳戶未連接。** 回覆會請此人連接，並附上一個 **Connect Microsoft Teams account** 按鈕。該按鈕會開啟此人在 OneUptime 中自己的 Microsoft Teams 設定，並在視需要登入 OneUptime 後一步連接帳戶。隨後 OneUptime 會以此人的身分完成其按下的操作，並在同一個對話中回覆；對於開啟表單的按鈕或命令，它會請此人再按一次或再輸入一次。該按鈕只能使用一次，有效 30 分鐘，並且只對按下它的 Microsoft 帳戶有效。
 
+## 核准 OneUptime AI 提出的修正
+
+OneUptime AI 提出待核准的修正時，會以一張包含其變更和三個按鈕的卡片發布到事件或警示的頻道中。 **Review and approve** 會回覆一張卡片，其中包含修正要執行的全部內容和 **Approve and run**，後者會以按下它的人的身分準確執行這些內容；核准後，這張卡片會被移除，並告知此人修正正在進行。 **Dismiss** 會駁回修正， **View in OneUptime** 會開啟事件或警示。與 OneUptime 卡片上的每個按鈕一樣，它們以按下它們的人的身分執行：核准需要在專案中核准修正的權限，對於叢集或資源的修正，還需要編輯它的權限。在卡片發布後發生了變化的修正會被拒絕，什麼都不會執行。請參閱 [從 Slack 或 Microsoft Teams 核准或駁回修正](/docs/ai/ai-sre#從-slack-或-microsoft-teams-核准或駁回修正)。
+
 ## 中斷連接
 
 - **中斷連線** 只解除您自己的 Microsoft Teams 帳戶的連結，並同時移除您的 Microsoft Teams 通知方式。

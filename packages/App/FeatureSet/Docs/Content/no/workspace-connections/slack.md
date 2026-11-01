@@ -278,6 +278,10 @@ Knappene i OneUptimes Slack-meldinger handler også som deg: som OneUptime-konto
 - **Hvor du får svar.** Under meldingen med knappen, i en melding bare du ser; i en direktemelding bare hvis Slack avviser det. En knapp som trykkes for sent, sier hvem som kom først, og når, for eksempel "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Hvis Slack-kontoen din ikke er koblet til.** Svaret ber deg koble den til, med en knapp **Connect Slack account**. Knappen åpner dine egne Slack-innstillinger i OneUptime og kobler til kontoen din i ett trinn, etter at du har logget inn i OneUptime om nødvendig. Deretter fullfører OneUptime det du trykket på, som deg, og svarer under den samme meldingen; for en knapp som åpner et skjema, eller en kommando, ber det deg trykke på den eller kjøre den igjen. Knappen virker én gang, i 30 minutter, og bare for Slack-kontoen som trykket på den: logget inn i Slack som noen andre kobler den ikke til noe.
 
+## Godkjenn en retting som OneUptime AI foreslår
+
+En retting som OneUptime AI foreslår til godkjenning, sendes til hendelsens eller varselets kanaler med endringene og tre knapper. **Review and approve** åpner alt rettingen kjører, med **Approve and run**, som kjører nøyaktig det, som deg. **Dismiss** avviser rettingen, og **View in OneUptime** åpner hendelsen eller varselet. De handler som deg, som hver knapp på OneUptimes Slack-meldinger: en godkjenning krever tillatelse til å godkjenne rettinger i prosjektet og, for en retting på en klynge eller ressurs, til å redigere den. En retting som endret seg etter at meldingen dens ble sendt, avvises, og ingenting kjøres. Se [Godkjenn eller avvis en retting fra Slack eller Microsoft Teams](/docs/ai/ai-sre#godkjenn-eller-avvis-en-retting-fra-slack-eller-microsoft-teams).
+
 ## Koble fra
 
 - **Koble fra** kobler bare fra din egen Slack-konto, og fjerner samtidig Slack-varselmetoden din.

@@ -57,6 +57,8 @@ import { ConfidenceSignal } from "../SRE/ConfidenceSignal";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import ToolResultSerializer from "../Toolbox/Serializer";
 import logger from "../../Logger";
+import RemediationChatMessage from "../../AutoRemediation/RemediationChatMessage";
+import { MessageBlocksByWorkspaceType } from "../../../Services/WorkspaceNotificationRuleService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import PromptText from "../../../../Utils/AI/PromptText";
@@ -535,6 +537,14 @@ export default class RemediationPlanRunner {
         ? this.getProposedFeedMarkdown({ suggestion, runbook, proposalNote })
         : this.getNoneAppliesFeedMarkdown(suggestion),
       pingWorkspace: runbook !== null,
+      // Approve the runbook, or dismiss it, from the channel.
+      ...(runbook
+        ? {
+            appendMessageBlocks: await RemediationChatMessage.getProposalBlocks(
+              { suggestion, runbook: { id: runbook.id, name: runbook.name } },
+            ),
+          }
+        : {}),
     });
   }
 
@@ -756,6 +766,11 @@ export default class RemediationPlanRunner {
             proposalNote: NOT_STARTED_NOTE,
           }),
           pingWorkspace: true,
+          // Approve the runbook, or dismiss it, from the channel.
+          appendMessageBlocks: await RemediationChatMessage.getProposalBlocks({
+            suggestion,
+            runbook: { id: runbook.id, name: runbook.name },
+          }),
         });
       }
 
@@ -1027,6 +1042,8 @@ export default class RemediationPlanRunner {
     suggestion: AutoRemediationSuggestion;
     markdown: string;
     pingWorkspace: boolean;
+    // A runbook that waits for approval: its buttons, in the chats.
+    appendMessageBlocks?: Array<MessageBlocksByWorkspaceType> | undefined;
   }): Promise<void> {
     try {
       if (data.suggestion.incidentId && data.suggestion.projectId) {
@@ -1038,6 +1055,9 @@ export default class RemediationPlanRunner {
           feedInfoInMarkdown: data.markdown,
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
+            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
+              ? { appendMessageBlocks: data.appendMessageBlocks }
+              : {}),
           },
         });
       } else if (data.suggestion.alertId && data.suggestion.projectId) {
@@ -1049,6 +1069,9 @@ export default class RemediationPlanRunner {
           feedInfoInMarkdown: data.markdown,
           workspaceNotification: {
             sendWorkspaceNotification: data.pingWorkspace,
+            ...(data.appendMessageBlocks && data.appendMessageBlocks.length > 0
+              ? { appendMessageBlocks: data.appendMessageBlocks }
+              : {}),
           },
         });
       }

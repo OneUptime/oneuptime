@@ -264,6 +264,10 @@ Os botões dos cartões do OneUptime agem como a pessoa que os pressiona, em um 
 - **Onde a pessoa recebe a resposta.** Em uma resposta na mesma conversa, a thread do cartão em um canal, que menciona a pessoa, para que o Microsoft Teams a avise. Um botão pressionado tarde demais diz quem chegou primeiro, e quando, por exemplo "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Se a conta dela não estiver conectada.** A resposta pede que ela a conecte, com um botão **Connect Microsoft Teams account**. O botão abre as configurações do Microsoft Teams da própria pessoa no OneUptime e conecta a conta em uma única etapa, depois que ela entra no OneUptime, se precisar. Em seguida, o OneUptime conclui o que ela pressionou, como ela, e responde na mesma conversa; para um botão que abre um formulário, ou um comando, ele pede que ela o pressione ou digite de novo. O botão funciona uma vez, por 30 minutos, e só para a conta Microsoft que o pressionou.
 
+## Aprovar uma correção proposta pela OneUptime AI
+
+Uma correção que a OneUptime AI propõe para aprovação é publicada nos canais do incidente ou alerta como um cartão com as mudanças e três botões. **Review and approve** responde com um cartão de tudo o que a correção executa e **Approve and run**, que executa exatamente isso, como a pessoa que o pressiona; depois de aprovada, esse cartão é removido e a pessoa é avisada de que a correção está sendo feita. **Dismiss** descarta a correção, e **View in OneUptime** abre o incidente ou alerta. Eles agem como a pessoa que os pressiona, como todo botão dos cartões do OneUptime: aprovar exige permissão para aprovar correções no projeto e, para uma correção em um cluster ou recurso, para editá-lo. Uma correção que mudou depois que o cartão dela foi publicado é recusada, e nada é executado. Veja [Aprovar ou descartar uma correção pelo Slack ou Microsoft Teams](/docs/ai/ai-sre#aprovar-ou-descartar-uma-correção-pelo-slack-ou-microsoft-teams).
+
 ## Desconectar
 
 - **Desconectar** desvincula apenas a sua própria conta do Microsoft Teams, e remove com ela o seu método de notificação do Microsoft Teams.

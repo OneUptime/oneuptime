@@ -402,6 +402,8 @@ En endring navngir én ressurs med ID-en, slik en lesing gjør, og kjører bare 
 
 Før noen godkjenner en rettelse som endrer en skykonto, gjør OneUptime en prøvekjøring av hver endring den foreslår, og rettelsens kort på hendelsen eller varselet viser svaret under endringen: den ville kjørt, med kallet den ville gjort og hvordan den angres; den ville blitt avvist, og hvorfor; eller prøvekjøringen kunne ikke fullføres. **Gjenta prøvekjøring** kontrollerer på nytt. En prøvekjøring endrer ingenting: agenten stopper før kallet som ville gjort endringen, og på AWS kan økten av skriverollen den bruker, bare lese.
 
+På rettingens kort og i Slack- og Microsoft Teams-meldingen dens sier en skyendring også med vanlige ord hva den gjør, over den nøyaktige kommandoen: «ECS-tjeneste web: skaler opp til 4 oppgaver». Ordene leses ut av kommandoen etter katalogens grammatikk, aldri ut av det OneUptime AI skrev. Når OneUptime AI planlegger en retting for en konto, får den vite hva hendelsen eller varselet er knyttet til der: Cloud-ressursene, via ID-ene en endring navngir dem med, og App Platforms-miljøene, der en retting endrer tjenestene som kjører i dem.
+
 ### Listen over tillatte kommandoer
 
 I modusen **Automatisk** lar ressursens **Tillatte kommandoer** på AI-agentens side de mer risikable kommandoene du nevner, kjøre uten godkjenning. Listen sammenlignes ord for ord med kommandoen, ikke som tekst:
