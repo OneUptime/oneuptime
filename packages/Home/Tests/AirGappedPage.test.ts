@@ -14,6 +14,7 @@ import {
   getAirGappedContent,
   plainText,
 } from "../Utils/AirGapped";
+import { AirGappedTopicCard } from "../Utils/AirGappedPages";
 import { getSelfHostedContent } from "../Utils/SelfHosted";
 import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -406,7 +407,7 @@ describe("the air-gapped page", () => {
 
     expect(button.getAttribute("href")).toBe("#plan-your-install");
     expect(textOf(button)).toBe("Plan your install");
-    // Outside the list of sections, so a screen reader hears seven links there.
+    // Outside the list of sections, so a screen reader hears eight links there.
     expect(button.closest('nav[aria-label="On this page"]')).toBeNull();
     // Hidden on a phone without the bare `hidden` a foreign stylesheet overrides.
     expect(button.className.split(" ")).toEqual(
@@ -426,6 +427,7 @@ describe("the air-gapped page", () => {
     expect(links).toEqual([
       ["Who it's for", "#who-its-for"],
       ["What runs inside", "#inside"],
+      ["By product", "#by-product"],
       ["Set up", "#set-up"],
       ["Connections out", "#connections-out"],
       ["AI", "#ai"],
@@ -449,6 +451,7 @@ describe("the air-gapped page", () => {
       "air-gapped-hero",
       "who-its-for",
       "inside",
+      "by-product",
       "set-up",
       "connections-out",
       "ai",
@@ -488,6 +491,7 @@ describe("the air-gapped page", () => {
     expect(all(main, "h2").map(textOf)).toEqual([
       "For networks that stay closed",
       "Everything runs inside your network",
+      "Air-gapped, product by product",
       "Four steps to an air-gapped install",
       "What reaches out, and what to use instead",
       "OneUptime AI, on a model you run",
@@ -539,6 +543,36 @@ describe("the air-gapped page", () => {
         }
       },
     );
+  });
+
+  test("lists every product's air-gapped page, each card a link to it", () => {
+    const section: Element = page.getElementById("by-product")!;
+    const cards: Array<Element> = all(
+      section,
+      '[data-testid="air-gapped-topic-card"]',
+    );
+
+    expect(cards).toHaveLength(content.topics.length);
+    expect(cards.length).toBeGreaterThanOrEqual(12);
+
+    content.topics.forEach((topic: AirGappedTopicCard, index: number) => {
+      const link: Element = cards[index]!.querySelector("a")!;
+
+      expect(link.getAttribute("href")).toBe(topic.path);
+      expect(textOf(link)).toBe(`${topic.title} ${topic.summary}`);
+      expect(link.querySelector("svg path")?.getAttribute("d")).toBe(
+        topic.iconPath,
+      );
+    });
+
+    // Every address is a page the route table serves.
+    for (const topic of content.topics) {
+      expect([topic.path, hasGetRoute(topic.path)]).toEqual([topic.path, true]);
+    }
+
+    // The grid stays whole at three columns and at two.
+    expect(cards.length % 3).toBe(0);
+    expect(cards.length % 2).toBe(0);
   });
 
   test("numbers the four steps, in order, each with the settings it uses", () => {

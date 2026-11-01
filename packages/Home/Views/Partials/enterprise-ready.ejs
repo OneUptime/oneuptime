@@ -17,6 +17,11 @@
     { href: '/legal/hipaa', label: 'HIPAA' },
     { href: '/legal/gdpr', label: 'GDPR' },
   ];
+
+  // This product's air-gapped page, where it has one (Utils/AirGappedPages.ts, by way of Routes.ts).
+  const airGappedProductLink = typeof airGappedProductLinks !== 'undefined' && typeof seo !== 'undefined' && seo
+    ? airGappedProductLinks[seo.canonicalPath]
+    : undefined;
 -%>
 <section class="border-y border-gray-100 bg-gray-50/70 py-24 sm:py-32" aria-labelledby="enterprise-ready-title">
   <div class="mx-auto max-w-6xl px-6 lg:px-8">
@@ -34,6 +39,12 @@
           <a href="/enterprise/demo" class="inline-flex h-10 items-center justify-center rounded-lg bg-gray-950 px-5 text-sm font-semibold text-white hover:bg-gray-800">Talk to sales</a>
           <a href="/trust" class="text-sm font-semibold text-gray-950 hover:text-gray-600">Visit the Trust Center <span aria-hidden="true">&rarr;</span></a>
         </div>
+        <% if (airGappedProductLink) { -%>
+        <p class="mt-6 text-sm leading-6 text-gray-600" data-testid="enterprise-ready-air-gapped">
+          Running with no internet connection?
+          <a href="<%= airGappedProductLink.href %>" class="font-medium text-gray-950 underline underline-offset-2 hover:text-gray-600"><%= airGappedProductLink.title %></a>
+        </p>
+        <% } -%>
       </div>
 
       <div class="lg:col-span-7">

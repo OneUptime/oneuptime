@@ -634,7 +634,7 @@ describe("what runs inside the network", () => {
     );
   });
 
-  test("telemetry comes in over OpenTelemetry (HTTP and gRPC), Fluentd and Fluent Bit, syslog and agents", () => {
+  test("telemetry comes in over OpenTelemetry on HTTP, Fluentd and Fluent Bit, syslog and agents", () => {
     expectFileToSay(
       CHART_VALUES,
       "# metrics / logs / profiles (HTTP + gRPC), Fluentd logs, Syslog logs, and",
@@ -643,6 +643,23 @@ describe("what runs inside the network", () => {
       docsPagePath("self-hosted/architecture"),
       'Senders["Telemetry senders:<br/>OpenTelemetry,<br/>Fluent Bit,<br/>syslog, agents"]',
     );
+    expect(capability("telemetry")).toContain("OpenTelemetry over HTTP,");
+  });
+
+  test("gRPC is left off the page: it needs an ingress that ends TLS itself, which uses Let's Encrypt", () => {
+    expectFileToSay(
+      docsPagePath("installation/docker-compose"),
+      "Behind your own proxy, send telemetry over OTLP/HTTP (`/otlp`). OTLP over gRPC reaches OneUptime only when its own ingress ends TLS (`PROVISION_SSL=true`).",
+    );
+    expectFileToSay(
+      docsPagePath("telemetry/open-telemetry"),
+      "On a self-hosted installation, gRPC reaches OneUptime only over HTTPS: a plain-HTTP (h2c) connection is refused.",
+    );
+    expectFileToSay(
+      "config.example.env",
+      "This requires port 80/443 to be reachable for Let's Encrypt validation",
+    );
+    expect(capability("telemetry")).not.toContain("gRPC");
   });
 
   test("Mattermost and IRC are workflow steps, and webhooks reach private addresses when allowed", () => {

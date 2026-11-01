@@ -1,4 +1,13 @@
 import { HelmDocLinks, HelmDocs } from "./SelfHosted";
+import {
+  AirGappedIcons,
+  AirGappedTopicCard,
+  AirGappedTopicPage,
+  AirGappedTopicSlug,
+  getAirGappedTopicCard,
+  getAirGappedTopicCards,
+  getAirGappedTopicPage,
+} from "./AirGappedPages";
 
 /*
  * THE AIR-GAPPED PAGE (/enterprise/air-gapped), AS DATA.
@@ -299,7 +308,7 @@ export const AirGappedCapabilities: Array<AirGappedCapability> = [
     key: "telemetry",
     title: "Logs, metrics and traces",
     description:
-      "OpenTelemetry over HTTP or gRPC, Fluentd and Fluent Bit, syslog and OneUptime's agents send to your install, and ClickHouse in your cluster keeps it all.",
+      "OpenTelemetry over HTTP, Fluentd and Fluent Bit, syslog and OneUptime's agents send to your install, and ClickHouse in your cluster keeps it all.",
     link: {
       label: "Architecture",
       href: "/docs/self-hosted/architecture",
@@ -638,6 +647,8 @@ export interface AirGappedPageContent {
   planCall: AirGappedPlanCall;
   docs: AirGappedDocsLinks;
   helmDocs: HelmDocLinks;
+  // The page of each product (Utils/AirGappedPages.ts).
+  topics: Array<AirGappedTopicCard>;
 }
 
 export const getAirGappedContent: () => AirGappedPageContent =
@@ -670,7 +681,46 @@ export const getAirGappedContent: () => AirGappedPageContent =
       planCall: AirGappedPlanCall,
       docs: AirGappedDocs,
       helmDocs: HelmDocs,
+      topics: getAirGappedTopicCards(),
     };
   };
+
+/*
+ * One product's page (Views/air-gapped-topic.ejs): its own entry, with what
+ * it shares with this page - the four steps, and where to book - and the
+ * cards of the pages beside it.
+ */
+export interface AirGappedTopicContent extends AirGappedTopicPage {
+  hub: {
+    pagePath: string;
+    steps: Array<{ key: string; title: string }>;
+    email: string;
+  };
+  icons: typeof AirGappedIcons;
+  related: Array<AirGappedTopicCard>;
+}
+
+export const getAirGappedTopicContent: (
+  slug: AirGappedTopicSlug,
+) => AirGappedTopicContent = (
+  slug: AirGappedTopicSlug,
+): AirGappedTopicContent => {
+  const page: AirGappedTopicPage = getAirGappedTopicPage(slug);
+
+  return {
+    ...page,
+    hub: {
+      pagePath: AIR_GAPPED_PAGE_PATH,
+      steps: AirGappedSteps.map(
+        (step: AirGappedStep): { key: string; title: string } => {
+          return { key: step.key, title: step.title };
+        },
+      ),
+      email: AirGappedPlanCall.email,
+    },
+    icons: AirGappedIcons,
+    related: page.relatedSlugs.map(getAirGappedTopicCard),
+  };
+};
 
 export default getAirGappedContent;
