@@ -240,6 +240,14 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 若要恢復這些內容，請以 cluster-admin 身分在升級時用 `--set preset=openshift` 切換到 `openshift`。
 
+**你在 OneUptime 中看到的內容。** 代理程式也會以唯讀方式讀取 OpenShift 本身的物件，並顯示在叢集的頁面中：
+
+- 叢集的 **概覽** 以 **OpenShift** 卡片開頭：它執行的版本、更新正在進行還是失敗，以及有多少叢集 Operator 健康，並附上其餘每個 Operator 回報的內容。無法使用的 Operator 會讓叢集變為 **不健康**，效能下降的 Operator 或失敗的更新會讓叢集變為 **效能下降**。
+- **網路** 下的 **Routes** 和 **服務**：每個 Route 在哪裡回應、如何終止 TLS、將流量傳送到哪些服務以及各占多少比例，以及路由器拒絕它的原因。Route 的 TLS 金鑰絕不會離開叢集：代理程式在傳送 Route 之前會將其取代。
+- **工作負載** 下的 **DeploymentConfigs** 的顯示方式與 Deployment 相同：它們的推出、Pod 的 CPU 和記憶體，以及它們執行的 ReplicationController 和 Pod 的事件。
+
+**關於 Operator 和更新的警示。** OpenShift 叢集的 **建議** 頁面提供 **Cluster Operator Unavailable**、**Cluster Operator Degraded** 和 **Cluster Update Failing**。每一項都是一個日誌監視器，監視代理程式每隔 `resourceSpecs.interval` 傳送的快照。一旦兩個快照都回報問題就會發出警示，因此 Operator 在更新期間短暫切換狀態不會觸發任何警示；當快照表明問題已結束時，警示才會解決，絕不會因為代理程式停止傳送而解決。
+
 **OpenShift 本身的警示。** OpenShift 內建 Prometheus 和 Alertmanager，並為其 Operator、etcd 和節點提供警示。若要為每則警示在 OneUptime 中建立一個事件，請在 Web 主控台的 **Administration → Cluster Settings → Configuration → Alertmanager** 下為 OneUptime 新增一個 Webhook 接收器，詳情請參閱 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。
 
 **來自你程式碼的追蹤。** eBPF 檢測不需修改程式碼即可追蹤 HTTP、gRPC 和 SQL。若要從 OpenTelemetry SDK 或 Red Hat build of OpenTelemetry 傳送追蹤，請將它們的 OTLP 匯出器指向 OneUptime，詳情請參閱 [OpenTelemetry](/docs/telemetry/open-telemetry)。
@@ -254,6 +262,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 叢集指標 | 節點狀況、可配置資源、Pod 數量 |
 | Kubernetes 事件 | 來自每個命名空間、每種物件的每個事件（Warning 和 Normal）：請參閱 [Kubernetes 事件](#kubernetes-事件) |
 | Pod 日誌 | 每個容器的 stdout 和 stderr（標準叢集上透過 `hostPath`，Autopilot 和 Fargate 上透過 Kubernetes API） |
+| OpenShift 物件（OpenShift 預設集） | ClusterOperator、ClusterVersion、Route、DeploymentConfig 和 Service：請參閱 [OpenShift](#openshift) |
 | 應用程式追蹤（eBPF，預設開啟） | 來自每個 Pod 的 HTTP、gRPC、SQL 和 Redis Span，不需 SDK 或修改程式碼 |
 | HTTP RED 指標（eBPF） | 每個服務的 `http.server.request.duration`，以及要求和回應的本文大小 |
 | 服務圖（eBPF） | 呼叫端到被呼叫端的要求速率、延遲和錯誤邊，用於繪製服務地圖 |

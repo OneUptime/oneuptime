@@ -5,6 +5,11 @@ import {
   KUBERNETES_AGENT_HELM_RELEASE,
 } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { getAllKubernetesAlertTemplates } from "Common/Types/Monitor/KubernetesAlertTemplates";
+import {
+  OPENSHIFT_STATUS_MIN_SNAPSHOTS,
+  getAllOpenShiftAlertTemplates,
+} from "Common/Types/Monitor/OpenShiftAlertTemplates";
+import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -841,6 +846,77 @@ describe("the telemetry Kubernetes Agent page's hostPath troubleshooting", () =>
           "helm repo update\nhelm upgrade ",
         ),
       }).toEqual({ block, fetchesTheChartFirst: true });
+    }
+  });
+});
+
+describe("the telemetry Kubernetes Agent page's OpenShift section, against the product", () => {
+  const telemetry: string = readPage("en", "telemetry/kubernetes-agent");
+  const section: string = telemetry.slice(
+    telemetry.indexOf("## OpenShift\n"),
+    telemetry.indexOf("## What gets collected"),
+  );
+
+  it("names every OpenShift alert as the Recommendations page does", () => {
+    for (const template of getAllOpenShiftAlertTemplates()) {
+      expect(section).toContain(`**${template.name}**`);
+    }
+  });
+
+  it("says how many snapshots an alert waits for", () => {
+    expect(OPENSHIFT_STATUS_MIN_SNAPSHOTS).toBe(2);
+    expect(section).toContain("once two snapshots say so");
+  });
+
+  it("says an alert is resolved by a snapshot, never by silence", () => {
+    for (const template of getAllOpenShiftAlertTemplates()) {
+      const unhealthy: { resolvedByAttributes?: unknown } | undefined =
+        template.getMonitorStep({
+          clusterIdentifier: "ocp-prod",
+          onlineMonitorStatusId: ObjectID.generate(),
+          offlineMonitorStatusId: ObjectID.generate(),
+          defaultIncidentSeverityId: ObjectID.generate(),
+          defaultAlertSeverityId: ObjectID.generate(),
+          monitorName: "ocp-prod",
+        }).data?.logMonitor;
+
+      expect(unhealthy?.resolvedByAttributes).toBeDefined();
+    }
+
+    expect(section).toContain("never because the agent stopped sending");
+  });
+
+  it("names the setting the snapshots follow", () => {
+    expect(section).toContain("`resourceSpecs.interval`");
+  });
+
+  it("says where the new pages live in the cluster's menu", () => {
+    const menu: string = fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "FeatureSet",
+        "Dashboard",
+        "src",
+        "Pages",
+        "Kubernetes",
+        "View",
+        "SideMenu.tsx",
+      ),
+      "utf8",
+    );
+
+    for (const label of [
+      "Networking",
+      "Routes",
+      "Services",
+      "DeploymentConfigs",
+      "Workloads",
+    ]) {
+      expect(section).toContain(`**${label}**`);
+      expect(menu).toContain(`"${label}"`);
     }
   });
 });

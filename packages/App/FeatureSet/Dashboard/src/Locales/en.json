@@ -39261,5 +39261,6 @@
   "Only cloud environments that match conditions": "Only cloud environments that match conditions",
   "{{count}} updates available": "{{count}} updates available",
   "{{count}} updates available_one": "{{count}} update available",
-  "{{healthy}} of {{total}} healthy": "{{healthy}} of {{total}} healthy"
+  "{{healthy}} of {{total}} healthy": "{{healthy}} of {{total}} healthy",
+  "Cluster update": "Cluster update"
 }

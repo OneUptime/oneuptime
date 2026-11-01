@@ -1,0 +1,18 @@
+# The Kubernetes agent's values on an air-gapped cluster, as
+# oneuptime.com/enterprise/air-gapped/kubernetes shows them: the images a
+# default install runs, each from the customer's own registry. The chart has no
+# one registry setting, so each image is named on its own.
+#
+# suites/air-gapped.sh renders the agent chart with this file and checks that
+# every image comes from that registry. The website holds the same values
+# (packages/Home/Utils/AirGappedPages.ts), and
+# packages/Home/Tests/AirGappedTopicFacts.test.ts fails when the two differ -
+# change both together.
+image:
+  repository: registry.example.com/otel/opentelemetry-collector-contrib
+ebpf:
+  image:
+    repository: registry.example.com/otel/ebpf-instrument
+aiAgent:
+  image:
+    repository: registry.example.com/oneuptime/kubernetes-ai-agent

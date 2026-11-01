@@ -5,7 +5,10 @@ import ProductCompare, {
 } from "../../Utils/ProductCompare";
 import { getSelfHostedContent } from "../../Utils/SelfHosted";
 import { getResellersPageContent } from "../../Utils/Resellers";
-import { getAirGappedContent } from "../../Utils/AirGapped";
+import {
+  getAirGappedContent,
+  getAirGappedTopicContent,
+} from "../../Utils/AirGapped";
 import { getCloudMarketplacesContent } from "../../Utils/CloudMarketplaces";
 import { getGuidePageContent } from "../../Utils/Integrations/OpenTelemetry/GuidePage";
 import {
@@ -358,6 +361,19 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
         enableGoogleTagManager: false,
         seo: seoFor("/enterprise/air-gapped"),
         airGapped: getAirGappedContent(),
+      };
+    },
+  },
+  {
+    // Has a row of every status, and code in every kind of panel.
+    name: "an air-gapped product page (on-call)",
+    template: "air-gapped-topic.ejs",
+    locals: async (): Promise<Record<string, unknown>> => {
+      // The locals Routes.ts hands the page.
+      return {
+        enableGoogleTagManager: false,
+        seo: seoFor("/enterprise/air-gapped/on-call"),
+        airGappedTopic: getAirGappedTopicContent("on-call"),
       };
     },
   },

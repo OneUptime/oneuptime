@@ -13,6 +13,7 @@
 
 import ProductCompare, { Product } from "./ProductCompare";
 import { getOpenTelemetryGuideSEOEntries } from "./Integrations/OpenTelemetry/OpenTelemetryGuides";
+import { AirGappedTopicPage, AirGappedTopicPages } from "./AirGappedPages";
 
 export interface BreadcrumbItem {
   name: string;
@@ -103,6 +104,38 @@ const legalDocumentSEO: (
       { name, url: canonicalPath },
     ],
   };
+};
+
+/*
+ * The air-gapped page of each product: an "enterprise" page, so llms.txt lists
+ * it with the hub, under Air-Gapped in its breadcrumb trail. Its title and
+ * description are its own data (Utils/AirGappedPages.ts), and its markdown
+ * variant is written from the same entry (AIDiscovery.generateAirGappedTopicMarkdown).
+ */
+const getAirGappedTopicSEOEntries: () => Record<
+  string,
+  PageSEOData
+> = (): Record<string, PageSEOData> => {
+  const entries: Record<string, PageSEOData> = {};
+
+  for (const page of AirGappedTopicPages as Array<AirGappedTopicPage>) {
+    entries[page.path] = {
+      title: page.seo.title,
+      description: page.seo.description,
+      canonicalPath: page.path,
+      twitterCard: "summary_large_image",
+      pageType: "enterprise",
+      breadcrumbs: [
+        { name: "Home", url: "/" },
+        { name: "Enterprise", url: "/enterprise/overview" },
+        { name: "Self-Hosted", url: "/enterprise/self-hosted" },
+        { name: "Air-Gapped", url: "/enterprise/air-gapped" },
+        { name: page.name, url: page.path },
+      ],
+    };
+  }
+
+  return entries;
 };
 
 // Page-specific SEO configurations
@@ -2009,6 +2042,8 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
    * (Utils/Integrations/OpenTelemetry/Guides).
    */
   ...getOpenTelemetryGuideSEOEntries(),
+
+  ...getAirGappedTopicSEOEntries(),
 };
 
 /*

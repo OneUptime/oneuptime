@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39103,
-    "untranslated": 3073
+    "keys": 39179,
+    "untranslated": 3077
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -123,6 +123,7 @@
     "DNSSEC",
     "Daemon",
     "Daemons",
+    "DeploymentConfigs",
     "Docker CLI",
     "Docker Compose",
     "Docker {{version}}",
@@ -135,6 +136,7 @@
     "EKS Fargate",
     "ERR",
     "Ecuador",
+    "Edge",
     "El Salvador",
     "Embedding",
     "Endpoint",
@@ -262,6 +264,7 @@
     "OpenAI",
     "OpenInference",
     "OpenLLMetry",
+    "OpenShift",
     "OpenTelemetry Collector",
     "OpenTofu",
     "PM",
@@ -270,6 +273,7 @@
     "PVC",
     "PVE {{version}}",
     "Paraguay",
+    "Passthrough",
     "Ping",
     "Plan",
     "Playbook",
@@ -296,6 +300,8 @@
     "Push: ",
     "RTT",
     "RX",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Roles",
     "Router",
     "Runbook",
@@ -333,6 +339,7 @@
     "Stacks",
     "Swapped",
     "Switch",
+    "TLS",
     "TTL",
     "TX",
     "Telegram: ",

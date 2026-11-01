@@ -1016,6 +1016,27 @@ test.describe("a phone", () => {
   }
 });
 
+test("the pages read in German", async ({ page }: { page: Page }) => {
+  await page.goto(`${CLUSTER_PATH}?health=degraded&lang=de`);
+
+  const card: Locator = page.getByTestId("openshift-health-card");
+
+  await expect(card.getByTestId("openshift-update")).toContainText(
+    "Cluster-Update",
+  );
+  await expect(card.getByTestId("openshift-operators")).toContainText(
+    "11 von 12 fehlerfrei",
+  );
+  await expect(
+    card.getByRole("button", { name: "Alle 12 Operatoren anzeigen" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Netzwerk", level: 6 }),
+  ).toBeVisible();
+
+  await screenshot(page, "overview-german");
+});
+
 test("dark mode draws the pages on the dark surface", async ({
   page,
 }: {

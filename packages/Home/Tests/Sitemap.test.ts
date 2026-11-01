@@ -10,6 +10,7 @@ import {
 } from "../Utils/Sitemap";
 import { getProductCompareSlugs } from "../Utils/ProductCompare";
 import { DEMO_PAGE_PATH, DEMO_SHORT_PATHS } from "../Utils/DemoPage";
+import { AIR_GAPPED_TOPIC_PATHS } from "../Utils/AirGappedPages";
 import { ExpressResponse } from "Common/Server/Utils/Express";
 import fs from "fs";
 import path from "path";
@@ -48,6 +49,8 @@ describe("Sitemap isRedirectPath", () => {
       "/product/proxmox",
       "/product/vmware",
       "/product/openshift",
+      "/enterprise/air-gapped/observability",
+      "/enterprise/air-gapped/on-call",
       "/product/databases",
       "/product/queues",
       "/product/incident-management",
@@ -605,6 +608,53 @@ describe("the OpenShift page in the sitemap", () => {
     expect(entries).toHaveLength(1);
     expect(entries[0]).toContain("<priority>0.8</priority>");
     expect(entries[0]).toContain("<changefreq>weekly</changefreq>");
+  });
+});
+
+describe("the air-gapped product pages in the sitemap", () => {
+  /*
+   * Enterprise pages, a step below the hub's self-hosted page: they are listed
+   * as the hub is, from the routes Routes.ts registers, and Utils/Sitemap.ts
+   * reads their addresses from the module that holds the pages.
+   */
+  test.each(
+    AIR_GAPPED_TOPIC_PATHS.map((pagePath: string) => {
+      return [pagePath];
+    }),
+  )("%s is listed once, weekly at priority 0.8", async (pagePath: string) => {
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+    const entries: Array<string> = elementsOf(
+      await mod.generatePagesSitemapXml(),
+      "url",
+    ).filter((entry: string): boolean => {
+      return locOf(entry) === `${HOME_URL}${pagePath}`;
+    });
+
+    expect(REGISTERED_GET_PATHS).toContain(pagePath);
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toContain("<priority>0.8</priority>");
+    expect(entries[0]).toContain("<changefreq>weekly</changefreq>");
+  });
+
+  test("the hub's short addresses stay out, and no page's markdown is listed", async () => {
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+    const locs: Array<string> = elementsOf(
+      await mod.generatePagesSitemapXml(),
+      "url",
+    ).map(locOf);
+
+    expect(locs).not.toContain(`${HOME_URL}/air-gapped`);
+    expect(
+      locs.filter((loc: string): boolean => {
+        return loc.startsWith(`${HOME_URL}/enterprise/air-gapped`);
+      }),
+    ).toHaveLength(AIR_GAPPED_TOPIC_PATHS.length + 1);
   });
 });
 

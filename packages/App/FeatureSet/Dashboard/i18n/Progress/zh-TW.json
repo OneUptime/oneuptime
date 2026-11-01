@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39103,
-    "untranslated": 12865
+    "keys": 39179,
+    "untranslated": 12869
   },
   "sameAsEnglish": [
     "2xx",
@@ -15,7 +15,9 @@
     "CPU Ready {{percent}}",
     "CrowdStrike",
     "DE",
+    "DeploymentConfigs",
     "Docker Compose",
+    "Edge",
     "Elasticsearch URL",
     "Gemini for Google Workspace",
     "Google SecOps",
@@ -34,18 +36,23 @@
     "MITRE ATT&CK Enterprise v{{version}}",
     "OK",
     "OSD",
+    "OpenShift",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Passthrough",
     "Pod",
     "Pod · data",
     "Pod · production",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Runner",
     "SLI %",
     "SLOs",
     "SNMP trap",
     "Slug",
+    "TLS",
     "Top P",
     "UTC",
     "VLAN",

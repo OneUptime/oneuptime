@@ -5,6 +5,7 @@ import OneUptimeDate from "Common/Types/Date";
 import URL from "Common/Types/API/URL";
 import { getProductCompareSlugs } from "./ProductCompare";
 import { AIR_GAPPED_SHORT_PATHS } from "./AirGapped";
+import { AIR_GAPPED_TOPIC_PATHS } from "./AirGappedPages";
 import { DEMO_SHORT_PATHS } from "./DemoPage";
 import { getPublishedGuides } from "./Integrations/OpenTelemetry/OpenTelemetryGuides";
 import { getOpenTelemetryGuidePath } from "Common/Types/Telemetry/OpenTelemetryGuides";
@@ -91,6 +92,12 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/enterprise/demo": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/self-hosted": { priority: 0.9, changefreq: "weekly" },
   "/enterprise/air-gapped": { priority: 0.8, changefreq: "weekly" },
+  // The air-gapped page of each product (Utils/AirGappedPages.ts).
+  ...Object.fromEntries(
+    AIR_GAPPED_TOPIC_PATHS.map((path: string): [string, SitemapPageConfig] => {
+      return [path, { priority: 0.8, changefreq: "weekly" }];
+    }),
+  ),
   "/enterprise/overview": { priority: 0.8, changefreq: "weekly" },
   "/trust": { priority: 0.8, changefreq: "weekly" },
   "/resellers": { priority: 0.6, changefreq: "monthly" },
