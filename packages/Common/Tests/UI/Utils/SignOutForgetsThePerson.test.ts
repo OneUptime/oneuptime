@@ -109,7 +109,9 @@ const THE_PERSONS_OWN: Record<string, string> = {
   // Their work.
   project: '{"_id":"' + PROJECT_ID + '","name":"Acme"}',
   ["project_" + PROJECT_ID]: '{"name":"Acme"}',
-  current_project_id: PROJECT_ID,
+  last_accessed_project_id: PROJECT_ID,
+  [PROJECT_ID + "_isSubscriptionInactive"]: "false",
+  [PROJECT_ID + "_isSubscriptionOverdue"]: "false",
   global_permissions: "{}",
   project_permissions: "{}",
   "project-permissions-hash": "abc",
@@ -117,9 +119,10 @@ const THE_PERSONS_OWN: Record<string, string> = {
   initialUrl: "https://oneuptime.example.com/dashboard/" + PROJECT_ID,
   cardRegistered: "true",
   "session-refreshed-at:dashboard": "1798761600000",
+  ["backup-code-offer-skipped-at:" + USER_ID]: "1798761600000",
   // How they read tables: theirs, and the next person finds them as drawn.
   ["TableColumnWidths." + USER_ID + ".monitors"]: '{"name":320}',
-  "TableDensity.table-density": '{"density":"compact"}',
+  ["TableDensity." + USER_ID]: '{"density":"compact"}',
   "BaseModelTablePageSize.monitors": "50",
   "BaseModelTableColumns.monitors": "{}",
   // What they looked at on a dashboard: docs/dashboards says it is theirs alone.
