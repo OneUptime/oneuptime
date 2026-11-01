@@ -146,14 +146,16 @@ const PREFS_KEY: string = "monitors-wrap-content-table";
  * The table redesign (model-table-ui) gave every row the reading size on a
  * 24px line, the record's name (the first column) a step heavier, 24px
  * between columns and at the row's ends; the fixture's only row is its last,
- * so no cell draws the rule under it.
+ * so no cell draws the rule under it. A person who picks Compact rows
+ * (TableDensity) takes 4px off each side of the line: py-2 while the table
+ * carries data-density="compact".
  */
 const NOWRAP_FIRST_CELL_CLASS_NAME: string =
-  "whitespace-nowrap pl-6 pr-3 py-3 align-top text-sm leading-6 font-medium text-gray-900";
+  "whitespace-nowrap pl-6 pr-3 py-3 [[data-density=compact]_&]:py-2 align-top text-sm leading-6 font-medium text-gray-900";
 
 // A one-line cell between the first and the last.
 const NOWRAP_CELL_CLASS_NAME: string =
-  "whitespace-nowrap pl-3 pr-3 py-3 align-top text-sm leading-6 font-normal text-gray-700";
+  "whitespace-nowrap pl-3 pr-3 py-3 [[data-density=compact]_&]:py-2 align-top text-sm leading-6 font-normal text-gray-700";
 
 /*
  * The last rendered column - the generated Actions one - takes the wider
@@ -161,11 +163,11 @@ const NOWRAP_CELL_CLASS_NAME: string =
  * row's own background (TableLayout).
  */
 const NOWRAP_LAST_CELL_CLASS_NAME: string =
-  "whitespace-nowrap pl-3 pr-6 py-3 align-top text-sm leading-6 font-normal text-gray-700 text-end sticky right-0 z-[1] bg-inherit";
+  "whitespace-nowrap pl-3 pr-6 py-3 [[data-density=compact]_&]:py-2 align-top text-sm leading-6 font-normal text-gray-700 text-end sticky right-0 z-[1] bg-inherit";
 
 // A wrapping cell: the same rhythm, only the white-space pair differs.
 const WRAP_CELL_CLASS_NAME: string =
-  "whitespace-normal break-words pl-3 pr-3 py-3 align-top text-sm leading-6 font-normal text-gray-700";
+  "whitespace-normal break-words pl-3 pr-3 py-3 [[data-density=compact]_&]:py-2 align-top text-sm leading-6 font-normal text-gray-700";
 
 /*
  * A one-line value's wrapper: capped at 20rem, always together with the clip
@@ -183,10 +185,11 @@ const ONE_LINE_CONTENT_CLASS_NAME: string =
  * colour's has the same wrapper too, and may be cut short a little more -
  * never below 8rem, never above its cap - while its table would otherwise
  * run past its card (data-give="line" or "box", set on it by
- * useTableScrollState).
+ * useTableScrollState) - and held whole where the table has the room
+ * (data-whole="true", at the width it carries).
  */
 const GIVING_ONE_LINE_CONTENT_CLASS_NAME: string =
-  "max-w-[20rem] data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:line-clamp-1 data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
+  "max-w-[20rem] data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:line-clamp-1 data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full data-[whole=true]:min-w-[var(--ou-table-whole-width)] overflow-x-clip text-ellipsis [&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle [&>:is(span,p,div,a):not([class*=inline-])]:leading-6 [&>*]:align-top";
 
 /*
  * The row's name - its first column - has the same wrapper, and while its
@@ -573,12 +576,15 @@ describe("ModelTable column wrapping options (OneUptime issue #3585)", () => {
       expect(getContentWrapper("cell-note").className).toBe(
         `${GIVING_ONE_LINE_CONTENT_CLASS_NAME} text-xs text-gray-500`,
       );
-      // Only the ways it gives way were added to the one-line wrapper.
+      /*
+       * Only the ways it gives way, and is held whole, were added to the
+       * one-line wrapper.
+       */
       expect(
         getContentWrapper("cell-note")
           .className.split(" ")
           .filter((token: string): boolean => {
-            return !token.includes("give=");
+            return !token.includes("give=") && !token.includes("whole=");
           })
           .join(" "),
       ).toBe(`${ONE_LINE_CONTENT_CLASS_NAME} text-xs text-gray-500`);

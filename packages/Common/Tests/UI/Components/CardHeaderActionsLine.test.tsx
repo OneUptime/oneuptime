@@ -357,6 +357,56 @@ describe.each(STACKED_LAYOUTS)(
       expect(resizes.made()).toBe(1);
     });
 
+    /*
+     * Read in the observer's own call, the line was drawn as the controls
+     * would sit beside the title and back while the browser delivered its
+     * sizes: as a list under the card turned into cards at 1024px, the page
+     * got "ResizeObserver loop completed with undelivered notifications".
+     */
+    test("reads a size change on the next frame, never inside the observer's call", () => {
+      const resizes: FakeResizeObservers = watchResizes();
+      const header: DrawnCardHeaders = draw("beside");
+
+      render(<Card {...propsFor(layout)} />);
+      expectDescriptionUnderLine();
+
+      header.setPlacement("under");
+      act(() => {
+        resizes.notify();
+      });
+
+      // Told of the size: nothing read yet, one frame asked for.
+      expectDescriptionUnderLine();
+      expect(resizes.pendingFrames()).toBe(1);
+
+      // Told again before the frame: still one frame.
+      act(() => {
+        resizes.notify();
+      });
+      expect(resizes.pendingFrames()).toBe(1);
+
+      act(() => {
+        resizes.runFrames();
+      });
+      expectDescriptionInTitleBlock();
+      expect(resizes.pendingFrames()).toBe(0);
+    });
+
+    test("a card that goes away while a reading waits for its frame is not read", () => {
+      const resizes: FakeResizeObservers = watchResizes();
+      draw("beside");
+
+      const { unmount } = render(<Card {...propsFor(layout)} />);
+
+      act(() => {
+        resizes.notify();
+      });
+      expect(resizes.pendingFrames()).toBe(1);
+
+      unmount();
+      expect(resizes.pendingFrames()).toBe(0);
+    });
+
     test("stops watching when the card goes away", () => {
       const resizes: FakeResizeObservers = watchResizes();
       draw("beside");

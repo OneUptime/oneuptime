@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * Where a list does not fit its card, the shared table folds the columns a
@@ -25,7 +26,6 @@ const FEATURE_SETS: string = path.join(__dirname, "..", "..", "FeatureSet");
 const FOLD_INTO: RegExp = /foldInto:\s*"([^"]+)"/g;
 const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const LINE_COMMENT: RegExp = /(^|[^:])\/\/[^\n]*/g;
-const ESCAPE_FOR_PATTERN: RegExp = /[.*+?^${}()|[\]\\]/g;
 const SOURCE_FILE_NAME: RegExp = /\.tsx?$/;
 // A column the table may fold, just before where it says it folds to.
 const FOLDABLE_JUST_BEFORE: RegExp = /hideBelowLargeScreen:\s*true,\s*$/;
@@ -91,7 +91,7 @@ function foldUses(): Array<FoldUse> {
 
 // Whether the list in this source has a column the name names.
 function namesAColumn(code: string, target: string): boolean {
-  const name: string = target.replace(ESCAPE_FOR_PATTERN, "\\$&");
+  const name: string = escapeRegExp(target);
 
   return [
     new RegExp(`\\bid:\\s*"${name}"`),
