@@ -322,6 +322,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   [HOST]: ["AI investigations are on by default."],
   [KUBERNETES]: [
     "AI investigations are on by default.",
+    "If an admin will not add an SCC,",
+    "On OpenShift,",
     "OpenShift's own alerts.",
     "Traces from your code.",
     "You get whole traces, not fragments.",

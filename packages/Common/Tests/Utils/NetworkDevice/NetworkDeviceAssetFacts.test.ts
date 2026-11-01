@@ -83,7 +83,7 @@ describe("getNetworkDeviceAssetFacts (issue #4569)", () => {
       manufacturer: "Cisco Meraki",
       model: "MX85",
       firmwareVersion: undefined,
-      operatingSystem: undefined,
+      operatingSystem: "Meraki MX firmware",
       osVersion: undefined,
       deviceType: "Firewall",
       site: undefined,

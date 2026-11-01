@@ -69,7 +69,9 @@ export const KUBERNETES_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
  * A Kubernetes cluster's Recommendations: Quick Setup's headings, then
  * Events - the cluster's warning events alert, a Logs monitor over the
  * events the agent sends (KubernetesEventAlertTemplates), which a Kubernetes
- * monitor's Quick Setup cannot build and so never lists.
+ * monitor's Quick Setup cannot build and so never lists - and OpenShift,
+ * Logs monitors too, offered on an OpenShift cluster alone
+ * (OpenShiftAlertTemplates).
  */
 export const KUBERNETES_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> =
   [
@@ -78,6 +80,11 @@ export const KUBERNETES_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> 
       category: "Events",
       label: "Events",
       icon: IconProp.Bell,
+    },
+    {
+      category: "OpenShift",
+      label: "OpenShift",
+      icon: IconProp.Kubernetes,
     },
   ];
 

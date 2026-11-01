@@ -641,7 +641,7 @@ describe("every parser, on what it cannot read", () => {
   });
 });
 
-describe("getClusterOperatorState reads the conditions as `oc get clusteroperators` does", () => {
+describe("getClusterOperatorState", () => {
   test.each([
     [
       [
@@ -667,10 +667,30 @@ describe("getClusterOperatorState reads the conditions as `oc get clusteroperato
       ],
       "Degraded",
     ],
-    // Degraded wins over everything it says beside it.
+    /*
+     * Down wins over everything it says beside it: an operator that is down
+     * nearly always says Degraded too, and that must not read as the lesser.
+     */
     [
       [
         ["Available", "False"],
+        ["Progressing", "True"],
+        ["Degraded", "True"],
+      ],
+      "Unavailable",
+    ],
+    [
+      [
+        ["Available", "False"],
+        ["Progressing", "False"],
+        ["Degraded", "True"],
+      ],
+      "Unavailable",
+    ],
+    // Degraded wins over a rollout, which is no problem by itself.
+    [
+      [
+        ["Available", "True"],
         ["Progressing", "True"],
         ["Degraded", "True"],
       ],

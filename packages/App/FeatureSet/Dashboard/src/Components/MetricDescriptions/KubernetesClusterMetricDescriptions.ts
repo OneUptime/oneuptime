@@ -41,6 +41,7 @@ export type KubernetesClusterMetric =
   | "podsFailed"
   | "nodesNotReady"
   | "clusterHealth"
+  | "clusterHealthOpenShift"
   | "nodes"
   | "pods"
   | "namespaces"
@@ -112,6 +113,9 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
   // Summary cards - the latest inventory snapshot.
   clusterHealth: translationKey(
     "Worked out from the latest inventory, not the selected range: Unhealthy if any pod has failed or any node is not ready, Degraded if any pod is pending or a node reports memory, disk or process pressure, otherwise Healthy.",
+  ),
+  clusterHealthOpenShift: translationKey(
+    "Worked out from the latest inventory, not the selected range: Unhealthy if a pod failed, a node is not ready or an operator is unavailable; Degraded if a pod is pending, a node is under pressure, an operator is degraded or an update fails; otherwise Healthy.",
   ),
   nodes: translationKey(
     "Nodes (the machines that run your pods) in the latest inventory, not the selected range. Nodes whose Ready check is failing are called out as not ready - new pods are not placed on them.",

@@ -3342,14 +3342,14 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * The devices of a project a network controller's device list may describe
    * (NetworkControllerInventory): every live device whose serial number,
-   * MAC (typed, or learned from an ARP table) or polled address is one the
-   * list holds - and every device the connection described before, so a
-   * device it no longer describes can lose that reading. The columns the
-   * matching rules read, nothing else.
+   * MAC (typed, learned from an ARP table, or one of its own ports), polled
+   * address or name is one the list holds - and every device the connection
+   * described before, so a device it no longer describes can lose that
+   * reading. The columns the matching rules read, nothing else.
    *
    * One statement, scoped to the project, never a deleted or archived
-   * device. Serial numbers are compared without case or padding, as a person
-   * may have typed one; MACs are stored normalised.
+   * device. Serial numbers and names are compared without case or padding,
+   * as a person may have typed one; MACs are stored normalised.
    */
   @CaptureSpan()
   public async findControllerMatchCandidates(data: {
@@ -3359,6 +3359,7 @@ export class Service extends ProjectReferencesService<Model> {
       serials: Array<string>;
       macs: Array<string>;
       addresses: Array<string>;
+      names: Array<string>;
     };
     limit: number;
   }): Promise<
@@ -3398,7 +3399,11 @@ export class Service extends ProjectReferencesService<Model> {
           OR lower(nd."macAddress") = ANY($3::text[])
           OR nd."hostname" = ANY($4::text[])
           OR (nd."discoveredDetails" -> 'macAddress' ->> 'value') = ANY($3::text[])
+          OR (nd."discoveredDetails" -> 'ownMacAddress' ->> 'value') = ANY($3::text[])
           OR (nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $5
+          OR lower(btrim(nd."name")) = ANY($7::text[])
+          OR lower(btrim(nd."sysName")) = ANY($7::text[])
+          OR lower(btrim(nd."discoveredDetails" -> 'sysName' ->> 'value')) = ANY($7::text[])
         )
       LIMIT $6
     `,
@@ -3409,6 +3414,7 @@ export class Service extends ProjectReferencesService<Model> {
         data.lookup.addresses,
         data.connectionId.toString(),
         Math.max(1, Math.floor(data.limit)),
+        data.lookup.names,
       ],
     );
 

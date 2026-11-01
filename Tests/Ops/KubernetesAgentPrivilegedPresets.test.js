@@ -4,9 +4,10 @@
  * The kubernetes-agent chart's privileged pods follow the preset.
  *
  * The eBPF instrumentation (OBI) and the continuous profiler each run a
- * privileged DaemonSet. GKE Autopilot refuses privileged pods, and EKS
- * Fargate runs neither privileged containers nor DaemonSets, so the
- * gke-autopilot and eks-fargate presets turn both off themselves:
+ * privileged DaemonSet. GKE Autopilot refuses privileged pods, EKS Fargate
+ * runs neither privileged containers nor DaemonSets, and OpenShift's
+ * restricted-v2 SCC, all the openshift-restricted preset runs under, refuses
+ * them, so those presets turn both off themselves:
  * kubernetes-agent.ebpfEnabled and kubernetes-agent.profilingEnabled
  * (templates/_helpers.tpl), on kubernetes-agent.privilegedPodsAllowed. The
  * README's preset commands used to set only the preset, leaving ebpf.enabled
@@ -65,6 +66,13 @@ function firstLine(relativePath) {
   return read(relativePath).split("\n")[0];
 }
 
+// The gate on the SCCs, the first template action after the file's comment.
+function firstLineOfScc() {
+  return read(`${TEMPLATES_DIR}/openshift-scc.yaml`)
+    .split("*/}}\n")[1]
+    .split("\n")[0];
+}
+
 describe("the kubernetes-agent chart reads ebpf.enabled and profiling.enabled through one helper each", () => {
   const helpers = read(`${TEMPLATES_DIR}/_helpers.tpl`);
 
@@ -106,7 +114,7 @@ describe("the kubernetes-agent chart reads ebpf.enabled and profiling.enabled th
 
   test("privileged pods are refused on exactly the presets that refuse hostPath", () => {
     const presetCondition =
-      '{{- $preset := default "" .Values.preset -}}\n{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}\nfalse';
+      '{{- $preset := default "" .Values.preset -}}\n{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") (eq $preset "openshift-restricted") -}}\nfalse';
 
     expect(
       defineBody(helpers, "kubernetes-agent.privilegedPodsAllowed"),
@@ -123,6 +131,7 @@ describe("the kubernetes-agent chart reads ebpf.enabled and profiling.enabled th
       "gke-autopilot",
       "eks-fargate",
       "openshift",
+      "openshift-restricted",
     ]);
   });
 
@@ -130,10 +139,10 @@ describe("the kubernetes-agent chart reads ebpf.enabled and profiling.enabled th
     // Not among the presets that refuse hostPath and privileged pods...
     expect(
       defineBody(helpers, "kubernetes-agent.privilegedPodsAllowed"),
-    ).not.toContain("openshift");
+    ).not.toContain('"openshift"');
     expect(
       defineBody(helpers, "kubernetes-agent.hostPathAvailable"),
-    ).not.toContain("openshift");
+    ).not.toContain('"openshift"');
 
     // ...because the chart lets exactly those pods run that way there.
     const scc = read(`${TEMPLATES_DIR}/openshift-scc.yaml`);
@@ -144,6 +153,28 @@ describe("the kubernetes-agent chart reads ebpf.enabled and profiling.enabled th
     expect(scc).toContain("allowPrivilegedContainer: true");
     expect(defineBody(helpers, "kubernetes-agent.ebpfPodsEnabled")).toContain(
       '{{- if or (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (include "kubernetes-agent.profilingEnabled" .) "true") -}}',
+    );
+  });
+
+  test("OpenShift's two meanings are apart: it is OpenShift on both presets, and SCCs are the openshift preset's alone", () => {
+    expect(defineBody(helpers, "kubernetes-agent.openshift")).toContain(
+      '{{- if or (eq $preset "openshift") (eq $preset "openshift-restricted") -}}\ntrue',
+    );
+    expect(defineBody(helpers, "kubernetes-agent.openshiftSccs")).toContain(
+      '{{- if eq (default "" .Values.preset) "openshift" -}}\ntrue',
+    );
+
+    // What takes an SCC reads that one, and nothing else decides it.
+    expect(firstLineOfScc()).toBe(
+      '{{- if eq (include "kubernetes-agent.openshiftSccs" .) "true" }}',
+    );
+    expect(
+      defineBody(helpers, "kubernetes-agent.nodeServiceAccounts"),
+    ).toContain(
+      '{{- if and (eq (include "kubernetes-agent.openshiftSccs" .) "true") .Values.serviceAccount.create -}}',
+    );
+    expect(read(`${TEMPLATES_DIR}/daemonset.yaml`)).toContain(
+      '{{- if eq (include "kubernetes-agent.openshiftSccs" .) "true" }}\n      # OpenShift: pod log files belong to root',
     );
   });
 
@@ -211,15 +242,40 @@ describe("the README and values.yaml say what the presets do", () => {
       readme.indexOf("## Pick a preset"),
       readme.indexOf("\n## ", readme.indexOf("## Pick a preset") + 1),
     );
-    const commands = presets.match(/```bash\n[\s\S]*?```/g) || [];
+    const commands = presets.match(/```bash\nhelm install[\s\S]*?```/g) || [];
 
-    expect(commands.length).toBe(3);
+    expect(commands.length).toBe(4);
 
     for (const command of commands) {
       expect(command).toMatch(
-        /--set preset=(gke-autopilot|eks-fargate|openshift)\n```$/,
+        /--set preset=(gke-autopilot|eks-fargate|openshift|openshift-restricted)\n```$/,
       );
     }
+  });
+
+  test("the README says what openshift-restricted gives up, and how to get it back", () => {
+    const presets = readme.slice(
+      readme.indexOf("## Pick a preset"),
+      readme.indexOf("\n## ", readme.indexOf("## Pick a preset") + 1),
+    );
+
+    expect(presets).toContain(
+      "| `openshift-restricted` | **OpenShift**, where an admin will not add an SCC | Kubernetes API log tailer Deployment (no hostPath) |",
+    );
+    expect(presets).toContain(
+      "`openshift` is the recommended preset on OpenShift.",
+    );
+    for (const lost of [
+      "**Pod logs from the nodes.**",
+      "**Host metrics**",
+      "**eBPF traces and the continuous profiler,**",
+      "**Audit logs**",
+    ]) {
+      expect(presets).toContain(lost);
+    }
+    expect(presets).toContain(
+      "To get them back, move to `openshift` with `--set preset=openshift` on an upgrade, as a cluster admin.",
+    );
   });
 
   test("the README no longer tells Autopilot and Fargate users to turn eBPF off themselves", () => {
@@ -237,7 +293,10 @@ describe("the README and values.yaml say what the presets do", () => {
       "#                   pods are refused, so the eBPF instrumentation and the\n#                   profiler are left out, whatever ebpf.enabled and\n#                   profiling.enabled say.",
     );
     expect(values).toContain(
-      "#     GKE Autopilot and EKS Fargate refuse privileged pods, so the\n#     gke-autopilot and eks-fargate presets leave it out whatever this says.",
+      "#     GKE Autopilot and EKS Fargate refuse privileged pods, so the\n#     gke-autopilot and eks-fargate presets leave it out whatever this says.\n#     So does openshift-restricted, which runs under restricted-v2 alone.",
+    );
+    expect(values).toContain(
+      "#                   so there are no host metrics, and the eBPF\n#                   instrumentation and the profiler are left out, whatever\n#                   ebpf.enabled and profiling.enabled say. Move to\n#                   `openshift` to get them back.",
     );
     expect(values).not.toContain(
       "(e.g.\n#     GKE Autopilot, EKS Fargate), set `ebpf.enabled: false`.",
@@ -246,7 +305,7 @@ describe("the README and values.yaml say what the presets do", () => {
 
   test("values.yaml names the one exception to 'explicit values win over the preset'", () => {
     expect(values).toContain(
-      "# still be overridden explicitly — they always win over preset defaults.\n# The one exception is the privileged pods: on gke-autopilot and\n# eks-fargate, ebpf.enabled and profiling.enabled cannot turn eBPF or the\n# profiler back on, because those platforms cannot run them.\npreset: \"\"",
+      '# still be overridden explicitly — they always win over preset defaults.\n# The one exception is the privileged pods: on gke-autopilot, eks-fargate and\n# openshift-restricted, ebpf.enabled and profiling.enabled cannot turn eBPF or\n# the profiler back on, because those platforms cannot run them.\npreset: ""',
     );
   });
 });
