@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { getKubernetesClusterProviderLabel } from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
@@ -2937,6 +2938,26 @@ const KubernetesClusterOverview: FunctionComponent<
               },
               title: "Cluster Name (clusterName)",
               fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                provider: true,
+              },
+              title: "Platform",
+              fieldType: FieldType.Element,
+              /*
+               * What the cluster's telemetry says it runs on: OpenShift from
+               * the agent's openshift preset, or a managed platform's
+               * cloud.platform (getKubernetesClusterProvider).
+               */
+              getElement: (item: KubernetesCluster): ReactElement => {
+                return (
+                  <span>
+                    {getKubernetesClusterProviderLabel(item.provider) ||
+                      translator.translateText("Not reported")}
+                  </span>
+                );
+              },
             },
             {
               field: {
