@@ -213,6 +213,15 @@ describe("monitorTrace", () => {
 describe("where a log or span check says its window ended", () => {
   const heldBack: Date = new Date("2026-11-02T09:40:00.000Z");
 
+  const lastCallOf: (count: unknown) => JSONObject = (
+    count: unknown,
+  ): JSONObject => {
+    const calls: Array<Array<JSONObject>> = (count as jest.Mock).mock
+      .calls as Array<Array<JSONObject>>;
+
+    return calls[calls.length - 1]![0]!;
+  };
+
   test("a log check held back by the ingest queue says where to", async () => {
     const response: LogMonitorResponse = await monitorLogs({
       monitorStep: new MonitorStep(),
@@ -242,15 +251,11 @@ describe("where a log or span check says its window ended", () => {
       projectId,
     });
 
-    const counted: JSONObject = (
-      (LogService.countBy as unknown as jest.Mock).mock.calls.at(
-        -1,
-      ) as Array<JSONObject>
-    )[0]!;
+    const counted: JSONObject = lastCallOf(LogService.countBy);
 
-    expect(
-      (counted["query"] as { time: InBetween<Date> }).time.endValue,
-    ).toBe(response.evaluatedUntil);
+    expect((counted["query"] as { time: InBetween<Date> }).time.endValue).toBe(
+      response.evaluatedUntil,
+    );
   });
 
   test("the window a span check counts is the one it says", async () => {
@@ -260,11 +265,7 @@ describe("where a log or span check says its window ended", () => {
       projectId,
     });
 
-    const counted: JSONObject = (
-      (SpanService.countBy as unknown as jest.Mock).mock.calls.at(
-        -1,
-      ) as Array<JSONObject>
-    )[0]!;
+    const counted: JSONObject = lastCallOf(SpanService.countBy);
 
     expect(
       (counted["query"] as { startTime: InBetween<Date> }).startTime.endValue,

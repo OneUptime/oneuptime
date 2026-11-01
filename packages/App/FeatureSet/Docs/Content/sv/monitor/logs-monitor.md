@@ -117,7 +117,7 @@ En loggmonitors kriterier har en enda **Filtertyp**: **Log Count**, antalet logg
 | **Anomalously Low** | under det intervallet |
 | **Anomalous** | utanför det intervallet, åt vilket håll som helst |
 
-Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Låg, Medel, som är standard, eller Hög) och, i de egna kriterierna, ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. OneUptime gör om antalet till en takt per minut och jämför den med samma timme i veckan över det fönstret. Baslinjen omfattar bara monitorns tjänster och allvarlighetsgrader: dess text- och attributfilter ingår inte. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och löser inte ut.
+Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Låg, Medel, som är standard, eller Hög) och, i de egna kriterierna, ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. OneUptime gör om antalet till en takt per minut och jämför den med fönster av samma längd runt samma tidpunkt i tidigare veckor, så långt tillbaka som **Baslinjefönster** räcker; det som händer nu ingår aldrig i jämförelsen. Baslinjen omfattar bara monitorns tjänster och allvarlighetsgrader: dess text- och attributfilter ingår inte. Minuter utan loggar räknas också, så en tjänst som ofta är tyst räknas inte som ovanligt låg bara för att den är tyst. Ett fönster räknas som ovanligt högt bara mot fönstren som innehöll loggar, och bara med minst 20, 10 eller 5 loggar vid känsligheten Låg, Medel eller Hög, så varken ett jobbs vanliga skur eller en tyst tjänsts första rader löser ut det. Tills monitorns tjänster har två veckors historik lär sig kriteriet fortfarande och löser inte ut.
 
 En loggmonitor som skapats i Skapa monitor börjar med regeln för det du valde under **Vad ska den här övervakningen berätta om?**:
 
@@ -248,7 +248,7 @@ Kriterierna kontrolleras uppifrån och ned, och den första träffen avgör. Ett
 :::
 
 :::details Ett avvikelsekriterium utlöses aldrig
-Det lär sig fortfarande: timmen i veckan som det jämför med har ännu inte tillräcklig historik. På en monitor med **Group by Attributes** matchar avvikelsevillkor aldrig; använd ett tröskelvärde där.
+Det lär sig fortfarande: monitorns tjänster har ännu inte två veckors historik. På en monitor med **Group by Attributes** matchar avvikelsevillkor aldrig; använd ett tröskelvärde där.
 :::
 
 :::details Grupplarm kommer utan gruppvärde

@@ -92,10 +92,11 @@ export class LogCountBaselineService extends AnalyticsDatabaseService<LogCountBa
         windowDays: input.windowDays,
         minSamples: input.minSamples,
         query: async (sql: string): Promise<Array<JSONObject>> => {
-          const resultSet: { json: () => Promise<{ data: Array<JSONObject> }> } =
-            (await this.executeQuery(sql)) as unknown as {
-              json: () => Promise<{ data: Array<JSONObject> }>;
-            };
+          const resultSet: {
+            json: () => Promise<{ data: Array<JSONObject> }>;
+          } = (await this.executeQuery(sql)) as unknown as {
+            json: () => Promise<{ data: Array<JSONObject> }>;
+          };
 
           return (await resultSet.json()).data;
         },

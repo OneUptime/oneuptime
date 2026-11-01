@@ -400,7 +400,11 @@ describe("CountAnomaly.findBreach", () => {
       }),
     ).toBeNull();
     expect(
-      find({ observed: 105, baseline: sparse, filterType: FilterType.Anomalous }),
+      find({
+        observed: 105,
+        baseline: sparse,
+        filterType: FilterType.Anomalous,
+      }),
     ).toBeNull();
   });
 
@@ -429,7 +433,11 @@ describe("CountAnomaly.findBreach", () => {
 
   test("a window between a job's runs and its usual size is neither", () => {
     expect(
-      find({ observed: 50, baseline: sparse, filterType: FilterType.Anomalous }),
+      find({
+        observed: 50,
+        baseline: sparse,
+        filterType: FilterType.Anomalous,
+      }),
     ).toBeNull();
   });
 

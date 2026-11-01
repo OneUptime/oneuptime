@@ -130,9 +130,7 @@ interface Telemetry {
   sourceColumns: string;
   timeColumn: string;
   model: { new (): AnalyticsBaseModel };
-  service:
-    | typeof LogCountBaselineService
-    | typeof SpanCountBaselineService;
+  service: typeof LogCountBaselineService | typeof SpanCountBaselineService;
   rowOf: (data: { project: ObjectID; matching: boolean }) => JSONObject;
   read: (filters: ReadFilters) => Promise<CountBaselineSummary | null>;
 }
@@ -605,7 +603,10 @@ integration("A log or span count's baseline against ClickHouse", () => {
       return step;
     }
 
-    function judge(project: ObjectID, logCount: number): Promise<string | null> {
+    function judge(
+      project: ObjectID,
+      logCount: number,
+    ): Promise<string | null> {
       const response: Partial<LogMonitorResponse> = {
         projectId: project,
         monitorId: ObjectID.generate(),

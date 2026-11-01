@@ -29,10 +29,14 @@ import CountAnomaly, {
  *     range narrow enough to alert about three times as often. An hour either
  *     side keeps alerts near what they were and loses little of what they
  *     catch. Exceptions do not need this: a sparse count's range is chance.
+ *   - No narrower than a rate's level moves (COUNT_BASELINE_LEVEL_SPREAD).
+ *     Two weeks cannot measure how far a rate moves from one day to the next,
+ *     so a flat one reads as steadier than it is: without this, simulated flat
+ *     traffic went from 2 alerts a day to 30.
  *   - One sample per window, in the window's own unit. A long window's average
  *     varies less than one minute does, and a short window's more. A window
- *     of a minute reads the same minutes it always read, and a busy scope's
- *     spread is mostly not chance, so it hardly moves whatever the length.
+ *     of a minute reads the minutes it always read, and a busy scope's spread
+ *     is mostly not chance, so it hardly moves whatever the window's length.
  *   - Empty windows are samples, but only for how low a window can go. A
  *     sparse scope's silence is its normal, so an empty window is not
  *     anomalously low. How high it can go is read from the windows that held
@@ -61,6 +65,15 @@ const WEEK_IN_MS: number = 7 * 24 * HOUR_IN_MS;
  * as an hour if it is shorter, centred on the time of the window judged.
  */
 export const COUNT_BASELINE_REACH_IN_WINDOWS: number = 3;
+
+/*
+ * The least a window's spread is taken as, as a share of its center: at Medium,
+ * a window within 12% of normal is normal. This is a judgement, not a
+ * measurement: it is where simulated flat traffic, moving 3% from day to day,
+ * alerts as often as it did. A rate with a rhythm or real noise of its own is
+ * wider than this already, and a quiet one is wider by chance.
+ */
+export const COUNT_BASELINE_LEVEL_SPREAD: number = 0.04;
 
 // Windows are numbered from the epoch, here and in the read that groups them.
 export interface CountBaselineWeek {
@@ -455,9 +468,15 @@ export default class CountWindowBaseline {
     return {
       sampleCount: inWindow.sampleCount,
       mean: inWindow.mean * perMinute,
-      stddev: inWindow.stddev * perMinute,
+      stddev:
+        Math.max(inWindow.stddev, COUNT_BASELINE_LEVEL_SPREAD * inWindow.mean) *
+        perMinute,
       median: inWindow.median * perMinute,
-      madSigma: inWindow.madSigma * perMinute,
+      madSigma:
+        Math.max(
+          inWindow.madSigma,
+          COUNT_BASELINE_LEVEL_SPREAD * inWindow.median,
+        ) * perMinute,
       minObserved: inWindow.minObserved * perMinute,
       maxObserved: inWindow.maxObserved * perMinute,
     };

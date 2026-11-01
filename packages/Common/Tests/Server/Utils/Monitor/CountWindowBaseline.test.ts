@@ -4,6 +4,7 @@ import CountAnomaly, {
   CountWindowBreach,
 } from "../../../../Server/Utils/Monitor/Criteria/CountAnomaly";
 import CountWindowBaseline, {
+  COUNT_BASELINE_LEVEL_SPREAD,
   COUNT_BASELINE_REACH_IN_WINDOWS,
   CountBaselinePlan,
   CountBaselineWeek,
@@ -221,14 +222,17 @@ describe("CountWindowBaseline.toWeekCounts", () => {
     ],
   };
 
-  const countsOf: (rows: Array<CountBaselineWindowRow>) => Array<Array<number>> =
-    (rows: Array<CountBaselineWindowRow>): Array<Array<number>> => {
-      return CountWindowBaseline.toWeekCounts({ plan, rows }).map(
-        (week: CountBaselineWeekCounts): Array<number> => {
-          return week.counts;
-        },
-      );
-    };
+  const countsOf: (
+    rows: Array<CountBaselineWindowRow>,
+  ) => Array<Array<number>> = (
+    rows: Array<CountBaselineWindowRow>,
+  ): Array<Array<number>> => {
+    return CountWindowBaseline.toWeekCounts({ plan, rows }).map(
+      (week: CountBaselineWeekCounts): Array<number> => {
+        return week.counts;
+      },
+    );
+  };
 
   test("a window with no row is a zero, in the week it falls in", () => {
     expect(
@@ -443,14 +447,56 @@ describe("CountWindowBaseline.summarize", () => {
   test("the counting noise is the window's, not the minute's", () => {
     const summary: CountBaselineSummary = summaryOf({
       weeks: [
-        [1500, 1500, 1500, 1500],
-        [1500, 1500, 1500, 1500],
+        [150, 150, 150, 150],
+        [150, 150, 150, 150],
       ],
       windowSeconds: 900,
     });
 
-    expect(summary.mean).toBe(100);
-    expect(summary.stddev).toBeCloseTo(Math.sqrt(1500) / 15, 10);
+    expect(summary.mean).toBe(10);
+    expect(summary.stddev).toBeCloseTo(Math.sqrt(150) / 15, 10);
+  });
+
+  test("a rate that holds still for two weeks is not taken for steadier than a rate can be", () => {
+    const summary: CountBaselineSummary = summaryOf({
+      weeks: [
+        [20000, 20000, 20000, 20000],
+        [20000, 20000, 20000, 20000],
+      ],
+    });
+
+    expect(COUNT_BASELINE_LEVEL_SPREAD).toBe(0.04);
+    expect(summary.stddev).toBe(800);
+    expect(summary.madSigma).toBe(800);
+  });
+
+  test("the median method's spread is held to the median", () => {
+    const summary: CountBaselineSummary = summaryOf({
+      weeks: [
+        [10000, 10000, 10000, 40000],
+        [10000, 10000, 10000, 40000],
+      ],
+    });
+
+    expect(summary.median).toBe(10000);
+    expect(summary.madSigma).toBe(400);
+  });
+
+  test("a spread wider than that is kept", () => {
+    const counts: Array<number> = [18000, 22000, 18000, 22000];
+
+    expect(summaryOf({ weeks: [counts, counts] }).stddev).toBe(2000);
+  });
+
+  test("the windows that held something are held to it too", () => {
+    const summary: CountBaselineSummary = summaryOf({
+      weeks: [
+        [0, 0, 10000, 0, 0, 0],
+        [0, 0, 0, 10000, 0, 0],
+      ],
+    });
+
+    expect(summary.nonEmpty!.stddev).toBe(400);
   });
 
   test("a history of nothing is judged against nothing", () => {
@@ -548,8 +594,7 @@ const poisson: (random: SeededRandom, mean: number) => number = (
 
   if (mean > 40) {
     const normal: number =
-      Math.sqrt(-2 * Math.log(1 - random())) *
-      Math.cos(2 * Math.PI * random());
+      Math.sqrt(-2 * Math.log(1 - random())) * Math.cos(2 * Math.PI * random());
 
     return Math.max(0, Math.round(mean + Math.sqrt(mean) * normal));
   }
@@ -648,11 +693,7 @@ const baselineNow: (data: {
       for (let index: number = 0; index < week.windowCount; index++) {
         let count: number = 0;
 
-        for (
-          let minute: number = 0;
-          minute < plan.windowMinutes;
-          minute++
-        ) {
+        for (let minute: number = 0; minute < plan.windowMinutes; minute++) {
           count +=
             data.traffic.counts[
               (week.firstWindow + index) * plan.windowMinutes +
@@ -667,6 +708,43 @@ const baselineNow: (data: {
       return counts;
     }),
   });
+};
+
+// The same windows' statistics as measured, as a per-minute rate of a window.
+const measuredStatsOf: (data: {
+  traffic: Traffic;
+  windowEnd: number;
+  windowSeconds: number;
+}) => CountBaselineStats = (data: {
+  traffic: Traffic;
+  windowEnd: number;
+  windowSeconds: number;
+}): CountBaselineStats => {
+  const plan: CountBaselinePlan = planFor({
+    windowEnd: data.windowEnd * MINUTE,
+    windowSeconds: data.windowSeconds,
+  });
+  const perMinute: number = 1 / plan.windowMinutes;
+  const samples: Array<number> = [];
+
+  for (const week of plan.weeks) {
+    for (let index: number = 0; index < week.windowCount; index++) {
+      let count: number = 0;
+
+      for (let minute: number = 0; minute < plan.windowMinutes; minute++) {
+        count +=
+          data.traffic.counts[
+            (week.firstWindow + index) * plan.windowMinutes +
+              minute -
+              data.traffic.start
+          ] || 0;
+      }
+
+      samples.push(count * perMinute);
+    }
+  }
+
+  return CountAnomaly.computeStats(samples)!;
 };
 
 /*
@@ -1113,7 +1191,7 @@ describe("how often a busy monitor alerts", () => {
     },
   );
 
-  test("a busy one-minute window of a rate that holds still reads what it always read", () => {
+  test("a busy one-minute window keeps the center it always had", () => {
     const traffic: Traffic = trafficOf({
       seed: 1618,
       perMinute: 20000,
@@ -1138,11 +1216,109 @@ describe("how often a busy monitor alerts", () => {
       expect(Math.abs(now.mean - before.mean) / before.mean).toBeLessThan(
         0.005,
       );
-      expect(Math.abs(now.stddev - before.stddev) / before.stddev).toBeLessThan(
-        0.25,
-      );
       expect(now.nonEmpty).toBeUndefined();
     }
+  });
+
+  /*
+   * Over a few seeds: a flat rate's alerts depend on how its days happen to
+   * fall, so one seed says little about how often it alerts.
+   */
+  test("a flat rate alerts about as often as it did, where two weeks alone would flood it", () => {
+    let before: number = 0;
+    let measuredOnly: number = 0;
+    let now: number = 0;
+
+    for (const seed of [2047, 2053, 2063]) {
+      const traffic: Traffic = trafficOf({
+        seed,
+        perMinute: 2000,
+        weeks: 5,
+        rhythm: 0,
+        drift: 0.02,
+      });
+      const checks: Array<number> = minutesToCheck({ traffic, days: 7 });
+
+      const count: (windowEnd: number) => number = (
+        windowEnd: number,
+      ): number => {
+        return windowCount({ traffic, windowEnd, minutes: 5 });
+      };
+
+      before += alertsAmong(
+        checks.map((windowEnd: number): boolean => {
+          return breachBefore({
+            stats: baselineBefore({ traffic, windowEnd }),
+            observed: count(windowEnd) / 5,
+            filterType: FilterType.Anomalous,
+          });
+        }),
+      );
+
+      // The same read, without the level two weeks cannot see.
+      measuredOnly += alertsAmong(
+        checks.map((windowEnd: number): boolean => {
+          return breachBefore({
+            stats: measuredStatsOf({ traffic, windowEnd, windowSeconds: 300 }),
+            observed: count(windowEnd) / 5,
+            filterType: FilterType.Anomalous,
+          });
+        }),
+      );
+
+      now += alertsAmong(
+        checks.map((windowEnd: number): boolean => {
+          return Boolean(
+            breachNow({
+              traffic,
+              windowEnd,
+              windowSeconds: 300,
+              count: count(windowEnd),
+              filterType: FilterType.Anomalous,
+            }),
+          );
+        }),
+      );
+    }
+
+    expect(measuredOnly).toBeGreaterThan(before * 3);
+    expect(now).toBeLessThan(before * 2);
+  });
+
+  test("a flat rate's real change still shows", () => {
+    const traffic: Traffic = trafficOf({
+      seed: 2069,
+      perMinute: 2000,
+      weeks: 5,
+      rhythm: 0,
+      drift: 0.02,
+    });
+
+    const fired: Array<boolean> = minutesToCheck({
+      traffic,
+      days: 7,
+      every: 37,
+    }).map((windowEnd: number): boolean => {
+      return withChange({
+        traffic,
+        windowEnd,
+        minutes: 30,
+        factor: 1.3,
+        read: (): boolean => {
+          return Boolean(
+            breachNow({
+              traffic,
+              windowEnd,
+              windowSeconds: 300,
+              count: windowCount({ traffic, windowEnd, minutes: 5 }),
+              filterType: FilterType.AnomalouslyHigh,
+            }),
+          );
+        },
+      });
+    });
+
+    expect(shareOf(fired)).toBeGreaterThan(0.9);
   });
 
   test("a stop in an earlier week leaves what a busy scope is judged by", () => {
@@ -1308,8 +1484,10 @@ describe("a sparse scope", () => {
   });
 
   test("a burst well past the job's usual one is", () => {
-    const windowEnd: number =
-      minutesToCheck({ traffic: hourlyJob, days: 1 })[100]!;
+    const windowEnd: number = minutesToCheck({
+      traffic: hourlyJob,
+      days: 1,
+    })[100]!;
 
     expect(
       breachNow({
@@ -1440,9 +1618,7 @@ describe("the rollups' hours and the plan's", () => {
     const plan: CountBaselinePlan = planFor({ windowEnd, windowSeconds: 60 });
 
     expect(plan.hourOfWeek).toBe(
-      MetricBaselineService.computeHourOfWeek(
-        new Date(windowEnd - 30 * 1000),
-      ),
+      MetricBaselineService.computeHourOfWeek(new Date(windowEnd - 30 * 1000)),
     );
   });
 });

@@ -262,10 +262,9 @@ describe.each(CASES)("$name.getBaseline", (serviceCase: ServiceCase) => {
   });
 
   test("a week from before the scope began is not read as silence", async () => {
-    answer(
-      rowsOf(10, [1, 2, 3].slice(0, 2)),
-      [{ c: "40", firstDay: "2026-10-12" }],
-    );
+    answer(rowsOf(10, [1, 2, 3].slice(0, 2)), [
+      { c: "40", firstDay: "2026-10-12" },
+    ]);
 
     const summary: CountBaselineSummary | null = await serviceCase.read({
       windowDays: 28,
@@ -295,9 +294,9 @@ describe.each(CASES)("$name.getBaseline", (serviceCase: ServiceCase) => {
   test("minSamples reaches the verdict", async () => {
     answer(rowsOf(10));
 
-    expect(
-      (await serviceCase.read({ minSamples: 100000 }))!.isReliable,
-    ).toBe(false);
+    expect((await serviceCase.read({ minSamples: 100000 }))!.isReliable).toBe(
+      false,
+    );
   });
 
   test("a failed read is the caller's to handle", async () => {

@@ -117,7 +117,7 @@ Los criterios de un monitor de registros tienen un único **Tipo de filtro**: **
 | **Anomalously Low** | por debajo de ese rango |
 | **Anomalous** | fuera de ese rango, en cualquier sentido |
 
-Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Baja, Media, la predeterminada, o Alta) y, en los criterios propios, una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. OneUptime convierte el recuento en una tasa por minuto y la compara con la misma hora de la semana a lo largo de esa ventana. La referencia solo abarca los servicios y las gravedades del monitor: sus filtros de texto y de atributos no forman parte de ella. Hasta que esa hora de la semana tenga suficiente historial, el criterio sigue aprendiendo y no se dispara.
+Las condiciones de anomalía no llevan **Valor**. Elige una **Sensibilidad** (Baja, Media, la predeterminada, o Alta) y, en los criterios propios, una **Ventana de referencia** de 14 (la predeterminada), 28, 60 o 90 días. OneUptime convierte el recuento en una tasa por minuto y la compara con ventanas de la misma duración en torno a la misma hora de semanas anteriores, hasta donde llega la **Ventana de referencia**; lo que ocurre ahora nunca forma parte de esa comparación. La referencia solo abarca los servicios y las gravedades del monitor: sus filtros de texto y de atributos no forman parte de ella. Los minutos sin logs también cuentan, así que un servicio que suele estar en silencio no se considera inusualmente bajo por estarlo. Una ventana solo se considera inusualmente alta frente a las ventanas que tuvieron logs, y solo con al menos 20, 10 o 5 logs con la sensibilidad Baja, Media o Alta, de modo que ni la ráfaga habitual de una tarea ni las primeras líneas de un servicio silencioso lo disparan. Hasta que los servicios del monitor tengan dos semanas de historial, el criterio sigue aprendiendo y no se dispara.
 
 Un monitor de registros creado en Crear monitor empieza con la regla de lo que elegiste en **¿Sobre qué debe avisarte este monitor?**:
 
@@ -248,7 +248,7 @@ Los criterios se comprueban de arriba abajo y decide la primera coincidencia. Un
 :::
 
 :::details Un criterio de anomalía nunca se dispara
-Sigue aprendiendo: la hora de la semana con la que compara aún no tiene suficiente historial. En un monitor con **Group by Attributes**, las condiciones de anomalía nunca coinciden; usa ahí un umbral.
+Sigue aprendiendo: los servicios del monitor aún no tienen dos semanas de historial. En un monitor con **Group by Attributes**, las condiciones de anomalía nunca coinciden; usa ahí un umbral.
 :::
 
 :::details Las alertas de grupo llegan sin valor de grupo
