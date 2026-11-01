@@ -39532,5 +39532,6 @@
   "{{count}} runs kept": "실행 {{count}}개 보관",
   "{{count}} runs kept_one": "실행 {{count}}개 보관",
   "{{ready}}/{{count}} containers ready": "컨테이너 {{ready}}/{{count}}개 준비됨",
-  "{{ready}}/{{count}} containers ready_one": "컨테이너 {{ready}}/{{count}}개 준비됨"
+  "{{ready}}/{{count}} containers ready_one": "컨테이너 {{ready}}/{{count}}개 준비됨",
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "이 CronJob이 시작해 아직 실행 중인 실행(Job)이며, 최신 인벤토리 기준입니다. 각각 Job 목록에도 표시됩니다."
 }

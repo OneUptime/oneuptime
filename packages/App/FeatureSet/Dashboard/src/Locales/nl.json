@@ -39532,5 +39532,6 @@
   "{{count}} runs kept": "{{count}} runs bewaard",
   "{{count}} runs kept_one": "{{count}} run bewaard",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} containers gereed",
-  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} container gereed"
+  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} container gereed",
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "De runs (Jobs) die deze CronJob heeft gestart en die nog lopen, uit de nieuwste inventaris. Elke run staat ook in de lijst met Jobs."
 }

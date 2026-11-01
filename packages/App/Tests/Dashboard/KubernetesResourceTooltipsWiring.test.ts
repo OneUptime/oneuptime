@@ -418,7 +418,11 @@ const LIST_PAGES: Record<string, ListPage> = {
   Nodes: { builtIn: ["nodeCpu", "nodeMemory"], columns: [], sumsPods: false },
   Pods: {
     builtIn: ["podCpu", "podMemory"],
-    columns: [["Containers", "podContainers"]],
+    columns: [
+      ["Ready", "podReady"],
+      ["Restarts", "podRestarts"],
+      ["Containers", "podContainers"],
+    ],
     sumsPods: false,
   },
   Containers: {
@@ -656,8 +660,9 @@ describe("the texts match the computations behind the lists", () => {
     expect(
       readCode("Pages/Kubernetes/Utils/KubernetesResourceUtils.ts"),
     ).toContain(
+      // Public: a workload's Pods tab reads the same window.
       compact(
-        "private static readonly METRIC_STALE_MS: number = 15 * 60 * 1000;",
+        "public static readonly METRIC_STALE_MS: number = 15 * 60 * 1000;",
       ),
     );
     expect(readCode(`${PAGES}/Containers.tsx`)).toContain(
@@ -777,11 +782,12 @@ describe("the texts match the computations behind the lists", () => {
     }
   });
 
-  test("CronJob Active Jobs reads a list as a number - the text owns up to it", () => {
+  test("CronJob Active Jobs counts the list of running Jobs, and the text says so", () => {
     /*
-     * CronJob status.active is a list of job references; parseInt of its
-     * (empty) string form is NaN, so the parser always stores 0. Pinned so
-     * that fixing the parser fails this and the caveat is dropped.
+     * CronJob status.active is a list of job references. parseInt of its
+     * (empty) string form was NaN, so the parser stored 0 even during a run
+     * and the text owned up to it. The parser counts the list now, falling
+     * back to a number an older agent may send, and the caveat is gone.
      */
     const parser: string = readFrom(
       COMMON_SRC,
@@ -795,11 +801,14 @@ describe("the texts match the computations behind the lists", () => {
 
     expect(cronJob).toContain(
       compact(
-        'activeCount: statusKv ? parseInt(getKvStringValue(statusKv as JSONObject, "active")) || 0 : 0',
+        'countArrayValues(getKvValue(statusKv as JSONObject, "active")) || parseInt(getKvStringValue(statusKv as JSONObject, "active")) || 0',
       ),
     );
+    expect(
+      KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobActiveJobs,
+    ).not.toContain("shows 0 even during a run");
     expect(KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobActiveJobs).toContain(
-      "shows 0 even during a run",
+      "still running",
     );
   });
 
@@ -900,6 +909,8 @@ describe("every Kubernetes resource text is shown, and every reference exists", 
       return `${PAGES}/${page}.tsx`;
     }),
     "Components/Kubernetes/KubernetesContainersTab.tsx",
+    // A workload's, a node's and a CronJob's Pods tab.
+    "Components/Kubernetes/Part/KubernetesPartPods.tsx",
   ];
 
   const referenced: Map<string, Array<string>> = new Map();

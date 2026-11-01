@@ -39532,5 +39532,6 @@
   "{{count}} runs kept": "保留 {{count}} 次运行",
   "{{count}} runs kept_one": "保留 {{count}} 次运行",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} 个容器就绪",
-  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} 个容器就绪"
+  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} 个容器就绪",
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "此 CronJob 启动且仍在运行的各次运行（Job），根据最新清单得出。每一次也都列在 Job 列表中。"
 }

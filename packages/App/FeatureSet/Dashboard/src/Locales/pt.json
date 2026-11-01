@@ -39532,5 +39532,6 @@
   "{{count}} runs kept": "{{count}} execuções mantidas",
   "{{count}} runs kept_one": "{{count}} execução mantida",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} contêineres prontos",
-  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} contêiner pronto"
+  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} contêiner pronto",
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "As execuções (Jobs) que este CronJob iniciou e que ainda estão em andamento, segundo o inventário mais recente. Cada uma também aparece na lista de Jobs."
 }

@@ -39532,5 +39532,6 @@
   "{{count}} runs kept": "{{count}} 件の実行を保持",
   "{{count}} runs kept_one": "{{count}} 件の実行を保持",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} コンテナ準備完了",
-  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} コンテナ準備完了"
+  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} コンテナ準備完了",
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "この CronJob が開始し、まだ実行中の実行（Job）です。最新のインベントリに基づきます。それぞれ Job の一覧にも表示されます。"
 }

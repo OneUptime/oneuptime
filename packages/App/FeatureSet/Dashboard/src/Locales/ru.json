@@ -39532,5 +39532,6 @@
   "{{count}} runs kept": "Сохранено запусков: {{count}}",
   "{{count}} runs kept_one": "Сохранён {{count}} запуск",
   "{{ready}}/{{count}} containers ready": "Готово контейнеров: {{ready}}/{{count}}",
-  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} контейнер готов"
+  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} контейнер готов",
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "Запуски (Jobs) этого CronJob, которые ещё выполняются, по последним данным инвентаря. Каждый из них есть и в списке Jobs."
 }

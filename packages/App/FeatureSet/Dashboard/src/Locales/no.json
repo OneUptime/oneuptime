@@ -39532,5 +39532,6 @@
   "{{count}} runs kept": "{{count}} kjøringer beholdt",
   "{{count}} runs kept_one": "{{count}} kjøring beholdt",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} containere klare",
-  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} container klar"
+  "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} container klar",
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "Kjøringene (Jobs) denne CronJob har startet som fortsatt kjører, ifølge det nyeste inventaret. Hver av dem står også i listen over Jobs."
 }

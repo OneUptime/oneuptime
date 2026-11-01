@@ -274,7 +274,7 @@ export const KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS: Record<
     "Pods of this job that ended in failure, counting every retry. Once failures go past the backoff limit, Kubernetes stops retrying and marks the job as failed.",
   ),
   cronJobActiveJobs: translationKey(
-    "Meant to be the jobs this CronJob started that are still running. It is not read correctly from Kubernetes yet and shows 0 even during a run, so check the Jobs list for runs in progress.",
+    "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.",
   ),
   cronJobSuccessfulJobsHistoryLimit: translationKey(
     "How many finished, successful runs (Jobs) of this CronJob Kubernetes keeps before deleting the oldest. Kubernetes keeps 3 unless the CronJob sets another value; 0 keeps none.",
