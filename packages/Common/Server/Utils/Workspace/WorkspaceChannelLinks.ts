@@ -23,6 +23,7 @@ import IncidentService from "../../Services/IncidentService";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
 import WorkspaceProjectAuthTokenService from "../../Services/WorkspaceProjectAuthTokenService";
 import logger from "../Logger";
+import MicrosoftTeamsHosts from "./MicrosoftTeams/MicrosoftTeamsHosts";
 
 /*
  * THE LINKS TO A RECORD'S OWN SLACK AND MICROSOFT TEAMS CHANNELS.
@@ -260,6 +261,7 @@ export default class WorkspaceChannelLinks {
                 teamId: channel.teamId,
                 channelId: channel.id,
                 channelName: channel.name,
+                teamsWebOrigin: MicrosoftTeamsHosts.getTeamsWebOrigin(),
               });
 
         if (!url || seenUrls.has(url)) {

@@ -286,6 +286,7 @@ import {
   flattenVisibleRows,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/TraceWaterfall";
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import Span, {
   SpanKind,
   SpanStatus,
@@ -753,10 +754,6 @@ const counted: (
   values: TemplateValues = {},
 ): string => {
   return translatorFor(language).translatePlural(template, count, values);
-};
-
-const escapeRegExp: (text: string) => string = (text: string): string => {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 /*

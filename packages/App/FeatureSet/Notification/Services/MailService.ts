@@ -37,6 +37,11 @@ import DataSourceEgressGuard, {
 import PinnedSmtpSocket, {
   SmtpSocketCallback,
 } from "Common/Server/Utils/Mail/PinnedSmtpSocket";
+import EmailCarriedLogos, {
+  CarriedLogo,
+  CarriedLogoReader,
+  EmailWithCarriedLogos,
+} from "Common/Server/Utils/Mail/EmailCarriedLogos";
 import EmailInlineImages, {
   EmailInlineImage,
 } from "Common/Server/Utils/Mail/EmailInlineImages";
@@ -62,6 +67,7 @@ import * as tls from "tls";
 import {
   BRAND_VARIABLE_NAMES,
   ONEUPTIME_LOGO_VARIABLE_NAME,
+  getCarriedProductLogo,
   getCurrentEmailBrandingVariables,
   withBrandedSubject,
 } from "../Utils/EmailBranding";
@@ -892,10 +898,48 @@ export default class MailService {
    * a description, and OneUptime's logo in the header) stays a data: URL
    * here, which a browser shows, and is sent as an attachment the HTML
    * points at by Content-ID, which every mail client shows (see
-   * EmailInlineImages and EmailLogo).
+   * EmailInlineImages and EmailLogo). A logo an operator uploaded stays
+   * its address here, and goes out the same way, in the address's place,
+   * when the email can carry it (EmailCarriedLogos).
    */
   public static async render(mail: EmailEnvelope): Promise<RenderedEmail> {
     return await this.renderEmail(mail, { withOneUptimeLogo: true });
+  }
+
+  /*
+   * Where send() reads a status page's logo to carry it inside an email
+   * that shows it by its address (StatusPageCarriedLogo.readAddress): set
+   * by the notification service when it starts (Notification/Index.ts),
+   * because the read needs the database, which MailService never imports.
+   * Unset, a status page's logo stays its address, as it always was.
+   */
+  private static statusPageLogoReader: CarriedLogoReader | null = null;
+
+  public static carryStatusPageLogosWith(
+    reader: CarriedLogoReader | null,
+  ): void {
+    this.statusPageLogoReader = reader;
+  }
+
+  /*
+   * The logo an image's address shows, as the email carries it inside
+   * itself: the installation's own (EmailBranding), or a status page's -
+   * or null, and the image keeps its address.
+   */
+  private static async readCarriedLogo(
+    address: string,
+  ): Promise<CarriedLogo | null> {
+    const productLogo: CarriedLogo | null = getCarriedProductLogo(address);
+
+    if (productLogo) {
+      return productLogo;
+    }
+
+    if (!this.statusPageLogoReader) {
+      return null;
+    }
+
+    return await this.statusPageLogoReader(address);
   }
 
   /*
@@ -1375,16 +1419,31 @@ export default class MailService {
       const rendered: RenderedEmail = await this.render(mail);
 
       /*
+       * A logo an operator uploaded - the installation's own, a status
+       * page's - that the email shows by its address goes inside the email
+       * in its place, when every mail client can draw it and it is small
+       * enough (EmailCarriedLogos); any other stays its address.
+       */
+      const carried: EmailWithCarriedLogos = await EmailCarriedLogos.carry(
+        rendered.body,
+        (address: string): Promise<CarriedLogo | null> => {
+          return this.readCarriedLogo(address);
+        },
+      );
+
+      /*
        * Inline images (a screenshot in a description, OneUptime's logo in
-       * the header) go out as attachments the HTML points at by Content-ID,
-       * on every transport below; an email with none is sent exactly as
-       * rendered. The whole of it is held to what every mail server takes
-       * (EmailSize): screenshots that do not fit are left out, each with a
-       * note, and HTML too big on its own is cut, with a note. The logo is
-       * never left out.
+       * the header, a logo the email carries) go out as attachments the
+       * HTML points at by Content-ID, on every transport below; an email
+       * with none is sent exactly as rendered. The whole of it is held to
+       * what every mail server takes (EmailSize): screenshots that do not
+       * fit are left out, each with a note, and HTML too big on its own is
+       * cut, with a note. The logos are never left out.
        */
       const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
-        rendered.body,
+        carried.html,
+        MAX_EMAIL_BYTES,
+        carried.logos,
       );
       const inlineImages: Array<EmailInlineImage> = attached.inlineImages;
 

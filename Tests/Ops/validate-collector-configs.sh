@@ -412,6 +412,50 @@ fs.writeFileSync(out, config);
 validate "kubernetes-agent / collector Deployment, ebpf.dropUnlinkedClientCalls=true" \
   "${WORK_DIR}/k8s-deployment-client-calls.yaml"
 
+# The openshift preset runs the collector's openshift resource detector right
+# after the resource processor in both collectors' pipelines
+# (kubernetes-agent.openshiftDetector), which the renders above leave out. A
+# key the detector does not know would stop the agent on every OpenShift
+# cluster, so both configs are validated with it too. The detector reads the
+# API address from KUBERNETES_SERVICE_HOST/PORT and the service account's
+# token and CA, which ENV_ARGS and STUB_MOUNTS give it.
+echo "==> rendering kubernetes-agent chart with preset=openshift"
+helm template validate "${REPO_ROOT}/HelmChart/Public/kubernetes-agent" \
+  --set clusterName=validate-only \
+  --set oneuptime.url=https://oneuptime.example.com \
+  --set oneuptime.apiKey=validate-only \
+  --set preset=openshift \
+  >"${WORK_DIR}/kubernetes-agent-openshift.rendered.yaml"
+node -e '
+const fs = require("fs");
+const path = require("path");
+const yaml = require("js-yaml");
+
+const [rendered, outDir] = process.argv.slice(1);
+const docs = yaml.loadAll(fs.readFileSync(rendered, "utf8"));
+for (const component of ["deployment", "daemonset"]) {
+  const configMap = docs.find((doc) => {
+    return doc && doc.kind === "ConfigMap" && doc.metadata.name === `validate-kubernetes-agent-${component}`;
+  });
+  const config = configMap.data["otel-collector-config.yaml"];
+  const collector = yaml.load(config);
+  if (!collector.processors["resourcedetection/openshift"]) {
+    throw new Error(`${rendered}: the ${component} config defines no resourcedetection/openshift`);
+  }
+  for (const [name, pipeline] of Object.entries(collector.service.pipelines)) {
+    const at = pipeline.processors.indexOf("resource");
+    if (at >= 0 && pipeline.processors[at + 1] !== "resourcedetection/openshift") {
+      throw new Error(`${rendered}: the ${component} pipeline ${name} does not run resourcedetection/openshift after resource`);
+    }
+  }
+  fs.writeFileSync(path.join(outDir, `k8s-${component}-openshift.yaml`), config);
+}
+' "${WORK_DIR}/kubernetes-agent-openshift.rendered.yaml" "${WORK_DIR}"
+validate "kubernetes-agent / collector Deployment, preset=openshift" \
+  "${WORK_DIR}/k8s-deployment-openshift.yaml"
+validate "kubernetes-agent / node collector DaemonSet, preset=openshift" \
+  "${WORK_DIR}/k8s-daemonset-openshift.yaml"
+
 # The collector a `helm upgrade --reuse-values` keeps. That upgrade renders the
 # new chart with the previous release's values, image.tag included, so a
 # release from before 0.161.0 runs this chart's configs on 0.96.0 (NOTES.txt

@@ -57,6 +57,14 @@ data:
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}
             action: insert
+          {{- /*
+          The distribution, but not the openshift detector the collectors
+          run: this distribution's profiles pipeline takes only the
+          processors above.
+          */}}
+          {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+          {{- include "kubernetes-agent.distributionAttribute" (dict "action" "insert") | nindent 10 }}
+          {{- end }}
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
 
     exporters:

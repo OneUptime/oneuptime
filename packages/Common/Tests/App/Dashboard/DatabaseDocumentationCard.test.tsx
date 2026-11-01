@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { joinContinuedLines } from "./InstallCommandLines";
 import {
   afterEach,
   beforeEach,
@@ -241,7 +242,7 @@ describe("DatabaseDocumentationCard", () => {
       const container: HTMLElement = renderCard();
 
       await waitFor(() => {
-        expect(container.textContent).toContain(
+        expect(joinContinuedLines(container.textContent || "")).toContain(
           "ONEUPTIME_TELEMETRY_INGESTION_KEY=secret-production DATABASE_SYSTEM=postgresql bash install.sh",
         );
       });
@@ -252,7 +253,7 @@ describe("DatabaseDocumentationCard", () => {
 
       // The key follows the guide across a pick.
       fireEvent.click(screen.getByRole("radio", { name: "Redis" }));
-      expect(container.textContent).toContain(
+      expect(joinContinuedLines(container.textContent || "")).toContain(
         "ONEUPTIME_TELEMETRY_INGESTION_KEY=secret-production DATABASE_SYSTEM=redis bash install.sh",
       );
     });
@@ -312,7 +313,7 @@ describe("DatabaseDocumentationCard", () => {
       expect(container.textContent).toContain(
         `| \`DATABASE_SERVER_ID\` | \`${DATABASE_ID}\` |`,
       );
-      expect(container.textContent).toContain(
+      expect(joinContinuedLines(container.textContent || "")).toContain(
         `DATABASE_SYSTEM=postgresql DATABASE_SERVER_ADDRESS=db.prod.internal DATABASE_SERVER_PORT=5432 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
       );
       expect(tabLabels()).toEqual(["Install script", "Docker Compose"]);
@@ -341,7 +342,7 @@ describe("DatabaseDocumentationCard", () => {
       expect(container.textContent).toContain(
         "Valkey, KeyDB and Dragonfly take the same ACL.",
       );
-      expect(container.textContent).toContain(
+      expect(joinContinuedLines(container.textContent || "")).toContain(
         `DATABASE_SYSTEM=valkey DATABASE_SERVER_ADDRESS=cache.prod.internal DATABASE_SERVER_PORT=6379 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
       );
     });

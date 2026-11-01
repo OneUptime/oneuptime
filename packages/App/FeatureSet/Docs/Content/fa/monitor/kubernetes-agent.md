@@ -4,7 +4,7 @@
 
 :::cards
 - [نصب عامل](#نصب-عامل): چهار گام با Helm.
-- [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم): خوشه‌های استاندارد، GKE Autopilot یا EKS Fargate.
+- [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم): خوشه‌های استاندارد، GKE Autopilot، EKS Fargate یا OpenShift.
 - [گزینه‌های رایج](#گزینههای-رایج): تنظیماتی که بیشتر خوشه‌ها تغییر می‌دهند.
 - [رفع اشکال](#رفع-اشکال): یک اسکریپت تشخیصی، و مشکلات معمول.
 :::
@@ -92,10 +92,13 @@ kubectl get pods -n oneuptime-agent
 | `standard` (پیش‌فرض) | خودمدیریت، **EKS on EC2**، **GKE Standard**، **AKS**، minikube، kind، k3s | گردآورنده گره `/var/log/pods` را می‌خواند | متریک‌های kubelet، cAdvisor و سیستم‌عامل |
 | `gke-autopilot` | **GKE Autopilot** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند | متریک‌های kubelet و cAdvisor، بدون `hostPath` |
 | `eks-fargate` | **EKS Fargate** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند | هیچ: Fargate هیچ DaemonSet اجرا نمی‌کند |
+| `openshift` | **OpenShift**: OpenShift Container Platform، ROSA، ARO، OKD | گردآورنده گره `/var/log/pods` را می‌خواند | متریک‌های kubelet، cAdvisor و سیستم‌عامل |
 
 اگر مطمئن نیستید، `preset` را تعیین‌نشده بگذارید تا `standard` را بگیرید. اگر نصب با خطای Pod Security که `hostPath` را نام می‌برد شکست خورد، دوباره با `gke-autopilot` نصب کنید، یا روی EKS Fargate با `eks-fargate`.
 
-GKE Autopilot و EKS Fargate پادهای privileged را هم رد می‌کنند، که ابزارگذاری eBPF و پروفایل‌گیری به آن‌ها نیاز دارند، پس پیش‌تنظیم‌هایشان هر دو را کنار می‌گذارند:
+GKE Autopilot و EKS Fargate پادهای privileged را هم رد می‌کنند، که ابزارگذاری eBPF و پروفایل‌گیری به آن‌ها نیاز دارند، پس پیش‌تنظیم‌هایشان هر دو را کنار می‌گذارند.
+
+روی OpenShift، محدودیت زمینه امنیتی پیش‌فرض (SCC)، یعنی `restricted-v2`، گردآورنده گره و پادهای eBPF را رد می‌کند. پیش‌تنظیم `openshift` برای هر کدام یک SCC می‌سازد که فقط حساب سرویس خودش از آن استفاده می‌کند، و می‌گذارد OpenShift شناسه کاربر همه پادهای دیگر را انتخاب کند:
 
 :::tabs
 @tab Standard
@@ -123,6 +126,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
 ```
 :::
 
@@ -355,7 +367,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `oneuptime.url` | (الزامی) | URL در OneUptime شما. |
 | `oneuptime.apiKey` | (الزامی) | کلید دریافت داده، از **تنظیمات پروژه → تله‌متری و APM → کلیدهای دریافت داده**. به‌صورت سرآیند `x-oneuptime-token` فرستاده می‌شود؛ کلید API پروژه کار نمی‌کند. |
 | `clusterName` | (الزامی) | نام خوشه، یکتا در پروژه. هر رکورد آن را به‌صورت `k8s.cluster.name` با خود دارد. |
-| `preset` | (خالی: `standard`) | `standard`، `gke-autopilot` یا `eks-fargate`. [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم) را ببینید. |
+| `preset` | (خالی: `standard`) | `standard`، `gke-autopilot`، `eks-fargate` یا `openshift`. [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم) را ببینید. |
 | `oneuptime.labels` | `{}` | برچسب‌هایی برای هر رکورد از این عامل. [برچسب زدن به خوشه](#برچسب-زدن-به-خوشه) را ببینید. |
 | `namespaceFilters.rules` | `kube-system` را از `podLogs` و `ebpfDiscovery` کنار می‌گذارد | قاعده‌هایی که namespaceها را برای `podLogs`، `ebpfDiscovery`، `metrics` و `traces` در بر می‌گیرند یا کنار می‌گذارند. الگوها می‌توانند از `*` استفاده کنند، و کنار گذاشتن همیشه برنده است. |
 | `filters.logs.minSeverity` | `""` | خط‌های لاگ پاد زیر این سطح را کنار می‌گذارد: `TRACE`، `DEBUG`، `INFO`، `WARN`، `ERROR` یا `FATAL`. |

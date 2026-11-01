@@ -24,10 +24,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * ADD A CUSTOM DOMAIN, on the real Custom Domains pages - a status page's
- * (Status Pages > <page> > Custom Domains) and a dashboard's (Dashboards >
- * <dashboard> > Custom Domains): real ModelTable, ModelFormModal, ModelForm
- * and EntityDropdown, with only the network stubbed. Every test runs on
- * both pages.
+ * (Status Pages > <page> > Custom Domains), a dashboard's (Dashboards >
+ * <dashboard> > Custom Domains) and a form's (Forms > <form> > Custom
+ * Domains): real ModelTable, ModelFormModal, ModelForm and EntityDropdown,
+ * with only the network stubbed. Every test runs on every page.
  *
  *   - Create opens one page: Subdomain, Domain, and the certificate
  *     options folded under Advanced. No steps (the dashboard form walked
@@ -36,8 +36,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     form fetches and the dropdown's own search both ask for
  *     isVerified = true, and an unverified domain is never on the menu.
  *   - Create adds the domain as before (the verified domain's id, the
- *     subdomain, the status page or dashboard), and the new domain's DNS
- *     Setup opens at once, with the record to add.
+ *     subdomain, the status page, dashboard or form), and the new domain's
+ *     DNS Setup opens at once, with the record to add.
+ *   - A refusal about the subdomain (a name in use) or the domain (no
+ *     longer verified) is said under that field, once; any other stays
+ *     over the form.
+ *   - Edit shows the certificate options at once: they are all it changes.
  */
 
 let allPermissionsForTest: Array<string> = [];
@@ -101,6 +105,7 @@ jest.mock("../../../UI/Config", () => {
 });
 
 const getListMock: MockFunction = getJestMockFunction();
+const getItemMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 
 /*
@@ -117,8 +122,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getList: (...args: Array<any>) => {
         return getListMock(...args);
       },
-      getItem: async (): Promise<null> => {
-        return null;
+      getItem: (...args: Array<any>) => {
+        return getItemMock(...args);
       },
       count: async (): Promise<number> => {
         return 0;
@@ -172,6 +177,7 @@ import FormCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Fo
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { DNS_SETUP_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
 import Domain from "../../../Models/DatabaseModels/Domain";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
 import FormDomain from "../../../Models/DatabaseModels/FormDomain";
@@ -246,6 +252,9 @@ type ListRequest = {
   query: Record<string, unknown>;
   limit: number;
 };
+
+// The custom domains the page lists: none, unless a test says.
+let domainRowsForTest: Array<unknown> = [];
 
 function domainListRequests(): Array<ListRequest> {
   return getListMock.mock.calls
@@ -344,8 +353,18 @@ describe.each(PAGES)("adding $name custom domain", (page: PageCase) => {
         };
       }
 
-      // No custom domain yet.
-      return { data: [], count: 0, skip: 0, limit: 10 };
+      // The page's custom domains: none yet, unless a test says.
+      return {
+        data: domainRowsForTest,
+        count: domainRowsForTest.length,
+        skip: 0,
+        limit: 10,
+      };
+    });
+
+    // A row read on its own (an Edit dialog's): none, unless a test says.
+    getItemMock.mockImplementation(async (): Promise<null> => {
+      return null;
     });
 
     // The server answers a create with the new row, its full domain worked out.
@@ -365,7 +384,9 @@ describe.each(PAGES)("adding $name custom domain", (page: PageCase) => {
   afterEach(() => {
     cleanup();
     getListMock.mockReset();
+    getItemMock.mockReset();
     createOrUpdateMock.mockReset();
+    domainRowsForTest = [];
     jest.restoreAllMocks();
   });
 
@@ -512,6 +533,212 @@ describe.each(PAGES)("adding $name custom domain", (page: PageCase) => {
     expect(
       within(dnsSetup).getByRole("button", { name: "Check now" }),
     ).toBeInTheDocument();
+  });
+
+  async function fillAndCreate(modal: HTMLElement): Promise<void> {
+    fireEvent.change(
+      within(modal).getByPlaceholderText(page.subdomainPlaceholder),
+      { target: { value: page.subdomain } },
+    );
+
+    const menu: HTMLElement = await openDomainMenu(modal);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(within(menu).getByRole("option", { name: "acme.com" }));
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(modal).getByRole("button", {
+          name: page.createButton,
+        }),
+      );
+    });
+  }
+
+  // The nearest box that holds both: a field's own, or the whole form's.
+  function boxHoldingBoth(first: HTMLElement, second: HTMLElement): Element {
+    let box: Element | null = first.parentElement;
+
+    while (box && !box.contains(second)) {
+      box = box.parentElement;
+    }
+
+    expect(box).not.toBeNull();
+    return box!;
+  }
+
+  /*
+   * A name another status page, dashboard or form already has used to be
+   * said in red over the whole form, while the subdomain to change sat
+   * under it: now it is said under the subdomain, once.
+   */
+  test("a name already in use is said under Subdomain, and changing the subdomain puts it away", async () => {
+    const fullDomain: string = `${page.subdomain}.acme.com`;
+    const inUse: string = `${fullDomain} is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove ${fullDomain} where it is used first.`;
+
+    createOrUpdateMock.mockImplementation(async (): Promise<never> => {
+      throw new HTTPErrorResponse(400, { message: inUse }, {});
+    });
+
+    const modal: HTMLElement = await openCreateForm();
+
+    await fillAndCreate(modal);
+
+    await waitFor(() => {
+      expect(within(modal).getAllByText(inUse)).toHaveLength(1);
+    });
+
+    const subdomain: HTMLElement = within(modal).getByPlaceholderText(
+      page.subdomainPlaceholder,
+    );
+    // The Domain field, by the link beside its title (picked, it is a button).
+    const domain: HTMLElement = within(modal).getByRole("link", {
+      name: "Add a domain",
+    });
+
+    expect(subdomain).toHaveAttribute("aria-invalid", "true");
+
+    // Under the subdomain: the box holding both is its own, not the form's.
+    expect(
+      boxHoldingBoth(within(modal).getByText(inUse), subdomain).contains(
+        domain,
+      ),
+    ).toBe(false);
+
+    // The form stays, for another subdomain: no DNS Setup for a domain not added.
+    expect(within(modal).queryByRole("heading", { name: "DNS Setup" })).toBe(
+      null,
+    );
+
+    fireEvent.change(subdomain, { target: { value: "help" } });
+
+    expect(within(modal).queryByText(inUse)).toBeNull();
+  });
+
+  test("a domain that is no longer verified is said under Domain", async () => {
+    const notVerified: string =
+      "This domain is not verified. Please verify it in Project Settings > Advanced > Domains.";
+
+    createOrUpdateMock.mockImplementation(async (): Promise<never> => {
+      throw new HTTPErrorResponse(400, { message: notVerified }, {});
+    });
+
+    const modal: HTMLElement = await openCreateForm();
+
+    await fillAndCreate(modal);
+
+    await waitFor(() => {
+      expect(within(modal).getAllByText(notVerified)).toHaveLength(1);
+    });
+
+    const subdomain: HTMLElement = within(modal).getByPlaceholderText(
+      page.subdomainPlaceholder,
+    );
+    // The Domain field, by the link beside its title (picked, it is a button).
+    const domain: HTMLElement = within(modal).getByRole("link", {
+      name: "Add a domain",
+    });
+
+    expect(
+      boxHoldingBoth(within(modal).getByText(notVerified), domain).contains(
+        subdomain,
+      ),
+    ).toBe(false);
+  });
+
+  test("an answer about neither field stays over the form", async () => {
+    const unreachable: string =
+      "We could not reach OneUptime. Check your connection and try again.";
+
+    createOrUpdateMock.mockImplementation(async (): Promise<never> => {
+      throw new HTTPErrorResponse(500, { message: unreachable }, {});
+    });
+
+    const modal: HTMLElement = await openCreateForm();
+
+    await fillAndCreate(modal);
+
+    await waitFor(() => {
+      expect(within(modal).getAllByText(unreachable)).toHaveLength(1);
+    });
+
+    // Over the form: the box holding it and the subdomain holds Domain too.
+    expect(
+      boxHoldingBoth(
+        within(modal).getByText(unreachable),
+        within(modal).getByPlaceholderText(page.subdomainPlaceholder),
+      ).contains(within(modal).getByRole("link", { name: "Add a domain" })),
+    ).toBe(true);
+    expect(
+      within(modal).getByPlaceholderText(page.subdomainPlaceholder),
+    ).not.toHaveAttribute("aria-invalid", "true");
+  });
+
+  /*
+   * The name is fixed once the domain is added, so the certificate is all
+   * an edit can change: Edit shows its options at once. Folded under More
+   * fields, as on Create, they left the Edit dialog with a fold's line and
+   * nothing else.
+   */
+  test("Edit shows the certificate options at once, with no fold", async () => {
+    const row: any = new (page.modelType as { new (): any })();
+    row._id = NEW_DOMAIN_ID;
+    row.fullDomain = `${page.subdomain}.acme.com`;
+    row.subdomain = page.subdomain;
+    row.isCnameVerified = true;
+    row.isSslOrdered = true;
+    row.isSslProvisioned = true;
+    row.isCustomCertificate = false;
+    domainRowsForTest = [row];
+
+    getItemMock.mockImplementation(async (): Promise<unknown> => {
+      return row;
+    });
+
+    render(<page.Page {...pageProps} />);
+
+    const tableRow: HTMLElement = await waitFor(
+      (): HTMLElement => {
+        const cell: HTMLElement | undefined = screen
+          .getAllByText(`${page.subdomain}.acme.com`)
+          .find((candidate: HTMLElement): boolean => {
+            return Boolean(candidate.closest("tr"));
+          });
+
+        if (!cell) {
+          throw new Error("No row yet");
+        }
+
+        return cell.closest("tr") as HTMLElement;
+      },
+      { timeout: 10000 },
+    );
+
+    fireEvent.click(within(tableRow).getByTestId("row-actions-more-button"));
+    fireEvent.click(
+      within(screen.getByRole("menu")).getByRole("menuitem", { name: "Edit" }),
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+
+    await within(modal).findByText("Upload Custom Certificate");
+    await act(async (): Promise<void> => {});
+
+    expect(within(modal).getByText("Upload Custom Certificate")).toBeVisible();
+    expect(
+      within(modal).queryByRole("button", { name: "More fields" }),
+    ).toBeNull();
+    // Nothing of the name, which an edit could not change.
+    expect(
+      within(modal).queryByPlaceholderText(page.subdomainPlaceholder),
+    ).toBeNull();
+    expect(
+      within(modal).queryByRole("combobox", { name: /^Domain/ }),
+    ).toBeNull();
+    expect(
+      within(modal).queryByRole("link", { name: "Add a domain" }),
+    ).toBeNull();
   });
 
   test("leaving Domain empty is refused on the form, and nothing is created", async () => {

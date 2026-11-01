@@ -569,11 +569,15 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
       "k8s_cluster",
       behaviour.CONNECTOR,
     ]);
-    // The template's list, but the processors only some values turn on;
-    // the script's render has the eBPF filter (eBPF is on by default).
+    // The template's list, but the processors only some values turn on:
+    // filter/telemetry (filters.metrics or a namespace filter) and
+    // resourcedetection/openshift (the openshift preset). The script's
+    // render has the eBPF filter (eBPF is on by default).
     expect(
       pipeline.processors.filter((name) => {
-        return name !== "filter/telemetry";
+        return (
+          name !== "filter/telemetry" && name !== "resourcedetection/openshift"
+        );
       }),
     ).toEqual(behaviour.METRICS_PIPELINE_PROCESSORS);
     expect(pipeline.exporters).toEqual(["otlphttp"]);

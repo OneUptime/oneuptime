@@ -9,6 +9,21 @@ OneUptime Kubernetes Agent has been installed.
 
 Cluster Name: {{ .Values.clusterName }}
 OneUptime URL: {{ .Values.oneuptime.url }}
+{{- /*
+The release went in without complaint, but OpenShift admits pods later, one
+at a time, so the only sign of a missing preset would be pods that never
+appear. The API server tells Helm it serves security.openshift.io on
+install and upgrade; helm template knows nothing of the cluster and prints
+no notes.
+*/}}
+{{- if and (.Capabilities.APIVersions.Has "security.openshift.io/v1") (ne (include "kubernetes-agent.openshift" .) "true") }}
+
+This cluster is OpenShift, but the preset is not openshift. OpenShift's
+default SCC, restricted-v2, refuses the agent's pods that mount node paths,
+run privileged or run as a fixed user, so some of what is listed below will
+not arrive. Switch to the openshift preset:
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set preset=openshift
+{{- end }}
 
 The agent is now collecting:
 {{- /* The node collector DaemonSet reads these; EKS Fargate runs no DaemonSet. */}}
@@ -105,6 +120,21 @@ To trace your services, send traces from them with an OpenTelemetry SDK.
 {{- else }}
 on every node, and GKE Autopilot refuses privileged pods. To trace your
 services, send traces from them with an OpenTelemetry SDK.
+{{- end }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+{{- $fullname := include "kubernetes-agent.fullname" . }}
+{{- $ebpf := eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
+{{- $profiling := eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
+Every pod runs under OpenShift's restricted-v2 SCC, except those that read
+the nodes, which run under SCCs this chart created for them alone:
+{{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
+  - {{ $fullname }}-node-collector: the node collector (read-only node
+    paths, as root with the SELinux type spc_t, no capabilities)
+{{- end }}
+{{- if or $ebpf $profiling }}
+  - {{ $fullname }}-ebpf: {{ if and $ebpf $profiling }}the eBPF instrumentation and the profiler{{ else if $ebpf }}the eBPF instrumentation{{ else }}the profiler{{ end }}
+    (privileged, in the host's PID namespace)
 {{- end }}
 {{- end }}
 {{- end }}

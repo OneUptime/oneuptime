@@ -1,0 +1,80 @@
+# The Microsoft cloud the server's Microsoft Teams runs in (MICROSOFT_TEAMS_CLOUD):
+# empty for the commercial cloud, or gcc, gcc-high or dod. A GCC High or DoD
+# tenant is unknown to the commercial cloud's hosts, so the Teams bot, the
+# Microsoft Teams sign-ins and the Teams meetings app all take their hosts from
+# it - in the app, and in the worker, whose jobs read and refresh Teams too.
+# It is not a secret: the Dashboard reads it as well, for its links to Teams.
+suite: microsoft teams cloud
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: leaves the cloud empty, for the commercial cloud
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_CLOUD
+            value: ""
+
+  - it: passes a US Government cloud to the app
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      microsoftTeamsApp.cloud: gcc-high
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_CLOUD
+            value: gcc-high
+
+  - it: passes it to the worker too
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker.enabled: true
+      microsoftTeamsApp.cloud: dod
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_CLOUD
+            value: dod
+
+  - it: takes GCC and the commercial cloud by name
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      microsoftTeamsApp.cloud: gcc
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MICROSOFT_TEAMS_CLOUD
+            value: gcc
+
+  # A value the server would refuse at every Teams request is refused at
+  # install time instead, where the operator sees it.
+  - it: refuses a value that names no Microsoft cloud
+    templates:
+      - templates/app.yaml
+    set:
+      microsoftTeamsApp.cloud: gcc high
+    asserts:
+      - failedTemplate:
+          errorPattern: "microsoftTeamsApp.cloud must be one of the following"

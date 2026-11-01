@@ -8,6 +8,7 @@ import EmailSize, {
 } from "../../../../Server/Utils/Mail/EmailSize";
 import {
   EmailInlineImage,
+  EmailOwnImage,
   MaxEmailInlineImageBytes,
 } from "../../../../Server/Utils/Mail/EmailInlineImages";
 import EmailLogo from "../../../../Server/Utils/Mail/EmailLogo";
@@ -309,6 +310,171 @@ describe("EmailSize.attachWithinLimit - OneUptime's logo (EmailLogo)", () => {
         return image.fileName;
       }),
     ).toEqual(["image-1.png"]);
+  });
+});
+
+describe("EmailSize.attachWithinLimit - a logo the email carries (EmailCarriedLogos)", () => {
+  /*
+   * A logo an operator uploaded - the installation's own, a status page's -
+   * goes inside the email in place of its address (EmailCarriedLogos), and
+   * out as an attachment as OneUptime's logo does: first, counted first,
+   * and never left out to make the email fit.
+   */
+  const carriedLogo: (bytes: number) => EmailOwnImage = (
+    bytes: number,
+  ): EmailOwnImage => {
+    return { dataUri: pngDataUri(bytes), fileName: "logo.png" };
+  };
+
+  const logoTag: (logo: EmailOwnImage) => string = (
+    logo: EmailOwnImage,
+  ): string => {
+    return `<img src="${logo.dataUri}" height="40" alt="Acme Status">`;
+  };
+
+  const fileNames: (attached: EmailWithinLimit) => Array<string> = (
+    attached: EmailWithinLimit,
+  ): Array<string> => {
+    return attached.inlineImages.map((image: EmailInlineImage): string => {
+      return image.fileName;
+    });
+  };
+
+  const pointsAtEveryAttachment: (attached: EmailWithinLimit) => void = (
+    attached: EmailWithinLimit,
+  ): void => {
+    for (const image of attached.inlineImages) {
+      expect(attached.html).toContain(`src="cid:${image.contentId}"`);
+    }
+
+    expect(attached.html).not.toContain("data:image");
+  };
+
+  test("goes out as an attachment the HTML points at, under the name it was given", () => {
+    const logo: EmailOwnImage = carriedLogo(20000);
+
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `${logoTag(logo)}<p>Hello</p>`,
+      MAX_EMAIL_BYTES,
+      [logo],
+    );
+
+    expect(attached.wasFitted).toBe(false);
+    expect(fileNames(attached)).toEqual(["logo.png"]);
+    expect(attached.html).toBe(
+      `<img src="cid:${attached.inlineImages[0]!.contentId}" height="40" alt="Acme Status"><p>Hello</p>`,
+    );
+    expect(attached.inlineImages[0]!.base64).toBe(
+      logo.dataUri.slice("data:image/png;base64,".length),
+    );
+  });
+
+  test("comes after OneUptime's logo and before the screenshots, and is not one of them", () => {
+    const logo: EmailOwnImage = carriedLogo(20000);
+    const oneUptimeLogo: string = `<img src="${EmailLogo.getDataUrl() as string}" width="32" height="32" alt="OneUptime">`;
+    const shots: string = Array.from(
+      { length: 20 },
+      (_: unknown, index: number): string => {
+        return image(1000, `Shot ${index + 1}`);
+      },
+    ).join("");
+
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `${oneUptimeLogo}${logoTag(logo)}${shots}`,
+      MAX_EMAIL_BYTES,
+      [logo],
+    );
+
+    expect(fileNames(attached).slice(0, 3)).toEqual([
+      "oneuptime-logo.png",
+      "logo.png",
+      "image-1.png",
+    ]);
+    // Twenty screenshots still fit beside the two logos.
+    expect(attached.inlineImages).toHaveLength(22);
+    pointsAtEveryAttachment(attached);
+  });
+
+  test("stays when screenshots are left out to fit, and is counted", () => {
+    const logo: EmailOwnImage = carriedLogo(500000);
+    const html: string = `${logoTag(logo)}<p>${"a".repeat(1024 * 1024)}</p>${image(900000, "First")}${image(900000, "Second")}`;
+
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      html,
+      MAX_EMAIL_BYTES,
+      [logo],
+    );
+
+    expect(attached.wasFitted).toBe(true);
+    expect(fileNames(attached)[0]).toBe("logo.png");
+    expect(attached.html).toContain("image too large to include in this email");
+    expect(attached.html).not.toContain("Acme Status: image too large");
+    expect(EmailSize.getSizeInBytes(attached)).toBeLessThanOrEqual(
+      MAX_EMAIL_BYTES,
+    );
+    pointsAtEveryAttachment(attached);
+  });
+
+  test("stays when HTML too big on its own is cut, and the whole is within the limit", () => {
+    const logo: EmailOwnImage = carriedLogo(300000);
+    const html: string = `${logoTag(logo)}<p>${"word ".repeat(1000000)}</p>`;
+
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      html,
+      MAX_EMAIL_BYTES,
+      [logo],
+    );
+
+    expect(attached.wasFitted).toBe(true);
+    expect(fileNames(attached)).toEqual(["logo.png"]);
+    expect(attached.html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)).toBe(true);
+    expect(EmailSize.getSizeInBytes(attached)).toBeLessThanOrEqual(
+      MAX_EMAIL_BYTES,
+    );
+    pointsAtEveryAttachment(attached);
+  });
+
+  test("is not attached when the HTML that showed it was cut away", () => {
+    const logo: EmailOwnImage = carriedLogo(2000);
+
+    // The logo's 2,668 characters of base64 leave too little for the text.
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `<p>${"x".repeat(5000)}</p>${logoTag(logo)}`,
+      7000,
+      [logo],
+    );
+
+    expect(attached.wasFitted).toBe(true);
+    expect(attached.inlineImages).toEqual([]);
+    expect(attached.html).not.toContain("cid:");
+  });
+
+  test("a logo the HTML does not show is not attached", () => {
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      "<p>Hello</p>",
+      MAX_EMAIL_BYTES,
+      [carriedLogo(2000)],
+    );
+
+    expect(attached.inlineImages).toEqual([]);
+    expect(attached.html).toBe("<p>Hello</p>");
+  });
+
+  test("two logos the email carries each go once, in the order given", () => {
+    const first: EmailOwnImage = carriedLogo(2000);
+    const second: EmailOwnImage = {
+      dataUri: pngDataUri(3000),
+      fileName: "status-logo.png",
+    };
+
+    const attached: EmailWithinLimit = EmailSize.attachWithinLimit(
+      `${logoTag(second)}${logoTag(first)}${logoTag(first)}`,
+      MAX_EMAIL_BYTES,
+      [first, second],
+    );
+
+    expect(fileNames(attached)).toEqual(["logo.png", "status-logo.png"]);
+    pointsAtEveryAttachment(attached);
   });
 });
 

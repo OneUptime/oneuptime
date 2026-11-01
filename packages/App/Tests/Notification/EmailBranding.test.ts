@@ -30,6 +30,8 @@ import Dictionary from "Common/Types/Dictionary";
 import {
   BRAND_VARIABLE_NAMES,
   ONEUPTIME_LOGO_VARIABLE_NAME,
+  PRODUCT_LOGO_ATTACHMENT_NAME,
+  getCarriedProductLogo,
   getCurrentEmailBrandingVariables,
   getEmailBrandingVariables,
   toAbsoluteUrl,
@@ -231,6 +233,120 @@ describe("getCurrentEmailBrandingVariables", () => {
       brandProductName: "OneUptime",
       oneUptimeLogoUrl: ONEUPTIME_LOGO,
     });
+  });
+});
+
+/*
+ * The installation's own logo goes inside an email that shows it, in place
+ * of its address (Common/Server/Utils/Mail/EmailCarriedLogos): MailService
+ * asks getCarriedProductLogo for every image address of an email just
+ * before it goes out.
+ */
+describe("getCarriedProductLogo", () => {
+  const LOGO_PATH: string = "/api/branding/logo?v=1730000000000";
+  const LOGO_ADDRESS: string = `https://status.acme.example${LOGO_PATH}`;
+  const PNG_BYTES: Buffer = Buffer.from(
+    ONEUPTIME_LOGO.slice("data:image/png;base64,".length),
+    "base64",
+  );
+
+  const brandWithLogo: (branding?: ProductBranding) => void = (
+    branding?: ProductBranding,
+  ): void => {
+    jest.spyOn(EnterpriseEdition, "getProductBranding").mockReturnValue(
+      branding || {
+        productName: "Acme Ops",
+        logoUrl: LOGO_PATH,
+        isLogoEmailSafe: true,
+      },
+    );
+  };
+
+  test("the address the header shows the logo from: the logo itself, as an email carries it", () => {
+    brandWithLogo();
+    jest
+      .spyOn(EnterpriseEdition, "getProductBrandingLogo")
+      .mockReturnValue(PNG_BYTES);
+
+    // The header's address, exactly as getEmailBrandingVariables gives it.
+    expect(
+      getEmailBrandingVariables(EnterpriseEdition.getProductBranding())[
+        "brandLogoUrl"
+      ],
+    ).toBe(LOGO_ADDRESS);
+
+    expect(getCarriedProductLogo(LOGO_ADDRESS)).toEqual({
+      dataUri: ONEUPTIME_LOGO,
+      fileName: `${PRODUCT_LOGO_ATTACHMENT_NAME}.png`,
+    });
+  });
+
+  test("written once for every email that shows the same logo", () => {
+    brandWithLogo();
+    jest
+      .spyOn(EnterpriseEdition, "getProductBrandingLogo")
+      .mockReturnValue(PNG_BYTES);
+
+    expect(getCarriedProductLogo(LOGO_ADDRESS)).toBe(
+      getCarriedProductLogo(LOGO_ADDRESS),
+    );
+  });
+
+  test("any other address is not the installation's logo", () => {
+    brandWithLogo();
+    const bytes: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(EnterpriseEdition, "getProductBrandingLogo")
+      .mockReturnValue(PNG_BYTES);
+
+    for (const address of [
+      "https://status.acme.example/api/branding/logo?v=1",
+      "https://evil.example/api/branding/logo?v=1730000000000",
+      "https://status.acme.example/api/branding/dark-logo?v=1730000000000",
+      "https://status.acme.example/status-page-api/logo/2b0f6f3f-6c11-4bd1-8bb0-0d3b1c0e58f1",
+      "",
+    ]) {
+      expect(getCarriedProductLogo(address)).toBeNull();
+    }
+
+    // The bytes are never even asked for.
+    expect(bytes).not.toHaveBeenCalled();
+  });
+
+  test("no logo of the installation's own, or one no email shows (SVG, WebP): nothing", () => {
+    jest
+      .spyOn(EnterpriseEdition, "getProductBrandingLogo")
+      .mockReturnValue(PNG_BYTES);
+
+    for (const branding of [
+      null,
+      {},
+      { productName: "Acme" },
+      { logoUrl: LOGO_PATH },
+      { logoUrl: LOGO_PATH, isLogoEmailSafe: false },
+    ]) {
+      jest
+        .spyOn(EnterpriseEdition, "getProductBranding")
+        .mockReturnValue(branding as ProductBranding | null);
+
+      expect(getCarriedProductLogo(LOGO_ADDRESS)).toBeNull();
+    }
+  });
+
+  test("bytes the module does not hand over, or cannot go in every email: the address stays", () => {
+    brandWithLogo();
+
+    const tooLarge: Buffer = Buffer.concat([
+      PNG_BYTES.subarray(0, 8),
+      Buffer.alloc(512 * 1024, 1),
+    ]);
+
+    for (const bytes of [null, tooLarge, Buffer.from("<svg></svg>")]) {
+      jest
+        .spyOn(EnterpriseEdition, "getProductBrandingLogo")
+        .mockReturnValue(bytes);
+
+      expect(getCarriedProductLogo(LOGO_ADDRESS)).toBeNull();
+    }
   });
 });
 

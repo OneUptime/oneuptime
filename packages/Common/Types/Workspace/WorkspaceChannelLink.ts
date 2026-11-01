@@ -1,6 +1,9 @@
 import { JSONArray, JSONObject } from "../JSON";
 import WorkspaceType from "./WorkspaceType";
 import { SLACK_ID_PATTERN } from "./ConnectCallback";
+import MicrosoftTeamsCloudUtil, {
+  MicrosoftTeamsCloud,
+} from "./MicrosoftTeamsCloud";
 
 /*
  * WHERE A RECORD'S OWN CHAT CHANNEL IS.
@@ -50,8 +53,6 @@ const MICROSOFT_ID_PATTERN: RegExp =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 const SLACK_REDIRECT_URL: string = "https://slack.com/app_redirect";
-const MICROSOFT_TEAMS_CHANNEL_URL: string =
-  "https://teams.microsoft.com/l/channel";
 
 export default class WorkspaceChannelLinkUtil {
   /*
@@ -77,15 +78,18 @@ export default class WorkspaceChannelLinkUtil {
   /*
    * Microsoft Teams' link to a channel - what "Get link to channel" copies:
    * https://teams.microsoft.com/l/channel/<channel id>/<channel name>
-   * ?groupId=<team id>&tenantId=<tenant id>. The tenant is left out when it
-   * is not known; Teams finds the channel by its team. Null unless the ids
-   * have the shapes Microsoft gives them.
+   * ?groupId=<team id>&tenantId=<tenant id>, on Teams on the web of the
+   * Microsoft cloud the team is in (`teamsWebOrigin`, the commercial
+   * cloud's when not given; gov.teams.microsoft.us in GCC High). The tenant
+   * is left out when it is not known; Teams finds the channel by its team.
+   * Null unless the ids have the shapes Microsoft gives them.
    */
   public static getMicrosoftTeamsChannelUrl(data: {
     tenantId: string | undefined;
     teamId: string | undefined;
     channelId: string | undefined;
     channelName: string | undefined;
+    teamsWebOrigin?: string | undefined;
   }): string | null {
     const tenantId: string = (data.tenantId || "").trim();
     const teamId: string = (data.teamId || "").trim();
@@ -99,7 +103,12 @@ export default class WorkspaceChannelLinkUtil {
       return null;
     }
 
-    let url: string = `${MICROSOFT_TEAMS_CHANNEL_URL}/${encodeURIComponent(
+    const teamsWebOrigin: string =
+      data.teamsWebOrigin ||
+      MicrosoftTeamsCloudUtil.getHosts(MicrosoftTeamsCloud.Commercial)
+        .teamsWebOrigin;
+
+    let url: string = `${teamsWebOrigin}/l/channel/${encodeURIComponent(
       channelId,
     )}/${encodeURIComponent(channelName)}?groupId=${teamId}`;
 
@@ -196,8 +205,9 @@ export default class WorkspaceChannelLinkUtil {
       return parsed.host === "slack.com";
     }
 
+    // Teams on the web, in whichever Microsoft cloud the team is.
     if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
-      return parsed.host === "teams.microsoft.com";
+      return MicrosoftTeamsCloudUtil.isTeamsWebHost(parsed.host);
     }
 
     return false;
