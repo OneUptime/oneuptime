@@ -41,9 +41,9 @@ import { THEME_STORAGE_KEY } from "../../Types/Theme/ThemePreference";
  *     and another person's would silently misdate every page (User.logout).
  *   - The time range, auto-refresh and sort they picked on a dashboard
  *     (DashboardViewerPicks.ts). The docs promise these are theirs alone and
- *     that nobody else sees them, and no signed-out page reads them for an
- *     account. A wall screen that must outlive a session carries its range
- *     and refresh in its address (?range=, ?refresh=).
+ *     that nobody else sees them, and the sign-in pages never read them. A
+ *     wall screen that must outlive a session carries its range and refresh
+ *     in its address (?range=, ?refresh=), which beats a kept pick.
  *   - A table's widths, columns, density and page size: whoever signs in next
  *     finds every table as the product draws it (useColumnWidths.ts).
  *

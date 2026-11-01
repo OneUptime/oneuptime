@@ -129,7 +129,7 @@ Du kan tillhöra hur många projekt som helst. Projektväljaren uppe till vänst
 
 ## Språk och tema
 
-Båda sparas i din webbläsare, inte i ditt konto, så ställ in dem igen i en annan webbläsare eller på en annan enhet.
+Båda sparas i din webbläsare, inte i ditt konto, så ställ in dem igen i en annan webbläsare eller på en annan enhet. De finns kvar när du loggar ut, så på en delad dator börjar nästa person med dina inställningar.
 
 - **Språk**: instrumentpanelen startar på webbläsarens språk. Använd språkmenyn längst ned på varje sida för att byta. Den här dokumentationen har en egen språkmeny högst upp.
 - **Tema**: välj **Ljust**, **Mörkt** eller **System** i användarmenyn. **System** är ljust eller mörkt beroende på hur din enhet är inställd, och växlar med den; alla webbläsare startar med det. Inloggningssidorna använder samma tema.
