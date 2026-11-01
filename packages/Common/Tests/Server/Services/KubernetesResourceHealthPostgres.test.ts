@@ -468,9 +468,11 @@ describePostgres("KubernetesResource health on Postgres", () => {
 
       expect(result.isTruncated).toBe(false);
       expect(
-        result.findings.map((finding: { key: string; podCount?: number }) => {
-          return [finding.key, finding.podCount];
-        }),
+        result.findings.map(
+          (finding: { key: string; podCount?: number | undefined }) => {
+            return [finding.key, finding.podCount];
+          },
+        ),
       ).toEqual([["Deployment:payments/checkout", 2]]);
     });
 
