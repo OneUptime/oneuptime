@@ -10,6 +10,7 @@ import ExceptionMonitorMeasureReader, {
   ENTITY_FINGERPRINT_LIMIT,
   ExceptionMonitorMeasures,
 } from "../../../../Server/Utils/Monitor/ExceptionMonitorMeasures";
+import ExceptionLearnedBaselineUtil from "../../../../Server/Utils/Monitor/ExceptionLearnedBaseline";
 import ExceptionMonitorCriteria from "../../../../Server/Utils/Monitor/Criteria/ExceptionMonitorCriteria";
 import MonitorCriteriaObservationBuilder from "../../../../Server/Utils/Monitor/MonitorCriteriaObservationBuilder";
 import TelemetryExceptionService from "../../../../Server/Services/TelemetryExceptionService";
@@ -27,8 +28,11 @@ import {
   CheckOn,
   CriteriaFilter,
   FilterType,
+  MetricAnomalyDetectionOptions,
 } from "../../../../Types/Monitor/CriteriaFilter";
-import ExceptionMonitorResponse from "../../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import ExceptionMonitorResponse, {
+  ExceptionLearnedBaseline,
+} from "../../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import MonitorCriteria from "../../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
@@ -892,5 +896,221 @@ describe("the criteria and the status timeline", () => {
     expect(describe(CheckOn.ExceptionCountIncreasePercent)).toBe(
       "Exception count was 40, 300% above the usual 10 per window over the day before.",
     );
+  });
+});
+
+describe("ExceptionMonitorMeasureReader.read: the learned baseline", () => {
+  type BaselineRead = Parameters<typeof ExceptionLearnedBaselineUtil.read>[0];
+
+  const baselineOf: (windowDays: number) => ExceptionLearnedBaseline = (
+    windowDays: number,
+  ): ExceptionLearnedBaseline => {
+    return {
+      windowDays,
+      windowSeconds: 300,
+      weeksOfHistory: 2,
+      sampleCount: 24,
+      mean: 2,
+      stddev: 1.5,
+      median: 2,
+      madSigma: 1.5,
+      minObserved: 0,
+      maxObserved: 6,
+    };
+  };
+
+  let reads: Array<BaselineRead>;
+
+  function anomalyStep(
+    options: Array<MetricAnomalyDetectionOptions | undefined>,
+    extraCheckOns: Array<CheckOn> = [],
+  ): MonitorStep {
+    const step: MonitorStep = stepWith(extraCheckOns);
+    const instance: MonitorCriteriaInstance =
+      step.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0]!;
+
+    instance.data!.filters = [
+      ...instance.data!.filters,
+      ...options.map(
+        (
+          anomalyDetection: MetricAnomalyDetectionOptions | undefined,
+        ): CriteriaFilter => {
+          return {
+            checkOn: CheckOn.ExceptionCount,
+            filterType: FilterType.AnomalouslyHigh,
+            value: undefined,
+            metricMonitorOptions: { anomalyDetection },
+          };
+        },
+      ),
+    ];
+
+    return step;
+  }
+
+  const countQuery: Record<string, unknown> = {
+    projectId: PROJECT_ID,
+    fingerprint: new IncludesNone(["resolved-one"]),
+    time: new InBetween(new Date(UNTIL.getTime() - 300000), UNTIL),
+  };
+
+  async function readStep(
+    monitorStep: MonitorStep,
+    overrides: Partial<MonitorStepExceptionMonitor> = {},
+  ): Promise<ExceptionMonitorMeasures> {
+    return await ExceptionMonitorMeasureReader.read({
+      projectId: PROJECT_ID,
+      monitorStep,
+      config: config(overrides),
+      countQuery,
+      exceptionCount: 40,
+      evaluateUntil: UNTIL,
+    });
+  }
+
+  beforeEach(() => {
+    reads = [];
+
+    jest.spyOn(ExceptionLearnedBaselineUtil, "read").mockImplementation((async (
+      data: BaselineRead,
+    ) => {
+      reads.push(data);
+      return baselineOf(data.windowDays);
+    }) as never);
+  });
+
+  test("a plain count reads no baseline", async () => {
+    expect(await read([CheckOn.ExceptionCount])).toEqual({});
+    expect(reads).toHaveLength(0);
+  });
+
+  test("the rise over the usual still reads the day before, and no baseline", async () => {
+    await read([CheckOn.ExceptionCountIncreasePercent]);
+
+    expect(occurrenceCalls).toHaveLength(1);
+    expect(reads).toHaveLength(0);
+  });
+
+  test("an anomaly condition reads its baseline, and not the day before", async () => {
+    const measures: ExceptionMonitorMeasures = await readStep(
+      anomalyStep([undefined]),
+    );
+
+    expect(measures).toEqual({ exceptionLearnedBaselines: [baselineOf(14)] });
+    expect(occurrenceCalls).toHaveLength(0);
+    expect(groupCalls).toHaveLength(0);
+  });
+
+  test("it is the window's own query that is read, ending when the check does", async () => {
+    await readStep(anomalyStep([undefined]));
+
+    expect(reads).toHaveLength(1);
+    expect(reads[0]).toMatchObject({
+      projectId: PROJECT_ID,
+      telemetryServiceIds: [SERVICE_ID],
+      windowStart: new Date(UNTIL.getTime() - 300000),
+      windowEnd: UNTIL,
+      windowSeconds: 300,
+      windowDays: 14,
+    });
+    expect(reads[0]!.countQuery).toBe(countQuery);
+  });
+
+  test("one read per baseline window, not per criteria", async () => {
+    const measures: ExceptionMonitorMeasures = await readStep(
+      anomalyStep([undefined, { windowDays: 28 }, { windowDays: 28 }]),
+    );
+
+    expect(
+      reads.map((data: BaselineRead): number => {
+        return data.windowDays;
+      }),
+    ).toEqual([14, 28]);
+    expect(measures.exceptionLearnedBaselines).toEqual([
+      baselineOf(14),
+      baselineOf(28),
+    ]);
+  });
+
+  test("a window that is not a whole number of seconds is rounded: countPerWindow takes whole ones", async () => {
+    await readStep(anomalyStep([undefined]), {
+      lastXSecondsOfExceptions: 90.4,
+    });
+
+    expect(reads[0]!.windowSeconds).toBe(90);
+  });
+
+  test("read with the other measures, each is kept", async () => {
+    groupCounts = [3];
+
+    const measures: ExceptionMonitorMeasures = await readStep(
+      anomalyStep([undefined], [CheckOn.NewExceptionCount]),
+    );
+
+    expect(measures.newExceptionCount).toBe(3);
+    expect(measures.exceptionLearnedBaselines).toEqual([baselineOf(14)]);
+  });
+
+  test("a baseline that cannot be read is logged and left out; the check stands", async () => {
+    const errors: SpyInstance = jest
+      .spyOn(logger, "error")
+      .mockImplementation((() => {
+        return undefined;
+      }) as never);
+
+    jest
+      .spyOn(ExceptionLearnedBaselineUtil, "read")
+      .mockRejectedValue(new Error("timed out"));
+
+    groupCounts = [3];
+
+    const measures: ExceptionMonitorMeasures = await readStep(
+      anomalyStep([undefined], [CheckOn.NewExceptionCount]),
+    );
+
+    expect(measures).toEqual({ newExceptionCount: 3 });
+    expect(errors).toHaveBeenCalled();
+  });
+
+  test("one baseline window failing leaves the other", async () => {
+    jest.spyOn(logger, "error").mockImplementation((() => {
+      return undefined;
+    }) as never);
+
+    jest.spyOn(ExceptionLearnedBaselineUtil, "read").mockImplementation((async (
+      data: BaselineRead,
+    ) => {
+      if (data.windowDays === 28) {
+        throw new Error("timed out");
+      }
+
+      return baselineOf(data.windowDays);
+    }) as never);
+
+    const measures: ExceptionMonitorMeasures = await readStep(
+      anomalyStep([undefined, { windowDays: 28 }]),
+    );
+
+    expect(measures.exceptionLearnedBaselines).toEqual([baselineOf(14)]);
+  });
+
+  test("what was read is what the criteria judges", async () => {
+    const step: MonitorStep = anomalyStep([undefined]);
+    const measures: ExceptionMonitorMeasures = await readStep(step);
+
+    expect(
+      await ExceptionMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: {
+          projectId: PROJECT_ID,
+          monitorId: ObjectID.generate(),
+          exceptionCount: 40,
+          exceptionQuery: {},
+          ...measures,
+        } as ExceptionMonitorResponse,
+        criteriaFilter:
+          step.data!.monitorCriteria!.data!.monitorCriteriaInstanceArray[0]!
+            .data!.filters[0]!,
+      }),
+    ).toContain("expected for this hour of the week");
   });
 });

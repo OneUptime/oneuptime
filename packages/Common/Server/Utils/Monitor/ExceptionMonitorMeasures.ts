@@ -15,6 +15,7 @@ import {
   getExceptionMonitorNeeds,
   getUsualExceptionCount,
 } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
+import { ExceptionLearnedBaseline } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepExceptionMonitor, {
   MonitorStepExceptionMonitorUtil,
@@ -25,6 +26,7 @@ import AnalyticsQuery from "../../Types/AnalyticsDatabase/Query";
 import DatabaseQuery from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
+import ExceptionLearnedBaselineUtil from "./ExceptionLearnedBaseline";
 
 /*
  * WHAT AN EXCEPTIONS MONITOR READS BEYOND ITS COUNT, WHEN ITS CRITERIA ASK.
@@ -42,8 +44,9 @@ import logger from "../Logger";
  * without one reads exactly what it always did. The usual count is the
  * monitor's own occurrence count over the day before its window, with the
  * same filters and the same resolved and archived exceptions left out,
- * spread over windows of its length. Each is read only when a criteria
- * checks it (getExceptionMonitorNeeds).
+ * spread over windows of its length. What is normal for the hour of the week
+ * is that same query over the earlier weeks (ExceptionLearnedBaseline). Each
+ * is read only when a criteria checks it (getExceptionMonitorNeeds).
  */
 
 /*
@@ -58,6 +61,7 @@ export interface ExceptionMonitorMeasures {
   regressedExceptionCount?: number | undefined;
   exceptionCountBaseline?: number | undefined;
   exceptionCountIncreasePercent?: number | undefined;
+  exceptionLearnedBaselines?: Array<ExceptionLearnedBaseline> | undefined;
 }
 
 export default class ExceptionMonitorMeasureReader {
@@ -74,7 +78,12 @@ export default class ExceptionMonitorMeasureReader {
       data.monitorStep,
     );
 
-    if (!needs.newExceptions && !needs.regressedExceptions && !needs.baseline) {
+    if (
+      !needs.newExceptions &&
+      !needs.regressedExceptions &&
+      !needs.baseline &&
+      needs.learnedBaselineWindowDays.length === 0
+    ) {
       return {};
     }
 
@@ -130,26 +139,36 @@ export default class ExceptionMonitorMeasureReader {
       });
     };
 
-    const [newCount, regressedCount, previousCount] = await Promise.all([
-      needs.newExceptions
-        ? countGroupsWhere({
-            firstSeenAt: QueryHelper.inBetween(windowStart, windowEnd),
-          })
-        : Promise.resolve(undefined),
-      needs.regressedExceptions
-        ? countGroupsWhere({
-            regressedAt: QueryHelper.inBetween(windowStart, windowEnd),
-            // Came back and still open: resolved again since, it is fixed.
-            isResolved: false,
-          })
-        : Promise.resolve(undefined),
-      needs.baseline
-        ? ExceptionMonitorMeasureReader.countPreviousOccurrences({
-            countQuery: data.countQuery,
-            windowStart,
-          })
-        : Promise.resolve(undefined),
-    ]);
+    const [newCount, regressedCount, previousCount, learnedBaselines] =
+      await Promise.all([
+        needs.newExceptions
+          ? countGroupsWhere({
+              firstSeenAt: QueryHelper.inBetween(windowStart, windowEnd),
+            })
+          : Promise.resolve(undefined),
+        needs.regressedExceptions
+          ? countGroupsWhere({
+              regressedAt: QueryHelper.inBetween(windowStart, windowEnd),
+              // Came back and still open: resolved again since, it is fixed.
+              isResolved: false,
+            })
+          : Promise.resolve(undefined),
+        needs.baseline
+          ? ExceptionMonitorMeasureReader.countPreviousOccurrences({
+              countQuery: data.countQuery,
+              windowStart,
+            })
+          : Promise.resolve(undefined),
+        ExceptionMonitorMeasureReader.readLearnedBaselines({
+          projectId: data.projectId,
+          config: data.config,
+          countQuery: data.countQuery,
+          windowStart,
+          windowEnd,
+          windowSeconds,
+          windowDays: needs.learnedBaselineWindowDays,
+        }),
+      ]);
 
     if (newCount !== undefined) {
       measures.newExceptionCount = newCount;
@@ -173,7 +192,60 @@ export default class ExceptionMonitorMeasureReader {
       });
     }
 
+    if (learnedBaselines.length > 0) {
+      measures.exceptionLearnedBaselines = learnedBaselines;
+    }
+
     return measures;
+  }
+
+  /*
+   * The learned baseline of each baseline window the criteria ask for. One
+   * that cannot be read is left out: its criteria read as still learning,
+   * and the count and every other measure of the check still stand.
+   */
+  private static async readLearnedBaselines(data: {
+    projectId: ObjectID;
+    config: MonitorStepExceptionMonitor;
+    countQuery: AnalyticsQuery<ExceptionInstance>;
+    windowStart: Date;
+    windowEnd: Date;
+    windowSeconds: number;
+    windowDays: Array<number>;
+  }): Promise<Array<ExceptionLearnedBaseline>> {
+    const baselines: Array<ExceptionLearnedBaseline | null> = await Promise.all(
+      data.windowDays.map(
+        async (
+          windowDays: number,
+        ): Promise<ExceptionLearnedBaseline | null> => {
+          try {
+            return await ExceptionLearnedBaselineUtil.read({
+              projectId: data.projectId,
+              telemetryServiceIds: data.config.telemetryServiceIds,
+              countQuery: data.countQuery,
+              windowStart: data.windowStart,
+              windowEnd: data.windowEnd,
+              windowSeconds: Math.max(1, Math.round(data.windowSeconds)),
+              windowDays,
+            });
+          } catch (err) {
+            logger.error(
+              "Error reading the learned baseline of an Exceptions monitor",
+            );
+            logger.error(err);
+            return null;
+          }
+        },
+      ),
+    );
+
+    return baselines.filter(
+      (
+        baseline: ExceptionLearnedBaseline | null,
+      ): baseline is ExceptionLearnedBaseline => {
+        return baseline !== null;
+      },
+    );
   }
 
   /*

@@ -3,13 +3,20 @@ import TelemetryRulePreview from "./TelemetryRulePreview";
 import { IncidentRoleOption } from "../MonitorCriteriaIncidentForm";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  ANOMALY_WINDOW_DAYS_OPTIONS,
   AnomalyDetectionSensitivity,
   CheckOn,
+  DEFAULT_ANOMALY_WINDOW_DAYS,
   EvaluateOverTimeType,
   FilterType,
+  MetricAnomalyDetectionOptions,
   NoDataPolicy,
 } from "Common/Types/Monitor/CriteriaFilter";
-import { isExceptionMeasure } from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
+import {
+  ExceptionAnomalySettings,
+  getExceptionAnomalySettings,
+  isExceptionMeasure,
+} from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
@@ -72,6 +79,7 @@ import {
 import {
   applyActionChange,
   applyConditionChange,
+  getMeasureChange,
 } from "../../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleEdits";
 
 /*
@@ -202,6 +210,65 @@ const toDropdownOptions: <T extends string>(
   });
 };
 
+/*
+ * A number a rule can leave to its default: empty means the placeholder's.
+ * The text as typed, as the value box keeps it: "2." is not a number yet.
+ */
+const OptionalNumberField: FunctionComponent<{
+  title: string;
+  description: string;
+  value: number | undefined;
+  placeholder: number;
+  dataTestId: string;
+  onChange: (value: number | undefined) => void;
+}> = (props: {
+  title: string;
+  description: string;
+  value: number | undefined;
+  placeholder: number;
+  dataTestId: string;
+  onChange: (value: number | undefined) => void;
+}): ReactElement => {
+  const inputId: string = useId();
+  const [text, setText] = useState<string>(
+    props.value === undefined ? "" : String(props.value),
+  );
+
+  useEffect(() => {
+    if (TelemetryAlertRuleUtil.toNumber(text) !== props.value) {
+      setText(props.value === undefined ? "" : String(props.value));
+    }
+  }, [props.value]);
+
+  return (
+    <div>
+      <FieldLabelElement
+        title={props.title}
+        description={props.description}
+        htmlFor={inputId}
+        hideOptionalLabel={true}
+      />
+      <Input
+        id={inputId}
+        dataTestId={props.dataTestId}
+        type={InputType.NUMBER}
+        value={text}
+        placeholder={String(props.placeholder)}
+        onChange={(value: string) => {
+          setText(value);
+
+          const parsed: number | undefined =
+            TelemetryAlertRuleUtil.toNumber(value);
+
+          if (parsed !== props.value) {
+            props.onChange(parsed);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
 const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -228,6 +295,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   const sensitivityLabelId: string = useId();
   const noDataLabelId: string = useId();
   const measureLabelId: string = useId();
+  const baselineWindowLabelId: string = useId();
 
   /*
    * The value as typed: a box holding "1." or "-" while someone types is
@@ -247,6 +315,8 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   }, [rule?.threshold]);
 
   const [isMetricMoreCollapsed, setIsMetricMoreCollapsed] =
+    useState<boolean>(true);
+  const [isAnomalyMoreCollapsed, setIsAnomalyMoreCollapsed] =
     useState<boolean>(true);
 
   // The value box says it is empty once changed, or once the form is sent.
@@ -457,7 +527,11 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   const isAnomaly: boolean = TelemetryAlertRuleUtil.isAnomaly(rule.filterType);
 
   const comparisonOptions: Array<DropdownOption> = toDropdownOptions(
-    getComparisonChoices({ monitorType, current: rule.filterType }),
+    getComparisonChoices({
+      monitorType,
+      measure: rule.measure,
+      current: rule.filterType,
+    }),
   );
 
   const metricAliases: Array<string> = isMetric
@@ -630,12 +704,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
           options={measureOptions}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
             if (value && isExceptionMeasure(value)) {
-              changeCondition({
-                measure:
-                  value === CheckOn.ExceptionCount
-                    ? undefined
-                    : (value as CheckOn),
-              });
+              changeCondition(getMeasureChange({ rule, measure: value }));
             }
           }}
         />
@@ -775,6 +844,133 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
     </div>
   );
 
+  /*
+   * An exception rule's anomaly settings, for the few who need them. The
+   * rule works without: a sensitivity says the rest. Cleared, each goes
+   * back to what the sensitivity sets.
+   */
+  const changeAnomalyDetection: (
+    changes: Partial<MetricAnomalyDetectionOptions>,
+  ) => void = (changes: Partial<MetricAnomalyDetectionOptions>): void => {
+    const next: MetricAnomalyDetectionOptions = {
+      ...(rule.anomalyDetection || {}),
+      ...changes,
+    };
+
+    for (const key of Object.keys(next) as Array<
+      keyof MetricAnomalyDetectionOptions
+    >) {
+      if (next[key] === undefined) {
+        delete next[key];
+      }
+    }
+
+    changeCondition({ anomalyDetection: next });
+  };
+
+  const anomalySettings: ExceptionAnomalySettings = getExceptionAnomalySettings(
+    rule.anomalyDetection,
+  );
+  const defaultAnomalySettings: ExceptionAnomalySettings =
+    getExceptionAnomalySettings({ sensitivity: anomalySettings.sensitivity });
+
+  const baselineWindowOptions: Array<DropdownOption> =
+    ANOMALY_WINDOW_DAYS_OPTIONS.map((days: number): DropdownOption => {
+      return {
+        value: days,
+        label: translator.translatePlural(
+          { one: "{{count}} day", other: "{{count}} days" },
+          days,
+        ),
+      };
+    });
+
+  const anomalyMoreFields: ReactElement =
+    isAnomaly && monitorType === MonitorType.Exceptions ? (
+      <FoldedSection
+        title={MORE_FIELDS_SECTION_TITLE}
+        className="mt-4"
+        isCollapsed={isAnomalyMoreCollapsed}
+        onToggle={(isCollapsed: boolean) => {
+          setIsAnomalyMoreCollapsed(isCollapsed);
+        }}
+        items={[
+          {
+            key: "windowDays",
+            title: TelemetryRuleCopy.baselineWindowTitle,
+            isSet: anomalySettings.windowDays !== DEFAULT_ANOMALY_WINDOW_DAYS,
+            value: String(anomalySettings.windowDays),
+          },
+          {
+            key: "sigmaCount",
+            title: TelemetryRuleCopy.sigmaCountTitle,
+            isSet: rule.anomalyDetection?.sigmaCount !== undefined,
+            value: String(anomalySettings.sigmaCount),
+          },
+          {
+            key: "minimumCount",
+            title: TelemetryRuleCopy.minimumCountTitle,
+            isSet: rule.anomalyDetection?.minimumCount !== undefined,
+            value: String(anomalySettings.minimumCount),
+          },
+        ]}
+        dataTestId="telemetry-rule-anomaly-more-fields"
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div data-testid="telemetry-rule-baseline-window">
+            <FieldLabelElement
+              id={baselineWindowLabelId}
+              title={TelemetryRuleCopy.baselineWindowTitle}
+              description={TelemetryRuleCopy.baselineWindowDescription}
+              hideOptionalLabel={true}
+            />
+            <Dropdown
+              ariaLabelledby={baselineWindowLabelId}
+              isClearable={false}
+              value={baselineWindowOptions.find((option: DropdownOption) => {
+                return option.value === anomalySettings.windowDays;
+              })}
+              options={baselineWindowOptions}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                if (value) {
+                  changeAnomalyDetection({
+                    windowDays:
+                      Number(value) === DEFAULT_ANOMALY_WINDOW_DAYS
+                        ? undefined
+                        : Number(value),
+                  });
+                }
+              }}
+            />
+          </div>
+          <OptionalNumberField
+            title={TelemetryRuleCopy.sigmaCountTitle}
+            description={TelemetryRuleCopy.sigmaCountDescription}
+            value={rule.anomalyDetection?.sigmaCount}
+            placeholder={defaultAnomalySettings.sigmaCount}
+            dataTestId="telemetry-rule-sigma-count"
+            onChange={(value: number | undefined) => {
+              changeAnomalyDetection({ sigmaCount: value });
+            }}
+          />
+          <OptionalNumberField
+            title={TelemetryRuleCopy.minimumCountTitle}
+            description={TelemetryRuleCopy.minimumCountDescription}
+            value={rule.anomalyDetection?.minimumCount}
+            placeholder={defaultAnomalySettings.minimumCount}
+            dataTestId="telemetry-rule-minimum-count"
+            onChange={(value: number | undefined) => {
+              changeAnomalyDetection({ minimumCount: value });
+            }}
+          />
+        </div>
+      </FoldedSection>
+    ) : (
+      <></>
+    );
+
   return (
     <div className="space-y-6" data-testid="telemetry-rule-editor">
       <Card
@@ -806,6 +1002,8 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
           >
             {sentence}
           </p>
+
+          {anomalyMoreFields}
 
           {isMetric ? (
             <FoldedSection

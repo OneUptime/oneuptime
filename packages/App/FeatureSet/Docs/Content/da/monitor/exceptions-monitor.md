@@ -41,7 +41,7 @@ Under **Monitortype** klikker du på **Flere monitortyper** og vælger **Undtage
 
 ### Vælg, hvad monitoren skal fortælle dig om
 
-Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Enhver undtagelse** eller **For mange undtagelser**. Hvert valg udfylder reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte den op. **En ny undtagelse**, **En løst undtagelse kommer tilbage** og **Undtagelser topper** advarer ved en undtagelse, der ses for første gang, ved en, der kom tilbage, efter du løste den, og ved en stigning langt over det sædvanlige.
+Under **Hvad skal denne overvågning fortælle dig om?** vælger du **Enhver undtagelse** eller **For mange undtagelser**. Hvert valg udfylder reglen, som du kan ændre længere nede. Vælg **Noget andet** for selv at sætte den op. **En ny undtagelse**, **En løst undtagelse kommer tilbage** og **Undtagelser topper** advarer ved en undtagelse, der ses for første gang, ved en, der kom tilbage, efter du løste den, og ved en stigning langt over det, der er normalt for den time på ugen.
 
 ### Vælg de undtagelser, der skal tælles
 
@@ -53,7 +53,7 @@ I **Undtagelser at holde øje med** angiver du **Beskeden indeholder**, **Undtag
 
 ### Sig, hvornår der skal advares
 
-I **Hvornår der advares** vælger du en **Betingelse**, **Antal undtagelser** og et **Tidsvindue**. Sætningen under dem gentager reglen med almindelige ord. Diagrammet under den tæller de matchende undtagelser i hvert vindue over de seneste timer, tegner reglens tal som en linje og fortæller, hvor ofte reglen ville have advaret. Dens knap foreslår et tal, som reglen ikke ville have overskredet i den periode. **Advar ved** vælger, hvad reglen sammenligner: **Undtagelser**, **Nye undtagelser**, **Undtagelser, der kom tilbage** eller **En stigning over det sædvanlige**. Diagrammet tegnes kun for **Undtagelser**.
+I **Hvornår der advares** vælger du en **Betingelse**, **Antal undtagelser** og et **Tidsvindue**. Sætningen under dem gentager reglen med almindelige ord. Diagrammet under den tæller de matchende undtagelser i hvert vindue over de seneste timer, tegner reglens tal som en linje og fortæller, hvor ofte reglen ville have advaret. Dens knap foreslår et tal, som reglen ikke ville have overskredet i den periode. **Advar ved** vælger, hvad reglen sammenligner: **Undtagelser**, **Nye undtagelser**, **Undtagelser, der kom tilbage** eller **En stigning over det sædvanlige**. Diagrammet tegnes kun for **Undtagelser**. Med **Usædvanligt høj**, som **Undtagelser topper** sætter op, er der intet tal at indtaste: Vælg i stedet en **Følsomhed**.
 
 ### Vælg, hvad der sker
 
@@ -116,7 +116,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet, samt **New Exceptions**, **Regressed Exceptions** og **Exception Increase (in %)**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst** eller **Præcis**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
+En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Count**, antallet af undtagelser, der matchede i vinduet, samt **New Exceptions**, **Regressed Exceptions** og **Exception Increase (in %)**, som beskrives nedenfor. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af undtagelser er… |
 | --- | --- |
@@ -126,8 +126,11 @@ En undtagelse-monitors kriterier har fire slags **Filtertype**: **Exception Coun
 | **Mindre end eller lig med** | lig med værdien eller derunder |
 | **Lig med** | præcis værdien |
 | **Ikke lig med** | alt andet end værdien |
+| **Anomalously High** | over det forventede interval for denne time på ugen |
+| **Anomalously Low** | under det interval |
+| **Anomalous** | uden for det interval, i begge retninger |
 
-Antal undtagelser har ingen anomalibetingelser: der er ingen baseline at sammenligne dem med.
+Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. Kun **Exception Count** har dem: se [Toppe i forhold til det normale](#toppe-i-forhold-til-det-normale).
 
 En undtagelse-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne overvågning fortælle dig om?**:
 
@@ -137,7 +140,7 @@ En undtagelse-monitor, der er oprettet i Opret monitor, starter med reglen for d
 | **For mange undtagelser** | **Mere end** `20` i **Seneste 5 minutter** | Opretter en advarsel, som løser sig selv |
 | **En ny undtagelse** | **Nye undtagelser**: **Mere end** `0` i **Seneste 10 minutter** | Opretter en advarsel, som løser sig selv |
 | **En løst undtagelse kommer tilbage** | **Undtagelser, der kom tilbage**: **Mere end** `0` i **Seneste 10 minutter** | Opretter en advarsel, som løser sig selv |
-| **Undtagelser topper** | **En stigning over det sædvanlige**: **Mere end** `200` i **Seneste 15 minutter** | Opretter en advarsel, som løser sig selv |
+| **Undtagelser topper** | **Usædvanligt høj** i **Seneste 15 minutter** | Opretter en advarsel, som løser sig selv |
 
 En undtagelse-monitor, der er oprettet via API'et eller Terraform uden kriterier, starter med disse kriterier:
 
@@ -157,6 +160,22 @@ Ud over hvor mange undtagelser der skete, kan en undtagelse-monitor advare ved d
 | **Exception Increase (in %)** | Hvor langt antallet af matchende undtagelser ligger over det sædvanlige: dagen før vinduet, pr. vindue af samme længde, mindst én. Ti undtagelser efter en rolig dag giver 900 %. |
 
 Nye og tilbagevendte undtagelser filtreres efter tjeneste, undtagelsestype, miljø og meddelelse og også efter infrastrukturentitet: en undtagelse tæller med, når en af dens forekomster i vinduet kom fra en af de valgte entiteter.
+
+## Toppe i forhold til det normale
+
+**Undtagelser topper** sammenligner vinduet med de samme timer i ugerne før, ikke med et fast tal. En top mandag morgen er normal en mandag morgen, det samme antal klokken 3 en søndag er ikke, og en langsom stigning over flere dage ses, så snart den forlader sidste uges interval.
+
+| Indstilling | Hvad den gør | Standard |
+| --- | --- | --- |
+| **Følsomhed** | Hvor langt uden for det sædvanlige interval et vindue skal være: 4 standardafvigelser ved Lav, 3 ved Middel, 2 ved Høj. | Middel |
+| **Baseline-vindue** (under **Flere felter**) | Hvor meget historik der læres af: 14, 28, 60 eller 90 dage. | 14 dage |
+| **Standardafvigelser** (under **Flere felter**) | Dit eget tal i stedet for det, **Følsomhed** sætter. | Tom |
+| **Mindste antal undtagelser** (under **Flere felter**) | Det mindste antal undtagelser i et vindue, der kan advare: 20 ved Lav, 10 ved Middel, 5 ved Høj. | Tom |
+
+- **Den bruger dine filtre.** Historikken læses med monitorens egne filtre, så en monitor på én undtagelsestype sammenlignes med den types historik, og løste og arkiverede undtagelser holdes uden for begge.
+- **Stille tid tæller.** Et vindue uden undtagelser er en del af det normale, så en stille tjenestes interval forbliver lille. Dens første få undtagelser advarer ikke på grund af **Mindste antal undtagelser**, og et ægte udbrud gør.
+- **En ny tjeneste venter.** Indtil en tjeneste har to ugers historik, lærer kriteriet stadig og udløses ikke, uanset hvor mange undtagelser den kaster. Historikken rækker kun så langt tilbage, som OneUptime gemmer undtagelser: 15 dage, medmindre du har ændret det, og en tjeneste, der gemmes i under to uger, har aldrig nok.
+- **Advarslen siger hvorfor.** Den nævner det forventede interval, og hvor langt uden for det vinduet var. Hvert tjek skriver det samme på **Statustidslinje**, eller at det stadig lærer.
 
 ## Gennemgået eksempel: kun produktionsundtagelser
 
@@ -183,6 +202,10 @@ Det er forventet. Løste undtagelser tælles ikke, så antallet faldt, og kriter
 
 :::details Et filter på undtagelsestype matcher intet
 **Undtagelsestyper** sammenlignes præcist med det typenavn, undtagelsen blev rapporteret med, såsom `TypeError`. Kopiér typen fra undtagelses-explorer.
+:::
+
+:::details En regel for toppe i undtagelser advarer aldrig
+Se på **Statustidslinje**: Den viser det forventede interval, det antal, der skal til for at advare, eller at reglen stadig lærer. En tjeneste skal have to ugers historik, så en opbevaring på under to uger får den til at blive ved med at lære. Hvis antallet bliver under **Mindste antal undtagelser**, så sænk det under **Flere felter**, eller vælg en højere **Følsomhed**.
 :::
 
 ## Næste skridt
