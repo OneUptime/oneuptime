@@ -39473,7 +39473,6 @@
   "The resource attributes this app is told apart by, as its telemetry sends them.": "このアプリを識別するリソース属性で、テレメトリーが送ったとおりに表示します。",
   "The revisions an App Platforms app ran, as its instances reported them: its deploy history. Written by the ingest pipeline; not user-editable.": "アプリプラットフォームのアプリが実行したリビジョン (インスタンスの報告に基づくデプロイ履歴) です。取り込みパイプラインが書き込み、ユーザーは編集できません。",
   "The revisions this app's instances run right now, from the instances seen in the last 15 minutes. Two revisions at once is a deploy in progress, or traffic split between them.": "このアプリのインスタンスが現在実行しているリビジョンで、直近 15 分間に確認されたインスタンスに基づきます。2 つのリビジョンが同時にある場合は、デプロイ中か、トラフィックを分割しています。",
-  "The revisions this app's instances run, from the instances seen in the last 15 minutes.": "このアプリのインスタンスが実行しているリビジョンで、直近 15 分間に確認されたインスタンスに基づきます。",
   "The share of this app's requests in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.": "選択した範囲でステータスがエラーになった、このアプリのリクエストの割合です。下の行はエラー件数です。バーは 1% で黄色、5% で赤になります。",
   "The share of this environment's requests in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.": "選択した範囲でステータスがエラーになった、この環境のリクエストの割合です。下の行はエラー件数です。バーは 1% で黄色、5% で赤になります。",
   "This app's name is too long to filter its telemetry by, so its logs and traces are in its environment's tabs.": "このアプリの名前はテレメトリーの絞り込みに使うには長すぎるため、ログとトレースは環境のタブで確認してください。",

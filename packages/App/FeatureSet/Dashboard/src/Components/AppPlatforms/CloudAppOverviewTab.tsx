@@ -59,9 +59,6 @@ export const ROLLBACK_MARKER_LABEL: string = translationKey(
   "Rolled back to revision {{revision}}",
 );
 export const RUNNING_NOW_TITLE: string = translationKey("Running now");
-export const RUNNING_NOW_DESCRIPTION: string = translationKey(
-  "The revisions this app's instances run, from the instances seen in the last 15 minutes.",
-);
 export const RUNNING_NOW_EMPTY: string = translationKey(
   "No instance of this app reported in the last 15 minutes.",
 );
@@ -352,7 +349,10 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="mb-6">
-        <Card title={RUNNING_NOW_TITLE} description={RUNNING_NOW_DESCRIPTION}>
+        <Card
+          title={RUNNING_NOW_TITLE}
+          description={CLOUD_APP_METRIC_DESCRIPTIONS.rollout}
+        >
           {runningRevisions.length === 0 ? (
             <p
               className="text-sm text-gray-500"

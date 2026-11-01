@@ -231,6 +231,17 @@ function platformGroups(): Array<HTMLElement> {
   return screen.getAllByTestId("app-platforms-platform");
 }
 
+// A card on the page, by the id its Card is given.
+function cardById(id: string): HTMLElement {
+  const card: HTMLElement | null = document.getElementById(id);
+
+  if (!card) {
+    throw new Error(`No card with the id ${id}.`);
+  }
+
+  return card;
+}
+
 function environmentNames(group: HTMLElement): Array<string> {
   return within(group)
     .getAllByTestId("app-platforms-environment")
@@ -738,14 +749,25 @@ describe("the Overview, with environments", () => {
 
     await renderOverview();
 
+    /*
+     * The Platforms card says so, and so does Recent deploys, which reads
+     * the environments first; each card reads again on its own.
+     */
     await waitFor(() => {
-      expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
+      expect(
+        within(cardById("platforms")).getByTestId("refresh-button"),
+      ).toBeInTheDocument();
     });
+    expect(
+      within(cardById("recent-deploys")).getByTestId("refresh-button"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("app-platforms-platforms")).toBeNull();
 
     failLists = false;
     await act(async () => {
-      fireEvent.click(screen.getByTestId("refresh-button"));
+      fireEvent.click(
+        within(cardById("platforms")).getByTestId("refresh-button"),
+      );
     });
 
     await waitFor(() => {
