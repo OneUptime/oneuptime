@@ -56,21 +56,7 @@ const KubernetesClusterDeployments: FunctionComponent<
               (status["readyReplicas"] as number) || 0;
             const replicas: number = (spec["replicas"] as number) || 0;
 
-            if (readyReplicas === replicas && replicas > 0) {
-              resource.status = "Ready";
-            } else if (readyReplicas < replicas) {
-              const conditions: Array<Record<string, unknown>> =
-                (status["conditions"] as Array<Record<string, unknown>>) || [];
-              const failed: boolean = conditions.some(
-                (c: Record<string, unknown>) => {
-                  return c["type"] === "Available" && c["status"] === "False";
-                },
-              );
-              resource.status = failed ? "Failed" : "Progressing";
-            } else {
-              resource.status = "Progressing";
-            }
-
+            // The status is the cluster's rules' (fetchInventoryResources).
             resource.additionalAttributes["ready"] =
               `${readyReplicas}/${replicas}`;
           },

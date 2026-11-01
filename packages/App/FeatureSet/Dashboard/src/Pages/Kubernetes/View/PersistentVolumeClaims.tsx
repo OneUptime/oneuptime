@@ -84,13 +84,6 @@ const KubernetesClusterPVCs: FunctionComponent<
           },
         });
 
-      // Default to "Unknown" when status.phase is missing, matching prior behavior
-      for (const r of pvcResources) {
-        if (!r.status) {
-          r.status = "Unknown";
-        }
-      }
-
       setResources(pvcResources);
     } catch (err) {
       setError(API.getFriendlyMessage(err));

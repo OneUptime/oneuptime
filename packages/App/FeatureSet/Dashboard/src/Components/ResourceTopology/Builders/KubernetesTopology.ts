@@ -24,6 +24,13 @@ import {
   isRecent,
   toFiniteNumber,
 } from "../ResourceTopologyFormat";
+import {
+  KubernetesHealthAssessment,
+  KubernetesHealthSeverity,
+  KubernetesHealthText,
+  assessKubernetesCronJobWithRuns,
+  assessKubernetesResource,
+} from "Common/Types/Kubernetes/KubernetesHealth";
 
 /*
  * A Kubernetes cluster's topology, read from the cluster's inventory (the
@@ -41,12 +48,14 @@ import {
  * or focusing a pod by workload draws its node and storage beside it. By
  * node the pod already sits inside its node, so no line says so.
  *
- * Health is what the cluster's own pages show: a node that is not ready is
- * critical, one under memory, disk or PID pressure needs attention; a pod
- * that failed, or whose container waits in CrashLoopBackOff or
- * ImagePullBackOff, is critical, a pending or not-ready one needs
- * attention, a completed one is off; a workload with no ready replica is
- * critical, one short of replicas needs attention.
+ * Health is what the cluster's own pages show, by the same rules
+ * (Common/Types/Kubernetes/KubernetesHealth, which the Overview's Needs
+ * attention and every part's page read): a node not ready, a container that
+ * cannot run, a workload with none of its replicas available is critical; a
+ * node under pressure, a workload short of replicas, a pod pending or not
+ * ready for five minutes needs attention; a completed pod or Job, a
+ * workload scaled to zero, a suspended CronJob is off. Each card keeps its
+ * own facts (CPU, memory, ready replicas, restarts).
  */
 
 export const KUBERNETES_ROOT_ID: string = "cluster";
@@ -651,6 +660,77 @@ function assessVolume(row: KubernetesResource): Assessment {
   };
 }
 
+// The rules' words that mean a part is at rest, not unwell: drawn off.
+const OFF_STATUSES: ReadonlySet<string> = new Set<string>([
+  "Completed",
+  "Scaled to zero",
+  "Suspended",
+  "Released",
+  "Paused",
+  "No nodes to run on",
+]);
+
+function toTopologyText(value: KubernetesHealthText): ResourceTopologyText {
+  if (value.plural) {
+    return {
+      text: value.plural.count === 1 ? value.plural.one : value.text,
+      values: { ...(value.values || {}), count: String(value.plural.count) },
+    };
+  }
+  return value.values
+    ? { text: value.text, values: value.values }
+    : { text: value.text };
+}
+
+export function getKubernetesTopologyHealth(
+  assessment: KubernetesHealthAssessment,
+): ResourceTopologyHealth {
+  if (assessment.severity === KubernetesHealthSeverity.Critical) {
+    return "critical";
+  }
+  if (assessment.severity === KubernetesHealthSeverity.Warning) {
+    return "warning";
+  }
+  if (assessment.status.text === "No data yet") {
+    return "unknown";
+  }
+  if (OFF_STATUSES.has(assessment.status.text)) {
+    return "off";
+  }
+  return "healthy";
+}
+
+/*
+ * A part's health, status and reasons by the cluster's rules, its card's
+ * facts as the builder worked them out.
+ */
+function withKubernetesRules(
+  row: KubernetesResource,
+  assessment: Assessment,
+  jobs?: Array<KubernetesResource> | undefined,
+): Assessment {
+  const rules: KubernetesHealthAssessment =
+    row.kind === "CronJob" && jobs
+      ? assessKubernetesCronJobWithRuns(row, jobs)
+      : assessKubernetesResource(row);
+
+  return {
+    health: getKubernetesTopologyHealth(rules),
+    /*
+     * A CronJob with nothing to say reads its schedule, as its card always
+     * has: "Scheduled" says less.
+     */
+    status:
+      row.kind === "CronJob" &&
+      rules.status.text === "Scheduled" &&
+      assessment.status
+        ? assessment.status
+        : toTopologyText(rules.status),
+    reasons: rules.reasons.map(toTopologyText),
+    facts: assessment.facts,
+  };
+}
+
 export function buildKubernetesTopology(
   input: KubernetesTopologyInput,
 ): KubernetesTopology {
@@ -797,11 +877,19 @@ export function buildKubernetesTopology(
   };
 
   for (const row of rowsOf("Namespace")) {
-    addPart(row, "k8s.namespace", assessNamespace(row));
+    addPart(
+      row,
+      "k8s.namespace",
+      withKubernetesRules(row, assessNamespace(row)),
+    );
   }
 
   for (const row of rowsOf("Node")) {
-    addPart(row, "k8s.node", assessNode(row, input.now));
+    addPart(
+      row,
+      "k8s.node",
+      withKubernetesRules(row, assessNode(row, input.now)),
+    );
   }
 
   for (const kind of [
@@ -812,16 +900,20 @@ export function buildKubernetesTopology(
     "Job",
   ]) {
     for (const row of rowsOf(kind)) {
-      addPart(row, KIND_BY_ROW_KIND[kind]!, assessWorkload(row));
+      addPart(
+        row,
+        KIND_BY_ROW_KIND[kind]!,
+        withKubernetesRules(row, assessWorkload(row), rowsOf("Job")),
+      );
     }
   }
 
   for (const row of rowsOf("PersistentVolumeClaim")) {
-    addPart(row, "k8s.pvc", assessVolume(row));
+    addPart(row, "k8s.pvc", withKubernetesRules(row, assessVolume(row)));
   }
 
   for (const row of rowsOf("PersistentVolume")) {
-    addPart(row, "k8s.pv", assessVolume(row));
+    addPart(row, "k8s.pv", withKubernetesRules(row, assessVolume(row)));
   }
 
   // A namespace a part names but whose own row has not arrived.
@@ -910,7 +1002,7 @@ export function buildKubernetesTopology(
     const id: string = addPart(
       row,
       "k8s.pod",
-      assessPod(row, containers, input.now),
+      withKubernetesRules(row, assessPod(row, containers, input.now)),
       [nodeName],
     );
 

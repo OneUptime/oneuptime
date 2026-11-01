@@ -1,10 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
-import { KubernetesHealthText } from "Common/Types/Kubernetes/KubernetesHealth";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import KubernetesResourceTable, {
   ResourceColumn,
 } from "../KubernetesResourceTable";
@@ -18,6 +15,7 @@ import {
 } from "../../../Pages/Kubernetes/Utils/KubernetesPartFacts";
 import KubernetesResourceUtils, {
   KubernetesResource,
+  kubernetesHealthTextInEnglish,
 } from "../../../Pages/Kubernetes/Utils/KubernetesResourceUtils";
 import { KubernetesPartRoutes } from "../../../Pages/Kubernetes/Utils/KubernetesPartRoutes";
 
@@ -85,16 +83,6 @@ function freshNumber(
 const KubernetesPartPods: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
-
-  const say: (value: KubernetesHealthText) => string = (
-    value: KubernetesHealthText,
-  ): string => {
-    return value.values
-      ? translator.translateTemplate(value.text, value.values)
-      : translator.translateText(value.text) || value.text;
-  };
-
   if (props.error && !props.read) {
     return <ErrorMessage message={props.error} />;
   }
@@ -126,7 +114,14 @@ const KubernetesPartPods: FunctionComponent<ComponentProps> = (
         cpuUtilization: row ? freshNumber(row, row.latestCpuPercent) : null,
         memoryUsageBytes: row ? freshNumber(row, row.latestMemoryBytes) : null,
         memoryLimitBytes: row ? memoryLimitOf(row) : null,
-        status: say(pod.assessment.status),
+        // English for the filter and the sort; drawn in the reader's words.
+        status: kubernetesHealthTextInEnglish(pod.assessment.status),
+        statusText: pod.assessment.status.values
+          ? {
+              text: pod.assessment.status.text,
+              values: pod.assessment.status.values,
+            }
+          : { text: pod.assessment.status.text },
         statusTone: pod.assessment.tone,
         age: KubernetesResourceUtils.formatAge(created),
         additionalAttributes: {
@@ -134,7 +129,6 @@ const KubernetesPartPods: FunctionComponent<ComponentProps> = (
           restarts: String(pod.restarts),
           node: pod.nodeName || "-",
           owner: pod.ownerName || "-",
-          reason: pod.assessment.reasons.map(say).join(" · "),
         },
       };
     },

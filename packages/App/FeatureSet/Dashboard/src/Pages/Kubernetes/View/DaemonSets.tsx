@@ -53,8 +53,7 @@ const KubernetesClusterDaemonSets: FunctionComponent<
             const desired: number =
               (status["desiredNumberScheduled"] as number) || 0;
 
-            resource.status =
-              numberReady === desired && desired > 0 ? "Ready" : "Progressing";
+            // The status is the cluster's rules' (fetchInventoryResources).
             resource.additionalAttributes["ready"] =
               `${numberReady}/${desired}`;
           },

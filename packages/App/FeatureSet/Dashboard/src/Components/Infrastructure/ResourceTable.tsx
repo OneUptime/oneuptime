@@ -60,8 +60,20 @@ export interface InfrastructureResource {
    * follows the word (getStatusBadgeClass).
    */
   statusTone?: ResourceStatusTone | undefined;
+  /*
+   * The status as an English template and its values, when it is one of
+   * the product's own words ("{{available}} of {{desired}} available"):
+   * drawn in the reader's language. `status` then holds its English
+   * wording, which the filter and the sort read.
+   */
+  statusText?: ResourceStatusText | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
+}
+
+export interface ResourceStatusText {
+  text: string;
+  values?: Record<string, string> | undefined;
 }
 
 export type ResourceStatusTone = "positive" | "warning" | "danger" | "neutral";
@@ -170,6 +182,20 @@ export function formatMemoryValue(bytes: number | null): string {
   }
 
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+// A row's status in the reader's language.
+export function getResourceStatusLabel(
+  resource: Pick<InfrastructureResource, "status" | "statusText">,
+  translator: Translator,
+): string {
+  const text: ResourceStatusText | undefined = resource.statusText;
+  if (!text) {
+    return resource.status;
+  }
+  return text.values
+    ? translator.translateTemplate(text.text, text.values)
+    : translator.translateText(text.text) || text.text;
 }
 
 export function getStatusBadgeClass(status: string): string {
@@ -305,18 +331,32 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
             .filter(Boolean),
         ),
       ).sort();
+      // Each status as its cells draw it.
+      const labelOf: (status: string) => string = (status: string): string => {
+        const resource: InfrastructureResource | undefined =
+          props.resources.find((r: InfrastructureResource): boolean => {
+            return r.status === status;
+          });
+        return resource ? getResourceStatusLabel(resource, translator) : status;
+      };
       result.push({
         title: "Status",
         key: "status",
         type: FieldType.Dropdown,
         filterDropdownOptions: statuses.map((s: string) => {
-          return { label: s, value: s };
+          return { label: labelOf(s), value: s };
         }),
       });
     }
 
     return result;
-  }, [props.resources, showGroupColumn, groupColumnTitle, showStatus]);
+  }, [
+    props.resources,
+    showGroupColumn,
+    groupColumnTitle,
+    showStatus,
+    translator,
+  ]);
 
   // Filter and sort data client-side
   const processedData: Array<InfrastructureResource> = useMemo(() => {
@@ -459,7 +499,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
                 : getStatusBadgeClass(resource.status)
             }`}
           >
-            {resource.status}
+            {getResourceStatusLabel(resource, translator)}
           </span>
         );
       },

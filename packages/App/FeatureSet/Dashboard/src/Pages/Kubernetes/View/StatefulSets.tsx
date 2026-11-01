@@ -55,10 +55,7 @@ const KubernetesClusterStatefulSets: FunctionComponent<
               (status["readyReplicas"] as number) || 0;
             const replicas: number = (spec["replicas"] as number) || 0;
 
-            resource.status =
-              readyReplicas === replicas && replicas > 0
-                ? "Ready"
-                : "Progressing";
+            // The status is the cluster's rules' (fetchInventoryResources).
             resource.additionalAttributes["ready"] =
               `${readyReplicas}/${replicas}`;
           },

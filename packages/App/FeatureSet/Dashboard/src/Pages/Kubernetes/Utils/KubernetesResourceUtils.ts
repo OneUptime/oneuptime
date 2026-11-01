@@ -17,6 +17,47 @@ import { APP_API_URL } from "Common/UI/Config";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  KubernetesHealthAssessment,
+  KubernetesHealthText,
+  assessKubernetesResource,
+} from "Common/Types/Kubernetes/KubernetesHealth";
+
+// The kinds the cluster's rules give a status of their own.
+const KINDS_WITH_HEALTH_RULES: ReadonlySet<string> = new Set<string>([
+  "Pod",
+  "Node",
+  "Namespace",
+  "Deployment",
+  "StatefulSet",
+  "DaemonSet",
+  "Job",
+  "CronJob",
+  "PersistentVolumeClaim",
+  "PersistentVolume",
+  "HorizontalPodAutoscaler",
+  "DeploymentConfig",
+]);
+
+/*
+ * A status word of the cluster's rules in English, its values filled in:
+ * what a list's filter and sort read, while its cell draws the word in the
+ * reader's language (ResourceTable's statusText).
+ */
+export function kubernetesHealthTextInEnglish(
+  text: KubernetesHealthText,
+): string {
+  let filled: string =
+    text.plural && text.plural.count === 1 ? text.plural.one : text.text;
+  const values: Record<string, string> = {
+    ...(text.values || {}),
+    ...(text.plural ? { count: String(text.plural.count) } : {}),
+  };
+  for (const key of Object.keys(values)) {
+    filled = filled.split(`{{${key}}}`).join(values[key] || "");
+  }
+  return filled;
+}
 
 export interface PodMetricAggregate {
   cpuPercent: number;
@@ -41,6 +82,10 @@ export interface KubernetesResource {
   status: string;
   // The status's colour, from the cluster's rules (ResourceTable).
   statusTone?: "positive" | "warning" | "danger" | "neutral" | undefined;
+  // The status as the cluster's rules word it, translated where drawn.
+  statusText?:
+    | { text: string; values?: Record<string, string> | undefined }
+    | undefined;
   age: string;
   additionalAttributes: Record<string, string>;
 }
@@ -429,6 +474,11 @@ export default class KubernetesResourceUtils {
       namespaceKey: true,
       phase: true,
       isReady: true,
+      // What the cluster's rules read for the status (KubernetesHealth).
+      hasMemoryPressure: true,
+      hasDiskPressure: true,
+      hasPidPressure: true,
+      lastSeenAt: true,
       ownerReferences: true,
       resourceCreationTimestamp: true,
       latestCpuPercent: true,
@@ -463,21 +513,42 @@ export default class KubernetesResourceUtils {
           (row.status as unknown as Record<string, unknown>) || {};
 
         /*
-         * Pick a display status by kind:
-         *   - Pod: phase column (Running / Pending / ...)
-         *   - Node: isReady → Ready / NotReady
-         *   - Others: status.phase from the snapshot (Namespace.status.phase
-         *     = "Active"; PV.status.phase = "Bound"), fallback to "".
+         * The status the cluster's rules give it (KubernetesHealth) - the
+         * word the Overview's Needs attention, its page's hero and the
+         * Topology say - with its colour. Without its spec and status the
+         * rules have little to read, so a list that does not select them
+         * falls back to the snapshot's phase.
          */
         let displayStatus: string = "";
-        if (options.kind === "Pod") {
+        let statusText: KubernetesResource["statusText"] = undefined;
+        let statusTone: KubernetesResource["statusTone"] = undefined;
+        if (
+          KINDS_WITH_HEALTH_RULES.has(options.kind) &&
+          (options.selectFullSpec || options.kind === "Node")
+        ) {
+          const assessment: KubernetesHealthAssessment =
+            assessKubernetesResource({
+              kind: options.kind,
+              namespaceKey: row.namespaceKey,
+              name: row.name,
+              phase: row.phase,
+              isReady: row.isReady,
+              hasMemoryPressure: row.hasMemoryPressure,
+              hasDiskPressure: row.hasDiskPressure,
+              hasPidPressure: row.hasPidPressure,
+              ownerReferences: row.ownerReferences,
+              spec: row.spec,
+              status: row.status,
+              lastSeenAt: row.lastSeenAt,
+              resourceCreationTimestamp: row.resourceCreationTimestamp,
+            });
+          displayStatus = kubernetesHealthTextInEnglish(assessment.status);
+          statusText = assessment.status.values
+            ? { text: assessment.status.text, values: assessment.status.values }
+            : { text: assessment.status.text };
+          statusTone = assessment.tone;
+        } else if (options.kind === "Pod") {
           displayStatus = row.phase || "";
-        } else if (options.kind === "Node") {
-          if (row.isReady === true) {
-            displayStatus = "Ready";
-          } else if (row.isReady === false) {
-            displayStatus = "NotReady";
-          }
         } else {
           const phaseVal: unknown = statusObj["phase"];
           if (typeof phaseVal === "string") {
@@ -521,6 +592,12 @@ export default class KubernetesResourceUtils {
           age: KubernetesResourceUtils.formatAge(creationTsIso),
           additionalAttributes: {},
         };
+        if (statusText) {
+          resource.statusText = statusText;
+        }
+        if (statusTone) {
+          resource.statusTone = statusTone;
+        }
 
         if (options.transform) {
           try {

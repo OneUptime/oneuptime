@@ -74,15 +74,11 @@ const KubernetesClusterHPAs: FunctionComponent<
               resource.namespace = "default";
             }
 
-            if (currentReplicas === desiredReplicas && currentReplicas > 0) {
-              resource.status = "Active";
-            } else if (currentReplicas < desiredReplicas) {
-              resource.status = "Scaling Up";
-            } else if (currentReplicas > desiredReplicas) {
-              resource.status = "Scaling Down";
-            } else {
-              resource.status = "Active";
-            }
+            /*
+             * The status is the cluster's rules' (fetchInventoryResources):
+             * Active, At maximum, or Can't scale - the Current and Desired
+             * columns say whether it is scaling.
+             */
 
             resource.additionalAttributes["target"] =
               `${scaleTargetRef["kind"] || ""}/${scaleTargetRef["name"] || ""}`;

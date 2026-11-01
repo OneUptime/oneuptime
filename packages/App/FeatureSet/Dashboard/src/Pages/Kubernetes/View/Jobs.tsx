@@ -21,7 +21,6 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
-import KubernetesResourceModel from "Common/Models/DatabaseModels/KubernetesResource";
 
 const KubernetesClusterJobs: FunctionComponent<
   PageComponentProps
@@ -39,30 +38,14 @@ const KubernetesClusterJobs: FunctionComponent<
         Array<KubernetesResource>,
         Map<string, PodMetricAggregate>,
       ] = await Promise.all([
+        /*
+         * Each Job's status is the cluster's rules': Running, Completed or
+         * Failed by its conditions (fetchInventoryResources).
+         */
         KubernetesResourceUtils.fetchInventoryResources({
           kubernetesClusterId: modelId,
           kind: "Job",
           selectFullSpec: true,
-          transform: (
-            resource: KubernetesResource,
-            row: KubernetesResourceModel,
-          ) => {
-            const status: Record<string, unknown> =
-              (row.status as unknown as Record<string, unknown>) || {};
-            const completionTime: unknown = status["completionTime"];
-            const failed: number = (status["failed"] as number) || 0;
-            const active: number = (status["active"] as number) || 0;
-
-            if (completionTime) {
-              resource.status = "Complete";
-            } else if (failed > 0) {
-              resource.status = "Failed";
-            } else if (active > 0) {
-              resource.status = "Running";
-            } else {
-              resource.status = "Pending";
-            }
-          },
         }),
         KubernetesResourceUtils.fetchPodMetricsByOwner(modelId, "Job"),
       ]);
