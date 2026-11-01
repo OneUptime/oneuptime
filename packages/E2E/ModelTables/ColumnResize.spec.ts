@@ -164,6 +164,22 @@ async function widthOf(locator: Locator): Promise<number> {
   return (await box(locator)).width;
 }
 
+/*
+ * After Reset column widths, a column comes back to the width it had. The
+ * table fits its card again only once the widths are gone (the fit measures
+ * the box after a paint), so for a frame the column is drawn as wide as its
+ * values, and a slower machine reads that frame: 14.0.100's gate run read
+ * Affected Resources 156.75px wider, a frame before it came back. So wait
+ * for it, rather than read it once.
+ */
+async function expectWidthBack(header: Locator, before: number): Promise<void> {
+  await expect
+    .poll(async (): Promise<number> => {
+      return Math.abs((await widthOf(header)) - before);
+    })
+    .toBeLessThanOrEqual(1);
+}
+
 // A pointer's drag of an edge, `by` pixels along the line, in steps.
 async function drag(page: Page, edge: Locator, by: number): Promise<void> {
   const at: Box = await box(edge);
@@ -513,7 +529,7 @@ test.describe("Reset column widths", () => {
     await screenshot(page, "card-menu");
     await reset.click();
 
-    expect(Math.abs((await widthOf(header)) - before)).toBeLessThanOrEqual(1);
+    await expectWidthBack(header, before);
     expect(await storedWidths(page, INCIDENTS_KEY)).toBeNull();
   });
 });
@@ -565,7 +581,7 @@ test.describe("a table a page draws itself", () => {
 
     await reset.click();
 
-    expect(Math.abs((await widthOf(header)) - before)).toBeLessThanOrEqual(1);
+    await expectWidthBack(header, before);
     expect(await storedWidths(page, INTERFACES_KEY)).toBeNull();
   });
 });
