@@ -407,6 +407,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                   const service: TraceServiceInfo = getServiceInfo(
                     props.serviceInfoById,
                     span.serviceId,
+                    translator,
                   );
                   const parentId: string | undefined = tree.parentById.get(
                     span.spanId,

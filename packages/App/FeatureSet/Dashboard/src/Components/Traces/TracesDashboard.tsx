@@ -11,7 +11,18 @@ import React, {
 import Service from "Common/Models/DatabaseModels/Service";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import TelemetryServiceUtil, {
+  UNKNOWN_RESOURCE_LABEL,
+  UNKNOWN_SERVICE_NAME,
+} from "Common/UI/Utils/TelemetryService";
+import {
+  TranslatableTerm,
+  Translator,
+  translatableTerm,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { CARD_ROW_COLUMN_CLASS_NAME } from "Common/UI/Components/Card/CardGridLayout";
@@ -71,13 +82,7 @@ import {
   getSlowestTraces,
   summarizeRecentTraces,
 } from "../../Utils/TraceInsightsTraces";
-
-function timeRangeLabel(range: RangeStartAndEndDateTime): string {
-  if (range.range === TimeRange.CUSTOM) {
-    return "the selected time range";
-  }
-  return `the ${(range.range as string).toLowerCase()}`;
-}
+import { ERROR_COUNT } from "../../Utils/TraceDetailPresentation";
 
 interface ServiceTraceSummary {
   service: Service;
@@ -91,17 +96,37 @@ interface ServiceTraceSummary {
 
 type RecentTrace = TraceInsightsTrace;
 
-const formatDuration: (nanos: number) => string = (nanos: number): string => {
+// A number as the reader's language writes it, to `digits` decimal places.
+const formatFixed: (
+  value: number,
+  digits: number,
+  translator: Translator,
+) => string = (
+  value: number,
+  digits: number,
+  translator: Translator,
+): string => {
+  return value.toLocaleString(translator.language, {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+    useGrouping: false,
+  });
+};
+
+const formatDuration: (nanos: number, translator: Translator) => string = (
+  nanos: number,
+  translator: Translator,
+): string => {
   if (nanos >= 1_000_000_000) {
-    return `${(nanos / 1_000_000_000).toFixed(2)}s`;
+    return `${formatFixed(nanos / 1_000_000_000, 2, translator)}s`;
   }
   if (nanos >= 1_000_000) {
-    return `${(nanos / 1_000_000).toFixed(1)}ms`;
+    return `${formatFixed(nanos / 1_000_000, 1, translator)}ms`;
   }
   if (nanos >= 1_000) {
-    return `${(nanos / 1_000).toFixed(0)}us`;
+    return `${formatFixed(nanos / 1_000, 0, translator)}us`;
   }
-  return `${nanos}ns`;
+  return `${formatFixed(nanos, 0, translator)}ns`;
 };
 
 const getPercentile: (arr: Array<number>, p: number) => number = (
@@ -119,6 +144,8 @@ const getPercentile: (arr: Array<number>, p: number) => number = (
 };
 
 const TracesDashboard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+
   /*
    * The services' columns as wide as a person makes them (Common's
    * Table/ColumnResize): a service's name gives way to 10rem, a count, a
@@ -569,21 +596,36 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
   ]);
 
   const unappliedFiltersHint: string = useMemo(() => {
-    return describeUnappliedScopeFilters(unappliedFilters, {
-      search: carriedSearch,
-      rootOnly: carriedRootOnly,
-      spanType: carriedSpanType,
-    });
-  }, [unappliedFilters, carriedSearch, carriedRootOnly, carriedSpanType]);
+    return describeUnappliedScopeFilters(
+      unappliedFilters,
+      {
+        search: carriedSearch,
+        rootOnly: carriedRootOnly,
+        spanType: carriedSpanType,
+      },
+      translator,
+    );
+  }, [
+    unappliedFilters,
+    carriedSearch,
+    carriedRootOnly,
+    carriedSpanType,
+    translator.language,
+  ]);
 
   const serviceOptions: Array<DropdownOption> = useMemo(() => {
     return services.map((service: Service): DropdownOption => {
       return {
         value: service.id?.toString() || "",
-        label: service.name?.toString() || "Unknown Service",
+        label: TelemetryServiceUtil.getServiceDisplayName(
+          service.name?.toString() || UNKNOWN_SERVICE_NAME,
+          translator,
+        ) as string,
+        // What a person's telemetry calls a service stays as written.
+        isUserContent: true,
       };
     });
-  }, [services]);
+  }, [services, translator.language]);
 
   /*
    * Entity ids on this page the Service list does not name: a carried scope
@@ -634,6 +676,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             id: serviceId,
             entityNames,
           }),
+          isUserContent: true,
         }
       );
     });
@@ -658,20 +701,53 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
     });
     return getTraceEntityOptionLabel({
       id: primaryEntityId,
-      knownLabel: service?.name?.toString(),
+      knownLabel: TelemetryServiceUtil.getServiceDisplayName(
+        service?.name?.toString(),
+        translator,
+      ),
       entityNames,
-      fallback: "Unknown",
+      fallback: translator.translateTerm(UNKNOWN_RESOURCE_LABEL),
     });
   };
 
-  const rangeLabel: string = timeRangeLabel(timeRange);
+  // What a person's telemetry calls a trace stays as written.
+  const getTraceName: (trace: RecentTrace) => string = (
+    trace: RecentTrace,
+  ): string => {
+    return trace.isNameless ? translator.translateTerm(trace.name) : trace.name;
+  };
+
+  /*
+   * The time range in a sentence: the picker's own name for a preset ("the
+   * past 1 day"), and each sentence a wording of its own for a custom range,
+   * as the Metrics tab's do.
+   */
+  const isCustomRange: boolean = timeRange.range === TimeRange.CUSTOM;
+  const rangeTerm: TranslatableTerm = translatableTerm(
+    timeRange.range as string,
+    { inSentence: true },
+  );
+  const noTracesInRange: string = isCustomRange
+    ? translator.translateTemplate("No traces in the selected time range")
+    : translator.translateTemplate("No traces in the {{range}}", {
+        range: rangeTerm,
+      });
 
   const headerBar: ReactElement = (
     <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
-        <h2 className="text-base font-semibold text-gray-900">Insights</h2>
+        <h2 className="text-base font-semibold text-gray-900">
+          {translator.translateText("Insights")}
+        </h2>
         <p className="text-xs text-gray-500">
-          Request health, error rates, and latency in {rangeLabel}.
+          {isCustomRange
+            ? translator.translateTemplate(
+                "Request health, error rates, and latency in the selected time range.",
+              )
+            : translator.translateTemplate(
+                "Request health, error rates, and latency in the {{range}}.",
+                { range: rangeTerm },
+              )}
         </p>
         {(savedViewName || unappliedFiltersHint) && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -679,14 +755,24 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
               <span className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs text-indigo-700">
                 <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
                 <span>
-                  Scoped by saved view{" "}
-                  <span className="font-medium">{savedViewName}</span>
+                  <TranslatedSentence
+                    template="Scoped by saved view {{name}}"
+                    slots={{
+                      name: (
+                        <span className="font-medium">{savedViewName}</span>
+                      ),
+                    }}
+                  />
                 </span>
                 <button
                   type="button"
                   className="ml-0.5 rounded p-0.5 text-indigo-500 hover:bg-indigo-100 hover:text-indigo-700"
-                  title="Stop scoping by this saved view"
-                  aria-label="Stop scoping by this saved view"
+                  title={translator.translateText(
+                    "Stop scoping by this saved view",
+                  )}
+                  aria-label={translator.translateText(
+                    "Stop scoping by this saved view",
+                  )}
                   onClick={() => {
                     applyServiceSelection([]);
                   }}
@@ -745,10 +831,10 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             void loadDashboard();
           }}
           className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
-          title="Refresh"
+          title={translator.translateText("Refresh")}
         >
           <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-          <span>Refresh</span>
+          <span>{translator.translateText("Refresh")}</span>
         </button>
       </div>
     </div>
@@ -791,12 +877,12 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             />
           </div>
           <h3 className="mt-5 text-lg font-semibold text-gray-900">
-            No traces in {rangeLabel}
+            {noTracesInRange}
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-gray-500">
-            Once your services start sending distributed tracing data, you
-            {"'"}ll see request rates, error rates, latency percentiles, and
-            more. Try widening the time range or check your collectors.
+            {translator.translateText(
+              "Once your services start sending distributed tracing data, you'll see request rates, error rates, latency percentiles, and more. Try widening the time range or check your collectors.",
+            )}
           </p>
           <div className="mt-6 flex items-center justify-center gap-2">
             <AppLink
@@ -804,7 +890,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 hover:bg-gray-50"
             >
               <Icon icon={IconProp.List} className="h-3.5 w-3.5" />
-              <span>Open Viewer</span>
+              <span>{translator.translateText("Open Viewer")}</span>
             </AppLink>
             <AppLink
               to={RouteUtil.populateRouteParams(
@@ -813,7 +899,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
               className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-500"
             >
               <Icon icon={IconProp.Book} className="h-3.5 w-3.5" />
-              <span>Setup Guide</span>
+              <span>{translator.translateText("Setup Guide")}</span>
             </AppLink>
           </div>
         </div>
@@ -830,57 +916,79 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
       {/* Hero Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <p className="text-sm font-medium text-gray-500">Requests</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">
-            {totalRequests.toLocaleString()}
+          <p className="text-sm font-medium text-gray-500">
+            {translator.translateText("Requests")}
           </p>
-          <p className="text-xs text-gray-400 mt-1">{rangeLabel}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">
+            {translator.formatNumber(totalRequests)}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            {isCustomRange
+              ? translator.translateTemplate("the selected time range")
+              : translator.translateTemplate("the {{range}}", {
+                  range: rangeTerm,
+                })}
+          </p>
         </div>
 
         <div
           className={`rounded-xl border p-5 ${overallErrorRate > 5 ? "border-red-200 bg-red-50" : overallErrorRate > 1 ? "border-amber-200 bg-amber-50" : "border-gray-200 bg-white"}`}
         >
-          <p className="text-sm font-medium text-gray-500">Error Rate</p>
+          <p className="text-sm font-medium text-gray-500">
+            {translator.translateText("Error Rate")}
+          </p>
           <p
             className={`text-3xl font-bold mt-1 ${overallErrorRate > 5 ? "text-red-600" : overallErrorRate > 1 ? "text-amber-600" : "text-green-600"}`}
           >
-            {overallErrorRate.toFixed(1)}%
+            {formatFixed(overallErrorRate, 1, translator)}%
           </p>
           <p className="text-xs text-gray-400 mt-1">
-            {totalErrors.toLocaleString()} errors
+            {translator.translatePlural(ERROR_COUNT, totalErrors)}
           </p>
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <p className="text-sm font-medium text-gray-500">P50 Latency</p>
-          <p className="text-3xl font-bold text-gray-900 mt-1">
-            {formatDuration(globalP50)}
+          <p className="text-sm font-medium text-gray-500">
+            {translator.translateText("P50 Latency")}
           </p>
-          <p className="text-xs text-gray-400 mt-1">median</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">
+            {formatDuration(globalP50, translator)}
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            {translator.translateText("median")}
+          </p>
         </div>
 
         <div
           className={`rounded-xl border p-5 ${globalP95 > 1_000_000_000 ? "border-amber-200 bg-amber-50" : "border-gray-200 bg-white"}`}
         >
-          <p className="text-sm font-medium text-gray-500">P95 Latency</p>
+          <p className="text-sm font-medium text-gray-500">
+            {translator.translateText("P95 Latency")}
+          </p>
           <p
             className={`text-3xl font-bold mt-1 ${globalP95 > 1_000_000_000 ? "text-amber-600" : "text-gray-900"}`}
           >
-            {formatDuration(globalP95)}
+            {formatDuration(globalP95, translator)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">95th percentile</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {translator.translateText("95th percentile")}
+          </p>
         </div>
 
         <div
           className={`rounded-xl border p-5 ${globalP99 > 2_000_000_000 ? "border-red-200 bg-red-50" : "border-gray-200 bg-white"}`}
         >
-          <p className="text-sm font-medium text-gray-500">P99 Latency</p>
+          <p className="text-sm font-medium text-gray-500">
+            {translator.translateText("P99 Latency")}
+          </p>
           <p
             className={`text-3xl font-bold mt-1 ${globalP99 > 2_000_000_000 ? "text-red-600" : "text-gray-900"}`}
           >
-            {formatDuration(globalP99)}
+            {formatDuration(globalP99, translator)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">99th percentile</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {translator.translateText("99th percentile")}
+          </p>
         </div>
       </div>
 
@@ -889,17 +997,19 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-semibold text-gray-900">
-              Service Health
+              {translator.translateText("Service Health")}
             </h3>
             <p className="text-sm text-gray-500 mt-0.5">
-              Sorted by error rate — services needing attention first
+              {translator.translateText(
+                "Sorted by error rate — services needing attention first",
+              )}
             </p>
           </div>
           <AppLink
             className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
             to={viewerRoute}
           >
-            Open Viewer
+            {translator.translateText("Open Viewer")}
           </AppLink>
         </div>
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -915,66 +1025,66 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                   className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
                   resize={serviceColumns.getResize(
                     "service",
-                    "Service",
+                    translator.translateTerm("Service"),
                     ColumnWidthKind.Name,
                   )}
                 >
-                  <span>{"Service"}</span>
+                  <span>{translator.translateText("Service")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
                   className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
                   resize={serviceColumns.getResize(
                     "requests",
-                    "Requests",
+                    translator.translateTerm("Requests"),
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{"Requests"}</span>
+                  <span>{translator.translateText("Requests")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
                   className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
                   resize={serviceColumns.getResize(
                     "errorRate",
-                    "Error Rate",
+                    translator.translateTerm("Error Rate"),
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{"Error Rate"}</span>
+                  <span>{translator.translateText("Error Rate")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
                   className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
                   resize={serviceColumns.getResize(
                     "p50",
-                    "P50",
+                    translator.translateTerm("P50"),
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{"P50"}</span>
+                  <span>{translator.translateText("P50")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
                   className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
                   resize={serviceColumns.getResize(
                     "p95",
-                    "P95",
+                    translator.translateTerm("P95"),
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{"P95"}</span>
+                  <span>{translator.translateText("P95")}</span>
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
                   className="text-center text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3"
                   resize={serviceColumns.getResize(
                     "status",
-                    "Status",
+                    translator.translateTerm("Status"),
                     ColumnWidthKind.Whole,
                   )}
                 >
-                  <span>{"Status"}</span>
+                  <span>{translator.translateText("Status")}</span>
                 </ResizableHeaderCell>
                 <th className="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-5 py-3">
                   &nbsp;
@@ -989,19 +1099,19 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                     : 0;
 
                 let healthColor: string = "bg-green-500";
-                let healthLabel: string = "Healthy";
+                let healthLabel: string = translationKey("Healthy");
                 let healthBg: string = "bg-green-50 text-green-700";
                 if (errorRate > 10) {
                   healthColor = "bg-red-500";
-                  healthLabel = "Critical";
+                  healthLabel = translationKey("Critical");
                   healthBg = "bg-red-50 text-red-700";
                 } else if (errorRate > 5) {
                   healthColor = "bg-amber-500";
-                  healthLabel = "Degraded";
+                  healthLabel = translationKey("Degraded");
                   healthBg = "bg-amber-50 text-amber-700";
                 } else if (errorRate > 1) {
                   healthColor = "bg-yellow-400";
-                  healthLabel = "Warning";
+                  healthLabel = translationKey("Warning");
                   healthBg = "bg-yellow-50 text-yellow-700";
                 }
 
@@ -1015,7 +1125,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <span className="text-sm font-medium text-gray-900">
-                        {summary.totalTraces.toLocaleString()}
+                        {translator.formatNumber(summary.totalTraces)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-right">
@@ -1031,18 +1141,18 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                         <span
                           className={`text-sm font-medium ${errorRate > 5 ? "text-red-600" : "text-gray-900"}`}
                         >
-                          {errorRate.toFixed(1)}%
+                          {formatFixed(errorRate, 1, translator)}%
                         </span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <span className="text-sm font-mono text-gray-700">
-                        {formatDuration(summary.p50Nanos)}
+                        {formatDuration(summary.p50Nanos, translator)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <span className="text-sm font-mono text-gray-700">
-                        {formatDuration(summary.p95Nanos)}
+                        {formatDuration(summary.p95Nanos, translator)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-center">
@@ -1052,7 +1162,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${healthColor}`}
                         />
-                        {healthLabel}
+                        {translator.translateText(healthLabel)}
                       </span>
                     </td>
                     <td className="px-5 py-3.5 text-right">
@@ -1076,7 +1186,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                               )
                         }
                       >
-                        View
+                        {translator.translateText("View")}
                       </AppLink>
                     </td>
                   </tr>
@@ -1100,11 +1210,11 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-red-500" />
               <h3 className="text-base font-semibold text-gray-900">
-                Recent Errors
+                {translator.translateText("Recent Errors")}
               </h3>
               {recentErrorTraces.length > 0 && (
                 <span className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded-full font-medium">
-                  {recentErrorTraces.length}
+                  {translator.formatNumber(recentErrorTraces.length)}
                 </span>
               )}
             </div>
@@ -1127,9 +1237,17 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                 </svg>
               </div>
               <p className="text-sm font-medium text-gray-700">
-                No errors in {rangeLabel}
+                {isCustomRange
+                  ? translator.translateTemplate(
+                      "No errors in the selected time range",
+                    )
+                  : translator.translateTemplate("No errors in the {{range}}", {
+                      range: rangeTerm,
+                    })}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Looking good!</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {translator.translateText("Looking good!")}
+              </p>
             </div>
           ) : (
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -1152,7 +1270,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                           />
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">
-                              {trace.name}
+                              {getTraceName(trace)}
                             </p>
                             <p className="text-xs text-gray-500">
                               {getServiceName(trace.primaryEntityId)}
@@ -1161,7 +1279,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                         </div>
                         <div className="text-right flex-shrink-0 ml-3">
                           <p className="text-xs font-mono text-gray-600">
-                            {formatDuration(trace.durationNano)}
+                            {formatDuration(trace.durationNano, translator)}
                           </p>
                           <p className="text-xs text-gray-400">
                             {OneUptimeDate.fromNow(trace.startTime)}
@@ -1181,12 +1299,12 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-amber-500" />
             <h3 className="text-base font-semibold text-gray-900">
-              Slowest Requests
+              {translator.translateText("Slowest Requests")}
             </h3>
           </div>
           {recentSlowTraces.length === 0 ? (
             <div className="flex flex-col justify-center rounded-xl border border-gray-200 bg-white p-10 text-center">
-              <p className="text-sm text-gray-500">No traces in {rangeLabel}</p>
+              <p className="text-sm text-gray-500">{noTracesInRange}</p>
             </div>
           ) : (
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -1214,7 +1332,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                           />
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-gray-900 truncate">
-                              {trace.name}
+                              {getTraceName(trace)}
                             </p>
                             <p className="text-xs text-gray-500">
                               {getServiceName(trace.primaryEntityId)}
@@ -1223,7 +1341,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
                         </div>
                         <div className="text-right flex-shrink-0 ml-3">
                           <p className="text-sm font-mono font-semibold text-gray-900">
-                            {formatDuration(trace.durationNano)}
+                            {formatDuration(trace.durationNano, translator)}
                           </p>
                         </div>
                       </div>

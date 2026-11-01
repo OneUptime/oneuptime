@@ -34,6 +34,8 @@ import {
   getTelemetryEntityDisplay,
   getTelemetryEntityTypeLabel,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import TelemetryServiceUtil from "Common/UI/Utils/TelemetryService";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   ATTRIBUTE_CHIP_PREFIX,
   ATTRIBUTE_SEARCH_CHIP_PREFIX,
@@ -54,6 +56,7 @@ import {
   getSpanStatusDisplayLabelMap,
   getSpanStatusPresentation,
 } from "../../Utils/SpanStatusPresentation";
+import SpanUtil from "../../Utils/SpanUtil";
 
 /** The Span column every entity chip ultimately filters. */
 export const TRACE_PRIMARY_ENTITY_FACET_KEY: string = "primaryEntityId";
@@ -69,7 +72,8 @@ export const TRACE_ENTITY_FACET_KEYS: ReadonlySet<string> = new Set<string>([
 ]);
 
 /** What a span row shows when nothing names its entity. */
-export const UNKNOWN_SPAN_ENTITY_NAME: string = "unknown service";
+export const UNKNOWN_SPAN_ENTITY_NAME: string =
+  translationKey("unknown service");
 
 type IsTraceEntityFacetKeyFunction = (facetKey: string) => boolean;
 
@@ -554,6 +558,8 @@ export interface SpanEntityDisplay {
 type GetSpanEntityDisplayFunction = (data: {
   service?: Service | undefined;
   entity?: ResolvedTelemetryEntity | undefined;
+  // The reader's words for the type and the stand-in. English without it.
+  translator?: Translator | undefined;
 }) => SpanEntityDisplay;
 
 /**
@@ -565,11 +571,24 @@ type GetSpanEntityDisplayFunction = (data: {
 export const getSpanEntityDisplay: GetSpanEntityDisplayFunction = (data: {
   service?: Service | undefined;
   entity?: ResolvedTelemetryEntity | undefined;
+  translator?: Translator | undefined;
 }): SpanEntityDisplay => {
+  const word: (english: string) => string = (english: string): string => {
+    return data.translator ? data.translator.translateTerm(english) : english;
+  };
+
   if (data.service) {
+    const serviceName: string | undefined = data.translator
+      ? TelemetryServiceUtil.getServiceDisplayName(
+          data.service.name,
+          data.translator,
+        )
+      : data.service.name;
+
     return {
-      name: data.service.name || data.entity?.name || UNKNOWN_SPAN_ENTITY_NAME,
-      typeLabel: DEFAULT_TELEMETRY_ENTITY_LABEL,
+      name:
+        serviceName || data.entity?.name || word(UNKNOWN_SPAN_ENTITY_NAME),
+      typeLabel: word(DEFAULT_TELEMETRY_ENTITY_LABEL),
       color: data.service.serviceColor?.toString() || undefined,
     };
   }
@@ -577,13 +596,13 @@ export const getSpanEntityDisplay: GetSpanEntityDisplayFunction = (data: {
   if (data.entity && data.entity.name) {
     return {
       name: data.entity.name,
-      typeLabel: data.entity.typeLabel || DEFAULT_TELEMETRY_ENTITY_LABEL,
+      typeLabel: word(data.entity.typeLabel || DEFAULT_TELEMETRY_ENTITY_LABEL),
     };
   }
 
   return {
-    name: UNKNOWN_SPAN_ENTITY_NAME,
-    typeLabel: DEFAULT_TELEMETRY_ENTITY_LABEL,
+    name: word(UNKNOWN_SPAN_ENTITY_NAME),
+    typeLabel: word(DEFAULT_TELEMETRY_ENTITY_LABEL),
   };
 };
 
@@ -657,21 +676,19 @@ export function getTraceAnalyticsStatusColor(
   return getSpanStatusPresentation(raw).color;
 }
 
-export const TRACE_ANALYTICS_KIND_LABEL: Record<string, string> = {
-  SPAN_KIND_SERVER: "Server",
-  SPAN_KIND_CLIENT: "Client",
-  SPAN_KIND_PRODUCER: "Producer",
-  SPAN_KIND_CONSUMER: "Consumer",
-  SPAN_KIND_INTERNAL: "Internal",
-};
+export const TRACE_ANALYTICS_KIND_LABEL: Record<string, string> =
+  SpanUtil.getSpanKindNameMap();
 
-export const TRACE_ANALYTICS_EMPTY_GROUP_LABEL: string = "(empty)";
+export const TRACE_ANALYTICS_EMPTY_GROUP_LABEL: string =
+  translationKey("(empty)");
 
 type FormatTraceAnalyticsGroupValueFunction = (data: {
   key: string;
   raw: string;
   serviceNameMap: Record<string, string>;
   entityNames?: TelemetryEntityNameMap | undefined;
+  // The reader's words for a status, a kind and "(empty)". English without it.
+  translator?: Translator | undefined;
 }) => string;
 
 /**
@@ -686,9 +703,14 @@ export const formatTraceAnalyticsGroupValue: FormatTraceAnalyticsGroupValueFunct
     raw: string;
     serviceNameMap: Record<string, string>;
     entityNames?: TelemetryEntityNameMap | undefined;
+    translator?: Translator | undefined;
   }): string => {
+    const word: (english: string) => string = (english: string): string => {
+      return data.translator ? data.translator.translateTerm(english) : english;
+    };
+
     if (!data.raw) {
-      return TRACE_ANALYTICS_EMPTY_GROUP_LABEL;
+      return word(TRACE_ANALYTICS_EMPTY_GROUP_LABEL);
     }
 
     if (isTraceEntityFacetKey(data.key)) {
@@ -700,11 +722,15 @@ export const formatTraceAnalyticsGroupValue: FormatTraceAnalyticsGroupValueFunct
     }
 
     if (data.key === "statusCode") {
-      return TRACE_ANALYTICS_STATUS_LABEL[data.raw] || data.raw;
+      const status: string | undefined = TRACE_ANALYTICS_STATUS_LABEL[data.raw];
+
+      return status ? word(status) : data.raw;
     }
 
     if (data.key === "kind") {
-      return TRACE_ANALYTICS_KIND_LABEL[data.raw] || data.raw;
+      const kind: string | undefined = TRACE_ANALYTICS_KIND_LABEL[data.raw];
+
+      return kind ? word(kind) : data.raw;
     }
 
     return data.raw;
@@ -715,6 +741,7 @@ type GetTraceAnalyticsGroupTypeLabelFunction = (data: {
   raw: string;
   serviceNameMap: Record<string, string>;
   entityNames?: TelemetryEntityNameMap | undefined;
+  translator?: Translator | undefined;
 }) => string | undefined;
 
 /**
@@ -730,24 +757,29 @@ export const getTraceAnalyticsGroupTypeLabel: GetTraceAnalyticsGroupTypeLabelFun
     raw: string;
     serviceNameMap: Record<string, string>;
     entityNames?: TelemetryEntityNameMap | undefined;
+    translator?: Translator | undefined;
   }): string | undefined => {
     if (!data.raw || !isTraceEntityFacetKey(data.key)) {
       return undefined;
     }
 
+    const word: (english: string) => string = (english: string): string => {
+      return data.translator ? data.translator.translateTerm(english) : english;
+    };
+
     if (data.serviceNameMap[data.raw]) {
-      return DEFAULT_TELEMETRY_ENTITY_LABEL;
+      return word(DEFAULT_TELEMETRY_ENTITY_LABEL);
     }
 
     const entity: ResolvedTelemetryEntity | undefined =
       data.entityNames?.[data.raw];
 
     if (entity && entity.name) {
-      return entity.typeLabel || DEFAULT_TELEMETRY_ENTITY_LABEL;
+      return word(entity.typeLabel || DEFAULT_TELEMETRY_ENTITY_LABEL);
     }
 
     if (!isResolvableEntityId(data.raw)) {
-      return DEFAULT_TELEMETRY_ENTITY_LABEL;
+      return word(DEFAULT_TELEMETRY_ENTITY_LABEL);
     }
 
     return undefined;
@@ -790,6 +822,7 @@ type BuildTraceAnalyticsGroupLabelsFunction = (data: {
   ungroupedLabel?: string | undefined;
   // Labels that must not be produced (e.g. the pivot row's `time` field).
   reservedLabels?: Array<string> | undefined;
+  translator?: Translator | undefined;
 }) => Map<string, string>;
 
 /**
@@ -817,6 +850,7 @@ export const buildTraceAnalyticsGroupLabels: BuildTraceAnalyticsGroupLabelsFunct
     entityNames?: TelemetryEntityNameMap | undefined;
     ungroupedLabel?: string | undefined;
     reservedLabels?: Array<string> | undefined;
+    translator?: Translator | undefined;
   }): Map<string, string> => {
     // Distinct groups, in order of first appearance.
     const identityKeys: Array<string> = [];
@@ -854,7 +888,12 @@ export const buildTraceAnalyticsGroupLabels: BuildTraceAnalyticsGroupLabelsFunct
         entriesByKey.get(identityKey) || [];
 
       if (entries.length === 0) {
-        return data.ungroupedLabel || TRACE_ANALYTICS_EMPTY_GROUP_LABEL;
+        return (
+          data.ungroupedLabel ||
+          (data.translator
+            ? data.translator.translateTerm(TRACE_ANALYTICS_EMPTY_GROUP_LABEL)
+            : TRACE_ANALYTICS_EMPTY_GROUP_LABEL)
+        );
       }
 
       return entries
@@ -864,6 +903,7 @@ export const buildTraceAnalyticsGroupLabels: BuildTraceAnalyticsGroupLabelsFunct
             raw,
             serviceNameMap: data.serviceNameMap,
             entityNames: data.entityNames,
+            translator: data.translator,
           });
 
           if (level === "name" || !isTraceEntityFacetKey(key) || !raw) {
@@ -877,6 +917,7 @@ export const buildTraceAnalyticsGroupLabels: BuildTraceAnalyticsGroupLabelsFunct
               raw,
               serviceNameMap: data.serviceNameMap,
               entityNames: data.entityNames,
+              translator: data.translator,
             },
           );
 
@@ -972,6 +1013,7 @@ type PivotTraceAnalyticsTimeseriesFunction = (data: {
   entityNames?: TelemetryEntityNameMap | undefined;
   // Series label when the timeseries is not split (the metric's label).
   metricLabel: string;
+  translator?: Translator | undefined;
 }) => {
   pivotedData: Array<TraceAnalyticsPivotedRow>;
   // Unique series labels, in order of first appearance; each is a dataKey.
@@ -992,6 +1034,7 @@ export const pivotTraceAnalyticsTimeseries: PivotTraceAnalyticsTimeseriesFunctio
     serviceNameMap: Record<string, string>;
     entityNames?: TelemetryEntityNameMap | undefined;
     metricLabel: string;
+    translator?: Translator | undefined;
   }): {
     pivotedData: Array<TraceAnalyticsPivotedRow>;
     seriesKeys: Array<string>;
@@ -1010,6 +1053,7 @@ export const pivotTraceAnalyticsTimeseries: PivotTraceAnalyticsTimeseriesFunctio
       ungroupedLabel: data.metricLabel,
       // A series named "time" would overwrite the bucket's own time field.
       reservedLabels: [TRACE_ANALYTICS_PIVOT_TIME_KEY],
+      translator: data.translator,
     });
 
     const rowsByTime: Map<string, TraceAnalyticsPivotedRow> = new Map();
@@ -1047,6 +1091,7 @@ type BuildTraceAnalyticsValueLabelsFunction = (data: {
   values: Array<string | undefined>;
   serviceNameMap: Record<string, string>;
   entityNames?: TelemetryEntityNameMap | undefined;
+  translator?: Translator | undefined;
 }) => Map<string, string>;
 
 /**
@@ -1061,6 +1106,7 @@ export const buildTraceAnalyticsValueLabels: BuildTraceAnalyticsValueLabelsFunct
     values: Array<string | undefined>;
     serviceNameMap: Record<string, string>;
     entityNames?: TelemetryEntityNameMap | undefined;
+    translator?: Translator | undefined;
   }): Map<string, string> => {
     const groupFor: (raw: string | undefined) => Record<string, string> = (
       raw: string | undefined,
@@ -1072,6 +1118,7 @@ export const buildTraceAnalyticsValueLabels: BuildTraceAnalyticsValueLabelsFunct
       groups: data.values.map(groupFor),
       serviceNameMap: data.serviceNameMap,
       entityNames: data.entityNames,
+      translator: data.translator,
     });
 
     const result: Map<string, string> = new Map();

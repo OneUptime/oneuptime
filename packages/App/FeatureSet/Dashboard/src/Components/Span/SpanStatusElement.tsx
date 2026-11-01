@@ -9,6 +9,11 @@ import {
   SpanStatusPresentation,
   getSpanStatusPresentation,
 } from "../../Utils/SpanStatusPresentation";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   // No status (null / undefined) draws no dot.
@@ -28,6 +33,7 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { spanStatusCode } = props;
+  const translator: Translator = useTranslator();
 
   // Unset is 0, so test for a missing value rather than a falsy one.
   const hasStatus: boolean =
@@ -42,9 +48,11 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
         {hasStatus ? (
           <ColorCircle
             color={new Color(status.color)}
-            tooltip={`Span Status: ${
-              props.plainLabel ? status.label : status.displayLabel
-            }`}
+            tooltip={translator.translateTemplate("Span Status: {{status}}", {
+              status: translatableTerm(
+                props.plainLabel ? status.label : status.displayLabel,
+              ),
+            })}
           />
         ) : (
           <></>

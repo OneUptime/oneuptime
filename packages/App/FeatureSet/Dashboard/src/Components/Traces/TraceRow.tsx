@@ -6,6 +6,11 @@ import SpanUtil from "../../Utils/SpanUtil";
 import { formatAbsoluteTime } from "./TraceTimeFormat";
 import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "Common/UI/Components/Icon/Icon";
 import { ResolvedTelemetryEntity } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { SpanEntityDisplay, getSpanEntityDisplay } from "./TracesEntityDisplay";
 import {
   SpanStatusPresentation,
@@ -28,37 +33,38 @@ export interface TraceRowProps {
   onToggle?: (() => void) | undefined;
 }
 
-function formatRelativeTime(time: Date): string {
+function formatRelativeTime(time: Date, translator: Translator): string {
   const now: Date = new Date();
   const diffMs: number = now.getTime() - time.getTime();
   const sec: number = Math.floor(diffMs / 1000);
   if (sec < 60) {
-    return `${sec}s ago`;
+    return translator.translateTemplate("{{count}}s ago", { count: sec });
   }
   const min: number = Math.floor(sec / 60);
   if (min < 60) {
-    return `${min}m ago`;
+    return translator.translateTemplate("{{count}}m ago", { count: min });
   }
   const hr: number = Math.floor(min / 60);
   if (hr < 24) {
-    return `${hr}h ago`;
+    return translator.translateTemplate("{{count}}h ago", { count: hr });
   }
   const day: number = Math.floor(hr / 24);
   if (day < 30) {
-    return `${day}d ago`;
+    return translator.translateTemplate("{{count}}d ago", { count: day });
   }
   const mo: number = Math.floor(day / 30);
   if (mo < 12) {
-    return `${mo}mo ago`;
+    return translator.translateTemplate("{{count}}mo ago", { count: mo });
   }
   const yr: number = Math.floor(mo / 12);
-  return `${yr}y ago`;
+  return translator.translateTemplate("{{count}}y ago", { count: yr });
 }
 
 const TraceRow: FunctionComponent<TraceRowProps> = (
   props: TraceRowProps,
 ): ReactElement => {
   const { span, service, maxDurationNano } = props;
+  const translator: Translator = useTranslator();
 
   const durationNano: number = Number(span.durationUnixNano || 0);
   const durationPct: number =
@@ -81,11 +87,12 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
   const entityDisplay: SpanEntityDisplay = getSpanEntityDisplay({
     service,
     entity: props.entity,
+    translator,
   });
   const serviceName: string = entityDisplay.name;
   const serviceColor: string | undefined = entityDisplay.color;
 
-  const spanName: string = span.name || "(unnamed)";
+  const spanName: string = span.name || translator.translateTerm("(unnamed)");
   const traceIdStr: string = span.traceId?.toString() || "";
   const shortTraceId: string =
     traceIdStr.length > 16 ? `${traceIdStr.slice(0, 16)}…` : traceIdStr;
@@ -98,7 +105,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
   const kindRaw: SpanKind | undefined = span.kind as SpanKind | undefined;
   const kindLabel: string | null =
     kindRaw && kindRaw !== SpanKind.Internal
-      ? SpanUtil.getSpanKindFriendlyName(kindRaw)
+      ? SpanUtil.getSpanKindFriendlyName(kindRaw, translator)
       : null;
 
   const statusMessage: string | undefined =
@@ -112,6 +119,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
    */
   const statusName: string =
     span.hasException === true ? status.label : status.displayLabel;
+  const plainStatusName: string = translator.translateTerm(status.label);
 
   const isExpanded: boolean = props.isExpanded === true;
 
@@ -138,8 +146,10 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
          */}
         <span
           role="img"
-          aria-label={`Status: ${statusName}`}
-          title={`${status.label}: ${status.description}`}
+          aria-label={translator.translateTemplate("Status: {{status}}", {
+            status: translatableTerm(statusName),
+          })}
+          title={`${plainStatusName}: ${translator.translateText(status.description)}`}
           className={`relative flex h-2 w-2 flex-shrink-0 items-center justify-center`}
         >
           <span
@@ -203,7 +213,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
             <span
               className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${status.pillClassName}`}
             >
-              {status.label}
+              {plainStatusName}
             </span>
           )}
         </div>
@@ -233,7 +243,7 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
               className="max-md:hidden w-20 text-right text-xs text-gray-400 md:block"
               title={`${formatAbsoluteTime(startTimeDate)} — ${startTimeDate.toISOString()}`}
             >
-              {formatRelativeTime(startTimeDate)}
+              {formatRelativeTime(startTimeDate, translator)}
             </div>
           )}
 
@@ -267,7 +277,9 @@ const TraceRow: FunctionComponent<TraceRowProps> = (
         {shortTraceId && (
           <span
             className="font-mono tracking-tight text-gray-400 transition-colors group-hover:text-gray-500"
-            title={`trace ${traceIdStr}`}
+            title={translator.translateTemplate("trace {{traceId}}", {
+              traceId: traceIdStr,
+            })}
           >
             {shortTraceId}
           </span>

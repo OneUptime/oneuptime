@@ -13,6 +13,13 @@ import {
   TraceSpanType,
   parseTraceSpanType,
 } from "Common/Types/Telemetry/TraceSpanType";
+import {
+  Translator,
+  composedValue,
+  createTranslator,
+  formatList,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Carrying "which slice of telemetry am I looking at" across the Viewer /
@@ -345,24 +352,24 @@ export function buildTelemetryScopeFilterTuples(
  * "proxmoxClusterId".
  */
 const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
-  severityText: "severity",
-  body: "message text",
-  traceId: "trace id",
-  spanId: "span id",
-  hostId: "host",
-  dockerHostId: "Docker host",
-  podmanHostId: "Podman host",
-  kubernetesClusterId: "Kubernetes cluster",
-  dockerSwarmClusterId: "Docker Swarm cluster",
-  proxmoxClusterId: "Proxmox cluster",
-  vmwareVCenterId: "vCenter",
-  cephClusterId: "Ceph cluster",
-  storageArrayId: "storage array",
-  serverlessFunctionId: "serverless function",
-  cloudResourceId: "cloud resource",
-  rumApplicationId: "RUM application",
-  iotFleetId: "IoT fleet",
-  databaseServerId: "database",
+  severityText: translationKey("severity"),
+  body: translationKey("message text"),
+  traceId: translationKey("trace id"),
+  spanId: translationKey("span id"),
+  hostId: translationKey("host"),
+  dockerHostId: translationKey("Docker host"),
+  podmanHostId: translationKey("Podman host"),
+  kubernetesClusterId: translationKey("Kubernetes cluster"),
+  dockerSwarmClusterId: translationKey("Docker Swarm cluster"),
+  proxmoxClusterId: translationKey("Proxmox cluster"),
+  vmwareVCenterId: translationKey("vCenter"),
+  cephClusterId: translationKey("Ceph cluster"),
+  storageArrayId: translationKey("storage array"),
+  serverlessFunctionId: translationKey("serverless function"),
+  cloudResourceId: translationKey("cloud resource"),
+  rumApplicationId: translationKey("RUM application"),
+  iotFleetId: translationKey("IoT fleet"),
+  databaseServerId: translationKey("database"),
 };
 
 const ATTRIBUTE_FACET_PREFIX: string = "attributes.";
@@ -393,21 +400,45 @@ export interface UnappliedScopeExtras {
 export function describeUnappliedScopeFilters(
   tuples: Array<TelemetryFilterTuple>,
   extras?: UnappliedScopeExtras | undefined,
+  translator?: Translator | undefined,
 ): string {
   const labels: Array<string> = [];
+  // Each label as its sentence words it, in the same order.
+  const writers: Array<(sentence: Translator) => string> = [];
 
-  for (const [facetKey] of tuples) {
-    const label: string = facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)
-      ? `attribute ${facetKey.substring(ATTRIBUTE_FACET_PREFIX.length)}`
-      : UNAPPLIED_FACET_LABELS[facetKey] || facetKey;
-
+  const add: (
+    label: string,
+    write: (sentence: Translator) => string,
+  ) => void = (
+    label: string,
+    write: (sentence: Translator) => string,
+  ): void => {
     if (!labels.includes(label)) {
       labels.push(label);
+      writers.push(write);
+    }
+  };
+
+  const addTerm: (label: string) => void = (label: string): void => {
+    add(label, (sentence: Translator): string => {
+      return sentence.translateTerm(label, { inSentence: true });
+    });
+  };
+
+  for (const [facetKey] of tuples) {
+    if (facetKey.startsWith(ATTRIBUTE_FACET_PREFIX)) {
+      const name: string = facetKey.substring(ATTRIBUTE_FACET_PREFIX.length);
+
+      add(`attribute ${name}`, (sentence: Translator): string => {
+        return sentence.translateTemplate("attribute {{name}}", { name });
+      });
+    } else {
+      addTerm(UNAPPLIED_FACET_LABELS[facetKey] || facetKey);
     }
   }
 
   if (typeof extras?.search === "string" && extras.search.trim().length > 0) {
-    labels.push("search text");
+    addTerm(translationKey("search text"));
   }
 
   /*
@@ -416,14 +447,27 @@ export function describeUnappliedScopeFilters(
    * what it shows when nobody chose: neither is a filter to warn about.
    */
   if (extras?.rootOnly === true || extras?.spanType === TraceSpanType.Root) {
-    labels.push("root spans only");
+    addTerm(translationKey("root spans only"));
   }
 
   if (labels.length === 0) {
     return "";
   }
 
-  return `Also filtered in the Viewer, not applied here: ${labels.join(", ")}`;
+  return (translator || createTranslator(undefined)).translateTemplate(
+    "Also filtered in the Viewer, not applied here: {{filters}}",
+    {
+      // Each filter's name, in the sentence's language.
+      filters: composedValue((sentence: Translator): string => {
+        return formatList(
+          writers.map((write: (sentence: Translator) => string): string => {
+            return write(sentence);
+          }),
+          sentence,
+        );
+      }),
+    },
+  );
 }
 
 // --- Time range ---
