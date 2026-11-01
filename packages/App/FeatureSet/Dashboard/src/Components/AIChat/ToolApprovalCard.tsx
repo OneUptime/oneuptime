@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import {
   AIChatToolAction,
   AIChatToolActionStatus,
@@ -359,7 +360,12 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                     }),
                   );
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-60"
+                className={`inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors ${getHandDrawnButtonStateClassName(
+                  {
+                    isBusy: props.isSubmitting,
+                    hoverClassName: "hover:bg-gray-800",
+                  },
+                )}`}
               >
                 {props.isSubmitting ? (
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />

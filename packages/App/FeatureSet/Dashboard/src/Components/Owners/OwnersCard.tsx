@@ -1,3 +1,7 @@
+import {
+  BUTTON_DISABLED_CLASS_NAME,
+  getRestingClassName,
+} from "Common/UI/Components/Button/ButtonStates";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -607,7 +611,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                       type="button"
                       disabled={true}
                       aria-disabled={true}
-                      className="pointer-events-none inline-flex cursor-not-allowed items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white opacity-50 shadow-sm"
+                      className={`pointer-events-none ${OWNERS_ADD_BUTTON_CLASS_NAME} ${getRestingClassName(OWNERS_ADD_BUTTON_IDLE_CLASS_NAME)} ${BUTTON_DISABLED_CLASS_NAME}`}
                     >
                       <Icon
                         icon={IconProp.Lock}
@@ -676,7 +680,7 @@ function OwnersCard<TOwnerUser extends BaseModel, TOwnerTeam extends BaseModel>(
                         disabled={true}
                         aria-disabled={true}
                         aria-label={addOwnerText}
-                        className="pointer-events-none h-11 w-11 cursor-not-allowed rounded-full border-2 border-dashed border-gray-200 bg-gray-50 text-gray-300 flex items-center justify-center"
+                        className={`pointer-events-none flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed ${getRestingClassName(OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME)} ${BUTTON_DISABLED_CLASS_NAME}`}
                       >
                         <Icon
                           icon={IconProp.Lock}

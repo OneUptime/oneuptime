@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CLASS_NAME } from "../Button/ButtonStates";
 import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -362,7 +363,7 @@ const CustomColorPanel: FunctionComponent<ComponentProps> = (
         aria-disabled={isDisabled ? true : undefined}
         data-testid="color-picker-saturation"
         className={`relative h-28 w-full touch-none rounded-md ${SLIDER_FOCUS_CLASS} ${
-          isDisabled ? "cursor-not-allowed opacity-50" : "cursor-crosshair"
+          isDisabled ? BUTTON_DISABLED_CLASS_NAME : "cursor-crosshair"
         }`}
         style={{ backgroundColor: `hsl(${hsv.h}, 100%, 50%)` }}
         onMouseDown={squareDrag.onMouseDown}
@@ -425,7 +426,7 @@ const CustomColorPanel: FunctionComponent<ComponentProps> = (
         aria-disabled={isDisabled ? true : undefined}
         data-testid="color-picker-hue"
         className={`relative mt-3 h-3 w-full touch-none rounded-full ${SLIDER_FOCUS_CLASS} ${
-          isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+          isDisabled ? BUTTON_DISABLED_CLASS_NAME : "cursor-pointer"
         }`}
         style={{ background: HUE_GRADIENT }}
         onMouseDown={hueDrag.onMouseDown}

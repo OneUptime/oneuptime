@@ -7,9 +7,11 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import * as React from "react";
-import KubernetesClusterSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/SideMenu";
+import KubernetesClusterSideMenu, {
+  ResourceCounts,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/SideMenu";
 import { getKubernetesBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/KubernetesBreadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -142,6 +144,27 @@ const DETAIL_PAGES: Array<DetailPage> = [
     crumb: "Deployment Detail",
   },
   {
+    detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
+    listPage: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS,
+    list: "DeploymentConfigs",
+    section: "Workloads",
+    crumb: "DeploymentConfig Detail",
+  },
+  {
+    detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
+    listPage: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES,
+    list: "Routes",
+    section: "Networking",
+    crumb: "Route Detail",
+  },
+  {
+    detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
+    listPage: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES,
+    list: "Services",
+    section: "Networking",
+    crumb: "Service Detail",
+  },
+  {
     detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSET_DETAIL,
     listPage: PageMap.KUBERNETES_CLUSTER_VIEW_STATEFULSETS,
     list: "StatefulSets",
@@ -225,9 +248,21 @@ function clusterPath(page: PageMap, clusterId: ObjectID = CLUSTER_ID): string {
     .replace(":subModelId", ROW_ID);
 }
 
+// An OpenShift cluster's: these rows show only on a cluster that has some.
+const OPENSHIFT_COUNTS: ResourceCounts = {
+  deploymentConfigs: 3,
+  routes: 5,
+  services: 40,
+};
+
 async function renderClusterMenuAt(path: string): Promise<void> {
   goTo(path);
-  await renderMenu(<KubernetesClusterSideMenu modelId={CLUSTER_ID} />);
+  await renderMenu(
+    <KubernetesClusterSideMenu
+      modelId={CLUSTER_ID}
+      resourceCounts={OPENSHIFT_COUNTS}
+    />,
+  );
 }
 
 beforeEach(() => {
@@ -358,6 +393,71 @@ describe("a Kubernetes cluster's side menu on a row's own page", () => {
  * and its two rules pages: nothing above the page said where it was, and a
  * tab said only "OneUptime | Kubernetes Cluster".
  */
+describe("the rows only an OpenShift cluster has", () => {
+  async function renderWith(counts: ResourceCounts | undefined): Promise<void> {
+    goTo(clusterPath(PageMap.KUBERNETES_CLUSTER_VIEW));
+    await renderMenu(
+      <KubernetesClusterSideMenu
+        modelId={CLUSTER_ID}
+        resourceCounts={counts}
+      />,
+    );
+  }
+
+  function titlesIn(section: string): Array<string> {
+    return linksIn(section).map((link: { title: string }): string => {
+      return link.title;
+    });
+  }
+
+  test("a cluster with none has no DeploymentConfigs row and no Networking section", async () => {
+    await renderWith({ pods: 12, deployments: 3 });
+
+    expect(titlesIn("Workloads")).not.toContain("DeploymentConfigs");
+    expect(screen.queryByText("Networking")).toBeNull();
+  });
+
+  test("a cluster whose counts have not arrived draws neither, then gains them", async () => {
+    await renderWith(undefined);
+
+    expect(titlesIn("Workloads")).not.toContain("DeploymentConfigs");
+    expect(screen.queryByText("Networking")).toBeNull();
+  });
+
+  test("DeploymentConfigs sits right after Deployments", async () => {
+    await renderWith({ deployments: 3, deploymentConfigs: 2 });
+
+    const titles: Array<string> = titlesIn("Workloads");
+
+    expect(titles.indexOf("DeploymentConfigs")).toBe(
+      titles.indexOf("Deployments") + 1,
+    );
+  });
+
+  test("Routes alone bring Networking, with Services beside them", async () => {
+    await renderWith({ routes: 2 });
+
+    expect(titlesIn("Networking")).toEqual(["Routes", "Services"]);
+  });
+
+  test("Networking sits between Workloads and Infrastructure", async () => {
+    await renderWith(OPENSHIFT_COUNTS);
+
+    const headings: Array<string> = screen
+      .getAllByRole("heading", { level: 6 })
+      .map((heading: HTMLElement): string => {
+        return heading.textContent || "";
+      });
+
+    expect(headings.indexOf("Networking")).toBe(
+      headings.indexOf("Workloads") + 1,
+    );
+    expect(headings.indexOf("Infrastructure")).toBe(
+      headings.indexOf("Networking") + 1,
+    );
+  });
+});
+
 describe("every Kubernetes page has a trail", () => {
   const pages: Array<string> = Object.values(PageMap).filter(
     (page: string): boolean => {

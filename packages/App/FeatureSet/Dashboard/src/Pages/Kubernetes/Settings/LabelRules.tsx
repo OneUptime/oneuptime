@@ -121,7 +121,7 @@ const KubernetesClusterLabelRulesPage: FunctionComponent<
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Kubernetes Cluster Labels (optional)",
+          placeholder: "Select Kubernetes Cluster Labels",
         },
         {
           field: { kubernetesClusterNamePattern: true },

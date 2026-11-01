@@ -306,13 +306,22 @@ describe("changing the order", () => {
 
       expect(button.className).toContain("text-gray-500");
       expect(button.className).not.toContain("text-gray-400");
-      expect(button.className).not.toContain("opacity-40");
+      expect(button.className).not.toContain("opacity-50");
     }
 
     expect(
       screen.getByRole("button", { name: "Move Production overview up" })
         .className,
-    ).toContain("opacity-40");
+    ).toContain("opacity-50");
+    // Locked as every button is: faded, with the not-allowed cursor, no hover.
+    expect(
+      screen.getByRole("button", { name: "Move Production overview up" })
+        .className,
+    ).toContain("cursor-not-allowed");
+    expect(
+      screen.getByRole("button", { name: "Move Production overview up" })
+        .className,
+    ).not.toContain("hover:");
   });
 
   test("the first can't move up and the last can't move down", async () => {

@@ -669,7 +669,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: '(?m)^  k8sobjects/openshift:\n    error_mode: ignore\n    objects:\n      - name: clusteroperators\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: clusterversions\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: routes\n        mode: pull\n        interval: 300s\n        group: route\.openshift\.io\n      - name: deploymentconfigs\n        mode: pull\n        interval: 300s\n        group: apps\.openshift\.io$'
+          pattern: '(?m)^  k8sobjects/openshift:\n    error_mode: ignore\n    objects:\n      - name: clusteroperators\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: clusterversions\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: routes\n        mode: pull\n        interval: 300s\n        group: route\.openshift\.io\n      - name: deploymentconfigs\n        mode: pull\n        interval: 300s\n        group: apps\.openshift\.io\n      - name: services\n        mode: pull\n        interval: 300s$'
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/openshift$'
@@ -695,6 +695,65 @@ tests:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: '(?s)k8sobjects/openshift:.*?mode: watch.*?\n  [a-z]'
+
+  - it: pulls core Services with no group, so OpenShift Serverless's services.serving.knative.dev is never taken for them
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      - name: services\n        mode: pull\n        interval: 300s\n        group:'
+
+  - it: reads Services with the rule that lets every preset read them, and adds none
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+      matchMany: true
+    set:
+      preset: openshift
+    asserts:
+      - contains:
+          path: rules[0].resources
+          content: services
+
+  - it: tells which DeploymentConfig a pod belongs to, on both collectors, so its pods' telemetry can name it
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^        - tag_name: k8s\.pod\.label\.deploymentconfig\n          key: deploymentconfig\n          from: pod$'
+        template: templates/configmap-deployment.yaml
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^        - tag_name: k8s\.pod\.label\.deploymentconfig\n          key: deploymentconfig\n          from: pod$'
+        template: templates/configmap-daemonset.yaml
+
+  - it: keeps the labels every preset extracts beside it, on both collectors
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'tag_name: k8s\.pod\.label\.app\n[^\n]*\n[^\n]*\n[^\n]*tag_name: k8s\.pod\.label\.app\.kubernetes\.io/name\n[^\n]*\n[^\n]*\n[^\n]*tag_name: k8s\.pod\.label\.deploymentconfig'
+        template: templates/configmap-deployment.yaml
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'tag_name: k8s\.pod\.label\.app\n[^\n]*\n[^\n]*\n[^\n]*tag_name: k8s\.pod\.label\.app\.kubernetes\.io/name\n[^\n]*\n[^\n]*\n[^\n]*tag_name: k8s\.pod\.label\.deploymentconfig'
+        template: templates/configmap-daemonset.yaml
+
+  - it: extracts no such label on the standard preset
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'deploymentconfig'
+        template: templates/configmap-deployment.yaml
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'deploymentconfig'
+        template: templates/configmap-daemonset.yaml
 
   - it: replaces a Route's TLS key before any other processor holds it
     template: templates/configmap-deployment.yaml

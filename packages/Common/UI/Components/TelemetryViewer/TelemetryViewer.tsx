@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "../Button/ButtonStates";
 import React, {
   ReactElement,
   ReactNode,
@@ -489,11 +490,14 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
         {props.live && (
           <button
             type="button"
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
-              props.live.isLive
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-            } ${props.live.isDisabled ? "cursor-not-allowed opacity-50" : ""}`}
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${getHandDrawnLookClassName(
+              {
+                className: props.live.isLive
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50",
+                isLocked: props.live.isDisabled,
+              },
+            )}`}
             disabled={props.live.isDisabled}
             onClick={() => {
               props.live?.onToggle(!props.live.isLive);

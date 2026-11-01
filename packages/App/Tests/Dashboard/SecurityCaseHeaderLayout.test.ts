@@ -13,13 +13,25 @@ import {
   SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME,
   SECURITY_CASE_HEADER_MORE_TRIGGER_CLASS_NAME,
   SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+  SECURITY_CASE_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
   SECURITY_CASE_HEADER_PHONE_WIDTH,
   SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME,
+  SECURITY_CASE_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME,
   SECURITY_CASE_HEADER_TEST_IDS,
   SECURITY_CASE_HEADER_TITLE_CLASS_NAME,
   SECURITY_CASE_HEADER_TOP_ROW_CLASS_NAME,
   SECURITY_CASE_HEADER_WIDE_WIDTH,
+  getSecurityCaseHeaderButtonClassName,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseHeaderLayout";
+import {
+  EVENT_HEADER_MORE_TRIGGER_CLASS_NAME,
+  EVENT_HEADER_MORE_TRIGGER_HOVER_CLASS_NAME,
+  EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+  EVENT_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
+  EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME,
+  EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME,
+} from "../../FeatureSet/Dashboard/src/Components/EventView/EventHeaderLayout";
+import { BUTTON_DISABLED_CLASS_NAME } from "Common/UI/Components/Button/ButtonStates";
 import fs from "fs";
 import path from "path";
 
@@ -284,36 +296,79 @@ describe("the header is laid out by its own width", () => {
 });
 
 describe("the header's buttons", () => {
-  // An event header's classes live in its layout module, as a case's do.
-  const eventStatusPanel: string = fs.readFileSync(
-    path.join(DASHBOARD_SRC, "Components", "EventView", "EventHeaderLayout.ts"),
-    "utf8",
-  );
+  const sorted: (className: string) => Array<string> = (
+    className: string,
+  ): Array<string> => {
+    return classesOf(className).sort();
+  };
 
   test("look like an incident's header's: the same colours for the main move and the others, and the same ⋯", () => {
-    expect(eventStatusPanel).toContain(
-      SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME,
+    expect(SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME).toBe(
+      EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME,
     );
-    expect(eventStatusPanel).toContain(
-      SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+    expect(SECURITY_CASE_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME).toBe(
+      EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME,
     );
-    expect(eventStatusPanel).toContain(
-      SECURITY_CASE_HEADER_MORE_TRIGGER_CLASS_NAME,
+    expect(SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME).toBe(
+      EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+    );
+    expect(SECURITY_CASE_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME).toBe(
+      EVENT_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
+    );
+    // The case's ⋯ is never locked: it is the incident's, pressable.
+    expect(sorted(SECURITY_CASE_HEADER_MORE_TRIGGER_CLASS_NAME)).toEqual(
+      sorted(
+        `${EVENT_HEADER_MORE_TRIGGER_CLASS_NAME} ${EVENT_HEADER_MORE_TRIGGER_HOVER_CLASS_NAME}`,
+      ),
     );
   });
 
-  test("a locked one looks locked, and keeps its height and type", () => {
-    expect(classesOf(SECURITY_CASE_HEADER_BUTTON_CLASS_NAME)).toEqual(
-      expect.arrayContaining([
-        "h-9",
-        "text-sm",
-        "font-semibold",
-        "whitespace-nowrap",
-        "disabled:opacity-50",
-        "disabled:cursor-not-allowed",
-        "focus-visible:ring-2",
-      ]),
+  test("a locked one looks locked, keeps its colours, height and type, and gives no hover", () => {
+    for (const isPrimary of [true, false]) {
+      const classes: Array<string> = classesOf(
+        getSecurityCaseHeaderButtonClassName({ isPrimary, isLocked: true }),
+      );
+
+      expect(classes).toEqual(
+        expect.arrayContaining([
+          "h-9",
+          "text-sm",
+          "font-semibold",
+          "whitespace-nowrap",
+          "focus-visible:ring-2",
+          ...classesOf(BUTTON_DISABLED_CLASS_NAME),
+          isPrimary ? "bg-indigo-600" : "bg-white",
+        ]),
+      );
+      expect(
+        classes.filter((className: string) => {
+          return className.startsWith("hover:");
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("one that can be pressed has its hover and no locked look", () => {
+    const classes: Array<string> = classesOf(
+      getSecurityCaseHeaderButtonClassName({
+        isPrimary: true,
+        isLocked: false,
+      }),
     );
+
+    expect(classes).toEqual(
+      expect.arrayContaining(
+        classesOf(SECURITY_CASE_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME),
+      ),
+    );
+    expect(classes).not.toContain("opacity-50");
+    expect(
+      classesOf(SECURITY_CASE_HEADER_BUTTON_CLASS_NAME).filter(
+        (className: string) => {
+          return className.startsWith("disabled:");
+        },
+      ),
+    ).toEqual([]);
   });
 
   test("keep the test ids the case page always had", () => {
@@ -351,11 +406,9 @@ describe("the header draws the layout's classes, not copies of them", () => {
     "SECURITY_CASE_HEADER_ACTIONS_CLASS_NAME",
     "SECURITY_CASE_HEADER_BUTTONS_CLASS_NAME",
     "SECURITY_CASE_HEADER_MORE_PLACE_CLASS_NAME",
-    "SECURITY_CASE_HEADER_BUTTON_CLASS_NAME",
+    "getSecurityCaseHeaderButtonClassName",
     "SECURITY_CASE_HEADER_BUTTON_ICON_CLASS_NAME",
     "SECURITY_CASE_HEADER_LOCKED_WRAPPER_CLASS_NAME",
-    "SECURITY_CASE_HEADER_PRIMARY_BUTTON_CLASS_NAME",
-    "SECURITY_CASE_HEADER_NEUTRAL_BUTTON_CLASS_NAME",
     "SECURITY_CASE_HEADER_MORE_TRIGGER_CLASS_NAME",
   ])("%s", (constant: string) => {
     // Imported, and drawn: at least once more than the import names it.

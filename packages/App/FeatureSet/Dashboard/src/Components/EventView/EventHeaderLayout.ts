@@ -1,3 +1,5 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
+
 /*
  * How the header of an incident, an alert, an episode and a scheduled
  * maintenance event is laid out (EventStatusPanel.tsx), kept free of React
@@ -201,7 +203,7 @@ export const EVENT_HEADER_BUTTONS_CLASS_NAME: string =
  * «Запланировано»", "علامت‌گذاری به‌عنوان زمان‌بندی‌شده"), so only a
  * project's own, longer state name is ever cut.
  */
-export const EVENT_HEADER_BUTTON_CLASS_NAME: string = `inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${atContainerWidth(
+export const EVENT_HEADER_BUTTON_CLASS_NAME: string = `inline-flex h-9 min-w-[7rem] max-w-full flex-auto select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${atContainerWidth(
   EVENT_HEADER_PHONE_WIDTH_REM,
   "max-w-80 flex-none",
 )}`;
@@ -219,13 +221,57 @@ export const EVENT_HEADER_MENU_WRAPPER_CLASS_NAME: string = `flex min-w-[7rem] m
 )}`;
 
 export const EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME: string =
-  "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700";
+  "border-indigo-600 bg-indigo-600 text-white";
+
+export const EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME: string =
+  "hover:border-indigo-700 hover:bg-indigo-700";
 
 export const EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME: string =
-  "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+  "border-gray-300 bg-white text-gray-700";
+
+export const EVENT_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME: string =
+  "hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
+
+/*
+ * A header button, the main move in indigo, the others white. A locked one
+ * keeps its colours, faded, with the not-allowed cursor and no hover - as
+ * every locked button looks (getHandDrawnButtonStateClassName) - so the
+ * reader still sees what comes next.
+ */
+export const getEventHeaderButtonClassName: (data: {
+  isPrimary: boolean;
+  isLocked: boolean;
+}) => string = (data: { isPrimary: boolean; isLocked: boolean }): string => {
+  return `${EVENT_HEADER_BUTTON_CLASS_NAME} ${
+    data.isPrimary
+      ? EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME
+      : EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME
+  } ${getHandDrawnButtonStateClassName({
+    isLocked: data.isLocked,
+    hoverClassName: data.isPrimary
+      ? EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME
+      : EVENT_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
+  })}`;
+};
 
 export const EVENT_HEADER_MORE_TRIGGER_CLASS_NAME: string =
-  "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+// The ⋯ under the pointer, while it can be pressed.
+export const EVENT_HEADER_MORE_TRIGGER_HOVER_CLASS_NAME: string =
+  "cursor-pointer hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700";
+
+// The ⋯, locked with the header.
+export const getEventHeaderMoreTriggerClassName: (
+  isLocked: boolean,
+) => string = (isLocked: boolean): string => {
+  return `${EVENT_HEADER_MORE_TRIGGER_CLASS_NAME} ${getHandDrawnButtonStateClassName(
+    {
+      isLocked: isLocked,
+      hoverClassName: EVENT_HEADER_MORE_TRIGGER_HOVER_CLASS_NAME,
+    },
+  )}`;
+};
 
 /*
  * What the reader needs at a glance, as labelled facts on a grid that

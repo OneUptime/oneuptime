@@ -53,23 +53,35 @@ const THEME_CSS: string = fs
   .replace(/\/\*[\s\S]*?\*\//g, " ");
 
 const STRING_LITERAL: RegExp = /"([^"\n]*)"|`([^`]*)`/g;
+const QUOTED_STRING: RegExp = /"([^"\n]*)"/g;
 const TEMPLATE_VALUE: RegExp = /\$\{[^}]*\}/g;
 const WHITESPACE: RegExp = /\s+/;
 
-// Every whitespace-separated token of every string literal in the module.
+const wordsOf: (text: string) => Array<string> = (
+  text: string,
+): Array<string> => {
+  return text.split(WHITESPACE).filter((token: string): boolean => {
+    return token.length > 0;
+  });
+};
+
+/*
+ * Every whitespace-separated token of every string literal in the module -
+ * a template's own text, and the strings its values hold (a hover handed to
+ * getHandDrawnButtonStateClassName inside a className template).
+ */
 function stringTokens(code: string): Array<string> {
   const tokens: Array<string> = [];
 
   for (const match of code.matchAll(STRING_LITERAL)) {
-    const text: string = (match[1] ?? match[2] ?? "").replace(
-      TEMPLATE_VALUE,
-      " ",
-    );
+    if (match[2] !== undefined) {
+      for (const nested of match[2].matchAll(QUOTED_STRING)) {
+        tokens.push(...wordsOf(nested[1] || ""));
+      }
+    }
 
     tokens.push(
-      ...text.split(WHITESPACE).filter((token: string): boolean => {
-        return token.length > 0;
-      }),
+      ...wordsOf((match[1] ?? match[2] ?? "").replace(TEMPLATE_VALUE, " ")),
     );
   }
 

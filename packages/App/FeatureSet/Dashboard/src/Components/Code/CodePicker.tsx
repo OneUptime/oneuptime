@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import { CODE_PICKER_VALUE_LABEL } from "./CodeTaskCopy";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -356,13 +357,14 @@ const CodePicker: FunctionComponent<ComponentProps> = (
             open();
           }
         }}
-        className={`inline-flex h-8 max-w-full items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-          props.isDisabled
-            ? "cursor-not-allowed text-gray-400"
-            : `text-gray-700 hover:bg-gray-100 hover:text-gray-900 ${
-                isOpen ? "bg-gray-100 text-gray-900" : ""
-              }`
-        }`}
+        className={`inline-flex h-8 max-w-full items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnLookClassName(
+          {
+            className: `text-gray-700 hover:bg-gray-100 hover:text-gray-900 ${
+              isOpen ? "bg-gray-100 text-gray-900" : ""
+            }`,
+            isLocked: props.isDisabled,
+          },
+        )}`}
       >
         <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center">
           {props.icon}

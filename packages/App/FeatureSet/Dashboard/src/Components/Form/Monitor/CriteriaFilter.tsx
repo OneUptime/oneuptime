@@ -1,4 +1,5 @@
 import CriteriaFilterUiUtil from "../../../Utils/Form/Monitor/CriteriaFilter";
+import { CRITERIA_FILTER_BOX_CLASS_NAME } from "./CriteriaEditorLayout";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
@@ -364,7 +365,14 @@ const CriteriaFilterElement: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
-      <div className="rounded-md p-2 bg-gray-50 my-5 border-gray-200 border-solid border-2">
+      {/*
+       * A box from sm up, and a band across the criteria's box on a phone
+       * (CriteriaEditorLayout).
+       */}
+      <div
+        className={CRITERIA_FILTER_BOX_CLASS_NAME}
+        data-testid="criteria-filter-box"
+      >
         {/* Hide Filter Type dropdown for metric-only monitors since MetricValue is the only option */}
         {!isMetricOnly && (
           <div className="">

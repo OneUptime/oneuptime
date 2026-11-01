@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import AddLayerUserModal from "./AddLayerUserModal";
 import { formatShiftInstant } from "./LayerSummary";
 import { LayerUserAway, getLayerUserAway } from "./LayerUserAway";
@@ -416,7 +417,12 @@ const LayerUser: FunctionComponent<ComponentProps> = (
                 name: displayName,
               });
             }}
-            className="flex h-8 flex-shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`flex h-8 flex-shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-gray-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+              {
+                isLocked: isBusy,
+                hoverClassName: "hover:bg-gray-100 hover:text-gray-900",
+              },
+            )}`}
           >
             <Icon icon={IconProp.Forward} className="h-4 w-4" />
             <span className="max-sm:hidden sm:inline">
@@ -432,7 +438,13 @@ const LayerUser: FunctionComponent<ComponentProps> = (
           onClick={() => {
             deleteUser(layerUser);
           }}
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors ${getHandDrawnButtonStateClassName(
+            {
+              isLocked: isBusy,
+              isBusy: isDeleting,
+              hoverClassName: "hover:bg-red-50 hover:text-red-600",
+            },
+          )}`}
         >
           <Icon
             icon={isDeleting ? IconProp.Spinner : IconProp.Trash}

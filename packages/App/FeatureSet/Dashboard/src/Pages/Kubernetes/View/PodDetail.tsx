@@ -35,6 +35,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import KubernetesEnvVarsTab from "../../../Components/Kubernetes/KubernetesEnvVarsTab";
 import KubernetesVolumeMountsTab from "../../../Components/Kubernetes/KubernetesVolumeMountsTab";
 import { KubernetesPodObject } from "../Utils/KubernetesObjectParser";
+import { getPodOwnerReferences } from "../Utils/KubernetesOpenShiftResources";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
 import KubernetesCpuUtils, {
@@ -398,7 +399,9 @@ const KubernetesClusterPodDetail: FunctionComponent<
           labels={podObject?.metadata.labels || {}}
           annotations={podObject?.metadata.annotations || {}}
           conditions={podObject?.status.conditions}
-          ownerReferences={podObject?.metadata.ownerReferences}
+          ownerReferences={
+            podObject ? getPodOwnerReferences(podObject.metadata) : undefined
+          }
           modelId={modelId}
           isLoading={isLoadingObject}
         />

@@ -979,6 +979,34 @@ export class Service extends DatabaseService<Model> {
           data.staleAfter,
         ],
       );
+    } else if (data.ownerKind === "DeploymentConfig") {
+      /*
+       * A DeploymentConfig's pods belong to the ReplicationController of its
+       * rollout (<name>-<version>), so ownerReferences never name it, and
+       * metrics carry no controller column for it. OpenShift labels each of
+       * them deploymentconfig=<name>, whichever rollout made it.
+       */
+      rows = await this.getRepository().manager.query(
+        `SELECT
+           "labels"->>'deploymentconfig' AS "ownerName",
+           SUM("latestCpuPercent")::text AS cpu,
+           SUM("latestMemoryBytes")::text AS mem,
+           SUM("latestMemoryPercent")::text AS "memPct"
+         FROM "KubernetesResource"
+         WHERE "projectId" = $1
+           AND "kubernetesClusterId" = $2
+           AND "kind" = 'Pod'
+           AND "deletedAt" IS NULL
+           AND "metricsUpdatedAt" IS NOT NULL
+           AND "metricsUpdatedAt" >= $3
+           AND "labels"->>'deploymentconfig' IS NOT NULL
+         GROUP BY "labels"->>'deploymentconfig'`,
+        [
+          data.projectId.toString(),
+          data.kubernetesClusterId.toString(),
+          data.staleAfter,
+        ],
+      );
     } else {
       rows = await this.getRepository().manager.query(
         `SELECT

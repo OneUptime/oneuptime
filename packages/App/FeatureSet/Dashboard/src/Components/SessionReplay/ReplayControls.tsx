@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -396,13 +397,15 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
           data-testid="replay-play-pause"
           data-phase={phase}
           disabled={playCopy.isDisabled}
-          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
-            playCopy.isDisabled
-              ? "cursor-not-allowed bg-gray-300"
-              : phase === "error"
-                ? "bg-rose-600 hover:bg-rose-700"
-                : "bg-indigo-600 hover:bg-indigo-700"
-          }`}
+          className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnLookClassName(
+            {
+              className:
+                phase === "error"
+                  ? "bg-rose-600 hover:bg-rose-700"
+                  : "bg-indigo-600 hover:bg-indigo-700",
+              isLocked: playCopy.isDisabled,
+            },
+          )}`}
           onClick={handlePlayClick}
           aria-label={playCopy.label}
           title={playCopy.label}

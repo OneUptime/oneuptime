@@ -526,7 +526,17 @@ describe("a locked button with a reason", () => {
 
     const wrapper: HTMLElement = screen.getByTestId("locked-disabled-wrapper");
 
-    expect(wrapper).toHaveClass("inline-flex", "cursor-not-allowed");
+    /*
+     * NORMAL is as wide as a phone, so its wrapper is too (a block there,
+     * inline from md up): a locked button keeps its unlocked width.
+     */
+    expect(wrapper).toHaveClass(
+      "flex",
+      "w-full",
+      "md:inline-flex",
+      "md:w-auto",
+      "cursor-not-allowed",
+    );
     // The button itself takes no pointer, so the wrapper's cursor shows.
     expect(screen.getByTestId("locked")).toHaveClass("pointer-events-none");
     expect(screen.getByTestId("locked")).toHaveClass("opacity-50");
