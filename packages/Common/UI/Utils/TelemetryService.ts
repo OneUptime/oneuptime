@@ -98,7 +98,10 @@ export default class TelemetryServiceUtil {
         translator,
       );
 
-      standIn.serviceColor = service.serviceColor || standIn.serviceColor;
+      if (service.serviceColor) {
+        standIn.serviceColor = service.serviceColor;
+      }
+
       named[id] = standIn;
     }
 
