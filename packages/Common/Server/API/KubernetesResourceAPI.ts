@@ -78,7 +78,7 @@ export default class KubernetesResourceAPI extends BaseAPI<
     /*
      * Latest CPU+memory aggregated by Pod ownerReferences[].name for
      * a given owner kind. Powers Deployments/StatefulSets/DaemonSets/
-     * Jobs/CronJobs list views.
+     * Jobs/CronJobs/DeploymentConfigs list views.
      */
     this.router.post(
       `${new this.entityType()
@@ -208,6 +208,7 @@ export default class KubernetesResourceAPI extends BaseAPI<
       "Job",
       "CronJob",
       "ReplicaSet",
+      "DeploymentConfig",
     ]);
     if (!allowed.has(ownerKind)) {
       throw new BadDataException(`Unsupported owner kind: ${ownerKind}`);
@@ -262,6 +263,10 @@ export default class KubernetesResourceAPI extends BaseAPI<
       cronJobCount: summary.countsByKind["CronJob"] || 0,
       hpaCount: summary.countsByKind["HorizontalPodAutoscaler"] || 0,
       vpaCount: summary.countsByKind["VerticalPodAutoscaler"] || 0,
+      deploymentConfigCount: summary.countsByKind["DeploymentConfig"] || 0,
+      routeCount: summary.countsByKind["Route"] || 0,
+      serviceCount: summary.countsByKind["Service"] || 0,
+      clusterOperatorCount: summary.countsByKind["ClusterOperator"] || 0,
       containerCount: summary.containerCount,
       degradedPods: summary.degradedPods as unknown as JSONObject,
       degradedNodes: summary.degradedNodes as unknown as JSONObject,

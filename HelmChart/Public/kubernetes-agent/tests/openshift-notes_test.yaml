@@ -93,7 +93,7 @@ tests:
       preset: openshift
     asserts:
       - matchRegexRaw:
-          pattern: "  - Kubernetes events \\(k8sobjects\\)\\n  - OpenShift's cluster operators and version, Routes and DeploymentConfigs \\(k8sobjects/openshift\\)\\n"
+          pattern: "  - Kubernetes events \\(k8sobjects\\)\\n  - OpenShift's cluster operators and version, Routes, DeploymentConfigs and Services \\(k8sobjects/openshift\\)\\n"
 
   - it: does not list them when resource specs are off
     set:
