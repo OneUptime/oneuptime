@@ -12,6 +12,7 @@ import {
   KubernetesPVObject,
   KubernetesHPAObject,
   KubernetesVPAObject,
+  KubernetesServiceObject,
   KubernetesObjectMetadata,
   KubernetesCondition,
   KubernetesContainerSpec,
@@ -28,6 +29,7 @@ import {
   parsePVObject,
   parseHPAObject,
   parseVPAObject,
+  parseServiceObject,
   extractObjectFromLogBody,
 } from "./KubernetesObjectParser";
 import {
@@ -69,6 +71,7 @@ type AnyKubernetesObject =
   | KubernetesPVObject
   | KubernetesHPAObject
   | KubernetesVPAObject
+  | KubernetesServiceObject
   | AnyOpenShiftObject;
 
 /**
@@ -138,6 +141,8 @@ export function kindFromResourceType(resourceType: string): string | null {
     persistentvolumes: "PersistentVolume",
     horizontalpodautoscalers: "HorizontalPodAutoscaler",
     verticalpodautoscalers: "VerticalPodAutoscaler",
+    // From the chart's openshift preset, for the Routes that point at them.
+    services: "Service",
     // OpenShift's own, from the chart's openshift preset (OpenShiftObjectParser).
     ...OPENSHIFT_KIND_BY_RESOURCE_TYPE,
   };
@@ -161,6 +166,7 @@ export const INVENTORIED_RESOURCE_TYPES: ReadonlyArray<string> = [
   "persistentvolumes",
   "horizontalpodautoscalers",
   "verticalpodautoscalers",
+  "services",
   OpenShiftResourceType.Routes,
   OpenShiftResourceType.DeploymentConfigs,
   OpenShiftResourceType.ClusterOperators,
@@ -391,6 +397,8 @@ function parseByResourceType(
       return parseHPAObject(kvList);
     case "verticalpodautoscalers":
       return parseVPAObject(kvList);
+    case "services":
+      return parseServiceObject(kvList);
     default:
       return parseOpenShiftObject(resourceType, kvList);
   }
