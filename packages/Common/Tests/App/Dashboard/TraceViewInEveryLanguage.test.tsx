@@ -45,8 +45,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * English does on record (Top P, "span {{spanId}}" in Spanish).
  *
  * What stays as written in every language: what the user's own telemetry
- * says - span, service and attribute names, the span kind (OpenTelemetry's
- * SpanKind, as the sidebar draws it), an LLM message's role.
+ * says - span, service and attribute names, an LLM message's role.
  *
  * The REAL components are mounted under an i18next instance per language,
  * built from the Dashboard's own locale files the way Utils/i18n.ts builds
@@ -1706,6 +1705,10 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
     const header: HTMLElement = screen.getByTestId("trace-header");
     expect(
       within(header).getByText(word(language, "Trace"), { selector: "span" }),
+    ).toBeInTheDocument();
+    // The root span's kind, as the Traces list and its sidebar word it.
+    expect(
+      within(header).getByText(word(language, "Server")),
     ).toBeInTheDocument();
     expect(
       within(header).getByRole("button", {

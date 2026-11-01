@@ -102,9 +102,9 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Критический | `container.memory.percent`, Count по всем контейнерам кластера, последние 10 минут | Нет данных за всё окно | Данные снова поступают |
 | Task Down (Low Uptime) | Критический | `container.uptime`, Min по задаче, последняя 1 минута | Любое значение меньше 60 секунд | Каждое значение 66 секунд или больше |
-| High Task CPU Usage | Warning | `container.cpu.utilization`, Avg по задаче, последние 5 минут | Выше 80 (% одного ядра) | 72 или ниже |
-| High Task Memory Usage | Warning | `container.memory.percent`, Avg по задаче, последние 5 минут | Выше 85 % | 76,5 % или ниже |
-| High Task Process Count | Warning | `container.pids.count`, Max по задаче, последние 5 минут | Выше 2000 | 1800 или ниже |
+| High Task CPU Usage | Предупреждение | `container.cpu.utilization`, Avg по задаче, последние 5 минут | Выше 80 (% одного ядра) | 72 или ниже |
+| High Task Memory Usage | Предупреждение | `container.memory.percent`, Avg по задаче, последние 5 минут | Выше 85 % | 76,5 % или ниже |
+| High Task Process Count | Предупреждение | `container.pids.count`, Max по задаче, последние 5 минут | Выше 2000 | 1800 или ниже |
 
 **Серьёзность** – это метка, которую показывает список выбора. Инцидент и оповещение, которые создаёт шаблон, начинаются с самого серьёзного уровня инцидентов и оповещений вашего проекта; измените их в критериях.
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 13114
+    "keys": 39461,
+    "untranslated": 13027
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -96,6 +96,7 @@
     "Managers",
     "Match",
     "Matrix",
+    "Median (P50)",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mexico (+52)",
@@ -112,6 +113,7 @@
     "Object Gateway",
     "Object Gateways",
     "Offline",
+    "Ok",
     "Online",
     "OpenShift",
     "PR #{{number}}",
@@ -211,6 +213,7 @@
     "build=1.4.2, plan=pro",
     "checkout-.*",
     "customer facing|tier-1",
+    "database",
     "db-primary",
     "debug",
     "failed password",
@@ -220,6 +223,7 @@
     "ip",
     "kubectl set image deployment/web * -n web",
     "main",
+    "median",
     "message",
     "name",
     "over budget",
@@ -232,6 +236,7 @@
     "security-alerts",
     "server",
     "span {{spanId}}",
+    "spans",
     "status",
     "storefront-web",
     "svc-backup",

@@ -117,18 +117,18 @@ I modelli leggono gli ultimi 5 minuti, salvo diversa indicazione nella tabella. 
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Critico | `pve_up`, Count sull'intero cluster, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
 | Node Offline | Critico | `pve_up` per `pve.scope = node`, Min per `id` | Sotto 1 | A 1 |
-| Guest Down | Warning | `pve_up` e `pve_onboot_status` per `pve.scope = guest`, Min per `id` | `pve_up` è sotto 1 mentre `pve_onboot_status` è 1 | `pve_up` torna a 1, oppure l'avvio al boot viene disattivato |
+| Guest Down | Avviso | `pve_up` e `pve_onboot_status` per `pve.scope = guest`, Min per `id` | `pve_up` è sotto 1 mentre `pve_onboot_status` è 1 | `pve_up` torna a 1, oppure l'avvio al boot viene disattivato |
 | Cluster Quorum at Risk | Critico | `pve_up` ÷ `pve_node_info` × 100 per `pve.scope = node` (entrambi Somma): la quota di nodi online | 50% o meno | Sopra il 55% |
-| Node Restarted | Warning | `pve_uptime_seconds` e `pve_up` per `pve.scope = node`, Min per `id` | `pve_uptime_seconds` è sotto 900 (15 minuti) mentre `pve_up` è 1 | `pve_uptime_seconds` è a 990 o più, oppure `pve_up` è 0 |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` per `pve.scope = node`, Avg per `id` | Sopra 0,9 (il 90% dei core del nodo) | A 0,81 o meno |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 per `pve.scope = node`, per `id` | Sopra l'85% | Al 76,5% o meno |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` per `pve.scope = guest`, Avg per `id`, ultimi 15 minuti | Sopra 0,95 (il 95% delle sue vCPU) per tutti i 15 minuti | A 0,855 o meno |
+| Node Restarted | Avviso | `pve_uptime_seconds` e `pve_up` per `pve.scope = node`, Min per `id` | `pve_uptime_seconds` è sotto 900 (15 minuti) mentre `pve_up` è 1 | `pve_uptime_seconds` è a 990 o più, oppure `pve_up` è 0 |
+| High Node CPU Usage | Avviso | `pve_cpu_usage_ratio` per `pve.scope = node`, Avg per `id` | Sopra 0,9 (il 90% dei core del nodo) | A 0,81 o meno |
+| High Node Memory Usage | Avviso | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 per `pve.scope = node`, per `id` | Sopra l'85% | Al 76,5% o meno |
+| High Guest CPU Usage | Avviso | `pve_cpu_usage_ratio` per `pve.scope = guest`, Avg per `id`, ultimi 15 minuti | Sopra 0,95 (il 95% delle sue vCPU) per tutti i 15 minuti | A 0,855 o meno |
 | Storage Unavailable | Critico | `pve_up` per `pve.scope = storage`, Min per `id` | Sotto 1 | A 1 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 per `pve.scope = storage`, per `id` | Sopra l'85% | Al 76,5% o meno |
-| Container Root Disk Near Full | Warning | Lo stesso rapporto del disco per `pve.type = lxc`, per `id` | Sopra il 90% | All'81% o meno |
+| Storage Near Full | Avviso | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 per `pve.scope = storage`, per `id` | Sopra l'85% | Al 76,5% o meno |
+| Container Root Disk Near Full | Avviso | Lo stesso rapporto del disco per `pve.type = lxc`, per `id` | Sopra il 90% | All'81% o meno |
 | HA Resource in Error State | Critico | `pve_ha_state` per `state = error`, Max per `id` | Sopra 0 | A 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (un'unica serie per il cluster) | Sopra 0 | A 0 |
-| Backup Running Too Long | Warning | `pve_lock_state` per `pve.scope = guest` e `state = backup`, Min per `id`, ultime 6 ore | Sopra 0 | A 0 |
+| Guest Not Backed Up | Avviso | `pve_not_backed_up_total`, Max (un'unica serie per il cluster) | Sopra 0 | A 0 |
+| Backup Running Too Long | Avviso | `pve_lock_state` per `pve.scope = guest` e `state = backup`, Min per `id`, ultime 6 ore | Sopra 0 | A 0 |
 | Replication Failing | Critico | `pve_replication_failed_syncs`, Max per `id` (l'id del job) | Sopra 0 | A 0 |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.
@@ -152,7 +152,7 @@ Altri due avvisi leggono le notifiche di Proxmox VE stesso, che il cluster invia
 
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Warning | Log delle notifiche con `pve.notification.type = vzdump` e `pve.notification.severity = error`, per nodo e job, ultimi 60 minuti | Un job di backup segnala un errore | L'esecuzione successiva dello stesso job riesce |
+| Backup Job Failed | Avviso | Log delle notifiche con `pve.notification.type = vzdump` e `pve.notification.severity = error`, per nodo e job, ultimi 60 minuti | Un job di backup segnala un errore | L'esecuzione successiva dello stesso job riesce |
 | Node Fenced | Critico | Log delle notifiche con `pve.notification.type = fencing`, per nodo, ultimi 30 minuti | Proxmox VE isola un nodo (fencing) | Quel nodo non viene isolato di nuovo per 30 minuti |
 
 Ogni nodo e ogni job di backup riceve il proprio incidente e il proprio avviso. L'avviso di un job di backup fallito resta aperto finché un'esecuzione successiva dello stesso job non riesce, per quanto tempo ci voglia.

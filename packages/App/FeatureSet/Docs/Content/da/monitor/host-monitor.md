@@ -102,11 +102,11 @@ Et kriterium udløses kun, når betingelsen gælder i hvert minut af dets vindue
 | Skabelon | Alvorlighed | Overvåger | Udløses, når | Genopretter, når |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
-| High CPU Utilization | Warning | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som procent, seneste 5 minutter | Over 80 % | Ved eller under 72 % |
-| High Memory Utilization | Warning | `system.memory.utilization` for tilstanden `used`, som procent, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
+| High CPU Utilization | Advarsel | `system.cpu.utilization` for tilstandene `user` og `system`, lagt sammen og vist som procent, seneste 5 minutter | Over 80 % | Ved eller under 72 % |
+| High Memory Utilization | Advarsel | `system.memory.utilization` for tilstanden `used`, som procent, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max pr. `mountpoint` og `device`, som procent, seneste 5 minutter | Over 90 % | Ved eller under 81 % |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, seneste 5 minutter | Over 4 | Ved eller under 3,6 |
-| High Process Count | Warning | `system.processes.count`, Max, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
+| High Load Average (1m) | Advarsel | `system.cpu.load_average.1m`, Avg, seneste 5 minutter | Over 4 | Ved eller under 3,6 |
+| High Process Count | Advarsel | `system.processes.count`, Max, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 

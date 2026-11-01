@@ -32,6 +32,12 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ProjectUtil from "Common/UI/Utils/Project";
 import API from "Common/UI/Utils/API/API";
 import {
+  TranslatableTerm,
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
   InitialSavedViewResolution,
   resolveInitialSavedView,
 } from "../../Utils/InitialSavedView";
@@ -130,6 +136,7 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
     initialSavedViewId,
     initialStateOverrides,
   } = props;
+  const translator: Translator = useTranslator();
 
   const [savedViews, setSavedViews] = useState<Array<T>>([]);
   const [selectedSavedViewId, setSelectedSavedViewId] = useState<string | null>(
@@ -436,6 +443,19 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
       reportError,
     ]);
 
+  // The explorer's and its view's own words, inside whole sentences.
+  const explorerTerm: TranslatableTerm = translatableTerm(props.explorerLabel, {
+    inSentence: true,
+  });
+  const saveViewTitle: string = translator.translateTemplate(
+    "Save {{noun}} View",
+    { noun: translatableTerm(props.savedViewNoun) },
+  );
+  const editViewTitle: string = translator.translateTemplate(
+    "Edit {{noun}} View",
+    { noun: translatableTerm(props.savedViewNoun) },
+  );
+
   const formFields: Fields<T> = [
     {
       field: {
@@ -443,7 +463,10 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
       },
       fieldType: FormFieldSchemaType.Text,
       title: "Name",
-      description: `Choose a name for this saved ${props.explorerLabel} view.`,
+      description: translator.translateTemplate(
+        "Choose a name for this saved {{explorer}} view.",
+        { explorer: explorerTerm },
+      ),
       placeholder: "Errors in checkout",
       required: true,
     },
@@ -453,7 +476,10 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
       },
       fieldType: FormFieldSchemaType.Checkbox,
       title: "Set as default",
-      description: `Automatically apply this view when opening ${props.explorerLabel}.`,
+      description: translator.translateTemplate(
+        "Automatically apply this view when opening {{explorer}}.",
+        { explorer: explorerTerm },
+      ),
       required: false,
     },
   ] as Fields<T>;
@@ -463,9 +489,12 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
       {showCreateModal && (
         <ModelFormModal<T>
           modelType={modelType}
-          name={`Save ${props.savedViewNoun} View`}
-          title={`Save ${props.savedViewNoun} View`}
-          description={`Save the current ${props.explorerLabel} explorer state as a reusable view.`}
+          name={saveViewTitle}
+          title={saveViewTitle}
+          description={translator.translateTemplate(
+            "Save the current {{explorer}} explorer state as a reusable view.",
+            { explorer: explorerTerm },
+          )}
           onClose={() => {
             setShowCreateModal(false);
           }}
@@ -484,7 +513,7 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
             applySavedView(item);
           }}
           formProps={{
-            name: `Save ${props.savedViewNoun} View`,
+            name: saveViewTitle,
             modelType: modelType,
             id: `save-${props.explorerLabel}-view`,
             fields: formFields,
@@ -497,8 +526,8 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
         <ModelFormModal<T>
           modelType={modelType}
           modelIdToEdit={viewToEdit.id!}
-          name={`Edit ${props.savedViewNoun} View`}
-          title={`Edit ${props.savedViewNoun} View`}
+          name={editViewTitle}
+          title={editViewTitle}
           description="Rename this saved view or change whether it loads by default."
           onClose={() => {
             setViewToEdit(undefined);
@@ -509,7 +538,7 @@ function TelemetrySavedViewsControl<T extends TelemetrySavedViewModel>(
             await fetchSavedViews();
           }}
           formProps={{
-            name: `Edit ${props.savedViewNoun} View`,
+            name: editViewTitle,
             modelType: modelType,
             id: `edit-${props.explorerLabel}-view`,
             fields: formFields,

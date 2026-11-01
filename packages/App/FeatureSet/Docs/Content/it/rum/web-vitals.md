@@ -299,8 +299,8 @@ La pagina **Raccomandazioni** dell'applicazione offre un monitor pronto all'uso 
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 ms | **Critico** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500 ms | **Critico** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0,25 | **Critico** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Avviso** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Avviso** |
 
 Questi monitor leggono solo i nomi `web_vital.*`. Se la tua app invia un vital con un altro nome, modifica la metrica del monitor creato. Per gli avvisi su una sola route, aggiungi al monitor un filtro `app.route`. Puoi anche costruire un tuo monitor su una qualsiasi di queste metriche: vedi [Monitor metriche](/docs/monitor/metrics-monitor).
 

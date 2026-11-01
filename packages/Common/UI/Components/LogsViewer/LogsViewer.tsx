@@ -104,7 +104,8 @@ import {
   PrimaryEntitySuggestions,
   resolvePrimaryEntitySuggestions,
 } from "./LogsEntityNames";
-import { translationKey } from "../../Utils/TranslateTemplate";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -410,6 +411,7 @@ export const LOGS_TABLE_COLUMN_WIDTHS_KEY: string = "logs-table";
 const LogsViewer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [filterData, setFilterData] = useState<Query<Log>>(props.filterData);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -885,15 +887,31 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [props.onPageChange, props.page]);
 
+  /*
+   * What the rows, the sidebar and the suggestions read names from: the
+   * stand-in for unattributed logs in the reader's language. `serviceMap`
+   * keeps its English name, which a typed `service:` search still finds.
+   */
+  const drawnServiceMap: Dictionary<Service> = useMemo(() => {
+    return TelemetryServiceUtil.withUnknownServiceNamed(serviceMap, translator);
+    // The translator is new on every render; its language is what it adds.
+  }, [serviceMap, translator.language]);
+
   const entityLookupMaps: LogsEntityLookupMaps = useMemo(() => {
     return {
-      serviceMap,
+      serviceMap: drawnServiceMap,
       hostMap,
       dockerHostMap,
       podmanHostMap,
       kubernetesClusterMap,
     };
-  }, [serviceMap, hostMap, dockerHostMap, podmanHostMap, kubernetesClusterMap]);
+  }, [
+    drawnServiceMap,
+    hostMap,
+    dockerHostMap,
+    podmanHostMap,
+    kubernetesClusterMap,
+  ]);
 
   /*
    * primaryEntityId values the `service:` dropdown offers. The lazily
@@ -949,14 +967,14 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     return resolvePrimaryEntitySuggestions({
       ids: primaryEntitySuggestionIds,
       facetValues: props.facetData?.["primaryEntityId"],
-      serviceMap,
+      serviceMap: drawnServiceMap,
       resourceMaps: entityLookupMaps,
       entityNameMap,
     });
   }, [
     primaryEntitySuggestionIds,
     props.facetData,
-    serviceMap,
+    drawnServiceMap,
     entityLookupMaps,
     entityNameMap,
   ]);
@@ -1474,7 +1492,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               facetError={props.facetError}
               onRetryFacets={props.onRetryFacets}
               showCountsNotice={!props.listError}
-              serviceMap={serviceMap}
+              serviceMap={drawnServiceMap}
               hostMap={hostMap}
               dockerHostMap={dockerHostMap}
               podmanHostMap={podmanHostMap}
@@ -1515,7 +1533,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
               ) : (
                 <LogsTable
                   logs={displayedLogs}
-                  serviceMap={serviceMap}
+                  serviceMap={drawnServiceMap}
                   resourceEntityMaps={entityLookupMaps}
                   entityNameMap={entityNameMap}
                   isLoading={props.isLoading}
@@ -1554,7 +1572,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                     return (
                       <LogDetailsPanel
                         log={log}
-                        serviceMap={serviceMap}
+                        serviceMap={drawnServiceMap}
                         resourceEntityMaps={entityLookupMaps}
                         entityNameMap={entityNameMap}
                         onClose={() => {

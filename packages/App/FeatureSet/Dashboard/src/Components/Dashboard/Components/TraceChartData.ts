@@ -4,6 +4,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import DashboardTraceChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getSpanStatusPresentation } from "../../../Utils/SpanStatusPresentation";
 
 /*
@@ -110,14 +111,18 @@ export function resolveTraceSeriesColor(
 
 /*
  * Legend and tooltip text for one series. A status split comes back as the
- * raw stored value, so name it; every other series key is shown as is.
+ * raw stored value, so name it, in the reader's language with their
+ * translator; every other series key is shown as is.
  */
 export function formatTraceSeriesLabel(
   seriesKey: string,
   groupByAttribute: string | undefined,
+  translator?: Translator | undefined,
 ): string {
   if (isStatusSeries(seriesKey, groupByAttribute)) {
-    return getSpanStatusPresentation(seriesKey).displayLabel;
+    const label: string = getSpanStatusPresentation(seriesKey).displayLabel;
+
+    return translator ? translator.translateTerm(label) : label;
   }
   return seriesKey;
 }

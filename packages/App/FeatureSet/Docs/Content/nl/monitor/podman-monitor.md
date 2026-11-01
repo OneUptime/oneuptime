@@ -91,10 +91,10 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers op de host, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Avg per container, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`, Avg per container, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
+| High Container CPU Usage | Waarschuwing | `container.cpu.utilization`, Avg per container, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
+| High Container Memory Usage | Waarschuwing | `container.memory.percent`, Avg per container, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
 | Container Restart Loop | Kritiek | `container.restarts.increase`, Sum per container, laatste 15 minuten | Meer dan 3 herstarts in het venster (Som) | 2,7 of minder |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
+| High Container Process Count | Waarschuwing | `container.pids.count`, Max per container, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 | Container Restarted (Low Uptime) | Kritiek | `container.uptime`, Min per container, laatste 1 minuut | Onder 120 seconden | Op of boven 132 seconden |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.

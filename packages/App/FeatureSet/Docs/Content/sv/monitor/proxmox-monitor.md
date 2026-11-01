@@ -117,18 +117,18 @@ Mallarna läser de senaste 5 minuterna om inte tabellen säger något annat. Ett
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritisk | `pve_up`, Count över hela klustret, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
 | Node Offline | Kritisk | `pve_up` för `pve.scope = node`, Min per `id` | Under 1 | Vid 1 |
-| Guest Down | Warning | `pve_up` och `pve_onboot_status` för `pve.scope = guest`, Min per `id` | `pve_up` är under 1 medan `pve_onboot_status` är 1 | `pve_up` är tillbaka på 1, eller start vid uppstart är avstängd |
+| Guest Down | Varning | `pve_up` och `pve_onboot_status` för `pve.scope = guest`, Min per `id` | `pve_up` är under 1 medan `pve_onboot_status` är 1 | `pve_up` är tillbaka på 1, eller start vid uppstart är avstängd |
 | Cluster Quorum at Risk | Kritisk | `pve_up` ÷ `pve_node_info` × 100 för `pve.scope = node` (båda Summa): andelen noder som är online | 50 % eller mindre | Över 55 % |
-| Node Restarted | Warning | `pve_uptime_seconds` och `pve_up` för `pve.scope = node`, Min per `id` | `pve_uptime_seconds` är under 900 (15 minuter) medan `pve_up` är 1 | `pve_uptime_seconds` är på 990 eller mer, eller `pve_up` är 0 |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` för `pve.scope = node`, Avg per `id` | Över 0,9 (90 % av nodens kärnor) | Vid eller under 0,81 |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 för `pve.scope = node`, per `id` | Över 85 % | Vid eller under 76,5 % |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` för `pve.scope = guest`, Avg per `id`, senaste 15 minuterna | Över 0,95 (95 % av dess vCPU:er) under alla 15 minuter | Vid eller under 0,855 |
+| Node Restarted | Varning | `pve_uptime_seconds` och `pve_up` för `pve.scope = node`, Min per `id` | `pve_uptime_seconds` är under 900 (15 minuter) medan `pve_up` är 1 | `pve_uptime_seconds` är på 990 eller mer, eller `pve_up` är 0 |
+| High Node CPU Usage | Varning | `pve_cpu_usage_ratio` för `pve.scope = node`, Avg per `id` | Över 0,9 (90 % av nodens kärnor) | Vid eller under 0,81 |
+| High Node Memory Usage | Varning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 för `pve.scope = node`, per `id` | Över 85 % | Vid eller under 76,5 % |
+| High Guest CPU Usage | Varning | `pve_cpu_usage_ratio` för `pve.scope = guest`, Avg per `id`, senaste 15 minuterna | Över 0,95 (95 % av dess vCPU:er) under alla 15 minuter | Vid eller under 0,855 |
 | Storage Unavailable | Kritisk | `pve_up` för `pve.scope = storage`, Min per `id` | Under 1 | Vid 1 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 för `pve.scope = storage`, per `id` | Över 85 % | Vid eller under 76,5 % |
-| Container Root Disk Near Full | Warning | Samma diskkvot för `pve.type = lxc`, per `id` | Över 90 % | Vid eller under 81 % |
+| Storage Near Full | Varning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 för `pve.scope = storage`, per `id` | Över 85 % | Vid eller under 76,5 % |
+| Container Root Disk Near Full | Varning | Samma diskkvot för `pve.type = lxc`, per `id` | Över 90 % | Vid eller under 81 % |
 | HA Resource in Error State | Kritisk | `pve_ha_state` för `state = error`, Max per `id` | Över 0 | Vid 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (en klusteromfattande serie) | Över 0 | Vid 0 |
-| Backup Running Too Long | Warning | `pve_lock_state` för `pve.scope = guest` och `state = backup`, Min per `id`, senaste 6 timmarna | Över 0 | Vid 0 |
+| Guest Not Backed Up | Varning | `pve_not_backed_up_total`, Max (en klusteromfattande serie) | Över 0 | Vid 0 |
+| Backup Running Too Long | Varning | `pve_lock_state` för `pve.scope = guest` och `state = backup`, Min per `id`, senaste 6 timmarna | Över 0 | Vid 0 |
 | Replication Failing | Kritisk | `pve_replication_failed_syncs`, Max per `id` (jobbets id) | Över 0 | Vid 0 |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
@@ -152,7 +152,7 @@ Ytterligare två larm läser Proxmox VE:s egna aviseringar, som klustret skickar
 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Warning | Aviseringsloggar med `pve.notification.type = vzdump` och `pve.notification.severity = error`, per nod och jobb, senaste 60 minuterna | Ett säkerhetskopieringsjobb rapporterar ett fel | Samma jobbs nästa körning lyckas |
+| Backup Job Failed | Varning | Aviseringsloggar med `pve.notification.type = vzdump` och `pve.notification.severity = error`, per nod och jobb, senaste 60 minuterna | Ett säkerhetskopieringsjobb rapporterar ett fel | Samma jobbs nästa körning lyckas |
 | Node Fenced | Kritisk | Aviseringsloggar med `pve.notification.type = fencing`, per nod, senaste 30 minuterna | Proxmox VE isolerar en nod (fencing) | Den noden isoleras inte igen på 30 minuter |
 
 Varje nod och varje säkerhetskopieringsjobb får en egen incident och ett eget larm. Larmet för ett misslyckat säkerhetskopieringsjobb förblir öppet tills en senare körning av samma jobb lyckas, hur lång tid det än tar.

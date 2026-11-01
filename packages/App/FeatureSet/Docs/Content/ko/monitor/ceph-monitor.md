@@ -116,42 +116,42 @@ flowchart TB
 | 템플릿 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | 심각 | `ceph_health_status`, Max, 최근 1분 | 2 이상: `HEALTH_ERR` | 1.8 미만: `HEALTH_WARN` 또는 더 나은 상태 |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 이상: `HEALTH_WARN` 또는 더 나쁜 상태 | 0.9 미만: `HEALTH_OK` |
+| Cluster Health Warning | 경고 | `ceph_health_status`, Max | 1 이상: `HEALTH_WARN` 또는 더 나쁜 상태 | 0.9 미만: `HEALTH_OK` |
 | Monitor Quorum Degraded | 심각 | `ceph_mon_quorum_status`, `ceph_daemon`별 Min, 최근 1분 | 모니터가 1 아래로 떨어져 쿼럼에서 빠짐. 모니터마다 인시던트 하나 | 다시 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | 0 초과: 클러스터의 `SLOW_OPS` 체크가 활성 상태 | 0 |
-| Daemon Slow Operations | Warning | `type = SLOW_OPS`인 `ceph_daemon_health_metrics`, `ceph_daemon`별 Max | 0 초과. OSD 또는 모니터마다 인시던트 하나 | 시리즈가 사라짐 |
+| Slow Operations | 경고 | `ceph_healthcheck_slow_ops`, Max | 0 초과: 클러스터의 `SLOW_OPS` 체크가 활성 상태 | 0 |
+| Daemon Slow Operations | 경고 | `type = SLOW_OPS`인 `ceph_daemon_health_metrics`, `ceph_daemon`별 Max | 0 초과. OSD 또는 모니터마다 인시던트 하나 | 시리즈가 사라짐 |
 | Daemon Crash | 심각 | `name = RECENT_CRASH`인 `ceph_health_detail`, Max | 체크가 활성 상태: 보관되지 않은 데몬 크래시가 있음. mgr에는 `ceph_crash_*` 메트릭이 없으므로 이것이 유일한 크래시 신호 | 크래시가 보관됨 |
-| Monitor Clock Skew | Warning | `name = MON_CLOCK_SKEW`인 `ceph_health_detail`, Max | 체크가 활성 상태: 모니터 시계가 허용된 편차(기본값 0.05초)를 넘어 어긋남 | 체크가 사라짐 |
+| Monitor Clock Skew | 경고 | `name = MON_CLOCK_SKEW`인 `ceph_health_detail`, Max | 체크가 활성 상태: 모니터 시계가 허용된 편차(기본값 0.05초)를 넘어 어긋남 | 체크가 사라짐 |
 | Monitor Disk Critically Low | 심각 | `name = MON_DISK_CRIT`인 `ceph_health_detail`, Max | 체크가 활성 상태: 모니터 데이터베이스 디스크의 여유 공간이 5% 미만(기본값) | 체크가 사라짐 |
-| Monitor Disk Space Low | Warning | `name = MON_DISK_LOW`인 `ceph_health_detail`, Max | 체크가 활성 상태: 여유 공간이 30% 미만(기본값) | 체크가 사라짐 |
+| Monitor Disk Space Low | 경고 | `name = MON_DISK_LOW`인 `ceph_health_detail`, Max | 체크가 활성 상태: 여유 공간이 30% 미만(기본값) | 체크가 사라짐 |
 
 ### OSD 템플릿
 
 | 템플릿 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- |
 | OSD Down | 심각 | `ceph_osd_up`, `ceph_daemon`별 Min | OSD가 1 아래로 떨어짐. OSD마다 인시던트 하나 | 다시 1 |
-| OSD Out | Warning | `ceph_osd_in`, `ceph_daemon`별 Min | OSD가 1 아래로 떨어짐: 데이터 분산에서 out으로 표시됨 | 다시 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, `ceph_daemon`별 Avg | 100 ms 초과. OSD마다 인시던트 하나 | 90 ms 이하 |
-| OSD Slow Heartbeats | Warning | `name = OSD_SLOW_PING_TIME_FRONT`와 `name = OSD_SLOW_PING_TIME_BACK`인 `ceph_health_detail`, Max | 둘 중 하나의 체크가 활성 상태: 공용 네트워크나 클러스터 네트워크의 하트비트가 느림. mgr은 핑 시간 게이지를 내보내지 않음 | 두 체크가 모두 사라짐 |
+| OSD Out | 경고 | `ceph_osd_in`, `ceph_daemon`별 Min | OSD가 1 아래로 떨어짐: 데이터 분산에서 out으로 표시됨 | 다시 1 |
+| OSD High Latency | 경고 | `ceph_osd_apply_latency_ms`, `ceph_daemon`별 Avg | 100 ms 초과. OSD마다 인시던트 하나 | 90 ms 이하 |
+| OSD Slow Heartbeats | 경고 | `name = OSD_SLOW_PING_TIME_FRONT`와 `name = OSD_SLOW_PING_TIME_BACK`인 `ceph_health_detail`, Max | 둘 중 하나의 체크가 활성 상태: 공용 네트워크나 클러스터 네트워크의 하트비트가 느림. mgr은 핑 시간 게이지를 내보내지 않음 | 두 체크가 모두 사라짐 |
 
 ### 배치 그룹 템플릿
 
 | 템플릿 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | 심각 | `ceph_pg_total` − `ceph_pg_active`, `pool_id`별 Max | 0 초과: PG가 I/O를 처리하지 못해 PG로 가는 클라이언트 요청이 멈춤. 풀마다 인시던트 하나 | 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, `pool_id`별 Max | 0 초과: 객체의 복제본이 설정보다 적음 | 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, `pool_id`별 Max | 0 초과: PG가 복제본 수보다 적은 OSD에 매핑됨 | 0 |
+| Degraded Placement Groups | 경고 | `ceph_pg_degraded`, `pool_id`별 Max | 0 초과: 객체의 복제본이 설정보다 적음 | 0 |
+| Undersized Placement Groups | 경고 | `ceph_pg_undersized`, `pool_id`별 Max | 0 초과: PG가 복제본 수보다 적은 OSD에 매핑됨 | 0 |
 | Damaged Placement Groups | 심각 | `name = PG_DAMAGED`와 `name = OSD_SCRUB_ERRORS`인 `ceph_health_detail`, Max | 둘 중 하나의 체크가 활성 상태: 스크러빙에서 손상이나 읽기 오류가 발견됨 | 두 체크가 모두 사라짐 |
 
 ### 용량 템플릿
 
 | 템플릿 | 심각도 | 감시 대상 | 발생 조건 | 복구 조건 |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 85% 초과(Ceph의 기본 nearfull 비율) | 76.5% 이하 |
+| Cluster Near Full | 경고 | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | 85% 초과(Ceph의 기본 nearfull 비율) | 76.5% 이하 |
 | Cluster Full | 심각 | 같은 비율 | 95% 초과(Ceph의 기본 full 비율로, 클러스터 전체에서 쓰기가 멈춤) | 85.5% 이하 |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, `pool_id`별 | 풀이 담을 수 있는 양의 85% 초과. 풀마다 인시던트 하나 | 76.5% 이하 |
-| OSD Nearfull | Warning | `name = OSD_NEARFULL`인 `ceph_health_detail`, Max | 체크가 활성 상태: OSD가 nearfull 임계값(기본값 85%)을 넘음. 개별 OSD는 클러스터 평균보다 훨씬 먼저 가득 참 | 체크가 사라짐 |
-| OSD Backfillfull | Warning | `name = OSD_BACKFILLFULL`인 `ceph_health_detail`, Max | 체크가 활성 상태: OSD로의 백필이 거부되어(기본값 90%) 복구가 멈춤 | 체크가 사라짐 |
+| Pool Near Full | 경고 | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, `pool_id`별 | 풀이 담을 수 있는 양의 85% 초과. 풀마다 인시던트 하나 | 76.5% 이하 |
+| OSD Nearfull | 경고 | `name = OSD_NEARFULL`인 `ceph_health_detail`, Max | 체크가 활성 상태: OSD가 nearfull 임계값(기본값 85%)을 넘음. 개별 OSD는 클러스터 평균보다 훨씬 먼저 가득 참 | 체크가 사라짐 |
+| OSD Backfillfull | 경고 | `name = OSD_BACKFILLFULL`인 `ceph_health_detail`, Max | 체크가 활성 상태: OSD로의 백필이 거부되어(기본값 90%) 복구가 멈춤 | 체크가 사라짐 |
 | OSD Full | 심각 | `name = OSD_FULL`인 `ceph_health_detail`, Max, 최근 1분 | 체크가 활성 상태: OSD가 full 임계값(기본값 95%)에 도달해 쓰기가 거부됨 | 체크가 사라짐 |
 
 - **다운과 쿼럼 템플릿은 최소를 사용**하므로, 다운된 OSD 하나나 쿼럼에서 빠진 모니터 하나가 정상인 다수에 가려지지 않고 템플릿을 발생시킵니다.

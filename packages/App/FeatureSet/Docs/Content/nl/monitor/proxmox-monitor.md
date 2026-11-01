@@ -117,18 +117,18 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritiek | `pve_up`, Count over het hele cluster, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | Node Offline | Kritiek | `pve_up` voor `pve.scope = node`, Min per `id` | Onder 1 | Op 1 |
-| Guest Down | Warning | `pve_up` en `pve_onboot_status` voor `pve.scope = guest`, Min per `id` | `pve_up` ligt onder 1 terwijl `pve_onboot_status` 1 is | `pve_up` staat weer op 1, of starten bij het opstarten is uitgezet |
+| Guest Down | Waarschuwing | `pve_up` en `pve_onboot_status` voor `pve.scope = guest`, Min per `id` | `pve_up` ligt onder 1 terwijl `pve_onboot_status` 1 is | `pve_up` staat weer op 1, of starten bij het opstarten is uitgezet |
 | Cluster Quorum at Risk | Kritiek | `pve_up` ÷ `pve_node_info` × 100 voor `pve.scope = node` (beide Som): het aandeel nodes dat online is | 50% of minder | Boven 55% |
-| Node Restarted | Warning | `pve_uptime_seconds` en `pve_up` voor `pve.scope = node`, Min per `id` | `pve_uptime_seconds` ligt onder 900 (15 minuten) terwijl `pve_up` 1 is | `pve_uptime_seconds` staat op 990 of meer, of `pve_up` is 0 |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` voor `pve.scope = node`, Avg per `id` | Boven 0,9 (90% van de kernen van de node) | Op of onder 0,81 |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 voor `pve.scope = node`, per `id` | Boven 85% | Op of onder 76,5% |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` voor `pve.scope = guest`, Avg per `id`, laatste 15 minuten | Boven 0,95 (95% van zijn vCPU's) gedurende alle 15 minuten | Op of onder 0,855 |
+| Node Restarted | Waarschuwing | `pve_uptime_seconds` en `pve_up` voor `pve.scope = node`, Min per `id` | `pve_uptime_seconds` ligt onder 900 (15 minuten) terwijl `pve_up` 1 is | `pve_uptime_seconds` staat op 990 of meer, of `pve_up` is 0 |
+| High Node CPU Usage | Waarschuwing | `pve_cpu_usage_ratio` voor `pve.scope = node`, Avg per `id` | Boven 0,9 (90% van de kernen van de node) | Op of onder 0,81 |
+| High Node Memory Usage | Waarschuwing | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 voor `pve.scope = node`, per `id` | Boven 85% | Op of onder 76,5% |
+| High Guest CPU Usage | Waarschuwing | `pve_cpu_usage_ratio` voor `pve.scope = guest`, Avg per `id`, laatste 15 minuten | Boven 0,95 (95% van zijn vCPU's) gedurende alle 15 minuten | Op of onder 0,855 |
 | Storage Unavailable | Kritiek | `pve_up` voor `pve.scope = storage`, Min per `id` | Onder 1 | Op 1 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 voor `pve.scope = storage`, per `id` | Boven 85% | Op of onder 76,5% |
-| Container Root Disk Near Full | Warning | Dezelfde schijfverhouding voor `pve.type = lxc`, per `id` | Boven 90% | Op of onder 81% |
+| Storage Near Full | Waarschuwing | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 voor `pve.scope = storage`, per `id` | Boven 85% | Op of onder 76,5% |
+| Container Root Disk Near Full | Waarschuwing | Dezelfde schijfverhouding voor `pve.type = lxc`, per `id` | Boven 90% | Op of onder 81% |
 | HA Resource in Error State | Kritiek | `pve_ha_state` voor `state = error`, Max per `id` | Boven 0 | Op 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (één clusterbrede reeks) | Boven 0 | Op 0 |
-| Backup Running Too Long | Warning | `pve_lock_state` voor `pve.scope = guest` en `state = backup`, Min per `id`, laatste 6 uur | Boven 0 | Op 0 |
+| Guest Not Backed Up | Waarschuwing | `pve_not_backed_up_total`, Max (één clusterbrede reeks) | Boven 0 | Op 0 |
+| Backup Running Too Long | Waarschuwing | `pve_lock_state` voor `pve.scope = guest` en `state = backup`, Min per `id`, laatste 6 uur | Boven 0 | Op 0 |
 | Replication Failing | Kritiek | `pve_replication_failed_syncs`, Max per `id` (de taak-id) | Boven 0 | Op 0 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
@@ -152,7 +152,7 @@ Nog twee waarschuwingen lezen de eigen meldingen van Proxmox VE, die het cluster
 
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Warning | Meldingslogs met `pve.notification.type = vzdump` en `pve.notification.severity = error`, per node en taak, laatste 60 minuten | Een back-uptaak meldt een fout | De volgende run van dezelfde taak slaagt |
+| Backup Job Failed | Waarschuwing | Meldingslogs met `pve.notification.type = vzdump` en `pve.notification.severity = error`, per node en taak, laatste 60 minuten | Een back-uptaak meldt een fout | De volgende run van dezelfde taak slaagt |
 | Node Fenced | Kritiek | Meldingslogs met `pve.notification.type = fencing`, per node, laatste 30 minuten | Proxmox VE isoleert een node (fencing) | Die node wordt 30 minuten lang niet opnieuw geïsoleerd |
 
 Elke node en elke back-uptaak krijgt een eigen incident en een eigen waarschuwing. De waarschuwing van een mislukte back-uptaak blijft open tot een latere run van dezelfde taak slaagt, hoe lang dat ook duurt.

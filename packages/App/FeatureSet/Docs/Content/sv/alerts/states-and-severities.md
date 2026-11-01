@@ -102,7 +102,7 @@ Varje nytt projekt börjar med två allvarlighetsgrader för larm, den allvarlig
 | **Hög**          | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
 | **Låg**           | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Incidenter börjar med tre allvarlighetsgrader och larm med två. När mallen i en monitorrekommendation säger **Kritisk** eller **Warning** mappar OneUptime den till din första och andra allvarlighetsgrad för larm, som i ett nytt projekt är **Hög** och **Låg**.
+Incidenter börjar med tre allvarlighetsgrader och larm med två. När mallen i en monitorrekommendation säger **Kritisk** eller **Varning** mappar OneUptime den till din första och andra allvarlighetsgrad för larm, som i ett nytt projekt är **Hög** och **Låg**.
 
 ## Redigera allvarlighetsgrader
 

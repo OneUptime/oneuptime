@@ -102,9 +102,9 @@ Tenzij de tabel iets anders zegt, gaat een criterium alleen af als de voorwaarde
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritiek | `container.memory.percent`, Count over alle containers in het cluster, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
 | Task Down (Low Uptime) | Kritiek | `container.uptime`, Min per taak, laatste 1 minuut | Een willekeurige waarde ligt onder 60 seconden | Elke waarde ligt op of boven 66 seconden |
-| High Task CPU Usage | Warning | `container.cpu.utilization`, Avg per taak, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
-| High Task Memory Usage | Warning | `container.memory.percent`, Avg per taak, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
-| High Task Process Count | Warning | `container.pids.count`, Max per taak, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
+| High Task CPU Usage | Waarschuwing | `container.cpu.utilization`, Avg per taak, laatste 5 minuten | Boven 80 (% van één kern) | Op of onder 72 |
+| High Task Memory Usage | Waarschuwing | `container.memory.percent`, Avg per taak, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
+| High Task Process Count | Waarschuwing | `container.pids.count`, Max per taak, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 

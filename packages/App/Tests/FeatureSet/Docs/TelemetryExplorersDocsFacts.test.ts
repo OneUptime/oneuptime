@@ -1405,7 +1405,7 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
     );
 
     for (const card of ["P50 Latency", "P95 Latency", "P99 Latency"]) {
-      expect(insights).toContain(`>${card}</p>`);
+      expect(insights).toContain(`translator.translateText("${card}")`);
     }
 
     expect(insights).toContain(
@@ -2839,11 +2839,10 @@ describe("the explorers together", () => {
       "Entry spans": "common:Types/Telemetry/TraceSpanType.ts",
       "Root spans": "common:Types/Telemetry/TraceSpanType.ts",
       "All spans": "common:Types/Telemetry/TraceSpanType.ts",
-      "See full trace": "Components/Traces/SpanDetailsPanel.tsx",
     };
 
-    // The trace page's own toggles are keys now, drawn in every language.
-    for (const word of ["Critical path", "Errors only"]) {
+    // The trace pages' own words are keys now, drawn in every language.
+    for (const word of ["Critical path", "Errors only", "See full trace"]) {
       expect({ word, isKey: word in DASHBOARD_ENGLISH }).toEqual({
         word,
         isKey: true,

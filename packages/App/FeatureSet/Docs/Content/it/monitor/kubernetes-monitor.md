@@ -136,22 +136,22 @@ L'elenco di **Su cosa avvisare** contiene questi modelli, raggruppati per catego
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Disponibilità | Dall'agente del cluster non arrivano dati per 10 minuti | Critico |
 | CrashLoopBackOff Detection | Carico di lavoro | Un container si è riavviato in 15 minuti ed è stato pronto per meno della metà di essi | Critico |
-| Pod Stuck in Pending | Pianificazione | Un pod è nella fase Pending in ogni campione di una finestra di 15 minuti | Warning |
+| Pod Stuck in Pending | Pianificazione | Un pod è nella fase Pending in ogni campione di una finestra di 15 minuti | Avviso |
 | Node Not Ready | Nodo | Un nodo segnala NotReady o smette di segnalare il suo stato (Unknown) | Critico |
-| High Node CPU Utilization | Nodo | L'utilizzo medio della CPU di un nodo supera il 90% della sua CPU allocabile | Warning |
-| High Node Memory Utilization | Nodo | Il working set medio della memoria di un nodo supera l'85% della sua memoria allocabile | Warning |
-| Deployment Replica Mismatch | Carico di lavoro | Un deployment ha meno repliche disponibili di quelle desiderate per 15 minuti | Warning |
-| Job Failures | Carico di lavoro | Un pod di un job è fallito in 15 minuti | Warning |
+| High Node CPU Utilization | Nodo | L'utilizzo medio della CPU di un nodo supera il 90% della sua CPU allocabile | Avviso |
+| High Node Memory Utilization | Nodo | Il working set medio della memoria di un nodo supera l'85% della sua memoria allocabile | Avviso |
+| Deployment Replica Mismatch | Carico di lavoro | Un deployment ha meno repliche disponibili di quelle desiderate per 15 minuti | Avviso |
+| Job Failures | Carico di lavoro | Un pod di un job è fallito in 15 minuti | Avviso |
 | etcd No Leader | Piano di controllo | etcd non ha un leader eletto | Critico |
 | API Server Request Saturation | Piano di controllo | Il server API mantiene 200 o più richieste in corso per tutta la finestra | Critico |
-| Scheduler Backlog | Pianificazione | La coda dei pod in attesa dello scheduler non è vuota per 5 minuti | Warning |
-| High Node Disk Usage | Archiviazione | Il filesystem di un nodo è pieno oltre il 90% | Warning |
-| DaemonSet Misscheduled Nodes | Carico di lavoro | Un DaemonSet esegue pod su nodi che non corrispondono più al suo selettore di nodi, alla sua affinità o alle sue tolleranze | Warning |
-| High Node CPU Request Commitment | Nodo | La somma delle richieste di CPU dei container di un nodo supera il 90% della sua CPU allocabile | Warning |
-| High Node Memory Request Commitment | Nodo | La somma delle richieste di memoria dei container di un nodo supera il 90% della sua memoria allocabile | Warning |
+| Scheduler Backlog | Pianificazione | La coda dei pod in attesa dello scheduler non è vuota per 5 minuti | Avviso |
+| High Node Disk Usage | Archiviazione | Il filesystem di un nodo è pieno oltre il 90% | Avviso |
+| DaemonSet Misscheduled Nodes | Carico di lavoro | Un DaemonSet esegue pod su nodi che non corrispondono più al suo selettore di nodi, alla sua affinità o alle sue tolleranze | Avviso |
+| High Node CPU Request Commitment | Nodo | La somma delle richieste di CPU dei container di un nodo supera il 90% della sua CPU allocabile | Avviso |
+| High Node Memory Request Commitment | Nodo | La somma delle richieste di memoria dei container di un nodo supera il 90% della sua memoria allocabile | Avviso |
 | HPA Saturated at Max Replicas | Carico di lavoro | Un HPA scalato sopra il suo `minReplicas` lavora al 90% o più del suo `maxReplicas` | Critico |
 | Pod Memory Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di memoria dei suoi container | Critico |
-| Pod CPU Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di CPU dei suoi container | Warning |
+| Pod CPU Saturating Container Limit | Carico di lavoro | Un pod usa più del 90% del limite di CPU dei suoi container | Avviso |
 
 I modelli basati su metriche per oggetto valutano ogni nodo, pod, deployment, job, DaemonSet o HPA separatamente, quindi un cluster con diversi pod non sani riceve un incidente per pod invece di uno per l'intero cluster.
 

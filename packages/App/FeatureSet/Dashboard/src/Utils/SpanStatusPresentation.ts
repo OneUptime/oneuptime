@@ -1,4 +1,5 @@
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How a span status looks and reads everywhere the Dashboard shows one: the
@@ -17,7 +18,8 @@ import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
  *
  * Only the presentation lives here. The stored values (0 / 1 / 2), the
  * "Unset" name that filters, monitors and the API use, and the `status:unset`
- * search term all stay as they are.
+ * search term all stay as they are. The words here are English, keys of the
+ * Dashboard's locales: look them up where they are drawn.
  *
  * The chart colors were checked as a set, on the light (#ffffff) and dark
  * (#172033) card, for every pair — not only the neighbours in the chart's
@@ -38,6 +40,9 @@ export interface SpanStatusPresentation {
   displayLabel: string;
   // One sentence for tooltips.
   description: string;
+  // The status dot's name: for a row that shows the display label, and the label.
+  dotTooltip: string;
+  plainDotTooltip: string;
   // Six-digit hex for chart series, facet dots and other inline colors.
   color: string;
   /*
@@ -56,10 +61,13 @@ export interface SpanStatusPresentation {
 
 const UNSET: SpanStatusPresentation = {
   status: SpanStatus.Unset,
-  label: "Unset",
-  displayLabel: "Unset (no error)",
-  description:
+  label: translationKey("Unset"),
+  displayLabel: translationKey("Unset (no error)"),
+  description: translationKey(
     "No error status was set. Unset is the OpenTelemetry default for spans that finish without one.",
+  ),
+  dotTooltip: translationKey("Span Status: Unset (no error)"),
+  plainDotTooltip: translationKey("Span Status: Unset"),
   color: "#10b981",
   dotClassName: "bg-emerald-500",
   ringClassName: "ring-emerald-200",
@@ -72,10 +80,13 @@ const UNSET: SpanStatusPresentation = {
 
 const OK: SpanStatusPresentation = {
   status: SpanStatus.Ok,
-  label: "Ok",
-  displayLabel: "Ok",
-  description:
+  label: translationKey("Ok"),
+  displayLabel: translationKey("Ok"),
+  description: translationKey(
     "Explicitly marked successful by the application or a trace pipeline.",
+  ),
+  dotTooltip: translationKey("Span Status: Ok"),
+  plainDotTooltip: translationKey("Span Status: Ok"),
   color: "#0891b2",
   dotClassName: "bg-cyan-600",
   ringClassName: "ring-cyan-200",
@@ -88,9 +99,13 @@ const OK: SpanStatusPresentation = {
 
 const ERROR: SpanStatusPresentation = {
   status: SpanStatus.Error,
-  label: "Error",
-  displayLabel: "Error",
-  description: "The operation failed: the span's status is Error.",
+  label: translationKey("Error"),
+  displayLabel: translationKey("Error"),
+  description: translationKey(
+    "The operation failed: the span's status is Error.",
+  ),
+  dotTooltip: translationKey("Span Status: Error"),
+  plainDotTooltip: translationKey("Span Status: Error"),
   color: "#ef4444",
   dotClassName: "bg-red-500",
   ringClassName: "ring-red-100",
@@ -132,10 +147,14 @@ export function getSpanStatusColorMap(): Record<string, string> {
   return map;
 }
 
-export function getSpanStatusDisplayLabelMap(): Record<string, string> {
+export function getSpanStatusDisplayLabelMap(
+  translator?: Translator | undefined,
+): Record<string, string> {
   const map: Record<string, string> = {};
   for (const presentation of SPAN_STATUS_PRESENTATIONS) {
-    map[String(presentation.status)] = presentation.displayLabel;
+    map[String(presentation.status)] = translator
+      ? translator.translateTerm(presentation.displayLabel)
+      : presentation.displayLabel;
   }
   return map;
 }

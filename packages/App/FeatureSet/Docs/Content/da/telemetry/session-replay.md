@@ -572,7 +572,7 @@ En spanprocessor markerer hvert span med det id, der var gældende, da det start
 
 ### Hvor sammenkædningerne er
 
-En undtagelse i dashboardet viser et kort **Watch what the user saw**, når der findes en optagelse af en session, der havde den fejl, og åbner afspilleren ti sekunder før undtagelsen med fanen Errors valgt. Et spans detaljer tilbyder **Watch session at this span**; en logrækkes detaljer tilbyder **View session replay** på linjens tidspunkt, når loggen selv bærer sessions-id'et, og en log, der er kædet sammen via sporings-id, når optagelsen gennem sit spor. I den anden retning linker hver netværks-, log-, spor- og fejlrække i afspilleren til sporvisningen, logudforskeren afgrænset til sessionen på det tidspunkt eller undtagelsesgruppen.
+En undtagelse i dashboardet viser et kort **Watch what the user saw**, når der findes en optagelse af en session, der havde den fejl, og åbner afspilleren ti sekunder før undtagelsen med fanen Errors valgt. Et spans detaljer tilbyder **Se sessionen ved dette span**; en logrækkes detaljer tilbyder **View session replay** på linjens tidspunkt, når loggen selv bærer sessions-id'et, og en log, der er kædet sammen via sporings-id, når optagelsen gennem sit spor. I den anden retning linker hver netværks-, log-, spor- og fejlrække i afspilleren til sporvisningen, logudforskeren afgrænset til sessionen på det tidspunkt eller undtagelsesgruppen.
 
 ## Se en session
 

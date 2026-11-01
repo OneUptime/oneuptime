@@ -91,11 +91,11 @@ Sauf indication contraire dans le tableau, un critère ne se déclenche que si l
 | Modèle | Gravité | Surveille | Se déclenche quand | Se rétablit quand |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs de l'hôte, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Max par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
-| High Container Memory Usage | Warning | `container.memory.percent`, Max par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
+| High Container CPU Usage | Avertissement | `container.cpu.utilization`, Max par conteneur, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
+| High Container Memory Usage | Avertissement | `container.memory.percent`, Max par conteneur, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
 | Container Restart Loop | Critique | `container.restarts.increase`, Sum par conteneur, 15 dernières minutes | Plus de 3 redémarrages dans la fenêtre (Somme) | 2,7 ou moins |
-| Container CPU Throttling | Warning | Croissance de `container.cpu.throttling_data.throttled_time` en ms par conteneur, 5 dernières minutes | Plus de 1000 ms dans la fenêtre (Somme) | 900 ms ou moins |
-| High Container Process Count | Warning | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
+| Container CPU Throttling | Avertissement | Croissance de `container.cpu.throttling_data.throttled_time` en ms par conteneur, 5 dernières minutes | Plus de 1000 ms dans la fenêtre (Somme) | 900 ms ou moins |
+| High Container Process Count | Avertissement | `container.pids.count`, Max par conteneur, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
 | Container Restarted (Low Uptime) | Critique | `container.uptime`, Min par conteneur, dernière 1 minute | Moins de 120 secondes | 132 secondes ou plus |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.

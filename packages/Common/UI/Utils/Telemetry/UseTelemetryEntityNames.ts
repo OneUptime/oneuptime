@@ -1,6 +1,8 @@
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import ProjectUtil from "../Project";
+import { Translator } from "../TranslateTemplate";
+import useTranslator from "../UseTranslator";
 import TelemetryEntityNameResolver, {
   TelemetryEntityNameMap,
 } from "./TelemetryEntityNames";
@@ -23,13 +25,16 @@ export type UseTelemetryEntityNamesFunction = (
  * telemetry entity ids (Service, RUM application, host, cluster, …) to
  * names for chips, columns and legends. Returns an id -> entity map that
  * starts empty and fills in once the lookup lands; ids that never resolve
- * are simply absent, so callers fall back to their own label.
+ * are simply absent, so callers fall back to their own label. The stand-in
+ * for unattributed telemetry reads in the reader's language; a name anything
+ * else was given stays as written.
  */
 const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
   ids: Array<ObjectID | string | null | undefined> | undefined,
   options?: UseTelemetryEntityNamesOptions | undefined,
 ): TelemetryEntityNameMap => {
   const [nameMap, setNameMap] = useState<TelemetryEntityNameMap>({});
+  const translator: Translator = useTranslator();
 
   // Names are per project: re-resolve when the current project changes.
   const projectId: string = ProjectUtil.getCurrentProjectId()?.toString() || "";
@@ -145,7 +150,23 @@ const useTelemetryEntityNames: UseTelemetryEntityNamesFunction = (
     // idKey / optionsKey are the stable projections of ids / options.
   }, [idKey, optionsKey, projectId, scopeKey]);
 
-  return nameMap;
+  return useMemo(() => {
+    const drawn: TelemetryEntityNameMap = {};
+
+    for (const id of Object.keys(nameMap)) {
+      const entity: TelemetryEntityNameMap[string] = nameMap[
+        id
+      ] as TelemetryEntityNameMap[string];
+
+      drawn[id] =
+        entity.entityType === ServiceType.Unknown
+          ? { ...entity, name: translator.translateTerm(entity.name) }
+          : entity;
+    }
+
+    return drawn;
+    // The translator is new on every render; its language is what it adds.
+  }, [nameMap, translator.language]);
 };
 
 export default useTelemetryEntityNames;

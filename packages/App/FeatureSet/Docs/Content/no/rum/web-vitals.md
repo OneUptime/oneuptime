@@ -299,8 +299,8 @@ Applikasjonens side **Anbefalinger** tilbyr en ferdig monitor for hver vital. Hv
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 ms | **Kritisk** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500 ms | **Kritisk** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0,25 | **Kritisk** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Advarsel** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Advarsel** |
 
 Disse monitorene leser bare navnene `web_vital.*`. Hvis appen din sender en vital under et annet navn, endrer du målingen i den opprettede monitoren. For å varsle på én rute legger du til et filter `app.route` i monitoren. Du kan også bygge din egen monitor på hvilken som helst av disse målingene: se [Metrikk-overvåking](/docs/monitor/metrics-monitor).
 

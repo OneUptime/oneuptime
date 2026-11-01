@@ -116,42 +116,42 @@ flowchart TB
 | Шаблон | Серьёзность | Что отслеживает | Срабатывает, когда | Восстанавливается, когда |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | Критический | `ceph_health_status`, Max, последняя минута | 2 или больше: `HEALTH_ERR` | Ниже 1,8: `HEALTH_WARN` или лучше |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 или больше: `HEALTH_WARN` или хуже | Ниже 0,9: `HEALTH_OK` |
+| Cluster Health Warning | Предупреждение | `ceph_health_status`, Max | 1 или больше: `HEALTH_WARN` или хуже | Ниже 0,9: `HEALTH_OK` |
 | Monitor Quorum Degraded | Критический | `ceph_mon_quorum_status`, Min по `ceph_daemon`, последняя минута | Монитор опускается ниже 1 и выпадает из кворума. Один инцидент на монитор | Снова 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | Выше 0: активна проверка `SLOW_OPS` кластера | При 0 |
-| Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` для `type = SLOW_OPS`, Max по `ceph_daemon` | Выше 0. Один инцидент на OSD или монитор | Ряд исчезает |
+| Slow Operations | Предупреждение | `ceph_healthcheck_slow_ops`, Max | Выше 0: активна проверка `SLOW_OPS` кластера | При 0 |
+| Daemon Slow Operations | Предупреждение | `ceph_daemon_health_metrics` для `type = SLOW_OPS`, Max по `ceph_daemon` | Выше 0. Один инцидент на OSD или монитор | Ряд исчезает |
 | Daemon Crash | Критический | `ceph_health_detail` для `name = RECENT_CRASH`, Max | Проверка активна: есть неархивированные сбои демонов. У mgr нет метрики `ceph_crash_*`, поэтому это единственный сигнал о сбоях | Сбои архивированы |
-| Monitor Clock Skew | Warning | `ceph_health_detail` для `name = MON_CLOCK_SKEW`, Max | Проверка активна: часы мониторов расходятся сильнее допустимого (по умолчанию 0,05 с) | Проверка исчезает |
+| Monitor Clock Skew | Предупреждение | `ceph_health_detail` для `name = MON_CLOCK_SKEW`, Max | Проверка активна: часы мониторов расходятся сильнее допустимого (по умолчанию 0,05 с) | Проверка исчезает |
 | Monitor Disk Critically Low | Критический | `ceph_health_detail` для `name = MON_DISK_CRIT`, Max | Проверка активна: на диске базы данных монитора свободно меньше 5 % (по умолчанию) | Проверка исчезает |
-| Monitor Disk Space Low | Warning | `ceph_health_detail` для `name = MON_DISK_LOW`, Max | Проверка активна: свободно меньше 30 % (по умолчанию) | Проверка исчезает |
+| Monitor Disk Space Low | Предупреждение | `ceph_health_detail` для `name = MON_DISK_LOW`, Max | Проверка активна: свободно меньше 30 % (по умолчанию) | Проверка исчезает |
 
 ### Шаблоны OSD
 
 | Шаблон | Серьёзность | Что отслеживает | Срабатывает, когда | Восстанавливается, когда |
 | --- | --- | --- | --- | --- |
 | OSD Down | Критический | `ceph_osd_up`, Min по `ceph_daemon` | OSD опускается ниже 1. Один инцидент на OSD | Снова 1 |
-| OSD Out | Warning | `ceph_osd_in`, Min по `ceph_daemon` | OSD опускается ниже 1: исключён из распределения данных | Снова 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, Avg по `ceph_daemon` | Выше 100 мс. Один инцидент на OSD | Не больше 90 мс |
-| OSD Slow Heartbeats | Warning | `ceph_health_detail` для `name = OSD_SLOW_PING_TIME_FRONT` и `name = OSD_SLOW_PING_TIME_BACK`, Max | Активна одна из проверок: heartbeat в публичной сети или сети кластера идут медленно. Mgr не экспортирует показатель времени ping | Обе проверки исчезают |
+| OSD Out | Предупреждение | `ceph_osd_in`, Min по `ceph_daemon` | OSD опускается ниже 1: исключён из распределения данных | Снова 1 |
+| OSD High Latency | Предупреждение | `ceph_osd_apply_latency_ms`, Avg по `ceph_daemon` | Выше 100 мс. Один инцидент на OSD | Не больше 90 мс |
+| OSD Slow Heartbeats | Предупреждение | `ceph_health_detail` для `name = OSD_SLOW_PING_TIME_FRONT` и `name = OSD_SLOW_PING_TIME_BACK`, Max | Активна одна из проверок: heartbeat в публичной сети или сети кластера идут медленно. Mgr не экспортирует показатель времени ping | Обе проверки исчезают |
 
 ### Шаблоны групп размещения
 
 | Шаблон | Серьёзность | Что отслеживает | Срабатывает, когда | Восстанавливается, когда |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | Критический | `ceph_pg_total` − `ceph_pg_active`, Max по `pool_id` | Выше 0: группы размещения не могут обслуживать ввод-вывод, поэтому запросы клиентов к ним зависают. Один инцидент на пул | При 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, Max по `pool_id` | Выше 0: у объектов меньше реплик, чем настроено | При 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, Max по `pool_id` | Выше 0: группы размещения отображаются на меньшее число OSD, чем число их реплик | При 0 |
+| Degraded Placement Groups | Предупреждение | `ceph_pg_degraded`, Max по `pool_id` | Выше 0: у объектов меньше реплик, чем настроено | При 0 |
+| Undersized Placement Groups | Предупреждение | `ceph_pg_undersized`, Max по `pool_id` | Выше 0: группы размещения отображаются на меньшее число OSD, чем число их реплик | При 0 |
 | Damaged Placement Groups | Критический | `ceph_health_detail` для `name = PG_DAMAGED` и `name = OSD_SCRUB_ERRORS`, Max | Активна одна из проверок: scrubbing нашёл повреждения или ошибки чтения | Обе проверки исчезают |
 
 ### Шаблоны ёмкости
 
 | Шаблон | Серьёзность | Что отслеживает | Срабатывает, когда | Восстанавливается, когда |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Выше 85 %, стандартной доли nearfull в Ceph | Не больше 76,5 % |
+| Cluster Near Full | Предупреждение | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Выше 85 %, стандартной доли nearfull в Ceph | Не больше 76,5 % |
 | Cluster Full | Критический | Та же доля | Выше 95 %, стандартной доли full в Ceph, при которой запись останавливается во всём кластере | Не больше 85,5 % |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, по `pool_id` | Выше 85 % того, что может вместить пул. Один инцидент на пул | Не больше 76,5 % |
-| OSD Nearfull | Warning | `ceph_health_detail` для `name = OSD_NEARFULL`, Max | Проверка активна: OSD превысил порог nearfull (по умолчанию 85 %). Отдельные OSD заполняются гораздо раньше, чем среднее по кластеру | Проверка исчезает |
-| OSD Backfillfull | Warning | `ceph_health_detail` для `name = OSD_BACKFILLFULL`, Max | Проверка активна: backfill на OSD отклоняется (по умолчанию 90 %), и восстановление останавливается | Проверка исчезает |
+| Pool Near Full | Предупреждение | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, по `pool_id` | Выше 85 % того, что может вместить пул. Один инцидент на пул | Не больше 76,5 % |
+| OSD Nearfull | Предупреждение | `ceph_health_detail` для `name = OSD_NEARFULL`, Max | Проверка активна: OSD превысил порог nearfull (по умолчанию 85 %). Отдельные OSD заполняются гораздо раньше, чем среднее по кластеру | Проверка исчезает |
+| OSD Backfillfull | Предупреждение | `ceph_health_detail` для `name = OSD_BACKFILLFULL`, Max | Проверка активна: backfill на OSD отклоняется (по умолчанию 90 %), и восстановление останавливается | Проверка исчезает |
 | OSD Full | Критический | `ceph_health_detail` для `name = OSD_FULL`, Max, последняя минута | Проверка активна: OSD достиг порога full (по умолчанию 95 %), и запись отклоняется | Проверка исчезает |
 
 - **Шаблоны отказов и кворума используют минимум**, чтобы один отключённый OSD или один монитор вне кворума вызывали срабатывание, а не скрывались за здоровым большинством.
