@@ -482,14 +482,23 @@ describe.each(READER_URLS)("on %s", (oneuptimeUrl: string) => {
   });
 
   test("no command or sentence sends anyone to GitHub for an agent's files", () => {
+    /*
+     * Any mention of either, with the dots matched as dots: a pattern, not a
+     * substring test of an address (CodeQL's incomplete URL substring
+     * sanitization, 14.0.100's first gate).
+     */
+    const rawGitHub: RegExp = /\braw\.githubusercontent\.com\b/;
+    const repositoryTree: RegExp =
+      /\bgithub\.com\/OneUptime\/oneuptime\/tree\b/;
+
     for (const surface of surfaces) {
       expect({
         surface: surface.name,
-        github: surface.text.includes("raw.githubusercontent.com"),
+        github: rawGitHub.test(surface.text),
       }).toEqual({ surface: surface.name, github: false });
       expect({
         surface: surface.name,
-        tree: surface.text.includes("github.com/OneUptime/oneuptime/tree"),
+        tree: repositoryTree.test(surface.text),
       }).toEqual({ surface: surface.name, tree: false });
     }
   });

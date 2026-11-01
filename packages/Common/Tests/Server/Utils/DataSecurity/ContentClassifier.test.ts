@@ -17,6 +17,7 @@ import { FingerprintAccumulator } from "../../../../Server/Utils/DataSecurity/Fi
 import { compileCustomDataType } from "../../../../Utils/DataSecurity/CustomDataTypeDetector";
 import { FieldClassification } from "../../../../Utils/DataSecurity/FieldClassifier";
 import { ScanDetector } from "../../../../Utils/DataSecurity/TextScanner";
+import { UnplacedField } from "../../../../Utils/DataSecurity/UnplacedFields";
 import { buildDocx, buildPptx, buildXlsx, buildZip } from "./ZipFixture";
 import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
@@ -860,4 +861,88 @@ describe("megabytes on one line, where V8 compiles regular expressions unoptimiz
       expect(entry).toEqual({ name: entry.name, ok: true, found: true });
     }
   }, 300_000);
+});
+
+describe("fields no detector placed", () => {
+  // A customer number in a company's own format: no detector knows it.
+  function customerNumber(index: number): string {
+    return `KD-${String(400000 + index * 37)}`;
+  }
+
+  function unplacedAt(
+    result: ContentClassification,
+    location: string,
+  ): UnplacedField | undefined {
+    return (result.unplacedFields || []).find((field: UnplacedField) => {
+      return field.location === location;
+    });
+  }
+
+  test("a column no detector placed is described by its name, its neighbours and its shapes - never a value", () => {
+    const rows: Array<string> = [
+      "email,kundennr,created_at,qty,notes",
+      ...PEOPLE.slice(0, 12).map((person: Person, index: number) => {
+        return [
+          person.email,
+          customerNumber(index),
+          `2026-10-${String(10 + index)}`,
+          String(index + 1),
+          "Called about the invoice and will call back.",
+        ].join(",");
+      }),
+    ];
+    const result: ContentClassification = classify(
+      "exports/kunden.csv",
+      rows.join("\n"),
+    );
+
+    expect(dataTypesAt(result, "email")).toEqual(["email-address"]);
+    expect(unplacedAt(result, "kundennr")).toEqual({
+      location: "kundennr",
+      locationKind: DataStoreLocationKind.Field,
+      neighbours: ["email", "created_at", "qty", "notes"],
+      shapes: [{ shape: "AA-999999", share: 1 }],
+      valueCount: 12,
+      averageLength: 9,
+    });
+    // A placed field, bookkeeping, a count: never asked about.
+    expect(unplacedAt(result, "email")).toBeUndefined();
+    expect(unplacedAt(result, "created_at")).toBeUndefined();
+    expect(unplacedAt(result, "qty")).toBeUndefined();
+
+    const text: string = JSON.stringify(result.unplacedFields);
+
+    for (let index: number = 0; index < 12; index++) {
+      expect(text.includes(customerNumber(index))).toBe(false);
+    }
+  });
+
+  test("a document's field is described at its path, beside the fields of its record", () => {
+    const result: ContentClassification = classify(
+      "data/orders.json",
+      JSON.stringify(
+        PEOPLE.slice(0, 8).map((person: Person, index: number) => {
+          return {
+            customer: { email: person.email, ref: customerNumber(index) },
+            total: 10 + index,
+          };
+        }),
+      ),
+    );
+
+    expect(unplacedAt(result, "customer.ref")).toMatchObject({
+      locationKind: DataStoreLocationKind.Field,
+      neighbours: ["email", "total"],
+      shapes: [{ shape: "AA-999999", share: 1 }],
+    });
+  });
+
+  test("free text has no fields to describe", () => {
+    const result: ContentClassification = classify(
+      "logs/app.log",
+      `[2026-10-27 10:00:00] INFO order ${customerNumber(1)} shipped\n`,
+    );
+
+    expect(result.unplacedFields || []).toEqual([]);
+  });
 });

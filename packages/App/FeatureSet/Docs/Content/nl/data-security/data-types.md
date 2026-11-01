@@ -35,7 +35,7 @@ Alles wat wordt gescand - een logregel, een CSV-cel, een databaserij, de eerste 
 | **Gemiddeld** | De waarde doorstond haar validator zonder dat iets eromheen het bevestigt, of de naam van het veld zegt wat het bevat en sommige waarden stemmen daarmee overeen. |
 | **Laag** | De vorm komt overeen, maar niets bevestigt het. |
 
-Alleen bevindingen met Hoog en Gemiddeld tellen mee: ze maken een opslag gevoelig en kunnen een probleem openen. Bevindingen met Laag staan ingeklapt op de opslag, zodat een mens ze kan beoordelen.
+Alleen bevindingen met Hoog en Gemiddeld tellen mee: ze maken een opslag gevoelig en kunnen een probleem openen. Bevindingen met Laag staan ingeklapt op de opslag, zodat een mens ze kan beoordelen: **Bevestigen** op een juiste bevinding maakt haar Hoog, en ze blijft Hoog bij latere scans.
 
 Als twee gegevenstypen dezelfde tekens claimen, wint de zekerste bevinding: eerst de hoogste betrouwbaarheid, dan de detector waarvan de eigen regels meer bewijzen, dan de langste match.
 
@@ -58,6 +58,12 @@ De naam van een veld wordt in woorden gesplitst - `customerEmail`, `customer_ema
 Sommige gegevenstypen zijn niet aan hun waarden te herkennen: geen patroon onderscheidt de naam van een persoon van een straat, of een religie van elk ander woord. Die worden alleen gevonden op de naam van het veld, als het veld waarden heeft: Persoonsnaam, Gebruikersnaam, Geslacht, Nationaliteit, Gezondheidsinformatie, Raciale of etnische afkomst, Religieuze overtuiging, Seksuele geaardheid, Politieke opvatting, Vakbondslidmaatschap, Biometrische gegevens, Genetische gegevens en Strafblad. Een naam, een gebruikersnaam, een geslacht of een nationaliteit is dan Hoog als 60% of meer van de waarden er een lijkt, en anders Gemiddeld.
 
 Een veld waarvan de naam zegt dat het een wachtwoord bevat - `password`, `passwordHash`, `pwd`, niet `password_changed_at` - hoort een hash te bevatten: bcrypt, argon2, scrypt, PBKDF2 of een ander schema dat een opslag waarschijnlijk gebruikt. Lege waarden, plaatshouders zoals `********` en versleutelde waarden worden apart gehouden. Zijn er van de rest meer geen hash dan wel, dan bevat het veld de wachtwoorden zelf, wat geen patroon kan zien, en faalt de opslag voor [Wachtwoorden worden als platte tekst opgeslagen](/docs/data-security/checks-and-issues#gegevenshygiëne).
+
+### Velden die geen detector kon plaatsen
+
+Een kolom of veld waarvan de naam naar geen enkel gegevenstype wijst en waarvan de waarden bij geen enkele detector passen, is niet als veilig bekend: het kan je eigen klantnummer zijn, of een kolom met een naam in een andere taal. Met **AI inschakelen** aan voor het project bewaart een inhoudsscan zulke velden, hoogstens 200 per scan, en wordt OneUptime AI gevraagd welk van de gegevenstypen van het project elk veld bevat, hoogstens 40 velden van een opslag tegelijk. Het krijgt de naam van het veld, de namen van de velden ernaast en de vormen van zijn waarden - elke letter geschreven als `a` of `A` en elk cijfer als `9`, dus `AB-1234` wordt `AA-9999` - nooit een waarde. Naar vrije tekst, velden met minder dan 5 waarden, kleine gehele getallen en velden die als ID, tijdstip of status zijn benoemd, wordt niet gevraagd.
+
+Elk type dat OneUptime AI noemt, is een bevinding met Laag, gemarkeerd als **Voorgesteld door OneUptime AI** met de reden. Zoals elke bevinding met Laag telt ze nergens voor mee tot een mens **Bevestigen** kiest op de pagina **Inhoud** van de opslag; **Markeren als niet gevoelig** wijst haar af. Naar een veld dat een antwoord kreeg, wordt 30 dagen niet opnieuw gevraagd, en naar een veld dat een mens beoordeelde nooit meer.
 
 ## Gevoeligheid
 

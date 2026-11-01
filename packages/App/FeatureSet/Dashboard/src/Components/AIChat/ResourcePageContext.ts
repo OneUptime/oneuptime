@@ -455,6 +455,9 @@ const SUBRESOURCE_LABELS: Record<AIResourceSubresourceKind, string> = {
   [AIResourceSubresourceKind.Namespace]: translationKey("namespace"),
   [AIResourceSubresourceKind.Pod]: translationKey("pod"),
   [AIResourceSubresourceKind.Deployment]: translationKey("deployment"),
+  [AIResourceSubresourceKind.DeploymentConfig]:
+    translationKey("DeploymentConfig"),
+  [AIResourceSubresourceKind.Route]: translationKey("route"),
   [AIResourceSubresourceKind.StatefulSet]: translationKey("StatefulSet"),
   [AIResourceSubresourceKind.DaemonSet]: translationKey("DaemonSet"),
   [AIResourceSubresourceKind.Job]: translationKey("job"),

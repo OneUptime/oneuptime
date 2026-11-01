@@ -87,7 +87,7 @@ Chaque journal est enregistré avec l'une de sept gravités. Pour les journaux O
 | **Trace** | 1–4 |
 | **Débogage** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Avertissement** | 13–16 |
 | **Erreur** | 17–20 |
 | **Fatal** | 21–24 |
 | **Non spécifié** | Tout le reste |
@@ -117,7 +117,7 @@ Les critères d'un moniteur de journaux ont un seul **Type de filtre** : **Log C
 | **Anomalously Low** | en dessous de cette plage |
 | **Anomalous** | hors de cette plage, dans un sens ou dans l'autre |
 
-Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé – et, dans les critères personnalisés, une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. OneUptime convertit le décompte en taux par minute et le compare à la même heure de la semaine sur cette fenêtre. La référence ne couvre que les services et les gravités du moniteur : ses filtres de texte et d'attributs n'en font pas partie. Tant que cette heure de la semaine n'a pas assez d'historique, le critère est encore en apprentissage et ne se déclenche pas.
+Les conditions d'anomalie ne prennent pas de **Valeur**. Choisissez une **Sensibilité** – Faible, Moyen (la valeur par défaut) ou Élevé – et, dans les critères personnalisés, une **Fenêtre de référence** de 14 (la valeur par défaut), 28, 60 ou 90 jours. OneUptime convertit le décompte en taux par minute et le compare à des fenêtres de même durée autour de la même heure des semaines précédentes, aussi loin que remonte la **Fenêtre de référence** ; ce qui se passe maintenant n'entre jamais dans cette comparaison. La référence ne couvre que les services et les gravités du moniteur : ses filtres de texte et d'attributs n'en font pas partie. Les minutes sans logs comptent aussi : un service souvent silencieux ne passe donc pas pour anormalement bas parce qu'il se tait. Une fenêtre ne passe pour anormalement haute que face aux fenêtres qui contenaient des logs, et seulement avec au moins 20, 10 ou 5 logs en sensibilité Faible, Moyen ou Élevé, de sorte que ni la rafale habituelle d'une tâche ni les premières lignes d'un service silencieux ne le déclenchent. Tant que les services du moniteur n'ont pas deux semaines d'historique, le critère est encore en apprentissage et ne se déclenche pas.
 
 Un moniteur de journaux créé dans « Créer un moniteur » commence avec la règle correspondant à ce que vous avez choisi sous **De quoi ce moniteur doit-il vous informer ?** :
 
@@ -248,7 +248,7 @@ Les critères sont vérifiés de haut en bas et la première correspondance déc
 :::
 
 :::details Un critère d'anomalie ne se déclenche jamais
-Il est encore en apprentissage : l'heure de la semaine à laquelle il se compare n'a pas encore assez d'historique. Sur un moniteur avec **Group by Attributes**, les conditions d'anomalie ne correspondent jamais – utilisez-y un seuil.
+Il est encore en apprentissage : les services du moniteur n'ont pas encore deux semaines d'historique. Sur un moniteur avec **Group by Attributes**, les conditions d'anomalie ne correspondent jamais – utilisez-y un seuil.
 :::
 
 :::details Les alertes de groupe arrivent sans valeur de groupe

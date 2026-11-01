@@ -109,7 +109,9 @@ import {
   SpanQueryScope,
   SpanScopeChip,
   buildSpanQueryScope,
+  describeNotCarriedFilter,
 } from "../../Utils/SpanQueryScope";
+import SpanUtil from "../../Utils/SpanUtil";
 import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import escapeRegExp from "Common/Utils/RegExpEscape";
 import { buildUrlScopeOverrides } from "../../Utils/InitialSavedView";
@@ -124,7 +126,14 @@ import {
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { UNKNOWN_RESOURCE_LABEL } from "Common/UI/Utils/TelemetryService";
+import {
+  ComposedValue,
+  Translator,
+  composedValue,
+  formatList,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   CrossSignalQueryParams,
@@ -212,6 +221,7 @@ import {
   buildTraceSpanTypeUrlParams,
   getTraceSpanTypeChartTitle,
   getTraceSpanTypeDescriptions,
+  getTraceSpanTypeEmptyMessage,
   getTraceSpanTypeItemLabel,
   getTraceSpanTypeLabel,
   getTraceSpanTypeQuery,
@@ -285,14 +295,6 @@ const HISTOGRAM_SERIES_KEY: Record<SpanStatus, string> = {
   [SpanStatus.Error]: "error",
 };
 
-const SPAN_KIND_LABEL: Record<string, string> = {
-  SPAN_KIND_SERVER: "Server",
-  SPAN_KIND_CLIENT: "Client",
-  SPAN_KIND_PRODUCER: "Producer",
-  SPAN_KIND_CONSUMER: "Consumer",
-  SPAN_KIND_INTERNAL: "Internal",
-};
-
 /*
  * The syntax table. Every row is honoured by the shared search grammar in
  * Common/Types/Telemetry/TelemetrySearchQuery, so a row only appears here once
@@ -302,12 +304,12 @@ const SPAN_KIND_LABEL: Record<string, string> = {
  */
 const SEARCH_HELP_ROWS: Array<SearchHelpRow> = [
   {
-    syntax: "free text",
+    syntax: translationKey("free text"),
     description: "Search span names",
     example: "checkout",
   },
   {
-    syntax: '"quoted phrase"',
+    syntax: translationKey('"quoted phrase"'),
     description: "Keep spaces together",
     example: '"SELECT wp_options"',
   },
@@ -2411,11 +2413,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
+    const unknownName: string = translator.translateTerm(
+      UNKNOWN_RESOURCE_LABEL,
+    );
     const serviceNameMap: Record<string, string> = {};
     const serviceColorMap: Record<string, string> = {};
     for (const service of services) {
       if (service.id) {
-        serviceNameMap[service.id.toString()] = service.name || "Unknown";
+        serviceNameMap[service.id.toString()] = service.name || unknownName;
         if (service.serviceColor) {
           serviceColorMap[service.id.toString()] =
             service.serviceColor.toString();
@@ -2427,7 +2432,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     for (const host of hosts) {
       if (host.id) {
         hostNameMap[host.id.toString()] =
-          host.name || host.hostIdentifier || "Unknown";
+          host.name || host.hostIdentifier || unknownName;
       }
     }
 
@@ -2435,7 +2440,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     for (const dockerHost of dockerHosts) {
       if (dockerHost.id) {
         dockerHostNameMap[dockerHost.id.toString()] =
-          dockerHost.name || dockerHost.hostIdentifier || "Unknown";
+          dockerHost.name || dockerHost.hostIdentifier || unknownName;
       }
     }
 
@@ -2443,7 +2448,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     for (const podmanHost of podmanHosts) {
       if (podmanHost.id) {
         podmanHostNameMap[podmanHost.id.toString()] =
-          podmanHost.name || podmanHost.hostIdentifier || "Unknown";
+          podmanHost.name || podmanHost.hostIdentifier || unknownName;
       }
     }
 
@@ -2451,12 +2456,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     for (const cluster of kubernetesClusters) {
       if (cluster.id) {
         clusterNameMap[cluster.id.toString()] =
-          cluster.name || cluster.clusterIdentifier || "Unknown";
+          cluster.name || cluster.clusterIdentifier || unknownName;
       }
     }
 
     const statusLabelMap: Record<string, string> =
-      getSpanStatusDisplayLabelMap();
+      getSpanStatusDisplayLabelMap(translator);
     const statusColorMap: Record<string, string> = getSpanStatusColorMap();
 
     return [
@@ -2522,7 +2527,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       {
         key: "hasException",
         title: "Has Exception",
-        valueDisplayMap: { true: "Has exception" },
+        // A stored query can also ask for spans without one.
+        valueDisplayMap: {
+          true: translator.translateTerm("Has exception"),
+          false: translator.translateTerm("No"),
+        },
         valueColorMap: {
           true: getSpanStatusPresentation(SpanStatus.Error).color,
         },
@@ -2531,7 +2540,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       {
         key: "kind",
         title: "Span Kind",
-        valueDisplayMap: SPAN_KIND_LABEL,
+        valueDisplayMap: SpanUtil.getSpanKindNameMap(translator),
         priority: 7,
       },
       /*
@@ -2561,39 +2570,50 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         priority: 9,
       },
     ];
-  }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters, spanType]);
+  }, [
+    services,
+    hosts,
+    dockerHosts,
+    podmanHosts,
+    kubernetesClusters,
+    spanType,
+    translator.language,
+  ]);
 
   // Histogram series — status-stacked counts, or a single latency series.
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
     if (chartMetric !== "count") {
       const label: string =
-        CHART_METRIC_OPTIONS.find((opt: { value: string }) => {
-          return opt.value === chartMetric;
-        })?.label || chartMetric;
+        translator.translateText(
+          CHART_METRIC_OPTIONS.find((opt: { value: string }) => {
+            return opt.value === chartMetric;
+          })?.label,
+        ) || chartMetric;
       return [{ key: "latency", label, color: "#6366f1" }];
     }
     return SPAN_STATUS_PRESENTATIONS.map(
       (presentation: SpanStatusPresentation): HistogramSeriesOption => {
         return {
           key: HISTOGRAM_SERIES_KEY[presentation.status],
-          label: presentation.displayLabel,
+          label: translator.translateTerm(presentation.displayLabel),
           color: presentation.color,
-          description: presentation.description,
+          description: translator.translateText(presentation.description),
         };
       },
     );
-  }, [chartMetric]);
+  }, [chartMetric, translator.language]);
 
   // Service id → name map for the analytics view's dimension display.
   const serviceNameMap: Record<string, string> = useMemo(() => {
     const map: Record<string, string> = {};
     for (const service of services) {
       if (service.id) {
-        map[service.id.toString()] = service.name || "Unknown";
+        map[service.id.toString()] =
+          service.name || translator.translateTerm(UNKNOWN_RESOURCE_LABEL);
       }
     }
     return map;
-  }, [services]);
+  }, [services, translator.language]);
 
   // Facet interaction
   const handleFacetInclude: (facetKey: string, value: string) => void =
@@ -2804,8 +2824,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           props.exceptionScope.fingerprint.slice(0, 12),
         readOnly: true,
         lockedDetail: {
-          searchTokenUnavailableReason:
+          searchTokenUnavailableReason: translationKey(
             "The traces search cannot filter spans by exception.",
+          ),
         },
       });
     }
@@ -3439,7 +3460,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * it is named on screen — the module computes it precisely so this never
    * has to be silent.
    */
-  const scopeHint: string = spanScope.notCarried.join(", ");
+  const hasScopeHint: boolean = spanScope.notCarried.length > 0;
+
+  // What a pivot or the chart leaves out, each in its sentence's language.
+  const getNotCarriedList: (labels: Array<string>) => ComposedValue = (
+    labels: Array<string>,
+  ): ComposedValue => {
+    return composedValue((sentence: Translator): string => {
+      return formatList(
+        labels.map((label: string): string => {
+          return describeNotCarriedFilter(label, sentence);
+        }),
+        sentence,
+      );
+    });
+  };
 
   /*
    * The Traces page's first steps (Telemetry/TelemetryFirstSteps): what an
@@ -3542,44 +3577,58 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             className={`items-center gap-0.5 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm ${
               props.spanQuery || props.exceptionScope ? "hidden" : "inline-flex"
             }`}
-            aria-label="Related telemetry signals"
+            aria-label={translator.translateText("Related telemetry signals")}
           >
             <Tooltip
-              text={`Open the logs explorer scoped like this view${
+              text={
                 pivotHints.logs.length > 0
-                  ? ` — not carried over: ${pivotHints.logs.join(", ")}`
-                  : ""
-              }`}
+                  ? translator.translateTemplate(
+                      "Open the logs explorer scoped like this view — not carried over: {{filters}}",
+                      { filters: getNotCarriedList(pivotHints.logs) },
+                    )
+                  : translator.translateTemplate(
+                      "Open the logs explorer scoped like this view",
+                    )
+              }
             >
               <button
                 type="button"
-                aria-label="View logs for this scope"
+                aria-label={translator.translateText(
+                  "View logs for this scope",
+                )}
                 className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                 onClick={() => {
                   navigateToPivot("logs");
                 }}
               >
                 <Icon icon={IconProp.Logs} className="h-3.5 w-3.5" />
-                <span>Logs</span>
+                <span>{translator.translateText("Logs")}</span>
               </button>
             </Tooltip>
             <Tooltip
-              text={`Open the metric explorer scoped like this view${
+              text={
                 pivotHints.metrics.length > 0
-                  ? ` — not carried over: ${pivotHints.metrics.join(", ")}`
-                  : ""
-              }`}
+                  ? translator.translateTemplate(
+                      "Open the metric explorer scoped like this view — not carried over: {{filters}}",
+                      { filters: getNotCarriedList(pivotHints.metrics) },
+                    )
+                  : translator.translateTemplate(
+                      "Open the metric explorer scoped like this view",
+                    )
+              }
             >
               <button
                 type="button"
-                aria-label="View metrics for this scope"
+                aria-label={translator.translateText(
+                  "View metrics for this scope",
+                )}
                 className={`${TOOLBAR_BUTTON_CLASS_NAME} ${TOOLBAR_BUTTON_IDLE_CLASS_NAME}`}
                 onClick={() => {
                   navigateToPivot("metrics");
                 }}
               >
                 <Icon icon={IconProp.ChartBar} className="h-3.5 w-3.5" />
-                <span>Metrics</span>
+                <span>{translator.translateText("Metrics")}</span>
               </button>
             </Tooltip>
           </div>
@@ -3628,7 +3677,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
                       setViewMode(mode);
                     }}
                   >
-                    {mode === "spans" ? "Spans" : "Analytics"}
+                    {translator.translateText(
+                      mode === "spans" ? "Spans" : "Analytics",
+                    )}
                   </button>
                 );
               },
@@ -3666,12 +3717,14 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           >
             <Icon icon={IconProp.Search} className="h-8 w-8 text-gray-300" />
             <p className="text-sm font-medium text-gray-500">
-              {props.emptyMessage ||
-                `No ${getTraceSpanTypeLabel(spanType).toLowerCase()} found`}
+              {translator.translateText(
+                props.emptyMessage || getTraceSpanTypeEmptyMessage(spanType),
+              )}
             </p>
             <p className="text-xs text-gray-400">
-              Try adjusting filters or time range, or show every span, including
-              database calls and internal steps.
+              {translator.translateText(
+                "Try adjusting filters or time range, or show every span, including database calls and internal steps.",
+              )}
             </p>
             <button
               type="button"
@@ -3681,7 +3734,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
                 setPage(1);
               }}
             >
-              Show all spans
+              {translator.translateText("Show all spans")}
             </button>
           </div>
         ) : undefined
@@ -3865,7 +3918,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       histogramTitle={
         chartMetric === "count"
           ? getTraceSpanTypeChartTitle(spanType)
-          : "Response time"
+          : translationKey("Response time")
       }
       histogramLoading={histogramLoading}
       histogramError={histogramError}
@@ -3884,12 +3937,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             setChartMetric(e.target.value);
           }}
-          title="Chart metric"
+          title={translator.translateText("Chart metric")}
         >
           {CHART_METRIC_OPTIONS.map((opt: { value: string; label: string }) => {
             return (
               <option key={opt.value} value={opt.value}>
-                {opt.label}
+                {translator.translateText(opt.label)}
               </option>
             );
           })}
@@ -3925,14 +3978,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     />
   );
 
-  if (!scopeHint) {
+  if (!hasScopeHint) {
     return viewer;
   }
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       <div className="text-xs text-gray-500">
-        {`The chart and facet counts above are not narrowed by: ${scopeHint}. The list is.`}
+        {translator.translateTemplate(
+          "The chart and facet counts above are not narrowed by: {{filters}}. The list is.",
+          { filters: getNotCarriedList(spanScope.notCarried) },
+        )}
       </div>
       {viewer}
     </div>

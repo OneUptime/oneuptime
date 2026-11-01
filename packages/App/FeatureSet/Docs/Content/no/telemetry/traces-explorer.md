@@ -60,7 +60,7 @@ Klikk på en verdi i sidepanelet **Filtre** for å legge den til som en brikke. 
 
 ### Åpne et span
 
-Klikk på en rad for å folde den ut: attributtene, og loggene og unntakene den registrerte. Klikk på **See full trace** for å åpne hele sporet.
+Klikk på en rad for å folde den ut: attributtene, og loggene og unntakene den registrerte. Klikk på **Se hele sporet** for å åpne hele sporet.
 :::
 
 Søket ditt, brikkene dine og tidsintervallet lagres i sidens adresse, så en ny innlasting, et bokmerke eller en delt lenke åpner de samme spannene.
@@ -97,7 +97,7 @@ Et stort spor laster 500 spans om gangen. Klikk på knappen nederst i sporet for
 
 Diagrammet over listen viser antall spans over tid, fordelt på status. Velg et annet mål i diagrammets topp for i stedet å vise gjennomsnittlig, median (P50) eller P95-svartid.
 
-For mer bytter du listen fra **Spans** til **Analytics**. Velg en tidsserie, en toppliste eller en tabell; mål antall forespørsler, antall feil eller svartider (gjennomsnitt, P50, P90, P95, P99, minimum eller maksimum); og grupper etter span-navn, tjeneste, status, span-type eller et hvilket som helst attributt, deretter etter et felt til. En toppliste eller en tabell viser fra 5 til 100 grupper.
+For mer bytter du listen fra **Spans** til **Analyser**. Velg en tidsserie, en toppliste eller en tabell; mål antall forespørsler, antall feil eller svartider (gjennomsnitt, P50, P90, P95, P99, minimum eller maksimum); og grupper etter span-navn, tjeneste, status, span-type eller et hvilket som helst attributt, deretter etter et felt til. En toppliste eller en tabell viser fra 5 til 100 grupper.
 
 ## Følg, lagre og del
 

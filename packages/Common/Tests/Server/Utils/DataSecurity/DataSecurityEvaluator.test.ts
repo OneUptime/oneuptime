@@ -6,6 +6,10 @@ import DataSecurityIntegrations, {
   OpenedIssueForIntegrations,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityIntegrations";
 import DataSecurityIssueAlerts from "../../../../Server/Utils/DataSecurity/DataSecurityIssueAlerts";
+import DataSecurityIdentities, {
+  IdentityDraft,
+} from "../../../../Server/Utils/DataSecurity/DataSecurityIdentities";
+import { DataStoreAccessLevel } from "../../../../Types/DataSecurity/DataStoreAccess";
 import DataSecurityIssueReconciler, {
   ReconcileStoreInput,
   ReconcileStoreOutput,
@@ -112,6 +116,7 @@ let createdIssues: Array<DataSecurityIssue>;
 let checksSpy: jest.SpyInstance;
 let integrationsSpy: jest.SpyInstance;
 let closedAlertsSpy: jest.SpyInstance;
+let identitiesSpy: jest.SpyInstance;
 let flowsSpy: jest.SpyInstance;
 let findingsSpy: jest.SpyInstance;
 let risksSpy: jest.SpyInstance;
@@ -278,6 +283,9 @@ beforeEach(() => {
   closedAlertsSpy = jest
     .spyOn(DataSecurityIssueAlerts, "resolveForClosedIssues")
     .mockResolvedValue(0);
+  identitiesSpy = jest
+    .spyOn(DataSecurityIdentities, "write")
+    .mockResolvedValue(undefined);
   checksSpy = jest.spyOn(CheckCatalog, "evaluateDataStoreChecks");
   errorSpy = jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
@@ -351,6 +359,8 @@ function findingOf(
     matchCount?: number | undefined;
     isScrubbed?: boolean | undefined;
     isSuppressed?: boolean | undefined;
+    isConfirmed?: boolean | undefined;
+    isAiSuggested?: boolean | undefined;
     seenDaysAgo?: number | undefined;
   } = {},
 ): DataStoreFinding {
@@ -367,6 +377,8 @@ function findingOf(
     options.matchCount === undefined ? 12 : options.matchCount;
   finding.isScrubbed = Boolean(options.isScrubbed);
   finding.isSuppressed = Boolean(options.isSuppressed);
+  finding.isConfirmed = Boolean(options.isConfirmed);
+  finding.isAiSuggested = Boolean(options.isAiSuggested);
   finding.lastSeenAt = new Date(
     NOW.getTime() - (options.seenDaysAgo || 1) * DAY_IN_MS,
   );
@@ -390,6 +402,7 @@ function accessOf(
   store: DataStore,
   principal: string | undefined,
   isPublic: boolean = false,
+  extra: Partial<DataStoreAccess> = {},
 ): DataStoreAccess {
   const entry: DataStoreAccess = new DataStoreAccess();
   entry.dataStoreId = store.id!;
@@ -399,7 +412,26 @@ function accessOf(
   }
 
   entry.isPublic = isPublic;
+
+  for (const [column, value] of Object.entries(extra)) {
+    entry.setColumnValue(column, value as never);
+  }
+
   return entry;
+}
+
+// The identities the evaluation handed to be written, by principal.
+function writtenIdentities(): Map<string, IdentityDraft> {
+  expect(identitiesSpy).toHaveBeenCalledTimes(1);
+
+  const call: { drafts: Array<IdentityDraft> } = identitiesSpy.mock
+    .calls[0]![0] as { drafts: Array<IdentityDraft> };
+
+  return new Map(
+    call.drafts.map((draft: IdentityDraft): [string, IdentityDraft] => {
+      return [draft.principal, draft];
+    }),
+  );
 }
 
 function flowOf(data: {
@@ -536,6 +568,7 @@ function factsOf(overrides: Partial<StoreFacts> = {}): StoreFacts {
     unscrubbedDataTypeIds: new Set(),
     hasOwner: true,
     readers: new Set(),
+    unusedReaders: new Map(),
     copiedFromProductionStoreName: null,
     aiProvidersReached: new Set(),
     hasRecentSecurityActivity: false,
@@ -548,7 +581,11 @@ function evaluateOne(data: {
   store: DataStore;
   facts?: StoreFacts | undefined;
   residencyRules?: Array<ResidencyRuleInput> | undefined;
-}): Promise<{ output: ReconcileStoreOutput; sensitivity: DataSensitivity }> {
+}): Promise<{
+  output: ReconcileStoreOutput;
+  sensitivity: DataSensitivity;
+  dataTypeIds: Array<string>;
+}> {
   return DataSecurityEvaluator.evaluateStore({
     projectId: PROJECT_ID,
     store: data.store,
@@ -869,6 +906,66 @@ describe("DataSecurityEvaluator.evaluateStore", () => {
     );
   });
 
+  test("the identities not used in 90 days reach the unused-access check by name, once access has been read", async () => {
+    const read: DataStore = storeOf({
+      name: "card-vault",
+      posture: { readAt: NOW.toISOString() },
+    });
+    const unread: DataStore = storeOf({ name: "card-vault-replica" });
+    const findings: StoreFacts["findings"] = [
+      { dataTypeId: "credit-card-number", confidence: DataConfidence.High },
+    ];
+    const unusedReaders: Map<string, string> = new Map([
+      ["arn:aws:iam::123456789012:role/old-etl", "old-etl"],
+      ["arn:aws:iam::123456789012:user/alex", "alex"],
+    ]);
+
+    await evaluateOne({
+      store: read,
+      facts: factsOf({ findings, unusedReaders }),
+    });
+    await evaluateOne({
+      store: unread,
+      facts: factsOf({ findings, unusedReaders }),
+    });
+
+    expect(checkRunOf("card-vault").input.unusedReaderNames).toEqual([
+      "alex",
+      "old-etl",
+    ]);
+    expect(checkOn("card-vault", "unused-access")?.result.evidence).toBe(
+      "2 identities not used in 90 days can reach it: alex, old-etl.",
+    );
+    expect(checkOn("card-vault", "unused-access")?.severity).toBe(
+      SecuritySeverity.Medium,
+    );
+    expect(checkRunOf("card-vault-replica").input.unusedReaderNames).toBeNull();
+    expect(checkOn("card-vault-replica", "unused-access")?.result.status).toBe(
+      CheckCatalog.DataSecurityCheckStatus.Unknown,
+    );
+  });
+
+  test("the store's data types go back with its sensitivity, for the identities that reach it", async () => {
+    const result: {
+      sensitivity: DataSensitivity;
+      dataTypeIds: Array<string>;
+    } = await evaluateOne({
+      store: storeOf({ name: "card-vault" }),
+      facts: factsOf({
+        findings: [
+          {
+            dataTypeId: "credit-card-number",
+            confidence: DataConfidence.High,
+          },
+          { dataTypeId: "email-address", confidence: DataConfidence.High },
+        ],
+      }),
+    });
+
+    expect(result.sensitivity).toBe(DataSensitivity.Restricted);
+    expect(result.dataTypeIds).toEqual(["credit-card-number", "email-address"]);
+  });
+
   test("copies, AI providers, AI data, ownership and activity reach the checks", async () => {
     const dev: DataStore = storeOf({
       name: "orders-dev",
@@ -1162,6 +1259,64 @@ describe("DataSecurityEvaluator.evaluateProject: what it reads", () => {
     expect(checkRunOf("checkout · Logs").input.unscrubbedDataTypeIds).toEqual([
       "email-address",
     ]);
+  });
+
+  /*
+   * OneUptime AI's suggestion matched no value and is Low: it decides
+   * nothing until a person confirms it - and then it counts as High, the
+   * confidence a person's confirmation gives (DataStoreFindingService).
+   */
+  test("a suggestion nobody confirmed decides nothing; a confirmed one counts, with no value matched", async () => {
+    const logs: DataStore = storeOf({
+      name: "checkout · Logs",
+      kind: DataStoreKind.TelemetryLogs,
+      storeKey: "telemetry:service-1:Logs",
+    });
+    fixture.stores = [logs];
+    fixture.findings = [
+      findingOf(logs, "credit-card-number", {
+        confidence: DataConfidence.Low,
+        matchCount: 0,
+        isAiSuggested: true,
+      }),
+      findingOf(logs, "us-ssn", {
+        confidence: DataConfidence.High,
+        matchCount: 0,
+        isAiSuggested: true,
+      }),
+      findingOf(logs, "email-address", {
+        confidence: DataConfidence.High,
+        matchCount: 0,
+        isAiSuggested: true,
+        isConfirmed: true,
+      }),
+    ];
+
+    await evaluate();
+
+    expect(summaryOf(logs)).toMatchObject({
+      sensitivity: DataSensitivity.Confidential,
+      dataTypeIds: ["email-address"],
+      findingCount: 1,
+    });
+    expect(checkRunOf("checkout · Logs").input.unscrubbedDataTypeIds).toEqual([
+      "email-address",
+    ]);
+  });
+
+  test("a Low finding a person confirmed decides the store's sensitivity", async () => {
+    const store: DataStore = storeOf({ name: "customer-exports" });
+    fixture.stores = [store];
+    fixture.findings = [
+      findingOf(store, "credit-card-number", {
+        confidence: DataConfidence.High,
+        isConfirmed: true,
+      }),
+    ];
+
+    await evaluate();
+
+    expect(summaryOf(store)["sensitivity"]).toBe(DataSensitivity.Restricted);
   });
 
   test("scrubbed findings still decide sensitivity, but are not unscrubbed", async () => {
@@ -1722,6 +1877,123 @@ describe("DataSecurityEvaluator.evaluateProject: activity Security Operations sa
 
     expect(risksSpy).not.toHaveBeenCalled();
     expect(publicReadScore(store)).toBe(85);
+  });
+});
+
+describe("DataSecurityEvaluator.evaluateProject: who can reach the stores", () => {
+  test("each store's grants count its readers and its unused ones; a public grant is no reader", async () => {
+    const vault: DataStore = storeOf({
+      name: "card-vault",
+      posture: { readAt: NOW.toISOString() },
+    });
+    fixture.stores = [vault];
+    fixture.findings = [findingOf(vault, "credit-card-number")];
+    fixture.access = [
+      accessOf(vault, "arn:aws:iam::123456789012:role/app"),
+      accessOf(vault, "arn:aws:iam::123456789012:role/old-etl", false, {
+        principalName: "old-etl",
+        isUnused: true,
+      }),
+      accessOf(vault, "*", true, { isUnused: true }),
+    ];
+
+    await evaluate();
+
+    expect(checkRunOf("card-vault").input.readerCount).toBe(2);
+    expect(checkRunOf("card-vault").input.unusedReaderNames).toEqual([
+      "old-etl",
+    ]);
+    expect(openedCheckIds(vault)).toContain("unused-access");
+  });
+
+  test("every grant of the stores evaluated becomes an identity, with each store's sensitivity as this evaluation found it", async () => {
+    const vault: DataStore = storeOf({
+      name: "card-vault",
+      posture: { readAt: NOW.toISOString() },
+      estimatedRecords: 1200,
+    });
+    const site: DataStore = storeOf({
+      name: "website",
+      posture: { readAt: NOW.toISOString() },
+    });
+    vault.provider = "aws";
+    site.provider = "aws";
+    fixture.stores = [vault, site];
+    fixture.findings = [findingOf(vault, "credit-card-number")];
+    fixture.access = [
+      accessOf(vault, "arn:aws:iam::123456789012:role/app", false, {
+        principalName: "app",
+        principalType: "Role",
+        accessLevel: DataStoreAccessLevel.Write,
+        lastUsedAt: new Date(NOW.getTime() - DAY_IN_MS),
+      }),
+      accessOf(site, "arn:aws:iam::123456789012:role/app", false, {
+        accessLevel: DataStoreAccessLevel.Admin,
+      }),
+      accessOf(site, "*", true, { accessLevel: DataStoreAccessLevel.Read }),
+      // A grant of a store this evaluation did not read - archived - is not one.
+      (() => {
+        const gone: DataStoreAccess = new DataStoreAccess();
+        gone.dataStoreId = ObjectID.generate();
+        gone.principal = "arn:aws:iam::123456789012:role/ghost";
+        return gone;
+      })(),
+    ];
+
+    await evaluate();
+
+    const identities: Map<string, IdentityDraft> = writtenIdentities();
+    const app: IdentityDraft = identities.get(
+      "arn:aws:iam::123456789012:role/app",
+    )!;
+
+    expect([...identities.keys()].sort()).toEqual([
+      "*",
+      "arn:aws:iam::123456789012:role/app",
+    ]);
+    expect(app).toEqual(
+      expect.objectContaining({
+        principalName: "app",
+        principalType: "Role",
+        provider: "aws",
+        storeCount: 2,
+        sensitiveStoreCount: 1,
+        restrictedStoreCount: 1,
+        highestSensitivity: DataSensitivity.Restricted,
+        highestAccessLevel: DataStoreAccessLevel.Admin,
+        canChangeSensitiveData: true,
+        dataTypeIds: ["credit-card-number"],
+        estimatedRecords: 1200,
+        isUnused: false,
+        lastUsedAt: new Date(NOW.getTime() - DAY_IN_MS),
+        // Restricted 50, can change it 15, one sensitive store 1.
+        riskScore: 66,
+      }),
+    );
+    expect(identities.get("*")).toEqual(
+      expect.objectContaining({
+        isPublic: true,
+        storeCount: 1,
+        highestSensitivity: DataSensitivity.Public,
+        riskScore: 20,
+      }),
+    );
+    expect(
+      (identitiesSpy.mock.calls[0]![0] as { projectId: ObjectID }).projectId,
+    ).toBe(PROJECT_ID);
+  });
+
+  test("identities that cannot be written are logged; the evaluation is done", async () => {
+    const vault: DataStore = storeOf({ name: "card-vault" });
+    fixture.stores = [vault];
+    identitiesSpy.mockRejectedValue(new Error("Postgres went away"));
+
+    await evaluate();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not work out the identities of project ${PROJECT_ID.toString()}:`,
+    );
+    expect(summaries.has(vault.id!.toString())).toBe(true);
   });
 });
 

@@ -226,8 +226,12 @@ describe("the grouping rule pages draw their copy from the shared constants", ()
       "MinutesSettingField.tsx",
     );
 
+    /*
+     * The words around the box are items of its row: the box is not set
+     * apart from them in an isolate (TemplateAroundOptions).
+     */
     expect(source).toContain(
-      'translateTemplateAround( props.sentence, "minutes", )',
+      'translateTemplateAround( props.sentence, "minutes", {}, { setsSlotApart: false }, )',
     );
     expect(source).toContain("title={translate(props.title)}");
     expect(source).toContain("description={translate(props.description)}");

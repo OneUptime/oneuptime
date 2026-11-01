@@ -52,7 +52,7 @@ Alle andre steder afviser OneUptime en browsernøgle, for eksempel over gRPC og 
 :::steps
 ### Åbn indtagelsesnøgler
 
-Gå til **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. **Telemetri og APM** starter sammenklappet i sidemenuen: klik på den for at åbne den. Listen viser for hver nøgle kolonnerne **Navn**, **Type**, **Last Used** og **Beskrivelse**.
+Gå til **Projektindstillinger → Telemetri og APM → Indtagelsesnøgler**. **Telemetri og APM** starter sammenklappet i sidemenuen: klik på den for at åbne den. Listen viser for hver nøgle kolonnerne **Navn**, **Type**, **Sidst brugt** og **Beskrivelse**.
 
 ### Navngiv nøglen, og vælg dens type
 

@@ -33,6 +33,7 @@ import {
   ResourceFacetDefinition,
 } from "../../../Types/Telemetry/ResourceFacetCatalog";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getListSeparator } from "../../../UI/Utils/ListSeparator";
 
 /*
  * A facet sidebar names each section in the reader's language.
@@ -334,10 +335,14 @@ describe("the traces sidebar, in Japanese", () => {
       "facet-sidebar-hidden-count",
     );
 
+    // Listed with the comma of the script they are written in (ListSeparator).
+    const names: Array<string> = FOLDED_RESOURCE_TITLES.map(japaneseName);
+
     expect(hiddenCount).toHaveAttribute(
       "title",
-      FOLDED_RESOURCE_TITLES.map(japaneseName).join(", "),
+      names.join(getListSeparator(names)),
     );
+    expect(hiddenCount.getAttribute("title")).toContain("Docker ホスト、");
     expect(hiddenCount.getAttribute("title")).toContain("Docker ホスト");
     expect(hiddenCount.getAttribute("title")).not.toContain("Docker Host");
   });
@@ -441,9 +446,13 @@ describe("the hidden filters' tooltip", () => {
       />,
     );
 
+    /*
+     * With the ideographic comma Japanese lists names with, as the products
+     * menu and a form's More fields line do (ListSeparator).
+     */
     expect(screen.getByTestId("facet-sidebar-hidden-count")).toHaveAttribute(
       "title",
-      "Docker ホスト, Podman Host",
+      "Docker ホスト、Podman Host",
     );
   });
 

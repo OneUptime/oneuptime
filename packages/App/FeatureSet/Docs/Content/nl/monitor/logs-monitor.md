@@ -87,7 +87,7 @@ Elke log wordt opgeslagen met een van zeven ernstniveaus. Bij logs van OpenTelem
 | **Trace** | 1–4 |
 | **Debug** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Waarschuwing** | 13–16 |
 | **Fout** | 17–20 |
 | **Fatal** | 21–24 |
 | **Niet gespecificeerd** | Al het andere |
@@ -117,7 +117,7 @@ De criteria van een logs-monitor hebben één **Filtertype**: **Log Count**, het
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
 
-De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. OneUptime zet het aantal om in een tempo per minuut en vergelijkt dat met hetzelfde uur van de week over dat venster. De baseline omvat alleen de services en ernstniveaus van de monitor: de tekst- en attribuutfilters horen er niet bij. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en gaat het niet af.
+De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. OneUptime zet het aantal om in een tempo per minuut en vergelijkt dat met vensters van dezelfde lengte rond hetzelfde tijdstip in eerdere weken, zo ver als het **Baseline-venster** teruggaat; wat er nu gebeurt, hoort nooit bij die vergelijking. De baseline omvat alleen de services en ernstniveaus van de monitor: de tekst- en attribuutfilters horen er niet bij. Minuten zonder logs tellen ook mee, dus een service die vaak stil is, telt niet als ongewoon laag omdat hij stil is. Een venster telt alleen als ongewoon hoog ten opzichte van de vensters met logs, en alleen met minstens 20, 10 of 5 logs bij de gevoeligheid Laag, Gemiddeld of Hoog, zodat noch de gebruikelijke piek van een taak noch de eerste paar regels van een stille service het laten afgaan. Zolang de services van de monitor geen twee weken geschiedenis hebben, is het criterium nog aan het leren en gaat het niet af.
 
 Een logs-monitor die in Monitor maken is aangemaakt, begint met de regel van wat u onder **Waarover moet deze monitor je informeren?** hebt gekozen:
 
@@ -248,7 +248,7 @@ De criteria worden van boven naar beneden gecontroleerd en de eerste overeenkoms
 :::
 
 :::details Een anomaliecriterium gaat nooit af
-Het is nog aan het leren: het uur van de week waarmee het vergelijkt, heeft nog niet genoeg geschiedenis. Bij een monitor met **Group by Attributes** komen anomaliecondities nooit overeen; gebruik daar een drempel.
+Het is nog aan het leren: de services van de monitor hebben nog geen twee weken geschiedenis. Bij een monitor met **Group by Attributes** komen anomaliecondities nooit overeen; gebruik daar een drempel.
 :::
 
 :::details Groepswaarschuwingen komen binnen zonder groepswaarde

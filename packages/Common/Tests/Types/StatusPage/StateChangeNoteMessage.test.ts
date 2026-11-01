@@ -1,4 +1,6 @@
 import StateChangeNoteMessage from "../../../Types/StatusPage/StateChangeNoteMessage";
+import { getServerTranslator } from "../../../Server/Utils/ServerTranslation";
+import { Translator } from "../../../UI/Utils/TranslateTemplate";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
 import { Token, Tokens, marked } from "marked";
@@ -160,5 +162,97 @@ describe("StateChangeNoteMessage", () => {
         ).toString(),
       ).toBe("**Status:** Fixing - part 2 (EU) #1");
     });
+  });
+});
+
+/*
+ * In the subscriber's language (Server/Utils/StatusPage/SubscriberLanguage):
+ * the same subject, sentence and line, worded whole in it, OneUptime's
+ * default state names in it, a project's own as written.
+ */
+describe("StateChangeNoteMessage in the reader's language", () => {
+  const german: Translator = getServerTranslator("de");
+  const french: Translator = getServerTranslator("fr");
+
+  test("the email subjects", () => {
+    expect(
+      StateChangeNoteMessage.getIncidentEmailSubject({
+        stateName: "resolved",
+        incidentTitle: "Checkout is down",
+        translator: german,
+      }),
+    ).toBe("[Vorfall: Resolved] Checkout is down");
+    expect(
+      StateChangeNoteMessage.getIncidentEmailSubject({
+        stateName: "Resolved",
+        incidentTitle: "Checkout is down",
+        translator: german,
+      }),
+    ).toBe("[Vorfall: Behoben] Checkout is down");
+    expect(
+      StateChangeNoteMessage.getIncidentCustomTemplateEmailSubject({
+        stateName: "Resolved",
+        incidentTitle: "Checkout is down",
+        translator: french,
+      }),
+    ).toBe("[Incident : Résolu] Checkout is down");
+    expect(
+      StateChangeNoteMessage.getScheduledMaintenanceEmailSubject({
+        stateName: "Ongoing",
+        eventTitle: "Database upgrade",
+        translator: german,
+      }),
+    ).toBe("[Geplante Wartung: Laufend] Database upgrade");
+    expect(
+      StateChangeNoteMessage.getScheduledMaintenanceCustomTemplateEmailSubject({
+        stateName: "Completed",
+        eventTitle: "Database upgrade",
+        translator: getServerTranslator("ja"),
+      }),
+    ).toBe("[予定されたメンテナンス: 完了] Database upgrade");
+  });
+
+  test("the text message's first sentence", () => {
+    expect(
+      StateChangeNoteMessage.getIncidentSmsHeadline({
+        stateName: "Acknowledged",
+        incidentTitle: "Checkout is down",
+        statusPageName: "Acme Status",
+        translator: german,
+      }),
+    ).toBe("Vorfall Checkout is down auf Acme Status: Bestätigt.");
+    expect(
+      StateChangeNoteMessage.getScheduledMaintenanceSmsHeadline({
+        stateName: "In progress",
+        eventTitle: "Database upgrade",
+        statusPageName: "Acme Status",
+        translator: german,
+      }),
+    ).toBe("Wartung Database upgrade auf Acme Status: In progress.");
+  });
+
+  test("the chat line, with the language's own label", () => {
+    expect(
+      StateChangeNoteMessage.getChatStatusLine(" Resolved ", german).toString(),
+    ).toBe("**Status:** Behoben");
+    expect(
+      StateChangeNoteMessage.getChatStatusLine("Resolved", french).toString(),
+    ).toBe("**Statut :** Résolu");
+    expect(
+      StateChangeNoteMessage.getChatStatusLine(
+        "Monitoring",
+        getServerTranslator("fa"),
+      ).toString(),
+    ).toBe("**وضعیت:** Monitoring");
+  });
+
+  test("a title or a state that looks like a placeholder is put in as written", () => {
+    expect(
+      StateChangeNoteMessage.getIncidentEmailSubject({
+        stateName: "{{title}}",
+        incidentTitle: "{{state}} $t(x)",
+        translator: german,
+      }),
+    ).toBe("[Vorfall: {{title}}] {{state}} $t(x)");
   });
 });

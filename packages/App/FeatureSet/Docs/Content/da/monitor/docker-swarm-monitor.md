@@ -102,9 +102,9 @@ Medmindre tabellen siger andet, udløses et kriterium kun, når betingelsen gæl
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritisk | `container.memory.percent`, Count over alle containere i klyngen, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | Task Down (Low Uptime) | Kritisk | `container.uptime`, Min pr. opgave, seneste 1 minut | En vilkårlig værdi er under 60 sekunder | Hver værdi er ved eller over 66 sekunder |
-| High Task CPU Usage | Warning | `container.cpu.utilization`, Avg pr. opgave, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
-| High Task Memory Usage | Warning | `container.memory.percent`, Avg pr. opgave, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
-| High Task Process Count | Warning | `container.pids.count`, Max pr. opgave, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
+| High Task CPU Usage | Advarsel | `container.cpu.utilization`, Avg pr. opgave, seneste 5 minutter | Over 80 (% af én kerne) | Ved eller under 72 |
+| High Task Memory Usage | Advarsel | `container.memory.percent`, Avg pr. opgave, seneste 5 minutter | Over 85 % | Ved eller under 76,5 % |
+| High Task Process Count | Advarsel | `container.pids.count`, Max pr. opgave, seneste 5 minutter | Over 2000 | Ved eller under 1800 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.
 

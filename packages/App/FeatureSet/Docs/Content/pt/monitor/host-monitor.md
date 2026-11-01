@@ -102,11 +102,11 @@ Um critério só dispara quando a condição vale em todos os minutos da sua jan
 | Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Crítico | `system.memory.usage`, Count, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
-| High CPU Utilization | Warning | `system.cpu.utilization` para os estados `user` e `system`, somados e mostrados como porcentagem, últimos 5 minutos | Acima de 80% | Em 72% ou menos |
-| High Memory Utilization | Warning | `system.memory.utilization` para o estado `used`, como porcentagem, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
+| High CPU Utilization | Aviso | `system.cpu.utilization` para os estados `user` e `system`, somados e mostrados como porcentagem, últimos 5 minutos | Acima de 80% | Em 72% ou menos |
+| High Memory Utilization | Aviso | `system.memory.utilization` para o estado `used`, como porcentagem, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
 | High Filesystem Usage | Crítico | `system.filesystem.utilization`, Max por `mountpoint` e `device`, como porcentagem, últimos 5 minutos | Acima de 90% | Em 81% ou menos |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, últimos 5 minutos | Acima de 4 | Em 3,6 ou menos |
-| High Process Count | Warning | `system.processes.count`, Max, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
+| High Load Average (1m) | Aviso | `system.cpu.load_average.1m`, Avg, últimos 5 minutos | Acima de 4 | Em 3,6 ou menos |
+| High Process Count | Aviso | `system.processes.count`, Max, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.
 

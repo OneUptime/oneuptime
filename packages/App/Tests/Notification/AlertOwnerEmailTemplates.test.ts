@@ -308,8 +308,14 @@ describe("DetailBoxField escaping", () => {
 
     expect(source).toContain("{{{blockText}}}");
     expect(source).not.toContain("{{blockText}}}}");
-    // A block container, so a <table> or <ul> can nest legally inside it.
-    expect(source).toMatch(/<div[^>]*>\{\{\{blockText\}\}\}<\/div>/u);
+    /*
+     * A block container, so a <table> or <ul> can nest legally inside it -
+     * in an email read from the right too, where emailHtmlValue gives the
+     * value the direction it reads in (Utils/EmailLanguage.ts).
+     */
+    expect(source).toMatch(
+      /<div[^>]*>\{\{#if @root\.isEmailRightToLeft\}\}\{\{\{emailHtmlValue blockText\}\}\}\{\{else\}\}\{\{\{blockText\}\}\}\{\{\/if\}\}<\/div>/u,
+    );
   });
 
   /*

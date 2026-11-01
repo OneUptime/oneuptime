@@ -6,8 +6,11 @@ import {
   MessageCardLink,
   findFact,
   findMessageCardLinks,
+  isOnlyLinks,
+  toLabelKey,
   withLinksAsText,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageCardText";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * THE LINKS AND FACTS OF AN INCOMING WEBHOOK'S MESSAGE CARD.
@@ -146,6 +149,72 @@ describe("findMessageCardLinks", () => {
   });
 });
 
+describe("isOnlyLinks", () => {
+  const only: (line: string) => boolean = (line: string): boolean => {
+    return isOnlyLinks(line, findMessageCardLinks(line));
+  };
+
+  test.each([
+    "[View Status Page](https://a.example) | [Unsubscribe](https://b.example)",
+    "  [Open](https://a.example)  ",
+    "[Open](https://a.example) \u{00B7} [Acknowledge](https://b.example)",
+    "[Open](https://a.example), [Close](https://b.example)",
+  ])("a line of links and separators is only links: %s", (line: string) => {
+    expect(only(line)).toBe(true);
+  });
+
+  test.each([
+    "Read the [postmortem](https://a.example).",
+    "**Details:** [Open](https://a.example)",
+    "[Open](https://a.example) now",
+    "No link here | at all",
+    "",
+  ])("a line with words of its own is not: %s", (line: string) => {
+    expect(only(line)).toBe(false);
+  });
+
+  test("400,000 characters of links and separators take well under two seconds", () => {
+    const line: string = "[a](https://a.example) | ".repeat(16000);
+    const links: Array<MessageCardLink> = findMessageCardLinks(line);
+    const read: FastestRun<boolean> = fastestRun({
+      run: (): boolean => {
+        return isOnlyLinks(line, links);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(read.result).toBe(true);
+    expect(read.inMs).toBeLessThan(2000);
+  });
+});
+
+describe("toLabelKey", () => {
+  test.each([
+    ["Description:", "description"],
+    ["Description :", "description"],
+    ["Beschreibung:", "beschreibung"],
+    ["\u{63CF}\u{8FF0}\u{FF1A}", "\u{63CF}\u{8FF0}"],
+    ["  Note  ", "note"],
+    ["Note::", "note"],
+    [":", ""],
+  ])("%s is the label %s", (label: string, key: string) => {
+    expect(toLabelKey(label)).toBe(key);
+  });
+
+  test("400,000 characters of colons and spaces take well under two seconds", () => {
+    const label: string = `a${": \u{FF1A}".repeat(133334)}`;
+    const read: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return toLabelKey(label);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(read.result).toBe("a");
+    expect(read.inMs).toBeLessThan(2000);
+  });
+});
+
 describe("findFact", () => {
   test("reads a label and a value", () => {
     expect(findFact("**Severity:** High")).toEqual({
@@ -157,6 +226,26 @@ describe("findFact", () => {
       value: "Down **Not:** a fact",
     });
     expect(findFact("no fact here")).toBeNull();
+  });
+
+  test("reads a label that ends in a full-width colon, as Chinese writes one", () => {
+    expect(
+      findFact("**\u{4E25}\u{91CD}\u{7A0B}\u{5EA6}\u{FF1A}** \u{9AD8}"),
+    ).toEqual({
+      name: "\u{4E25}\u{91CD}\u{7A0B}\u{5EA6}",
+      value: "\u{9AD8}",
+      isFullWidthColon: true,
+    });
+    // Whichever colon comes first ends the label.
+    expect(findFact("**A\u{FF1A}** b **C:** d")).toEqual({
+      name: "A",
+      value: "b **C:** d",
+      isFullWidthColon: true,
+    });
+    expect(findFact("**A:** b **C\u{FF1A}** d")).toEqual({
+      name: "A",
+      value: "b **C\u{FF1A}** d",
+    });
   });
 
   test("reads what the old expression read, for 20000 lines", () => {

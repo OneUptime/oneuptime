@@ -2,24 +2,24 @@
 
 {{> CustomLogo this}}
 
-{{> EmailTitle title=(concat "Postmortem Published: " incidentTitle) }}
+{{> EmailTitle title=(tt "Postmortem Published: {{title}}" title=incidentTitle) }}
 
-{{> InfoBlock info="A postmortem report has been published for an incident that affected services you're subscribed to."}}
+{{> InfoBlock info=(tHtml "A postmortem report has been published for an incident that affected services you're subscribed to.")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident" plainText=incidentTitle }}
-{{> DetailBoxField title="Severity" plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
-{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{> DetailBoxField title=(t "Incident") plainText=incidentTitle }}
+{{> DetailBoxField title=(t "Severity") plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
+{{> DetailBoxField title=(t "Affected Resources") text=resourcesAffected  }}
 {{> IncidentCustomFieldRows this }}
 {{#if postmortemNote}}
-{{> DetailBoxField title="Postmortem Summary" text=postmortemNote  }}
+{{> DetailBoxField title=(t "Postmortem Summary") text=postmortemNote  }}
 {{/if}}
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}
-{{> ButtonBlock buttonUrl=detailsUrl buttonText="Read Full Postmortem"}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText=(t "Read Full Postmortem")}}
 {{else}}
-{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText=(t "View Status Page")}}
 {{/if}}
 
 {{> VerticalSpace this}}

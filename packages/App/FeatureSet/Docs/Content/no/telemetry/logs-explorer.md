@@ -112,7 +112,7 @@ Lagrede visninger hører til prosjektet, så alle i det ser den samme listen. Et
 
 ## Vis loggene dine i diagrammer
 
-Bytt listen til **Analytics** for å telle logger i stedet for å lese dem. Velg en tidsserie, en toppliste eller en tabell; tell hver logg, eller de unike verdiene i ett felt; og grupper etter alvorlighetsgrad, tjeneste, spor, span eller et hvilket som helst attributt, deretter etter et felt til. En toppliste eller en tabell viser de øverste 5, 10, 25 eller 50 gruppene.
+Bytt listen til **Analyser** for å telle logger i stedet for å lese dem. Velg en tidsserie, en toppliste eller en tabell; tell hver logg, eller de unike verdiene i ett felt; og grupper etter alvorlighetsgrad, tjeneste, spor, span eller et hvilket som helst attributt, deretter etter et felt til. En toppliste eller en tabell viser de øverste 5, 10, 25 eller 50 gruppene.
 
 Klikk på **Liste** for å gå tilbake til selve linjene.
 

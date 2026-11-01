@@ -116,18 +116,18 @@ El archivo [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENS
 
 Una instalación nueva de la Enterprise Edition funciona como una **prueba de 14 días**, contada desde la primera vez que la instalación arranca la Enterprise Edition. La prueba es para evaluación: el uso en producción de la Enterprise Edition requiere una suscripción bajo la OneUptime Enterprise License. Active una licencia antes de que termine la prueba: después, SCIM, el registro de auditoría y las anulaciones de retención se detienen y la configuración Enterprise pasa a ser de solo lectura (consulte [Cuando una licencia caduca o falta](#cuando-una-licencia-caduca-o-falta)). Para obtener una licencia, escriba a [sales@oneuptime.com](mailto:sales@oneuptime.com).
 
-La licencia se gestiona desde la **etiqueta de edición**, que los administradores maestros ven en la cabecera del panel de administración y en el pie del Dashboard. Muestra el estado de la licencia, el uso de puestos y, para los administradores maestros, el ID de instancia.
+La licencia se gestiona en **Admin Dashboard > Ajustes > Licencia**: allí los administradores maestros la añaden, la actualizan y la reemplazan, y nadie más puede cambiarla. La **etiqueta de edición**, en la cabecera del panel de administración y en el pie del Dashboard, solo muestra la situación: el estado de la licencia y, para los administradores maestros, el uso de puestos y un botón **Gestionar licencia** que lleva a esa página.
 
 OneUptime Enterprise comprado en AWS Marketplace, Microsoft Marketplace o Google Cloud Marketplace no necesita clave de licencia: la suscripción del marketplace le da la licencia y factura cada usuario por hora. Consulte [Marketplaces en la nube](/docs/installation/cloud-marketplaces).
 
 ### Activación en línea (clave de licencia)
 
 :::steps
-1. Inicie sesión como administrador maestro y abra la etiqueta de edición.
+1. Inicie sesión como administrador maestro y abra **Admin Dashboard > Ajustes > Licencia**.
 2. Introduzca su clave de licencia y valídela.
 :::
 
-La instalación comprueba la clave con OneUptime y almacena la licencia que recibe. A partir de entonces mantiene la licencia al día con una sincronización diaria. Use **Refresh license** en la etiqueta de edición para obtener de inmediato los cambios, como puestos adicionales o una renovación.
+La instalación comprueba la clave con OneUptime y almacena la licencia que recibe. A partir de entonces mantiene la licencia al día con una sincronización diaria. Use **Refresh license** en la misma página para obtener de inmediato los cambios, como puestos adicionales o una renovación.
 
 La activación en línea necesita HTTPS saliente desde el servidor de OneUptime hacia `https://oneuptime.com`. Si el servidor solo llega a Internet a través de un relé, defina `ENTERPRISE_LICENSE_SERVER_URL` con la dirección `https://` del relé. El relé debe reenviar `/api/enterprise-license/` a oneuptime.com.
 
@@ -136,9 +136,9 @@ La activación en línea necesita HTTPS saliente desde el servidor de OneUptime 
 Una instalación sin ruta hacia Internet puede usar un **token de licencia firmado** en lugar de una clave:
 
 :::steps
-1. Inicie sesión como administrador maestro, abra la etiqueta de edición y anote el **ID de instancia**.
+1. Inicie sesión como administrador maestro, abra **Admin Dashboard > Ajustes > Licencia**, cambie a la activación sin conexión y anote el **ID de instancia**.
 2. Pida a OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) un token de licencia sin conexión para ese ID de instancia.
-3. Pegue el token en el campo de token de la etiqueta de edición y actívelo.
+3. Pegue el token en el campo de token y actívelo.
 :::
 
 La instalación verifica el token por sí misma, con las claves de firma de OneUptime incluidas en su versión. Nunca contacta con OneUptime. Un token emitido para un ID de instancia es rechazado por cualquier otra instalación, y un token emitido sin ID de instancia (como el que recibe una instalación activada en línea) también se rechaza. Para renovar o añadir puestos, active un token nuevo antes de que caduque el actual.

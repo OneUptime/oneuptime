@@ -59,7 +59,25 @@ import FeedMarkdown, {
   mdText,
 } from "Common/Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
-import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberChatText,
+} from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The words a note's default Slack and Teams messages share, in each
+ * subscriber's language (Common/Server/Locales).
+ */
+const NOTE_CHAT_TEXT: {
+  readonly heading: string;
+  readonly event: string;
+} = {
+  heading: translationKey("Scheduled Maintenance Update - {{statusPageName}}"),
+  event: translationKey("Event:"),
+};
 import ScheduledMaintenancePublication, {
   NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
   ScheduledMaintenancePublicationState,
@@ -75,9 +93,12 @@ import ScheduledMaintenancePublication, {
 interface ScheduledMaintenanceNoteNotificationCopy {
   templateEventType: StatusPageSubscriberNotificationEventType;
   emailTemplateType: EmailTemplateType;
-  emailSubjectPrefix: string;
-  customTemplateEmailSubjectPrefix: string;
-  smsPrefix: string;
+  // The email's subject, {{title}} the event's title.
+  emailSubject: string;
+  // A custom template's subject when it has none of its own.
+  customTemplateEmailSubject: string;
+  // How the text message starts.
+  smsHeadline: string;
   chatNoteSentence: string;
   webhookEventType: string;
   feedSentReason: string;
@@ -94,10 +115,14 @@ const NOTIFICATION_COPY: Record<
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteCreated,
     emailTemplateType:
       EmailTemplateType.SubscriberScheduledMaintenanceEventNoteCreated,
-    emailSubjectPrefix: "[Update Scheduled Maintenance] ",
-    customTemplateEmailSubjectPrefix: "[Scheduled Maintenance Update] ",
-    smsPrefix: "Maintenance update:",
-    chatNoteSentence: "New Note Added",
+    emailSubject: translationKey("[Update Scheduled Maintenance] {{title}}"),
+    customTemplateEmailSubject: translationKey(
+      "[Scheduled Maintenance Update] {{title}}",
+    ),
+    smsHeadline: translationKey(
+      "Maintenance update: {{title}} on {{statusPageName}}.",
+    ),
+    chatNoteSentence: translationKey("New Note Added"),
     webhookEventType: "ScheduledMaintenanceNoteCreated",
     feedSentReason: "a public note is added to",
     feedNotSentSubject: "the public note",
@@ -108,10 +133,16 @@ const NOTIFICATION_COPY: Record<
       StatusPageSubscriberNotificationEventType.SubscriberScheduledMaintenanceNoteUpdated,
     emailTemplateType:
       EmailTemplateType.SubscriberScheduledMaintenanceEventNoteUpdated,
-    emailSubjectPrefix: "[Scheduled Maintenance Note Updated] ",
-    customTemplateEmailSubjectPrefix: "[Scheduled Maintenance Note Updated] ",
-    smsPrefix: "Maintenance note updated:",
-    chatNoteSentence: "Note Updated",
+    emailSubject: translationKey(
+      "[Scheduled Maintenance Note Updated] {{title}}",
+    ),
+    customTemplateEmailSubject: translationKey(
+      "[Scheduled Maintenance Note Updated] {{title}}",
+    ),
+    smsHeadline: translationKey(
+      "Maintenance note updated: {{title}} on {{statusPageName}}.",
+    ),
+    chatNoteSentence: translationKey("Note Updated"),
     webhookEventType: "ScheduledMaintenanceNoteUpdated",
     feedSentReason: "a public note was updated on",
     feedNotSentSubject: "the updated public note",
@@ -368,11 +399,16 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
 
     /*
      * "**Status:** Ongoing" under the event, for a note posted with a state
-     * change; for any other note, the blank line that was always there.
+     * change; for any other note, the blank line that was always there - in
+     * a subscriber's language.
      */
-    const chatStatusLine: MarkdownText = stateChange
-      ? mdText`\n${StateChangeNoteMessage.getChatStatusLine(stateChangeName)}\n`
-      : FeedMarkdown.empty();
+    const getChatStatusLine: (translator: Translator) => MarkdownText = (
+      translator: Translator,
+    ): MarkdownText => {
+      return stateChange
+        ? mdText`\n${StateChangeNoteMessage.getChatStatusLine(stateChangeName, translator)}\n`
+        : FeedMarkdown.empty();
+    };
 
     for (const statuspage of statusPages) {
       if (!statuspage.id) {
@@ -568,6 +604,30 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             subscriber,
           ).toString();
 
+        /*
+         * The language this subscriber's messages are written in: their own,
+         * else the page's (SubscriberLanguage).
+         */
+        const language: string = SubscriberLanguage.getLanguage({
+          subscriber: subscriber,
+          statusPage: statuspage,
+        });
+
+        // The default Slack and Teams message, in the subscriber's language.
+        const getChatMessage: () => string = (): string => {
+          return writeInLanguage(language, (translator: Translator): string => {
+            return mdText`## ${translator.translateTemplate(NOTE_CHAT_TEXT.heading, { statusPageName: statusPageName })}
+
+${SubscriberMessageText.chatLine(translator, NOTE_CHAT_TEXT.event, event.title || "")}
+${getChatStatusLine(translator)}
+**${SubscriberMessageText.text(translator, copy.chatNoteSentence)}**
+
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.note, FeedMarkdown.asMarkdown(publicNote.note || ""))}
+
+${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
+          });
+        };
+
         logger.debug(
           `Prepared unsubscribe link for subscriber ${subscriber._id} for public note ${publicNote.id}.`,
         );
@@ -603,17 +663,28 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                 subscriberPlainTextTemplateVariables,
               );
           } else {
-            // Use default hard-coded template
-            const smsHeadline: string = stateChange
-              ? StateChangeNoteMessage.getScheduledMaintenanceSmsHeadline({
-                  stateName: stateChangeName,
-                  eventTitle: event.title || "",
-                  statusPageName: statusPageName,
-                })
-              : `${copy.smsPrefix} ${event.title || ""} on ${statusPageName}.`;
+            // OneUptime's own words, in the subscriber's language.
+            smsMessage = writeInLanguage(
+              language,
+              (translator: Translator): string => {
+                const smsHeadline: string = stateChange
+                  ? StateChangeNoteMessage.getScheduledMaintenanceSmsHeadline({
+                      stateName: stateChangeName,
+                      eventTitle: event.title || "",
+                      statusPageName: statusPageName,
+                      translator: translator,
+                    })
+                  : translator.translateTemplate(copy.smsHeadline, {
+                      title: event.title || "",
+                      statusPageName: statusPageName,
+                    });
 
-            smsMessage = writeDefaultSubscriberSms(
-              `${smsHeadline} Details: ${scheduledEventDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                return SubscriberMessageText.smsWithLinks(translator, {
+                  sentences: [smsHeadline],
+                  detailsUrl: scheduledEventDetailsUrl,
+                  unsubscribeUrl: unsubscribeUrl,
+                });
+              },
             );
           }
 
@@ -657,17 +728,8 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                 subscriberMarkdownTemplateVariables,
               );
           } else {
-            // Use default hard-coded template
-            markdownMessage =
-              mdText`## Scheduled Maintenance Update - ${statusPageName}
-
-**Event:** ${event.title || ""}
-${chatStatusLine}
-**${copy.chatNoteSentence}**
-
-**Note:** ${FeedMarkdown.asMarkdown(publicNote.note || "")}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+            // OneUptime's own words, in the subscriber's language.
+            markdownMessage = getChatMessage();
           }
 
           // send Slack notification with markdown conversion
@@ -693,17 +755,8 @@ ${chatStatusLine}
                 subscriberMarkdownTemplateVariables,
               );
           } else {
-            // Use default hard-coded template
-            markdownMessage =
-              mdText`## Scheduled Maintenance Update - ${statusPageName}
-
-**Event:** ${event.title || ""}
-${chatStatusLine}
-**${copy.chatNoteSentence}**
-
-**Note:** ${FeedMarkdown.asMarkdown(publicNote.note || "")}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+            // OneUptime's own words, in the subscriber's language.
+            markdownMessage = getChatMessage();
           }
 
           // send Teams notification
@@ -760,14 +813,20 @@ ${chatStatusLine}
                   emailTemplate.emailSubject,
                   subscriberPlainTextTemplateVariables,
                 )
-              : stateChange
-                ? StateChangeNoteMessage.getScheduledMaintenanceCustomTemplateEmailSubject(
-                    {
-                      stateName: stateChangeName,
-                      eventTitle: event.title || "",
-                    },
-                  )
-                : copy.customTemplateEmailSubjectPrefix + (event.title || "");
+              : writeInLanguage(language, (translator: Translator): string => {
+                  return stateChange
+                    ? StateChangeNoteMessage.getScheduledMaintenanceCustomTemplateEmailSubject(
+                        {
+                          stateName: stateChangeName,
+                          eventTitle: event.title || "",
+                          translator: translator,
+                        },
+                      )
+                    : translator.translateTemplate(
+                        copy.customTemplateEmailSubject,
+                        { title: event.title || "" },
+                      );
+                });
 
             MailService.sendMail(
               {
@@ -819,7 +878,16 @@ ${chatStatusLine}
                    */
                   ...(stateChange
                     ? {
-                        eventState: stateChangeName,
+                        // OneUptime's default name, in the subscriber's language.
+                        eventState: writeInLanguage(
+                          language,
+                          (translator: Translator): string => {
+                            return SubscriberMessageText.nameInLanguage(
+                              translator,
+                              stateChangeName,
+                            );
+                          },
+                        ),
                         ...EmailColorUtil.getTemplateVariables(
                           "eventState",
                           stateChange.color,
@@ -839,13 +907,27 @@ ${chatStatusLine}
                       statuspage,
                     ),
                 },
-                subject: stateChange
-                  ? StateChangeNoteMessage.getScheduledMaintenanceEmailSubject({
-                      stateName: stateChangeName,
-                      eventTitle: event.title || "",
-                    })
-                  : copy.emailSubjectPrefix + event.title,
+                subject: writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return stateChange
+                      ? StateChangeNoteMessage.getScheduledMaintenanceEmailSubject(
+                          {
+                            stateName: stateChangeName,
+                            eventTitle: event.title || "",
+                            translator: translator,
+                          },
+                        )
+                      : translator.translateTemplate(copy.emailSubject, {
+                          title: event.title || "",
+                        });
+                  },
+                ),
                 isSubjectLiteral: true,
+                // The template's own words, in the subscriber's language.
+                ...(language !== DEFAULT_READER_LANGUAGE
+                  ? { language: language }
+                  : {}),
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

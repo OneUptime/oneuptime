@@ -275,6 +275,7 @@ const DashboardResourceHoneycomb: FunctionComponent<
     useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const [tooltipState, setTooltipState] = useState<TooltipState | null>(null);
+  const translator: Translator = useTranslator();
 
   useEffect(() => {
     const el: HTMLDivElement | null = containerRef.current;
@@ -406,7 +407,9 @@ const DashboardResourceHoneycomb: FunctionComponent<
                   className="inline-block w-2 h-2 rounded-full"
                   style={{ backgroundColor: item.color }}
                 ></span>
-                <span className="text-[10px] text-gray-500">{item.label}</span>
+                <span className="text-[10px] text-gray-500">
+                  {translator.translateText(item.label)}
+                </span>
               </div>
             );
           })}

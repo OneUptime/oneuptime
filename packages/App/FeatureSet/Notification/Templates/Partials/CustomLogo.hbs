@@ -2,9 +2,9 @@
   <tr><td class="st-Gutter" style="padding: 32px 40px 28px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 18px; line-height: 26px; font-weight: 700; color: #0f172a;">
     {{#if homeURL}}<a href="{{homeURL}}" style="color: #0f172a; text-decoration: none;">{{else}}{{#if statusPageUrl}}<a href="{{statusPageUrl}}" style="color: #0f172a; text-decoration: none;">{{/if}}{{/if}}
       {{#if logoUrl}}
-        <img src="{{logoUrl}}" height="40" alt="{{#if statusPageName}}{{statusPageName}}{{else}}Status page{{/if}}" style="display: block; height: auto; max-height: 48px; max-width: 200px; border: 0;">
+        <img src="{{logoUrl}}" height="40" alt="{{#if statusPageName}}{{statusPageName}}{{else}}{{t "Status page"}}{{/if}}" style="display: block; height: auto; max-height: 48px; max-width: 200px; border: 0;">
       {{else}}
-        {{#if statusPageName}}{{statusPageName}}{{else}}Status update{{/if}}
+        {{#if statusPageName}}{{statusPageName}}{{else}}{{t "Status update"}}{{/if}}
       {{/if}}
     {{#if homeURL}}</a>{{else}}{{#if statusPageUrl}}</a>{{/if}}{{/if}}
   </td></tr>

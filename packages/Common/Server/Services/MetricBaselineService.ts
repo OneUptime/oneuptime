@@ -2,6 +2,18 @@ import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import MetricBaselineHourly from "../../Models/AnalyticsModels/MetricBaselineHourly";
 import logger, { LogAttributes } from "../Utils/Logger";
+import MetricHourBaseline, {
+  METRIC_ROUNDING_SHARE,
+  MetricBaselineDayRow,
+  MetricHourReading,
+} from "../Utils/Monitor/MetricHourBaseline";
+import {
+  ANOMALY_SIGMA_BY_SENSITIVITY,
+  ANOMALY_WINDOW_DAYS_OPTIONS,
+  AnomalyDetectionSensitivity,
+  DEFAULT_ANOMALY_WINDOW_DAYS,
+} from "../../Types/Monitor/CriteriaFilter";
+import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 
 /**
@@ -10,9 +22,13 @@ import ObjectID from "../../Types/ObjectID";
  * mean ± k*sigma comparisons without re-deriving them.
  */
 export interface BaselineSummary {
-  /** Total raw samples that contributed to the baseline window. */
+  /** Raw samples of the earlier days the baseline was read from. */
   sampleCount: number;
   mean: number;
+  /**
+   * The spread the band is built on: what those samples measured, and how far
+   * this hour's level can land from theirs (MetricHourBaseline).
+   */
   stddev: number;
   /** Median (robust center) — used by the MedianMad method. */
   median: number;
@@ -27,11 +43,17 @@ export interface BaselineSummary {
    */
   mad?: number | undefined;
   /**
-   * Whether this row meets the minimum sample threshold to be trusted.
-   * Driven by `minSamples`; callers should refuse to evaluate against an
-   * unreliable baseline (cold-start behavior).
+   * Whether this row can be trusted: two earlier weeks of this hour, and
+   * `minSamples` samples counting the hour's own. Callers should refuse to
+   * evaluate against an unreliable baseline (cold-start behavior).
    */
   isReliable: boolean;
+  /**
+   * Every earlier sample held one value and this hour's own have left it.
+   * Such a baseline has no spread, and a data point off that value is outside
+   * it by any measure (`getBand`).
+   */
+  leftFlatHistory?: boolean | undefined;
   /** Window the baseline was computed over (days). */
   windowDays: number;
   hourOfWeek: number;
@@ -40,6 +62,11 @@ export interface BaselineSummary {
 export interface BandPoint {
   time: Date;
   mean: number;
+  expectedHigh: number;
+  expectedLow: number;
+}
+
+export interface BaselineBand {
   expectedHigh: number;
   expectedLow: number;
 }
@@ -81,7 +108,8 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
   /**
    * Default minimum samples per (hour-of-week) cell to call a baseline
-   * reliable. Below this, callers treat the baseline as cold-start.
+   * reliable, the hour's own included. Below this, callers treat the
+   * baseline as cold-start.
    */
   public static readonly DEFAULT_MIN_SAMPLES: number = 5;
   /**
@@ -91,7 +119,8 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * the `min_samples` reliability gate yields baselines that don't fire
    * on every weekly traffic cycle.
    */
-  public static readonly DEFAULT_WINDOW_DAYS: number = 14;
+  public static readonly DEFAULT_WINDOW_DAYS: number =
+    DEFAULT_ANOMALY_WINDOW_DAYS;
   /**
    * Hard upper bound on the rolling window. Locked to the MV target
    * table's TTL — querying further back would just hit empty space
@@ -107,9 +136,8 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * the table for every conceivable value. Adding a longer option
    * requires bumping `MAX_WINDOW_DAYS` and the table TTL together.
    */
-  public static readonly WINDOW_DAYS_OPTIONS: ReadonlyArray<number> = [
-    14, 28, 60, 90,
-  ];
+  public static readonly WINDOW_DAYS_OPTIONS: ReadonlyArray<number> =
+    ANOMALY_WINDOW_DAYS_OPTIONS;
   /**
    * Hard cap on rows returned per drift window. Params travel in the
    * ClickHouse HTTP URI and the detector joins both windows in JS, so an
@@ -122,18 +150,24 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   /**
    * Fetch the rolling-window baseline for one (metric, [entity],
    * hour-of-week) cell. Aggregates the AggregateFunction states across
-   * the last `windowDays` days. Returns null when no data exists.
+   * the `windowDays` days before `judgedAt`, so what is being judged is
+   * never part of what it is judged against (MetricHourBaseline). Returns
+   * null when no data exists.
    *
    * `primaryEntityId` is optional: when omitted, baselines are
    * aggregated across every primaryEntityId that ingested the metric in
    * the window. Useful for monitor criteria whose query isn't scoped to
    * a single telemetry service.
+   *
+   * `judgedAt` is the earliest moment judged, now when absent. An hour
+   * read just after midnight is of yesterday, and its own day is not today.
    */
   public async getBaseline(input: {
     projectId: ObjectID | string;
     metricName: string;
     primaryEntityId?: ObjectID | string | undefined;
     hourOfWeek: number;
+    judgedAt?: Date | undefined;
     windowDays?: number | undefined;
     minSamples?: number | undefined;
   }): Promise<BaselineSummary | null> {
@@ -153,6 +187,9 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     const hour: number = Math.max(
       0,
       Math.min(167, Math.floor(input.hourOfWeek)),
+    );
+    const judgedDay: string = MetricHourBaseline.toDayText(
+      input.judgedAt || OneUptimeDate.getCurrentDate(),
     );
 
     const primaryEntityIdClause: string = input.primaryEntityId
@@ -177,34 +214,31 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         AND name = '${metricNameStr}'
         ${primaryEntityIdClause}
         AND hourOfWeek = ${hour}
-        AND day >= today() - INTERVAL ${windowDays} DAY
+        ${this.getEarlierDaysClause({ judgedDay, windowDays })}
     `;
 
-    const resultSet: {
-      json: () => Promise<{
-        data: Array<{
-          sampleCount: number | string;
-          mean: number | string;
-          stddev: number | string;
-          median: number | string;
-          p95: number | string;
-          minObserved: number | string;
-          maxObserved: number | string;
+    const [resultSet, dayRows]: [
+      {
+        json: () => Promise<{
+          data: Array<Record<string, number | string>>;
         }>;
-      }>;
-    } = (await this.executeQuery(sql)) as unknown as {
-      json: () => Promise<{
-        data: Array<{
-          sampleCount: number | string;
-          mean: number | string;
-          stddev: number | string;
-          median: number | string;
-          p95: number | string;
-          minObserved: number | string;
-          maxObserved: number | string;
+      },
+      Array<MetricBaselineDayRow>,
+    ] = await Promise.all([
+      this.executeQuery(sql) as unknown as Promise<{
+        json: () => Promise<{
+          data: Array<Record<string, number | string>>;
         }>;
-      }>;
-    };
+      }>,
+      this.getDayRows({
+        projectIdStr,
+        metricNameStr,
+        primaryEntityIdClause,
+        hoursOfWeek: MetricHourBaseline.getHoursOfDay(hour),
+        judgedDay,
+        windowDays,
+      }),
+    ]);
 
     const parsed: { data: Array<Record<string, number | string>> } =
       await resultSet.json();
@@ -219,15 +253,25 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       return null;
     }
 
+    const reading: MetricHourReading = MetricHourBaseline.read({
+      rows: dayRows,
+      hourOfWeek: hour,
+      judgedDay,
+      stddev: this.toNumber(row["stddev"]),
+      windowDays,
+      minSamples,
+    });
+
     const summary: BaselineSummary = {
       sampleCount,
       mean: this.toNumber(row["mean"]),
-      stddev: this.toNumber(row["stddev"]),
+      stddev: reading.stddev,
       median: this.toNumber(row["median"]),
       p95: this.toNumber(row["p95"]),
       minObserved: this.toNumber(row["minObserved"]),
       maxObserved: this.toNumber(row["maxObserved"]),
-      isReliable: sampleCount >= minSamples,
+      isReliable: reading.isReliable,
+      ...(reading.leftFlatHistory ? { leftFlatHistory: true } : {}),
       windowDays,
       hourOfWeek: hour,
     };
@@ -412,8 +456,8 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * Build a series of (time, mean, expectedHigh, expectedLow) points
    * spanning [startTime, endTime] in `intervalMinutes` steps. Each
    * point's expected band is the same-hour-of-week baseline computed
-   * from the rolling window. Powers the shaded "expected range" band
-   * on metric explorer charts.
+   * from the rolling window before `startTime`, as a monitor judges it.
+   * Powers the shaded "expected range" band on metric explorer charts.
    */
   public async getBandSeries(input: {
     projectId: ObjectID | string;
@@ -448,6 +492,32 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         )}'`
       : "";
 
+    const points: Array<Date> = [];
+    const stepMs: number = Math.max(1, input.intervalMinutes) * 60_000;
+    const startMs: number = input.startTime.getTime();
+    const endMs: number = input.endTime.getTime();
+
+    for (let t: number = startMs; t <= endMs; t += stepMs) {
+      points.push(new Date(t));
+    }
+
+    if (points.length === 0) {
+      return [];
+    }
+
+    const hoursInBand: Set<number> = new Set<number>(
+      points.map((point: Date): number => {
+        return MetricBaselineService.computeHourOfWeek(point);
+      }),
+    );
+
+    /*
+     * Every hour of a band shorter than a week is judged by the days before
+     * the band starts. Those hold the same weeks each hour would read from
+     * its own day: an hour of the week falls once in any seven days.
+     */
+    const judgedDay: string = MetricHourBaseline.toDayText(input.startTime);
+
     const sql: string = `
       SELECT
         hourOfWeek,
@@ -458,29 +528,49 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       WHERE projectId = '${projectIdStr}'
         AND name = '${metricNameStr}'
         ${primaryEntityIdClause}
-        AND day >= today() - INTERVAL ${windowDays} DAY
+        AND hourOfWeek IN (${Array.from(hoursInBand).join(", ")})
+        ${this.getEarlierDaysClause({ judgedDay, windowDays })}
       GROUP BY hourOfWeek
     `;
 
-    const resultSet: {
-      json: () => Promise<{
-        data: Array<{
-          hourOfWeek: number | string;
-          sampleCount: number | string;
-          mean: number | string;
-          stddev: number | string;
+    const [resultSet, dayRows]: [
+      {
+        json: () => Promise<{
+          data: Array<{
+            hourOfWeek: number | string;
+            sampleCount: number | string;
+            mean: number | string;
+            stddev: number | string;
+          }>;
         }>;
-      }>;
-    } = (await this.executeQuery(sql)) as unknown as {
-      json: () => Promise<{
-        data: Array<{
-          hourOfWeek: number | string;
-          sampleCount: number | string;
-          mean: number | string;
-          stddev: number | string;
+      },
+      Array<MetricBaselineDayRow>,
+    ] = await Promise.all([
+      this.executeQuery(sql) as unknown as Promise<{
+        json: () => Promise<{
+          data: Array<{
+            hourOfWeek: number | string;
+            sampleCount: number | string;
+            mean: number | string;
+            stddev: number | string;
+          }>;
         }>;
-      }>;
-    };
+      }>,
+      this.getDayRows({
+        projectIdStr,
+        metricNameStr,
+        primaryEntityIdClause,
+        hoursOfWeek: Array.from(
+          new Set<number>(
+            Array.from(hoursInBand).flatMap((hour: number): Array<number> => {
+              return MetricHourBaseline.getHoursOfDay(hour);
+            }),
+          ),
+        ),
+        judgedDay,
+        windowDays,
+      }),
+    ]);
 
     const parsed: {
       data: Array<{
@@ -494,23 +584,29 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     const byHour: Map<number, { mean: number; stddev: number }> = new Map();
     for (const row of parsed.data) {
       const hour: number = this.toNumber(row.hourOfWeek);
-      const samples: number = this.toNumber(row.sampleCount);
-      if (samples < minSamples) {
+      const hoursOfDay: Array<number> = MetricHourBaseline.getHoursOfDay(hour);
+      const reading: MetricHourReading = MetricHourBaseline.read({
+        rows: dayRows.filter((dayRow: MetricBaselineDayRow): boolean => {
+          return hoursOfDay.includes(dayRow.hourOfWeek);
+        }),
+        hourOfWeek: hour,
+        judgedDay,
+        stddev: this.toNumber(row.stddev),
+        windowDays,
+        minSamples,
+      });
+      if (!reading.isReliable) {
         continue;
       }
       byHour.set(hour, {
         mean: this.toNumber(row.mean),
-        stddev: this.toNumber(row.stddev),
+        stddev: reading.stddev,
       });
     }
 
     const out: Array<BandPoint> = [];
-    const stepMs: number = Math.max(1, input.intervalMinutes) * 60_000;
-    const startMs: number = input.startTime.getTime();
-    const endMs: number = input.endTime.getTime();
 
-    for (let t: number = startMs; t <= endMs; t += stepMs) {
-      const point: Date = new Date(t);
+    for (const point of points) {
       const hour: number = MetricBaselineService.computeHourOfWeek(point);
       const baseline: { mean: number; stddev: number } | undefined =
         byHour.get(hour);
@@ -534,13 +630,53 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
    * `(toDayOfWeek(time, 1) - 1) * 24 + toHour(time)` with ISO week
    * numbering (Monday = 1, Sunday = 7). Pure function — kept here so
    * the eval-time anomaly check and the band query agree.
+   *
+   * In UTC, whatever zone this process or the ClickHouse server runs in.
+   * Ingest writes a time as UTC text without a zone, which ClickHouse
+   * reads and hands back in the same zone, so `toHour(time)` is the hour
+   * of that text on any server. Local time here only ever agreed with it
+   * by this process also being in UTC.
    */
   public static computeHourOfWeek(date: Date): number {
-    // JS getDay(): Sun=0..Sat=6. Convert to ISO 1..7 (Mon..Sun).
-    const jsDow: number = date.getDay();
+    // JS getUTCDay(): Sun=0..Sat=6. Convert to ISO 1..7 (Mon..Sun).
+    const jsDow: number = date.getUTCDay();
     const isoDow: number = jsDow === 0 ? 7 : jsDow;
-    const hour: number = date.getHours();
+    const hour: number = date.getUTCHours();
     return (isoDow - 1) * 24 + hour;
+  }
+
+  /*
+   * The range a baseline expects, or null when it cannot judge. A baseline
+   * with no spread can only say that the metric has not moved, unless it has:
+   * then the range is the one value it held, rounding apart.
+   */
+  public static getBand(data: {
+    baseline: BaselineSummary;
+    sigmaCount: number;
+  }): BaselineBand | null {
+    const { baseline, sigmaCount } = data;
+
+    if (!Number.isFinite(baseline.stddev)) {
+      return null;
+    }
+
+    if (baseline.stddev > 0) {
+      return {
+        expectedHigh: baseline.mean + sigmaCount * baseline.stddev,
+        expectedLow: baseline.mean - sigmaCount * baseline.stddev,
+      };
+    }
+
+    if (!baseline.leftFlatHistory) {
+      return null;
+    }
+
+    const rounding: number = Math.abs(baseline.mean) * METRIC_ROUNDING_SHARE;
+
+    return {
+      expectedHigh: baseline.mean + rounding,
+      expectedLow: baseline.mean - rounding,
+    };
   }
 
   /**
@@ -550,15 +686,76 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
   public static sigmaForSensitivity(
     sensitivity: "Low" | "Medium" | "High",
   ): number {
-    switch (sensitivity) {
-      case "Low":
-        return 4;
-      case "High":
-        return 2;
-      case "Medium":
-      default:
-        return 3;
-    }
+    return (
+      ANOMALY_SIGMA_BY_SENSITIVITY[
+        sensitivity as AnomalyDetectionSensitivity
+      ] ?? ANOMALY_SIGMA_BY_SENSITIVITY[AnomalyDetectionSensitivity.Medium]
+    );
+  }
+
+  // The days of the baseline window: the ones before the day judged.
+  private getEarlierDaysClause(data: {
+    judgedDay: string;
+    windowDays: number;
+  }): string {
+    return `AND day >= toDate('${data.judgedDay}') - INTERVAL ${data.windowDays} DAY
+        AND day < toDate('${data.judgedDay}')`;
+  }
+
+  /*
+   * The hours asked for, one row a day, from the start of the baseline window
+   * on, the day judged included: what MetricHourBaseline reads them for.
+   */
+  private async getDayRows(data: {
+    projectIdStr: string;
+    metricNameStr: string;
+    primaryEntityIdClause: string;
+    hoursOfWeek: Array<number>;
+    judgedDay: string;
+    windowDays: number;
+  }): Promise<Array<MetricBaselineDayRow>> {
+    const sql: string = `
+      SELECT
+        toString(toDate(day))        AS rowDay,
+        hourOfWeek,
+        countMerge(sampleCountState) AS sampleCount,
+        avgMerge(meanState)          AS mean,
+        minMerge(minObsState)        AS minObserved,
+        maxMerge(maxObsState)        AS maxObserved
+      FROM MetricBaselineHourly
+      WHERE projectId = '${data.projectIdStr}'
+        AND name = '${data.metricNameStr}'
+        ${data.primaryEntityIdClause}
+        AND hourOfWeek IN (${data.hoursOfWeek.join(", ")})
+        AND day >= toDate('${data.judgedDay}') - INTERVAL ${data.windowDays} DAY
+      GROUP BY rowDay, hourOfWeek
+    `;
+
+    const resultSet: {
+      json: () => Promise<{
+        data: Array<Record<string, number | string>>;
+      }>;
+    } = (await this.executeQuery(sql)) as unknown as {
+      json: () => Promise<{
+        data: Array<Record<string, number | string>>;
+      }>;
+    };
+
+    const parsed: { data: Array<Record<string, number | string>> } =
+      await resultSet.json();
+
+    return parsed.data.map(
+      (row: Record<string, number | string>): MetricBaselineDayRow => {
+        return {
+          day: String(row["rowDay"]),
+          hourOfWeek: this.toNumber(row["hourOfWeek"]),
+          sampleCount: this.toNumber(row["sampleCount"]),
+          mean: this.toNumber(row["mean"]),
+          minObserved: this.toNumber(row["minObserved"]),
+          maxObserved: this.toNumber(row["maxObserved"]),
+        };
+      },
+    );
   }
 
   private toNumber(v: number | string | undefined): number {

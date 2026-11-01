@@ -7,7 +7,7 @@
 - [各レベルが付与するもの](#各レベルが付与するもの): AWS のアクション、Azure と Google Cloud のロール。
 - [自分で運用するデータベースをスキャンする](#自分で運用するデータベースをスキャンする): 読み取り専用の接続文字列、またはネットワーク内のプローブ。
 - [OneUptime が保持するもの](#oneuptime-が保持するもの): 件数、場所、マスクされたサンプル。値そのものは決して保持しません。
-- [データセキュリティに露出を解消させる](#データセキュリティに露出を解消させる): 接続に与えられる唯一の書き込み権限。オンにするまではオフです。
+- [データセキュリティに露出を解消させる](#データセキュリティに露出を解消させる): 接続に与えられる唯一の書き込み権限の組。オンにするまではオフです。
 :::
 
 ## 接続ごとにレベルを選ぶ
@@ -48,6 +48,9 @@
 | データベースへの到達経路、暗号化、バックアップと、手動スナップショットの共有先を読み取る | `rds:DescribeDBInstances`、`rds:DescribeDBClusters`、`rds:DescribeDBSnapshots`、`rds:DescribeDBSnapshotAttributes`、`rds:DescribeDBClusterSnapshots`、`rds:DescribeDBClusterSnapshotAttributes`、`dynamodb:ListTables`、`dynamodb:DescribeTable`、`dynamodb:DescribeContinuousBackups`、`redshift:DescribeClusters`、`redshift:DescribeLoggingStatus` |
 | 検索ドメイン、キャッシュ、ファイルシステムの設定を読み取る | `es:ListDomainNames`、`es:DescribeDomains`、`elasticache:DescribeReplicationGroups`、`elasticfilesystem:DescribeFileSystems` |
 | AWS 独自のキー (alias/aws/...) と自分で管理するキーを区別する | `kms:ListAliases` |
+| 各バケットと各テーブルに自身の IAM ポリシーで到達するユーザーとロール、各ロールを引き受けられる人、それぞれの最終使用日時を読み取る | `iam:GetAccountAuthorizationDetails`、`iam:GenerateCredentialReport`、`iam:GetCredentialReport` |
+
+IAM のアクションにより、 **アクセス** は自身のポリシーでデータストアに到達するすべてのロールとユーザーと、それぞれが最後に使われた日時を示せます。そのために IAM が作成する認証情報レポートに含まれるのは日付とフラグだけで、パスワードやキーは含まれません。データセキュリティが IAM を読み取る前に設定された接続は、そのコマンドを再実行するまで、各データストア自身のポリシーしか読み取りません。
 
 コンテンツのレベルでは、同じポリシーに 3 つのアクションが追加され、それぞれ専用のリソースに適用されます。
 
@@ -95,7 +98,10 @@
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@
 
 ## データセキュリティに露出を解消させる
 
-別の設定を選ばない限り、接続が行うのは読み取りだけです。 **その他の項目** で **データセキュリティ** の横にある **データセキュリティ対応** を使うと、データセキュリティがデータストアのパブリックアクセスをブロックし、そのスナップショットの共有を停止できるようにもなります: データストアの問題から **ここで修正** で行う方法 ( [データセキュリティのチェックと問題](/docs/data-security/checks-and-issues#ここで修正) を参照) と、セキュリティオペレーションのプレイブックから行う方法です。 **パブリックアクセスと共有をブロック** を選ぶまでは **オフ** で、選ぶとフォームに表示されるコマンドが、範囲の狭い書き込み権限をひとつだけ、単独で付与します。
+別の設定を選ばない限り、接続が行うのは読み取りだけです。 **その他の項目** で **データセキュリティ** の横にある **データセキュリティ対応** を使うと、データセキュリティが接続を通じてデータストアの設定を変更できるようにもなります: パブリックアクセスのブロックとスナップショットの共有の停止は、データストアの問題から **ここで修正** で行う方法 ( [データセキュリティのチェックと問題](/docs/data-security/checks-and-issues#ここで修正) を参照) とセキュリティオペレーションのプレイブックから行う方法があり、バージョニングや安全な転送などデータストアを守る設定の有効化は、その問題から行います。 **露出を閉じて設定を修正** を選ぶまでは **オフ** で、選ぶとフォームに表示されるコマンドが、これらの範囲の狭い書き込み権限を単独で付与します。
 
 | クラウド | コマンドが追加するもの | 許可される操作 |
 | --- | --- | --- |
-| AWS | 3 つ目のインラインポリシー `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`、`s3:PutBucketPublicAccessBlock`、`rds:DescribeDBSnapshotAttributes`、`rds:DescribeDBClusterSnapshotAttributes`、`rds:ModifyDBSnapshotAttribute`、`rds:ModifyDBClusterSnapshotAttribute`: バケットの Block Public Access と、手動スナップショットの共有先 |
-| Azure | 接続のスコープに付与されるカスタムロール `OneUptime Data Security Response` | `Microsoft.Storage/storageAccounts/read` と `Microsoft.Storage/storageAccounts/write`: 匿名 BLOB アクセスなどのストレージアカウントの設定。キーには決して触れない |
-| Google Cloud | カスタムロール `oneuptimeDataSecurityResponse` | `storage.buckets.get` と `storage.buckets.update`: パブリックアクセスの防止などのバケットの設定 |
+| AWS | 3 つ目のインラインポリシー `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`、`s3:PutBucketPublicAccessBlock`、`s3:GetBucketVersioning`、`s3:PutBucketVersioning`、`s3:GetBucketOwnershipControls`、`s3:PutBucketOwnershipControls`、`rds:DescribeDBSnapshotAttributes`、`rds:DescribeDBClusterSnapshotAttributes`、`rds:ModifyDBSnapshotAttribute`、`rds:ModifyDBClusterSnapshotAttribute`、`dynamodb:DescribeContinuousBackups`、`dynamodb:UpdateContinuousBackups`: バケットの Block Public Access、バージョニング、オブジェクトの所有権、手動スナップショットの共有先、テーブルのポイントインタイムリカバリ |
+| Azure | 接続のスコープに付与されるカスタムロール `OneUptime Data Security Response` | `Microsoft.Storage/storageAccounts/read`、`Microsoft.Storage/storageAccounts/write`、`Microsoft.Storage/storageAccounts/blobServices/read`、`Microsoft.Storage/storageAccounts/blobServices/write`: 匿名 BLOB アクセスや安全な転送などのストレージアカウントの設定と、その BLOB の論理的な削除。キーには決して触れない |
+| Google Cloud | カスタムロール `oneuptimeDataSecurityResponse` | `storage.buckets.get` と `storage.buckets.update`: パブリックアクセスの防止、均一なアクセス、バージョニングなどのバケットの設定 |
 
 付与されるものはどれも、データを読み取ったり、何かを削除したり、誰がサインインできるかを変更したりしません。 **オフ** に戻すと、データセキュリティはすぐにそれを使わなくなります。AWS でアクセス自体も取り除くには、 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse` でポリシーを削除します。
+
+以前にこの設定をオンにした接続では、これらの設定のためにコマンドを再実行する必要があります。それまではクラウドが変更を拒否し、どの権限が足りないかがパネルに表示されます。
 
 ## コンテンツのサンプルが任意である理由
 

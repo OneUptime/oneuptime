@@ -124,7 +124,7 @@ flowchart TB
 | **Anomalously Low** | 低於預期範圍 |
 | **Anomalous** | 往任一方向偏離預期範圍 |
 
-每個樣本都會與依 **基準視窗**（預設 14 天；也可選 28、60 或 90 天）建立的、一週中同一小時的基準比較。**敏感度** 決定預期範圍的寬度：**低 (4σ — 僅限明顯偏差)**、預設的 **中 (3σ — 建議)**，或 **高 (2σ — 雜訊較多，適用於非常穩定的服務)**。在累積到至少所選基準視窗長度的指標歷史之前，異常條件會停留在「Learning」狀態，不會產生警示。
+每個樣本都會與依 **基準視窗**（預設 14 天；也可選 28、60 或 90 天）建立的、一週中同一小時的基準比較。**敏感度** 決定預期範圍的寬度：**低 (4σ — 僅限明顯偏差)**、預設的 **中 (3σ — 建議)**，或 **高 (2σ — 雜訊較多，適用於非常穩定的服務)**。在一週中的這一小時累積兩週的歷史之前，異常條件會停留在「Learning」狀態，不會產生警示。
 
 **更多欄位** 下的 **如果沒有資料** 決定查詢在視窗內沒有傳回任何內容時的處理方式：**Ignore**（預設）不符合，**觸發器** 把靜默視為問題，**Treat As Zero** 以零比較。OneUptime 本身未接收資料的時間永遠不算是沒有資料：視窗中包含這類時間的檢查會改為等待，詳見 [OneUptime 未接收資料時](/docs/monitor/when-oneuptime-is-not-receiving)。
 
@@ -136,25 +136,25 @@ flowchart TB
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 可用性 | 10 分鐘內沒有從叢集的代理程式收到任何資料 | 嚴重 |
 | CrashLoopBackOff Detection | 工作負載 | 某個容器在 15 分鐘內重新啟動，且其中不到一半的時間處於就緒狀態 | 嚴重 |
-| Pod Stuck in Pending | 排程中 | 在 15 分鐘視窗的每個樣本中，都有某個 Pod 處於 Pending 階段 | Warning |
+| Pod Stuck in Pending | 排程中 | 在 15 分鐘視窗的每個樣本中，都有某個 Pod 處於 Pending 階段 | 警告 |
 | Node Not Ready | 節點 | 某個節點回報 NotReady，或不再回報其狀態（Unknown） | 嚴重 |
-| Node Under Pressure | 節點 | 某個節點在 10 分鐘內一直回報 MemoryPressure、DiskPressure 或 PIDPressure | Warning |
-| High Node CPU Utilization | 節點 | 節點的平均 CPU 使用量超過其可配置 CPU 的 90% | Warning |
-| High Node Memory Utilization | 節點 | 節點的平均記憶體工作集超過其可配置記憶體的 85% | Warning |
-| Deployment Replica Mismatch | 工作負載 | Deployment 的可用複本數在 15 分鐘內一直少於期望值 | Warning |
-| StatefulSet Replica Mismatch | 工作負載 | StatefulSet 的就緒複本數在 15 分鐘內一直少於期望值 | Warning |
-| Job Failures | 工作負載 | 某個 Job 的 Pod 在 15 分鐘內失敗 | Warning |
+| Node Under Pressure | 節點 | 某個節點在 10 分鐘內一直回報 MemoryPressure、DiskPressure 或 PIDPressure | 警告 |
+| High Node CPU Utilization | 節點 | 節點的平均 CPU 使用量超過其可配置 CPU 的 90% | 警告 |
+| High Node Memory Utilization | 節點 | 節點的平均記憶體工作集超過其可配置記憶體的 85% | 警告 |
+| Deployment Replica Mismatch | 工作負載 | Deployment 的可用複本數在 15 分鐘內一直少於期望值 | 警告 |
+| StatefulSet Replica Mismatch | 工作負載 | StatefulSet 的就緒複本數在 15 分鐘內一直少於期望值 | 警告 |
+| Job Failures | 工作負載 | 某個 Job 的 Pod 在 15 分鐘內失敗 | 警告 |
 | etcd No Leader | 控制平面 | etcd 沒有選出領導者 | 嚴重 |
 | API Server Request Saturation | 控制平面 | API 伺服器在整個視窗內持有 200 個以上正在處理的請求 | 嚴重 |
-| Scheduler Backlog | 排程中 | 排程器的待處理 Pod 佇列在 5 分鐘內一直不是空的 | Warning |
-| High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 90% | Warning |
-| DaemonSet Pods Not Ready | 工作負載 | DaemonSet 在 15 分鐘內一直有節點上沒有它的就緒 Pod | Warning |
-| DaemonSet Misscheduled Nodes | 工作負載 | DaemonSet 在不再符合其節點選取器、親和性或容忍度的節點上執行 Pod | Warning |
-| High Node CPU Request Commitment | 節點 | 節點上容器的 CPU 請求總和超過其可配置 CPU 的 90% | Warning |
-| High Node Memory Request Commitment | 節點 | 節點上容器的記憶體請求總和超過其可配置記憶體的 90% | Warning |
+| Scheduler Backlog | 排程中 | 排程器的待處理 Pod 佇列在 5 分鐘內一直不是空的 | 警告 |
+| High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 90% | 警告 |
+| DaemonSet Pods Not Ready | 工作負載 | DaemonSet 在 15 分鐘內一直有節點上沒有它的就緒 Pod | 警告 |
+| DaemonSet Misscheduled Nodes | 工作負載 | DaemonSet 在不再符合其節點選取器、親和性或容忍度的節點上執行 Pod | 警告 |
+| High Node CPU Request Commitment | 節點 | 節點上容器的 CPU 請求總和超過其可配置 CPU 的 90% | 警告 |
+| High Node Memory Request Commitment | 節點 | 節點上容器的記憶體請求總和超過其可配置記憶體的 90% | 警告 |
 | HPA Saturated at Max Replicas | 工作負載 | 擴展到高於其 `minReplicas` 的 HPA 執行在其 `maxReplicas` 的 90% 以上 | 嚴重 |
 | Pod Memory Saturating Container Limit | 工作負載 | Pod 使用了超過其容器記憶體限制的 90% | 嚴重 |
-| Pod CPU Saturating Container Limit | 工作負載 | Pod 使用了超過其容器 CPU 限制的 90% | Warning |
+| Pod CPU Saturating Container Limit | 工作負載 | Pod 使用了超過其容器 CPU 限制的 90% | 警告 |
 
 以個別物件指標為基礎的範本會分別評估每個節點、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多個不健康 Pod 的叢集會為每個 Pod 建立一個事件，而不是整個叢集只建立一個。
 

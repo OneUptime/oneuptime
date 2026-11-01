@@ -197,8 +197,9 @@ describe("what a subscriber reads about how long the link works", () => {
       "utf8",
     );
 
+    // Both are worded in the subscriber's language (Utils/EmailLanguage.ts).
     const button: number = template.indexOf(
-      'buttonText="Confirm Subscription"',
+      'buttonText=(t "Confirm Subscription")',
     );
     const note: number = template.indexOf(
       `This link expires in ${HOURS} hours. If you did not subscribe, you can ignore this email and you will not be subscribed.`,

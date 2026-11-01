@@ -124,7 +124,7 @@ A detecção de anomalias por linha de base não precisa de limite. Escolha uma 
 | **Anomalously Low** | Cai abaixo da faixa esperada |
 | **Anomalous** | Sai da faixa esperada em qualquer direção |
 
-Cada amostra é comparada com uma linha de base da mesma hora da semana construída a partir da **Janela de linha de base** (14 dias por padrão; 28, 60 ou 90 dias). **Sensibilidade** define a largura da faixa esperada: **Baixo (4σ — apenas desvios graves)**, **Médio (3σ — recomendado)**, o padrão, ou **Alto (2σ — mais ruidoso, serviços muito estáveis)**. As condições de anomalia ficam em um estado "Learning" e não produzem alertas até existir pelo menos a janela de linha de base escolhida de histórico da métrica.
+Cada amostra é comparada com uma linha de base da mesma hora da semana construída a partir da **Janela de linha de base** (14 dias por padrão; 28, 60 ou 90 dias). **Sensibilidade** define a largura da faixa esperada: **Baixo (4σ — apenas desvios graves)**, **Médio (3σ — recomendado)**, o padrão, ou **Alto (2σ — mais ruidoso, serviços muito estáveis)**. As condições de anomalia ficam em um estado "Learning" e não produzem alertas até essa hora da semana ter duas semanas de histórico.
 
 **Se não houver dados**, em **Mais campos**, decide o que acontece quando a consulta não retorna nada na janela: **Ignore** (o padrão) não corresponde, **Gatilho** trata o silêncio como o problema e **Treat As Zero** compara um zero. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -136,25 +136,25 @@ A lista de **Sobre o que alertar** traz estes modelos, agrupados por categoria. 
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Disponibilidade | Nenhum dado chega do agente do cluster por 10 minutos | Crítico |
 | CrashLoopBackOff Detection | Carga de trabalho | Um contêiner reiniciou em 15 minutos e ficou pronto menos da metade desse tempo | Crítico |
-| Pod Stuck in Pending | Agendamento | Algum pod está na fase Pending em todas as amostras de uma janela de 15 minutos | Warning |
+| Pod Stuck in Pending | Agendamento | Algum pod está na fase Pending em todas as amostras de uma janela de 15 minutos | Aviso |
 | Node Not Ready | Nó | Um nó informa NotReady ou para de informar seu status (Unknown) | Crítico |
-| Node Under Pressure | Nó | Um nó informa MemoryPressure, DiskPressure ou PIDPressure por 10 minutos | Warning |
-| High Node CPU Utilization | Nó | O uso médio de CPU de um nó passa de 90% da CPU alocável | Warning |
-| High Node Memory Utilization | Nó | O working set médio de memória de um nó passa de 85% da memória alocável | Warning |
-| Deployment Replica Mismatch | Carga de trabalho | Um deployment tem menos réplicas disponíveis do que o desejado por 15 minutos | Warning |
-| StatefulSet Replica Mismatch | Carga de trabalho | Um StatefulSet tem menos réplicas prontas do que o desejado por 15 minutos | Warning |
-| Job Failures | Carga de trabalho | Um pod de um job falhou em 15 minutos | Warning |
+| Node Under Pressure | Nó | Um nó informa MemoryPressure, DiskPressure ou PIDPressure por 10 minutos | Aviso |
+| High Node CPU Utilization | Nó | O uso médio de CPU de um nó passa de 90% da CPU alocável | Aviso |
+| High Node Memory Utilization | Nó | O working set médio de memória de um nó passa de 85% da memória alocável | Aviso |
+| Deployment Replica Mismatch | Carga de trabalho | Um deployment tem menos réplicas disponíveis do que o desejado por 15 minutos | Aviso |
+| StatefulSet Replica Mismatch | Carga de trabalho | Um StatefulSet tem menos réplicas prontas do que o desejado por 15 minutos | Aviso |
+| Job Failures | Carga de trabalho | Um pod de um job falhou em 15 minutos | Aviso |
 | etcd No Leader | Plano de controle | O etcd não tem líder eleito | Crítico |
 | API Server Request Saturation | Plano de controle | O servidor de API mantém 200 ou mais requisições em andamento durante toda a janela | Crítico |
-| Scheduler Backlog | Agendamento | A fila de pods pendentes do scheduler não fica vazia por 5 minutos | Warning |
-| High Node Disk Usage | Armazenamento | O sistema de arquivos de um nó está mais de 90% cheio | Warning |
-| DaemonSet Pods Not Ready | Carga de trabalho | Um DaemonSet tem nós sem um pod seu pronto por 15 minutos | Warning |
-| DaemonSet Misscheduled Nodes | Carga de trabalho | Um DaemonSet executa pods em nós que não correspondem mais ao seu seletor de nós, afinidade ou tolerâncias | Warning |
-| High Node CPU Request Commitment | Nó | A soma das requisições de CPU dos contêineres de um nó passa de 90% da CPU alocável | Warning |
-| High Node Memory Request Commitment | Nó | A soma das requisições de memória dos contêineres de um nó passa de 90% da memória alocável | Warning |
+| Scheduler Backlog | Agendamento | A fila de pods pendentes do scheduler não fica vazia por 5 minutos | Aviso |
+| High Node Disk Usage | Armazenamento | O sistema de arquivos de um nó está mais de 90% cheio | Aviso |
+| DaemonSet Pods Not Ready | Carga de trabalho | Um DaemonSet tem nós sem um pod seu pronto por 15 minutos | Aviso |
+| DaemonSet Misscheduled Nodes | Carga de trabalho | Um DaemonSet executa pods em nós que não correspondem mais ao seu seletor de nós, afinidade ou tolerâncias | Aviso |
+| High Node CPU Request Commitment | Nó | A soma das requisições de CPU dos contêineres de um nó passa de 90% da CPU alocável | Aviso |
+| High Node Memory Request Commitment | Nó | A soma das requisições de memória dos contêineres de um nó passa de 90% da memória alocável | Aviso |
 | HPA Saturated at Max Replicas | Carga de trabalho | Um HPA escalado acima do seu `minReplicas` opera em 90% ou mais do seu `maxReplicas` | Crítico |
 | Pod Memory Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de memória dos seus contêineres | Crítico |
-| Pod CPU Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de CPU dos seus contêineres | Warning |
+| Pod CPU Saturating Container Limit | Carga de trabalho | Um pod usa mais de 90% do limite de CPU dos seus contêineres | Aviso |
 
 Os modelos baseados em métricas por objeto avaliam cada nó, pod, deployment, job, DaemonSet ou HPA separadamente, então um cluster com vários pods com problema recebe um incidente por pod em vez de um único para o cluster inteiro.
 

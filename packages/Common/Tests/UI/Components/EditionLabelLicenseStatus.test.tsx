@@ -4,12 +4,13 @@ import EditionLabel, {
   LICENSE_LAPSE_CONSEQUENCES,
   TRIAL_ENFORCEMENT_SUMMARY,
 } from "../../../UI/Components/EditionLabel/EditionLabel";
-import {
-  LicenseManagerDialogParts,
-  LicenseManagerProps,
-} from "../../../UI/Components/EditionLabel/LicenseManager";
+import { LicenseDetailsProps } from "../../../UI/Components/EditionLabel/LicenseDetails";
+import { announceLicenseChanged } from "../../../UI/Components/EditionLabel/LicenseEvents";
+import Navigation from "../../../UI/Utils/Navigation";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
@@ -37,13 +38,12 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
- * The core half of the edition dialog: what EditionLabel shows on its own,
- * with no license manager - the login page, and any build without the
- * Enterprise plugin. Everything that changes the license (activation, offline
- * activation, refresh, the seat and instance cards) is the Enterprise
- * plugin's LicenseManager now; ee/Tests/UI/License runs this suite's original
- * tests, all of them, against EditionLabel with that manager. This one must
- * pass with ee/ deleted.
+ * The core half of the edition dialog: what EditionLabel shows on its own -
+ * the login page, and any build without the Enterprise plugin - and what it
+ * does with the Enterprise plugin's LicenseDetails (the seat and instance
+ * cards), here a fake. The dialog only shows the license: activating and
+ * refreshing it is Settings > License in the Admin Dashboard
+ * (ee/Tests/UI/License). This one must pass with ee/ deleted.
  *
  * What the edition pill and dialog say about the license, now that the
  * Enterprise license client reports a status rather than a yes/no:
@@ -62,7 +62,7 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *            features;
  *   the Community Edition image running with IS_ENTERPRISE_EDITION set, told to
  *            a master admin;
- *   and what EditionLabel hands a license manager, and where its parts land.
+ *   and what EditionLabel hands the license details, and where they land.
  */
 
 let isEnterpriseEdition: boolean = true;
@@ -302,7 +302,7 @@ describe("EditionLabel - an expired license in its grace period", () => {
 
     await waitFor(() => {
       expect(pill()).toHaveAccessibleName(
-        "Enterprise Edition (License Expired, Grace Period), Renew license",
+        "Enterprise Edition (License Expired, Grace Period), View details",
       );
     });
   });
@@ -330,7 +330,7 @@ describe("EditionLabel - an expired license in its grace period", () => {
 
   /*
    * The seats and the refresh button that sit beside these belong to the
-   * license manager (ee/Tests/UI/License/LicenseManagerStatus pins them).
+   * license details (ee/Tests/UI/License/LicenseDetailsStatus pins them).
    */
   it("still counts as licensed: the details and the grace badge stay", async () => {
     await openDialog();
@@ -410,7 +410,7 @@ describe("EditionLabel - an unlicensed installation's trial", () => {
 
     await waitFor(() => {
       expect(pill()).toHaveAccessibleName(
-        "Enterprise Edition (Trial, 10 days left), Add license",
+        "Enterprise Edition (Trial, 10 days left), View details",
       );
     });
   });
@@ -476,7 +476,7 @@ describe("EditionLabel - an unlicensed installation's trial", () => {
 
     await waitFor(() => {
       expect(pill()).toHaveAccessibleName(
-        "Enterprise Edition (Trial, 1 day left), Add license",
+        "Enterprise Edition (Trial, 1 day left), View details",
       );
     });
   });
@@ -511,17 +511,17 @@ describe("EditionLabel - no usable license", () => {
   it.each([
     [
       "expired",
-      "Enterprise Edition (License Expired), Renew license",
+      "Enterprise Edition (License Expired), View details",
       "License expired",
     ],
     [
       "missing",
-      "Enterprise Edition (License Required), Validate license",
+      "Enterprise Edition (License Required), View details",
       "No valid license",
     ],
     [
       "invalid",
-      "Enterprise Edition (License Invalid), Fix license",
+      "Enterprise Edition (License Invalid), View details",
       "License not valid",
     ],
   ])(
@@ -638,8 +638,8 @@ describe("EditionLabel - no usable license", () => {
 describe("EditionLabel - an unverified legacy license", () => {
   /*
    * The notice tells a master admin that refreshing the license fixes it,
-   * which takes the license manager: with it, a master admin is told
-   * (ee/Tests/UI/License/LicenseManagerStatus); without it, nobody is.
+   * which takes the Enterprise frontends: with them, a master admin is told
+   * (ee/Tests/UI/License/LicenseDetailsStatus); without it, nobody is.
    */
   it("is not raised where the license cannot be refreshed", async () => {
     respondWith(adminPayload({ verification: "unverified" }));
@@ -840,7 +840,7 @@ const postCalls: () => Array<FetchCall> = (): Array<FetchCall> => {
 };
 
 // Nothing that changes the license is on screen.
-const expectNoLicenseControls: () => void = (): void => {
+const expectNoWriteControls: () => void = (): void => {
   expect(
     screen.queryByPlaceholderText(LICENSE_KEY_PLACEHOLDER),
   ).not.toBeInTheDocument();
@@ -858,6 +858,11 @@ const expectNoLicenseControls: () => void = (): void => {
   expect(
     screen.queryByRole("button", { name: /Validate License|Activate License/ }),
   ).not.toBeInTheDocument();
+};
+
+// Nor is anything the Enterprise details add.
+const expectNoLicenseControls: () => void = (): void => {
+  expectNoWriteControls();
   expect(screen.queryByText("Licensed seats")).not.toBeInTheDocument();
   expect(
     screen.queryByText("Instances on this license"),
@@ -868,9 +873,9 @@ const expectNoLicenseControls: () => void = (): void => {
  * The login page, and any Dashboard or Admin Dashboard built without the
  * Enterprise plugin: EditionLabel on its own reads the license and never
  * writes it, and tells nobody - not even a master admin - to manage it from
- * a dialog that cannot.
+ * a page that is not there.
  */
-describe("EditionLabel - without a license manager", () => {
+describe("EditionLabel - without the license details", () => {
   it.each([
     ["no license", { status: "missing", licenseValid: false }],
     [
@@ -929,7 +934,9 @@ describe("EditionLabel - without a license manager", () => {
         "Ask a master admin of this installation to add a license.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/below/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/in the Admin Dashboard/),
+    ).not.toBeInTheDocument();
   });
 
   it("asks for a renewal rather than a refresh it cannot offer", async () => {
@@ -949,7 +956,9 @@ describe("EditionLabel - without a license manager", () => {
         "Ask a master admin of this installation to renew the license.",
       ),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/refresh it here/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/refresh it in the Admin Dashboard/),
+    ).not.toBeInTheDocument();
   });
 
   it("explains who can activate a missing license", async () => {
@@ -1018,37 +1027,36 @@ describe("EditionLabel - the Community dialog", () => {
 });
 
 /*
- * The contract with a license manager, proved with a stand-in: what
- * EditionLabel hands it, where the parts it returns land, and when it is
- * rendered at all. The real manager (ee/AdminDashboard/License) is tested in
- * ee/Tests/UI/License.
+ * The contract with the license details, proved with a stand-in: what
+ * EditionLabel hands them, where they land, and when they are rendered at
+ * all. Then the dialog's one action, what the pill asks of its reader, and
+ * following the license page. The real details (ee/AdminDashboard/License)
+ * are tested in ee/Tests/UI/License.
  */
-describe("EditionLabel - with a license manager", () => {
-  const managerProps: Array<LicenseManagerProps> = [];
-  let parts: LicenseManagerDialogParts = {};
-  let submitted: number = 0;
+describe("EditionLabel - with the license details", () => {
+  const detailsProps: Array<LicenseDetailsProps> = [];
 
-  const FakeLicenseManager: (
-    props: LicenseManagerProps,
+  const FakeLicenseDetails: (
+    props: LicenseDetailsProps,
   ) => React.ReactElement = (
-    props: LicenseManagerProps,
+    props: LicenseDetailsProps,
   ): React.ReactElement => {
-    managerProps.push(props);
+    detailsProps.push(props);
 
-    return props.renderDialog(parts);
+    return <div data-testid="fake-details" />;
   };
 
-  const latestProps: () => LicenseManagerProps = (): LicenseManagerProps => {
-    const props: LicenseManagerProps | undefined =
-      managerProps[managerProps.length - 1];
+  const latestProps: () => LicenseDetailsProps = (): LicenseDetailsProps => {
+    const props: LicenseDetailsProps | undefined =
+      detailsProps[detailsProps.length - 1];
 
     expect(props).toBeDefined();
 
-    return props as LicenseManagerProps;
+    return props as LicenseDetailsProps;
   };
 
-  const renderWithManager: () => Promise<void> = async (): Promise<void> => {
-    render(<EditionLabel licenseManager={FakeLicenseManager} />);
+  const renderWithDetails: () => Promise<void> = async (): Promise<void> => {
+    render(<EditionLabel licenseDetails={FakeLicenseDetails} />);
 
     await waitFor(() => {
       expect(fetchCalls.length).toBeGreaterThan(0);
@@ -1056,8 +1064,8 @@ describe("EditionLabel - with a license manager", () => {
   };
 
   // Opens the dialog and waits for the license GET to fill its body in.
-  const openWithManager: () => Promise<void> = async (): Promise<void> => {
-    await renderWithManager();
+  const openWithDetails: () => Promise<void> = async (): Promise<void> => {
+    await renderWithDetails();
     fireEvent.click(pill());
     await screen.findByText("This installation");
   };
@@ -1072,109 +1080,56 @@ describe("EditionLabel - with a license manager", () => {
   };
 
   beforeEach(() => {
-    managerProps.length = 0;
-    submitted = 0;
-    parts = {
-      messages: <div data-testid="fake-messages" />,
-      usage: <div data-testid="fake-usage" />,
-      activation: <div data-testid="fake-activation" />,
-    };
+    detailsProps.length = 0;
   });
 
-  it("puts each part where the dialog has always had it", async () => {
-    await openWithManager();
+  it("draws the details after the version card", async () => {
+    await openWithDetails();
 
-    const messages: HTMLElement = await screen.findByTestId("fake-messages");
     const details: HTMLElement = screen.getByText("Licensed to");
     const version: HTMLElement = screen.getByText("This installation");
-    const usage: HTMLElement = screen.getByTestId("fake-usage");
-    const activation: HTMLElement = screen.getByTestId("fake-activation");
+    const usage: HTMLElement = await screen.findByTestId("fake-details");
 
-    expect(isBefore(messages, details)).toBe(true);
     expect(isBefore(details, version)).toBe(true);
     expect(isBefore(version, usage)).toBe(true);
-    expect(isBefore(usage, activation)).toBe(true);
   });
 
-  it("keeps the status notices between the messages and the activation input, and the feature list last", async () => {
+  it("keeps the status notices above the details, and the feature list last", async () => {
     isMasterAdmin = false;
     respondWith(publicPayload({ status: "missing", licenseValid: false }));
 
-    await renderWithManager();
+    await renderWithDetails();
     fireEvent.click(pill());
     await screen.findByText("What your license unlocks");
 
-    const messages: HTMLElement = await screen.findByTestId("fake-messages");
     const required: HTMLElement = screen.getByTestId(
       "enterprise-license-required-notice",
     );
+    const usage: HTMLElement = screen.getByTestId("fake-details");
     const askAnAdmin: HTMLElement = screen.getByText(
       "A master admin has to activate this license",
     );
-    const activation: HTMLElement = screen.getByTestId("fake-activation");
     const features: HTMLElement = screen.getByText("What your license unlocks");
 
-    expect(isBefore(messages, required)).toBe(true);
-    expect(isBefore(required, askAnAdmin)).toBe(true);
-    expect(isBefore(askAnAdmin, activation)).toBe(true);
-    expect(isBefore(activation, features)).toBe(true);
+    expect(isBefore(required, usage)).toBe(true);
+    expect(isBefore(usage, askAnAdmin)).toBe(true);
+    expect(isBefore(askAnAdmin, features)).toBe(true);
   });
 
-  it("gives the manager the dialog's primary button and its footer", async () => {
-    parts = {
-      ...parts,
-      submitButtonText: "Fake Submit",
-      onSubmit: (): void => {
-        submitted += 1;
-      },
-      leftFooterElement: <button type="button">Fake footer action</button>,
-    };
-
-    await openWithManager();
-
-    fireEvent.click(await screen.findByRole("button", { name: "Fake Submit" }));
-
-    expect(submitted).toBe(1);
-    expect(
-      screen.getByRole("button", { name: "Fake footer action" }),
-    ).toBeInTheDocument();
-  });
-
-  it("disables the primary button while the manager says so", async () => {
-    parts = {
-      ...parts,
-      submitButtonText: "Fake Submit",
-      onSubmit: (): void => {
-        submitted += 1;
-      },
-      disableSubmitButton: true,
-    };
-
-    await openWithManager();
-
-    expect(
-      await screen.findByRole("button", { name: "Fake Submit" }),
-    ).toBeDisabled();
-  });
-
-  it("hands the manager what the license GET said", async () => {
+  it("hands the details what the license GET said", async () => {
     const body: JSONObject = adminPayload();
     respondWith(body);
 
-    await openWithManager();
+    await openWithDetails();
 
     await screen.findByText("Licensed to");
 
-    const license: LicenseManagerProps["license"] = latestProps().license;
+    const license: LicenseDetailsProps["license"] = latestProps().license;
 
     expect(license.payload).toEqual(body);
     expect(license).toEqual(
       expect.objectContaining({
-        isLoading: false,
-        loadError: "",
         canManageLicense: true,
-        licenseValid: true,
-        isUnlicensedTrial: false,
         showLicenseDetails: true,
         companyName: "Acme Inc",
         licenseKey: "acme-license-key",
@@ -1192,11 +1147,11 @@ describe("EditionLabel - with a license manager", () => {
     );
   });
 
-  it("tells the manager that somebody who is not a master admin cannot manage the license", async () => {
+  it("tells the details that somebody who is not a master admin cannot manage the license", async () => {
     isMasterAdmin = false;
     respondWith(publicPayload());
 
-    await renderWithManager();
+    await renderWithDetails();
     fireEvent.click(pill());
 
     await screen.findByText("Licensed to");
@@ -1204,7 +1159,7 @@ describe("EditionLabel - with a license manager", () => {
     expect(latestProps().license.canManageLicense).toBe(false);
   });
 
-  it("tells the manager about the trial", async () => {
+  it("tells the details about the trial, and sends a master admin to the Admin Dashboard", async () => {
     respondWith(
       adminPayload({
         status: "grace",
@@ -1218,22 +1173,40 @@ describe("EditionLabel - with a license manager", () => {
       }),
     );
 
-    await renderWithManager();
+    await renderWithDetails();
     fireEvent.click(pill());
 
     await screen.findByTestId("enterprise-license-trial-notice");
 
-    expect(latestProps().license.isUnlicensedTrial).toBe(true);
     expect(latestProps().license.showLicenseDetails).toBe(false);
-    // With a manager to add it with, a master admin is pointed at it.
     expect(
       screen.getByText(
-        "Add a license below before the trial ends to keep SCIM provisioning and audit logging running and enterprise configuration editable.",
+        "Add a license in the Admin Dashboard before the trial ends to keep SCIM provisioning and audit logging running and enterprise configuration editable.",
       ),
     ).toBeInTheDocument();
   });
 
-  it("hands over no payload, and the reason, when the license could not be read", async () => {
+  it("asks a master admin to refresh a renewed license in the Admin Dashboard", async () => {
+    respondWith(
+      adminPayload({
+        status: "grace",
+        graceReason: "expired",
+        graceEndsAt: inDays(5),
+        expiresAt: inDays(-25),
+      }),
+    );
+
+    await renderWithDetails();
+    fireEvent.click(pill());
+
+    expect(
+      await screen.findByText(
+        "Renew the license with OneUptime, then refresh it in the Admin Dashboard.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("hands over no payload when the license could not be read", async () => {
     respond = (): HTTPErrorResponse => {
       return new HTTPErrorResponse(
         500,
@@ -1242,79 +1215,34 @@ describe("EditionLabel - with a license manager", () => {
       );
     };
 
-    await renderWithManager();
+    await renderWithDetails();
     fireEvent.click(pill());
 
     expect(
       await screen.findByText("Unable to load license details"),
     ).toBeInTheDocument();
     expect(latestProps().license.payload).toBeNull();
-    expect(latestProps().license.loadError).toBe(
-      "The license service is down.",
-    );
+    expect(latestProps().license.showLicenseDetails).toBe(false);
   });
 
-  it("stays mounted while the dialog is closed, and is told when it opens and closes", async () => {
-    await renderWithManager();
+  it("is drawn only while the dialog is open", async () => {
+    await renderWithDetails();
 
-    expect(latestProps().isDialogOpen).toBe(false);
-    expect(screen.queryByTestId("fake-messages")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("fake-details")).not.toBeInTheDocument();
 
     fireEvent.click(pill());
 
-    expect(await screen.findByTestId("fake-messages")).toBeInTheDocument();
-    expect(latestProps().isDialogOpen).toBe(true);
+    expect(await screen.findByTestId("fake-details")).toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId("modal-footer-close-button"));
 
-    expect(screen.queryByTestId("fake-messages")).not.toBeInTheDocument();
-    expect(latestProps().isDialogOpen).toBe(false);
-  });
-
-  it("re-reads the license when the manager asks, with a fresh payload", async () => {
-    await openWithManager();
-    await screen.findByText("Licensed to");
-
-    const before: number = fetchCalls.length;
-    const payloadBefore: LicenseManagerProps["license"]["payload"] =
-      latestProps().license.payload;
-
-    await act(async () => {
-      await latestProps().reloadLicense();
-    });
-
-    expect(fetchCalls.length).toBe(before + 1);
-    expect(fetchCalls[fetchCalls.length - 1]?.method).toBe("GET");
-    expect(latestProps().license.payload).not.toBe(payloadBefore);
-    expect(latestProps().license.payload).toEqual(payloadBefore);
-  });
-
-  it("moves the pill when the manager applies the seat fields of a license write", async () => {
-    await renderWithManager();
-
-    await waitFor(() => {
-      expect(pill()).toHaveAccessibleName("Enterprise Edition, View details");
-    });
-
-    act(() => {
-      latestProps().applySeatEnforcement({
-        isSeatLimitEnforced: true,
-        seatsInUse: 50,
-        canAddMoreUsers: false,
-      });
-    });
-
-    expect(pill()).toHaveAccessibleName(
-      "Enterprise Edition, User limit exceeded",
-    );
-    expect(latestProps().license.seatTone).toBe("breached");
-    expect(latestProps().license.effectiveUserCount).toBe(50);
+    expect(screen.queryByTestId("fake-details")).not.toBeInTheDocument();
   });
 
   it("is never rendered on the Community Edition", async () => {
     isEnterpriseEdition = false;
 
-    render(<EditionLabel licenseManager={FakeLicenseManager} />);
+    render(<EditionLabel licenseDetails={FakeLicenseDetails} />);
     fireEvent.click(
       screen.getByRole("button", { name: "Community Edition, Learn more" }),
     );
@@ -1322,15 +1250,14 @@ describe("EditionLabel - with a license manager", () => {
     expect(
       await screen.findByText(/You are running the Community Edition/),
     ).toBeInTheDocument();
-    expect(managerProps).toHaveLength(0);
-    expect(screen.queryByTestId("fake-messages")).not.toBeInTheDocument();
+    expect(detailsProps).toHaveLength(0);
   });
 
   it("is never rendered with billing enabled", async () => {
     billingEnabled = true;
 
     const { container } = render(
-      <EditionLabel licenseManager={FakeLicenseManager} />,
+      <EditionLabel licenseDetails={FakeLicenseDetails} />,
     );
 
     await act(async () => {
@@ -1338,8 +1265,275 @@ describe("EditionLabel - with a license manager", () => {
     });
 
     expect(container).toBeEmptyDOMElement();
-    expect(managerProps).toHaveLength(0);
+    expect(detailsProps).toHaveLength(0);
     expect(fetchCalls).toHaveLength(0);
+  });
+
+  /*
+   * The footer of the dialog: nothing changes the license here, and the one
+   * action takes a master admin to the page that does.
+   */
+  describe("the dialog's one action", () => {
+    const manageLicense: () => HTMLElement | null = (): HTMLElement | null => {
+      return screen.queryByRole("button", { name: "Manage license" });
+    };
+
+    let navigatedTo: Array<string> = [];
+    let navigate: jest.SpyInstance;
+
+    beforeEach(() => {
+      navigatedTo = [];
+      navigate = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((to: Route | URL): void => {
+          navigatedTo.push(to.toString());
+        });
+    });
+
+    afterEach(() => {
+      navigate.mockRestore();
+    });
+
+    it.each([
+      ["a valid license", {}],
+      [
+        "the trial",
+        { status: "grace", graceReason: "unlicensed", graceEndsAt: inDays(10) },
+      ],
+      [
+        "an expired license in its grace period",
+        { status: "grace", graceReason: "expired", graceEndsAt: inDays(5) },
+      ],
+      ["no usable license", { status: "missing", licenseValid: false }],
+      ["an invalid license", { status: "invalid", licenseValid: false }],
+    ])(
+      "takes a master admin to the license page from %s",
+      async (_name: string, overrides: Record<string, unknown>) => {
+        respondWith(adminPayload(overrides));
+
+        await openWithDetails();
+
+        fireEvent.click(manageLicense() as HTMLElement);
+
+        expect(navigatedTo).toHaveLength(1);
+        expect(navigatedTo[0]).toMatch(/\/admin\/settings\/license$/);
+        // Takes them there; it changes nothing on the way.
+        expect(postCalls()).toEqual([]);
+      },
+    );
+
+    it("closes the dialog as it leaves", async () => {
+      await openWithDetails();
+
+      fireEvent.click(manageLicense() as HTMLElement);
+
+      expect(screen.queryByTestId("fake-details")).not.toBeInTheDocument();
+    });
+
+    it("is the only action a master admin is offered", async () => {
+      await openWithDetails();
+
+      const footer: HTMLElement = screen.getByTestId(
+        "modal-footer-close-button",
+      ).parentElement as HTMLElement;
+
+      expect(
+        within(footer)
+          .getAllByRole("button")
+          .map((button: HTMLElement): string | null => {
+            return button.textContent;
+          }),
+      ).toEqual(["Close", "Manage license"]);
+      expectNoWriteControls();
+    });
+
+    it("is offered to nobody else, on any license", async () => {
+      isMasterAdmin = false;
+      respondWith(publicPayload({ status: "missing", licenseValid: false }));
+
+      await renderWithDetails();
+      fireEvent.click(pill());
+      await screen.findByText("A master admin has to activate this license");
+
+      expect(manageLicense()).not.toBeInTheDocument();
+      expectNoWriteControls();
+    });
+
+    it("is not offered without the Enterprise details, even to a master admin", async () => {
+      respondWith(adminPayload({ status: "missing", licenseValid: false }));
+
+      await openDialog();
+      await screen.findByText("A master admin has to activate this license");
+
+      expect(manageLicense()).not.toBeInTheDocument();
+    });
+
+    it("leaves the Community dialog its Talk to Sales", async () => {
+      isEnterpriseEdition = false;
+
+      render(<EditionLabel licenseDetails={FakeLicenseDetails} />);
+      fireEvent.click(
+        screen.getByRole("button", { name: "Community Edition, Learn more" }),
+      );
+
+      expect(
+        await screen.findByRole("button", { name: "Talk to Sales" }),
+      ).toBeInTheDocument();
+      expect(manageLicense()).not.toBeInTheDocument();
+    });
+  });
+
+  /*
+   * The same pill is in everybody's footer, and on the login page. It says
+   * what the reader can do about the license: somebody who cannot change it
+   * is never told to.
+   */
+  describe("what the pill asks for", () => {
+    const LICENSE_STATES: Array<[string, Record<string, unknown>, string]> = [
+      [
+        "the trial",
+        { status: "grace", graceReason: "unlicensed", graceEndsAt: inDays(10) },
+        "Add license",
+      ],
+      [
+        "an expired license in its grace period",
+        { status: "grace", graceReason: "expired", graceEndsAt: inDays(5) },
+        "Renew license",
+      ],
+      [
+        "an expired license",
+        { status: "expired", licenseValid: false },
+        "Renew license",
+      ],
+      [
+        "an invalid license",
+        { status: "invalid", licenseValid: false },
+        "Fix license",
+      ],
+      [
+        "no license",
+        { status: "missing", licenseValid: false },
+        "Validate license",
+      ],
+    ];
+
+    it.each(LICENSE_STATES)(
+      "asks a master admin to act on %s",
+      async (
+        _name: string,
+        overrides: Record<string, unknown>,
+        action: string,
+      ) => {
+        respondWith(adminPayload(overrides));
+
+        await renderWithDetails();
+
+        await waitFor(() => {
+          expect(pill().textContent).toContain(action);
+        });
+      },
+    );
+
+    it.each(LICENSE_STATES)(
+      "offers anybody else the details of %s",
+      async (
+        _name: string,
+        overrides: Record<string, unknown>,
+        action: string,
+      ) => {
+        isMasterAdmin = false;
+        respondWith(publicPayload(overrides));
+
+        await renderWithDetails();
+
+        await waitFor(() => {
+          expect(pill().textContent).toContain("View details");
+        });
+
+        expect(pill().textContent).not.toContain(action);
+      },
+    );
+
+    it.each(LICENSE_STATES)(
+      "offers a signed-out visitor on the login page the details of %s",
+      async (
+        _name: string,
+        overrides: Record<string, unknown>,
+        action: string,
+      ) => {
+        isMasterAdmin = false;
+        respondWith(publicPayload(overrides));
+
+        // The login page passes no details.
+        render(<EditionLabel />);
+
+        await waitFor(() => {
+          expect(pill().textContent).toContain("View details");
+        });
+
+        expect(pill().textContent).not.toContain(action);
+      },
+    );
+  });
+
+  /*
+   * The license page is a page of its own, and the pill sits in the header
+   * above it: it follows what the page changes without a reload.
+   */
+  describe("following the license page", () => {
+    it("reads the license again when the page announces a change", async () => {
+      respondWith(
+        adminPayload({
+          status: "grace",
+          graceReason: "unlicensed",
+          graceEndsAt: inDays(10),
+          verification: "none",
+          token: null,
+          licenseKey: null,
+        }),
+      );
+
+      await renderWithDetails();
+
+      await waitFor(() => {
+        expect(pill().textContent).toContain("Add license");
+      });
+
+      const before: number = fetchCalls.length;
+
+      respondWith(adminPayload());
+
+      act(() => {
+        announceLicenseChanged();
+      });
+
+      await waitFor(() => {
+        expect(pill()).toHaveAccessibleName("Enterprise Edition, View details");
+      });
+
+      expect(fetchCalls.length).toBe(before + 1);
+      expect(fetchCalls[fetchCalls.length - 1]?.method).toBe("GET");
+    });
+
+    it("stops listening once it is gone", async () => {
+      const { unmount } = render(
+        <EditionLabel licenseDetails={FakeLicenseDetails} />,
+      );
+
+      await waitFor(() => {
+        expect(fetchCalls.length).toBeGreaterThan(0);
+      });
+
+      unmount();
+
+      const before: number = fetchCalls.length;
+
+      act(() => {
+        announceLicenseChanged();
+      });
+
+      expect(fetchCalls.length).toBe(before);
+    });
   });
 });
 
@@ -1516,7 +1710,7 @@ describe("EditionLabel - the lapse copy and its checks", () => {
 describe("EditionLabel - a license whose expiry was never recorded", () => {
   const NO_EXPIRY_MESSAGE: string =
     "A OneUptime Enterprise license is installed, but no expiry is recorded for it, so this installation cannot tell whether it is still current. " +
-    "A master admin can re-activate the license from the edition label in the Admin Dashboard, or leave the daily license sync to fetch its expiry from oneuptime.com.";
+    "A master admin can re-activate the license on Settings > License in the Admin Dashboard, or leave the daily license sync to fetch its expiry from oneuptime.com.";
 
   // Inside the trial the classifier reports grace/unlicensed, with a token.
   const inTrial: PayloadFunction = (
@@ -1568,7 +1762,7 @@ describe("EditionLabel - a license whose expiry was never recorded", () => {
 
   /*
    * And the remedy names the license that is there. This dialog is rendered
-   * with no license manager, so nobody here can act on it and the copy is the
+   * with no license details, so nobody here can act on it and the copy is the
    * "ask a master admin" one - re-activate the license, not add a first.
    */
   it("asks for the installed license to be re-activated, not for a new one", async () => {

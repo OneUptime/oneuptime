@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39389,
-    "untranslated": 7532
+    "keys": 39593,
+    "untranslated": 7471
   },
   "sameAsEnglish": [
     " incidents",
@@ -182,6 +182,7 @@
     "Europe",
     "Exception",
     "Exceptions",
+    "Exceptions ({{count}})",
     "Exclusion",
     "Expression",
     "Fatal",
@@ -457,6 +458,7 @@
     "cluster {{name}}",
     "customer facing|tier-1",
     "db-primary",
+    "exceptions",
     "failed password",
     "frustration",
     "goroutines",
@@ -475,6 +477,7 @@
     "security-alerts",
     "services",
     "span {{spanId}}",
+    "spans",
     "storefront-web",
     "svc-backup",
     "syslog",

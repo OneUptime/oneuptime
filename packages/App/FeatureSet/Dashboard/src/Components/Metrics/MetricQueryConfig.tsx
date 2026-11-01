@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -809,9 +810,11 @@ const MetricGraphConfig: FunctionComponent<ComponentProps> = (
         )}
 
         {props.error && (
-          <p data-testid="error-message" className="mt-3 text-sm text-red-400">
-            {props.error}
-          </p>
+          <FieldError
+            message={props.error}
+            className="mt-3 text-sm text-red-400"
+            announce="none"
+          />
         )}
       </div>
     );

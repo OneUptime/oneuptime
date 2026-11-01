@@ -87,7 +87,7 @@ Ogni log viene salvato con una di sette gravità. Per i log OpenTelemetry deriva
 | **Traccia** | 1–4 |
 | **Debug** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Avviso** | 13–16 |
 | **Errore** | 17–20 |
 | **Fatal** | 21–24 |
 | **Non specificato** | Tutto il resto |
@@ -117,7 +117,7 @@ I criteri di un monitor log hanno un solo **Tipo di filtro**: **Log Count**, il 
 | **Anomalously Low** | sotto quell'intervallo |
 | **Anomalous** | fuori da quell'intervallo, in un senso o nell'altro |
 
-Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. OneUptime trasforma il conteggio in un tasso al minuto e lo confronta con la stessa ora della settimana in quella finestra. Il riferimento copre solo i servizi e le gravità del monitor: i suoi filtri di testo e di attributi non ne fanno parte. Finché quell'ora della settimana non ha abbastanza storico, il criterio sta ancora imparando e non scatta.
+Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. OneUptime trasforma il conteggio in un tasso al minuto e lo confronta con finestre della stessa durata attorno alla stessa ora delle settimane precedenti, fin dove arriva la **Finestra di riferimento**; ciò che accade adesso non fa mai parte di questo confronto. Il riferimento copre solo i servizi e le gravità del monitor: i suoi filtri di testo e di attributi non ne fanno parte. Contano anche i minuti senza log, quindi un servizio spesso silenzioso non risulta insolitamente basso per il solo fatto di tacere. Una finestra risulta insolitamente alta solo rispetto alle finestre che contenevano log, e solo con almeno 20, 10 o 5 log con sensibilità Basso, Medio o Alto, così né la solita raffica di un job né le prime righe di un servizio silenzioso lo fanno scattare. Finché i servizi del monitor non hanno due settimane di storico, il criterio sta ancora imparando e non scatta.
 
 Un monitor log creato in Crea monitor parte con la regola di ciò che avete scelto in **Di cosa deve informarti questo monitor?**:
 
@@ -248,7 +248,7 @@ I criteri vengono controllati dall'alto verso il basso e decide la prima corrisp
 :::
 
 :::details Un criterio di anomalia non scatta mai
-Sta ancora imparando: l'ora della settimana con cui confronta non ha ancora abbastanza storico. Su un monitor con **Group by Attributes**, le condizioni di anomalia non corrispondono mai; usate lì una soglia.
+Sta ancora imparando: i servizi del monitor non hanno ancora due settimane di storico. Su un monitor con **Group by Attributes**, le condizioni di anomalia non corrispondono mai; usate lì una soglia.
 :::
 
 :::details Gli avvisi di gruppo arrivano senza valore di gruppo

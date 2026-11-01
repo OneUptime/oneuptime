@@ -424,6 +424,8 @@ describePostgres("inventory mirror reconcile against Postgres", () => {
       "device.manufacturer": "Cisco Meraki",
       "device.model.name": "MX85",
       "os.description": "Meraki MX85",
+      // What its sysDescr names it (#5502).
+      "os.name": "Meraki MX firmware",
       "device.type": "Firewall",
     });
   });

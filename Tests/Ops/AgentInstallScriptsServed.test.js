@@ -293,6 +293,9 @@ function filePath(directory, file) {
   return path.join(AGENTS_DIR, directory, file);
 }
 
+// agents/ and the separator after it: what every file under it starts with.
+const AGENTS_ROOT = path.resolve(AGENTS_DIR) + path.sep;
+
 /*
  * A server that answers as each kind of OneUptime does. The first path
  * segment says which, so ONEUPTIME_URL=http://127.0.0.1:<port>/<kind> is
@@ -366,9 +369,14 @@ function startServer() {
 
     if (kind === "github") {
       const [directory, ...file] = rest;
-      const target = filePath(directory, file.join("/"));
+      /*
+       * Whatever path a request names, resolved, and read only under agents/:
+       * a ".." in it never climbs out (CodeQL's uncontrolled path in a path
+       * expression, 14.0.100's first gate).
+       */
+      const target = path.resolve(AGENTS_DIR, directory, file.join("/"));
 
-      if (fs.existsSync(target)) {
+      if (target.startsWith(AGENTS_ROOT) && fs.existsSync(target)) {
         return send(200, "text/plain; charset=utf-8", fs.readFileSync(target));
       }
 

@@ -102,9 +102,9 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 심각 | `container.memory.percent`, 클러스터의 모든 컨테이너에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
 | Task Down (Low Uptime) | 심각 | `container.uptime`, 작업별 Min, 최근 1분 | 값 중 하나가 60초 미만 | 모든 값이 66초 이상 |
-| High Task CPU Usage | Warning | `container.cpu.utilization`, 작업별 Avg, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
-| High Task Memory Usage | Warning | `container.memory.percent`, 작업별 Avg, 최근 5분 | 85% 초과 | 76.5% 이하 |
-| High Task Process Count | Warning | `container.pids.count`, 작업별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
+| High Task CPU Usage | 경고 | `container.cpu.utilization`, 작업별 Avg, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
+| High Task Memory Usage | 경고 | `container.memory.percent`, 작업별 Avg, 최근 5분 | 85% 초과 | 76.5% 이하 |
+| High Task Process Count | 경고 | `container.pids.count`, 작업별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
 

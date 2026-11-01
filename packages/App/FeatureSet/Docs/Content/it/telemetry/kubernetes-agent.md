@@ -293,7 +293,7 @@ Su uno schermo largo meno di 1024 pixel, la colonna **Evento** mostra anche **Co
 
 ### Cercare gli eventi e ricevere avvisi
 
-Ogni evento è anche un log. Un'avvertenza viene salvata con la gravità **Warning**, e ciò che dice l'evento è nei suoi attributi:
+Ogni evento è anche un log. Un'avvertenza viene salvata con la gravità **Avviso**, e ciò che dice l'evento è nei suoi attributi:
 
 | Attributo | Esempio |
 | --- | --- |

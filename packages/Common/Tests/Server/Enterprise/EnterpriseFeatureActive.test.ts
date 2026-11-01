@@ -509,7 +509,7 @@ describe("state changes are logged once per change", () => {
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.TelemetryRetention);
 
     expect(lapseWarnings()).toEqual([
-      "The OneUptime Enterprise license does not include retention overrides: it has stopped until a license that includes it is activated. A master admin can activate or renew the license from the edition label in the Admin Dashboard header.",
+      "The OneUptime Enterprise license does not include retention overrides: it has stopped until a license that includes it is activated. A master admin can activate or renew the license on Settings > License in the Admin Dashboard.",
     ]);
   });
 
@@ -533,7 +533,7 @@ describe("state changes are logged once per change", () => {
     EnterpriseEdition.isFeatureActive(EnterpriseFeature.SCIM);
 
     expect(lapseWarnings()).toEqual([
-      "The OneUptime Enterprise license does not include SCIM provisioning: it has stopped until a license that includes it is activated. A master admin can activate or renew the license from the edition label in the Admin Dashboard header.",
+      "The OneUptime Enterprise license does not include SCIM provisioning: it has stopped until a license that includes it is activated. A master admin can activate or renew the license on Settings > License in the Admin Dashboard.",
     ]);
   });
 

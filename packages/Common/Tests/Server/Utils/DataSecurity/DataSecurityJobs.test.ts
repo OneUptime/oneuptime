@@ -4,9 +4,11 @@ import {
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_SCAN_STORE_JOB,
   DATA_SECURITY_SCAN_TELEMETRY_JOB,
+  DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB,
   queueDataSecurityConnectionRead,
   queueDataSecurityDiscovery,
   queueDataSecurityEvaluation,
+  queueDataSecurityFieldSuggestions,
   queueDataSecurityTelemetryScan,
   queueDataStoreScan,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityJobs";
@@ -134,6 +136,21 @@ const CASES: Array<{
       cloudConnectionId: CONNECTION_ID.toString(),
     },
   },
+  {
+    what: "a store's field suggestions",
+    queue: () => {
+      return queueDataSecurityFieldSuggestions({
+        projectId: PROJECT_ID,
+        dataStoreId: STORE_ID,
+      });
+    },
+    jobName: "DataSecurity:SuggestFieldTypes",
+    key: `data-security-suggest-${STORE_ID.toString()}`,
+    payload: {
+      projectId: PROJECT_ID.toString(),
+      dataStoreId: STORE_ID.toString(),
+    },
+  },
 ];
 
 describe("the Data Security job names", () => {
@@ -151,6 +168,9 @@ describe("the Data Security job names", () => {
     expect(DATA_SECURITY_SCAN_STORE_JOB).toBe("DataSecurity:ScanStore");
     expect(DATA_SECURITY_READ_CONNECTION_JOB).toBe(
       "DataSecurity:ReadConnection",
+    );
+    expect(DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB).toBe(
+      "DataSecurity:SuggestFieldTypes",
     );
   });
 });

@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import {
   PacketCaptureFilterMode,
   PacketCaptureFilterValue,
@@ -266,7 +267,11 @@ const PacketCaptureFilterInput: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && props.error !== build.error ? (
-        <p className="text-xs text-red-600">{props.error}</p>
+        <FieldError
+          message={props.error}
+          className="text-xs text-red-600"
+          announce="none"
+        />
       ) : (
         <></>
       )}

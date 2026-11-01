@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -12,6 +13,8 @@ const TEMPLATES_DIR: string = Path.resolve(
   "../../FeatureSet/Notification/Templates",
 );
 const handlebars: typeof Handlebars = Handlebars.create();
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(handlebars);
 const HOME_URL: string = "https://oneuptime.example.com";
 const STATUS_URL: string = "https://status.example.com";
 const LOGO_URL: string = "https://status.example.com/customer-logo.png";

@@ -102,11 +102,11 @@ Ett kriterium utlöses bara när villkoret gäller varje minut i fönstret, och 
 | Mall | Allvarlighetsgrad | Övervakar | Utlöses när | Återställs när |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritisk | `system.memory.usage`, Count, senaste 10 minuterna | Inga data under hela fönstret | Data kommer in igen |
-| High CPU Utilization | Warning | `system.cpu.utilization` för tillstånden `user` och `system`, adderade och visade som procent, senaste 5 minuterna | Över 80 % | Vid eller under 72 % |
-| High Memory Utilization | Warning | `system.memory.utilization` för tillståndet `used`, som procent, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
+| High CPU Utilization | Varning | `system.cpu.utilization` för tillstånden `user` och `system`, adderade och visade som procent, senaste 5 minuterna | Över 80 % | Vid eller under 72 % |
+| High Memory Utilization | Varning | `system.memory.utilization` för tillståndet `used`, som procent, senaste 5 minuterna | Över 85 % | Vid eller under 76,5 % |
 | High Filesystem Usage | Kritisk | `system.filesystem.utilization`, Max per `mountpoint` och `device`, som procent, senaste 5 minuterna | Över 90 % | Vid eller under 81 % |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, senaste 5 minuterna | Över 4 | Vid eller under 3,6 |
-| High Process Count | Warning | `system.processes.count`, Max, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
+| High Load Average (1m) | Varning | `system.cpu.load_average.1m`, Avg, senaste 5 minuterna | Över 4 | Vid eller under 3,6 |
+| High Process Count | Varning | `system.processes.count`, Max, senaste 5 minuterna | Över 2000 | Vid eller under 1800 |
 
 **Allvarlighetsgrad** är etiketten som väljaren visar. Incidenten och larmet som en mall skapar börjar på projektets allvarligaste incident- och larmgrad; ändra dem i kriterierna.
 

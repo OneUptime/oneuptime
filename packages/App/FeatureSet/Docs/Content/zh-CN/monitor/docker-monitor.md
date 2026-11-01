@@ -91,11 +91,11 @@ flowchart TB
 | 模板 | 严重程度 | 监控内容 | 触发时机 | 恢复时机 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 严重 | `container.memory.percent`，对主机上所有容器取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
-| High Container CPU Usage | Warning | `container.cpu.utilization`，按容器取 Max，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
-| High Container Memory Usage | Warning | `container.memory.percent`，按容器取 Max，最近 5 分钟 | 高于 85% | 不高于 76.5% |
+| High Container CPU Usage | 警告 | `container.cpu.utilization`，按容器取 Max，最近 5 分钟 | 高于 80（单个核心的 %） | 不高于 72 |
+| High Container Memory Usage | 警告 | `container.memory.percent`，按容器取 Max，最近 5 分钟 | 高于 85% | 不高于 76.5% |
 | Container Restart Loop | 严重 | `container.restarts.increase`，按容器取 Sum，最近 15 分钟 | 窗口内重启超过 3 次（总和） | 2.7 或更少 |
-| Container CPU Throttling | Warning | 每个容器 `container.cpu.throttling_data.throttled_time` 的增长（ms），最近 5 分钟 | 窗口内超过 1000 ms（总和） | 900 ms 或更少 |
-| High Container Process Count | Warning | `container.pids.count`，按容器取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
+| Container CPU Throttling | 警告 | 每个容器 `container.cpu.throttling_data.throttled_time` 的增长（ms），最近 5 分钟 | 窗口内超过 1000 ms（总和） | 900 ms 或更少 |
+| High Container Process Count | 警告 | `container.pids.count`，按容器取 Max，最近 5 分钟 | 高于 2000 | 不高于 1800 |
 | Container Restarted (Low Uptime) | 严重 | `container.uptime`，按容器取 Min，最近 1 分钟 | 低于 120 秒 | 不低于 132 秒 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。

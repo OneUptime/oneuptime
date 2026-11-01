@@ -112,6 +112,9 @@ describe("ProxmoxMetricCatalog", () => {
  * series summed "to count the nodes" read twice the nodes, and a lifetime
  * counter summed read twice its total. No default adds scrapes together.
  */
+// A description that says to add a series' scrapes together to count.
+const SAYS_TO_SUM: RegExp = /sum (it )?to count|sum across/i;
+
 describe("ProxmoxMetricCatalog - defaults that do not add scrapes together (regression)", () => {
   test("no metric defaults to Sum", () => {
     for (const metric of getAllProxmoxMetrics()) {
@@ -126,7 +129,7 @@ describe("ProxmoxMetricCatalog - defaults that do not add scrapes together (regr
     for (const metric of getAllProxmoxMetrics()) {
       expect({
         id: metric.id,
-        says: /sum (it )?to count|sum across/i.test(metric.description),
+        says: SAYS_TO_SUM.test(metric.description),
       }).toEqual({ id: metric.id, says: false });
     }
   });

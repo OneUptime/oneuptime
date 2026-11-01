@@ -2,24 +2,24 @@
 
 {{> CustomLogo this}}
 
-{{> EmailTitle title=(concat "New Incident: " incidentTitle) }}
+{{> EmailTitle title=(tt "New Incident: {{title}}" title=incidentTitle) }}
 
-{{> InfoBlock info="A new incident has been reported that may affect the services you're subscribed to."}}
+{{> InfoBlock info=(tHtml "A new incident has been reported that may affect the services you're subscribed to.")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident" plainText=incidentTitle }}
-{{> DetailBoxField title="Severity" plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
-{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{> DetailBoxField title=(t "Incident") plainText=incidentTitle }}
+{{> DetailBoxField title=(t "Severity") plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
+{{> DetailBoxField title=(t "Affected Resources") text=resourcesAffected  }}
 {{> IncidentCustomFieldRows this }}
 {{#if incidentDescription}}
-{{> DetailBoxField title="Description" blockText=incidentDescription  }}
+{{> DetailBoxField title=(t "Description") blockText=incidentDescription  }}
 {{/if}}
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}
-{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Incident Details"}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText=(t "View Incident Details")}}
 {{else}}
-{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText=(t "View Status Page")}}
 {{/if}}
 
 {{> VerticalSpace this}}

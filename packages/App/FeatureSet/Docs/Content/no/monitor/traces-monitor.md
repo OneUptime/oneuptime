@@ -114,7 +114,7 @@ Kriteriene til en trasemonitor har én **Filtertype**: **Span Count**, antallet 
 | **Anomalously Low** | under det området |
 | **Anomalous** | utenfor det området, i hvilken som helst retning |
 
-Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. OneUptime gjør antallet om til en rate per minutt og sammenligner den med samme time i uken over det vinduet. Grunnlinjen dekker bare monitorens tjenester og span-statuser: filtrene på span-navn og attributter inngår ikke. Inntil den timen i uken har nok historikk, lærer kriteriet fortsatt og utløses ikke.
+Avviksvilkårene har ingen **Verdi**. Velg en **Følsomhet** (Lav, Middels, som er standard, eller Høy) og, i de egne kriteriene, et **Grunnlinjevindu** på 14 (standard), 28, 60 eller 90 dager. OneUptime gjør antallet om til en rate per minutt og sammenligner den med vinduer av samme lengde rundt samme tidspunkt i tidligere uker, så langt tilbake som **Grunnlinjevindu** rekker; det som skjer nå, er aldri del av sammenligningen. Grunnlinjen dekker bare monitorens tjenester og span-statuser: filtrene på span-navn og attributter inngår ikke. Minutter uten spans teller også, så en tjeneste som ofte er stille, regnes ikke som uvanlig lav fordi den er stille. Et vindu regnes bare som uvanlig høyt mot vinduene som hadde spans, og bare med minst 20, 10 eller 5 spans ved følsomheten Lav, Middels eller Høy, så verken en jobbs vanlige utbrudd eller de første spansene fra en stille tjeneste utløser det. Inntil monitorens tjenester har to ukers historikk, lærer kriteriet fortsatt og utløses ikke.
 
 En trasemonitor som er opprettet i Opprett monitor, starter med regelen for det du valgte under **Hva skal denne overvåkingen fortelle deg om?**:
 
@@ -166,7 +166,7 @@ De fleste instrumenteringer lar vellykkede spans stå som UNSET, ikke OK (se [Sp
 :::
 
 :::details Et avvikskriterium utløses aldri
-Det lærer fortsatt: timen i uken det sammenligner med, har ikke nok historikk ennå innenfor **Grunnlinjevindu**.
+Det lærer fortsatt: monitorens tjenester har ikke to ukers historikk ennå innenfor **Grunnlinjevindu**.
 :::
 
 ## Neste steg

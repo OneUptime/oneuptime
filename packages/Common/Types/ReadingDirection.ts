@@ -192,6 +192,75 @@ export const getTextReadingDirectionByMostLetters: (
     : LEFT_TO_RIGHT;
 };
 
+/*
+ * A VALUE PUT INTO A SENTENCE, SET APART FROM IT.
+ *
+ * A sentence the product writes around a value - "Read from the Meraki
+ * dashboard ({{name}}), {{time}}." - is laid out by the Unicode bidi
+ * algorithm as one paragraph. In a Persian sentence a name in Latin letters
+ * is a left-to-right run, and a number after it joins that run: the
+ * digit and the comma of "... (Acme Retail)، ۴ دقیقه پیش." were drawn
+ * beside the name, before the words they belong with. Set apart in a
+ * Unicode isolate (FSI ... PDI) a value reads as one piece where the
+ * sentence puts it, the way its own first letter reads, and nothing
+ * around it moves.
+ *
+ * Only a value that could move its neighbours is set apart: in a sentence
+ * read right to left, one with a letter of a left-to-right script or a
+ * digit in it - a name, an address, a time, a count; in a sentence read
+ * left to right, one with a letter of a right-to-left script - a Persian
+ * name on an English page. A value of the sentence's own script (a Persian
+ * word in a Persian sentence) is left as it is. Only the start of a value
+ * is read (TEXT_DIRECTION_SCAN_LENGTH).
+ */
+export const FIRST_STRONG_ISOLATE: string = String.fromCharCode(0x2068);
+
+export const POP_DIRECTIONAL_ISOLATE: string = String.fromCharCode(0x2069);
+
+// One decimal digit, of any script: "4", "۴".
+const DIGIT_REGEX: RegExp = /^\p{Nd}$/u;
+
+export const isSetApartInSentence: (
+  value: string,
+  sentenceDirection: ReadingDirection,
+) => boolean = (
+  value: string,
+  sentenceDirection: ReadingDirection,
+): boolean => {
+  if (!value) {
+    return false;
+  }
+
+  for (const character of value.slice(0, TEXT_DIRECTION_SCAN_LENGTH)) {
+    if (LETTER_REGEX.test(character)) {
+      const isRightToLeftLetter: boolean =
+        RIGHT_TO_LEFT_LETTER_REGEX.test(character);
+
+      if (isRightToLeftLetter !== (sentenceDirection === RIGHT_TO_LEFT)) {
+        return true;
+      }
+
+      continue;
+    }
+
+    if (sentenceDirection === RIGHT_TO_LEFT && DIGIT_REGEX.test(character)) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+// The value as a sentence read `sentenceDirection` holds it (isSetApartInSentence).
+export const setApartInSentence: (
+  value: string,
+  sentenceDirection: ReadingDirection,
+) => string = (value: string, sentenceDirection: ReadingDirection): string => {
+  return isSetApartInSentence(value, sentenceDirection)
+    ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
+    : value;
+};
+
 export const getTextReadingDirection: (
   text: string | null | undefined,
 ) => ReadingDirection | null = (

@@ -230,8 +230,8 @@ switching editions needs no migration in either direction.
 4. **On the Enterprise Edition, activate a license.** An install with no license
    gets a 14-day trial, counted from its first start of the Enterprise Edition —
    for an upgrade that is the day you upgrade, not the day you first installed
-   OneUptime. A master admin activates it from the edition label in the Admin
-   Dashboard header; air-gapped installs activate with a signed token instead.
+   OneUptime. A master admin activates it on Settings > License in the Admin
+   Dashboard; air-gapped installs activate with a signed token instead.
    See [Licensing](/docs/self-hosted/enterprise#licensing).
 5. **If this install will run the Community Edition while your identity
    provider deprovisions users through SCIM, review who has access before you
@@ -302,7 +302,7 @@ either direction.
   of the Enterprise Edition, and after the trial the same things stop as above.
   The seat limit is not enforced while the license is in this state, because the
   license record this install holds is already incomplete. A master admin
-  re-activating the license from the edition label, or the daily license sync
+  re-activating the license on Settings > License, or the daily license sync
   fetching the expiry from oneuptime.com, restores it without a restart.
 
 See

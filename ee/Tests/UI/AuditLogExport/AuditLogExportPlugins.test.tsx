@@ -45,6 +45,7 @@ import {
   EnterpriseSettingsSideMenuItems,
 } from "../../../AdminDashboard/EnterpriseSettings";
 import { WHITE_LABEL_SETTINGS_PAGE_PATH } from "../../../AdminDashboard/WhiteLabel/WhiteLabelSettingsAPI";
+import { LICENSE_SETTINGS_PAGE_PATH } from "Common/UI/Components/EditionLabel/LicenseSettingsPage";
 import {
   EnterpriseSettingsPage,
   getEnterpriseSettingsPageRoute,
@@ -110,12 +111,13 @@ describe("the Admin Dashboard plugin", () => {
     expect(typeof pages[0]!.component).toBe("object");
   });
 
-  test("merges its page with Backups', Custom Channels' and White Label's: the plugin keeps them all", () => {
+  test("merges its page with License's, Backups', Custom Channels' and White Label's: the plugin keeps them all", () => {
     expect(
       ENTERPRISE_SETTINGS_PAGES.map((page: EnterpriseSettingsPage) => {
         return page.path;
       }),
     ).toEqual([
+      LICENSE_SETTINGS_PAGE_PATH,
       AUDIT_LOG_EXPORT_SETTINGS_PAGE_PATH,
       BACKUPS_SETTINGS_PAGE_PATH,
       CUSTOM_CHANNELS_SETTINGS_PAGE_PATH,

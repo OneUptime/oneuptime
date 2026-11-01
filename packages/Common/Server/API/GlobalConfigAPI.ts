@@ -197,8 +197,8 @@ export default class GlobalConfigAPI extends BaseAPI<
     );
 
     /*
-     * The license state of this installation, for the edition pill and the
-     * license dialog.
+     * The license state of this installation, for the edition pill, its
+     * read-only dialog and the Admin Dashboard's license page.
      *
      * This route stays in core so the Community Edition can still serve the
      * version and update-check half of the dialog. The license half comes

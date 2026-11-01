@@ -91,11 +91,11 @@ flowchart TB
 | الگو | شدت | چه چیزی را پایش می‌کند | چه وقت فعال می‌شود | چه وقت بهبود می‌یابد |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | بحرانی | `container.memory.percent`، Count روی همه کانتینرهای میزبان، ۱۰ دقیقه گذشته | در تمام پنجره هیچ داده‌ای نیست | داده دوباره می‌رسد |
-| High Container CPU Usage | Warning | `container.cpu.utilization`، Max به ازای هر کانتینر، ۵ دقیقه گذشته | بیش از ۸۰ (درصدِ یک هسته) | ۷۲ یا کمتر |
-| High Container Memory Usage | Warning | `container.memory.percent`، Max به ازای هر کانتینر، ۵ دقیقه گذشته | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
+| High Container CPU Usage | هشدار | `container.cpu.utilization`، Max به ازای هر کانتینر، ۵ دقیقه گذشته | بیش از ۸۰ (درصدِ یک هسته) | ۷۲ یا کمتر |
+| High Container Memory Usage | هشدار | `container.memory.percent`، Max به ازای هر کانتینر، ۵ دقیقه گذشته | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
 | Container Restart Loop | بحرانی | `container.restarts.increase`، Sum به ازای هر کانتینر، ۱۵ دقیقه گذشته | بیش از ۳ راه‌اندازی دوباره در پنجره (جمع) | ۲٫۷ یا کمتر |
-| Container CPU Throttling | Warning | رشد `container.cpu.throttling_data.throttled_time` بر حسب ms به ازای هر کانتینر، ۵ دقیقه گذشته | بیش از ۱۰۰۰ ms در پنجره (جمع) | ۹۰۰ ms یا کمتر |
-| High Container Process Count | Warning | `container.pids.count`، Max به ازای هر کانتینر، ۵ دقیقه گذشته | بیش از ۲۰۰۰ | ۱۸۰۰ یا کمتر |
+| Container CPU Throttling | هشدار | رشد `container.cpu.throttling_data.throttled_time` بر حسب ms به ازای هر کانتینر، ۵ دقیقه گذشته | بیش از ۱۰۰۰ ms در پنجره (جمع) | ۹۰۰ ms یا کمتر |
+| High Container Process Count | هشدار | `container.pids.count`، Max به ازای هر کانتینر، ۵ دقیقه گذشته | بیش از ۲۰۰۰ | ۱۸۰۰ یا کمتر |
 | Container Restarted (Low Uptime) | بحرانی | `container.uptime`، Min به ازای هر کانتینر، ۱ دقیقه گذشته | کمتر از ۱۲۰ ثانیه | ۱۳۲ ثانیه یا بیشتر |
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک الگو می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.

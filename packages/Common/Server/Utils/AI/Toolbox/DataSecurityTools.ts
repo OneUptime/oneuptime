@@ -454,6 +454,8 @@ async function readOneStore(
           valueCount: true,
           distinctValues: true,
           isScrubbed: true,
+          isAiSuggested: true,
+          isConfirmed: true,
           lastSeenAt: true,
         },
         sort: { matchCount: SortOrder.Descending },
@@ -537,6 +539,14 @@ async function readOneStore(
               ofValuesSampled: finding.valueCount || 0,
               distinctValues: finding.distinctValues || 0,
               scrubbedAtIngest: Boolean(finding.isScrubbed),
+              /*
+               * OneUptime AI's suggestion from the field's name and the
+               * shapes of its values: it counts only once a person confirms it.
+               */
+              ...(finding.isAiSuggested
+                ? { suggestedByOneUptimeAi: true }
+                : {}),
+              ...(finding.isConfirmed ? { confirmedByAPerson: true } : {}),
               lastSeenAt: finding.lastSeenAt || null,
             };
           }),

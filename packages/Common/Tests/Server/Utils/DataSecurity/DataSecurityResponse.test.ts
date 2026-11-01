@@ -180,11 +180,19 @@ describe("what a store can take now", () => {
     });
   }
 
-  test("a bucket whose connection has the response on can be blocked", async () => {
+  test("a bucket whose connection has the response on can be blocked, versioned and rid of its ACLs", async () => {
     expect(await availability()).toEqual({
       actions: [
         {
           action: DataSecurityResponseAction.BlockPublicAccess,
+          isAvailable: true,
+        },
+        {
+          action: DataSecurityResponseAction.TurnOnVersioning,
+          isAvailable: true,
+        },
+        {
+          action: DataSecurityResponseAction.TurnOffObjectAcls,
           isAvailable: true,
         },
       ],
@@ -202,12 +210,16 @@ describe("what a store can take now", () => {
 
     expect(await availability()).toEqual({
       actions: [
-        {
-          action: DataSecurityResponseAction.BlockPublicAccess,
+        DataSecurityResponseAction.BlockPublicAccess,
+        DataSecurityResponseAction.TurnOnVersioning,
+        DataSecurityResponseAction.TurnOffObjectAcls,
+      ].map((action: DataSecurityResponseAction) => {
+        return {
+          action,
           isAvailable: false,
           unavailableReason: DataSecurityResponseUnavailableReason.ResponseOff,
-        },
-      ],
+        };
+      }),
       cloudConnectionId: CONNECTION_ID.toString(),
     });
   });
@@ -255,11 +267,31 @@ describe("what a store can take now", () => {
       isPublicByDesign: true,
     });
 
+    // Public by design keeps it public: hardening it is still offered.
     expect((await availability()).actions).toEqual([
       {
         action: DataSecurityResponseAction.BlockPublicAccess,
         isAvailable: false,
         unavailableReason: DataSecurityResponseUnavailableReason.PublicByDesign,
+      },
+      {
+        action: DataSecurityResponseAction.TurnOnVersioning,
+        isAvailable: true,
+      },
+      {
+        action: DataSecurityResponseAction.TurnOffObjectAcls,
+        isAvailable: true,
+      },
+    ]);
+  });
+
+  test("a DynamoDB table can have its point-in-time recovery turned on", async () => {
+    store = storeOf({ kind: DataStoreKind.AwsDynamoDbTable, name: "orders" });
+
+    expect((await availability()).actions).toEqual([
+      {
+        action: DataSecurityResponseAction.TurnOnPointInTimeRecovery,
+        isAvailable: true,
       },
     ]);
   });
@@ -281,7 +313,7 @@ describe("what a store can take now", () => {
   test.each([
     DataStoreKind.PostgreSql,
     DataStoreKind.TelemetryLogs,
-    DataStoreKind.AwsDynamoDbTable,
+    DataStoreKind.AwsRedshiftCluster,
   ])(
     "a %s takes no action, and nothing else is read",
     async (kind: DataStoreKind) => {
@@ -528,5 +560,165 @@ describe("running one", () => {
       "No manual snapshot of billing was shared",
     );
     expect(rdsSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("running a hardening action", () => {
+  const AZURE_ID: string =
+    "/subscriptions/d0cfe6b2-9ac0-4464-9919-dccaee2e48c0/resourceGroups/rg-data/providers/Microsoft.Storage/storageAccounts/acmepublic";
+  const CHANGED: { changed: boolean; summary: string } = {
+    changed: true,
+    summary: "Changed it.",
+  };
+
+  async function run(
+    action: DataSecurityResponseAction,
+  ): Promise<{ changed: boolean; summary: string }> {
+    return await DataSecurityResponse.run({
+      projectId: PROJECT_ID,
+      dataStoreId: STORE_ID,
+      action,
+      userId: USER_ID,
+    });
+  }
+
+  test("an S3 bucket's versioning and object ACLs: the bucket, its Region and its account go to AWS", async () => {
+    const versioning: jest.SpyInstance = jest
+      .spyOn(AwsResponse, "turnOnS3BucketVersioning")
+      .mockResolvedValue(CHANGED);
+    const ownership: jest.SpyInstance = jest
+      .spyOn(AwsResponse, "enforceS3BucketOwnership")
+      .mockResolvedValue(CHANGED);
+    const bucket: JSONObject = {
+      connectionId: CONNECTION_ID,
+      bucket: "customer-exports",
+      region: "eu-west-1",
+      accountNumber: "123456789012",
+    };
+
+    await run(DataSecurityResponseAction.TurnOnVersioning);
+    await run(DataSecurityResponseAction.TurnOffObjectAcls);
+
+    expect(versioning).toHaveBeenCalledWith(SETTINGS, bucket);
+    expect(ownership).toHaveBeenCalledWith(SETTINGS, bucket);
+    expect(s3Spy).not.toHaveBeenCalled();
+    // The store's feed says what was done, and the store is read again.
+    expect(storeFeedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        feedInfoInMarkdown:
+          "**Turn on versioning**, through the store's cloud connection: Changed it. The store is being checked again.",
+      }),
+    );
+    expect(readSpy).toHaveBeenCalledTimes(2);
+  });
+
+  test("a Cloud Storage bucket's versioning and uniform access: its name goes to Google Cloud", async () => {
+    store = storeOf({
+      kind: DataStoreKind.GcpStorageBucket,
+      name: "acme-public",
+    });
+    const versioning: jest.SpyInstance = jest
+      .spyOn(GcpResponse, "turnOnGcsBucketVersioning")
+      .mockResolvedValue(CHANGED);
+    const uniform: jest.SpyInstance = jest
+      .spyOn(GcpResponse, "turnOnGcsUniformAccess")
+      .mockResolvedValue(CHANGED);
+    const bucket: JSONObject = {
+      connectionId: CONNECTION_ID.toString(),
+      bucket: "acme-public",
+    };
+
+    await run(DataSecurityResponseAction.TurnOnVersioning);
+    await run(DataSecurityResponseAction.TurnOnUniformAccess);
+
+    expect(versioning).toHaveBeenCalledWith(SETTINGS, bucket);
+    expect(uniform).toHaveBeenCalledWith(SETTINGS, bucket);
+  });
+
+  test("an Azure storage account's soft delete and secure transfer: its resource id goes to Azure", async () => {
+    store = storeOf({
+      kind: DataStoreKind.AzureStorageAccount,
+      name: "acmepublic",
+      providerResourceId: AZURE_ID,
+    });
+    const softDelete: jest.SpyInstance = jest
+      .spyOn(AzureResponse, "turnOnAzureBlobSoftDelete")
+      .mockResolvedValue(CHANGED);
+    const transfer: jest.SpyInstance = jest
+      .spyOn(AzureResponse, "requireAzureSecureTransfer")
+      .mockResolvedValue(CHANGED);
+    const account: JSONObject = {
+      connectionId: CONNECTION_ID.toString(),
+      resourceId: AZURE_ID,
+    };
+
+    await run(DataSecurityResponseAction.TurnOnSoftDelete);
+    await run(DataSecurityResponseAction.RequireSecureTransfer);
+
+    expect(softDelete).toHaveBeenCalledWith(SETTINGS, account);
+    expect(transfer).toHaveBeenCalledWith(SETTINGS, account);
+    expect(azureSpy).not.toHaveBeenCalled();
+  });
+
+  test("a DynamoDB table's point-in-time recovery: the table, its Region and its account go to AWS", async () => {
+    store = storeOf({ kind: DataStoreKind.AwsDynamoDbTable, name: "orders" });
+    const recovery: jest.SpyInstance = jest
+      .spyOn(AwsResponse, "turnOnDynamoDbPointInTimeRecovery")
+      .mockResolvedValue({
+        changed: false,
+        summary:
+          "Point-in-time recovery was already on for table orders; nothing changed.",
+      });
+
+    const outcome: { changed: boolean; summary: string } = await run(
+      DataSecurityResponseAction.TurnOnPointInTimeRecovery,
+    );
+
+    expect(recovery).toHaveBeenCalledWith(SETTINGS, {
+      connectionId: CONNECTION_ID,
+      table: "orders",
+      region: "eu-west-1",
+      accountNumber: "123456789012",
+    });
+    expect(outcome.changed).toBe(false);
+    // Nothing changed: the timeline says so, grey, and nothing is read again.
+    expect(storeFeedSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        feedInfoInMarkdown:
+          "**Turn on point-in-time recovery** changed nothing: Point-in-time recovery was already on for table orders; nothing changed.",
+        displayColor: Gray500,
+      }),
+    );
+    expect(readSpy).not.toHaveBeenCalled();
+  });
+
+  test("an action a store of its kind does not take is refused before any cloud is asked", async () => {
+    const recovery: jest.SpyInstance = jest.spyOn(
+      AwsResponse,
+      "turnOnDynamoDbPointInTimeRecovery",
+    );
+
+    await expect(
+      run(DataSecurityResponseAction.TurnOnPointInTimeRecovery),
+    ).rejects.toThrow(BadDataException);
+    await expect(
+      run(DataSecurityResponseAction.RequireSecureTransfer),
+    ).rejects.toThrow(BadDataException);
+    expect(recovery).not.toHaveBeenCalled();
+  });
+
+  test("a bucket marked public by design is still hardened: only blocking it is held back", async () => {
+    store = storeOf({
+      kind: DataStoreKind.AwsS3Bucket,
+      isPublicByDesign: true,
+    });
+    const versioning: jest.SpyInstance = jest
+      .spyOn(AwsResponse, "turnOnS3BucketVersioning")
+      .mockResolvedValue(CHANGED);
+
+    await expect(
+      run(DataSecurityResponseAction.TurnOnVersioning),
+    ).resolves.toEqual(CHANGED);
+    expect(versioning).toHaveBeenCalledTimes(1);
   });
 });

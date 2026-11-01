@@ -124,7 +124,7 @@ Avvikelseidentifiering mot en baslinje behöver ingen tröskel. Välj ett av de 
 | **Anomalously Low** | Sjunker under det förväntade intervallet |
 | **Anomalous** | Lämnar det förväntade intervallet åt något håll |
 
-Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga larm förrän det finns minst det valda baslinjefönstret av måtthistorik.
+Varje mätning jämförs med en baslinje för samma timme i veckan, byggd från **Baslinjefönster** (14 dagar som standard; 28, 60 eller 90 dagar). **Känslighet** anger hur brett det förväntade intervallet är: **Låg (4σ — endast grova avvikelser)**, **Medel (3σ — rekommenderas)**, som är standard, eller **Hög (2σ — brusigare, mycket stabila tjänster)**. Avvikelsevillkor stannar i ett "Learning"-läge och ger inga larm förrän den timmen i veckan har två veckors historik.
 
 **Om ingen data**, under **Fler fält**, avgör vad som händer när frågan inte returnerar något i fönstret: **Ignore** (standard) matchar inte, **Utlösare** behandlar tystnaden som problemet och **Treat As Zero** jämför en nolla. Tid då OneUptime själv inte tog emot data är aldrig saknade data: en kontroll vars fönster innehåller sådan tid väntar i stället, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
@@ -136,25 +136,25 @@ Listan under **Vad som ska larmas om** visar de här mallarna, grupperade efter 
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Tillgänglighet | Inga data kommer från klustrets agent på 10 minuter | Kritisk |
 | CrashLoopBackOff Detection | Arbetsbelastning | En container startades om inom 15 minuter och var redo mindre än hälften av dem | Kritisk |
-| Pod Stuck in Pending | Schemaläggning | Någon podd är i fasen Pending i varje mätning under ett fönster på 15 minuter | Warning |
+| Pod Stuck in Pending | Schemaläggning | Någon podd är i fasen Pending i varje mätning under ett fönster på 15 minuter | Varning |
 | Node Not Ready | Nod | En nod rapporterar NotReady eller slutar rapportera sin status (Unknown) | Kritisk |
-| Node Under Pressure | Nod | En nod rapporterar MemoryPressure, DiskPressure eller PIDPressure i 10 minuter | Warning |
-| High Node CPU Utilization | Nod | En nods genomsnittliga CPU-användning är över 90 % av dess allokerbara CPU | Warning |
-| High Node Memory Utilization | Nod | En nods genomsnittliga working set-minne är över 85 % av dess allokerbara minne | Warning |
-| Deployment Replica Mismatch | Arbetsbelastning | En deployment har färre tillgängliga repliker än önskat i 15 minuter | Warning |
-| StatefulSet Replica Mismatch | Arbetsbelastning | Ett StatefulSet har färre redo repliker än önskat i 15 minuter | Warning |
-| Job Failures | Arbetsbelastning | En podd i ett job misslyckades inom 15 minuter | Warning |
+| Node Under Pressure | Nod | En nod rapporterar MemoryPressure, DiskPressure eller PIDPressure i 10 minuter | Varning |
+| High Node CPU Utilization | Nod | En nods genomsnittliga CPU-användning är över 90 % av dess allokerbara CPU | Varning |
+| High Node Memory Utilization | Nod | En nods genomsnittliga working set-minne är över 85 % av dess allokerbara minne | Varning |
+| Deployment Replica Mismatch | Arbetsbelastning | En deployment har färre tillgängliga repliker än önskat i 15 minuter | Varning |
+| StatefulSet Replica Mismatch | Arbetsbelastning | Ett StatefulSet har färre redo repliker än önskat i 15 minuter | Varning |
+| Job Failures | Arbetsbelastning | En podd i ett job misslyckades inom 15 minuter | Varning |
 | etcd No Leader | Kontrollplan | etcd har ingen vald ledare | Kritisk |
 | API Server Request Saturation | Kontrollplan | API-servern håller 200 eller fler pågående begäranden under hela fönstret | Kritisk |
-| Scheduler Backlog | Schemaläggning | Schemaläggarens kö av väntande poddar är inte tom på 5 minuter | Warning |
-| High Node Disk Usage | Lagring | En nods filsystem är mer än 90 % fullt | Warning |
-| DaemonSet Pods Not Ready | Arbetsbelastning | Ett DaemonSet har noder utan en redo podd från det i 15 minuter | Warning |
-| DaemonSet Misscheduled Nodes | Arbetsbelastning | Ett DaemonSet kör poddar på noder som inte längre matchar dess nodselektor, affinitet eller toleranser | Warning |
-| High Node CPU Request Commitment | Nod | En nods summerade CPU-förfrågningar från containrar överstiger 90 % av dess allokerbara CPU | Warning |
-| High Node Memory Request Commitment | Nod | En nods summerade minnesförfrågningar från containrar överstiger 90 % av dess allokerbara minne | Warning |
+| Scheduler Backlog | Schemaläggning | Schemaläggarens kö av väntande poddar är inte tom på 5 minuter | Varning |
+| High Node Disk Usage | Lagring | En nods filsystem är mer än 90 % fullt | Varning |
+| DaemonSet Pods Not Ready | Arbetsbelastning | Ett DaemonSet har noder utan en redo podd från det i 15 minuter | Varning |
+| DaemonSet Misscheduled Nodes | Arbetsbelastning | Ett DaemonSet kör poddar på noder som inte längre matchar dess nodselektor, affinitet eller toleranser | Varning |
+| High Node CPU Request Commitment | Nod | En nods summerade CPU-förfrågningar från containrar överstiger 90 % av dess allokerbara CPU | Varning |
+| High Node Memory Request Commitment | Nod | En nods summerade minnesförfrågningar från containrar överstiger 90 % av dess allokerbara minne | Varning |
 | HPA Saturated at Max Replicas | Arbetsbelastning | En HPA som skalats över sin `minReplicas` kör på 90 % eller mer av sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars minnesgräns | Kritisk |
-| Pod CPU Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars CPU-gräns | Warning |
+| Pod CPU Saturating Container Limit | Arbetsbelastning | En podd använder mer än 90 % av sina containrars CPU-gräns | Varning |
 
 Mallar på mätvärden per objekt utvärderar varje nod, podd, deployment, job, DaemonSet eller HPA för sig, så att ett kluster med flera ohälsosamma poddar får en incident per podd i stället för en för hela klustret.
 

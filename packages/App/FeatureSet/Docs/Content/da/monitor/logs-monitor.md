@@ -87,7 +87,7 @@ Hver log gemmes med en af syv alvorligheder. For logs fra OpenTelemetry kommer d
 | **Spor** | 1–4 |
 | **Debug** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Advarsel** | 13–16 |
 | **Fejl** | 17–20 |
 | **Fatal** | 21–24 |
 | **Uspecificeret** | Alt andet |
@@ -117,7 +117,7 @@ En log-monitors kriterier har én **Filtertype**: **Log Count**, antallet af log
 | **Anomalously Low** | under det interval |
 | **Anomalous** | uden for det interval, i begge retninger |
 
-Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med samme time på ugen over det vindue. Baselinen dækker kun monitorens tjenester og alvorligheder: dens tekst- og attributfiltre indgår ikke. Indtil den time på ugen har nok historik, er kriteriet stadig ved at lære og udløses ikke.
+Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med vinduer af samme længde omkring samme tidspunkt i tidligere uger, så langt tilbage som **Baseline-vindue** rækker; det, der sker nu, indgår aldrig i sammenligningen. Baselinen dækker kun monitorens tjenester og alvorligheder: dens tekst- og attributfiltre indgår ikke. Minutter uden logs tæller også med, så en tjeneste, der ofte er stille, ikke regnes for usædvanligt lav, fordi den er stille. Et vindue regnes kun for usædvanligt højt i forhold til de vinduer, der indeholdt logs, og kun med mindst 20, 10 eller 5 logs ved følsomheden Lav, Middel eller Høj, så hverken et jobs sædvanlige udbrud eller en stille tjenestes første få linjer udløser det. Indtil monitorens tjenester har to ugers historik, er kriteriet stadig ved at lære og udløses ikke.
 
 En log-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne overvågning fortælle dig om?**:
 
@@ -248,7 +248,7 @@ Kriterierne tjekkes fra top til bund, og det første match afgør det. Et bredt 
 :::
 
 :::details Et anomalikriterium udløses aldrig
-Det er stadig ved at lære: den time på ugen, det sammenligner med, har endnu ikke nok historik. På en monitor med **Group by Attributes** matcher anomalibetingelser aldrig; brug en tærskel der.
+Det er stadig ved at lære: monitorens tjenester har endnu ikke to ugers historik. På en monitor med **Group by Attributes** matcher anomalibetingelser aldrig; brug en tærskel der.
 :::
 
 :::details Gruppeadvarsler kommer uden gruppeværdi

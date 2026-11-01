@@ -7,7 +7,7 @@ Sécurité des données ne lit que ce que vous lui permettez. Chaque connexion c
 - [Ce qu'accorde chaque niveau](#ce-quaccorde-chaque-niveau): Les actions AWS, et les rôles Azure et Google Cloud.
 - [Analyser une base de données que vous exploitez](#analyser-une-base-de-données-que-vous-exploitez): Une chaîne de connexion en lecture seule, ou une sonde dans votre réseau.
 - [Ce que conserve OneUptime](#ce-que-conserve-oneuptime): Des comptages, des emplacements et des échantillons masqués, jamais une valeur.
-- [Laisser Sécurité des données fermer une exposition](#laisser-sécurité-des-données-fermer-une-exposition): La seule écriture qu'une connexion peut recevoir, désactivée jusqu'à ce que vous l'activiez.
+- [Laisser Sécurité des données fermer une exposition](#laisser-sécurité-des-données-fermer-une-exposition): Les seules écritures qu'une connexion peut recevoir, désactivées jusqu'à ce que vous les activiez.
 :::
 
 ## Choisir un niveau pour chaque connexion
@@ -48,6 +48,9 @@ Le niveau de configuration place une deuxième stratégie en ligne, `OneUptimeDa
 | Lire comment les bases de données sont accessibles, chiffrées et sauvegardées, et avec qui leurs instantanés manuels sont partagés | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | Lire la configuration des domaines de recherche, des caches et des systèmes de fichiers | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | Distinguer les propres clés d'AWS (alias/aws/...) des clés que vous gérez | `kms:ListAliases` |
+| Lire quels utilisateurs et rôles atteignent chaque bucket et chaque table par leurs propres stratégies IAM, qui peut assumer chaque rôle, et quand chacun a été utilisé pour la dernière fois | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+Les actions IAM permettent à **Accès** de nommer chaque rôle et chaque utilisateur qui atteint un magasin de données par ses propres stratégies, et quand chacun a été utilisé pour la dernière fois. Le rapport d'identifiants qu'IAM produit pour eux contient des dates et des indicateurs, jamais un mot de passe ni une clé. Une connexion configurée avant que Sécurité des données ne lise IAM ne lit que les propres stratégies de chaque magasin de données jusqu'à ce que sa commande soit exécutée de nouveau.
 
 Le niveau de contenu ajoute trois actions à la même stratégie, chacune sur ses propres ressources :
 
@@ -95,7 +98,10 @@ Avec une **Clé d'accès** au lieu d'un rôle, la stratégie va sur un groupe, `
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@ Le niveau de configuration n'ajoute rien : le rôle **Cloud Asset Viewer** de la
 
 ## Laisser Sécurité des données fermer une exposition
 
-Une connexion ne fait que lire, jusqu'à ce que vous en décidiez autrement. **Réponse de sécurité des données**, sous **Plus de champs** à côté de **Sécurité des données**, permet aussi à Sécurité des données de bloquer l'accès public d'un magasin de données et de cesser de partager ses instantanés : depuis le problème du magasin de données, avec **Corriger d'ici** (voir [Contrôles et problèmes de Sécurité des données](/docs/data-security/checks-and-issues#corriger-dici)), et depuis les playbooks d'Opérations de sécurité. Il est **Désactivé** jusqu'à ce que vous choisissiez **Bloquer l'accès public et le partage**, et la commande qu'affiche alors le formulaire accorde une seule écriture restreinte, à part :
+Une connexion ne fait que lire, jusqu'à ce que vous en décidiez autrement. **Réponse de sécurité des données**, sous **Plus de champs** à côté de **Sécurité des données**, permet aussi à Sécurité des données de modifier les paramètres d'un magasin de données via la connexion : bloquer son accès public et cesser de partager ses instantanés, depuis le problème du magasin de données avec **Corriger d'ici** (voir [Contrôles et problèmes de Sécurité des données](/docs/data-security/checks-and-issues#corriger-dici)) et depuis les playbooks d'Opérations de sécurité, et activer un paramètre qui le protège, comme le versioning ou le transfert sécurisé, depuis son problème. Il est **Désactivé** jusqu'à ce que vous choisissiez **Fermer les expositions et corriger les paramètres**, et la commande qu'affiche alors le formulaire accorde ces écritures restreintes, à part :
 
 | Cloud | Ce qu'ajoute la commande | Ce qu'elle permet |
 | --- | --- | --- |
-| AWS | Une troisième stratégie en ligne, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` et `rds:ModifyDBClusterSnapshotAttribute` : le Block Public Access d'un bucket, et avec qui un instantané manuel est partagé |
-| Azure | Un rôle personnalisé, `OneUptime Data Security Response`, sur l'étendue de la connexion | `Microsoft.Storage/storageAccounts/read` et `Microsoft.Storage/storageAccounts/write` : les paramètres d'un compte de stockage, comme l'accès anonyme aux blobs, jamais ses clés |
-| Google Cloud | Un rôle personnalisé, `oneuptimeDataSecurityResponse` | `storage.buckets.get` et `storage.buckets.update` : les paramètres d'un bucket, comme la prévention de l'accès public |
+| AWS | Une troisième stratégie en ligne, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` et `dynamodb:UpdateContinuousBackups` : le Block Public Access, le versioning et la propriété des objets d'un bucket, avec qui un instantané manuel est partagé, et la restauration à un instant donné d'une table |
+| Azure | Un rôle personnalisé, `OneUptime Data Security Response`, sur l'étendue de la connexion | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` et `Microsoft.Storage/storageAccounts/blobServices/write` : les paramètres d'un compte de stockage, comme l'accès anonyme aux blobs et le transfert sécurisé, et la suppression réversible de ses blobs, jamais ses clés |
+| Google Cloud | Un rôle personnalisé, `oneuptimeDataSecurityResponse` | `storage.buckets.get` et `storage.buckets.update` : les paramètres d'un bucket, comme la prévention de l'accès public, l'accès uniforme et le versioning |
 
 Rien de ce qu'il accorde ne lit de données, ne supprime quoi que ce soit ni ne change qui peut se connecter. Remettez-le sur **Désactivé** et Sécurité des données cesse aussitôt de l'utiliser. Pour retirer aussi l'accès sur AWS, supprimez la stratégie avec `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse`.
+
+Une connexion qui l'a activé plus tôt doit exécuter de nouveau sa commande pour ces paramètres : d'ici là, le cloud refuse la modification, et le panneau indique quelle autorisation manque.
 
 ## Pourquoi les échantillons de contenu sont facultatifs
 

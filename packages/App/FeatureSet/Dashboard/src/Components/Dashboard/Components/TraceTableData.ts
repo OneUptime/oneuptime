@@ -10,6 +10,7 @@ import {
   formatDurationMs,
   resolveTraceAttributeFilters,
 } from "./TraceChartData";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { getSpanStatusDisplayLabelMap } from "../../../Utils/SpanStatusPresentation";
 
 /*
@@ -169,28 +170,39 @@ export function dimensionLabel(key: string): string {
 const STATUS_LABELS: Record<string, string> = getSpanStatusDisplayLabelMap();
 
 const KIND_LABELS: Record<string, string> = {
-  "0": "Unspecified",
-  "1": "Internal",
-  "2": "Server",
-  "3": "Client",
-  "4": "Producer",
-  "5": "Consumer",
+  "0": translationKey("Unspecified"),
+  "1": translationKey("Internal"),
+  "2": translationKey("Server"),
+  "3": translationKey("Client"),
+  "4": translationKey("Producer"),
+  "5": translationKey("Consumer"),
 };
 
 /*
  * Render a grouped dimension value for display. statusCode/kind come back as
- * the raw OTel enum, so map them to readable names; everything else is shown
- * verbatim (an empty value becomes "(empty)").
+ * the raw OTel enum, so map them to readable names, in the reader's language
+ * with their translator; everything else is shown verbatim (an empty value
+ * becomes "(empty)").
  */
-export function displayGroupValue(key: string, raw: string): string {
+export function displayGroupValue(
+  key: string,
+  raw: string,
+  translator?: Translator | undefined,
+): string {
+  const word: (english: string) => string = (english: string): string => {
+    return translator ? translator.translateTerm(english) : english;
+  };
+
   if (!raw) {
-    return "(empty)";
+    return word(translationKey("(empty)"));
   }
-  if (key === "statusCode") {
-    return STATUS_LABELS[raw] || raw;
-  }
-  if (key === "kind") {
-    return KIND_LABELS[raw] || raw;
-  }
-  return raw;
+
+  const label: string | undefined =
+    key === "statusCode"
+      ? STATUS_LABELS[raw]
+      : key === "kind"
+        ? KIND_LABELS[raw]
+        : undefined;
+
+  return label ? word(label) : raw;
 }

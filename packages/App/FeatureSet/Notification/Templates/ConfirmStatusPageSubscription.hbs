@@ -1,15 +1,15 @@
 {{> Start this}}
 
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat statusPageName " - Please confirm your subscription" ) }}
+{{> EmailTitle title=(tt "{{statusPageName}} - Please confirm your subscription" statusPageName=statusPageName) }}
 
-{{> InfoBlock info="You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events."}}
+{{> InfoBlock info=(tHtml "You will be the first to hear from us when there are any incidents, announcements or scheduled maintenance events.")}}
 
-{{> ButtonBlock buttonUrl=confirmationUrl buttonText="Confirm Subscription"}}
+{{> ButtonBlock buttonUrl=confirmationUrl buttonText=(t "Confirm Subscription")}}
 
-{{> InfoBlock info="This link expires in 24 hours. If you did not subscribe, you can ignore this email and you will not be subscribed."}}
+{{> InfoBlock info=(tHtml "This link expires in 24 hours. If you did not subscribe, you can ignore this email and you will not be subscribed.")}}
 
-{{> LinkBlock linkUrl=statusPageUrl linkLabel="You can also view the status page by visiting this link:"}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel=(t "You can also view the status page by visiting this link:")}}
 
 {{> UnsubscribeBlock this}}
 

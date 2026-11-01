@@ -8,5 +8,11 @@ export default interface TraceMonitorResponse {
   spanCount: number;
   spanQuery: Query<Span>;
   monitorId: ObjectID;
+  /*
+   * Where the window judged ended: now, or where a late ingest queue held
+   * the check back to. What an anomaly condition reads the earlier weeks
+   * from.
+   */
+  evaluatedUntil?: Date | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
 }

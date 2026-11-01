@@ -1,16 +1,16 @@
 {{> Start this}}
 
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Incident: " incidentTitle) }}
+{{> EmailTitle title=(tt "Incident: {{title}}" title=incidentTitle) }}
 
-{{> InfoBlock info="A note on this incident has been updated. Here is the latest version:"}}
+{{> InfoBlock info=(tHtml "A note on this incident has been updated. Here is the latest version:")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident Title: " plainText=incidentTitle }}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
-{{> DetailBoxField title="Severity: " plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
+{{> DetailBoxField title=(t "Incident Title") plainText=incidentTitle }}
+{{> DetailBoxField title=(t "Resources Affected") text=resourcesAffected  }}
+{{> DetailBoxField title=(t "Severity") plainText=incidentSeverity color=incidentSeverityColor textColor=incidentSeverityTextColor }}
 {{> IncidentCustomFieldRows this }}
-{{> DetailBoxField title="Updated Note: " text=note  }}
+{{> DetailBoxField title=(t "Updated Note") text=note  }}
 {{> DetailBoxEnd this }}
 
 
@@ -18,9 +18,9 @@
 
 
 {{#if detailsUrl}}
-{{> LinkBlock linkUrl=detailsUrl linkLabel="Find further information here:"}}
+{{> LinkBlock linkUrl=detailsUrl linkLabel=(t "Find further information here:")}}
 {{else}}
-{{> LinkBlock linkUrl=statusPageUrl linkLabel="Find further information here:"}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel=(t "Find further information here:")}}
 {{/if}}
 
 {{> UnsubscribeBlock this}}

@@ -102,11 +102,11 @@ OneUptime 有兩種用於機器的監測器。它們可以在同一台主機上�
 | 範本 | 嚴重程度 | 監控內容 | 觸發時機 | 恢復時機 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 嚴重 | `system.memory.usage`，Count，最近 10 分鐘 | 整個視窗內都沒有資料 | 資料再次送達 |
-| High CPU Utilization | Warning | `user` 和 `system` 狀態的 `system.cpu.utilization`，相加後以百分比顯示，最近 5 分鐘 | 高於 80% | 不高於 72% |
-| High Memory Utilization | Warning | `used` 狀態的 `system.memory.utilization`，以百分比顯示，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
+| High CPU Utilization | 警告 | `user` 和 `system` 狀態的 `system.cpu.utilization`，相加後以百分比顯示，最近 5 分鐘 | 高於 80% | 不高於 72% |
+| High Memory Utilization | 警告 | `used` 狀態的 `system.memory.utilization`，以百分比顯示，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
 | High Filesystem Usage | 嚴重 | `system.filesystem.utilization`，依 `mountpoint` 和 `device` 取 Max，以百分比顯示，最近 5 分鐘 | 高於 90% | 不高於 81% |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`，Avg，最近 5 分鐘 | 高於 4 | 不高於 3.6 |
-| High Process Count | Warning | `system.processes.count`，Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
+| High Load Average (1m) | 警告 | `system.cpu.load_average.1m`，Avg，最近 5 分鐘 | 高於 4 | 不高於 3.6 |
+| High Process Count | 警告 | `system.processes.count`，Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
 
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。
 

@@ -31,6 +31,11 @@ router.post(
         isSubjectLiteral: body["isSubjectLiteral"] === true,
         vars: body["vars"] as Dictionary<string>,
         body: (body["body"] as string) || "",
+        // The language its own words are in (EmailLanguage); English when none.
+        language:
+          typeof body["language"] === "string"
+            ? (body["language"] as string)
+            : undefined,
       };
 
       let mailServer: EmailServer | undefined = undefined;

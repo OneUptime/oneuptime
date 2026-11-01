@@ -4,7 +4,7 @@ Weten wat een opslag bevat, is de helft. Gegevensbeveiliging zoekt ook uit waar 
 
 :::cards
 - [Gegevensstromen](#gegevensstromen): Services, AI-providers, externe hosts en kopieën.
-- [Wie bij een opslag kan](#wie-bij-een-opslag-kan): Elke toekenning die je cloud meldt, en hoe blootgesteld de opslag is.
+- [Wie bij een opslag kan](#wie-bij-een-opslag-kan): Elke identiteit en toekenning, wat elke identiteit bereikt, en hoe blootgesteld de opslag is.
 - [Residentieregels](#residentieregels): De regio's waar elke soort gegevens mag staan.
 :::
 
@@ -39,18 +39,18 @@ Een kopie wordt gevonden zonder de waarden van een van beide opslagen. Voor elk 
 
 ## Wie bij een opslag kan
 
-Het uitlezen van de configuratie maakt van de eigen toegangsinstellingen van elke cloud - bucketbeleid en ACL's, roltoewijzingen in Azure, IAM-bindingen in Google Cloud, gedeelde snapshots - één lijst van wie bij de opslag kan, op de pagina **Wie erbij kan** ervan:
+Het uitlezen van de configuratie maakt van de eigen toegangsinstellingen van elke cloud - bucketbeleid en ACL's, roltoewijzingen in Azure, IAM-bindingen in Google Cloud, gedeelde snapshots en op AWS het eigen IAM-beleid van elke rol en gebruiker - één lijst van wie bij de opslag kan, op de pagina **Wie erbij kan** ervan. De services die de servicekaart de opslag ziet aanroepen, staan er ook op:
 
 | Kolom | Wat ze zegt |
 | --- | --- |
-| **Principal** | Wie of wat toegang heeft, zoals de cloud het noemt: `*`, een account-ID, een ARN, een e-mailadres, een serviceaccount. |
-| **Type principal** | Public, Account, Rol, Gebruiker, Groep, Service Principal, Serviceaccount of Service. |
+| **Wie** | Wie of wat toegang heeft, zoals de cloud het noemt: `*`, een account-ID, een ARN, een e-mailadres, een serviceaccount, een service. Een identiteit die 90 dagen niet is gebruikt, is zo gemarkeerd. |
+| **Type** | Public, Account, Rol, Gebruiker, Groep, Service Principal, Serviceaccount of Service. |
 | **Toegangsniveau** | Lezen, Schrijven of Beheerder. |
-| **Verleend via** | Wat de toegang verleent: een bucketbeleid, een ACL, een roltoewijzing, een IAM-binding of een gedeelde snapshot. |
-| **Extern** | De principal staat buiten de accounts, abonnementen en projecten die aan OneUptime zijn gekoppeld. |
-| **Openbaar** | De principal is iedereen op het internet. |
+| **Verleend via** | Wat de toegang verleent: een bucketbeleid, een ACL, een IAM-beleid, een rol die ze mag aannemen, een roltoewijzing, een IAM-binding of een gedeelde snapshot - of, voor een service, dat traces haar de opslag zagen gebruiken. |
+| **Bereik** | Iedereen op het internet, buiten je accounts - de accounts, abonnementen en projecten die aan OneUptime zijn gekoppeld - of je accounts. |
+| **Laatst gebruikt** | Wanneer de identiteit haar toegang voor het laatst gebruikte, volgens de cloud, of wanneer de servicekaart de service de opslag voor het laatst zag aanroepen. |
 
-De lijst wordt bij elke uitlezing van de configuratie opnieuw gelezen, en een toekenning die de cloud niet meer meldt, wordt verwijderd. [Meer dan 25 identiteiten kunnen Beperkte gegevens lezen](/docs/data-security/checks-and-issues#toegang) telt de lezers erop. De services die een opslag gebruiken, zijn de stromen **Gebruikt** van die opslag.
+De lijst wordt bij elke uitlezing van de configuratie opnieuw gelezen, en een toekenning die de cloud niet meer meldt, wordt verwijderd. [Meer dan 25 identiteiten kunnen Beperkte gegevens lezen](/docs/data-security/checks-and-issues#toegang) telt de lezers erop, en [Identiteiten die 90 dagen niet zijn gebruikt, kunnen er nog bij](/docs/data-security/checks-and-issues#toegang) faalt zolang een identiteit die 90 dagen niet is gebruikt bij zijn gevoelige gegevens kan. De services die een opslag gebruiken, zijn de stromen **Gebruikt** van die opslag.
 
 Op basis van wat het leest, krijgt elke opslag een blootstelling:
 
@@ -63,6 +63,22 @@ Op basis van wat het leest, krijgt elke opslag een blootstelling:
 | **Onbekend** | OneUptime kon niet genoeg van de configuratie lezen om het te bepalen. |
 
 Openbaar gaat vóór gedeeld, en gedeeld gaat vóór bereikbaar: een openbare bucket die ook met een ander account wordt gedeeld, is Public. Blootstelling telt mee in de [risicoscore](/docs/data-security/checks-and-issues#risicoscore) van een probleem.
+
+### Elke identiteit, en wat ze kan bereiken
+
+Op AWS somt het uitlezen de gebruikers en rollen van het account één keer op, en bepaalt het zoals IAM dat doet welke ervan elke bucket en elke DynamoDB-tabel bereiken, en hoe: wat hun beleid toestaat min wat het weigert, machtigingsgrenzen, en een toekenning die alleen onder voorwaarden geldt, zegt dat. Een account buiten je gekoppelde accounts dat een rol mag aannemen, bereikt wat de rol bereikt. Het laatste gebruik van elke identiteit komt voor rollen van IAM en voor gebruikers uit het referentierapport van het account.
+
+**Gegevensbeveiliging → Toegang** toont elke identiteit die bij je opslagen kan, de riskantste eerst: wat ze bereikt en hoe gevoelig dat is, het meeste wat ze mag doen en wanneer ze voor het laatst is gebruikt, met filters voor **Buiten uw accounts**, **90 dagen niet gebruikt** en **Kan gevoelige gegevens wijzigen**. Elke identiteit opent een eigen pagina: elke opslag waar ze bij kan, de gevoeligste eerst, en haar risicoscore deel voor deel. Daaronder toont Toegang elke toekenning van buiten je accounts.
+
+| Wat bijdraagt aan het risico van een identiteit | Punten |
+| --- | --- |
+| De gevoeligste gegevens die ze bereikt | 50 voor Beperkt, 30 voor Vertrouwelijk, 10 voor Intern |
+| Ze mag schrijven naar een Vertrouwelijke of Beperkte opslag, of die beheren | 15 |
+| Ze is iedereen op het internet, of staat buiten je accounts | 20 voor iedereen, 15 voor buiten |
+| Ze is 90 dagen niet gebruikt en bereikt Interne, Vertrouwelijke of Beperkte gegevens | 10 |
+| Hoeveel gevoelige opslagen ze bereikt | 1 voor elke, tot 5 |
+
+De score is hoogstens 100. Een rol van een account van buiten die één opslag met kaartnummers kan wijzigen, scoort 50 + 15 + 15 + 1 = 81.
 
 ## Residentieregels
 

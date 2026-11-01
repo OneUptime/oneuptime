@@ -493,6 +493,8 @@ const PROSE: Record<string, Array<string>> = {
     "An announcement with no end date never expires.",
     "An old but still-active announcement can vanish from the list.",
     "Images follow the announcement.",
+    "A visitor who switches the status page to another language",
+    "Everyone else",
   ],
   [AUDIENCE]: [
     "A managed service provider",

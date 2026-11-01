@@ -7,7 +7,7 @@ Datasikkerhet leser bare det du tillater. Hver skytilkobling leses på ett av tr
 - [Hva hvert nivå gir tilgang til](#hva-hvert-nivå-gir-tilgang-til): AWS-handlingene, og rollene i Azure og Google Cloud.
 - [Skann en database du drifter selv](#skann-en-database-du-drifter-selv): En skrivebeskyttet tilkoblingsstreng, eller en sonde i nettverket ditt.
 - [Hva OneUptime tar vare på](#hva-oneuptime-tar-vare-på): Tellinger, plasseringer og maskerte prøver, aldri en verdi.
-- [La Datasikkerhet lukke en eksponering](#la-datasikkerhet-lukke-en-eksponering): Den ene skrivetilgangen en tilkobling kan få, av til du slår den på.
+- [La Datasikkerhet lukke en eksponering](#la-datasikkerhet-lukke-en-eksponering): De eneste skrivetilgangene en tilkobling kan få, av til du slår dem på.
 :::
 
 ## Velg et nivå for hver tilkobling
@@ -48,6 +48,9 @@ Konfigurasjonsnivået legger en andre inline-policy, `OneUptimeDataSecurity`, p�
 | Lese hvordan databasene nås, krypteres og sikkerhetskopieres, og hvem de manuelle øyeblikksbildene deres er delt med | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | Lese hvordan søkedomenene, cachene og filsystemene er satt opp | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | Skille AWS' egne nøkler (alias/aws/...) fra nøklene du administrerer | `kms:ListAliases` |
+| Lese hvilke brukere og roller som når hver bucket og hver tabell gjennom sine egne IAM-policyer, hvem som kan påta seg hver rolle, og når hver sist ble brukt | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+IAM-handlingene lar **Tilgang** navngi hver rolle og hver bruker som når et datalager gjennom sine egne policyer, og når hver sist ble brukt. Legitimasjonsrapporten IAM lager for dem, inneholder datoer og flagg, aldri et passord eller en nøkkel. En tilkobling som ble satt opp før Datasikkerhet leste IAM, leser bare hvert datalagers egne policyer til kommandoen kjøres på nytt.
 
 Innholdsnivået legger tre handlinger til i den samme policyen, hver på sine egne ressurser:
 
@@ -95,7 +98,10 @@ Med en **Tilgangsnøkkel** i stedet for en rolle legges policyen på en gruppe, 
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@ Konfigurasjonsnivået legger ikke til noe: tilkoblingens rolle **Cloud Asset Vie
 
 ## La Datasikkerhet lukke en eksponering
 
-Lesing er alt en tilkobling gjør til du velger noe annet. **Datasikkerhetsrespons**, under **Flere felt** ved siden av **Datasikkerhet**, lar også Datasikkerhet blokkere offentlig tilgang til et datalager og stoppe deling av øyeblikksbildene: fra problemet på datalageret, med **Fiks det herfra** (se [Kontroller og problemer i Datasikkerhet](/docs/data-security/checks-and-issues#fiks-det-herfra)), og fra playbooks i Security Operations. Den står på **Av** til du velger **Blokker offentlig tilgang og deling**, og kommandoen skjemaet da viser, gir én smal skrivetilgang, for seg selv:
+Lesing er alt en tilkobling gjør til du velger noe annet. **Datasikkerhetsrespons**, under **Flere felt** ved siden av **Datasikkerhet**, lar også Datasikkerhet endre innstillingene til et datalager gjennom tilkoblingen: blokkere offentlig tilgang og stoppe deling av øyeblikksbildene, fra problemet på datalageret med **Fiks det herfra** (se [Kontroller og problemer i Datasikkerhet](/docs/data-security/checks-and-issues#fiks-det-herfra)) og fra playbooks i Security Operations, og slå på en innstilling som beskytter det, for eksempel versjonskontroll eller sikker overføring, fra problemet. Den står på **Av** til du velger **Lukk eksponeringer og rett innstillinger**, og kommandoen skjemaet da viser, gir disse smale skrivetilgangene, for seg selv:
 
 | Sky | Hva kommandoen legger til | Hva den kan gjøre |
 | --- | --- | --- |
-| AWS | En tredje inline-policy, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` og `rds:ModifyDBClusterSnapshotAttribute`: Block Public Access for en bucket, og hvem et manuelt øyeblikksbilde er delt med |
-| Azure | En egendefinert rolle, `OneUptime Data Security Response`, på tilkoblingens omfang | `Microsoft.Storage/storageAccounts/read` og `Microsoft.Storage/storageAccounts/write`: innstillingene til en lagringskonto, som anonym blob-tilgang, aldri nøklene |
-| Google Cloud | En egendefinert rolle, `oneuptimeDataSecurityResponse` | `storage.buckets.get` og `storage.buckets.update`: innstillingene til en bucket, som forhindring av offentlig tilgang |
+| AWS | En tredje inline-policy, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` og `dynamodb:UpdateContinuousBackups`: Block Public Access, versjonskontroll og objekteierskap for en bucket, hvem et manuelt øyeblikksbilde er delt med, og gjenoppretting til et tidspunkt for en tabell |
+| Azure | En egendefinert rolle, `OneUptime Data Security Response`, på tilkoblingens omfang | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` og `Microsoft.Storage/storageAccounts/blobServices/write`: innstillingene til en lagringskonto, som anonym blob-tilgang og sikker overføring, og myk sletting av blobene, aldri nøklene |
+| Google Cloud | En egendefinert rolle, `oneuptimeDataSecurityResponse` | `storage.buckets.get` og `storage.buckets.update`: innstillingene til en bucket, som forhindring av offentlig tilgang, enhetlig tilgang og versjonskontroll |
 
 Ingenting den gir, leser data, sletter noe eller endrer hvem som kan logge på. Setter du den tilbake til **Av**, slutter Datasikkerhet å bruke den med en gang. For også å fjerne tilgangen i AWS sletter du policyen med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse`.
+
+En tilkobling som slo den på tidligere, må kjøre kommandoen sin på nytt for disse innstillingene: inntil da avviser skyen endringen, og panelet sier hvilken tillatelse som mangler.
 
 ## Hvorfor innholdsprøver er valgfrie
 

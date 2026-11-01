@@ -37,6 +37,7 @@ const mockScanStore: jest.Mock = jest.fn();
 const mockReadConnection: jest.Mock = jest.fn();
 const mockDiscoverProject: jest.Mock = jest.fn();
 const mockEvaluateProject: jest.Mock = jest.fn();
+const mockSuggestForStore: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Infrastructure/Queue", () => {
   return {
@@ -87,6 +88,13 @@ jest.mock("Common/Server/Utils/DataSecurity/DataSecurityEvaluator", () => {
   };
 });
 
+jest.mock("Common/Server/Utils/AI/DataSecurity/FieldSuggestion", () => {
+  return {
+    __esModule: true,
+    default: { suggestForStore: mockSuggestForStore },
+  };
+});
+
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -110,6 +118,7 @@ import {
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_SCAN_STORE_JOB,
   DATA_SECURITY_SCAN_TELEMETRY_JOB,
+  DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB,
 } from "Common/Server/Utils/DataSecurity/DataSecurityJobs";
 import JobDictionary from "../../FeatureSet/Workers/Utils/JobDictionary";
 import "../../FeatureSet/Workers/Jobs/DataSecurity/DataSecurityJobs";
@@ -186,6 +195,11 @@ const QUEUE_JOBS: Array<{ name: string; timeoutInMs: number }> = [
     name: DATA_SECURITY_READ_CONNECTION_JOB,
     timeoutInMs: DATA_SECURITY_TURN_TIME_LIMIT_IN_MS + MINUTE_IN_MS,
   },
+  // One constrained call to OneUptime AI at most, inside its own 90 seconds.
+  {
+    name: DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB,
+    timeoutInMs: 5 * MINUTE_IN_MS,
+  },
 ];
 
 const WORKERS_DIR: string = path.resolve(__dirname, "../../FeatureSet/Workers");
@@ -223,6 +237,7 @@ beforeEach(() => {
     mockReadConnection,
     mockDiscoverProject,
     mockEvaluateProject,
+    mockSuggestForStore,
   ]) {
     mock.mockReset();
   }
@@ -235,6 +250,7 @@ beforeEach(() => {
   mockReadConnection.mockResolvedValue(undefined as never);
   mockDiscoverProject.mockResolvedValue(0 as never);
   mockEvaluateProject.mockResolvedValue(undefined as never);
+  mockSuggestForStore.mockResolvedValue({ asked: 0, written: 0 } as never);
 });
 
 describe("Data Security jobs: wired into the worker at all", () => {
@@ -510,6 +526,34 @@ describe("Data Security jobs: what each queue job runs", () => {
     ]);
   });
 
+  test("SuggestFieldTypes asks about the fields of the store its payload names, in its project", async () => {
+    await JobDictionary.getJobFunction(DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB)(
+      jobOf({
+        projectId: PROJECT_B.toString(),
+        dataStoreId: STORE_ID.toString(),
+      }),
+    );
+
+    expect(mockSuggestForStore).toHaveBeenCalledTimes(1);
+
+    const asked: { projectId: ObjectID; dataStoreId: ObjectID } =
+      mockSuggestForStore.mock.calls[0]![0] as {
+        projectId: ObjectID;
+        dataStoreId: ObjectID;
+      };
+
+    expect([asked.projectId.toString(), asked.dataStoreId.toString()]).toEqual([
+      PROJECT_B.toString(),
+      STORE_ID.toString(),
+    ]);
+    // Asked by a scan, never by a schedule.
+    expect(
+      registrationAddJobCalls.map((call: Array<unknown>) => {
+        return call[2];
+      }),
+    ).not.toContain(DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB);
+  });
+
   test("a payload without the valid ids a job needs runs nothing; a project job needs only the project's", async () => {
     const payloads: Array<QueueJob | undefined> = [
       undefined,
@@ -532,6 +576,7 @@ describe("Data Security jobs: what each queue job runs", () => {
     expect(mockEvaluateProject).toHaveBeenCalledTimes(2);
     expect(mockScanStore).not.toHaveBeenCalled();
     expect(mockReadConnection).not.toHaveBeenCalled();
+    expect(mockSuggestForStore).not.toHaveBeenCalled();
   });
 
   test("a job whose work fails fails, so the queue sees it", async () => {

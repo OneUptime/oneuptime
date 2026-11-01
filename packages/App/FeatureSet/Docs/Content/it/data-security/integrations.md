@@ -8,7 +8,7 @@ Sicurezza dei dati non gestisce un sistema di chiamata né una coda di sicurezza
 - [Incidenti](#incidenti): Dichiara un incidente per una violazione di cui deve occuparsi il tuo processo di gestione degli incidenti.
 - [Proprietari](#proprietari): Chi possiede ogni archivio, impostato a mano o tramite regole, e l'email che riceve.
 - [OneUptime AI](#oneuptime-ai): Spiega un problema, apri una pull request che lo corregge, o fai domande sui tuoi dati a Chiedi all'IA.
-- [Chiudere un'esposizione](#chiudere-unesposizione): Blocca l'accesso pubblico o interrompi la condivisione, da un problema o da un playbook.
+- [Chiudere un'esposizione](#chiudere-unesposizione): Blocca l'accesso pubblico o interrompi la condivisione, da un problema o da un playbook, e attiva una protezione mancante da un problema.
 :::
 
 ## Come funziona
@@ -43,6 +43,8 @@ Ogni archivio è un'entità a sé in Security Operations, di tipo **Archivio dat
 - è raggruppato per archivio: un secondo problema Critico sullo stesso archivio si aggiunge al caso aperto che lo riguarda invece di aprirne un altro.
 
 Da lì il caso si gestisce come qualsiasi altro: viene assegnato, annotato e chiuso, e i playbook del progetto vi rispondono. I rilevamenti dell'archivio contano per il suo rischio in [Rischio delle entità](/docs/telemetry/security-entity-risk), come quelli di qualsiasi entità. Vedi [Casi di sicurezza e playbook](/docs/telemetry/security-cases).
+
+Ogni caso di sicurezza, qualunque cosa l'abbia aperto, mostra i dati a rischio nel suo **Impatto**: gli archivi con dati sensibili di cui tratta il caso, e ogni archivio che i suoi utenti e ruoli possono raggiungere, il più sensibile per primo, con cosa contiene ciascuno, circa quanti record, quanto è esposto e quante identità possono raggiungerlo. Una sessione di ruolo assunto che il caso nomina conta come il suo ruolo, e un indirizzo email come gli utenti cloud a cui appartiene. Viene letto con le autorizzazioni proprie di chi legge, così un ruolo che non può leggere Sicurezza dei dati vede che quella parte è esclusa.
 
 ## Avvisi e reperibilità
 
@@ -106,12 +108,15 @@ Leggono tipi di dati, posizioni e conteggi, mai i campioni di un risultato, masc
 
 ## Chiudere un'esposizione
 
-Due modifiche chiudono l'esposizione di un archivio cloud, ciascuna tramite la connessione cloud dell'archivio con **Risposta di sicurezza dei dati** attivata (vedi [Configurare Sicurezza dei dati](/docs/data-security/setup#lasciare-che-sicurezza-dei-dati-chiuda-unesposizione)):
+Due modifiche chiudono l'esposizione di un archivio cloud, ciascuna tramite la connessione cloud dell'archivio con **Risposta di sicurezza dei dati** attivata (vedi [Configurare Sicurezza dei dati](/docs/data-security/setup#lasciare-che-sicurezza-dei-dati-chiuda-unesposizione)), e altre sei attivano un'impostazione che protegge un archivio, solo dal suo problema:
 
 - **Blocca l'accesso pubblico**, su un bucket S3, un account di archiviazione Azure o un bucket Cloud Storage.
 - **Revoca la condivisione**, su uno snapshot RDS, oppure sugli snapshot manuali condivisi di un database RDS, di un cluster Aurora o di un cluster DocumentDB.
+- **Attiva il controllo delle versioni**, **Attiva l'eliminazione temporanea**, **Disattiva le ACL degli oggetti**, **Attiva l'accesso uniforme**, **Richiedi il trasferimento sicuro** e **Attiva il ripristino point-in-time**, sugli archivi che [Correggi da qui](/docs/data-security/checks-and-issues#correggi-da-qui) elenca.
 
 Una persona ne esegue una da un problema aperto che risolve, con **Correggi da qui** (vedi [Controlli e problemi di Sicurezza dei dati](/docs/data-security/checks-and-issues#correggi-da-qui)). Un playbook di Security Operations le esegue come passi della categoria **Contenimento**, **Blocca l'accesso pubblico agli archivi dati** e **Revoca la condivisione degli archivi dati**: su ogni archivio dati di cui tratta il caso, al massimo 10, ciascuno un passo che parte con **Richiede approvazione** attivo. Un archivio contrassegnato come **Pubblico per scelta** non viene mai bloccato. In entrambi i casi la cronologia dell'archivio dice cosa è stato fatto, e l'archivio viene subito controllato di nuovo, così il problema si risolve quando la modifica ha avuto effetto.
+
+Il modello di playbook **Chiudere un'esposizione di dati** risponde ai casi che apre Sicurezza dei dati: invia un'email ai proprietari dell'archivio, blocca l'accesso pubblico e revoca la condivisione quando una persona approva ciascun passo, e aggiunge al caso la checklist della risposta come attività - chi ha letto i dati mentre erano esposti, se si tratta di una violazione da notificare, quali segreti ruotare e cosa scrivere alla chiusura del caso. Aggiungilo da **Crea da modello** tra i playbook del progetto.
 
 ## API, Terraform e MCP
 
@@ -119,7 +124,7 @@ Tutto ciò che conserva Sicurezza dei dati è un record dell'API di OneUptime, l
 
 | Record | Percorso API |
 | --- | --- |
-| Archivi dati, le loro cronologie, i loro risultati e chi può raggiungerli | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| Archivi dati, le loro cronologie, i loro risultati, chi può raggiungerli e ogni identità che può farlo | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problemi, le loro cronologie e i flussi di dati | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scansioni | `/data-security-scan` |
 | Tipi di dati personalizzati, impostazioni dei controlli e regole di residenza | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ Alcune risposte vengono calcolate su richiesta invece di essere conservate. Ognu
 | `/data-security-issue/<id>/explain` | **Spiega con l'IA** su un problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Correggi con l'IA** su un problema |
 | `/data-store/<id>/response-actions` | Quali azioni di risposta l'archivio può eseguire ora, e perché no |
-| `/data-store/<id>/respond` | **Blocca l'accesso pubblico** o **Revoca la condivisione** sull'archivio, con il problema da cui è stata eseguita |
+| `/data-store/<id>/respond` | Un'azione di risposta sull'archivio, come **Blocca l'accesso pubblico** o **Attiva il controllo delle versioni**, con il problema da cui è stata eseguita |
 
 Il [provider Terraform](/docs/terraform/index) ha una risorsa per ogni tipo di record che crei - archivi dati che aggiungi tu, tipi di dati personalizzati, impostazioni dei controlli, regole di residenza, regole del proprietario e regole etichette - che prende il nome dal record, come `oneuptime_residency_rule`.
 
-Il [server MCP](/docs/ai/mcp-server) ha strumenti per creare, leggere, elencare, aggiornare, eliminare e contare questi record: Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule e Data Security Setting. Un assistente IA può allora chiedere, con i tuoi permessi, quali archivi contengono numeri di carta, o cosa è aperto su un bucket.
+Il [server MCP](/docs/ai/mcp-server) ha strumenti per creare, leggere, elencare, aggiornare, eliminare e contare questi record: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule e Data Security Setting. Un assistente IA può allora chiedere, con i tuoi permessi, quali archivi contengono numeri di carta, o cosa è aperto su un bucket.
 
 ## Passaggi successivi
 

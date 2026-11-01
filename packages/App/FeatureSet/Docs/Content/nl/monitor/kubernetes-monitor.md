@@ -124,7 +124,7 @@ Anomaliedetectie ten opzichte van een baseline heeft geen drempel nodig. Kies ee
 | **Anomalously Low** | Onder het verwachte bereik zakt |
 | **Anomalous** | Het verwachte bereik in een van beide richtingen verlaat |
 
-Elke meting wordt vergeleken met een baseline voor hetzelfde uur van de week, opgebouwd uit het **Baseline-venster** (standaard 14 dagen; 28, 60 of 90 dagen). **Gevoeligheid** bepaalt hoe breed het verwachte bereik is: **Laag (4σ — alleen flagrante afwijkingen)**, **Gemiddeld (3σ — aanbevolen)**, de standaard, of **Hoog (2σ — luidruchtiger, zeer stabiele services)**. Anomalievoorwaarden blijven in een "Learning"-status en geven geen waarschuwingen tot er minstens het gekozen baseline-venster aan metriekgeschiedenis is.
+Elke meting wordt vergeleken met een baseline voor hetzelfde uur van de week, opgebouwd uit het **Baseline-venster** (standaard 14 dagen; 28, 60 of 90 dagen). **Gevoeligheid** bepaalt hoe breed het verwachte bereik is: **Laag (4σ — alleen flagrante afwijkingen)**, **Gemiddeld (3σ — aanbevolen)**, de standaard, of **Hoog (2σ — luidruchtiger, zeer stabiele services)**. Anomalievoorwaarden blijven in een "Learning"-status en geven geen waarschuwingen tot dat uur van de week twee weken geschiedenis heeft.
 
 **Als geen gegevens**, onder **Meer velden**, bepaalt wat er gebeurt als de query niets teruggeeft in het venster: **Ignore** (de standaard) komt niet overeen, **Trigger** behandelt de stilte als het probleem, en **Treat As Zero** vergelijkt een nul. Tijd waarin OneUptime zelf niet ontving, geldt nooit als ontbrekende gegevens: een controle waarvan het venster zulke tijd bevat, wacht in plaats daarvan, zoals [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving) uitlegt.
 
@@ -136,25 +136,25 @@ De lijst onder **Waarover te waarschuwen** toont deze sjablonen, gegroepeerd per
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Beschikbaarheid | Er 10 minuten lang geen gegevens van de agent van het cluster binnenkomen | Kritiek |
 | CrashLoopBackOff Detection | Werklast | Een container binnen 15 minuten is herstart en minder dan de helft daarvan gereed was | Kritiek |
-| Pod Stuck in Pending | Plannen | Een pod in elke meting van een venster van 15 minuten in de fase Pending staat | Warning |
+| Pod Stuck in Pending | Plannen | Een pod in elke meting van een venster van 15 minuten in de fase Pending staat | Waarschuwing |
 | Node Not Ready | Node | Een node NotReady meldt of zijn status niet meer meldt (Unknown) | Kritiek |
-| Node Under Pressure | Node | Een node 10 minuten lang MemoryPressure, DiskPressure of PIDPressure meldt | Warning |
-| High Node CPU Utilization | Node | Het gemiddelde CPU-gebruik van een node boven 90% van zijn toewijsbare CPU ligt | Warning |
-| High Node Memory Utilization | Node | De gemiddelde geheugen-working-set van een node boven 85% van zijn toewijsbare geheugen ligt | Warning |
-| Deployment Replica Mismatch | Werklast | Een deployment 15 minuten lang minder beschikbare replica's heeft dan gewenst | Warning |
-| StatefulSet Replica Mismatch | Werklast | Een StatefulSet 15 minuten lang minder gereedstaande replica's heeft dan gewenst | Warning |
-| Job Failures | Werklast | Een pod van een job binnen 15 minuten is mislukt | Warning |
+| Node Under Pressure | Node | Een node 10 minuten lang MemoryPressure, DiskPressure of PIDPressure meldt | Waarschuwing |
+| High Node CPU Utilization | Node | Het gemiddelde CPU-gebruik van een node boven 90% van zijn toewijsbare CPU ligt | Waarschuwing |
+| High Node Memory Utilization | Node | De gemiddelde geheugen-working-set van een node boven 85% van zijn toewijsbare geheugen ligt | Waarschuwing |
+| Deployment Replica Mismatch | Werklast | Een deployment 15 minuten lang minder beschikbare replica's heeft dan gewenst | Waarschuwing |
+| StatefulSet Replica Mismatch | Werklast | Een StatefulSet 15 minuten lang minder gereedstaande replica's heeft dan gewenst | Waarschuwing |
+| Job Failures | Werklast | Een pod van een job binnen 15 minuten is mislukt | Waarschuwing |
 | etcd No Leader | Controlevlak | etcd geen gekozen leider heeft | Kritiek |
 | API Server Request Saturation | Controlevlak | De API-server het hele venster 200 of meer lopende verzoeken vasthoudt | Kritiek |
-| Scheduler Backlog | Plannen | De wachtrij met pods in afwachting van de scheduler 5 minuten lang niet leeg is | Warning |
-| High Node Disk Usage | Opslag | Het bestandssysteem van een node meer dan 90% vol is | Warning |
-| DaemonSet Pods Not Ready | Werklast | Een DaemonSet 15 minuten lang nodes zonder een gereedstaande pod ervan heeft | Warning |
-| DaemonSet Misscheduled Nodes | Werklast | Een DaemonSet pods draait op nodes die niet meer passen bij zijn nodeselector, affiniteit of toleraties | Warning |
-| High Node CPU Request Commitment | Node | De opgetelde CPU-requests van de containers van een node meer dan 90% van zijn toewijsbare CPU bedragen | Warning |
-| High Node Memory Request Commitment | Node | De opgetelde geheugen-requests van de containers van een node meer dan 90% van zijn toewijsbare geheugen bedragen | Warning |
+| Scheduler Backlog | Plannen | De wachtrij met pods in afwachting van de scheduler 5 minuten lang niet leeg is | Waarschuwing |
+| High Node Disk Usage | Opslag | Het bestandssysteem van een node meer dan 90% vol is | Waarschuwing |
+| DaemonSet Pods Not Ready | Werklast | Een DaemonSet 15 minuten lang nodes zonder een gereedstaande pod ervan heeft | Waarschuwing |
+| DaemonSet Misscheduled Nodes | Werklast | Een DaemonSet pods draait op nodes die niet meer passen bij zijn nodeselector, affiniteit of toleraties | Waarschuwing |
+| High Node CPU Request Commitment | Node | De opgetelde CPU-requests van de containers van een node meer dan 90% van zijn toewijsbare CPU bedragen | Waarschuwing |
+| High Node Memory Request Commitment | Node | De opgetelde geheugen-requests van de containers van een node meer dan 90% van zijn toewijsbare geheugen bedragen | Waarschuwing |
 | HPA Saturated at Max Replicas | Werklast | Een boven zijn `minReplicas` geschaalde HPA op 90% of meer van zijn `maxReplicas` draait | Kritiek |
 | Pod Memory Saturating Container Limit | Werklast | Een pod meer dan 90% van de geheugenlimiet van zijn containers gebruikt | Kritiek |
-| Pod CPU Saturating Container Limit | Werklast | Een pod meer dan 90% van de CPU-limiet van zijn containers gebruikt | Warning |
+| Pod CPU Saturating Container Limit | Werklast | Een pod meer dan 90% van de CPU-limiet van zijn containers gebruikt | Waarschuwing |
 
 Sjablonen op metrieken per object evalueren elke node, pod, deployment, job, DaemonSet of HPA afzonderlijk, zodat een cluster met meerdere ongezonde pods een incident per pod krijgt in plaats van één voor het hele cluster.
 

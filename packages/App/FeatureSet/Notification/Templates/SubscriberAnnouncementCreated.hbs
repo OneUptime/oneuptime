@@ -2,21 +2,21 @@
 
 {{> CustomLogo this}}
 
-{{> EmailTitle title=(concat "Announcement: " announcementTitle) }}
+{{> EmailTitle title=(tt "Announcement: {{title}}" title=announcementTitle) }}
 
-{{> InfoBlock plainInfo=(concat "A new announcement has been posted for " statusPageName ".") }}
+{{> InfoBlock plainInfo=(tt "A new announcement has been posted for {{statusPageName}}." statusPageName=statusPageName) }}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Announcement" plainText=announcementTitle }}
+{{> DetailBoxField title=(t "Announcement") plainText=announcementTitle }}
 {{#if announcementDescription}}
-{{> DetailBoxField title="Details" text=announcementDescription  }}
+{{> DetailBoxField title=(t "Details") text=announcementDescription  }}
 {{/if}}
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}
-{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Announcement"}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText=(t "View Announcement")}}
 {{else}}
-{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText=(t "View Status Page")}}
 {{/if}}
 
 {{> VerticalSpace this}}

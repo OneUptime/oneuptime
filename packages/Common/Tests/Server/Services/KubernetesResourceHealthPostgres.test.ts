@@ -24,7 +24,7 @@ import { DataSource } from "typeorm";
  * executed on Postgres against the migrated "KubernetesResource" table.
  *
  * Opt in with RUN_POSTGRES_KUBERNETES_HEALTH_TESTS=true against a database
- * the registered migrations (1808780000000-AddKubernetesResourceHealthSeverity
+ * the registered migrations (1808800000000-AddKubernetesResourceHealthSeverity
  * and its online index included) have been applied to, e.g. from
  * packages/Common:
  *

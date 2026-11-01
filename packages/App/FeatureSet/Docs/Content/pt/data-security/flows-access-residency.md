@@ -4,7 +4,7 @@ Saber o que um repositório guarda é metade do trabalho. A Segurança de dados 
 
 :::cards
 - [Fluxos de dados](#fluxos-de-dados): Serviços, provedores de IA, hosts externos e cópias.
-- [Quem pode acessar um repositório](#quem-pode-acessar-um-repositório): Cada concessão que a sua nuvem informa, e o quão exposto o repositório está.
+- [Quem pode acessar um repositório](#quem-pode-acessar-um-repositório): Cada identidade e cada concessão, o que cada identidade alcança, e o quão exposto o repositório está.
 - [Regras de residência](#regras-de-residência): As regiões em que cada tipo de dado pode ficar.
 :::
 
@@ -39,18 +39,18 @@ Uma cópia é encontrada sem os valores de nenhum dos dois repositórios. Para c
 
 ## Quem pode acessar um repositório
 
-A leitura da configuração transforma as próprias configurações de acesso de cada nuvem - políticas e ACLs de bucket, atribuições de função do Azure, vínculos do IAM do Google Cloud, compartilhamentos de snapshot - em uma única lista de quem pode acessar o repositório, na página **Quem pode acessar** dele:
+A leitura da configuração transforma as próprias configurações de acesso de cada nuvem - políticas e ACLs de bucket, atribuições de função do Azure, vínculos do IAM do Google Cloud, compartilhamentos de snapshot e, na AWS, as próprias políticas do IAM de cada função e de cada usuário - em uma única lista de quem pode acessar o repositório, na página **Quem pode acessar** dele. Os serviços que o mapa de serviços mostra chamando o repositório também estão nela:
 
 | Coluna | O que diz |
 | --- | --- |
-| **Entidade principal** | Quem ou o que tem acesso, como a nuvem o nomeia: `*`, um ID de conta, um ARN, um e-mail, uma conta de serviço. |
-| **Tipo de entidade principal** | Público, Conta, Função, Usuário, Grupo, Entidade de serviço, Conta de serviço ou Serviço. |
+| **Quem** | Quem ou o que tem acesso, como a nuvem o nomeia: `*`, um ID de conta, um ARN, um e-mail, uma conta de serviço, um serviço. Uma identidade sem uso há 90 dias aparece marcada assim. |
+| **Tipo** | Público, Conta, Função, Usuário, Grupo, Entidade de serviço, Conta de serviço ou Serviço. |
 | **Nível de acesso** | Leitura, Gravação ou Administrador. |
-| **Concedido via** | O que concede o acesso: uma política de bucket, uma ACL, uma atribuição de função, um vínculo do IAM ou um compartilhamento de snapshot. |
-| **Externo** | A entidade principal está fora das contas, assinaturas e projetos conectados ao OneUptime. |
-| **Público** | A entidade principal é qualquer pessoa na internet. |
+| **Concedido via** | O que concede o acesso: uma política de bucket, uma ACL, uma política do IAM, uma função que ela pode assumir, uma atribuição de função, um vínculo do IAM ou um compartilhamento de snapshot - ou, para um serviço, que os traces o viram usar o repositório. |
+| **Alcance** | Qualquer pessoa na internet, fora das suas contas - as contas, assinaturas e projetos conectados ao OneUptime - ou as suas contas. |
+| **Último uso** | Quando a identidade usou o acesso pela última vez, segundo a nuvem, ou quando o mapa de serviços viu o serviço chamar o repositório pela última vez. |
 
-A lista é lida de novo a cada leitura da configuração, e uma concessão que a nuvem não informa mais é removida. [Mais de 25 identidades podem ler dados Restritos](/docs/data-security/checks-and-issues#acesso) conta os leitores nela. Os serviços que usam um repositório são os fluxos **Usa** dele.
+A lista é lida de novo a cada leitura da configuração, e uma concessão que a nuvem não informa mais é removida. [Mais de 25 identidades podem ler dados Restritos](/docs/data-security/checks-and-issues#acesso) conta os leitores nela, e [Identidades sem uso há 90 dias ainda podem acessá-lo](/docs/data-security/checks-and-issues#acesso) falha enquanto uma identidade sem uso há 90 dias puder alcançar os dados sensíveis dele. Os serviços que usam um repositório são os fluxos **Usa** dele.
 
 A partir do que ela lê, todo repositório recebe uma exposição:
 
@@ -63,6 +63,22 @@ A partir do que ela lê, todo repositório recebe uma exposição:
 | **Desconhecido** | O OneUptime não conseguiu ler o suficiente da configuração dele para saber. |
 
 Público prevalece sobre compartilhado, e compartilhado prevalece sobre acessível: um bucket público que também está compartilhado com outra conta é Público. A exposição soma pontos à [pontuação de risco](/docs/data-security/checks-and-issues#pontuação-de-risco) de um problema.
+
+### Cada identidade, e o que ela pode alcançar
+
+Na AWS, a leitura lista uma vez os usuários e funções da conta e decide, como o IAM faz, quais deles alcançam cada bucket e cada tabela do DynamoDB, e como: o que as políticas deles permitem menos o que negam, os limites de permissões, e uma concessão que só vale sob condições diz isso. Uma conta fora das suas contas conectadas que pode assumir uma função alcança o que a função alcança. O último uso de cada identidade vem do IAM, para funções, e do relatório de credenciais da conta, para usuários.
+
+**Segurança de dados → Acesso** lista cada identidade que pode alcançar os seus repositórios, a mais arriscada primeiro: o que ela alcança e o quão sensível isso é, o máximo que ela pode fazer e quando foi usada pela última vez, com filtros para **Fora das suas contas**, **Sem uso há 90 dias** e **Pode alterar dados sensíveis**. Cada uma abre a própria página: cada repositório que ela pode alcançar, o mais sensível primeiro, e a pontuação de risco dela parte por parte. Abaixo delas, Acesso lista cada concessão de fora das suas contas.
+
+| O que soma ao risco de uma identidade | Pontos |
+| --- | --- |
+| Os dados mais sensíveis que ela alcança | 50 para Restrito, 30 para Confidencial, 10 para Interno |
+| Ela pode gravar em um repositório Confidencial ou Restrito, ou administrá-lo | 15 |
+| Ela é qualquer pessoa na internet, ou está fora das suas contas | 20 para qualquer pessoa, 15 para fora |
+| Ela não é usada há 90 dias e alcança dados Internos, Confidenciais ou Restritos | 10 |
+| Quantos repositórios sensíveis ela alcança | 1 para cada um, até 5 |
+
+A pontuação é no máximo 100. Uma função de uma conta de fora que pode alterar um repositório de números de cartão soma 50 + 15 + 15 + 1 = 81.
 
 ## Regras de residência
 

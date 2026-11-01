@@ -124,7 +124,7 @@ Anomalidetektion mod en baseline kræver ingen tærskel. Vælg en af disse betin
 | **Anomalously Low** | Falder under det forventede interval |
 | **Anomalous** | Forlader det forventede interval i en af retningerne |
 
-Hver måling sammenlignes med en baseline for samme time på ugen, bygget ud fra **Baseline-vindue** (som standard 14 dage; 28, 60 eller 90 dage). **Følsomhed** angiver, hvor bredt det forventede interval er: **Lav (4σ — kun grove afvigelser)**, **Mellem (3σ — anbefalet)**, som er standard, eller **Høj (2σ — mere støjende, meget stabile tjenester)**. Anomalibetingelser forbliver i en "Learning"-tilstand og giver ingen advarsler, før der findes mindst det valgte baseline-vindue af metrikhistorik.
+Hver måling sammenlignes med en baseline for samme time på ugen, bygget ud fra **Baseline-vindue** (som standard 14 dage; 28, 60 eller 90 dage). **Følsomhed** angiver, hvor bredt det forventede interval er: **Lav (4σ — kun grove afvigelser)**, **Mellem (3σ — anbefalet)**, som er standard, eller **Høj (2σ — mere støjende, meget stabile tjenester)**. Anomalibetingelser forbliver i en "Learning"-tilstand og giver ingen advarsler, før den time på ugen har to ugers historik.
 
 **Hvis ingen data**, under **Flere felter**, afgør, hvad der sker, når forespørgslen intet returnerer i vinduet: **Ignore** (standard) matcher ikke, **Trigger** behandler stilheden som problemet, og **Treat As Zero** sammenligner et nul. Tid, hvor OneUptime selv ikke modtog data, er aldrig manglende data: en kontrol, hvis vindue indeholder sådan tid, venter i stedet, som [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -136,25 +136,25 @@ Listen under **Hvad der skal advares om** viser disse skabeloner, grupperet efte
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Tilgængelighed | Der kommer ingen data fra klyngens agent i 10 minutter | Kritisk |
 | CrashLoopBackOff Detection | Arbejdsbyrde | En container genstartede inden for 15 minutter og var klar i mindre end halvdelen af dem | Kritisk |
-| Pod Stuck in Pending | Planlægning | En pod er i fasen Pending i hver måling i et vindue på 15 minutter | Warning |
+| Pod Stuck in Pending | Planlægning | En pod er i fasen Pending i hver måling i et vindue på 15 minutter | Advarsel |
 | Node Not Ready | Node | En node melder NotReady eller holder op med at melde sin status (Unknown) | Kritisk |
-| Node Under Pressure | Node | En node melder MemoryPressure, DiskPressure eller PIDPressure i 10 minutter | Warning |
-| High Node CPU Utilization | Node | En nodes gennemsnitlige CPU-forbrug er over 90 % af dens allokerbare CPU | Warning |
-| High Node Memory Utilization | Node | En nodes gennemsnitlige working set-hukommelse er over 85 % af dens allokerbare hukommelse | Warning |
-| Deployment Replica Mismatch | Arbejdsbyrde | En deployment har færre tilgængelige replikaer end ønsket i 15 minutter | Warning |
-| StatefulSet Replica Mismatch | Arbejdsbyrde | Et StatefulSet har færre klare replikaer end ønsket i 15 minutter | Warning |
-| Job Failures | Arbejdsbyrde | En pod i et job fejlede inden for 15 minutter | Warning |
+| Node Under Pressure | Node | En node melder MemoryPressure, DiskPressure eller PIDPressure i 10 minutter | Advarsel |
+| High Node CPU Utilization | Node | En nodes gennemsnitlige CPU-forbrug er over 90 % af dens allokerbare CPU | Advarsel |
+| High Node Memory Utilization | Node | En nodes gennemsnitlige working set-hukommelse er over 85 % af dens allokerbare hukommelse | Advarsel |
+| Deployment Replica Mismatch | Arbejdsbyrde | En deployment har færre tilgængelige replikaer end ønsket i 15 minutter | Advarsel |
+| StatefulSet Replica Mismatch | Arbejdsbyrde | Et StatefulSet har færre klare replikaer end ønsket i 15 minutter | Advarsel |
+| Job Failures | Arbejdsbyrde | En pod i et job fejlede inden for 15 minutter | Advarsel |
 | etcd No Leader | Kontrolplan | etcd har ingen valgt leder | Kritisk |
 | API Server Request Saturation | Kontrolplan | API-serveren holder 200 eller flere igangværende forespørgsler i hele vinduet | Kritisk |
-| Scheduler Backlog | Planlægning | Schedulerens kø af ventende pods er ikke tom i 5 minutter | Warning |
-| High Node Disk Usage | Lagerplads | En nodes filsystem er mere end 90 % fuldt | Warning |
-| DaemonSet Pods Not Ready | Arbejdsbyrde | Et DaemonSet har noder uden en klar pod fra det i 15 minutter | Warning |
-| DaemonSet Misscheduled Nodes | Arbejdsbyrde | Et DaemonSet kører pods på noder, der ikke længere matcher dets nodeselector, affinitet eller tolerationer | Warning |
-| High Node CPU Request Commitment | Node | En nodes samlede CPU-requests fra containere overstiger 90 % af dens allokerbare CPU | Warning |
-| High Node Memory Request Commitment | Node | En nodes samlede hukommelses-requests fra containere overstiger 90 % af dens allokerbare hukommelse | Warning |
+| Scheduler Backlog | Planlægning | Schedulerens kø af ventende pods er ikke tom i 5 minutter | Advarsel |
+| High Node Disk Usage | Lagerplads | En nodes filsystem er mere end 90 % fuldt | Advarsel |
+| DaemonSet Pods Not Ready | Arbejdsbyrde | Et DaemonSet har noder uden en klar pod fra det i 15 minutter | Advarsel |
+| DaemonSet Misscheduled Nodes | Arbejdsbyrde | Et DaemonSet kører pods på noder, der ikke længere matcher dets nodeselector, affinitet eller tolerationer | Advarsel |
+| High Node CPU Request Commitment | Node | En nodes samlede CPU-requests fra containere overstiger 90 % af dens allokerbare CPU | Advarsel |
+| High Node Memory Request Commitment | Node | En nodes samlede hukommelses-requests fra containere overstiger 90 % af dens allokerbare hukommelse | Advarsel |
 | HPA Saturated at Max Replicas | Arbejdsbyrde | En HPA, der er skaleret over sin `minReplicas`, kører på 90 % eller mere af sin `maxReplicas` | Kritisk |
 | Pod Memory Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres hukommelsesgrænse | Kritisk |
-| Pod CPU Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres CPU-grænse | Warning |
+| Pod CPU Saturating Container Limit | Arbejdsbyrde | En pod bruger mere end 90 % af sine containeres CPU-grænse | Advarsel |
 
 Skabeloner på metrikker pr. objekt evaluerer hver node, pod, deployment, job, DaemonSet eller HPA for sig, så en klynge med flere usunde pods får en hændelse pr. pod i stedet for én for hele klyngen.
 

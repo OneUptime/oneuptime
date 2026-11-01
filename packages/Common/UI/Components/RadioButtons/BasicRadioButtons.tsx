@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import ObjectID from "../../../Types/ObjectID";
 import React, {
   FunctionComponent,
@@ -119,11 +120,7 @@ const BasicRadioButton: FunctionComponent<ComponentProps> = (
           )}
         </div>
       </fieldset>
-      {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError message={props.error} announce="none" />}
     </div>
   );
 };

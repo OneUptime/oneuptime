@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import {
   GroupingRuleTranslateFunction,
   getMinutesSettingValues,
@@ -59,9 +60,17 @@ const MinutesSettingField: FunctionComponent<ComponentProps> = (
       ? ""
       : String(props.minutes);
 
+  /*
+   * The words before the box and after it are items of the row, each a box
+   * of its own: the box is not set apart from them in a language read right
+   * to left (TemplateAroundOptions), or an empty half holding the isolate's
+   * mark alone would be one more item, a gap before the box.
+   */
   const around: TemplateAround = translateTemplateAround(
     props.sentence,
     "minutes",
+    {},
+    { setsSlotApart: false },
   );
 
   const error: string | undefined = props.error
@@ -119,14 +128,12 @@ const MinutesSettingField: FunctionComponent<ComponentProps> = (
       )}
 
       {props.enabled && error ? (
-        <p
+        <FieldError
           id={errorId}
+          message={error}
           className="mt-1 pl-14 text-sm text-red-600"
-          role="alert"
-          data-testid={`${props.dataTestId}-error`}
-        >
-          {error}
-        </p>
+          dataTestId={`${props.dataTestId}-error`}
+        />
       ) : (
         <></>
       )}

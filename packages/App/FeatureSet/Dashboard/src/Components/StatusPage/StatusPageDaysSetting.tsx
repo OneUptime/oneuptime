@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { Yellow } from "Common/Types/BrandColors";
@@ -246,14 +247,12 @@ const StatusPageDaysSetting: FunctionComponent<ComponentProps> = (
           </span>
         </div>
         {error ? (
-          <p
+          <FieldError
             id={errorId}
+            message={error}
             className="mt-1 text-sm text-red-600"
-            role="alert"
-            data-testid={`${props.dataTestId}-error`}
-          >
-            {error}
-          </p>
+            dataTestId={`${props.dataTestId}-error`}
+          />
         ) : (
           <></>
         )}

@@ -186,6 +186,7 @@ const TraceOperations: FunctionComponent<ComponentProps> = (
             const service: TraceServiceInfo = getServiceInfo(
               props.serviceInfoById,
               operation.serviceId,
+              translator,
             );
             const isRepeated: boolean =
               operation.maxCallsFromOneParent >= REPEATED_CALL_THRESHOLD;

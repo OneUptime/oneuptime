@@ -35,7 +35,7 @@ Jeder Scan - einer Logzeile, einer CSV-Zelle, einer Datenbankzeile, der ersten B
 | **Mittel** | Der Wert hat seinen Validator bestanden, ohne dass etwas um ihn herum ihn bestätigt, oder der Name des Felds sagt, was es enthält, und einige Werte stimmen damit überein. |
 | **Niedrig** | Die Form passt, aber nichts bestätigt sie. |
 
-Nur Funde mit Konfidenz Hoch oder Mittel zählen: Sie machen einen Datenspeicher sensibel und können ein Problem eröffnen. Funde mit Konfidenz Niedrig werden am Datenspeicher aufgeführt, eingeklappt, damit ein Mensch sie beurteilt.
+Nur Funde mit Konfidenz Hoch oder Mittel zählen: Sie machen einen Datenspeicher sensibel und können ein Problem eröffnen. Funde mit Konfidenz Niedrig werden am Datenspeicher aufgeführt, eingeklappt, damit ein Mensch sie beurteilt: **Bestätigen** an einem zutreffenden Fund macht ihn zu Hoch, und er bleibt in späteren Scans Hoch.
 
 Beanspruchen zwei Datentypen dieselben Zeichen, gewinnt der sicherere Fund: die höhere Konfidenz, dann der Detektor, dessen eigene Regeln mehr beweisen, dann der längere Treffer.
 
@@ -58,6 +58,12 @@ Der Name eines Felds wird in Wörter zerlegt - `customerEmail`, `customer_email`
 Manche Datentypen lassen sich nicht an ihren Werten erkennen: Kein Muster unterscheidet den Namen einer Person von einer Straße oder eine Religion von irgendeinem anderen Wort. Diese werden allein anhand des Feldnamens gefunden, wenn das Feld Werte hat: Personenname, Benutzername, Geschlecht, Staatsangehörigkeit, Gesundheitsinformationen, Rassische oder ethnische Herkunft, Religiöse Überzeugung, Sexuelle Orientierung, Politische Meinung, Gewerkschaftszugehörigkeit, Biometrische Daten, Genetische Daten und Vorstrafen. Ein Name, ein Benutzername, ein Geschlecht oder eine Staatsangehörigkeit ist dann Hoch, wenn 60 % oder mehr der Werte danach aussehen, und sonst Mittel.
 
 Ein Feld, dessen Name sagt, dass es ein Passwort enthält - `password`, `passwordHash`, `pwd`, nicht `password_changed_at` -, sollte einen Hash enthalten: bcrypt, argon2, scrypt, PBKDF2 oder ein anderes Verfahren, das ein Datenspeicher wahrscheinlich nutzt. Leere Werte, Platzhalter wie `********` und verschlüsselte Werte werden beiseitegelegt. Sind vom Rest mehr Werte keine Hashes als Hashes, enthält das Feld die Passwörter selbst, die kein Muster sehen kann, und der Datenspeicher besteht [Passwörter werden im Klartext gespeichert](/docs/data-security/checks-and-issues#datenhygiene) nicht.
+
+### Felder, die kein Detektor zuordnen konnte
+
+Eine Spalte oder ein Feld, deren Name auf keinen Datentyp hinweist und deren Werte zu keinem Detektor passen, ist nicht als sicher bekannt: Es kann Ihre eigene Kundennummer sein oder eine Spalte, die in einer anderen Sprache benannt ist. Ist **KI aktivieren** im Projekt eingeschaltet, behält ein Inhaltsscan solche Felder, höchstens 200 pro Scan, und OneUptime AI wird gefragt, welchen der Datentypen des Projekts jedes davon enthält, höchstens 40 Felder eines Datenspeichers auf einmal. Es erfährt den Namen des Feldes, die Namen der Felder daneben und die Formen seiner Werte - jeder Buchstabe als `a` oder `A` geschrieben und jede Ziffer als `9`, sodass aus `AB-1234` die Form `AA-9999` wird - nie einen Wert. Nach Freitext, Feldern mit weniger als 5 Werten, kleinen ganzen Zahlen und Feldern, die als ID, Zeitpunkt oder Status benannt sind, wird nicht gefragt.
+
+Jeder Typ, den OneUptime AI nennt, ist ein Fund mit Konfidenz Niedrig, markiert als **Von OneUptime AI vorgeschlagen**, mit seiner Begründung. Wie jeder Fund mit Konfidenz Niedrig zählt er für nichts, bis ein Mensch auf der Seite **Inhalt** des Datenspeichers **Bestätigen** wählt; **Als nicht sensibel markieren** lehnt ihn ab. Nach einer Antwort wird zu einem Feld 30 Tage lang nicht erneut gefragt, und zu einem Feld, das ein Mensch beurteilt hat, nie wieder.
 
 ## Sensibilität
 

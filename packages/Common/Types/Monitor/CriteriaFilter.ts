@@ -349,6 +349,26 @@ export enum AnomalyDetectionSensitivity {
   High = "High",
 }
 
+/*
+ * How many standard deviations from the baseline each sensitivity allows.
+ * Tighter sensitivity = lower sigma threshold = more alerts.
+ */
+export const ANOMALY_SIGMA_BY_SENSITIVITY: Record<
+  AnomalyDetectionSensitivity,
+  number
+> = {
+  [AnomalyDetectionSensitivity.Low]: 4,
+  [AnomalyDetectionSensitivity.Medium]: 3,
+  [AnomalyDetectionSensitivity.High]: 2,
+};
+
+// The baseline windows a criteria can pick, in days, the default first.
+export const ANOMALY_WINDOW_DAYS_OPTIONS: ReadonlyArray<number> = [
+  14, 28, 60, 90,
+];
+
+export const DEFAULT_ANOMALY_WINDOW_DAYS: number = 14;
+
 export enum AnomalyDetectionMethod {
   /** Rolling mean ± N × population standard deviation. Default. */
   MeanStddev = "Mean & Std Dev",
@@ -367,6 +387,17 @@ export interface MetricAnomalyDetectionOptions {
   windowDays?: number | undefined;
   /** Minimum samples per (hour-of-week) cell to trust the baseline. */
   minSamples?: number | undefined;
+  /**
+   * Exception counts only: how many standard deviations from the baseline a
+   * window must be, in place of what the sensitivity sets.
+   */
+  sigmaCount?: number | undefined;
+  /**
+   * Log, span and exception counts: the fewest a window needs to read as
+   * unusually high, in place of what the sensitivity sets, so a quiet
+   * service does not alert on its first few.
+   */
+  minimumCount?: number | undefined;
 }
 
 export interface MetricMonitorOptions {

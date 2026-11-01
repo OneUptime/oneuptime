@@ -17,8 +17,11 @@ import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstanc
 import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import TraceMonitorResponse from "Common/Types/Monitor/TraceMonitor/TraceMonitorResponse";
-import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import ExceptionMonitorResponse, {
+  ExceptionLearnedBaseline,
+} from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
+import ExceptionLearnedBaselineUtil from "Common/Server/Utils/Monitor/ExceptionLearnedBaseline";
+import { afterEach, describe, expect, test, beforeEach } from "@jest/globals";
 import {
   RumAlertTemplate,
   getRumAlertTemplateById,
@@ -207,6 +210,69 @@ describe("monitorTrace", () => {
   });
 });
 
+describe("where a log or span check says its window ended", () => {
+  const heldBack: Date = new Date("2026-11-02T09:40:00.000Z");
+
+  const lastCallOf: (count: unknown) => JSONObject = (
+    count: unknown,
+  ): JSONObject => {
+    const calls: Array<Array<JSONObject>> = (count as jest.Mock).mock
+      .calls as Array<Array<JSONObject>>;
+
+    return calls[calls.length - 1]![0]!;
+  };
+
+  test("a log check held back by the ingest queue says where to", async () => {
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+      evaluateUntil: heldBack,
+    });
+
+    expect(response.evaluatedUntil).toBe(heldBack);
+  });
+
+  test("a span check held back by the ingest queue says where to", async () => {
+    const response: TraceMonitorResponse = await monitorTrace({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+      evaluateUntil: heldBack,
+    });
+
+    expect(response.evaluatedUntil).toBe(heldBack);
+  });
+
+  test("the window a log check counts is the one it says", async () => {
+    const response: LogMonitorResponse = await monitorLogs({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    const counted: JSONObject = lastCallOf(LogService.countBy);
+
+    expect((counted["query"] as { time: InBetween<Date> }).time.endValue).toBe(
+      response.evaluatedUntil,
+    );
+  });
+
+  test("the window a span check counts is the one it says", async () => {
+    const response: TraceMonitorResponse = await monitorTrace({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    const counted: JSONObject = lastCallOf(SpanService.countBy);
+
+    expect(
+      (counted["query"] as { startTime: InBetween<Date> }).startTime.endValue,
+    ).toBe(response.evaluatedUntil);
+  });
+});
+
 describe("monitorException", () => {
   test("falls back to the default query when exceptionMonitor config is missing", async () => {
     exceptionCountBy.mockResolvedValue(new PositiveNumber(3));
@@ -384,6 +450,122 @@ describe("monitorException", () => {
  * occurrences from those entities, read from ClickHouse first. A monitor
  * without the filter reads what it always did.
  */
+describe("monitorException's learned baseline", () => {
+  const baseline: ExceptionLearnedBaseline = {
+    windowDays: 14,
+    windowSeconds: 900,
+    weeksOfHistory: 2,
+    sampleCount: 8,
+    mean: 5,
+    stddev: 2.5,
+    median: 5,
+    madSigma: 2.5,
+    minObserved: 3,
+    maxObserved: 7,
+  };
+
+  function spikeStep(): MonitorStep {
+    const step: MonitorStep = MonitorStep.getDefaultMonitorStep({
+      monitorType: MonitorType.Exceptions,
+      monitorName: "Checkout",
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+    });
+    const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+    instance.data = {
+      ...instance.data!,
+      filters: [
+        {
+          checkOn: CheckOn.ExceptionCount,
+          filterType: FilterType.AnomalouslyHigh,
+          value: undefined,
+        },
+      ],
+    };
+    const criteria: MonitorCriteria = new MonitorCriteria();
+    criteria.data = { monitorCriteriaInstanceArray: [instance] };
+    step.setMonitorCriteria(criteria);
+    step.setExceptionMonitor({
+      ...MonitorStepExceptionMonitorUtil.getDefault(),
+      lastXSecondsOfExceptions: 900,
+    });
+    return step;
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a spike rule reads its baseline, over the check's window and its own query, and it reaches the response", async () => {
+    exceptionCountBy.mockResolvedValue(new PositiveNumber(40));
+    resolvedFingerprints.mockResolvedValue(["resolved-one"]);
+
+    const read: jest.SpyInstance = jest
+      .spyOn(ExceptionLearnedBaselineUtil, "read")
+      .mockResolvedValue(baseline);
+
+    const evaluateUntil: Date = new Date("2026-11-02T09:40:00.000Z");
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: spikeStep(),
+      monitorId,
+      projectId,
+      evaluateUntil,
+    });
+
+    expect(response.exceptionCount).toBe(40);
+    expect(response.exceptionLearnedBaselines).toEqual([baseline]);
+    expect(read).toHaveBeenCalledTimes(1);
+
+    const asked: Parameters<typeof ExceptionLearnedBaselineUtil.read>[0] =
+      read.mock.calls[0]![0];
+
+    expect(asked.windowEnd).toBe(evaluateUntil);
+    expect(asked.windowStart).toEqual(new Date("2026-11-02T09:25:00.000Z"));
+    expect(asked.windowSeconds).toBe(900);
+    expect(asked.windowDays).toBe(14);
+    expect(asked.countQuery.fingerprint).toBeInstanceOf(IncludesNone);
+    // The count, and nothing over the day before.
+    expect(exceptionCountBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a plain count reads no baseline, and carries none", async () => {
+    exceptionCountBy.mockResolvedValue(new PositiveNumber(3));
+
+    const read: jest.SpyInstance = jest.spyOn(
+      ExceptionLearnedBaselineUtil,
+      "read",
+    );
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: new MonitorStep(),
+      monitorId,
+      projectId,
+    });
+
+    expect(read).not.toHaveBeenCalled();
+    expect(response.exceptionLearnedBaselines).toBeUndefined();
+  });
+
+  test("a baseline that cannot be read leaves the check standing, with the count", async () => {
+    exceptionCountBy.mockResolvedValue(new PositiveNumber(40));
+    jest
+      .spyOn(ExceptionLearnedBaselineUtil, "read")
+      .mockRejectedValue(new Error("timed out"));
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: spikeStep(),
+      monitorId,
+      projectId,
+    });
+
+    expect(response.exceptionCount).toBe(40);
+    expect(response.exceptionLearnedBaselines).toBeUndefined();
+  });
+});
+
 describe("monitorException's new and regressed exceptions", () => {
   // An Exceptions monitor step whose criteria check these.
   function stepCheckingOn(

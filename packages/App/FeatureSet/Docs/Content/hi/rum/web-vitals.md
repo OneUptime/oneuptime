@@ -299,8 +299,8 @@ histogram.record(metric.value, {
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 मि.से. | **गंभीर** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500 मि.से. | **गंभीर** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0.25 | **गंभीर** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 मि.से. | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 मि.से. | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 मि.से. | **चेतावनी** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 मि.से. | **चेतावनी** |
 
 ये मॉनिटर केवल `web_vital.*` नाम पढ़ते हैं। अगर आपका ऐप कोई वाइटल दूसरे नाम से भेजता है, तो बनाए गए मॉनिटर की मेट्रिक बदलें। किसी एक रूट पर अलर्ट के लिए मॉनिटर में `app.route` फ़िल्टर जोड़ें। आप इनमें से किसी भी मेट्रिक पर अपना मॉनिटर भी बना सकते हैं: [मेट्रिक्स मॉनिटर](/docs/monitor/metrics-monitor) देखें।
 

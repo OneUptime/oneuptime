@@ -114,7 +114,7 @@ En trace-monitors kriterier har én **Filtertype**: **Span Count**, antallet af 
 | **Anomalously Low** | under det interval |
 | **Anomalous** | uden for det interval, i begge retninger |
 
-Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med samme time på ugen over det vindue. Baselinen dækker kun monitorens tjenester og span-statusser: dens filtre på span-navn og attributter indgår ikke. Indtil den time på ugen har nok historik, er kriteriet stadig ved at lære og udløses ikke.
+Anomalibetingelserne har ingen **Værdi**. Vælg en **Følsomhed** (Lav, Middel, som er standard, eller Høj) og, i de egne kriterier, et **Baseline-vindue** på 14 (standard), 28, 60 eller 90 dage. OneUptime omregner antallet til en rate pr. minut og sammenligner den med vinduer af samme længde omkring samme tidspunkt i tidligere uger, så langt tilbage som **Baseline-vindue** rækker; det, der sker nu, indgår aldrig i sammenligningen. Baselinen dækker kun monitorens tjenester og span-statusser: dens filtre på span-navn og attributter indgår ikke. Minutter uden spans tæller også med, så en tjeneste, der ofte er stille, ikke regnes for usædvanligt lav, fordi den er stille. Et vindue regnes kun for usædvanligt højt i forhold til de vinduer, der indeholdt spans, og kun med mindst 20, 10 eller 5 spans ved følsomheden Lav, Middel eller Høj, så hverken et jobs sædvanlige udbrud eller en stille tjenestes første få spans udløser det. Indtil monitorens tjenester har to ugers historik, er kriteriet stadig ved at lære og udløses ikke.
 
 En trace-monitor, der er oprettet i Opret monitor, starter med reglen for det, du valgte under **Hvad skal denne overvågning fortælle dig om?**:
 
@@ -166,7 +166,7 @@ At registrere en undtagelse ændrer ikke et spans status. Filtrér på **Fejl**,
 :::
 
 :::details Et anomalikriterium udløses aldrig
-Det er stadig ved at lære: den time på ugen, det sammenligner med, har endnu ikke nok historik inden for **Baseline-vindue**.
+Det er stadig ved at lære: monitorens tjenester har endnu ikke to ugers historik inden for **Baseline-vindue**.
 :::
 
 ## Næste skridt

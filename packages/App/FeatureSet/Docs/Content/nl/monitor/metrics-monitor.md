@@ -131,7 +131,7 @@ Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van
 | **Geen gegevens** | ontbreekt: de query stuurde niets in het venster |
 | **Gegevens aanwezig** | aanwezig is: de query stuurde iets in het venster |
 
-De anomaliecondities hebben geen drempel. **Wanneer waarschuwen** toont in plaats daarvan **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog), en de eigen criteria ook een **Baseline-venster** (14 dagen, de standaard, 28, 60 of 90), en elk datapunt wordt vergeleken met de baseline voor hetzelfde uur van de week die uit dat venster is opgebouwd. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en levert het geen waarschuwingen op.
+De anomaliecondities hebben geen drempel. **Wanneer waarschuwen** toont in plaats daarvan **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog), en de eigen criteria ook een **Baseline-venster** (14 dagen, de standaard, 28, 60 of 90), en elk datapunt wordt vergeleken met hetzelfde uur van de week op eerdere dagen, zo ver als dat venster teruggaat. Wat er nu gebeurt, hoort nooit bij die vergelijking, dus een verandering die aanhoudt blijft waarschuwen totdat ze een week later in die eerdere dagen is opgenomen. Zolang dat uur van de week geen twee weken geschiedenis heeft, is het criterium nog aan het leren en levert het geen waarschuwingen op.
 
 Een metrics-monitor die in Monitor maken is aangemaakt, begint met één regel op zijn eerste query: **Het gemiddelde** over **Laatste 5 minuten**, **Boven** de **Waarde** die u invult, en **Een waarschuwing maken**.
 
@@ -214,7 +214,7 @@ De query heeft geen **Groeperen op**, dus alle hosts worden samengevoegd tot é�
 :::
 
 :::details Een anomaliecriterium gaat nooit af
-Het is nog aan het leren: het uur van de week waarmee het vergelijkt, heeft binnen het **Baseline-venster** nog niet genoeg geschiedenis.
+Het is nog aan het leren: het uur van de week waarmee het vergelijkt, heeft nog geen twee weken geschiedenis.
 :::
 
 ## Volgende stappen

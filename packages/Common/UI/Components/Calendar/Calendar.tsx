@@ -3,6 +3,8 @@ import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
+import { getLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import { StyledDayEvent, layoutDayEvents } from "./CalendarDayLayout";
@@ -205,7 +207,15 @@ export const formatEventTimeRangeStart: (
   });
 };
 
+/*
+ * A day's number as a calendar writes it, in every language: "1", "۱" -
+ * never react-big-calendar's own "01", whose leading zero no wall or phone
+ * calendar writes ("۰۱" on a Persian page). In the month's grid, and beside
+ * the day's name above a week's columns.
+ */
 const CALENDAR_FORMATS: Formats = {
+  dateFormat: "D",
+  dayFormat: "D ddd",
   eventTimeRangeStartFormat: formatEventTimeRangeStart,
 };
 
@@ -219,7 +229,7 @@ const ENGLISH_LANGUAGE: string = "en";
  * the browser's (Intl), always on the Gregorian calendar the grid is laid
  * out in (Persian would otherwise name the month of its own calendar above
  * a Gregorian grid), and in the language's own figures, as every other date
- * on the page is (Common/Types/DateLanguage): "اکتبر ۲۰۲۶" over "۰۱", "۰۲".
+ * on the page is (Common/Types/DateLanguage): "اکتبر ۲۰۲۶" over "۱", "۲".
  */
 export const getCalendarFormats: (language: string | undefined) => Formats = (
   language: string | undefined,
@@ -273,10 +283,10 @@ export const getCalendarFormats: (language: string | undefined) => Formats = (
   });
 
   return {
-    // The day numbers in the month's grid: "01", "۰۱".
-    dateFormat: formatter({ day: "2-digit" }),
+    // The day numbers in the month's grid, as English's: "1", "۱".
+    dateFormat: formatter({ day: "numeric" }),
     weekdayFormat: formatter({ weekday: "short" }),
-    dayFormat: formatter({ weekday: "short", day: "2-digit" }),
+    dayFormat: formatter({ weekday: "short", day: "numeric" }),
     dayHeaderFormat: formatter({
       weekday: "long",
       month: "long",
@@ -415,6 +425,37 @@ export const getCalendarMessages: (
       );
     },
   };
+};
+
+/*
+ * The class a block carries when its title reads the other way from the
+ * page (LineDirection): an English maintenance title, a person's name in
+ * Latin letters, on a Persian page. Calendar.css turns the block's words
+ * that way, so a title cut short in a narrow day loses its end ("Database
+ * upg..."), not its start ("...rade"), and a short one still starts where
+ * the page's lines do. A title that reads as the page does carries none.
+ */
+export const EVENT_TITLE_DIRECTION_CLASS_NAMES: Record<
+  ReadingDirection,
+  string
+> = {
+  ltr: "oneuptime-calendar-event--reads-ltr",
+  rtl: "oneuptime-calendar-event--reads-rtl",
+};
+
+export const getEventTitleClassName: (
+  title: string | undefined,
+  pageLanguage: string | undefined,
+) => string | undefined = (
+  title: string | undefined,
+  pageLanguage: string | undefined,
+): string | undefined => {
+  const direction: ReadingDirection | undefined = getLineDirection(
+    title,
+    pageLanguage,
+  );
+
+  return direction ? EVENT_TITLE_DIRECTION_CLASS_NAMES[direction] : undefined;
 };
 
 /*
@@ -572,7 +613,7 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
   const eventStyleGetter: EventPropGetter<any> = (
     event: CalendarEvent,
   ): { className?: string | undefined; style?: React.CSSProperties } => {
-    const className: string | undefined = event.className
+    const ownClassName: string | undefined = event.className
       ? event.className.toString()
       : undefined;
 
@@ -588,10 +629,16 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         ? { backgroundColor: event.color.toString() }
         : {};
 
-      return className
-        ? { style: backgroundStyle, className }
+      return ownClassName
+        ? { style: backgroundStyle, className: ownClassName }
         : { style: backgroundStyle };
     }
+
+    // The block's words read the way its title does (getEventTitleClassName).
+    const className: string | undefined =
+      [ownClassName, getEventTitleClassName(event.title, translator.language)]
+        .filter(Boolean)
+        .join(" ") || undefined;
 
     const backgroundColor: string =
       event.color?.toString() || Blue500.toString();

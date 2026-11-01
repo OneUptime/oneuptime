@@ -112,7 +112,7 @@ Opgeslagen weergaven horen bij het project, dus iedereen erin ziet dezelfde lijs
 
 ## Uw logboeken in grafieken zetten
 
-Zet de lijst op **Analytics** om logboeken te tellen in plaats van te lezen. Kies een tijdreeks, een toplijst of een tabel; tel elk logboek, of de unieke waarden van één veld; en groepeer op ernst, service, trace, span of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont de bovenste 5, 10, 25 of 50 groepen.
+Zet de lijst op **Analyses** om logboeken te tellen in plaats van te lezen. Kies een tijdreeks, een toplijst of een tabel; tel elk logboek, of de unieke waarden van één veld; en groepeer op ernst, service, trace, span of een willekeurig attribuut, en daarna op een tweede veld. Een toplijst of een tabel toont de bovenste 5, 10, 25 of 50 groepen.
 
 Klik op **Lijst** om terug te gaan naar de regels zelf.
 

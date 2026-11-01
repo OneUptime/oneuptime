@@ -102,7 +102,7 @@ Elk nieuw project begint met twee ernstniveaus voor waarschuwingen, het ernstigs
 | **Hoog** | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
 | **Laag**  | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Incidenten beginnen met drie ernstniveaus en waarschuwingen met twee. Wanneer het sjabloon van een monitoraanbeveling **Kritiek** of **Warning** zegt, koppelt OneUptime dat aan je eerste en tweede ernstniveau voor waarschuwingen, in een nieuw project **Hoog** en **Laag**.
+Incidenten beginnen met drie ernstniveaus en waarschuwingen met twee. Wanneer het sjabloon van een monitoraanbeveling **Kritiek** of **Waarschuwing** zegt, koppelt OneUptime dat aan je eerste en tweede ernstniveau voor waarschuwingen, in een nieuw project **Hoog** en **Laag**.
 
 ## Ernstniveaus bewerken
 

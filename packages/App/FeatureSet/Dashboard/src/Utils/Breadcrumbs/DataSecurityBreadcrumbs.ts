@@ -109,6 +109,12 @@ export function getDataSecurityBreadcrumbs(
       "View Data Store",
       "Delete Data Store",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_IDENTITY_VIEW, [
+      "Project",
+      "Data Security",
+      "Access",
+      "View Identity",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_SECURITY_ISSUES, [
       "Project",
       "Data Security",

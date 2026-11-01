@@ -327,6 +327,17 @@ A través de la API, envía la elección junto a los campos que cambias, en `mis
 
 como cuerpo de `PUT /api/status-page-announcement/<announcement-id>` (o de `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Omite `miscDataProps` y la edición es silenciosa, como antes.
 
+## El idioma de los mensajes a los suscriptores
+
+Cada suscriptor recibe sus mensajes en su propio idioma: el correo electrónico o SMS que confirma la suscripción, la bienvenida y el enlace para gestionarla, y cada notificación sobre un incidente, un episodio de incidente, un evento de mantenimiento programado o un anuncio, por correo electrónico, SMS, Slack y Microsoft Teams.
+
+- **Un visitante que cambia la página de estado a otro idioma** desde su pie de página y luego se suscribe o actualiza su suscripción recibe sus mensajes en ese idioma.
+- **Todos los demás** los reciben en el idioma predeterminado de la página, que se ajusta en [Más ajustes](/docs/status-pages/branding-and-domains#más-ajustes) de su página Marca: un visitante que leyó la página en ese idioma, un suscriptor que tu equipo añade en el panel, con la API o mediante un flujo de trabajo, y cualquiera que se suscribiera antes de que OneUptime guardara el idioma de un suscriptor. Cambia el idioma predeterminado y recibirán el nuevo desde el siguiente mensaje.
+
+Las palabras propias de OneUptime están en ese idioma: asuntos, encabezados, etiquetas y botones, la línea para cancelar la suscripción, las fechas y los nombres de los estados de incidente, las gravedades y los estados de mantenimiento programado con los que empieza cada proyecto nuevo, como Resolved, Major Incident u Ongoing. Lo que escribe tu equipo se lee tal como se escribió: títulos, descripciones, notas y análisis post mortem, tus propios nombres de estados, gravedades y recursos, el nombre de la página de estado, los campos personalizados y las plantillas personalizadas, cuyos valores se leen tal como están guardados. Un correo electrónico en persa se lee de derecha a izquierda, y un título o una nota en inglés dentro de él se sigue leyendo de izquierda a derecha. La carga útil de un webhook son datos y no cambia, y el informe por correo electrónico está escrito en inglés.
+
+Con la API, el `language` de un suscriptor es un código de idioma como `de` o `zh-TW`, o vacío para el idioma predeterminado de la página; cualquier otro valor se rechaza.
+
 ## Comprobar lo que se envió
 
 Cada notificación a suscriptores tiene un estado propio, junto a aquello de lo que trata. Para un incidente, es su notificación de «creado» en la **Vista general** del incidente, cada fila de su **Cronología de estados**, cada nota pública y su **Post mortem**. Los eventos de mantenimiento programado y los anuncios muestran los suyos de la misma manera, y los episodios de incidentes en sus notas públicas. Haz clic en el estado para leer su mensaje, que dice lo que pasó. Las notas públicas muestran el estado como una insignia con un texto propio:
@@ -446,7 +457,7 @@ Cuatro secciones más, en **Más ajustes** al final de **Ajustes de suscriptores
 
 Merece la pena configurar el SMTP personalizado pronto si tienes suscriptores por correo electrónico: el correo que sale de tu propio dominio tiene muchas menos probabilidades de acabar filtrado, y muchas más de que confíe en él el cliente que lo lee a las 2 de la madrugada.
 
-Los SMS predeterminados se escriben con los caracteres que un SMS transporta de la forma más barata: las comillas tipográficas, los guiones y similares salen como su equivalente simple y se omite un emoji, de modo que un solo carácter en un título nunca hace que un SMS cueste dos o tres partes. Los enlaces salen exactamente como están escritos. Una plantilla de SMS propia sale tal como la escribiste, con los valores que inserta.
+Los SMS predeterminados se escriben con los caracteres que un SMS transporta de la forma más barata: las comillas tipográficas, los guiones y similares salen como su equivalente simple y se omite un emoji, de modo que un solo carácter en un título nunca hace que un SMS cueste dos o tres partes. Un SMS en otra escritura, como el chino o el persa, conserva su puntuación tal como está escrita, ya que cuesta lo mismo de una forma u otra. Los enlaces salen exactamente como están escritos. Una plantilla de SMS propia sale tal como la escribiste, con los valores que inserta.
 
 ## Anuncios
 

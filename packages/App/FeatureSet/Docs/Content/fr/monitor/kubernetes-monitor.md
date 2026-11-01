@@ -124,7 +124,7 @@ La détection d'anomalies par rapport à une référence n'a pas besoin de seuil
 | **Anomalously Low** | Descend sous la plage attendue |
 | **Anomalous** | Sort de la plage attendue dans un sens ou dans l'autre |
 
-Chaque mesure est comparée à une référence de la même heure de la semaine, construite à partir de la **Fenêtre de référence** (14 jours par défaut ; 28, 60 ou 90 jours). **Sensibilité** fixe la largeur de la plage attendue : **Faible (4σ — écarts flagrants uniquement)**, **Moyen (3σ — recommandé)**, la valeur par défaut, ou **Élevé (2σ — plus bruyant, services très stables)**. Les conditions d'anomalie restent dans un état « Learning » et ne produisent aucune alerte tant qu'au moins la fenêtre de référence choisie d'historique de métrique n'existe pas.
+Chaque mesure est comparée à une référence de la même heure de la semaine, construite à partir de la **Fenêtre de référence** (14 jours par défaut ; 28, 60 ou 90 jours). **Sensibilité** fixe la largeur de la plage attendue : **Faible (4σ — écarts flagrants uniquement)**, **Moyen (3σ — recommandé)**, la valeur par défaut, ou **Élevé (2σ — plus bruyant, services très stables)**. Les conditions d'anomalie restent dans un état « Learning » et ne produisent aucune alerte tant que cette heure de la semaine n'a pas deux semaines d'historique.
 
 **En l'absence de données**, sous **Plus de champs**, décide de ce qui se passe quand la requête ne renvoie rien dans la fenêtre : **Ignore** (par défaut) ne correspond pas, **Déclencheur** traite le silence comme le problème, et **Treat As Zero** compare un zéro. Le temps pendant lequel OneUptime lui-même ne recevait pas de données n'est jamais une absence de données : une vérification dont la fenêtre en contient attend à la place, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -136,25 +136,25 @@ La liste de **Sur quoi alerter** présente ces modèles, regroupés par catégor
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Disponibilité | Aucune donnée n'arrive de l'agent du cluster pendant 10 minutes | Critique |
 | CrashLoopBackOff Detection | Charge de travail | Un conteneur a redémarré en 15 minutes et a été prêt moins de la moitié de ce temps | Critique |
-| Pod Stuck in Pending | Planification | Un pod est en phase Pending dans chaque mesure d'une fenêtre de 15 minutes | Warning |
+| Pod Stuck in Pending | Planification | Un pod est en phase Pending dans chaque mesure d'une fenêtre de 15 minutes | Avertissement |
 | Node Not Ready | Nœud | Un nœud signale NotReady ou cesse de signaler son état (Unknown) | Critique |
-| Node Under Pressure | Nœud | Un nœud signale MemoryPressure, DiskPressure ou PIDPressure pendant 10 minutes | Warning |
-| High Node CPU Utilization | Nœud | L'utilisation moyenne du CPU d'un nœud dépasse 90 % de son CPU allouable | Warning |
-| High Node Memory Utilization | Nœud | Le working set mémoire moyen d'un nœud dépasse 85 % de sa mémoire allouable | Warning |
-| Deployment Replica Mismatch | Charge de travail | Un deployment a moins de réplicas disponibles que souhaité pendant 15 minutes | Warning |
-| StatefulSet Replica Mismatch | Charge de travail | Un StatefulSet a moins de réplicas prêts que souhaité pendant 15 minutes | Warning |
-| Job Failures | Charge de travail | Un pod d'un job a échoué en 15 minutes | Warning |
+| Node Under Pressure | Nœud | Un nœud signale MemoryPressure, DiskPressure ou PIDPressure pendant 10 minutes | Avertissement |
+| High Node CPU Utilization | Nœud | L'utilisation moyenne du CPU d'un nœud dépasse 90 % de son CPU allouable | Avertissement |
+| High Node Memory Utilization | Nœud | Le working set mémoire moyen d'un nœud dépasse 85 % de sa mémoire allouable | Avertissement |
+| Deployment Replica Mismatch | Charge de travail | Un deployment a moins de réplicas disponibles que souhaité pendant 15 minutes | Avertissement |
+| StatefulSet Replica Mismatch | Charge de travail | Un StatefulSet a moins de réplicas prêts que souhaité pendant 15 minutes | Avertissement |
+| Job Failures | Charge de travail | Un pod d'un job a échoué en 15 minutes | Avertissement |
 | etcd No Leader | Plan de contrôle | etcd n'a pas de leader élu | Critique |
 | API Server Request Saturation | Plan de contrôle | Le serveur d'API maintient 200 requêtes en cours ou plus pendant toute la fenêtre | Critique |
-| Scheduler Backlog | Planification | La file des pods en attente du scheduler n'est pas vide pendant 5 minutes | Warning |
-| High Node Disk Usage | Stockage | Le système de fichiers d'un nœud est plein à plus de 90 % | Warning |
-| DaemonSet Pods Not Ready | Charge de travail | Un DaemonSet a des nœuds sans aucun de ses pods prêt pendant 15 minutes | Warning |
-| DaemonSet Misscheduled Nodes | Charge de travail | Un DaemonSet exécute des pods sur des nœuds qui ne correspondent plus à son sélecteur de nœuds, à son affinité ou à ses tolérances | Warning |
-| High Node CPU Request Commitment | Nœud | La somme des requêtes CPU des conteneurs d'un nœud dépasse 90 % de son CPU allouable | Warning |
-| High Node Memory Request Commitment | Nœud | La somme des requêtes mémoire des conteneurs d'un nœud dépasse 90 % de sa mémoire allouable | Warning |
+| Scheduler Backlog | Planification | La file des pods en attente du scheduler n'est pas vide pendant 5 minutes | Avertissement |
+| High Node Disk Usage | Stockage | Le système de fichiers d'un nœud est plein à plus de 90 % | Avertissement |
+| DaemonSet Pods Not Ready | Charge de travail | Un DaemonSet a des nœuds sans aucun de ses pods prêt pendant 15 minutes | Avertissement |
+| DaemonSet Misscheduled Nodes | Charge de travail | Un DaemonSet exécute des pods sur des nœuds qui ne correspondent plus à son sélecteur de nœuds, à son affinité ou à ses tolérances | Avertissement |
+| High Node CPU Request Commitment | Nœud | La somme des requêtes CPU des conteneurs d'un nœud dépasse 90 % de son CPU allouable | Avertissement |
+| High Node Memory Request Commitment | Nœud | La somme des requêtes mémoire des conteneurs d'un nœud dépasse 90 % de sa mémoire allouable | Avertissement |
 | HPA Saturated at Max Replicas | Charge de travail | Un HPA mis à l'échelle au-dessus de ses `minReplicas` tourne à 90 % ou plus de ses `maxReplicas` | Critique |
 | Pod Memory Saturating Container Limit | Charge de travail | Un pod utilise plus de 90 % de la limite de mémoire de ses conteneurs | Critique |
-| Pod CPU Saturating Container Limit | Charge de travail | Un pod utilise plus de 90 % de la limite de CPU de ses conteneurs | Warning |
+| Pod CPU Saturating Container Limit | Charge de travail | Un pod utilise plus de 90 % de la limite de CPU de ses conteneurs | Avertissement |
 
 Les modèles fondés sur des métriques par objet évaluent chaque nœud, pod, deployment, job, DaemonSet ou HPA séparément, si bien qu'un cluster avec plusieurs pods défaillants reçoit un incident par pod plutôt qu'un seul pour tout le cluster.
 

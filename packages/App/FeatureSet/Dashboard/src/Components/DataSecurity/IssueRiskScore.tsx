@@ -147,6 +147,15 @@ const NO_FACTORS: string = translationKey(
 export interface ComponentProps {
   score: number;
   factors: Array<IssueRiskFactor>;
+  /*
+   * What each part is called and means, for a score of something other
+   * than an issue: an identity's (IdentityRiskScore). An issue's parts are
+   * described as the server labels them when left out.
+   */
+  describe?:
+    | ((factor: IssueRiskFactor, translator: Translator) => FactorWords)
+    | undefined;
+  testId?: string | undefined;
 }
 
 const IssueRiskScore: FunctionComponent<ComponentProps> = (
@@ -166,7 +175,10 @@ const IssueRiskScore: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <div className="space-y-4" data-testid="data-security-issue-risk-score">
+    <div
+      className="space-y-4"
+      data-testid={props.testId || "data-security-issue-risk-score"}
+    >
       <p className="text-sm text-gray-500">
         <TranslatedSentence
           template={SCORE_OUT_OF}
@@ -212,7 +224,10 @@ const IssueRiskScore: FunctionComponent<ComponentProps> = (
         <ul className="divide-y divide-gray-100">
           {factors.map(
             (factor: IssueRiskFactor, index: number): ReactElement => {
-              const words: FactorWords = describeFactor(factor, translator);
+              const words: FactorWords = (props.describe || describeFactor)(
+                factor,
+                translator,
+              );
 
               return (
                 <li

@@ -296,8 +296,12 @@ const LogsDashboard: FunctionComponent = (): ReactElement => {
   }, [timeRange, selectedScopeValues, unappliedFilters, savedViewId]);
 
   const unappliedFiltersHint: string = useMemo(() => {
-    return describeUnappliedScopeFilters(unappliedFilters);
-  }, [unappliedFilters]);
+    return describeUnappliedScopeFilters(
+      unappliedFilters,
+      undefined,
+      translator,
+    );
+  }, [unappliedFilters, translator.language]);
 
   const loadServices: () => Promise<void> =
     useCallback(async (): Promise<void> => {
