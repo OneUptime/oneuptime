@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39706,
-    "untranslated": 12845
+    "keys": 39895,
+    "untranslated": 12768
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -85,6 +85,7 @@
     "Managers",
     "Markdown",
     "Max",
+    "Median (P50)",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Min",
@@ -97,6 +98,7 @@
     "Object Gateway",
     "Object Gateways",
     "Offline",
+    "Ok",
     "Online",
     "OpenShift",
     "PR #{{number}}",
@@ -185,6 +187,7 @@
     "ip",
     "kubectl set image deployment/web * -n web",
     "main",
+    "median",
     "message",
     "name",
     "p95",

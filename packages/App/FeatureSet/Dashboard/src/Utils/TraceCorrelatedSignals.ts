@@ -406,12 +406,12 @@ export const describeSpanProfileScope: DescribeSpanProfileScopeFunction =
  * them), keyed by the chip facetKey / parsed-search field they arrive as.
  */
 const UNSUPPORTED_FILTER_LABELS: Dictionary<string> = {
-  statusCode: "span status",
-  kind: "span kind",
-  hasException: "exception flag",
-  statusMessage: "status message",
-  name: "span name",
-  durationUnixNano: "duration",
+  statusCode: translationKey("span status"),
+  kind: translationKey("span kind"),
+  hasException: translationKey("exception flag"),
+  statusMessage: translationKey("status message"),
+  name: translationKey("span name"),
+  durationUnixNano: translationKey("duration"),
 };
 
 export interface TracesPivotInput {
@@ -519,7 +519,7 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
     }
 
     if (filter.facetKey.startsWith("attributeSearches.")) {
-      notCarried.add("attribute contains-filters");
+      notCarried.add(translationKey("attribute contains-filters"));
       continue;
     }
 
@@ -584,7 +584,7 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
   }
 
   if (Object.keys(input.searchAttributeSearches).length > 0) {
-    notCarried.add("attribute contains-filters");
+    notCarried.add(translationKey("attribute contains-filters"));
   }
 
   // The prop-level read-only scope always wins over user-added chips.
@@ -597,11 +597,11 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
   }
 
   if (input.freeText && input.freeText.trim().length > 0) {
-    notCarried.add("span name");
+    notCarried.add(translationKey("span name"));
   }
 
   if (input.rootOnly) {
-    notCarried.add("root-spans-only");
+    notCarried.add(translationKey("root-spans-only"));
   }
 
   /*
@@ -622,7 +622,7 @@ export const buildTracesPivotScope: BuildTracesPivotScopeFunction = (
     );
 
     if (!carriedByAttribute) {
-      notCarried.add("entity scope");
+      notCarried.add(translationKey("entity scope"));
     }
   }
 

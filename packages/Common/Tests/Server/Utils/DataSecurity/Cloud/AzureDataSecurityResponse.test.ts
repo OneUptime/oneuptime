@@ -2,8 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import AzureArm from "../../../../../Server/Utils/CloudConnection/Azure/AzureArm";
 import { CloudConnectionSettings } from "../../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import {
+  AZURE_SOFT_DELETE_DAYS,
   DataSecurityResponseResult,
   blockAzureStoragePublicAccess,
+  requireAzureSecureTransfer,
+  turnOnAzureBlobSoftDelete,
 } from "../../../../../Server/Utils/DataSecurity/Cloud/Azure/AzureDataSecurityResponse";
 import { DataSourceHttpRequest } from "../../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../../Server/Utils/LlmObservability/LlmProviderError";
@@ -334,6 +337,288 @@ describe("turning off a storage account's anonymous blob access", () => {
         {},
         "test update",
       ),
+    ).rejects.toThrow(BadDataException);
+    expect(api.requests).toHaveLength(0);
+  });
+});
+
+const BLOB_SERVICE_PATH: string = `${ACCOUNT_ID}/blobServices/default`;
+
+// A blob service as Resource Manager answers it: CORS and versioning beside the two policies.
+function blobService(properties: JSONObject): JSONObject {
+  return {
+    id: BLOB_SERVICE_PATH,
+    name: "default",
+    type: "Microsoft.Storage/storageAccounts/blobServices",
+    properties: {
+      cors: { corsRules: [] },
+      isVersioningEnabled: false,
+      ...properties,
+    },
+  };
+}
+
+function createFakeAzureService(
+  options: {
+    account?: JSONObject;
+    service?: JSONObject;
+    readError?: FakeResponse;
+    writeError?: FakeResponse;
+  } = {},
+): FakeProviderApi {
+  return createFakeProviderApi([
+    {
+      host: "login.microsoftonline.com",
+      path: `/${TENANT}/oauth2/v2.0/token`,
+      method: "POST",
+      respond: (): FakeResponse => {
+        return json({ access_token: ARM_TOKEN, expires_in: 3599 });
+      },
+    },
+    {
+      host: "management.azure.com",
+      path: BLOB_SERVICE_PATH,
+      respond: (request: DataSourceHttpRequest): FakeResponse => {
+        if (request.method === "PUT") {
+          return options.writeError || json(bodyOf(request));
+        }
+
+        return options.readError || json(options.service || blobService({}));
+      },
+    },
+    {
+      host: "management.azure.com",
+      path: ACCOUNT_ID,
+      respond: (request: DataSourceHttpRequest): FakeResponse => {
+        if (request.method === "PATCH") {
+          return options.writeError || json(account({}));
+        }
+
+        return options.readError || json(options.account || account({}));
+      },
+    },
+  ]);
+}
+
+function writesOf(
+  api: FakeProviderApi,
+  method: string,
+): Array<DataSourceHttpRequest> {
+  return api.requests.filter((request: DataSourceHttpRequest): boolean => {
+    return request.method === method;
+  });
+}
+
+const STORAGE: { connectionId: string; resourceId: string } = {
+  connectionId: "22222222-2222-4222-8222-222222222222",
+  resourceId: ACCOUNT_ID,
+};
+
+describe("requiring secure transfer on a storage account", () => {
+  async function require(
+    api: FakeProviderApi,
+  ): Promise<DataSecurityResponseResult> {
+    return await requireAzureSecureTransfer(settings(), {
+      ...STORAGE,
+      transport: api.transport,
+    });
+  }
+
+  test("an account that takes HTTPS only, with TLS 1.2, is read and left alone", async () => {
+    const api: FakeProviderApi = createFakeAzureService({
+      account: account({
+        supportsHttpsTrafficOnly: true,
+        minimumTlsVersion: "TLS1_2",
+      }),
+    });
+
+    expect(await require(api)).toEqual({
+      changed: false,
+      summary:
+        "Storage account acmepublic already takes HTTPS only, with TLS 1.2 or later; nothing changed.",
+    });
+    expect(writesOf(api, "PATCH")).toHaveLength(0);
+  });
+
+  test("HTTP and TLS 1.0 allowed: one PATCH of the two settings, and the summary says both", async () => {
+    const api: FakeProviderApi = createFakeAzureService({
+      account: account({
+        supportsHttpsTrafficOnly: false,
+        minimumTlsVersion: "TLS1_0",
+      }),
+    });
+
+    expect(await require(api)).toEqual({
+      changed: true,
+      summary:
+        "On storage account acmepublic, turned on Secure transfer required and set the minimum TLS version to 1.2 (it was TLS1.0): it takes HTTPS only, with TLS 1.2 or later, now.",
+    });
+
+    const patches: Array<DataSourceHttpRequest> = writesOf(api, "PATCH");
+
+    expect(patches).toHaveLength(1);
+    expect(new URL(patches[0]!.url).pathname).toBe(ACCOUNT_ID);
+    expect(bodyOf(patches[0]!)).toEqual({
+      properties: {
+        supportsHttpsTrafficOnly: true,
+        minimumTlsVersion: "TLS1_2",
+      },
+    });
+  });
+
+  test("only what is not so is set: a TLS 1.3 account keeps its TLS", async () => {
+    const api: FakeProviderApi = createFakeAzureService({
+      account: account({
+        supportsHttpsTrafficOnly: false,
+        minimumTlsVersion: "TLS1_3",
+      }),
+    });
+
+    await require(api);
+
+    expect(bodyOf(writesOf(api, "PATCH")[0]!)).toEqual({
+      properties: { supportsHttpsTrafficOnly: true },
+    });
+  });
+
+  test("an account that never set its minimum TLS is set to 1.2", async () => {
+    const api: FakeProviderApi = createFakeAzureService({
+      account: {
+        id: ACCOUNT_ID,
+        name: "acmepublic",
+        properties: { supportsHttpsTrafficOnly: true },
+      },
+    });
+
+    expect((await require(api)).summary).toBe(
+      "On storage account acmepublic, set the minimum TLS version to 1.2: it takes HTTPS only, with TLS 1.2 or later, now.",
+    );
+    expect(bodyOf(writesOf(api, "PATCH")[0]!)).toEqual({
+      properties: { minimumTlsVersion: "TLS1_2" },
+    });
+  });
+
+  test("a refused change says which permission is missing", async () => {
+    const failure: unknown = await failureOf(
+      require(
+        createFakeAzureService({
+          account: account({ supportsHttpsTrafficOnly: false }),
+          writeError: REFUSED,
+        }),
+      ),
+    );
+
+    expect((failure as LlmProviderError).message).toBe(
+      'The app may not change storage account acmepublic: it needs Microsoft.Storage/storageAccounts/write. Turn on the connection\'s "Data security response" setting and run its updated setup command.',
+    );
+  });
+});
+
+describe("turning on a storage account's soft delete", () => {
+  async function turnOn(
+    api: FakeProviderApi,
+  ): Promise<DataSecurityResponseResult> {
+    return await turnOnAzureBlobSoftDelete(settings(), {
+      ...STORAGE,
+      transport: api.transport,
+    });
+  }
+
+  test("both off: one PUT of what was read, with both policies on for 14 days", async () => {
+    const api: FakeProviderApi = createFakeAzureService();
+
+    expect(await turnOn(api)).toEqual({
+      changed: true,
+      summary:
+        "Turned on soft delete for the blobs and containers of storage account acmepublic: a deleted one can be restored for 14 days.",
+    });
+
+    const puts: Array<DataSourceHttpRequest> = writesOf(api, "PUT");
+
+    expect(puts).toHaveLength(1);
+    expect(new URL(puts[0]!.url).host).toBe("management.azure.com");
+    expect(new URL(puts[0]!.url).pathname).toBe(BLOB_SERVICE_PATH);
+    expect(new URL(puts[0]!.url).searchParams.get("api-version")).toBe(
+      "2023-05-01",
+    );
+    // What the service had - its CORS, its versioning - is sent back as it was.
+    expect(bodyOf(puts[0]!)).toEqual({
+      properties: {
+        cors: { corsRules: [] },
+        isVersioningEnabled: false,
+        deleteRetentionPolicy: { enabled: true, days: AZURE_SOFT_DELETE_DAYS },
+        containerDeleteRetentionPolicy: {
+          enabled: true,
+          days: AZURE_SOFT_DELETE_DAYS,
+        },
+      },
+    });
+    expect(AZURE_SOFT_DELETE_DAYS).toBe(14);
+  });
+
+  test("a policy that is on keeps its own days; only the other is turned on", async () => {
+    const api: FakeProviderApi = createFakeAzureService({
+      service: blobService({
+        deleteRetentionPolicy: { enabled: true, days: 30 },
+        containerDeleteRetentionPolicy: { enabled: false },
+      }),
+    });
+
+    expect((await turnOn(api)).summary).toBe(
+      "Turned on soft delete for the containers of storage account acmepublic: a deleted one can be restored for 14 days.",
+    );
+    expect(
+      (bodyOf(writesOf(api, "PUT")[0]!) as JSONObject)["properties"],
+    ).toMatchObject({
+      deleteRetentionPolicy: { enabled: true, days: 30 },
+      containerDeleteRetentionPolicy: { enabled: true, days: 14 },
+    });
+  });
+
+  test("both on already: read and left alone", async () => {
+    const api: FakeProviderApi = createFakeAzureService({
+      service: blobService({
+        deleteRetentionPolicy: { enabled: true, days: 7 },
+        containerDeleteRetentionPolicy: { enabled: true, days: 7 },
+      }),
+    });
+
+    expect(await turnOn(api)).toEqual({
+      changed: false,
+      summary:
+        "Soft delete was already on for the blobs and containers of storage account acmepublic; nothing changed.",
+    });
+    expect(writesOf(api, "PUT")).toHaveLength(0);
+  });
+
+  test("a refusal names the blob service's permission", async () => {
+    const write: unknown = await failureOf(
+      turnOn(createFakeAzureService({ writeError: REFUSED })),
+    );
+    const read: unknown = await failureOf(
+      turnOn(createFakeAzureService({ readError: REFUSED })),
+    );
+
+    expect((write as LlmProviderError).message).toContain(
+      "it needs Microsoft.Storage/storageAccounts/blobServices/write",
+    );
+    expect((read as LlmProviderError).message).toContain(
+      "it needs Microsoft.Storage/storageAccounts/blobServices/read",
+    );
+  });
+
+  test("the PUT helper is held to the management host as the PATCH one is", async () => {
+    const api: FakeProviderApi = createFakeAzureService();
+    const arm: AzureArm = new AzureArm({
+      tenantId: TENANT,
+      clientId: CLIENT,
+      clientSecret: SECRET,
+      cloud: "public",
+      transport: api.transport,
+    });
+
+    await expect(
+      arm.put("https://evil.example.com/x", {}, "test update"),
     ).rejects.toThrow(BadDataException);
     expect(api.requests).toHaveLength(0);
   });

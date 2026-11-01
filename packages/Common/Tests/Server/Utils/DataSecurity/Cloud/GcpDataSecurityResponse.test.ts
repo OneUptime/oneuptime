@@ -6,6 +6,8 @@ import {
   DataSecurityResponseResult,
   GCS_BUCKET_ADMIN_SCOPE,
   blockGcsBucketPublicAccess,
+  turnOnGcsBucketVersioning,
+  turnOnGcsUniformAccess,
 } from "../../../../../Server/Utils/DataSecurity/Cloud/Gcp/GcpDataSecurityResponse";
 import { DataSourceHttpRequest } from "../../../../../Server/Utils/DataSource/HttpFetch";
 import LlmProviderError from "../../../../../Server/Utils/LlmObservability/LlmProviderError";
@@ -313,5 +315,105 @@ describe("enforcing a bucket's public access prevention", () => {
     }
 
     expect(api.requests).toHaveLength(0);
+  });
+});
+
+describe("turning on a bucket's Object Versioning", () => {
+  async function turnOn(
+    api: FakeProviderApi,
+  ): Promise<DataSecurityResponseResult> {
+    return await turnOnGcsBucketVersioning(settings(), {
+      connectionId: "22222222-2222-4222-8222-222222222222",
+      bucket: "acme-public",
+      transport: api.transport,
+    });
+  }
+
+  test("a bucket without it gets one PATCH of its versioning, read and written as name and versioning only", async () => {
+    const api: FakeGcs = createFakeGcs({ bucket: { name: "acme-public" } });
+
+    expect(await turnOn(api)).toEqual({
+      changed: true,
+      summary:
+        "Turned on Object Versioning for bucket acme-public: an object overwritten or deleted from now on can be restored from its earlier version.",
+    });
+
+    const read: DataSourceHttpRequest = api.requestsTo(BUCKET_PATH)[0]!;
+
+    expect(read.method).toBe("GET");
+    expect(new URL(read.url).searchParams.get("fields")).toBe(
+      "name,versioning",
+    );
+
+    const patches: Array<DataSourceHttpRequest> = patchesOf(api);
+
+    expect(patches).toHaveLength(1);
+    expect(new URL(patches[0]!.url).searchParams.get("fields")).toBe(
+      "name,versioning",
+    );
+    expect(bodyOf(patches[0]!)).toEqual({ versioning: { enabled: true } });
+    expect(api.scopes).toEqual([GCS_BUCKET_ADMIN_SCOPE]);
+  });
+
+  test("a bucket that has it is read and left alone", async () => {
+    const api: FakeGcs = createFakeGcs({
+      bucket: { name: "acme-public", versioning: { enabled: true } },
+    });
+
+    expect(await turnOn(api)).toEqual({
+      changed: false,
+      summary:
+        "Object Versioning is already on for bucket acme-public; nothing changed.",
+    });
+    expect(patchesOf(api)).toHaveLength(0);
+  });
+
+  test("a refused change says which permission is missing", async () => {
+    const failure: unknown = await failureOf(
+      turnOn(
+        createFakeGcs({ bucket: { name: "acme-public" }, writeError: REFUSED }),
+      ),
+    );
+
+    expect((failure as LlmProviderError).message).toBe(
+      'The service account may not change bucket acme-public: it needs storage.buckets.update. Turn on the connection\'s "Data security response" setting and run its updated setup command.',
+    );
+  });
+});
+
+describe("turning on a bucket's uniform bucket-level access", () => {
+  async function turnOn(
+    api: FakeProviderApi,
+  ): Promise<DataSecurityResponseResult> {
+    return await turnOnGcsUniformAccess(settings(), {
+      connectionId: "22222222-2222-4222-8222-222222222222",
+      bucket: "acme-public",
+      transport: api.transport,
+    });
+  }
+
+  test("a bucket whose ACLs grant access gets one PATCH of that one setting, and is told it can be undone for 90 days", async () => {
+    const api: FakeGcs = createFakeGcs({
+      bucket: bucket({
+        publicAccessPrevention: "inherited",
+        uniformBucketLevelAccess: { enabled: false },
+      }),
+    });
+
+    expect(await turnOn(api)).toEqual({
+      changed: true,
+      summary:
+        "Turned on uniform bucket-level access for bucket acme-public: object ACLs grant nothing now, and its IAM policy alone decides who reads it. It can be turned off again for 90 days.",
+    });
+    expect(bodyOf(patchesOf(api)[0]!)).toEqual({
+      iamConfiguration: { uniformBucketLevelAccess: { enabled: true } },
+    });
+  });
+
+  test("a bucket that has it is read and left alone", async () => {
+    const api: FakeGcs = createFakeGcs();
+
+    expect((await turnOn(api)).changed).toBe(false);
+    expect(patchesOf(api)).toHaveLength(0);
   });
 });

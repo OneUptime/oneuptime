@@ -461,7 +461,7 @@ Le SDK exporte probablement en gRPC vers un point de terminaison HTTP, ou vers `
 Un lot dépasse la limite de taille. Réduisez la taille des lots, par exemple avec `send_batch_max_size: 1000` sur le processeur `batch`. Si vous auto-hébergez derrière votre propre proxy, vérifiez aussi la limite de taille de corps de ce proxy.
 :::
 
-:::details Les données arrivent sous le mauvais service, ou sous Unknown Service
+:::details Les données arrivent sous le mauvais service, ou sous « Service inconnu »
 Le service vient de l'attribut de ressource `service.name`. Définissez `OTEL_SERVICE_NAME` dans chaque application. Si la clé a un **Nom du service épinglé**, chaque export OTLP/HTTP avec cette clé est classé sous ce nom à la place.
 :::
 

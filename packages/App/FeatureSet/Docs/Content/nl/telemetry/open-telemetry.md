@@ -461,7 +461,7 @@ De SDK exporteert waarschijnlijk via gRPC naar een HTTP-endpoint, of naar `local
 Een batch is groter dan de groottelimiet. Verklein de batches, bijvoorbeeld met `send_batch_max_size: 1000` op de processor `batch`. Als je zelf host achter je eigen proxy, controleer dan ook de body-limiet van die proxy.
 :::
 
-:::details Gegevens komen binnen onder de verkeerde service, of onder Unknown Service
+:::details Gegevens komen binnen onder de verkeerde service, of onder "Onbekende service"
 De service komt uit het resource-attribuut `service.name`. Stel `OTEL_SERVICE_NAME` in elke applicatie in. Heeft de sleutel een **Vastgezette servicenaam**, dan komt elke OTLP/HTTP-export met die sleutel in plaats daarvan onder die naam terecht.
 :::
 

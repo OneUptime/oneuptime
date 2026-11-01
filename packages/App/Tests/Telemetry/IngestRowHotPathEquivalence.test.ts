@@ -51,6 +51,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  * The batches are decoded the way the worker decodes an OTLP/protobuf body
  * (encode, decode, toJSON: 64-bit times as strings, ids as base64), and
  * also sent as OTLP/JSON (times as numbers, ids as hex).
+ *
+ * A time that came as an integer string is read from its digits
+ * (OneUptimeDate.readExactUnixNano) and never reaches fromUnixNano, so only
+ * the OTLP/JSON batches, whose times are numbers, run master's fromUnixNano.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -583,6 +587,8 @@ function asOtlpJsonBody(protobufBody: JSONObject): JSONObject {
 
 interface Batch {
   name: string;
+  // Times as integer strings (OTLP/protobuf), read exactly, or as numbers.
+  timesAsDigits: boolean;
   body: () => JSONObject;
   ingest: (request: TelemetryRequest) => Promise<void>;
 }
@@ -590,6 +596,7 @@ interface Batch {
 const BATCHES: Array<Batch> = [
   {
     name: "metrics (protobuf)",
+    timesAsDigits: true,
     body: (): JSONObject => {
       return asProtobufBody("metrics.proto", "MetricsData", metricsPayload());
     },
@@ -599,6 +606,7 @@ const BATCHES: Array<Batch> = [
   },
   {
     name: "metrics (OTLP/JSON)",
+    timesAsDigits: false,
     body: (): JSONObject => {
       return asOtlpJsonBody(
         asProtobufBody("metrics.proto", "MetricsData", metricsPayload()),
@@ -610,6 +618,7 @@ const BATCHES: Array<Batch> = [
   },
   {
     name: "traces (protobuf)",
+    timesAsDigits: true,
     body: (): JSONObject => {
       return asProtobufBody("traces.proto", "TracesData", tracesPayload());
     },
@@ -619,6 +628,7 @@ const BATCHES: Array<Batch> = [
   },
   {
     name: "traces (OTLP/JSON)",
+    timesAsDigits: false,
     body: (): JSONObject => {
       return asOtlpJsonBody(
         asProtobufBody("traces.proto", "TracesData", tracesPayload()),
@@ -630,6 +640,7 @@ const BATCHES: Array<Batch> = [
   },
   {
     name: "logs (protobuf)",
+    timesAsDigits: true,
     body: (): JSONObject => {
       return asProtobufBody("logs.proto", "LogsData", logsPayload());
     },
@@ -639,6 +650,7 @@ const BATCHES: Array<Batch> = [
   },
   {
     name: "logs (OTLP/JSON)",
+    timesAsDigits: false,
     body: (): JSONObject => {
       return asOtlpJsonBody(
         asProtobufBody("logs.proto", "LogsData", logsPayload()),
@@ -682,9 +694,17 @@ describe("ingest rows are the same with master's helpers and this branch's", () 
     test(batch.name, async () => {
       const master: CapturedRows = await ingestOnce(batch, "master");
 
-      // The master run really went through master's helpers, all three.
+      /*
+       * The master run really went through master's helpers: all three for
+       * times sent as numbers, and the two besides fromUnixNano for times
+       * sent as digits, which are read without it.
+       */
       expect(masterHelperCalls.generateTimeOrdered).toBeGreaterThan(0);
-      expect(masterHelperCalls.fromUnixNano).toBeGreaterThan(0);
+      if (batch.timesAsDigits) {
+        expect(masterHelperCalls.fromUnixNano).toBe(0);
+      } else {
+        expect(masterHelperCalls.fromUnixNano).toBeGreaterThan(0);
+      }
       expect(masterHelperCalls.formatUtcClickhouseDateTime).toBeGreaterThan(0);
 
       const branch: CapturedRows = await ingestOnce(batch, "branch");
@@ -744,23 +764,30 @@ describe("ingest rows are the same with master's helpers and this branch's", () 
     expect(counts["submitExceptionsBuffer"]).toBeGreaterThan(0);
   });
 
-  test("row times are read from the batch to the millisecond, not from the wall clock", async () => {
+  test("row times sent as digits are read from the batch to the nanosecond, not from the wall clock", async () => {
     const branch: CapturedRows = await ingestOnce(BATCHES[4]!, "branch");
     const logs: Array<JSONObject> = branch["submitLogsBuffer"]!;
 
-    // The batch's own second; the nanoseconds as the float the walk reads.
-    expect(
-      String(logs[0]!["time"]).startsWith(
-        `${masterFormatUtcClickhouseDateTime(new Date(TIME_MS))}.`,
-      ),
-    ).toBe(true);
-    expect(String(logs[0]!["time"]).startsWith("2026-10-17 10:11:12.")).toBe(
-      true,
+    // The batch's own second and nanoseconds, from its digits.
+    expect(logs[0]!["time"]).toBe(
+      `${masterFormatUtcClickhouseDateTime(new Date(TIME_MS))}.345678901`,
     );
-    expect(logs[0]!["timeUnixNano"]).toBe(
-      Math.trunc(parseFloat(TIME_NANO)).toString(),
-    );
+    expect(logs[0]!["time"]).toBe("2026-10-17 10:11:12.345678901");
+    expect(logs[0]!["timeUnixNano"]).toBe(TIME_NANO);
     // The wall clock only stamps when the row was written.
+    expect(logs[0]!["createdAt"]).toBe("2026-10-17 10:15:00");
+  });
+
+  test("row times sent as numbers are the floats they arrive as, as before", async () => {
+    const branch: CapturedRows = await ingestOnce(BATCHES[5]!, "branch");
+    const logs: Array<JSONObject> = branch["submitLogsBuffer"]!;
+    // What JSON.parse made of the digits: 53 ns below them.
+    const float: number = Number(TIME_NANO);
+
+    expect(float % 1e9).toBe(345678848);
+    expect(logs[0]!["time"]).toBe("2026-10-17 10:11:12.345678848");
+    expect(logs[0]!["timeUnixNano"]).toBe(Math.trunc(float).toString());
+    expect(logs[0]!["timeUnixNano"]).toBe("1792231872345678800");
     expect(logs[0]!["createdAt"]).toBe("2026-10-17 10:15:00");
   });
 });

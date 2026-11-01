@@ -362,3 +362,13 @@ export function getTraceSpanTypeChartTitle(spanType: TraceSpanType): string {
     ? translationKey("Traces over time")
     : translationKey("Spans over time");
 }
+
+/*
+ * What an empty list says: a whole sentence for each choice that can leave
+ * one empty, so a language words it around the choice's name.
+ */
+export function getTraceSpanTypeEmptyMessage(spanType: TraceSpanType): string {
+  return spanType === TraceSpanType.Root
+    ? translationKey("No root spans found")
+    : translationKey("No entry spans found");
+}

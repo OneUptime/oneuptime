@@ -39,6 +39,8 @@ import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import SpanUtil from "../../Utils/SpanUtil";
@@ -88,6 +90,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
   props: SpanDetailsPanelProps,
 ): ReactElement => {
   const { span, service } = props;
+  const translator: Translator = useTranslator();
 
   // The list row carries a light span; attributes/events come from a lazy fetch.
   const [fullSpan, setFullSpan] = useState<Span | null>(null);
@@ -420,6 +423,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
   const entityDisplay: SpanEntityDisplay = getSpanEntityDisplay({
     service,
     entity: props.entity,
+    translator,
   });
   const serviceName: string = entityDisplay.name;
   const serviceColor: string = entityDisplay.color || "#64748b";
@@ -438,6 +442,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
 
   const kindLabel: string = SpanUtil.getSpanKindFriendlyName(
     (span.kind as SpanKind) ?? SpanKind.Internal,
+    translator,
   );
 
   const statusMessage: string =
@@ -468,10 +473,10 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
         return (
           attrs["exception.message"]?.toString() ||
           attrs["exception.type"]?.toString() ||
-          "Exception"
+          translator.translateTerm("Exception")
         );
       });
-  }, [fullSpan]);
+  }, [fullSpan, translator.language]);
 
   /*
    * Recording an exception does not change a span's status, so an Unset span
@@ -481,9 +486,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
    */
   const hasExceptions: boolean =
     span.hasException === true || exceptionMessages.length > 0;
-  const statusLabel: string = hasExceptions
-    ? status.label
-    : status.displayLabel;
+  const statusLabel: string = translator.translateTerm(
+    hasExceptions ? status.label : status.displayLabel,
+  );
 
   // Route to the full trace, highlighting this span via `?spanId=`.
   const fullTraceRoute: Route | undefined = useMemo(() => {
@@ -654,11 +659,11 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             <div className="min-w-0 space-y-2">
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="truncate font-mono text-base font-semibold text-gray-900">
-                  {span.name || "(unnamed span)"}
+                  {span.name || translator.translateText("(unnamed span)")}
                 </h3>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.pillClassName}`}
-                  title={status.description}
+                  title={translator.translateText(status.description)}
                   data-testid="span-details-status"
                 >
                   <span
@@ -685,7 +690,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                   title="Open the session recording one second before this span started, with the span selected in the traces rail"
                 >
                   <Icon icon={IconProp.Film} className="h-3.5 w-3.5" />
-                  Watch session at this span
+                  {translator.translateText("Watch session at this span")}
                 </Link>
               </span>
             )}
@@ -693,9 +698,15 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               <span
                 className="text-[11px] text-gray-400"
                 data-testid="span-replay-missing"
-                title={`Session ${sessionIdStr} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).`}
+                title={translator.translateTemplate(
+                  "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).",
+                  { sessionId: sessionIdStr },
+                )}
               >
-                No recording of session {sessionIdStr.slice(0, 8)}…
+                {translator.translateTemplate(
+                  "No recording of session {{sessionId}}…",
+                  { sessionId: sessionIdStr.slice(0, 8) },
+                )}
               </span>
             )}
             {fullTraceRoute && (
@@ -705,7 +716,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                 className="inline-flex flex-none items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 transition-colors hover:border-indigo-300 hover:bg-indigo-100"
                 title="Open this span in the full trace viewer"
               >
-                See full trace
+                {translator.translateText("See full trace")}
                 <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
               </Link>
             )}
@@ -733,7 +744,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                       : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
-                  <span>{tab.label}</span>
+                  <span>{translator.translateText(tab.label)}</span>
                   {tab.count !== null && (
                     <span className="rounded bg-gray-100 px-1 text-[10px] font-semibold text-gray-500">
                       {tab.count}
@@ -755,20 +766,24 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               podLogsElement
             ) : relatedLogs.length === 0 ? (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
-                No logs found for this span or its trace.
+                {translator.translateText(
+                  "No logs found for this span or its trace.",
+                )}
               </div>
             ) : (
               <div className="space-y-2">
                 {logsScope === "trace" && spanIdStr && (
                   <div className="text-[11px] text-gray-400">
-                    No logs are tagged with this span — showing logs from the
-                    whole trace.
+                    {translator.translateText(
+                      "No logs are tagged with this span — showing logs from the whole trace.",
+                    )}
                   </div>
                 )}
                 <ul className="max-h-80 space-y-1 overflow-auto">
                   {relatedLogs.map((log: Log, index: number): ReactElement => {
                     const severity: string =
-                      (log.severityText as unknown as string) || "info";
+                      (log.severityText as unknown as string) ||
+                      translator.translateTerm("info");
                     const body: string = (log.body as unknown as string) || "";
                     const logTimeDate: Date | null = log.time
                       ? OneUptimeDate.fromString(log.time as unknown as string)
@@ -830,7 +845,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               podExceptionsElement
             ) : exceptionInstances.length === 0 ? (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
-                No exceptions were recorded on this span.
+                {translator.translateText(
+                  "No exceptions were recorded on this span.",
+                )}
               </div>
             ) : (
               <div className="space-y-2">
@@ -843,7 +860,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                       const message: string =
                         exception.message ||
                         exception.exceptionType ||
-                        "Exception";
+                        translator.translateTerm("Exception");
                       const groupRoute: Route | null =
                         getExceptionGroupRoute(exception);
                       const exceptionTimeDate: Date | null = exception.time
@@ -896,7 +913,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                                 openInNewTab={true}
                                 className="flex-none text-[11px] font-semibold text-red-600 hover:text-red-700 hover:underline"
                               >
-                                View exception group
+                                {translator.translateText(
+                                  "View exception group",
+                                )}
                               </Link>
                             )}
                           </div>
@@ -917,7 +936,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
           <div className="mt-4 space-y-5 text-sm text-gray-700">
             {/* Overview */}
             <section className="space-y-3">
-              <header className={sectionHeaderClass}>Overview</header>
+              <header className={sectionHeaderClass}>
+                {translator.translateText("Overview")}
+              </header>
               <dl
                 className={`divide-y divide-gray-200 rounded-lg border ${surfaceCardClass} text-xs`}
               >
@@ -931,7 +952,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                         key={row.label}
                         className="flex items-center justify-between gap-4 px-3 py-2"
                       >
-                        <dt className="text-gray-500">{row.label}</dt>
+                        <dt className="text-gray-500">
+                          {translator.translateText(row.label)}
+                        </dt>
                         <dd className="truncate text-right font-medium text-gray-800">
                           {row.value}
                         </dd>
@@ -947,7 +970,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               {traceIdStr && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className={sectionHeaderClass}>Trace ID</span>
+                    <span className={sectionHeaderClass}>
+                      {translator.translateText("Trace ID")}
+                    </span>
                     <CopyTextButton
                       textToBeCopied={traceIdStr}
                       size="xs"
@@ -968,7 +993,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               {spanIdStr && (
                 <div className={`rounded-lg border ${surfaceCardClass} p-4`}>
                   <div className="mb-2 flex items-center justify-between">
-                    <span className={sectionHeaderClass}>Span ID</span>
+                    <span className={sectionHeaderClass}>
+                      {translator.translateText("Span ID")}
+                    </span>
                     <CopyTextButton
                       textToBeCopied={spanIdStr}
                       size="xs"
@@ -994,7 +1021,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
              */}
             {statusMessage && (
               <section className="space-y-3">
-                <header className={sectionHeaderClass}>Status Message</header>
+                <header className={sectionHeaderClass}>
+                  {translator.translateText("Status Message")}
+                </header>
                 <div
                   data-testid="span-details-status-message"
                   className={`rounded-lg border p-4 font-mono text-[13px] leading-6 ${
@@ -1012,7 +1041,9 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             {exceptionMessages.length > 0 && (
               <section className="space-y-3">
                 <header className={sectionHeaderClass}>
-                  Exceptions ({exceptionMessages.length})
+                  {translator.translateTemplate("Exceptions ({{count}})", {
+                    count: translator.formatNumber(exceptionMessages.length),
+                  })}
                 </header>
                 <ul className="space-y-2">
                   {exceptionMessages.map(
@@ -1044,7 +1075,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                 <span
                   className={`flex items-center gap-1.5 ${sectionHeaderClass}`}
                 >
-                  Attributes
+                  {translator.translateText("Attributes")}
                   {attributeEntries.length > 0 && (
                     <span className="rounded-full bg-gray-100 px-1.5 py-px text-[10px] font-medium normal-case tracking-normal tabular-nums text-gray-500">
                       {attributeEntries.length}
@@ -1070,11 +1101,11 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
 
               {detailLoading && attributeEntries.length === 0 ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
-                  Loading attributes…
+                  {translator.translateText("Loading attributes…")}
                 </div>
               ) : attributeEntries.length === 0 ? (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
-                  No attributes on this span.
+                  {translator.translateText("No attributes on this span.")}
                 </div>
               ) : attributesView === "json" ? (
                 <AttributesJSONView
@@ -1105,7 +1136,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                             >
                               {entry.value || (
                                 <span className="italic text-gray-400">
-                                  empty
+                                  {translator.translateText("empty")}
                                 </span>
                               )}
                             </span>
@@ -1114,7 +1145,10 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                                 <button
                                   type="button"
                                   className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
-                                  title={`Filter by ${entry.key}: ${entry.value}`}
+                                  title={translator.translateTemplate(
+                                    "Filter by {{key}}: {{value}}",
+                                    { key: entry.key, value: entry.value },
+                                  )}
                                   onClick={() => {
                                     props.onFilterByAttribute!(
                                       entry.key,
@@ -1133,7 +1167,10 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                                 size="xs"
                                 variant="ghost"
                                 iconOnly={true}
-                                title={`Copy ${entry.key}`}
+                                title={translator.translateTemplate(
+                                  "Copy {{key}}",
+                                  { key: entry.key },
+                                )}
                               />
                             </div>
                           </li>

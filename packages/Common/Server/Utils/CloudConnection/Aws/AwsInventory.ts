@@ -399,7 +399,7 @@ function getAwsInventoryTypeIsPlumbing(type: string): boolean {
 }
 
 // IAM's one global endpoint per partition, and the Region it is signed for.
-function getIamEndpoint(partition: AwsPartition): {
+export function getIamEndpoint(partition: AwsPartition): {
   host: string;
   region: string;
 } {

@@ -60,7 +60,7 @@ Haga clic en un valor de la barra lateral **Filtros** para añadirlo como chip. 
 
 ### Abrir un span
 
-Haga clic en una fila para desplegarla: sus atributos, y los registros y excepciones que registró. Haga clic en **See full trace** para abrir toda su traza.
+Haga clic en una fila para desplegarla: sus atributos, y los registros y excepciones que registró. Haga clic en **Ver traza completa** para abrir toda su traza.
 :::
 
 Su búsqueda, sus chips y el intervalo de tiempo se guardan en la dirección de la página, así que al recargar, con un marcador o con un enlace compartido se abren los mismos spans.

@@ -5983,25 +5983,27 @@ test.describe("one AI card: the investigation and the conversation", () => {
         .toContain("rgb(99, 102, 241) 0px 0px 0px 1px");
     });
 
-    test("Send lights up in the page's primary colour once there is something to send", async ({
+    test("Send is the page's primary colour, faded until there is something to send", async ({
       page,
     }: {
       page: Page;
     }) => {
       await openConversation(page, "");
-      const background: () => Promise<string> = async (): Promise<string> => {
+      const look: () => Promise<string> = async (): Promise<string> => {
         return sendButton(page).evaluate((button: Element): string => {
-          return window.getComputedStyle(button).backgroundColor;
+          const style: CSSStyleDeclaration = window.getComputedStyle(button);
+          return `${style.backgroundColor} ${style.opacity}`;
         });
       };
 
+      // Locked as every locked button looks (#5482): its own indigo, at half strength.
       await expect(sendButton(page)).toBeDisabled();
-      expect(await background()).toBe("rgb(243, 244, 246)");
+      await expect.poll(look).toBe(`${INDIGO_600} 0.5`);
 
       await composerBox(page).fill("What changed?");
 
       await expect(sendButton(page)).toBeEnabled();
-      await expect.poll(background).toBe(INDIGO_600);
+      await expect.poll(look).toBe(`${INDIGO_600} 1`);
     });
 
     for (const width of [1440, 390]) {

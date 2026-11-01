@@ -117,7 +117,7 @@ Die Kriterien eines Logs-Monitors haben einen **Filtertyp**: **Log Count**, die 
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
-Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit derselben Stunde der Woche über dieses Fenster. Die Baseline umfasst nur die Dienste und Schweregrade des Monitors: Seine Text- und Attributfilter gehören nicht dazu. Solange diese Stunde der Woche nicht genug Verlauf hat, lernt das Kriterium noch und löst nicht aus.
+Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit Fenstern gleicher Länge um dieselbe Zeit in früheren Wochen, so weit das **Baseline-Fenster** zurückreicht; was gerade geschieht, ist nie Teil dieses Vergleichs. Die Baseline umfasst nur die Dienste und Schweregrade des Monitors: Seine Text- und Attributfilter gehören nicht dazu. Minuten ohne Logs zählen mit, sodass ein oft stiller Dienst nicht als ungewöhnlich niedrig gilt, nur weil er still ist. Als ungewöhnlich hoch gilt ein Fenster nur im Vergleich mit den Fenstern, die Logs enthielten, und nur mit mindestens 20, 10 oder 5 Logs bei der Empfindlichkeit Niedrig, Mittel oder Hoch, sodass weder der übliche Schub eines Jobs noch die ersten paar Zeilen eines stillen Dienstes auslösen. Solange die Dienste des Monitors keine zwei Wochen Verlauf haben, lernt das Kriterium noch und löst nicht aus.
 
 Ein in „Monitor erstellen“ angelegter Logs-Monitor beginnt mit der Regel dessen, was Sie unter **Worüber soll dieser Monitor Sie informieren?** gewählt haben:
 
@@ -248,7 +248,7 @@ Die Kriterien werden von oben nach unten geprüft, und der erste Treffer entsche
 :::
 
 :::details Ein Anomaliekriterium löst nie aus
-Es lernt noch: Die Stunde der Woche, mit der es vergleicht, hat noch nicht genug Verlauf. Bei einem Monitor mit **Group by Attributes** passen Anomaliebedingungen nie – verwenden Sie dort einen Schwellenwert.
+Es lernt noch: Die Dienste des Monitors haben noch keine zwei Wochen Verlauf. Bei einem Monitor mit **Group by Attributes** passen Anomaliebedingungen nie – verwenden Sie dort einen Schwellenwert.
 :::
 
 :::details Gruppenwarnungen kommen ohne Gruppenwert an

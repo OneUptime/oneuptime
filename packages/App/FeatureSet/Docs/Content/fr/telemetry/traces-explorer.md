@@ -60,7 +60,7 @@ Cliquez sur une valeur de la barre latérale **Filtres** pour l'ajouter comme pu
 
 ### Ouvrir un span
 
-Cliquez sur une ligne pour la déplier : ses attributs, et les journaux et exceptions qu'elle a enregistrés. Cliquez sur **See full trace** pour ouvrir toute sa trace.
+Cliquez sur une ligne pour la déplier : ses attributs, et les journaux et exceptions qu'elle a enregistrés. Cliquez sur **Voir la trace complète** pour ouvrir toute sa trace.
 :::
 
 Votre recherche, vos puces et la plage de temps sont gardées dans l'adresse de la page : un rafraîchissement, un favori ou un lien partagé ouvre les mêmes spans.

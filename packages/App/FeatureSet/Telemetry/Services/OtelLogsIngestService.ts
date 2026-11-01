@@ -8,7 +8,7 @@ import {
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Text from "Common/Types/Text";
 import {
@@ -813,42 +813,57 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    * pair here, since records normally carry their own
                    * timeUnixNano and the fallback is only for records that
                    * do not.
+                   *
+                   * timeUnixNano is the record's time in whole nanoseconds,
+                   * which the time column's fraction and the timeUnixNano
+                   * column are written from. An integer string - how
+                   * OTLP/protobuf sends it - is read exactly, digits and
+                   * Date alike (OneUptimeDate.readExactUnixNano): a float of
+                   * it was up to 128 ns off and its Date a millisecond early
+                   * or late. A number, any other text and the current time
+                   * stay the float they were read as before, with the Date
+                   * made from that float.
                    */
-                  let timeUnixNanoNumeric: number;
+                  let timeUnixNano: number | string;
                   let timeDate: Date;
                   // Whether the record said when it happened (a time past 0).
                   let hasRecordTime: boolean = false;
 
-                  if (log["timeUnixNano"]) {
+                  const exactTime: ExactUnixNano | null =
+                    OneUptimeDate.readExactUnixNano(log["timeUnixNano"]);
+
+                  if (exactTime !== null) {
+                    timeUnixNano = exactTime.nano;
+                    timeDate = exactTime.date;
+                    hasRecordTime = exactTime.nano !== "0";
+                  } else if (log["timeUnixNano"]) {
                     try {
-                      let timeUnixNano: number;
+                      let floatTimeUnixNano: number;
                       if (typeof log["timeUnixNano"] === "string") {
-                        timeUnixNano = parseFloat(log["timeUnixNano"]);
-                        if (isNaN(timeUnixNano)) {
+                        floatTimeUnixNano = parseFloat(log["timeUnixNano"]);
+                        if (isNaN(floatTimeUnixNano)) {
                           throw new Error(
                             `Invalid timestamp string: ${log["timeUnixNano"]}`,
                           );
                         }
                       } else {
-                        timeUnixNano =
+                        floatTimeUnixNano =
                           (log["timeUnixNano"] as number) ||
                           OneUptimeDate.getCurrentDateAsUnixNano();
                       }
 
-                      timeUnixNanoNumeric = timeUnixNano;
-                      timeDate = OneUptimeDate.fromUnixNano(timeUnixNano);
-                      hasRecordTime = timeUnixNano > 0;
+                      timeUnixNano = floatTimeUnixNano;
+                      timeDate = OneUptimeDate.fromUnixNano(floatTimeUnixNano);
+                      hasRecordTime = floatTimeUnixNano > 0;
                     } catch (timeError) {
                       logger.warn(
                         `Error processing timestamp ${log["timeUnixNano"]}: ${timeError instanceof Error ? timeError.message : String(timeError)}, using current time`,
                       );
-                      timeUnixNanoNumeric =
-                        OneUptimeDate.getCurrentDateAsUnixNano();
+                      timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
                       timeDate = OneUptimeDate.getCurrentDate();
                     }
                   } else {
-                    timeUnixNanoNumeric =
-                      OneUptimeDate.getCurrentDateAsUnixNano();
+                    timeUnixNano = OneUptimeDate.getCurrentDateAsUnixNano();
                     timeDate = OneUptimeDate.getCurrentDate();
                   }
 
@@ -905,8 +920,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                       if (kubernetesEventStamp.time) {
                         timeDate = kubernetesEventStamp.time;
-                        timeUnixNanoNumeric =
-                          OneUptimeDate.toUnixNano(timeDate);
+                        timeUnixNano = OneUptimeDate.toUnixNano(timeDate);
                       }
                     }
                   }
@@ -1160,17 +1174,30 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     log["spanId"] as string | undefined,
                   );
 
-                  // Extract observedTimeUnixNano
-                  let observedTimeUnixNano: number = 0;
+                  /*
+                   * Extract observedTimeUnixNano, read as timeUnixNano is:
+                   * an integer string's own digits, exactly, and anything
+                   * else the float it was read as before.
+                   */
+                  let observedTimeUnixNano: number | string = 0;
                   if (log["observedTimeUnixNano"]) {
                     try {
-                      if (typeof log["observedTimeUnixNano"] === "string") {
-                        observedTimeUnixNano = parseFloat(
+                      const exactObservedTime: ExactUnixNano | null =
+                        OneUptimeDate.readExactUnixNano(
                           log["observedTimeUnixNano"],
                         );
-                        if (isNaN(observedTimeUnixNano)) {
-                          observedTimeUnixNano = 0;
-                        }
+
+                      if (exactObservedTime !== null) {
+                        observedTimeUnixNano = exactObservedTime.nano;
+                      } else if (
+                        typeof log["observedTimeUnixNano"] === "string"
+                      ) {
+                        const floatObservedTimeUnixNano: number = parseFloat(
+                          log["observedTimeUnixNano"],
+                        );
+                        observedTimeUnixNano = isNaN(floatObservedTimeUnixNano)
+                          ? 0
+                          : floatObservedTimeUnixNano;
                       } else {
                         observedTimeUnixNano =
                           (log["observedTimeUnixNano"] as number) || 0;
@@ -1185,11 +1212,16 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                   const logFlags: number = (log["flags"] as number) || 0;
 
+                  // The time column: its second and fraction from one read.
                   const logTimestamp: string =
                     OneUptimeDate.toClickhouseDateTime64(
                       timeDate,
-                      timeUnixNanoNumeric,
+                      timeUnixNano,
                     );
+
+                  // The timeUnixNano column, and the exception row's.
+                  const timeUnixNanoText: string =
+                    this.toUnixNanoText(timeUnixNano);
 
                   /*
                    * The drop-filter-visible slice of the log row: every
@@ -1211,7 +1243,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     entityKeys: serviceMetadata.entityKeys || [],
                     ...getScalarEntityKeyColumns(serviceMetadata),
                     time: logTimestamp,
-                    timeUnixNano: Math.trunc(timeUnixNanoNumeric).toString(),
+                    timeUnixNano: timeUnixNanoText,
                     severityNumber: logSeverityNumber,
                     severityText: severityText,
                     attributes: attributesObject,
@@ -1227,7 +1259,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       this.getSessionIdFromAttributes(attributesObject),
                     body: body,
                     observedTimeUnixNano:
-                      Math.trunc(observedTimeUnixNano).toString(),
+                      this.toUnixNanoText(observedTimeUnixNano),
                     droppedAttributesCount: droppedAttributesCount,
                     flags: logFlags,
                   };
@@ -1310,7 +1342,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                         severityNumber: logSeverityNumber,
                         severityText,
                         timeDate,
-                        timeUnixNano: timeUnixNanoNumeric,
+                        timeUnixNano: timeUnixNanoText,
                         retentionDateDb,
                         dbExceptions,
                         pendingExceptionUpserts,
@@ -1712,7 +1744,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     severityNumber: number;
     severityText: LogSeverity;
     timeDate: Date;
-    timeUnixNano: number;
+    // The log row's timeUnixNano column, as written.
+    timeUnixNano: string;
     /** Already-formatted ClickHouse DateTime string of the log row's retention date. */
     retentionDateDb: string;
     dbExceptions: Array<JSONObject>;
@@ -1783,7 +1816,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       entityKeys: data.serviceMetadata.entityKeys || [],
       ...getScalarEntityKeyColumns(data.serviceMetadata),
       time: OneUptimeDate.toClickhouseDateTime(data.timeDate),
-      timeUnixNano: Math.trunc(data.timeUnixNano).toString(),
+      timeUnixNano: data.timeUnixNano,
       exceptionType: extracted.exceptionType || "",
       stackTrace: extracted.stackTrace || "",
       message: extracted.message || "",
@@ -1832,6 +1865,17 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       ...(release ? { release: release } : {}),
       ...(environment ? { environment: environment } : {}),
     });
+  }
+
+  /*
+   * A nanosecond column's text: the digits of an exact read
+   * (OneUptimeDate.readExactUnixNano) as they are, and a float as it was
+   * always written.
+   */
+  private static toUnixNanoText(unixNano: number | string): string {
+    return typeof unixNano === "string"
+      ? unixNano
+      : Math.trunc(unixNano).toString();
   }
 
   /*

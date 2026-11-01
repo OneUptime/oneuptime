@@ -35,7 +35,7 @@ Ogni scansione - una riga di log, una cella CSV, una riga di database, i primi b
 | **Medio** | Il valore ha superato il suo validatore senza nulla intorno a confermarlo, oppure il nome del campo dice cosa contiene e alcuni valori concordano. |
 | **Basso** | La forma corrisponde, ma nulla la conferma. |
 
-Contano solo i risultati di livello Alto e Medio: rendono sensibile un archivio e possono aprire un problema. I risultati di livello Basso sono elencati sull'archivio, compressi, perché una persona li valuti.
+Contano solo i risultati di livello Alto e Medio: rendono sensibile un archivio e possono aprire un problema. I risultati di livello Basso sono elencati sull'archivio, compressi, perché una persona li valuti: **Conferma** su uno corretto lo porta ad Alto, e resta Alto nelle scansioni successive.
 
 Quando due tipi di dati rivendicano gli stessi caratteri, vince il risultato più sicuro: la confidenza più alta, poi il rilevatore le cui regole dimostrano di più, poi la corrispondenza più lunga.
 
@@ -58,6 +58,12 @@ Il nome di un campo viene diviso in parole - `customerEmail`, `customer_email` e
 Alcuni tipi di dati non si riconoscono dai loro valori: nessun pattern distingue il nome di una persona da una via, o una religione da qualsiasi altra parola. Questi vengono trovati solo dal nome del campo, quando il campo ha dei valori: Nome della persona, Nome utente, Genere, Nazionalità, Informazioni sanitarie, Origine razziale o etnica, Convinzioni religiose, Orientamento sessuale, Opinioni politiche, Appartenenza sindacale, Dati biometrici, Dati genetici e Precedenti penali. Un nome, un nome utente, un genere o una nazionalità è allora Alto quando il 60% o più dei valori sembra tale, e altrimenti Medio.
 
 Un campo il cui nome dice che contiene una password - `password`, `passwordHash`, `pwd`, non `password_changed_at` - dovrebbe contenere un hash: bcrypt, argon2, scrypt, PBKDF2 o un altro schema che un archivio usa di solito. I valori vuoti, i segnaposto come `********` e i valori cifrati vengono messi da parte. Quando tra i restanti quelli che non sono hash sono più di quelli che lo sono, il campo contiene le password stesse, che nessun pattern può vedere, e l'archivio non supera [Le password sono conservate in chiaro](/docs/data-security/checks-and-issues#igiene-dei-dati).
+
+### Campi che nessun rilevatore ha saputo collocare
+
+Una colonna o un campo il cui nome non rimanda a nessun tipo di dati, e i cui valori non corrispondono a nessun rilevatore, non è noto come sicuro: può essere il tuo numero cliente, o una colonna con il nome in un'altra lingua. Con **Abilita IA** attivo nel progetto, una scansione del contenuto conserva questi campi, al massimo 200 per scansione, e a OneUptime AI viene chiesto quale dei tipi di dati del progetto contiene ciascuno, al massimo 40 campi di un archivio alla volta. Gli vengono detti il nome del campo, i nomi dei campi accanto e le forme dei suoi valori - ogni lettera scritta come `a` o `A` e ogni cifra come `9`, quindi `AB-1234` diventa `AA-9999` - mai un valore. Non si chiede del testo libero, dei campi con meno di 5 valori, dei numeri interi piccoli né dei campi con il nome di un id, di un orario o di uno stato.
+
+Ogni tipo che OneUptime AI nomina è un risultato di livello Basso, contrassegnato **Suggerito da OneUptime AI** con il suo motivo. Come ogni risultato di livello Basso non conta nulla finché una persona non sceglie **Conferma** nella pagina **Contenuto** dell'archivio; **Contrassegna come non sensibile** lo rifiuta. Di un campo a cui è stata data una risposta non si chiede di nuovo per 30 giorni, e di un campo che una persona ha valutato non si chiede mai più.
 
 ## Sensibilità
 

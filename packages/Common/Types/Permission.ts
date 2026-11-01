@@ -294,6 +294,9 @@ enum Permission {
   DeleteDataStoreAccess = "DeleteDataStoreAccess",
   ReadDataStoreAccess = "ReadDataStoreAccess",
 
+  // Data Security Identities: each identity that can reach the stores, and what it reaches
+  ReadDataSecurityIdentity = "ReadDataSecurityIdentity",
+
   // Data Flows: where sensitive data goes, read from traces and scans
   DeleteDataSecurityFlow = "DeleteDataSecurityFlow",
   ReadDataSecurityFlow = "ReadDataSecurityFlow",
@@ -8696,6 +8699,18 @@ export class PermissionHelper {
         title: "Read Data Store Access",
         description:
           "This permission can read Data Store Access entries of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security Identity Permissions
+      {
+        permission: Permission.ReadDataSecurityIdentity,
+        title: "Read Data Security Identity",
+        description:
+          "This permission can read the identities that can reach this project's data stores.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

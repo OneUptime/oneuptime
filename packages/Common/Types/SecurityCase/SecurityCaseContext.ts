@@ -222,6 +222,8 @@ export enum SecurityCaseImpactSource {
   Changes = "Changes",
   NetworkFlows = "NetworkFlows",
   Events = "Events",
+  // Data Security's stores and identities: the data the case puts at risk.
+  DataStores = "DataStores",
 }
 
 // One thing a record calls, is called by or runs on, on the service map.
@@ -307,6 +309,54 @@ export interface SecurityCaseExposureEvidenceJson {
   requestOutcome?: string | undefined;
 }
 
+/*
+ * A data store the case puts at risk (Server/Utils/SecurityCase/Context/
+ * SecurityCaseDataAtRisk.ts): one the case names, or one an identity it
+ * names can reach - with what it holds, how exposed it is and who else can
+ * reach it.
+ */
+export interface SecurityCaseDataStoreAtRiskJson {
+  id: string;
+  name: string;
+  kind: string;
+  sensitivity: string;
+  // The data types found in it, at most a few.
+  dataTypeIds: Array<string>;
+  estimatedRecords: number | null;
+  exposure: string;
+  // The case names the store itself.
+  isNamedByCase: boolean;
+  // The case's identities that can reach it, by name.
+  reachedThrough: Array<string>;
+  // Every identity that can reach it, and how many of those are outside your accounts.
+  identityCount: number;
+  externalIdentityCount: number;
+}
+
+// An identity the case names that can reach the project's data.
+export interface SecurityCaseIdentityAtRiskJson {
+  id: string;
+  name: string;
+  principal: string;
+  principalType: string;
+  storeCount: number;
+  sensitiveStoreCount: number;
+  highestSensitivity: string;
+  riskScore: number;
+}
+
+export interface SecurityCaseDataAtRiskJson {
+  // The most sensitive first.
+  stores: Array<SecurityCaseDataStoreAtRiskJson>;
+  identities: Array<SecurityCaseIdentityAtRiskJson>;
+  // More stores are at risk than are listed.
+  hasMoreStores: boolean;
+}
+
+// The most stores the data at risk lists, and the most identities.
+export const SECURITY_CASE_IMPACT_MAX_DATA_STORES: number = 10;
+export const SECURITY_CASE_IMPACT_MAX_IDENTITIES: number = 10;
+
 export interface SecurityCaseImpactJson {
   windowStart: string;
   windowEnd: string;
@@ -320,6 +370,11 @@ export interface SecurityCaseImpactJson {
     exposure: SecurityCaseInternetExposure;
     evidence: Array<SecurityCaseExposureEvidenceJson>;
   };
+  /*
+   * The data the case puts at risk: null when it could not be read, left
+   * out by a server older than it.
+   */
+  dataAtRisk?: SecurityCaseDataAtRiskJson | null | undefined;
   unreadableSources: Array<SecurityCaseImpactSource>;
   failedSources: Array<SecurityCaseImpactSource>;
 }

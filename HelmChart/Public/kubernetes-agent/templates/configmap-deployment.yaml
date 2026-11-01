@@ -659,7 +659,7 @@ data:
             statements:
               - convert_gauge_to_sum("cumulative", true) where metric.name == "k8s.container.restarts.increase"
           {{- end }}
-      cumulative_to_delta/restarts-increase:
+      {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase:
         include:
           metrics:
             - k8s.container.restarts.increase
@@ -720,7 +720,7 @@ data:
             statements:
               - convert_gauge_to_sum("cumulative", true) where metric.name == "k8s.job.failed_pods.increase"
           {{- end }}
-      cumulative_to_delta/job-failures-increase:
+      {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/job-failures-increase:
         include:
           metrics:
             - k8s.job.failed_pods.increase
@@ -893,7 +893,7 @@ data:
             # (see transform/job-failures-increase). First, so filters.metrics
             # sees the copy under the name it is sent with.
             - transform/job-failures-increase
-            - cumulative_to_delta/job-failures-increase
+            - {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/job-failures-increase
             - transform/pod-level-mark
             - k8sattributes
             - transform/pod-level-unmark
@@ -1012,6 +1012,6 @@ data:
             # After the rename, so filters.metrics sees the name sent.
             - filter/telemetry
             {{- end }}
-            - cumulative_to_delta/restarts-increase
+            - {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase
           exporters:
             - forward/restarts-increase

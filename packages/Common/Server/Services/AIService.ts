@@ -186,6 +186,16 @@ export const AI_SECURITY_CASE_TRIAGE_FEATURE: string =
   "AI Security Case Triage";
 
 /*
+ * The LlmLog feature name for Data Security's field suggestions
+ * (DataSecurityFieldSuggestion): after a store's content scan, one
+ * constrained call names the data type of the fields no detector placed,
+ * from their names and the shapes of their values. Started by a scan, with
+ * no human in the loop - every store's scan can start one.
+ */
+export const AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE: string =
+  "AI Data Security Field Suggestion";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -313,6 +323,11 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * repository with Production Review on starts one.
    */
   AI_PRODUCTION_REVIEW_FEATURE,
+  /*
+   * Data Security's field suggestions (DataSecurityFieldSuggestion): at
+   * most one constrained call per store scan, started by the scan.
+   */
+  AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

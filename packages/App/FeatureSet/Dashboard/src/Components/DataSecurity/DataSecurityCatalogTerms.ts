@@ -647,6 +647,23 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
     "Per-object rules are invisible in the bucket's policy, and are how single files end up public.",
   ),
   translationKey("More than 25 identities can read Restricted data"),
+  translationKey("Identities unused for 90 days can still reach it"),
+  translationKey(
+    "Roles and users that have not been used in 90 days still hold access to the store's sensitive data.",
+  ),
+  translationKey(
+    "Access nobody uses is access nobody watches: a forgotten role or an old key is how a leak reaches data years later.",
+  ),
+  translationKey(
+    "Open the store's Who can reach it tab: the identities not used in 90 days are marked.",
+  ),
+  translationKey(
+    "For each, confirm with its owner that it is no longer needed.",
+  ),
+  translationKey(
+    "Detach the policy that grants the access, or delete the role or user if nothing uses it.",
+  ),
+  translationKey("Remove the access each one no longer needs."),
   translationKey(
     "More identities than most teams can review hold read access to the store.",
   ),
@@ -959,6 +976,10 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Card numbers are unreadable wherever they are stored"),
   translationKey("Strong cryptography protects card data in transit"),
   translationKey("Access is defined and assigned by need"),
+  translationKey("Accounts and their access are reviewed"),
+  translationKey("Information access management"),
+  translationKey("Access is removed when no longer needed"),
+  translationKey("Access rights"),
   translationKey("Authentication factors are unreadable when stored"),
   translationKey("Audit logs record access to card data"),
   translationKey("Backup and recovery"),
@@ -1003,5 +1024,26 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   ),
   translationKey(
     "Stops sharing every manual snapshot of it with everyone, and with any account outside the ones this project has connected. No snapshot or database is changed.",
+  ),
+  translationKey(
+    "Turns on versioning for the bucket, so an object that is overwritten or deleted can be restored from its earlier version. Earlier versions are kept, and billed, until a lifecycle rule removes them. No object is changed.",
+  ),
+  translationKey(
+    "Turns on Object Versioning for the bucket, so an object that is overwritten or deleted can be restored from its earlier version. Earlier versions are kept, and billed, until a lifecycle rule removes them. No object is changed.",
+  ),
+  translationKey(
+    "Turns on soft delete for the storage account's blobs and containers, for 14 days: a deleted blob or container can be restored in that time. Deleted data is kept, and billed, for those 14 days. No blob is changed.",
+  ),
+  translationKey(
+    "Sets the bucket's Object Ownership to Bucket owner enforced: object ACLs no longer grant access, and the bucket's policy alone decides who reads it. Anything that is given access through an ACL - another account, a public link - stops working. No object is changed.",
+  ),
+  translationKey(
+    "Turns on uniform bucket-level access: object ACLs no longer grant access, and the bucket's IAM policy alone decides who reads it. Anything that is given access through an ACL stops working, and after 90 days it cannot be turned off again. No object is changed.",
+  ),
+  translationKey(
+    "Turns on Secure transfer required, and sets the minimum TLS version to 1.2, on the storage account: it then takes HTTPS only, with TLS 1.2 or later. Anything that connects over HTTP, or with older TLS, stops working. No blob is changed.",
+  ),
+  translationKey(
+    "Turns on point-in-time recovery for the table, so it can be restored to any second of the last 35 days. AWS bills it by the table's size. No item is changed.",
   ),
 ];

@@ -572,7 +572,7 @@ En spennprosessor merker hvert spenn med ID-en som gjaldt da det startet. Å skr
 
 ### Hvor koblingene er
 
-Et unntak i dashbordet viser et kort **Watch what the user saw** når det finnes et opptak av en økt som hadde den feilen, og åpner avspilleren ti sekunder før unntaket med fanen Errors valgt. Detaljene for et spenn tilbyr **Watch session at this span**; detaljene for en loggrad tilbyr **View session replay** på linjens tidspunkt når loggen selv bærer økt-ID-en, og en logg som er koblet via spor-ID, når opptaket gjennom sporet sitt. I den andre retningen lenker hver nettverks-, logg-, spor- og feilrad i avspilleren til sporvisningen, loggutforskeren avgrenset til økten på det tidspunktet, eller unntaksgruppen.
+Et unntak i dashbordet viser et kort **Watch what the user saw** når det finnes et opptak av en økt som hadde den feilen, og åpner avspilleren ti sekunder før unntaket med fanen Errors valgt. Detaljene for et spenn tilbyr **Se økten ved dette spennet**; detaljene for en loggrad tilbyr **View session replay** på linjens tidspunkt når loggen selv bærer økt-ID-en, og en logg som er koblet via spor-ID, når opptaket gjennom sporet sitt. I den andre retningen lenker hver nettverks-, logg-, spor- og feilrad i avspilleren til sporvisningen, loggutforskeren avgrenset til økten på det tidspunktet, eller unntaksgruppen.
 
 ## Se en økt
 

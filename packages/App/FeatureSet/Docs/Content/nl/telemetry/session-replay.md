@@ -572,7 +572,7 @@ Een spanprocessor markeert elke span met de id die gold toen de span begon. De i
 
 ### Waar de koppelingen zitten
 
-Een uitzondering in het dashboard toont een kaart **Watch what the user saw** wanneer er een opname bestaat van een sessie die die fout had, en opent de speler tien seconden vóór de uitzondering met het tabblad Errors geselecteerd. De details van een span bieden **Watch session at this span**; de details van een logrij bieden **View session replay** op het moment van de regel wanneer de log zelf de sessie-id draagt, en een log die via trace-id is gekoppeld, bereikt de opname via zijn trace. In de andere richting linkt elke netwerk-, log-, trace- en foutrij van de speler naar de traceweergave, de logverkenner beperkt tot de sessie op dat moment, of de uitzonderingsgroep.
+Een uitzondering in het dashboard toont een kaart **Watch what the user saw** wanneer er een opname bestaat van een sessie die die fout had, en opent de speler tien seconden vóór de uitzondering met het tabblad Errors geselecteerd. De details van een span bieden **Sessie bij deze span bekijken**; de details van een logrij bieden **View session replay** op het moment van de regel wanneer de log zelf de sessie-id draagt, en een log die via trace-id is gekoppeld, bereikt de opname via zijn trace. In de andere richting linkt elke netwerk-, log-, trace- en foutrij van de speler naar de traceweergave, de logverkenner beperkt tot de sessie op dat moment, of de uitzonderingsgroep.
 
 ## Een sessie bekijken
 

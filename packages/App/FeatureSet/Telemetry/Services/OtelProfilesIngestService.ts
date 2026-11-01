@@ -6,7 +6,7 @@ import {
 import { ResourceEntityRef } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
@@ -49,6 +49,12 @@ import TelemetryFanInWriter, {
 import crypto from "crypto";
 
 type ParsedUnixNano = {
+  /*
+   * A float of the time, for arithmetic only (a profile's duration) and the
+   * storable-range check: at today's epoch it is up to 128 ns off. What is
+   * stored and shown - nano, iso, date - is read exactly when the time came
+   * as an integer string.
+   */
   unixNano: number;
   nano: string;
   iso: string;
@@ -1565,6 +1571,32 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
     context: string,
     fallback?: ParsedUnixNano,
   ): ParsedUnixNano {
+    /*
+     * An integer string - how OTLP/protobuf sends every time - is read
+     * exactly: the Date, the stored nanoseconds and the ISO text come from
+     * its digits (OneUptimeDate.readExactUnixNano), where a float of it read
+     * them up to 128 ns off and a millisecond early or late. The storable
+     * range is still checked on the float, as before, so a value is kept or
+     * refused exactly as it was; every one kept has digits within int64 (an
+     * exact read is never negative). One past the range, and anything that
+     * is not an integer string, is read as before, below.
+     */
+    const exact: ExactUnixNano | null = OneUptimeDate.readExactUnixNano(value);
+
+    if (exact !== null) {
+      // For durations and the range check only, the float it always was.
+      const unixNano: number = Number.parseFloat(exact.nano);
+
+      if (unixNano <= MAX_STORABLE_UNIX_NANO) {
+        return {
+          unixNano: unixNano,
+          nano: exact.nano,
+          iso: OneUptimeDate.toString(exact.date),
+          date: exact.date,
+        };
+      }
+    }
+
     let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
 
     if (value !== undefined && value !== null) {

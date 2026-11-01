@@ -456,6 +456,23 @@ describe("severity and time, whoever sent the Event", () => {
     );
   });
 
+  test("a record whose own time is a zero is dated when the Event last happened", async () => {
+    // OTLP's "0" is no time: an exporter's unset time_unix_nano, sent as text.
+    for (const zero of ["0", "000", "+0"]) {
+      const rows: Array<JSONObject> = setupIngestMocks();
+
+      await OtelLogsIngestService.processLogsFromQueue(
+        agentRequest([eventRecord(OOM, { timeUnixNano: zero })]),
+      );
+
+      expect(rows[0]!["time"]).toBe(timeOf(OOM));
+      expect(rows[0]!["timeUnixNano"]).toBe(
+        String(OneUptimeDate.toUnixNano(new Date(OOM.lastSeen))),
+      );
+      jest.restoreAllMocks();
+    }
+  });
+
   test("an Event a fast node clock dates in the future is dated now", async () => {
     const rows: Array<JSONObject> = setupIngestMocks();
     const future: KubernetesEventFields = {

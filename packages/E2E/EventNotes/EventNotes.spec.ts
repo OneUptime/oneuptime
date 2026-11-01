@@ -316,6 +316,14 @@ async function colorOf(locator: Locator): Promise<string> {
   });
 }
 
+// Its colour and how strongly it is drawn: a locked control is faded (#5482).
+async function lookOf(locator: Locator): Promise<string> {
+  return locator.evaluate((element: Element): string => {
+    const computed: CSSStyleDeclaration = window.getComputedStyle(element);
+    return `${computed.color} ${computed.opacity}`;
+  });
+}
+
 interface PreviewStyle {
   borderTopWidth: string;
   backgroundColor: string;
@@ -1002,7 +1010,7 @@ test.describe("previewing the notification", () => {
     await screenshot(page, "incident-public-notes-preview-link");
   });
 
-  test("with nothing written it is grey, says why, and opens nothing", async ({
+  test("with nothing written it is faded, says why, and opens nothing", async ({
     page,
   }: {
     page: Page;
@@ -1017,11 +1025,12 @@ test.describe("previewing the notification", () => {
     await expect(preview).not.toHaveAttribute("disabled");
     await expect(preview).toHaveAccessibleName(PREVIEW_NAME);
     await expect(preview).toHaveAccessibleDescription(PREVIEW_WAITING_REASON);
+    // Its link colour at half strength, as every locked control looks (#5482).
     await expect
       .poll(() => {
-        return colorOf(preview);
+        return lookOf(preview);
       })
-      .toBe("rgb(156, 163, 175)");
+      .toBe("rgb(79, 70, 229) 0.5");
 
     // The reason shows on hover.
     await preview.hover();
@@ -1091,7 +1100,7 @@ test.describe("previewing the notification", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("in the dark theme it keeps the link colour, and grey while it waits", async ({
+  test("in the dark theme it keeps the link colour, faded while it waits", async ({
     page,
   }: {
     page: Page;
@@ -1106,21 +1115,23 @@ test.describe("previewing the notification", () => {
     const composer: Locator = await openComposer(page);
     const preview: Locator = previewLink(composer);
 
-    // Theme.css's grey for text-gray-400, not the light one.
+    /*
+     * Theme.css's light indigo for text-indigo-600 on a dark surface, at half
+     * strength while there is nothing to preview (#5482's locked look).
+     */
     await expect
       .poll(() => {
-        return colorOf(preview);
+        return lookOf(preview);
       })
-      .toBe("rgb(148, 163, 184)");
+      .toBe("rgb(165, 180, 252) 0.5");
 
     await page.keyboard.type("Rolling back.");
     await expect(preview).not.toHaveAttribute("aria-disabled", "true");
-    // Theme.css's light indigo for text-indigo-600 on a dark surface.
     await expect
       .poll(() => {
-        return colorOf(preview);
+        return lookOf(preview);
       })
-      .toBe("rgb(165, 180, 252)");
+      .toBe("rgb(165, 180, 252) 1");
     await preview.hover();
     await expect
       .poll(async (): Promise<string> => {

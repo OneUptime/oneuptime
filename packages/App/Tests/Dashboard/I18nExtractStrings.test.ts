@@ -748,7 +748,7 @@ describe("a root that marks its keys", () => {
     ).toEqual(["Entry spans", "Where a trace starts."]);
   });
 
-  test("TraceSpanType gives the locales its three sentences and its chart's titles, and none of its names", () => {
+  test("TraceSpanType gives the locales its sentences and none of its names", () => {
     const file: string = "packages/Common/Types/Telemetry/TraceSpanType.ts";
     const result: SourceScanResult = scanSourceRoots(
       [{ directory: file, kind: "keys" }],
@@ -762,6 +762,9 @@ describe("a root that marks its keys", () => {
       // The traces explorer's chart, titled for the span type it counts.
       "Traces over time",
       "Spans over time",
+      // What its list says when a choice leaves it empty.
+      "No root spans found",
+      "No entry spans found",
     ]);
     expect(result.hardcoded).toEqual([]);
   });

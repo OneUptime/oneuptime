@@ -572,7 +572,7 @@ Un processore di span marca ogni span con l'id in vigore quando è iniziato. Scr
 
 ### Dove sono i collegamenti
 
-Un'eccezione nella dashboard mostra una scheda **Watch what the user saw** quando esiste una registrazione di una sessione che ha avuto quell'errore, e apre il lettore dieci secondi prima dell'eccezione con la scheda Errors selezionata. I dettagli di uno span offrono **Watch session at this span**; i dettagli di una riga di log offrono **View session replay** al momento della riga quando il log stesso porta l'id di sessione, e un log collegato per id di traccia raggiunge la registrazione tramite la sua traccia. Nell'altra direzione, ogni riga di rete, log, traccia ed errore del lettore porta alla vista della traccia, all'esploratore dei log limitato alla sessione in quel momento, o al gruppo di eccezioni.
+Un'eccezione nella dashboard mostra una scheda **Watch what the user saw** quando esiste una registrazione di una sessione che ha avuto quell'errore, e apre il lettore dieci secondi prima dell'eccezione con la scheda Errors selezionata. I dettagli di uno span offrono **Guarda la sessione a questo span**; i dettagli di una riga di log offrono **View session replay** al momento della riga quando il log stesso porta l'id di sessione, e un log collegato per id di traccia raggiunge la registrazione tramite la sua traccia. Nell'altra direzione, ogni riga di rete, log, traccia ed errore del lettore porta alla vista della traccia, all'esploratore dei log limitato alla sessione in quel momento, o al gruppo di eccezioni.
 
 ## Guardare una sessione
 

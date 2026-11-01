@@ -17,8 +17,11 @@ export const LLM_PROVIDER_DEFAULT_TIMEOUT_IN_MS: number = 60 * 1000;
 
 export interface LlmProviderRequest {
   transport: LlmConnectorTransport;
-  // PATCH: a cloud connection's response actions, which change one setting.
-  method: "GET" | "POST" | "PATCH";
+  /*
+   * PATCH: a cloud connection's response actions, which change one setting;
+   * PUT: the same, for a resource a cloud changes only whole.
+   */
+  method: "GET" | "POST" | "PATCH" | "PUT";
   url: string;
   headers?: Dictionary<string> | undefined;
   // A JSON body (POST), sent as written when it is a string.

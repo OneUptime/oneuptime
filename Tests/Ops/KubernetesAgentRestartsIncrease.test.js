@@ -41,6 +41,13 @@ const fs = require("fs");
 const path = require("path");
 const yaml = require("js-yaml");
 const behaviour = require("./Utils/KubernetesAgentRestartsIncreaseBehaviour");
+const {
+  processorNamesFor,
+  templateForPinnedCollector,
+} = require("./Utils/CumulativeToDeltaProcessor");
+
+// The collector a `helm upgrade --reuse-values` keeps on a release from before 0.161.0.
+const REUSE_VALUES_IMAGE = "otel/opentelemetry-collector-contrib:0.96.0";
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const DEPLOYMENT_TEMPLATE =
@@ -50,6 +57,16 @@ const SCRIPT = "Tests/Ops/agent-restarts-increase-behaviour.sh";
 
 function readRepoFile(file) {
   return fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
+}
+
+/*
+ * The Deployment template as the chart renders it for the collector it pins:
+ * the template asks kubernetes-agent.cumulativeToDeltaProcessor for the
+ * cumulative-to-delta processor's type, which is cumulative_to_delta there
+ * (and cumulativetodelta before 0.157.0: Utils/CumulativeToDeltaProcessor.js).
+ */
+function readDeploymentTemplate() {
+  return templateForPinnedCollector(readRepoFile(DEPLOYMENT_TEMPLATE));
 }
 
 function containerLine(entry) {
@@ -178,7 +195,7 @@ function increasesOf(points) {
  * next blank line or pipeline.
  */
 function templatePipeline(name) {
-  const template = readRepoFile(DEPLOYMENT_TEMPLATE);
+  const template = readDeploymentTemplate();
   const start = template.indexOf(`        ${name}:\n          receivers:\n`);
   expect(start).toBeGreaterThan(-1);
   const block = template.substring(start);
@@ -345,7 +362,7 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
   });
 
   test("its pods belong to every kind of workload the chart's k8sattributes names, and one to none", () => {
-    const template = readRepoFile(DEPLOYMENT_TEMPLATE);
+    const template = readDeploymentTemplate();
     const extracted = template
       .substring(
         template.indexOf("      k8sattributes:\n"),
@@ -554,7 +571,7 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
     expect(pipeline.exporters).toEqual([behaviour.CONNECTOR]);
 
     // Every one it lifts is defined in the template, and the connector too.
-    const template = readRepoFile(DEPLOYMENT_TEMPLATE);
+    const template = readDeploymentTemplate();
     for (const name of behaviour.LIFTED_PROCESSORS) {
       expect(template).toContain(`\n      ${name}:\n`);
     }
@@ -602,11 +619,14 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
     );
   });
 
-  function stubCollector() {
-    const names = [
-      ...behaviour.LIFTED_PROCESSORS,
-      ...behaviour.METRICS_PIPELINE_PROCESSORS,
-    ];
+  // A rendered cluster collector config, named as `image` knows its processors.
+  function stubCollector(image) {
+    const lifted = processorNamesFor(behaviour.LIFTED_PROCESSORS, image);
+    const metricsProcessors = processorNamesFor(
+      behaviour.METRICS_PIPELINE_PROCESSORS,
+      image,
+    );
+    const names = [...lifted, ...metricsProcessors];
     return {
       processors: Object.fromEntries(
         names.map((name) => {
@@ -618,7 +638,7 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
         pipelines: {
           metrics: {
             receivers: ["k8s_cluster", behaviour.CONNECTOR, "otlp"],
-            processors: [...behaviour.METRICS_PIPELINE_PROCESSORS],
+            processors: [...metricsProcessors],
             exporters: ["otlphttp"],
           },
           logs: {
@@ -628,13 +648,49 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
           },
           [behaviour.PIPELINE]: {
             receivers: ["k8s_cluster"],
-            processors: ["memory_limiter", ...behaviour.LIFTED_PROCESSORS],
+            processors: ["memory_limiter", ...lifted],
             exporters: [behaviour.CONNECTOR],
           },
         },
       },
     };
   }
+
+  test("on the 0.96.0 a --reuse-values upgrade keeps, it lifts the processor as cumulativetodelta, the only name that collector knows", () => {
+    const config = behaviour.behaviourConfig(
+      stubCollector(REUSE_VALUES_IMAGE),
+      REUSE_VALUES_IMAGE,
+    );
+    const restarts = config.service.pipelines[behaviour.PIPELINE].processors;
+    const metrics = config.service.pipelines.metrics.processors;
+
+    expect(restarts).toContain("cumulativetodelta/restarts-increase");
+    expect(metrics).toContain("cumulativetodelta/job-failures-increase");
+    expect([...restarts, ...metrics].join(",")).not.toContain(
+      "cumulative_to_delta/",
+    );
+    expect(config.processors["cumulativetodelta/restarts-increase"]).toEqual({
+      marker: "cumulativetodelta/restarts-increase",
+    });
+  });
+
+  test("and refuses a chart that named it cumulative_to_delta for 0.96.0, a config that collector refuses as a whole", () => {
+    const exit = jest.spyOn(process, "exit").mockImplementation((code) => {
+      throw new Error(`exit ${code}`);
+    });
+    const error = jest.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(() => {
+        behaviour.behaviourConfig(stubCollector(), REUSE_VALUES_IMAGE);
+      }).toThrow("exit 1");
+      expect(() => {
+        behaviour.behaviourConfig(stubCollector(REUSE_VALUES_IMAGE));
+      }).toThrow("exit 1");
+    } finally {
+      exit.mockRestore();
+      error.mockRestore();
+    }
+  });
 
   test("the config it builds runs both pipelines from OTLP, the increases through the connector, the rest into a file", () => {
     const config = behaviour.behaviourConfig(stubCollector());
@@ -729,6 +785,63 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
 
   test("its check passes the export the arithmetic predicts", () => {
     expect(behaviour.problemsWith(exportedAsExpected())).toEqual([]);
+  });
+
+  /*
+   * The script reads the export once it is whole. The increases come back
+   * through the connector in an export call of their own, ahead of the raw
+   * points of the same sample, so waiting for the increases alone read the
+   * last sample's restarts before they were written: the pinned run failed
+   * that way three times running on 2026-11-01.
+   */
+  test("it waits for the whole export: every increase, and the raw points of every sample, the last one's included", () => {
+    expect(behaviour.holdsEveryPoint(exportedAsExpected())).toBe(true);
+
+    const lastSample = behaviour.sampleTimeNano(
+      behaviour.SAMPLE_SECONDS.length - 1,
+    );
+    const increasesInLastRestartsNot = exportedAsExpected().filter((point) => {
+      return !(
+        point.metric === behaviour.RESTARTS_METRIC && point.time === lastSample
+      );
+    });
+    expect(increasesOf(increasesInLastRestartsNot).length).toBe(
+      behaviour.EXPECTED_INCREASES.length,
+    );
+    expect(behaviour.holdsEveryPoint(increasesInLastRestartsNot)).toBe(false);
+
+    for (const metric of [
+      behaviour.INCREASE_METRIC,
+      behaviour.RESTARTS_METRIC,
+      behaviour.READY_METRIC,
+      behaviour.PHASE_METRIC,
+    ]) {
+      const points = exportedAsExpected();
+      points.splice(
+        points.findIndex((point) => {
+          return point.metric === metric;
+        }),
+        1,
+      );
+      expect({ metric, whole: behaviour.holdsEveryPoint(points) }).toEqual({
+        metric,
+        whole: false,
+      });
+    }
+
+    // No file yet is no export yet.
+    expect(
+      behaviour.isComplete(path.join(REPO_ROOT, "no-such-export.json")),
+    ).toBe(false);
+  });
+
+  test("and the script waits on that, not on the increases alone", () => {
+    const script = readRepoFile(SCRIPT);
+
+    expect(script).toContain(
+      '"$(node "${HELPER}" complete "${dir}/out/metrics.json")" = "yes"',
+    );
+    expect(script).not.toContain('node "${HELPER}" count');
   });
 
   test("its check fails an export that kept container.id, lost a restart, sent another metric, or is not a delta sum from the previous sample", () => {

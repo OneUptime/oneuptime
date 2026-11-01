@@ -428,7 +428,7 @@ describe("Traces explorer chart, legend and Status facet (TracesViewer)", () => 
     "const histogramSeries: Array<HistogramSeriesOption> = useMemo(",
   );
   const seriesEnd: number = TRACES_VIEWER.source.indexOf(
-    "}, [chartMetric]);",
+    "}, [chartMetric, translator.language]);",
     seriesStart,
   );
   const HISTOGRAM_SERIES: string = TRACES_VIEWER.source.substring(
@@ -443,7 +443,7 @@ describe("Traces explorer chart, legend and Status facet (TracesViewer)", () => 
 
   test("REGRESSION: one series per status, named, colored and explained by the module", () => {
     expect(HISTOGRAM_SERIES).toContain(
-      "return SPAN_STATUS_PRESENTATIONS.map( (presentation: SpanStatusPresentation): HistogramSeriesOption => { return { key: HISTOGRAM_SERIES_KEY[presentation.status], label: presentation.displayLabel, color: presentation.color, description: presentation.description, }; }, );",
+      "return SPAN_STATUS_PRESENTATIONS.map( (presentation: SpanStatusPresentation): HistogramSeriesOption => { return { key: HISTOGRAM_SERIES_KEY[presentation.status], label: translator.translateTerm(presentation.displayLabel), color: presentation.color, description: translator.translateText(presentation.description), }; }, );",
     );
     // The old hand-written series: a grey "Unset" beside a green "Ok".
     expect(HISTOGRAM_SERIES).not.toContain('label: "Unset"');
@@ -457,7 +457,7 @@ describe("Traces explorer chart, legend and Status facet (TracesViewer)", () => 
 
   test("REGRESSION: the Status facet takes its labels and dot colors from the module", () => {
     expect(TRACES_VIEWER.source).toContain(
-      "const statusLabelMap: Record<string, string> = getSpanStatusDisplayLabelMap(); const statusColorMap: Record<string, string> = getSpanStatusColorMap();",
+      "const statusLabelMap: Record<string, string> = getSpanStatusDisplayLabelMap(translator); const statusColorMap: Record<string, string> = getSpanStatusColorMap();",
     );
     expect(TRACES_VIEWER.source).toContain(
       'key: "statusCode", title: "Status", valueDisplayMap: statusLabelMap, valueColorMap: statusColorMap,',
@@ -466,7 +466,7 @@ describe("Traces explorer chart, legend and Status facet (TracesViewer)", () => 
 
   test("Has Exception is painted with the Error color", () => {
     expect(TRACES_VIEWER.source).toContain(
-      'valueDisplayMap: { true: "Has exception" }, valueColorMap: { true: getSpanStatusPresentation(SpanStatus.Error).color, },',
+      'valueDisplayMap: { true: translator.translateTerm("Has exception"), false: translator.translateTerm("No"), }, valueColorMap: { true: getSpanStatusPresentation(SpanStatus.Error).color, },',
     );
   });
 
@@ -524,7 +524,7 @@ describe("the server contract the Traces chart depends on (TraceAggregationServi
 describe("trace rows (TraceRow)", () => {
   test("REGRESSION: the status dot is announced as an image, with its label and meaning", () => {
     expect(TRACE_ROW.source).toContain(
-      '<span role="img" aria-label={`Status: ${statusName}`} title={`${status.label}: ${status.description}`}',
+      '<span role="img" aria-label={translator.translateTemplate("Status: {{status}}", { status: translatableTerm(statusName), })} title={`${plainStatusName}: ${translator.translateText(status.description)}`}',
     );
     // The old dot: a plain span, its aria-label never read, naming "Unset".
     expect(TRACE_ROW.source).not.toContain(
@@ -563,7 +563,7 @@ describe("trace rows (TraceRow)", () => {
       "const isError: boolean = status.status === SpanStatus.Error;",
     );
     expect(TRACE_ROW.source).toContain(
-      "{isError && ( <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${status.pillClassName}`} > {status.label} </span> )}",
+      "{isError && ( <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${status.pillClassName}`} > {plainStatusName} </span> )}",
     );
   });
 });
@@ -571,7 +571,7 @@ describe("trace rows (TraceRow)", () => {
 describe("the span panel (SpanDetailsPanel)", () => {
   test("the header pill takes its classes, tooltip, dot color and text from the status", () => {
     expect(SPAN_PANEL.source).toContain(
-      '<span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.pillClassName}`} title={status.description} data-testid="span-details-status" > <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: status.color }} aria-hidden="true" /> {statusLabel} </span>',
+      '<span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${status.pillClassName}`} title={translator.translateText(status.description)} data-testid="span-details-status" > <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ backgroundColor: status.color }} aria-hidden="true" /> {statusLabel} </span>',
     );
   });
 
@@ -591,7 +591,7 @@ describe("the span panel (SpanDetailsPanel)", () => {
      * if that fetch fails); the fetched exception events confirm it.
      */
     expect(SPAN_PANEL.source).toContain(
-      "const hasExceptions: boolean = span.hasException === true || exceptionMessages.length > 0; const statusLabel: string = hasExceptions ? status.label : status.displayLabel;",
+      "const hasExceptions: boolean = span.hasException === true || exceptionMessages.length > 0; const statusLabel: string = translator.translateTerm( hasExceptions ? status.label : status.displayLabel, );",
     );
     // The exceptions are the fetched span's exception events, listed below.
     expect(SPAN_PANEL.source).toContain(
@@ -605,7 +605,7 @@ describe("the span panel (SpanDetailsPanel)", () => {
 
   test("REGRESSION: the status message box is red only on an Error span", () => {
     const boxStart: number = SPAN_PANEL.source.indexOf(
-      "<header className={sectionHeaderClass}>Status Message</header>",
+      '<header className={sectionHeaderClass}> {translator.translateText("Status Message")} </header>',
     );
     const boxEnd: number = SPAN_PANEL.source.indexOf(
       "{statusMessage} </div>",
@@ -662,7 +662,7 @@ describe("the status dot in span tables (SpanStatusElement)", () => {
     );
     // The display label, "Unset (no error)", unless the row asks for plainLabel.
     expect(SPAN_STATUS_ELEMENT.source).toContain(
-      "{hasStatus ? ( <ColorCircle color={new Color(status.color)} tooltip={`Span Status: ${ props.plainLabel ? status.label : status.displayLabel }`} /> ) : ( <></> )}",
+      "{hasStatus ? ( <ColorCircle color={new Color(status.color)} tooltip={translator.translateTerm( props.plainLabel ? status.plainDotTooltip : status.dotTooltip, )} /> ) : ( <></> )}",
     );
     expect(count(SPAN_STATUS_ELEMENT.source, "<ColorCircle")).toBe(1);
   });
@@ -738,7 +738,7 @@ describe("the dashboard trace list widget (DashboardTraceListComponent)", () => 
 
   test("the list pill names the status and explains it, bordered red only for errors", () => {
     expect(TRACE_LIST_WIDGET.source).toContain(
-      'className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${status.pillClassName} ${status.pillBorderClassName}`} style={{ fontSize: "10px" }} title={status.description} > {status.label} </span>',
+      'className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium border ${status.pillClassName} ${status.pillBorderClassName}`} style={{ fontSize: "10px" }} title={translator.translateText(status.description)} > {translator.translateText(status.label)} </span>',
     );
     // The border comes with the status, and the one red border is Error's.
     expect(
@@ -803,10 +803,10 @@ describe("the dashboard trace chart and table widgets", () => {
 
   test("REGRESSION: the chart widget names its series and legend through formatTraceSeriesLabel", () => {
     expect(TRACE_CHART_DATA.source).toContain(
-      "export function formatTraceSeriesLabel( seriesKey: string, groupByAttribute: string | undefined, ): string { if (isStatusSeries(seriesKey, groupByAttribute)) { return getSpanStatusPresentation(seriesKey).displayLabel; } return seriesKey; }",
+      "export function formatTraceSeriesLabel( seriesKey: string, groupByAttribute: string | undefined, translator?: Translator | undefined, ): string { if (isStatusSeries(seriesKey, groupByAttribute)) { const label: string = getSpanStatusPresentation(seriesKey).displayLabel; return translator ? translator.translateTerm(label) : label; } return seriesKey; }",
     );
     expect(TRACE_CHART_WIDGET.source).toContain(
-      "return formatTraceSeriesLabel(seriesKey, groupByAttribute);",
+      "return formatTraceSeriesLabel(seriesKey, groupByAttribute, translator);",
     );
     // The recharts series name is what the tooltip shows.
     expect(TRACE_CHART_WIDGET.source).toContain(
@@ -827,7 +827,7 @@ describe("the dashboard trace chart and table widgets", () => {
       "const STATUS_LABELS: Record<string, string> = getSpanStatusDisplayLabelMap();",
     );
     expect(TRACE_TABLE_DATA.source).toContain(
-      'if (key === "statusCode") { return STATUS_LABELS[raw] || raw; }',
+      'key === "statusCode" ? STATUS_LABELS[raw] : key === "kind" ? KIND_LABELS[raw] : undefined; return label ? word(label) : raw;',
     );
   });
 });
@@ -1274,8 +1274,23 @@ describe("the reworded status strings in every Dashboard locale", () => {
       'description: "Explicitly marked successful",',
     );
     expect(SPAN_STATUS_ELEMENT.source).toContain(
-      "tooltip={`Span Status: ${ props.plainLabel ? status.label : status.displayLabel }`}",
+      "tooltip={translator.translateTerm( props.plainLabel ? status.plainDotTooltip : status.dotTooltip, )}",
     );
+    // Each status's tooltip is a key of its own, spelled from its label.
+    expect(
+      SPAN_STATUS_PRESENTATIONS.map(
+        (presentation: SpanStatusPresentation): string => {
+          return presentation.dotTooltip;
+        },
+      ),
+    ).toEqual(STATUS_TOOLTIPS);
+    expect(
+      SPAN_STATUS_PRESENTATIONS.map(
+        (presentation: SpanStatusPresentation): string => {
+          return presentation.plainDotTooltip;
+        },
+      ),
+    ).toEqual(PLAIN_STATUS_TOOLTIPS);
     // The module's display label is what the Unset tooltip key spells...
     expect(STATUS_TOOLTIPS).toContain("Span Status: Unset (no error)");
     expect(STATUS_TOOLTIPS).toHaveLength(3);

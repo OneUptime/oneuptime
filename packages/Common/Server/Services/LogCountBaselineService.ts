@@ -1,24 +1,22 @@
 import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
 import LogCountBaseline from "../../Models/AnalyticsModels/LogCountBaseline";
-import { MetricBaselineService } from "./MetricBaselineService";
-import CountAnomaly, {
-  CountBaselineStats,
-  CountBaselineSummary,
-} from "../Utils/Monitor/Criteria/CountAnomaly";
+import { CountBaselineSummary } from "../Utils/Monitor/Criteria/CountAnomaly";
+import CountWindowBaseline from "../Utils/Monitor/CountWindowBaseline";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ObjectID from "../../Types/ObjectID";
+import { JSONObject } from "../../Types/JSON";
 
 /**
  * Read-side service for the `LogCountBaseline` MV target table — the
  * log-volume peer of `SpanCountBaselineService` (see that service and
  * `MetricBaselineService` for the shared design notes).
  *
- * `getBaseline(...)` fetches the per-minute log counts of one
- * hour-of-week cell over the rolling window and computes the stats in
- * app code via {@link CountAnomaly.computeStats}. Window/minSamples
- * defaults and caps are shared with MetricBaselineService so every
- * anomaly criterion behaves alike.
+ * `getBaseline(...)` reads what is normal for a monitor's window from
+ * the earlier weeks of the rolling window (see
+ * {@link CountWindowBaseline}). Window/minSamples defaults and caps are
+ * shared with MetricBaselineService so every anomaly criterion behaves
+ * alike.
  */
 export class LogCountBaselineService extends AnalyticsDatabaseService<LogCountBaseline> {
   public constructor(clickhouseDatabase?: ClickhouseDatabase | undefined) {
@@ -26,9 +24,10 @@ export class LogCountBaselineService extends AnalyticsDatabaseService<LogCountBa
   }
 
   /**
-   * Fetch the rolling-window baseline of logs-per-minute for one
-   * (project, [services], [severities], hour-of-week) cell. Returns
-   * null when no data exists.
+   * Fetch the rolling-window baseline of a window of `windowSeconds`
+   * ending at `windowEnd`, as logs per minute, for one (project,
+   * [services], [severities]) scope. Returns null while the services
+   * have nothing in the rolling window.
    *
    * `telemetryServiceIds` empty/omitted aggregates across every service
    * in the project; `severityTexts` empty/omitted aggregates across
@@ -39,25 +38,15 @@ export class LogCountBaselineService extends AnalyticsDatabaseService<LogCountBa
     projectId: ObjectID | string;
     telemetryServiceIds?: Array<ObjectID | string> | undefined;
     severityTexts?: Array<string> | undefined;
-    hourOfWeek: number;
+    windowEnd: Date;
+    windowSeconds: number;
     windowDays?: number | undefined;
     minSamples?: number | undefined;
   }): Promise<CountBaselineSummary | null> {
-    const windowDays: number = Math.min(
-      input.windowDays || MetricBaselineService.DEFAULT_WINDOW_DAYS,
-      MetricBaselineService.MAX_WINDOW_DAYS,
-    );
-    const minSamples: number =
-      input.minSamples || MetricBaselineService.DEFAULT_MIN_SAMPLES;
-
     const projectIdStr: string = this.escapeString(
       input.projectId instanceof ObjectID
         ? input.projectId.toString()
         : input.projectId,
-    );
-    const hour: number = Math.max(
-      0,
-      Math.min(167, Math.floor(input.hourOfWeek)),
     );
 
     const serviceIds: Array<string> = (input.telemetryServiceIds || []).map(
@@ -81,77 +70,47 @@ export class LogCountBaselineService extends AnalyticsDatabaseService<LogCountBa
       .map((severity: string) => {
         return this.escapeString(severity);
       });
-    const severityClause: string =
-      severities.length > 0
-        ? `AND severityText IN (${severities
-            .map((severity: string) => {
-              return `'${severity}'`;
-            })
-            .join(", ")})`
-        : "";
-
     /*
-     * One row per non-empty minute cell; each row's merged count is a
-     * raw baseline sample ("logs in that minute"). GROUP BY day +
-     * minuteOfHour also folds across services/severities when the IN
-     * clauses are broad, so a multi-service monitor baselines its
+     * GROUP BY a window also folds across services/severities when the
+     * IN clauses are broad, so a multi-service monitor baselines its
      * combined volume — matching what its observed logCount measures.
      */
-    const sql: string = `
-      SELECT
-        countMerge(logCountState) AS c
-      FROM LogCountBaseline
-      WHERE projectId = '${projectIdStr}'
-        ${serviceIdClause}
-        ${severityClause}
-        AND hourOfWeek = ${hour}
-        AND day >= today() - INTERVAL ${windowDays} DAY
-      GROUP BY day, minuteOfHour
-    `;
+    const summary: CountBaselineSummary | null = await CountWindowBaseline.read(
+      {
+        tableName: "LogCountBaseline",
+        countExpression:
+          severities.length > 0
+            ? `countMergeIf(logCountState, severityText IN (${severities
+                .map((severity: string) => {
+                  return `'${severity}'`;
+                })
+                .join(", ")}))`
+            : "countMerge(logCountState)",
+        scopeClause: `projectId = '${projectIdStr}' ${serviceIdClause}`,
+        windowEnd: input.windowEnd,
+        windowSeconds: input.windowSeconds,
+        windowDays: input.windowDays,
+        minSamples: input.minSamples,
+        query: async (sql: string): Promise<Array<JSONObject>> => {
+          const resultSet: {
+            json: () => Promise<{ data: Array<JSONObject> }>;
+          } = (await this.executeQuery(sql)) as unknown as {
+            json: () => Promise<{ data: Array<JSONObject> }>;
+          };
 
-    const resultSet: {
-      json: () => Promise<{ data: Array<{ c: number | string }> }>;
-    } = (await this.executeQuery(sql)) as unknown as {
-      json: () => Promise<{ data: Array<{ c: number | string }> }>;
-    };
-
-    const parsed: { data: Array<{ c: number | string }> } =
-      await resultSet.json();
-
-    const counts: Array<number> = parsed.data.map(
-      (row: { c: number | string }) => {
-        return this.toNumber(row.c);
+          return (await resultSet.json()).data;
+        },
       },
     );
 
-    const stats: CountBaselineStats | null = CountAnomaly.computeStats(counts);
-    if (!stats) {
-      return null;
-    }
-
-    const summary: CountBaselineSummary = {
-      ...stats,
-      isReliable: stats.sampleCount >= minSamples,
-      windowDays,
-      hourOfWeek: hour,
-    };
-
     logger.debug("LogCountBaselineService.getBaseline", {
       projectId: projectIdStr,
-      hourOfWeek: hour,
-      sampleCount: summary.sampleCount,
-      isReliable: summary.isReliable,
+      hourOfWeek: summary?.hourOfWeek,
+      sampleCount: summary?.sampleCount,
+      isReliable: summary?.isReliable,
     } as LogAttributes);
 
     return summary;
-  }
-
-  private toNumber(v: number | string | undefined): number {
-    if (typeof v === "number") {
-      return v;
-    }
-    const n: number = Number(v);
-    return Number.isFinite(n) ? n : 0;
   }
 
   private escapeString(v: string): string {

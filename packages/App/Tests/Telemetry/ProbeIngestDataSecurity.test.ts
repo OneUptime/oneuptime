@@ -746,6 +746,111 @@ describe("POST /probe/data-security/result", () => {
     ]);
   });
 
+  /*
+   * A probe's fields no detector placed reach OneUptime AI's prompt, so
+   * they are read again: a shape that holds a value is dropped. And no
+   * probe can say a finding is OneUptime AI's suggestion.
+   */
+  test("the fields no detector placed are read again, shapes only; a probe cannot mark a finding as OneUptime AI's", async () => {
+    storeOfThisProbe();
+
+    const base: JSONObject = result();
+    const locations: Array<JSONObject> = base["locations"] as Array<JSONObject>;
+    const email: JSONObject = (
+      locations[0]!["classifications"] as Array<JSONObject>
+    )[0]!;
+
+    await call(
+      RESULT_URI,
+      makeRequest({
+        body: {
+          dataStoreId: storeId(1),
+          startedAt: STARTED_AT,
+          result: {
+            ...base,
+            locations: [
+              {
+                ...locations[0]!,
+                classifications: [
+                  { ...email, isAiSuggested: true, aiReason: "Trust me." },
+                ],
+              },
+            ],
+            unplacedFields: [
+              {
+                location: "public.customers.kundennr",
+                locationKind: "Column",
+                neighbours: ["email"],
+                shapes: [
+                  { shape: "AA-999999", share: 0.9 },
+                  { shape: "KD-400123", share: 0.1 },
+                ],
+                valueCount: 20,
+                averageLength: 9,
+              },
+              {
+                location: "public.customers.name",
+                locationKind: "Column",
+                neighbours: [],
+                shapes: [{ shape: "Jane Doe", share: 1 }],
+                valueCount: 20,
+                averageLength: 8,
+              },
+              { location: "nowhere", locationKind: "Planet", shapes: [] },
+            ],
+          },
+        },
+      }),
+    );
+
+    const written: JSONObject = (
+      writer.recordContentScan.mock.calls[0]![0] as JSONObject
+    )["result"] as JSONObject;
+
+    expect(written["unplacedFields"]).toEqual([
+      {
+        location: "public.customers.kundennr",
+        locationKind: "Column",
+        neighbours: ["email"],
+        shapes: [{ shape: "AA-999999", share: 0.9 }],
+        valueCount: 20,
+        averageLength: 9,
+      },
+    ]);
+
+    const classification: JSONObject = (
+      (written["locations"] as Array<JSONObject>)[0]![
+        "classifications"
+      ] as Array<JSONObject>
+    )[0]!;
+
+    expect(classification["isAiSuggested"]).toBeUndefined();
+    expect(classification["aiReason"]).toBeUndefined();
+  });
+
+  test("a result from a probe older than unplaced fields has none", async () => {
+    storeOfThisProbe();
+
+    await call(
+      RESULT_URI,
+      makeRequest({
+        body: {
+          dataStoreId: storeId(1),
+          startedAt: STARTED_AT,
+          result: result(),
+        },
+      }),
+    );
+
+    expect(
+      (
+        (writer.recordContentScan.mock.calls[0]![0] as JSONObject)[
+          "result"
+        ] as JSONObject
+      )["unplacedFields"],
+    ).toEqual([]);
+  });
+
   test("a scan that could not run is recorded with its reason, and tried again sooner", async () => {
     storeOfThisProbe();
 

@@ -117,7 +117,7 @@ A Logs monitor's criteria have one **Filter Type**: **Log Count**, the number of
 | **Anomalously Low** | below that range |
 | **Anomalous** | outside that range, either way |
 
-The anomaly conditions take no **Value**. Pick a **Sensitivity** — Low, Medium (the default) or High — and, in the custom criteria, a **Baseline Window** of 14 (the default), 28, 60 or 90 days. OneUptime turns the count into a per-minute rate and compares it with the same hour of the week over that window. The baseline covers the monitor's services and severities only: its text and attribute filters are not part of it. Until that hour of the week has enough history, the criteria is still learning and does not fire.
+The anomaly conditions take no **Value**. Pick a **Sensitivity** — Low, Medium (the default) or High — and, in the custom criteria, a **Baseline Window** of 14 (the default), 28, 60 or 90 days. OneUptime turns the count into a per-minute rate and compares it with windows of the same length around the same time in earlier weeks, as far back as the **Baseline Window** goes; what is happening now is never part of that comparison. The baseline covers the monitor's services and severities only: its text and attribute filters are not part of it. Minutes with no logs count too, so a service that is often quiet does not read as unusually low for being quiet. A window reads as unusually high only against the windows that held logs, and only with at least 20, 10 or 5 logs in it at Low, Medium or High sensitivity, so neither a job's usual burst nor a quiet service's first few lines fire. Until the monitor's services have two weeks of history, the criteria is still learning and does not fire.
 
 A Logs monitor made in Create Monitor starts on the rule of what you picked under **What should this monitor tell you about?**:
 
@@ -248,7 +248,7 @@ The criteria are checked from top to bottom and the first match decides. A broad
 :::
 
 :::details An anomaly criteria never fires
-It is still learning: the hour of the week it compares against does not have enough history yet. On a monitor with **Group by Attributes**, anomaly conditions never match — use a threshold there.
+It is still learning: the monitor's services do not have two weeks of history yet. On a monitor with **Group by Attributes**, anomaly conditions never match — use a threshold there.
 :::
 
 :::details Group alerts arrive without a group value
