@@ -9,8 +9,9 @@ import SnmpOidListUtil from "./SnmpOidListUtil";
  * software release, and the poll has only ever read that. A Juniper box does
  * not implement it at all: every one of them read Unknown for its serial
  * number, although jnxBoxSerialNo holds it. A FortiGate has a serial number in
- * ENTITY-MIB and a firmware release only in its own MIB, and sends a blank
- * sysDescr, so nothing named its operating system either.
+ * ENTITY-MIB and a firmware release only in its own MIB, and its sysDescr is
+ * whatever description someone gave it, often none, so nothing named its
+ * operating system either.
  *
  * WHEN IT IS READ. Once a poll, in one GET, only for a device the sysObjectID
  * says is one of these platforms, and only for what ENTITY-MIB left empty - a
@@ -56,8 +57,8 @@ export interface SnmpVendorIdentity {
   sysObjectIdPrefix: string;
   /*
    * The operating system every device of the platform runs, for a platform
-   * whose sysDescr does not name it: a FortiGate's is blank, and a Sophos
-   * firewall's calls it Linux.
+   * whose sysDescr does not name it: a FortiGate's is someone's description,
+   * and a Sophos firewall's calls it Linux.
    */
   operatingSystem?: string | undefined;
   reads: ReadonlyArray<SnmpVendorIdentityRead>;

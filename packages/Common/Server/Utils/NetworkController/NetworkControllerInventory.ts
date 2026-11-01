@@ -280,10 +280,7 @@ function countBy<T>(
 
 // True when `mac` is the controller device's MAC, or one of its ports'.
 function isMacOfBox(device: NetworkControllerDevice, mac: string): boolean {
-  return (
-    Boolean(device.mac) &&
-    (mac === device.mac || isInMacBlock({ baseMac: device.mac, mac: mac }))
-  );
+  return Boolean(device.mac) && isInMacBlock({ baseMac: device.mac, mac: mac });
 }
 
 /*

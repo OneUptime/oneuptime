@@ -77,9 +77,9 @@ import {
  *                     (SystemDescriptionUtil). What the device's poll read
  *                     always wins.
  *   operating system  what the platform runs, when it says nothing useful
- *                     itself (a FortiGate's sysDescr is blank, a Sophos
- *                     firewall's says Linux), else the system the sysDescr
- *                     names ("Cisco IOS").
+ *                     itself (a FortiGate's sysDescr is often blank, a
+ *                     Sophos firewall's says Linux), else the system the
+ *                     sysDescr names ("Cisco IOS").
  *   device type       the role: the one an operator assigned, else the one
  *                     the topology map draws it as, by the project's name for
  *                     that role. Undefined when nothing says.
