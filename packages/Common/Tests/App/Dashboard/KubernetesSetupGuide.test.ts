@@ -6,6 +6,7 @@ import {
   DEFAULT_KUBERNETES_PLATFORM,
   KUBERNETES_AGENT_HELM_NAMESPACE,
   KUBERNETES_AGENT_HELM_RELEASE,
+  KUBERNETES_AGENT_OPENSHIFT_SCCS,
   KUBERNETES_EXAMPLE_CLUSTER_NAME,
   KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT,
   KUBERNETES_EXAMPLE_ETCD_ENDPOINT,
@@ -60,6 +61,9 @@ const PLATFORM_KEYS: Array<KubernetesPlatform> = KUBERNETES_PLATFORMS.map(
 );
 
 const RESTRICTED: Array<KubernetesPlatform> = ["gke-autopilot", "eks-fargate"];
+
+// The platforms whose install command names a preset: the chart's default is standard.
+const WITH_PRESET: Array<KubernetesPlatform> = [...RESTRICTED, "openshift"];
 
 const guideFor: (
   platform: KubernetesPlatform,
@@ -119,16 +123,31 @@ const installCommand: (guide: SetupGuideContent) => string = (
 };
 
 describe("the platform picker", () => {
-  test("offers the six places a cluster runs, standard first", () => {
+  test("offers the seven places a cluster runs, standard first", () => {
     expect(PLATFORM_KEYS).toEqual([
       "standard",
       "eks",
       "gke",
       "aks",
+      "openshift",
       "gke-autopilot",
       "eks-fargate",
     ]);
     expect(DEFAULT_KUBERNETES_PLATFORM).toBe("standard");
+  });
+
+  test("names OpenShift the way Red Hat does, with the products it covers", () => {
+    const openshift: SetupGuideOption<KubernetesPlatform> | undefined =
+      KUBERNETES_PLATFORMS.find(
+        (option: SetupGuideOption<KubernetesPlatform>): boolean => {
+          return option.key === "openshift";
+        },
+      );
+
+    expect(openshift?.label).toBe("Red Hat OpenShift");
+    expect(openshift?.description).toBe(
+      "OpenShift Container Platform, ROSA, ARO and OKD.",
+    );
   });
 
   test("every platform has a label and a one-line description", () => {
@@ -140,10 +159,19 @@ describe("the platform picker", () => {
   });
 
   test("an unknown or missing platform resolves to standard", () => {
-    for (const value of [undefined, null, "", "openshift", "EKS"]) {
+    for (const value of [
+      undefined,
+      null,
+      "",
+      "OpenShift",
+      "okd",
+      "rancher",
+      "EKS",
+    ]) {
       expect(resolveKubernetesPlatform(value)).toBe("standard");
     }
     expect(resolveKubernetesPlatform("gke-autopilot")).toBe("gke-autopilot");
+    expect(resolveKubernetesPlatform("openshift")).toBe("openshift");
   });
 
   test("maps each platform to the chart's preset", () => {
@@ -151,8 +179,22 @@ describe("the platform picker", () => {
     expect(getKubernetesAgentPreset("eks")).toBe("standard");
     expect(getKubernetesAgentPreset("gke")).toBe("standard");
     expect(getKubernetesAgentPreset("aks")).toBe("standard");
+    expect(getKubernetesAgentPreset("openshift")).toBe("openshift");
     expect(getKubernetesAgentPreset("gke-autopilot")).toBe("gke-autopilot");
     expect(getKubernetesAgentPreset("eks-fargate")).toBe("eks-fargate");
+  });
+
+  test("every preset the guide uses is in the chart's schema", () => {
+    const schema: { properties: { preset: { enum: Array<string> } } } =
+      JSON.parse(
+        fs.readFileSync(path.join(CHART_DIR, "values.schema.json"), "utf8"),
+      );
+
+    for (const platform of PLATFORM_KEYS) {
+      expect(schema.properties.preset.enum).toContain(
+        getKubernetesAgentPreset(platform),
+      );
+    }
   });
 
   test("every preset the guide uses is one the chart documents", () => {
@@ -215,7 +257,7 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: KubernetesPlatform) => {
    */
   test("uses the preset, and nothing else, only where the platform needs it", () => {
     const command: string = installCommand(guide);
-    if (isRestricted) {
+    if (WITH_PRESET.includes(platform)) {
       expect(command).toContain(`--set preset=${platform}`);
       expect(command).not.toContain("ebpf.enabled");
       expect(getKubernetesPlatformInstallFlags(platform)).toEqual([
@@ -322,7 +364,12 @@ describe.each(PLATFORM_KEYS)("the %s guide", (platform: KubernetesPlatform) => {
     expect(titles.includes("No application traces")).toBe(!isRestricted);
     expect(
       titles.includes("Install fails with a hostPath or Pod Security error"),
-    ).toBe(!isRestricted);
+    ).toBe(!isRestricted && platform !== "openshift");
+    expect(
+      titles.includes(
+        "Agent pods are missing: a security context constraint error",
+      ),
+    ).toBe(platform === "openshift");
     expect(titles.includes("Agent pods stay Pending")).toBe(
       platform === "eks-fargate",
     );
@@ -398,6 +445,32 @@ describe("connecting kubectl", () => {
     );
   });
 
+  test("OpenShift logs in with oc login, as the web console's Copy login command does", () => {
+    const step: SetupGuideStep = guideFor("openshift").steps[0]!;
+
+    expect(step.title).toBe("Connect kubectl to your OpenShift cluster");
+    expect(connect("openshift")).toContain(
+      "oc login --token=<token> --server=https://api.<cluster-domain>:6443",
+    );
+    expect(connect("openshift")).toContain("**Copy login command**");
+    expect(step.description).toContain(
+      "points kubectl and helm at the cluster",
+    );
+  });
+
+  test("OpenShift logs in as a cluster admin, since the install creates SCCs", () => {
+    expect(connect("openshift")).toContain("Log in as a cluster admin");
+    expect(connect("openshift")).toContain("security context constraints");
+  });
+
+  test("only OpenShift uses oc", () => {
+    for (const platform of PLATFORM_KEYS) {
+      expect(connect(platform).includes("oc login")).toBe(
+        platform === "openshift",
+      );
+    }
+  });
+
   test("every platform checks the connection with kubectl get nodes", () => {
     for (const platform of PLATFORM_KEYS) {
       expect(connect(platform)).toContain("kubectl get nodes");
@@ -423,7 +496,10 @@ describe("connecting kubectl", () => {
     expect(prerequisites("gke")).toContain("gcloud");
     expect(prerequisites("gke-autopilot")).toContain("gcloud");
     expect(prerequisites("aks")).toContain("Azure CLI");
-    expect(prerequisites("standard")).not.toMatch(/AWS|gcloud|Azure/);
+    expect(prerequisites("openshift")).toContain("OpenShift CLI (`oc`)");
+    expect(prerequisites("openshift")).toContain("cluster-admin rights");
+    expect(prerequisites("openshift")).toContain("OpenShift 4.11 or later");
+    expect(prerequisites("standard")).not.toMatch(/AWS|gcloud|Azure|OpenShift/);
     for (const platform of PLATFORM_KEYS) {
       expect(prerequisites(platform)).toContain("v1.23");
       expect(prerequisites(platform)).toContain("`helm` (v3)");
@@ -465,6 +541,7 @@ describe("the pods each preset runs", () => {
       "eks",
       "gke",
       "aks",
+      "openshift",
     ] as Array<KubernetesPlatform>) {
       expect(podNames(platform)).toEqual([
         `${release}-xxxxxxxxxx-xxxxx`,
@@ -846,6 +923,196 @@ describe("the control plane topic", () => {
     expect(topic.markdown).toContain("`controlPlane.etcd.clientCertSecret`");
     expect(topic.markdown).toContain(
       `a Secret in \`${KUBERNETES_AGENT_HELM_NAMESPACE}\``,
+    );
+  });
+});
+
+/*
+ * OpenShift admits a pod only under a security context constraint (SCC) its
+ * service account may use. The chart's openshift preset creates one for the
+ * node collector and one for the eBPF pods, and lets OpenShift pick every
+ * other pod's user ID. The guide says what the preset does, names the SCCs
+ * it creates - the chart's own names for this release - and says what to do
+ * when a pod is refused, since the release installs either way.
+ */
+describe("the OpenShift guide", () => {
+  const guide: SetupGuideContent = guideFor("openshift");
+
+  const topic: (title: string) => SetupGuideTopic = (
+    title: string,
+  ): SetupGuideTopic => {
+    const found: SetupGuideTopic | undefined = (
+      guide.troubleshooting || []
+    ).find((candidate: SetupGuideTopic): boolean => {
+      return candidate.title === title;
+    });
+    if (!found) {
+      throw new Error(`No troubleshooting topic titled "${title}"`);
+    }
+    return found;
+  };
+
+  test("names the SCCs the chart creates for this release", () => {
+    const template: string = fs.readFileSync(
+      path.join(CHART_DIR, "templates", "openshift-scc.yaml"),
+      "utf8",
+    );
+    const helpers: string = fs.readFileSync(
+      path.join(CHART_DIR, "templates", "_helpers.tpl"),
+      "utf8",
+    );
+    const sccNames: Array<string> = [
+      ...template.matchAll(
+        /kind: SecurityContextConstraints\nmetadata:\n {2}name: \{\{ \$fullname \}\}(-[a-z-]+)\n/g,
+      ),
+    ].map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(sccNames).toEqual(["-node-collector", "-ebpf"]);
+    /*
+     * The chart's full name is the release's own when the release's name
+     * already contains the chart's, as "kubernetes-agent" does.
+     */
+    expect(helpers).toContain("{{- if contains $name .Release.Name }}");
+    expect(KUBERNETES_AGENT_HELM_RELEASE).toContain("kubernetes-agent");
+    expect(KUBERNETES_AGENT_OPENSHIFT_SCCS).toEqual(
+      sccNames.map((suffix: string): string => {
+        return `${KUBERNETES_AGENT_HELM_RELEASE}${suffix}`;
+      }),
+    );
+  });
+
+  test("the install step says what the preset creates and runs where", () => {
+    const install: string =
+      stepTitled(guide, "Install the agent").markdown || "";
+
+    expect(install).toContain(
+      "`preset=openshift` creates two security context constraints (SCCs), one for the node collector and one for the eBPF pods, each used only by its own service account.",
+    );
+    expect(install).toContain(
+      "Every other pod runs under OpenShift's default `restricted-v2`, with the user ID OpenShift assigns.",
+    );
+    // Not the restricted platforms' note: OpenShift keeps hostPath and eBPF.
+    expect(install).not.toContain("through the Kubernetes API");
+    expect(install).not.toContain("leaves out eBPF");
+  });
+
+  test("the verify step names both SCCs, with the command that lists them", () => {
+    const verify: string =
+      stepTitled(guide, "Verify the installation").markdown || "";
+
+    expect(verify).toContain(
+      `\`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\` lists both.`,
+    );
+    expect(verify).toContain(`${KUBERNETES_AGENT_HELM_RELEASE}-ebpf-xxxxx`);
+  });
+
+  test("the other platforms' verify steps say nothing of SCCs", () => {
+    for (const platform of PLATFORM_KEYS) {
+      if (platform === "openshift") {
+        continue;
+      }
+      const verify: string =
+        stepTitled(guideFor(platform), "Verify the installation").markdown ||
+        "";
+      expect(verify).not.toContain("SCC");
+    }
+  });
+
+  test("keeps eBPF on, with its full topic and its rows in what the agent collects", () => {
+    const ebpf: SetupGuideTopic | undefined = (guide.advanced || []).find(
+      (candidate: SetupGuideTopic): boolean => {
+        return candidate.title === "Application traces (eBPF)";
+      },
+    );
+
+    expect(ebpf?.summary).toContain("On by default.");
+
+    const collected: string =
+      (guide.advanced || []).find((candidate: SetupGuideTopic): boolean => {
+        return candidate.title === "What the agent collects";
+      })?.markdown || "";
+
+    expect(collected).toContain("**Application traces** *(eBPF)*");
+    expect(collected).toContain("read from each node");
+    expect(collected).toContain("**Node metrics**");
+  });
+
+  test("troubleshooting finds a refused pod in the namespace's events", () => {
+    const markdown: string = topic(
+      "Agent pods are missing: a security context constraint error",
+    ).markdown;
+
+    expect(markdown).toContain(
+      `kubectl get events -n ${KUBERNETES_AGENT_HELM_NAMESPACE} --field-selector reason=FailedCreate`,
+    );
+    expect(markdown).toContain(
+      "`unable to validate against any security context constraint`",
+    );
+  });
+
+  test("troubleshooting adds the preset to a release installed without it", () => {
+    const markdown: string = topic(
+      "Agent pods are missing: a security context constraint error",
+    ).markdown;
+
+    expect(markdown).toContain(
+      getKubernetesAgentUpgradeCommand(["--set preset=openshift"]),
+    );
+    expect(markdown).toContain(
+      `helm get values ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}`,
+    );
+  });
+
+  test("troubleshooting checks the SCCs exist, and that creating them takes cluster-admin", () => {
+    const markdown: string = topic(
+      "Agent pods are missing: a security context constraint error",
+    ).markdown;
+
+    expect(markdown).toContain(
+      `\`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\``,
+    );
+    expect(markdown).toContain("Creating them takes cluster-admin rights");
+  });
+
+  test("troubleshooting covers a Pod Security level the eBPF pods do not meet", () => {
+    const markdown: string = topic(
+      "Agent pods are missing: a security context constraint error",
+    ).markdown;
+
+    expect(markdown).toContain("`violates PodSecurity`");
+    expect(markdown).toContain(
+      "`pod-security.kubernetes.io/enforce=privileged`",
+    );
+    expect(markdown).toContain("`--set ebpf.enabled=false`");
+  });
+
+  test("the hostPath topic on every other non-restricted platform points OpenShift here", () => {
+    for (const platform of [
+      "standard",
+      "eks",
+      "gke",
+      "aks",
+    ] as Array<KubernetesPlatform>) {
+      const hostPath: SetupGuideTopic | undefined = (
+        guideFor(platform).troubleshooting || []
+      ).find((candidate: SetupGuideTopic): boolean => {
+        return (
+          candidate.title ===
+          "Install fails with a hostPath or Pod Security error"
+        );
+      });
+
+      expect(hostPath?.markdown).toContain(
+        "On **OpenShift** the install succeeds instead, but the agent's node pods never start: pick **Red Hat OpenShift**.",
+      );
+    }
+  });
+
+  test("offers no control plane topic: OpenShift's own endpoints are not pre-filled", () => {
+    expect(topicTitles(guide.advanced)).not.toContain(
+      "Collect control plane metrics",
     );
   });
 });

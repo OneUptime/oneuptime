@@ -5,6 +5,7 @@ O agente Kubernetes do OneUptime é um chart Helm que coleta as métricas, os ev
 :::cards
 - [Instale o agente](#instale-o-agente): Quatro etapas com Helm.
 - [Instale como complemento do Amazon EKS](#instale-como-complemento-do-amazon-eks): Pelo console do EKS, sem Helm.
+- [OpenShift](#openshift): O preset, as security context constraints que ele cria e os alertas do próprio OpenShift.
 - [Opções de configuração](#opções-de-configuração): Filtros, amostragem, plano de controle, service mesh, custos e rótulos.
 - [Agente de IA do Kubernetes](#agente-de-ia-do-kubernetes): `kubectl` somente leitura para a OneUptime AI, e correções quando você as permitir.
 - [Envie menos](#reduzindo-o-volume-de-dados-coletados): As alavancas, em ordem de impacto.
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,25 @@ Uma atualização substitui a configuração inteira: um valor que você deixar 
 | `standard` (padrão) | Clusters autogerenciados, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | O coletor de nó lê `/var/log/pods` via `hostPath` (menor sobrecarga) | Kubelet, cAdvisor e as métricas do sistema operacional do nó |
 | `gke-autopilot` | **GKE Autopilot** | O leitor de logs os lê pela API do Kubernetes (sem `hostPath`, sem acesso ao host) | Kubelet e cAdvisor, sem `hostPath` |
 | `eks-fargate` | **EKS Fargate** | O leitor de logs os lê pela API do Kubernetes (sem `hostPath`, sem acesso ao host) | Nenhuma: o Fargate não executa DaemonSets |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | O coletor de nó lê `/var/log/pods` via `hostPath`, sob uma security context constraint que o chart cria para ele | Kubelet, cAdvisor e as métricas do sistema operacional do nó |
 
-Se não tiver certeza, comece com `standard`. Se a instalação falhar com um erro de Pod Security que cite `hostPath`, instale de novo com `preset=gke-autopilot` (ou `eks-fargate` no Fargate). O GKE Autopilot e o EKS Fargate também recusam pods privilegiados, de que o eBPF e o profiler precisam, então esses dois presets deixam os dois de fora.
+Se não tiver certeza, comece com `standard`. Se a instalação falhar com um erro de Pod Security que cite `hostPath`, instale de novo com `preset=gke-autopilot` (ou `eks-fargate` no Fargate). O GKE Autopilot e o EKS Fargate também recusam pods privilegiados, de que o eBPF e o profiler precisam, então esses dois presets deixam os dois de fora. No OpenShift, use `openshift`: veja [OpenShift](#openshift).
+
+## OpenShift
+
+Instale com `--set preset=openshift`, como faz a aba **OpenShift** acima. O OpenShift só admite um pod sob uma security context constraint (SCC) que a service account dele possa usar, e enquanto um administrador não conceder mais, essa SCC é a `restricted-v2` (OpenShift 4.11 e posteriores): sem volumes `hostPath`, sem contêineres privilegiados e com um ID de usuário da faixa do próprio namespace. Por isso o preset:
+
+- Cria duas SCCs, cada uma usada só pela service account dos próprios pods:
+  - uma para o coletor de nó: montagens `hostPath` somente leitura, como root com o tipo SELinux `spc_t`, sem privilégios e com todas as capabilities removidas;
+  - uma para a instrumentação eBPF e o profiler: privilegiada, no namespace PID do host. Só enquanto um dos dois estiver ativado.
+- Deixa o OpenShift escolher o ID de usuário de todos os outros pods, que rodam sob a `restricted-v2`.
+- Marca a telemetria do agente com `oneuptime.kubernetes.distribution=openshift`, para que a **Plataforma** do cluster mostre **OpenShift**, e adiciona a nuvem em que o cluster roda (`cloud.provider`, `cloud.platform`), quando houver uma.
+
+Criar as SCCs exige permissões de cluster-admin. Sem o preset, a release é instalada, mas o OpenShift nunca inicia os pods do coletor de nó e do eBPF do agente, e as notas da instalação avisam isso.
+
+**Os alertas do próprio OpenShift.** O OpenShift vem com Prometheus e Alertmanager, com alertas para seus operadores, o etcd e os nós. Para abrir um incidente no OneUptime para cada um, adicione no console web um receptor webhook para o OneUptime em **Administration → Cluster Settings → Configuration → Alertmanager**, como descreve [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
+
+**Traces do seu código.** A instrumentação eBPF gera traces de HTTP, gRPC e SQL sem mudanças no código. Para enviar traces de SDKs do OpenTelemetry, ou do Red Hat build of OpenTelemetry, aponte o exportador OTLP deles para o OneUptime, como descreve [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ## O que é coletado
 
