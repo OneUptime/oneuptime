@@ -88,6 +88,10 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       getLastParamAsString: () => {
         return "web";
       },
+      // No ?namespace=: the page reads the object by name alone.
+      getQueryStringByName: () => {
+        return null;
+      },
       navigate: () => {
         return undefined;
       },

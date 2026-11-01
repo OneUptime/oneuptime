@@ -81,6 +81,10 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       getLastParamAsString: () => {
         return "web";
       },
+      // No ?namespace=: the page reads the object by name alone.
+      getQueryStringByName: () => {
+        return null;
+      },
       navigate: () => {},
     },
   };
@@ -696,6 +700,8 @@ const LIST_CASES: Array<ListCase> = [
     explained: [
       ["CPU", "podCpu"],
       ["Memory", "podMemory"],
+      ["Ready", "podReady"],
+      ["Restarts", "podRestarts"],
       ["Containers", "podContainers"],
     ],
     plain: ["Name", "Namespace", "Status", "Node", "Age"],

@@ -39533,5 +39533,6 @@
   "{{count}} runs kept_one": "실행 {{count}}개 보관",
   "{{ready}}/{{count}} containers ready": "컨테이너 {{ready}}/{{count}}개 준비됨",
   "{{ready}}/{{count}} containers ready_one": "컨테이너 {{ready}}/{{count}}개 준비됨",
-  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "이 CronJob이 시작해 아직 실행 중인 실행(Job)이며, 최신 인벤토리 기준입니다. 각각 Job 목록에도 표시됩니다."
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "이 CronJob이 시작해 아직 실행 중인 실행(Job)이며, 최신 인벤토리 기준입니다. 각각 Job 목록에도 표시됩니다.",
+  "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.": "선택한 범위가 아니라 최신 인벤토리의 확인 필요 항목과 OpenShift의 Operator를 기준으로 합니다. 고장 난 항목이 있거나 Operator를 사용할 수 없으면 비정상, 확인이 필요한 항목이 있거나 Operator가 저하되었거나 업데이트가 실패하면 저하됨, 그 외에는 정상입니다."
 }

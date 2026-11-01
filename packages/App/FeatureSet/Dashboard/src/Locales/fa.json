@@ -39533,5 +39533,6 @@
   "{{count}} runs kept_one": "{{count}} اجرای نگه‌داشته‌شده",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} کانتینر آماده",
   "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} کانتینر آماده",
-  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "اجراهایی (Jobها) که این CronJob شروع کرده و هنوز در حال اجرا هستند، بر اساس آخرین موجودی. هر کدام در فهرست Jobها هم هست."
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "اجراهایی (Jobها) که این CronJob شروع کرده و هنوز در حال اجرا هستند، بر اساس آخرین موجودی. هر کدام در فهرست Jobها هم هست.",
+  "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.": "بر اساس «نیاز به توجه» و اپراتورهای OpenShift در آخرین موجودی، نه بازه انتخاب‌شده: ناسالم اگر چیزی خراب باشد یا اپراتوری در دسترس نباشد؛ کاهش کارایی اگر چیزی نیاز به بررسی داشته باشد، اپراتوری دچار کاهش کارایی شده باشد یا به‌روزرسانی‌ای شکست بخورد؛ در غیر این صورت سالم."
 }

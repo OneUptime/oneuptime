@@ -39533,5 +39533,6 @@
   "{{count}} runs kept_one": "保留 {{count}} 次執行",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} 個容器就緒",
   "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} 個容器就緒",
-  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "此 CronJob 啟動且仍在執行的各次執行（Job），根據最新清單得出。每一次也都列在 Job 清單中。"
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "此 CronJob 啟動且仍在執行的各次執行（Job），根據最新清單得出。每一次也都列在 Job 清單中。",
+  "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.": "根據最新清單中的「需要注意」和 OpenShift 的 Operator 得出，而非所選範圍：若有已損壞的對象或 Operator 無法使用，則為「不健康」；若有需要查看的對象、Operator 效能下降或更新失敗，則為「效能下降」；否則為「健康」。"
 }

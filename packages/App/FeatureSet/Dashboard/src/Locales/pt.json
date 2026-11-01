@@ -39533,5 +39533,6 @@
   "{{count}} runs kept_one": "{{count}} execução mantida",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} contêineres prontos",
   "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} contêiner pronto",
-  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "As execuções (Jobs) que este CronJob iniciou e que ainda estão em andamento, segundo o inventário mais recente. Cada uma também aparece na lista de Jobs."
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "As execuções (Jobs) que este CronJob iniciou e que ainda estão em andamento, segundo o inventário mais recente. Cada uma também aparece na lista de Jobs.",
+  "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.": "A partir de Requer atenção e dos operadores do OpenShift no inventário mais recente, não do intervalo selecionado: Não íntegro se algo está quebrado ou um operador está indisponível; Degradado se algo precisa de atenção, um operador está degradado ou uma atualização falha; caso contrário, Íntegro."
 }

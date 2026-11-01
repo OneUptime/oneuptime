@@ -113,7 +113,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
     "What Needs attention lists, from the latest inventory, not the selected range: Unhealthy if something is broken, such as a node not ready or a container that cannot run; Degraded if something needs a look; otherwise Healthy.",
   ),
   clusterHealthOpenShift: translationKey(
-    "What Needs attention lists, from the latest inventory, not the selected range, with OpenShift's operators: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.",
+    "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.",
   ),
   nodes: translationKey(
     "Nodes (the machines that run your pods) in the latest inventory, not the selected range. Nodes whose Ready check is failing are called out as not ready - new pods are not placed on them.",

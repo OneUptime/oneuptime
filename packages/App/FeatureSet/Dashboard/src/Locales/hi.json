@@ -39533,5 +39533,6 @@
   "{{count}} runs kept_one": "{{count}} रन रखा गया",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} कंटेनर तैयार",
   "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} कंटेनर तैयार",
-  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "इस CronJob के शुरू किए वे रन (Jobs) जो अभी भी चल रहे हैं, नवीनतम इन्वेंटरी के अनुसार। हर एक Jobs सूची में भी है।"
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "इस CronJob के शुरू किए वे रन (Jobs) जो अभी भी चल रहे हैं, नवीनतम इन्वेंटरी के अनुसार। हर एक Jobs सूची में भी है।",
+  "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.": "चयनित सीमा से नहीं, नवीनतम इन्वेंटरी के ध्यान देने की ज़रूरत और OpenShift के ऑपरेटर से: अस्वस्थ, अगर कुछ खराब है या कोई ऑपरेटर अनुपलब्ध है; प्रदर्शन में गिरावट, अगर कुछ जांचने लायक है, किसी ऑपरेटर का प्रदर्शन गिरा है या कोई अपडेट विफल होता है; अन्यथा स्वस्थ।"
 }

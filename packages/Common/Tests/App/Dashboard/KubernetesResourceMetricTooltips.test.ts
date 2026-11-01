@@ -47,6 +47,7 @@ const TITLES: Array<[string, KubernetesResourceMetric]> = [
   ["Memory", "namespaceMemory"],
   // Custom list columns.
   ["Containers", "podContainers"],
+  ["Ready", "podReady"],
   ["Restarts", "containerRestarts"],
   ["Ready", "deploymentReady"],
   ["Ready", "statefulSetReady"],
@@ -63,6 +64,11 @@ const TITLES: Array<[string, KubernetesResourceMetric]> = [
   ["Pods (Capacity)", "nodePodCapacity"],
   ["Network Throughput", "nodeNetworkThroughput"],
   ["Restarts", "podRestarts"],
+  // A workload's, a node's and a CronJob's Pods tab.
+  ["Status", "podStatus"],
+  ["Node", "podNode"],
+  ["Workload", "podWorkload"],
+  ["Job", "podJob"],
   ["Rollout Status", "deploymentRolloutStatus"],
   ["Desired Replicas", "deploymentDesiredReplicas"],
   ["Ready Replicas", "deploymentReadyReplicas"],
@@ -468,13 +474,14 @@ describe("detail fields describe what the page reads", () => {
     expect(D.jobBackoffLimit).toContain("6 unless the job sets another value");
   });
 
-  test("CronJob Active Jobs is honest that it is not read correctly yet", () => {
+  test("CronJob Active Jobs is the count of running Jobs the parser reads", () => {
     /*
-     * The parser reads CronJob status.active - a LIST of job references -
-     * with parseInt, so the field is always 0 (see bugsFound). The text must
-     * not promise a live count.
+     * The parser read CronJob status.active - a LIST of job references -
+     * with parseInt, so the field was always 0 and the text said so. It
+     * counts the list now, and the text says what it is.
      */
-    expect(D.cronJobActiveJobs).toContain("shows 0 even during a run");
+    expect(D.cronJobActiveJobs).not.toContain("shows 0 even during a run");
+    expect(D.cronJobActiveJobs).toContain("still running");
     expect(D.cronJobActiveJobs).toContain("Jobs list");
   });
 

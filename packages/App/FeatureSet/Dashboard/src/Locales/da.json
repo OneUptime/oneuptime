@@ -39533,5 +39533,6 @@
   "{{count}} runs kept_one": "{{count}} kørsel gemt",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} containere klar",
   "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} container klar",
-  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "De kørsler (Jobs), som denne CronJob har startet, og som stadig kører, ifølge det seneste inventar. Hver af dem står også på listen over Jobs."
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "De kørsler (Jobs), som denne CronJob har startet, og som stadig kører, ifølge det seneste inventar. Hver af dem står også på listen over Jobs.",
+  "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.": "Ud fra Kræver opmærksomhed og OpenShifts operatorer i det seneste inventar, ikke det valgte interval: Usund, hvis noget er i stykker, eller en operator ikke er tilgængelig; Forringet, hvis noget bør ses på, en operator er forringet, eller en opdatering mislykkes; ellers Sund."
 }

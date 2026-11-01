@@ -39533,5 +39533,6 @@
   "{{count}} runs kept_one": "{{count}} 件の実行を保持",
   "{{ready}}/{{count}} containers ready": "{{ready}}/{{count}} コンテナ準備完了",
   "{{ready}}/{{count}} containers ready_one": "{{ready}}/{{count}} コンテナ準備完了",
-  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "この CronJob が開始し、まだ実行中の実行（Job）です。最新のインベントリに基づきます。それぞれ Job の一覧にも表示されます。"
+  "The runs (Jobs) this CronJob started that are still running, from the latest inventory. Each one is in the Jobs list too.": "この CronJob が開始し、まだ実行中の実行（Job）です。最新のインベントリに基づきます。それぞれ Job の一覧にも表示されます。",
+  "From Needs attention and OpenShift's operators in the latest inventory, not the selected range: Unhealthy if something is broken or an operator is unavailable; Degraded if something needs a look, an operator is degraded or an update fails; otherwise Healthy.": "選択した範囲ではなく最新のインベントリの「対応が必要」と OpenShift の Operator に基づきます。壊れているものがあるか利用不可の Operator がある場合は「異常」、確認が必要なもの、機能低下した Operator、失敗している更新のいずれかがある場合は「機能低下」、それ以外は「正常」です。"
 }
