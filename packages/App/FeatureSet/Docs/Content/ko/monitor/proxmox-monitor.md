@@ -117,18 +117,18 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 심각 | `pve_up`, 클러스터 전체에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
 | Node Offline | 심각 | `pve.scope = node`의 `pve_up`, `id`별 Min | 1 미만 | 1이 됨 |
-| Guest Down | Warning | `pve.scope = guest`의 `pve_up`과 `pve_onboot_status`, `id`별 Min | `pve_onboot_status`가 1인데 `pve_up`이 1 미만 | `pve_up`이 다시 1이 되거나, 부팅 시 시작이 꺼짐 |
+| Guest Down | 경고 | `pve.scope = guest`의 `pve_up`과 `pve_onboot_status`, `id`별 Min | `pve_onboot_status`가 1인데 `pve_up`이 1 미만 | `pve_up`이 다시 1이 되거나, 부팅 시 시작이 꺼짐 |
 | Cluster Quorum at Risk | 심각 | `pve.scope = node`의 `pve_up` ÷ `pve_node_info` × 100(둘 다 합계): 온라인 노드의 비율 | 50% 이하 | 55% 초과 |
-| Node Restarted | Warning | `pve.scope = node`의 `pve_uptime_seconds`와 `pve_up`, `id`별 Min | `pve_up`이 1인데 `pve_uptime_seconds`가 900(15분) 미만 | `pve_uptime_seconds`가 990 이상이 되거나 `pve_up`이 0이 됨 |
-| High Node CPU Usage | Warning | `pve.scope = node`의 `pve_cpu_usage_ratio`, `id`별 Avg | 0.9 초과(노드 코어의 90%) | 0.81 이하 |
-| High Node Memory Usage | Warning | `pve.scope = node`의 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100, `id`별 | 85% 초과 | 76.5% 이하 |
-| High Guest CPU Usage | Warning | `pve.scope = guest`의 `pve_cpu_usage_ratio`, `id`별 Avg, 최근 15분 | 15분 내내 0.95 초과(vCPU의 95%) | 0.855 이하 |
+| Node Restarted | 경고 | `pve.scope = node`의 `pve_uptime_seconds`와 `pve_up`, `id`별 Min | `pve_up`이 1인데 `pve_uptime_seconds`가 900(15분) 미만 | `pve_uptime_seconds`가 990 이상이 되거나 `pve_up`이 0이 됨 |
+| High Node CPU Usage | 경고 | `pve.scope = node`의 `pve_cpu_usage_ratio`, `id`별 Avg | 0.9 초과(노드 코어의 90%) | 0.81 이하 |
+| High Node Memory Usage | 경고 | `pve.scope = node`의 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100, `id`별 | 85% 초과 | 76.5% 이하 |
+| High Guest CPU Usage | 경고 | `pve.scope = guest`의 `pve_cpu_usage_ratio`, `id`별 Avg, 최근 15분 | 15분 내내 0.95 초과(vCPU의 95%) | 0.855 이하 |
 | Storage Unavailable | 심각 | `pve.scope = storage`의 `pve_up`, `id`별 Min | 1 미만 | 1이 됨 |
-| Storage Near Full | Warning | `pve.scope = storage`의 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100, `id`별 | 85% 초과 | 76.5% 이하 |
-| Container Root Disk Near Full | Warning | `pve.type = lxc`에 대한 같은 디스크 비율, `id`별 | 90% 초과 | 81% 이하 |
+| Storage Near Full | 경고 | `pve.scope = storage`의 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100, `id`별 | 85% 초과 | 76.5% 이하 |
+| Container Root Disk Near Full | 경고 | `pve.type = lxc`에 대한 같은 디스크 비율, `id`별 | 90% 초과 | 81% 이하 |
 | HA Resource in Error State | 심각 | `state = error`의 `pve_ha_state`, `id`별 Max | 0 초과 | 0이 됨 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max(클러스터 전체에 계열 하나) | 0 초과 | 0이 됨 |
-| Backup Running Too Long | Warning | `pve.scope = guest`이고 `state = backup`인 `pve_lock_state`, `id`별 Min, 최근 6시간 | 0 초과 | 0이 됨 |
+| Guest Not Backed Up | 경고 | `pve_not_backed_up_total`, Max(클러스터 전체에 계열 하나) | 0 초과 | 0이 됨 |
+| Backup Running Too Long | 경고 | `pve.scope = guest`이고 `state = backup`인 `pve_lock_state`, `id`별 Min, 최근 6시간 | 0 초과 | 0이 됨 |
 | Replication Failing | 심각 | `pve_replication_failed_syncs`, `id`(작업 ID)별 Max | 0 초과 | 0이 됨 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.
@@ -152,7 +152,7 @@ flowchart TB
 
 | 템플릿 | 심각도 | 감시 대상 | 작동 조건 | 회복 조건 |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Warning | `pve.notification.type = vzdump`이고 `pve.notification.severity = error`인 통지 로그, 노드와 작업별, 최근 60분 | 백업 작업이 실패를 보고함 | 같은 작업의 다음 실행이 성공함 |
+| Backup Job Failed | 경고 | `pve.notification.type = vzdump`이고 `pve.notification.severity = error`인 통지 로그, 노드와 작업별, 최근 60분 | 백업 작업이 실패를 보고함 | 같은 작업의 다음 실행이 성공함 |
 | Node Fenced | 심각 | `pve.notification.type = fencing`인 통지 로그, 노드별, 최근 30분 | Proxmox VE가 노드를 펜싱함 | 그 노드가 30분 동안 다시 펜싱되지 않음 |
 
 각 노드와 백업 작업마다 자체 인시던트와 알림을 받습니다. 실패한 백업 작업의 알림은 시간이 얼마나 걸리든 같은 작업의 이후 실행이 성공할 때까지 열려 있습니다.

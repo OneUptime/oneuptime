@@ -91,11 +91,11 @@ Salvo diversa indicazione nella tabella, un criterio scatta solo quando la condi
 | Modello | Gravità | Sorveglia | Scatta quando | Si ripristina quando |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Critico | `container.memory.percent`, Count su tutti i container dell'host, ultimi 10 minuti | Nessun dato per tutta la finestra | I dati tornano ad arrivare |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Max per container, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
-| High Container Memory Usage | Warning | `container.memory.percent`, Max per container, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
+| High Container CPU Usage | Avviso | `container.cpu.utilization`, Max per container, ultimi 5 minuti | Sopra 80 (% di un core) | A 72 o meno |
+| High Container Memory Usage | Avviso | `container.memory.percent`, Max per container, ultimi 5 minuti | Sopra l'85% | Al 76,5% o meno |
 | Container Restart Loop | Critico | `container.restarts.increase`, Sum per container, ultimi 15 minuti | Più di 3 riavvii nella finestra (Somma) | 2,7 o meno |
-| Container CPU Throttling | Warning | Crescita di `container.cpu.throttling_data.throttled_time` in ms per container, ultimi 5 minuti | Più di 1000 ms nella finestra (Somma) | 900 ms o meno |
-| High Container Process Count | Warning | `container.pids.count`, Max per container, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
+| Container CPU Throttling | Avviso | Crescita di `container.cpu.throttling_data.throttled_time` in ms per container, ultimi 5 minuti | Più di 1000 ms nella finestra (Somma) | 900 ms o meno |
+| High Container Process Count | Avviso | `container.pids.count`, Max per container, ultimi 5 minuti | Sopra 2000 | A 1800 o meno |
 | Container Restarted (Low Uptime) | Critico | `container.uptime`, Min per container, ultimo 1 minuto | Meno di 120 secondi | 132 secondi o più |
 
 **Gravità** è l'etichetta che mostra il selettore. L'incidente e l'avviso creati da un modello partono dalla gravità di incidente e di avviso più alta del vostro progetto; cambiatele nei criteri.

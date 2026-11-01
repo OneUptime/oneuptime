@@ -91,11 +91,11 @@ flowchart TB
 | 템플릿 | 심각도 | 감시 대상 | 작동 조건 | 회복 조건 |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | 심각 | `container.memory.percent`, 호스트의 모든 컨테이너에 대한 Count, 최근 10분 | 기간 내내 데이터 없음 | 데이터가 다시 들어옴 |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, 컨테이너별 Max, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
-| High Container Memory Usage | Warning | `container.memory.percent`, 컨테이너별 Max, 최근 5분 | 85% 초과 | 76.5% 이하 |
+| High Container CPU Usage | 경고 | `container.cpu.utilization`, 컨테이너별 Max, 최근 5분 | 80 초과(코어 하나 기준 %) | 72 이하 |
+| High Container Memory Usage | 경고 | `container.memory.percent`, 컨테이너별 Max, 최근 5분 | 85% 초과 | 76.5% 이하 |
 | Container Restart Loop | 심각 | `container.restarts.increase`, 컨테이너별 Sum, 최근 15분 | 기간 내 재시작 3회 초과(합계) | 2.7 이하 |
-| Container CPU Throttling | Warning | 컨테이너별 `container.cpu.throttling_data.throttled_time` 증가량(ms), 최근 5분 | 기간 내 1000 ms 초과(합계) | 900 ms 이하 |
-| High Container Process Count | Warning | `container.pids.count`, 컨테이너별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
+| Container CPU Throttling | 경고 | 컨테이너별 `container.cpu.throttling_data.throttled_time` 증가량(ms), 최근 5분 | 기간 내 1000 ms 초과(합계) | 900 ms 이하 |
+| High Container Process Count | 경고 | `container.pids.count`, 컨테이너별 Max, 최근 5분 | 2000 초과 | 1800 이하 |
 | Container Restarted (Low Uptime) | 심각 | `container.uptime`, 컨테이너별 Min, 최근 1분 | 120초 미만 | 132초 이상 |
 
 **심각도** 는 선택 목록에 표시되는 레이블입니다. 템플릿이 만드는 인시던트와 알림은 프로젝트에서 가장 심각한 인시던트 및 알림 심각도로 시작하니, 기준에서 바꾸세요.

@@ -117,18 +117,18 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Критический | `pve_up`, Count по всему кластеру, последние 10 минут | Нет данных за всё окно | Данные снова поступают |
 | Node Offline | Критический | `pve_up` для `pve.scope = node`, Min по `id` | Меньше 1 | Равно 1 |
-| Guest Down | Warning | `pve_up` и `pve_onboot_status` для `pve.scope = guest`, Min по `id` | `pve_up` меньше 1, а `pve_onboot_status` равно 1 | `pve_up` снова равно 1 или запуск при загрузке выключен |
+| Guest Down | Предупреждение | `pve_up` и `pve_onboot_status` для `pve.scope = guest`, Min по `id` | `pve_up` меньше 1, а `pve_onboot_status` равно 1 | `pve_up` снова равно 1 или запуск при загрузке выключен |
 | Cluster Quorum at Risk | Критический | `pve_up` ÷ `pve_node_info` × 100 для `pve.scope = node` (оба Сумма): доля узлов в сети | 50 % или меньше | Выше 55 % |
-| Node Restarted | Warning | `pve_uptime_seconds` и `pve_up` для `pve.scope = node`, Min по `id` | `pve_uptime_seconds` меньше 900 (15 минут), а `pve_up` равно 1 | `pve_uptime_seconds` равно 990 или больше, или `pve_up` равно 0 |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` для `pve.scope = node`, Avg по `id` | Выше 0,9 (90 % ядер узла) | 0,81 или ниже |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 для `pve.scope = node`, по `id` | Выше 85 % | 76,5 % или ниже |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` для `pve.scope = guest`, Avg по `id`, последние 15 минут | Выше 0,95 (95 % её vCPU) все 15 минут | 0,855 или ниже |
+| Node Restarted | Предупреждение | `pve_uptime_seconds` и `pve_up` для `pve.scope = node`, Min по `id` | `pve_uptime_seconds` меньше 900 (15 минут), а `pve_up` равно 1 | `pve_uptime_seconds` равно 990 или больше, или `pve_up` равно 0 |
+| High Node CPU Usage | Предупреждение | `pve_cpu_usage_ratio` для `pve.scope = node`, Avg по `id` | Выше 0,9 (90 % ядер узла) | 0,81 или ниже |
+| High Node Memory Usage | Предупреждение | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 для `pve.scope = node`, по `id` | Выше 85 % | 76,5 % или ниже |
+| High Guest CPU Usage | Предупреждение | `pve_cpu_usage_ratio` для `pve.scope = guest`, Avg по `id`, последние 15 минут | Выше 0,95 (95 % её vCPU) все 15 минут | 0,855 или ниже |
 | Storage Unavailable | Критический | `pve_up` для `pve.scope = storage`, Min по `id` | Меньше 1 | Равно 1 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 для `pve.scope = storage`, по `id` | Выше 85 % | 76,5 % или ниже |
-| Container Root Disk Near Full | Warning | То же соотношение для диска, для `pve.type = lxc`, по `id` | Выше 90 % | 81 % или ниже |
+| Storage Near Full | Предупреждение | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 для `pve.scope = storage`, по `id` | Выше 85 % | 76,5 % или ниже |
+| Container Root Disk Near Full | Предупреждение | То же соотношение для диска, для `pve.type = lxc`, по `id` | Выше 90 % | 81 % или ниже |
 | HA Resource in Error State | Критический | `pve_ha_state` для `state = error`, Max по `id` | Выше 0 | Равно 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (один общекластерный ряд) | Выше 0 | Равно 0 |
-| Backup Running Too Long | Warning | `pve_lock_state` для `pve.scope = guest` и `state = backup`, Min по `id`, последние 6 часов | Выше 0 | Равно 0 |
+| Guest Not Backed Up | Предупреждение | `pve_not_backed_up_total`, Max (один общекластерный ряд) | Выше 0 | Равно 0 |
+| Backup Running Too Long | Предупреждение | `pve_lock_state` для `pve.scope = guest` и `state = backup`, Min по `id`, последние 6 часов | Выше 0 | Равно 0 |
 | Replication Failing | Критический | `pve_replication_failed_syncs`, Max по `id` (идентификатор задания) | Выше 0 | Равно 0 |
 
 **Серьёзность** – это метка, которую показывает список выбора. Инцидент и оповещение, которые создаёт шаблон, начинаются с самого серьёзного уровня инцидентов и оповещений вашего проекта; измените их в критериях.
@@ -152,7 +152,7 @@ flowchart TB
 
 | Шаблон | Серьёзность | Что отслеживает | Срабатывает, когда | Восстанавливается, когда |
 | --- | --- | --- | --- | --- |
-| Backup Job Failed | Warning | Логи уведомлений с `pve.notification.type = vzdump` и `pve.notification.severity = error`, по узлу и заданию, последние 60 минут | Задание резервного копирования сообщает о сбое | Следующий запуск того же задания проходит успешно |
+| Backup Job Failed | Предупреждение | Логи уведомлений с `pve.notification.type = vzdump` и `pve.notification.severity = error`, по узлу и заданию, последние 60 минут | Задание резервного копирования сообщает о сбое | Следующий запуск того же задания проходит успешно |
 | Node Fenced | Критический | Логи уведомлений с `pve.notification.type = fencing`, по узлу, последние 30 минут | Proxmox VE изолирует узел (fencing) | Этот узел не изолируется снова в течение 30 минут |
 
 Каждый узел и каждое задание резервного копирования получают собственный инцидент и собственное оповещение. Оповещение о сбойном задании резервного копирования остаётся открытым, пока более поздний запуск того же задания не пройдёт успешно, сколько бы времени это ни заняло.

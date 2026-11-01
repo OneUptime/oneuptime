@@ -136,22 +136,22 @@ flowchart TB
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | در دسترس بودن | ۱۰ دقیقه هیچ داده‌ای از عامل خوشه نمی‌رسد | بحرانی |
 | CrashLoopBackOff Detection | بار کاری | یک کانتینر در ۱۵ دقیقه دوباره راه‌اندازی شده و کمتر از نیمی از آن زمان آماده بوده است | بحرانی |
-| Pod Stuck in Pending | در حال زمان‌بندی | در هر نمونه از یک پنجره ۱۵ دقیقه‌ای، پادی در مرحله Pending است | Warning |
+| Pod Stuck in Pending | در حال زمان‌بندی | در هر نمونه از یک پنجره ۱۵ دقیقه‌ای، پادی در مرحله Pending است | هشدار |
 | Node Not Ready | گره | یک گره NotReady گزارش می‌دهد یا دیگر وضعیتش را گزارش نمی‌کند (Unknown) | بحرانی |
-| High Node CPU Utilization | گره | میانگین مصرف CPU یک گره بیش از ۹۰٪ CPU قابل‌تخصیص آن است | Warning |
-| High Node Memory Utilization | گره | میانگین working set حافظهٔ یک گره بیش از ۸۵٪ حافظه قابل‌تخصیص آن است | Warning |
-| Deployment Replica Mismatch | بار کاری | یک deployment به مدت ۱۵ دقیقه کمتر از تعداد مطلوب، رپلیکای در دسترس دارد | Warning |
-| Job Failures | بار کاری | یک پادِ یک job در ۱۵ دقیقه ناموفق شده است | Warning |
+| High Node CPU Utilization | گره | میانگین مصرف CPU یک گره بیش از ۹۰٪ CPU قابل‌تخصیص آن است | هشدار |
+| High Node Memory Utilization | گره | میانگین working set حافظهٔ یک گره بیش از ۸۵٪ حافظه قابل‌تخصیص آن است | هشدار |
+| Deployment Replica Mismatch | بار کاری | یک deployment به مدت ۱۵ دقیقه کمتر از تعداد مطلوب، رپلیکای در دسترس دارد | هشدار |
+| Job Failures | بار کاری | یک پادِ یک job در ۱۵ دقیقه ناموفق شده است | هشدار |
 | etcd No Leader | Control Plane | etcd رهبر برگزیده‌ای ندارد | بحرانی |
 | API Server Request Saturation | Control Plane | سرور API در تمام پنجره ۲۰۰ درخواست در جریان یا بیشتر دارد | بحرانی |
-| Scheduler Backlog | در حال زمان‌بندی | صف پادهای در انتظار زمان‌بند به مدت ۵ دقیقه خالی نمی‌شود | Warning |
-| High Node Disk Usage | ذخیره‌سازی | سامانه فایل یک گره بیش از ۹۰٪ پر است | Warning |
-| DaemonSet Misscheduled Nodes | بار کاری | یک DaemonSet پادهایی را روی گره‌هایی اجرا می‌کند که دیگر با انتخابگر گره، affinity یا tolerationهای آن جور نیستند | Warning |
-| High Node CPU Request Commitment | گره | جمع درخواست‌های CPU کانتینرهای یک گره از ۹۰٪ CPU قابل‌تخصیص آن بیشتر است | Warning |
-| High Node Memory Request Commitment | گره | جمع درخواست‌های حافظه کانتینرهای یک گره از ۹۰٪ حافظه قابل‌تخصیص آن بیشتر است | Warning |
+| Scheduler Backlog | در حال زمان‌بندی | صف پادهای در انتظار زمان‌بند به مدت ۵ دقیقه خالی نمی‌شود | هشدار |
+| High Node Disk Usage | ذخیره‌سازی | سامانه فایل یک گره بیش از ۹۰٪ پر است | هشدار |
+| DaemonSet Misscheduled Nodes | بار کاری | یک DaemonSet پادهایی را روی گره‌هایی اجرا می‌کند که دیگر با انتخابگر گره، affinity یا tolerationهای آن جور نیستند | هشدار |
+| High Node CPU Request Commitment | گره | جمع درخواست‌های CPU کانتینرهای یک گره از ۹۰٪ CPU قابل‌تخصیص آن بیشتر است | هشدار |
+| High Node Memory Request Commitment | گره | جمع درخواست‌های حافظه کانتینرهای یک گره از ۹۰٪ حافظه قابل‌تخصیص آن بیشتر است | هشدار |
 | HPA Saturated at Max Replicas | بار کاری | یک HPA که بالاتر از `minReplicas` خود مقیاس گرفته، روی ۹۰٪ یا بیشتر از `maxReplicas` خود کار می‌کند | بحرانی |
 | Pod Memory Saturating Container Limit | بار کاری | یک پاد بیش از ۹۰٪ محدودیت حافظه کانتینرهایش را مصرف می‌کند | بحرانی |
-| Pod CPU Saturating Container Limit | بار کاری | یک پاد بیش از ۹۰٪ محدودیت CPU کانتینرهایش را مصرف می‌کند | Warning |
+| Pod CPU Saturating Container Limit | بار کاری | یک پاد بیش از ۹۰٪ محدودیت CPU کانتینرهایش را مصرف می‌کند | هشدار |
 
 الگوهایی که روی متریک‌های هر شیء کار می‌کنند، هر گره، پاد، deployment، job، DaemonSet یا HPA را جداگانه ارزیابی می‌کنند، پس خوشه‌ای با چند پاد ناسالم به ازای هر پاد یک حادثه می‌گیرد، نه یک حادثه برای کل خوشه.
 

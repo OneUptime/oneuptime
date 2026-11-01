@@ -113,29 +113,29 @@ OneUptime 為常見的 VMware 問題提供 24 個範本，**告警內容** 清�
 | 範本 | 類別 | 嚴重程度 | 監看內容 | 觸發條件 | 復原條件 |
 | --- | --- | --- | --- | --- | --- |
 | vCenter Stopped Reporting | 可用性 | 嚴重 | `vcenter.datacenter.cpu.limit`，對整個 vCenter 取 Count，**過去 10 分鐘** | 整個視窗內都沒有資料：代理程式或探測器已停止，或 vCenter 不再回應它 | 資料再次送達 |
-| Host CPU Saturation | 主機 | Warning | `vcenter.host.cpu.utilization`，依 `resource.vcenter.host.name` 取 Avg | 高於 90%：主機上的每個 VM 都在爭奪核心，並出現 CPU 就緒時間 | 達到或低於 81% |
-| Host Memory Saturation | 主機 | Warning | `vcenter.host.memory.utilization`，依主機取 Avg | 高於 90%：主機開始透過氣球回收、壓縮和置換收回記憶體 | 達到或低於 81% |
-| Host Disk Latency High | 主機 | Warning | `vcenter.host.disk.latency.max`，依主機取 Max | 高於 50 ms：磁碟位於該路徑上的每個 VM 都在等待儲存。需要效能計數器層級 3 | 達到或低於 45 ms |
-| Host Network Packet Errors | 主機 | Warning | `vcenter.host.network.packet.error.rate`，依主機取 Max | 高於 0：幾乎都是纜線、SFP 或交換器連接埠故障 | 恢復為 0 |
-| Host Network Packet Drops | 主機 | Warning | `vcenter.host.network.packet.drop.rate`，依主機取 Max | 高於 0：上行鏈路超額訂閱，或 NIC 環形緩衝區溢位 | 恢復為 0 |
-| VM CPU Saturation | 虛擬機器 | Warning | `vcenter.vm.cpu.utilization`，依 `resource.vcenter.vm.name` 取 Avg，**過去 15 分鐘** | 在整整 15 分鐘內都高於 VM vCPU 的 90%：VM 可以使用分配給它的資源，因此只有始終不降下來的 VM 才會呼叫 | 達到或低於 81% |
-| VM CPU Ready Contention | 虛擬機器 | Warning | `vcenter.vm.cpu.readiness`，依 VM 取 Avg | 高於 10%：VM 已準備好執行，但主機沒有實體核心分配給它。在客體內部看不到 | 達到或低於 9% |
-| VM Memory Saturation | 虛擬機器 | Warning | `vcenter.vm.memory.utilization`，依 VM 取 Avg | 高於其記憶體的 90%：客體即將開始分頁 | 達到或低於 81% |
-| VM Memory Ballooning | 虛擬機器 | Warning | `vcenter.vm.memory.ballooned`，依 VM 取 Max | 高於 0：主機記憶體不足，正在從這個客體收回記憶體 | 恢復為 0 |
+| Host CPU Saturation | 主機 | 警告 | `vcenter.host.cpu.utilization`，依 `resource.vcenter.host.name` 取 Avg | 高於 90%：主機上的每個 VM 都在爭奪核心，並出現 CPU 就緒時間 | 達到或低於 81% |
+| Host Memory Saturation | 主機 | 警告 | `vcenter.host.memory.utilization`，依主機取 Avg | 高於 90%：主機開始透過氣球回收、壓縮和置換收回記憶體 | 達到或低於 81% |
+| Host Disk Latency High | 主機 | 警告 | `vcenter.host.disk.latency.max`，依主機取 Max | 高於 50 ms：磁碟位於該路徑上的每個 VM 都在等待儲存。需要效能計數器層級 3 | 達到或低於 45 ms |
+| Host Network Packet Errors | 主機 | 警告 | `vcenter.host.network.packet.error.rate`，依主機取 Max | 高於 0：幾乎都是纜線、SFP 或交換器連接埠故障 | 恢復為 0 |
+| Host Network Packet Drops | 主機 | 警告 | `vcenter.host.network.packet.drop.rate`，依主機取 Max | 高於 0：上行鏈路超額訂閱，或 NIC 環形緩衝區溢位 | 恢復為 0 |
+| VM CPU Saturation | 虛擬機器 | 警告 | `vcenter.vm.cpu.utilization`，依 `resource.vcenter.vm.name` 取 Avg，**過去 15 分鐘** | 在整整 15 分鐘內都高於 VM vCPU 的 90%：VM 可以使用分配給它的資源，因此只有始終不降下來的 VM 才會呼叫 | 達到或低於 81% |
+| VM CPU Ready Contention | 虛擬機器 | 警告 | `vcenter.vm.cpu.readiness`，依 VM 取 Avg | 高於 10%：VM 已準備好執行，但主機沒有實體核心分配給它。在客體內部看不到 | 達到或低於 9% |
+| VM Memory Saturation | 虛擬機器 | 警告 | `vcenter.vm.memory.utilization`，依 VM 取 Avg | 高於其記憶體的 90%：客體即將開始分頁 | 達到或低於 81% |
+| VM Memory Ballooning | 虛擬機器 | 警告 | `vcenter.vm.memory.ballooned`，依 VM 取 Max | 高於 0：主機記憶體不足，正在從這個客體收回記憶體 | 恢復為 0 |
 | VM Memory Swapping | 虛擬機器 | 嚴重 | `vcenter.vm.memory.swapped`，依 VM 取 Max | 高於 0：主機正在置換 VM 的記憶體，這是在氣球回收和壓縮之後的最後手段 | 恢復為 0 |
-| VM Disk Latency High | 虛擬機器 | Warning | `vcenter.vm.disk.latency.max`，依 VM 取 Max | 高於 50 ms：客體中的應用程式 I/O 逾時 | 達到或低於 45 ms |
-| VM Disk Usage High | 虛擬機器 | Warning | `vcenter.vm.disk.utilization`，依 VM 取 Avg | 已佔用其佈建儲存的 90% 以上：精簡佈建的 VM 即將佔滿其全部大小 | 達到或低於 81% |
-| Datastore Capacity Warning | 資料存放區 | Warning | `vcenter.datastore.disk.utilization`，依 `resource.vcenter.datastore.name` 取 Avg | 高於 80%：一個提前的警告，因為精簡磁碟和快照會很快用完剩餘空間 | 達到或低於 72% |
+| VM Disk Latency High | 虛擬機器 | 警告 | `vcenter.vm.disk.latency.max`，依 VM 取 Max | 高於 50 ms：客體中的應用程式 I/O 逾時 | 達到或低於 45 ms |
+| VM Disk Usage High | 虛擬機器 | 警告 | `vcenter.vm.disk.utilization`，依 VM 取 Avg | 已佔用其佈建儲存的 90% 以上：精簡佈建的 VM 即將佔滿其全部大小 | 達到或低於 81% |
+| Datastore Capacity Warning | 資料存放區 | 警告 | `vcenter.datastore.disk.utilization`，依 `resource.vcenter.datastore.name` 取 Avg | 高於 80%：一個提前的警告，因為精簡磁碟和快照會很快用完剩餘空間 | 達到或低於 72% |
 | Datastore Capacity Critical | 資料存放區 | 嚴重 | `vcenter.datastore.disk.utilization`，依資料存放區取 Avg | 高於 90%：寫滿的資料存放區會暫停每個在其上有磁碟的 VM | 達到或低於 81% |
 | Cluster Host Not Effective | 叢集 | 嚴重 | `vcenter.cluster.host.count` 篩選到 `effective = false`，依 `resource.vcenter.cluster.name` 取 Max | 高於 0：某台主機處於維護模式、已中斷連線或沒有回應，因此叢集以低於其設計容量的容量運作 | 恢復為 0 |
 | Datacenter Hosts Unhealthy | 資料中心 | 嚴重 | `vcenter.datacenter.host.count` 篩選到 `status = red`，依 `resource.vcenter.datacenter.name` 取 Max | 高於 0：某台主機有嚴重警報，例如硬體感測器、遺失的儲存路徑或 HA 代理程式錯誤 | 恢復為 0 |
-| Datacenter Hosts Degraded | 資料中心 | Warning | `vcenter.datacenter.host.count` 篩選到 `status = yellow`，依資料中心取 Max | 高於 0：某台主機有警告層級警報 | 恢復為 0 |
+| Datacenter Hosts Degraded | 資料中心 | 警告 | `vcenter.datacenter.host.count` 篩選到 `status = yellow`，依資料中心取 Max | 高於 0：某台主機有警告層級警報 | 恢復為 0 |
 | Datacenter Hosts Not Responding | 資料中心 | 嚴重 | `vcenter.datacenter.host.count` 篩選到 `power_state = unknown`，依資料中心取 Max | 高於 0：vCenter 與某台主機失去聯繫——它當機了、斷電或管理網路中斷，或已中斷連線。刻意關機或被 DPM 置於待命狀態的主機不計入 | 恢復為 0 |
-| Datacenter VMs Unhealthy | 資料中心 | Warning | `vcenter.datacenter.vm.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個 VM 有嚴重警報，例如 HA 重新啟動失敗、遺失的資料存放區或遺失的 Tools 活動訊號 | 恢復為 0 |
+| Datacenter VMs Unhealthy | 資料中心 | 警告 | `vcenter.datacenter.vm.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個 VM 有嚴重警報，例如 HA 重新啟動失敗、遺失的資料存放區或遺失的 Tools 活動訊號 | 恢復為 0 |
 | Datacenter Clusters Unhealthy | 資料中心 | 嚴重 | `vcenter.datacenter.cluster.count` 篩選到 `status = red`，依資料中心取 Max | 高於 0：某個叢集有嚴重警報，例如 HA 容錯移轉資源不足、HA 選舉失敗或嚴重的 vSAN 健康狀態檢查 | 恢復為 0 |
-| vSAN Latency High | vSAN | Warning | `vcenter.cluster.vsan.latency.avg`，依叢集取 Avg，**過去 15 分鐘** | 高於 20 000 µs (20 ms)：vSAN 資料存放區上每個 VM 的儲存都變慢。在沒有 vSAN 的叢集上保持靜默 | 達到或低於 18 000 µs |
-| vSAN Congestion | vSAN | Warning | `vcenter.cluster.vsan.congestions`，依叢集取 Max，**過去 15 分鐘** | 高於 0：某個磁碟群組跟不上，vSAN 正在減慢其用戶端的 I/O | 恢復為 0 |
-| Resource Pool Memory Swapped | 叢集 | Warning | `vcenter.resource_pool.memory.swapped`，依 `resource.vcenter.resource_pool.inventory_path` 取 Max | 高於 0：資源集區的 VM 正從主機置換空間取得記憶體，通常是因為資源集區的記憶體限制或配額過低 | 恢復為 0 |
+| vSAN Latency High | vSAN | 警告 | `vcenter.cluster.vsan.latency.avg`，依叢集取 Avg，**過去 15 分鐘** | 高於 20 000 µs (20 ms)：vSAN 資料存放區上每個 VM 的儲存都變慢。在沒有 vSAN 的叢集上保持靜默 | 達到或低於 18 000 µs |
+| vSAN Congestion | vSAN | 警告 | `vcenter.cluster.vsan.congestions`，依叢集取 Max，**過去 15 分鐘** | 高於 0：某個磁碟群組跟不上，vSAN 正在減慢其用戶端的 I/O | 恢復為 0 |
+| Resource Pool Memory Swapped | 叢集 | 警告 | `vcenter.resource_pool.memory.swapped`，依 `resource.vcenter.resource_pool.inventory_path` 取 Max | 高於 0：資源集區的 VM 正從主機置換空間取得記憶體，通常是因為資源集區的記憶體限制或配額過低 | 恢復為 0 |
 
 **嚴重程度** 是選擇器顯示的標籤。範本建立的事件和警示會以專案中最嚴重的事件和警示嚴重程度開始；可以在條件中修改。
 

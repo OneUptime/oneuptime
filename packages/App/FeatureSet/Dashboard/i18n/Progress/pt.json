@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39534,
-    "untranslated": 13077
+    "keys": 39593,
+    "untranslated": 12989
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -88,6 +88,7 @@
     "OSD",
     "OSDs",
     "Offline",
+    "Ok",
     "Online",
     "OpenShift",
     "PR #{{number}}",
@@ -186,6 +187,7 @@
     "s",
     "security-alerts",
     "span {{spanId}}",
+    "spans",
     "status",
     "storefront-web",
     "svc-backup",

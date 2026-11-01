@@ -365,7 +365,7 @@ describe("span rows and the span panel", () => {
       "entity?: ResolvedTelemetryEntity | undefined;",
     );
     expect(TRACE_ROW).toContain(
-      "getSpanEntityDisplay({ service, entity: props.entity, });",
+      "getSpanEntityDisplay({ service, entity: props.entity, translator, });",
     );
     expect(TRACE_ROW).not.toContain('service?.name || "unknown service"');
   });
@@ -375,7 +375,7 @@ describe("span rows and the span panel", () => {
       "entity?: ResolvedTelemetryEntity | undefined;",
     );
     expect(SPAN_PANEL).toContain(
-      "getSpanEntityDisplay({ service, entity: props.entity, });",
+      "getSpanEntityDisplay({ service, entity: props.entity, translator, });",
     );
     expect(SPAN_PANEL).toContain(
       "{ label: entityDisplay.typeLabel, value: serviceName },",
@@ -402,7 +402,7 @@ describe("analytics split-by Service", () => {
 
   test("REGRESSION: timeseries series are keyed by raw group values, not by display label", () => {
     expect(ANALYTICS_VIEW).toContain(
-      "pivotTraceAnalyticsTimeseries({ rows: timeseriesData, serviceNameMap: props.serviceNameMap, entityNames, metricLabel, });",
+      "pivotTraceAnalyticsTimeseries({ rows: timeseriesData, serviceNameMap: props.serviceNameMap, entityNames, metricLabel, translator, });",
     );
     // The old pivot joined display labels into the series key.
     expect(ANALYTICS_VIEW).not.toContain(
@@ -426,16 +426,16 @@ describe("analytics split-by Service", () => {
     expect(ANALYTICS_VIEW).toContain(
       'tableColumnLabels .get(key) ?.get(row.groupValues[key] || "")',
     );
-    // Label memos re-run when names land.
+    // Label memos re-run when names land, and when the language changes.
     expect(ANALYTICS_VIEW).toContain(
-      "}, [topListData, groupByFields, props.serviceNameMap, entityNames]);",
+      "}, [ topListData, groupByFields, props.serviceNameMap, entityNames, translator.language, ]);",
     );
     expect(ANALYTICS_VIEW).toContain(
-      "}, [tableData, props.serviceNameMap, entityNames]);",
+      "}, [tableData, props.serviceNameMap, entityNames, translator.language]);",
     );
     // An unsplit series is named for its measure in the reader's words (#5420).
     expect(ANALYTICS_VIEW).toContain(
-      "}, [timeseriesData, metricLabel, props.serviceNameMap, entityNames]);",
+      "}, [ timeseriesData, metricLabel, props.serviceNameMap, entityNames, translator.language, ]);",
     );
   });
 });
@@ -453,7 +453,7 @@ describe("Insights tab", () => {
 
   test("recent trace rows fall back to the resolved entity name", () => {
     expect(TRACES_DASHBOARD).toContain(
-      'getTraceEntityOptionLabel({ id: primaryEntityId, knownLabel: service?.name?.toString(), entityNames, fallback: "Unknown", });',
+      "getTraceEntityOptionLabel({ id: primaryEntityId, knownLabel: TelemetryServiceUtil.getServiceDisplayName( service?.name?.toString(), translator, ), entityNames, fallback: translator.translateTerm(UNKNOWN_RESOURCE_LABEL), });",
     );
   });
 

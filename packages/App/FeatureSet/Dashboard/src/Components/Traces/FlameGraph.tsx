@@ -7,6 +7,9 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import Color from "Common/Types/Color";
 import { Black } from "Common/Types/BrandColors";
+import TelemetryServiceUtil, {
+  UNKNOWN_RESOURCE_LABEL,
+} from "Common/UI/Utils/TelemetryService";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -118,7 +121,11 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       );
       return {
         color: (service?.serviceColor as Color) || Black,
-        name: service?.name || "Unknown",
+        name:
+          TelemetryServiceUtil.getServiceDisplayName(
+            service?.name,
+            translator,
+          ) || translator.translateTerm(UNKNOWN_RESOURCE_LABEL),
       };
     };
 
@@ -173,7 +180,7 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
       traceStart: tStart,
       traceEnd: tEnd,
     };
-  }, [spans, telemetryServices, selfTimes]);
+  }, [spans, telemetryServices, selfTimes, translator.language]);
 
   // Find max depth for height calculation
   const maxDepth: number = React.useMemo(() => {

@@ -572,7 +572,7 @@ Un procesador de spans marca cada span con el id que estaba vigente cuando empez
 
 ### Dónde están los enlaces
 
-Una excepción en el panel muestra una tarjeta **Ver lo que vio el usuario** cuando existe una grabación de una sesión que tuvo ese error, y abre el reproductor diez segundos antes de la excepción con la pestaña Errors seleccionada. Los detalles de un span ofrecen **Watch session at this span**; los detalles de una fila de registro ofrecen **View session replay** en el momento de la línea cuando el propio registro lleva el id de sesión, y un registro vinculado por id de traza llega a la grabación a través de su traza. En la otra dirección, cada fila de red, registro, traza y error del reproductor enlaza con la vista de la traza, el explorador de registros limitado a la sesión en ese momento, o el grupo de excepciones.
+Una excepción en el panel muestra una tarjeta **Ver lo que vio el usuario** cuando existe una grabación de una sesión que tuvo ese error, y abre el reproductor diez segundos antes de la excepción con la pestaña Errors seleccionada. Los detalles de un span ofrecen **Ver la sesión en este span**; los detalles de una fila de registro ofrecen **View session replay** en el momento de la línea cuando el propio registro lleva el id de sesión, y un registro vinculado por id de traza llega a la grabación a través de su traza. En la otra dirección, cada fila de red, registro, traza y error del reproductor enlaza con la vista de la traza, el explorador de registros limitado a la sesión en ese momento, o el grupo de excepciones.
 
 ## Ver una sesión
 

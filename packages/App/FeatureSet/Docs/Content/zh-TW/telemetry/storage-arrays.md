@@ -180,7 +180,7 @@ Pure 的語意慣例由 FlashArray 原生端點和兩個匯出器共用。每個
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **檔案系統** 頁面：每個檔案系統的佈建空間和已用空間、資料縮減、延遲、IOPS 和頻寬 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **儲存貯體** 頁面：每個儲存貯體的空間、配額、物件數和效能，依帳戶分組 |
 
-陣列在其 **概覽** 上顯示的健康狀態：當它回報未結的嚴重警示，或有硬體元件、磁碟機或控制器處於嚴重、故障、遺失或不健康狀態時為 **嚴重**；當它回報未結的警告警示，或有降級或狀態不明的元件時為 **Warning**；否則為 **OK**。在監控條件中，陣列的屬性要加上 `resource.` 前置詞（`resource.storage.array.name`、`resource.storage.system`），而資料點標籤保持原樣（`name`、`host`、`dimension`、`space`）。
+陣列在其 **概覽** 上顯示的健康狀態：當它回報未結的嚴重警示，或有硬體元件、磁碟機或控制器處於嚴重、故障、遺失或不健康狀態時為 **嚴重**；當它回報未結的警告警示，或有降級或狀態不明的元件時為 **警告**；否則為 **OK**。在監控條件中，陣列的屬性要加上 `resource.` 前置詞（`resource.storage.array.name`、`resource.storage.system`），而資料點標籤保持原樣（`name`、`host`、`dimension`、`space`）。
 
 ## 選用 — 傳送陣列的 syslog
 

@@ -116,42 +116,42 @@ flowchart TB
 | قالب | شدت | چه را می‌پاید | کی برانگیخته می‌شود | کی بازیابی می‌شود |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | بحرانی | `ceph_health_status`، Max، ۱ دقیقهٔ گذشته | ۲ یا بیشتر: `HEALTH_ERR` | زیر ۱٫۸: `HEALTH_WARN` یا بهتر |
-| Cluster Health Warning | Warning | `ceph_health_status`، Max | ۱ یا بیشتر: `HEALTH_WARN` یا بدتر | زیر ۰٫۹: `HEALTH_OK` |
+| Cluster Health Warning | هشدار | `ceph_health_status`، Max | ۱ یا بیشتر: `HEALTH_WARN` یا بدتر | زیر ۰٫۹: `HEALTH_OK` |
 | Monitor Quorum Degraded | بحرانی | `ceph_mon_quorum_status`، Min به ازای هر `ceph_daemon`، ۱ دقیقهٔ گذشته | یک mon به زیر ۱ می‌رسد و از حد نصاب بیرون می‌افتد. یک حادثه به ازای هر mon | دوباره ۱ |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`، Max | بالای ۰: بررسی `SLOW_OPS` خوشه فعال است | در ۰ |
-| Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` برای `type = SLOW_OPS`، Max به ازای هر `ceph_daemon` | بالای ۰. یک حادثه به ازای هر OSD یا mon | سری ناپدید می‌شود |
+| Slow Operations | هشدار | `ceph_healthcheck_slow_ops`، Max | بالای ۰: بررسی `SLOW_OPS` خوشه فعال است | در ۰ |
+| Daemon Slow Operations | هشدار | `ceph_daemon_health_metrics` برای `type = SLOW_OPS`، Max به ازای هر `ceph_daemon` | بالای ۰. یک حادثه به ازای هر OSD یا mon | سری ناپدید می‌شود |
 | Daemon Crash | بحرانی | `ceph_health_detail` برای `name = RECENT_CRASH`، Max | بررسی فعال است: فروریزی‌های بایگانی‌نشدهٔ دیمن وجود دارد. mgr هیچ متریک `ceph_crash_*` ندارد، پس این تنها نشانهٔ فروریزی است | فروریزی‌ها بایگانی می‌شوند |
-| Monitor Clock Skew | Warning | `ceph_health_detail` برای `name = MON_CLOCK_SKEW`، Max | بررسی فعال است: ساعت‌های mon بیش از انحراف مجاز (پیش‌فرض ۰٫۰۵ ثانیه) از هم فاصله گرفته‌اند | بررسی ناپدید می‌شود |
+| Monitor Clock Skew | هشدار | `ceph_health_detail` برای `name = MON_CLOCK_SKEW`، Max | بررسی فعال است: ساعت‌های mon بیش از انحراف مجاز (پیش‌فرض ۰٫۰۵ ثانیه) از هم فاصله گرفته‌اند | بررسی ناپدید می‌شود |
 | Monitor Disk Critically Low | بحرانی | `ceph_health_detail` برای `name = MON_DISK_CRIT`، Max | بررسی فعال است: فضای آزاد دیسک پایگاه دادهٔ یک mon زیر ۵٪ است (پیش‌فرض) | بررسی ناپدید می‌شود |
-| Monitor Disk Space Low | Warning | `ceph_health_detail` برای `name = MON_DISK_LOW`، Max | بررسی فعال است: فضای آزاد زیر ۳۰٪ است (پیش‌فرض) | بررسی ناپدید می‌شود |
+| Monitor Disk Space Low | هشدار | `ceph_health_detail` برای `name = MON_DISK_LOW`، Max | بررسی فعال است: فضای آزاد زیر ۳۰٪ است (پیش‌فرض) | بررسی ناپدید می‌شود |
 
 ### قالب‌های OSD
 
 | قالب | شدت | چه را می‌پاید | کی برانگیخته می‌شود | کی بازیابی می‌شود |
 | --- | --- | --- | --- | --- |
 | OSD Down | بحرانی | `ceph_osd_up`، Min به ازای هر `ceph_daemon` | یک OSD به زیر ۱ می‌رسد. یک حادثه به ازای هر OSD | دوباره ۱ |
-| OSD Out | Warning | `ceph_osd_in`، Min به ازای هر `ceph_daemon` | یک OSD به زیر ۱ می‌رسد: از توزیع داده بیرون گذاشته شده است | دوباره ۱ |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`، Avg به ازای هر `ceph_daemon` | بالای ۱۰۰ میلی‌ثانیه. یک حادثه به ازای هر OSD | ۹۰ میلی‌ثانیه یا کمتر |
-| OSD Slow Heartbeats | Warning | `ceph_health_detail` برای `name = OSD_SLOW_PING_TIME_FRONT` و `name = OSD_SLOW_PING_TIME_BACK`، Max | یکی از دو بررسی فعال است: ضربان‌ها روی شبکهٔ عمومی یا شبکهٔ خوشه کند هستند. mgr هیچ سنجهٔ زمان ping صادر نمی‌کند | هر دو بررسی ناپدید می‌شوند |
+| OSD Out | هشدار | `ceph_osd_in`، Min به ازای هر `ceph_daemon` | یک OSD به زیر ۱ می‌رسد: از توزیع داده بیرون گذاشته شده است | دوباره ۱ |
+| OSD High Latency | هشدار | `ceph_osd_apply_latency_ms`، Avg به ازای هر `ceph_daemon` | بالای ۱۰۰ میلی‌ثانیه. یک حادثه به ازای هر OSD | ۹۰ میلی‌ثانیه یا کمتر |
+| OSD Slow Heartbeats | هشدار | `ceph_health_detail` برای `name = OSD_SLOW_PING_TIME_FRONT` و `name = OSD_SLOW_PING_TIME_BACK`، Max | یکی از دو بررسی فعال است: ضربان‌ها روی شبکهٔ عمومی یا شبکهٔ خوشه کند هستند. mgr هیچ سنجهٔ زمان ping صادر نمی‌کند | هر دو بررسی ناپدید می‌شوند |
 
 ### قالب‌های گروه جای‌گذاری
 
 | قالب | شدت | چه را می‌پاید | کی برانگیخته می‌شود | کی بازیابی می‌شود |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | بحرانی | `ceph_pg_total` − `ceph_pg_active`، Max به ازای هر `pool_id` | بالای ۰: PGها نمی‌توانند به I/O پاسخ دهند، پس درخواست‌های کلاینت به آن‌ها معلق می‌ماند. یک حادثه به ازای هر استخر | در ۰ |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`، Max به ازای هر `pool_id` | بالای ۰: شیءها کمتر از تعداد پیکربندی‌شده رونوشت دارند | در ۰ |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`، Max به ازای هر `pool_id` | بالای ۰: PGها به OSDهایی کمتر از تعداد رونوشتشان نگاشته شده‌اند | در ۰ |
+| Degraded Placement Groups | هشدار | `ceph_pg_degraded`، Max به ازای هر `pool_id` | بالای ۰: شیءها کمتر از تعداد پیکربندی‌شده رونوشت دارند | در ۰ |
+| Undersized Placement Groups | هشدار | `ceph_pg_undersized`، Max به ازای هر `pool_id` | بالای ۰: PGها به OSDهایی کمتر از تعداد رونوشتشان نگاشته شده‌اند | در ۰ |
 | Damaged Placement Groups | بحرانی | `ceph_health_detail` برای `name = PG_DAMAGED` و `name = OSD_SCRUB_ERRORS`، Max | یکی از دو بررسی فعال است: scrub آسیب یا خطای خواندن پیدا کرده است | هر دو بررسی ناپدید می‌شوند |
 
 ### قالب‌های ظرفیت
 
 | قالب | شدت | چه را می‌پاید | کی برانگیخته می‌شود | کی بازیابی می‌شود |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × ۱۰۰ | بالای ۸۵٪، نسبت nearfull پیش‌فرض Ceph | ۷۶٫۵٪ یا کمتر |
+| Cluster Near Full | هشدار | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × ۱۰۰ | بالای ۸۵٪، نسبت nearfull پیش‌فرض Ceph | ۷۶٫۵٪ یا کمتر |
 | Cluster Full | بحرانی | همان نسبت | بالای ۹۵٪، نسبت full پیش‌فرض Ceph که در آن نوشتن در کل خوشه متوقف می‌شود | ۸۵٫۵٪ یا کمتر |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × ۱۰۰، به ازای هر `pool_id` | بالای ۸۵٪ از آنچه استخر می‌تواند نگه دارد. یک حادثه به ازای هر استخر | ۷۶٫۵٪ یا کمتر |
-| OSD Nearfull | Warning | `ceph_health_detail` برای `name = OSD_NEARFULL`، Max | بررسی فعال است: یک OSD از آستانهٔ nearfull (پیش‌فرض ۸۵٪) گذشته است. OSDهای تکی خیلی زودتر از میانگین خوشه پر می‌شوند | بررسی ناپدید می‌شود |
-| OSD Backfillfull | Warning | `ceph_health_detail` برای `name = OSD_BACKFILLFULL`، Max | بررسی فعال است: backfill روی آن OSD پذیرفته نمی‌شود (پیش‌فرض ۹۰٪) و بازیابی داده متوقف می‌ماند | بررسی ناپدید می‌شود |
+| Pool Near Full | هشدار | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × ۱۰۰، به ازای هر `pool_id` | بالای ۸۵٪ از آنچه استخر می‌تواند نگه دارد. یک حادثه به ازای هر استخر | ۷۶٫۵٪ یا کمتر |
+| OSD Nearfull | هشدار | `ceph_health_detail` برای `name = OSD_NEARFULL`، Max | بررسی فعال است: یک OSD از آستانهٔ nearfull (پیش‌فرض ۸۵٪) گذشته است. OSDهای تکی خیلی زودتر از میانگین خوشه پر می‌شوند | بررسی ناپدید می‌شود |
+| OSD Backfillfull | هشدار | `ceph_health_detail` برای `name = OSD_BACKFILLFULL`، Max | بررسی فعال است: backfill روی آن OSD پذیرفته نمی‌شود (پیش‌فرض ۹۰٪) و بازیابی داده متوقف می‌ماند | بررسی ناپدید می‌شود |
 | OSD Full | بحرانی | `ceph_health_detail` برای `name = OSD_FULL`، Max، ۱ دقیقهٔ گذشته | بررسی فعال است: یک OSD به آستانهٔ full (پیش‌فرض ۹۵٪) رسیده و نوشتن پذیرفته نمی‌شود | بررسی ناپدید می‌شود |
 
 - **قالب‌های از کار افتادن و حد نصاب از کمینه استفاده می‌کنند**، تا یک OSD از کار افتاده یا یک mon بیرون از حد نصاب آن‌ها را برانگیزد، نه اینکه پشت اکثریت سالم پنهان بماند.

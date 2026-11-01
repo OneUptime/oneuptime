@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39534,
-    "untranslated": 13106
+    "keys": 39593,
+    "untranslated": 13018
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -95,6 +95,7 @@
     "OSD",
     "Object Gateway",
     "Offline",
+    "Ok",
     "Online",
     "OpenShift",
     "PR #{{number}}",
@@ -183,6 +184,7 @@
     "cluster",
     "cluster {{name}}",
     "customer facing|tier-1",
+    "database",
     "db-primary",
     "debug",
     "failed password",

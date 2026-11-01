@@ -196,6 +196,7 @@ import {
 } from "../../Utils/ExceptionsEntityChipDisplay";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { UNKNOWN_RESOURCE_LABEL } from "Common/UI/Utils/TelemetryService";
 import {
   translatableTerm,
   translationKey,
@@ -1868,11 +1869,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   // Facet configs
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
+    const unknownName: string = translator.translateTerm(
+      UNKNOWN_RESOURCE_LABEL,
+    );
     const serviceNameMap: Record<string, string> = {};
     const serviceColorMap: Record<string, string> = {};
     for (const service of services) {
       if (service.id) {
-        serviceNameMap[service.id.toString()] = service.name || "Unknown";
+        serviceNameMap[service.id.toString()] = service.name || unknownName;
         if (service.serviceColor) {
           serviceColorMap[service.id.toString()] =
             service.serviceColor.toString();
@@ -1884,7 +1888,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const host of hosts) {
       if (host.id) {
         hostNameMap[host.id.toString()] =
-          host.name || host.hostIdentifier || "Unknown";
+          host.name || host.hostIdentifier || unknownName;
       }
     }
 
@@ -1892,7 +1896,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const dockerHost of dockerHosts) {
       if (dockerHost.id) {
         dockerHostNameMap[dockerHost.id.toString()] =
-          dockerHost.name || dockerHost.hostIdentifier || "Unknown";
+          dockerHost.name || dockerHost.hostIdentifier || unknownName;
       }
     }
 
@@ -1900,7 +1904,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const podmanHost of podmanHosts) {
       if (podmanHost.id) {
         podmanHostNameMap[podmanHost.id.toString()] =
-          podmanHost.name || podmanHost.hostIdentifier || "Unknown";
+          podmanHost.name || podmanHost.hostIdentifier || unknownName;
       }
     }
 
@@ -1908,7 +1912,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     for (const cluster of kubernetesClusters) {
       if (cluster.id) {
         clusterNameMap[cluster.id.toString()] =
-          cluster.name || cluster.clusterIdentifier || "Unknown";
+          cluster.name || cluster.clusterIdentifier || unknownName;
       }
     }
 
@@ -1960,7 +1964,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         priority: 8,
       },
     ];
-  }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters]);
+  }, [
+    services,
+    hosts,
+    dockerHosts,
+    podmanHosts,
+    kubernetesClusters,
+    translator.language,
+  ]);
 
   /*
    * Fetch facets from the backend. Counts come from ClickHouse aggregation

@@ -461,7 +461,7 @@ Probablemente el SDK está exportando por gRPC a un endpoint HTTP, o a `localhos
 Un lote supera el límite de tamaño. Reduce el tamaño de los lotes, por ejemplo con `send_batch_max_size: 1000` en el procesador `batch`. Si te autoalojas detrás de tu propio proxy, revisa también el límite de tamaño de cuerpo de ese proxy.
 :::
 
-:::details Los datos llegan al servicio equivocado, o a Unknown Service
+:::details Los datos llegan al servicio equivocado, o a «Servicio desconocido»
 El servicio sale del atributo de recurso `service.name`. Define `OTEL_SERVICE_NAME` en cada aplicación. Si la clave tiene un **Nombre de servicio fijado**, cada exportación OTLP/HTTP con esa clave se archiva bajo ese nombre.
 :::
 

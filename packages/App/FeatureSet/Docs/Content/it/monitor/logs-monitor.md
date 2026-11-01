@@ -87,7 +87,7 @@ Ogni log viene salvato con una di sette gravità. Per i log OpenTelemetry deriva
 | **Traccia** | 1–4 |
 | **Debug** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Avviso** | 13–16 |
 | **Errore** | 17–20 |
 | **Fatal** | 21–24 |
 | **Non specificato** | Tutto il resto |

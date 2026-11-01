@@ -51,6 +51,35 @@ const LOCALIZED_CUSTOM_DATE_FORMATS: Readonly<
 const UNIX_NANO_INTEGER_PATTERN: RegExp = /^[+-]?\d+$/;
 
 /*
+ * The most digits OneUptimeDate.readExactUnixNano reads. Below 1e21 ns a
+ * time's millisecond has at most 15 digits, so it never leaves the integers
+ * a double holds exactly (2^53), and every such time is inside the Date
+ * range (8.64e21 ns). That is past every time a nanosecond column holds
+ * (UInt64 ends near 1.8e19, int64 near 9.2e18); a longer text is left to the
+ * caller's float read, which keeps what it did with one.
+ */
+const MAX_EXACT_UNIX_NANO_DIGITS: number = 21;
+
+// The character codes readExactUnixNano reads.
+const PLUS_SIGN_CODE: number = 43;
+const DIGIT_ZERO_CODE: number = 48;
+
+/*
+ * A time in whole nanoseconds since the epoch, read exactly from its digits
+ * by OneUptimeDate.readExactUnixNano.
+ */
+export interface ExactUnixNano {
+  /*
+   * The nanoseconds as digits, without a "+" or leading zeros ("0" for
+   * zero): what a UInt64 nanosecond column stores, and what
+   * toClickhouseDateTime64 takes a DateTime64(9) fraction from.
+   */
+  nano: string;
+  // The millisecond the nanoseconds fall in, from the same digits.
+  date: Date;
+}
+
+/*
  * The decimal point of a short duration's figure ("1.72 s", "2m 5.5s"): a
  * digit either side of it. Read on a few characters, so linear.
  */
@@ -1293,6 +1322,109 @@ export default class OneUptimeDate {
       return new Date(Number(trimmed) / 1000000);
     }
     return new Date(timestamp / 1000000);
+  }
+
+  /*
+   * OTLP sends a time as whole nanoseconds since the epoch: an integer
+   * string in OTLP/protobuf, and from most OTLP/JSON senders. Today's are
+   * about 1.8e18, where doubles are 256 ns apart, so parseFloat moves such a
+   * text by up to 128 ns, and a Date made from that float (fromUnixNano of a
+   * number) can land a millisecond off: early on one whole millisecond in
+   * eight, late just before a millisecond ends. A time up to 128 ns before a
+   * whole second even reads as that second: its float is the second itself.
+   *
+   * This reads the digits instead. The Date, the stored nanoseconds and a
+   * DateTime64(9) fraction (toClickhouseDateTime64 given `nano`) all come
+   * from the same digits, so they always agree. Keep a float of the text
+   * for arithmetic only - a duration, a comparison - never for what is
+   * stored or shown.
+   *
+   * It reads a text of decimal digits with an optional leading "+" and
+   * leading zeros, which parseFloat reads as the same number, and at most
+   * MAX_EXACT_UNIX_NANO_DIGITS of them; `nano` drops the "+" and the zeros,
+   * as the float's digits did. Anything else gives null, and the caller
+   * reads it as it did before: a number (already a float), a "-", spaces, a
+   * point or an exponent ("1.5e18"), any other character, an empty text,
+   * more digits, or no text at all.
+   *
+   * Every ingested log, span and metric data point comes through here, so
+   * it is one pass over the characters that sums the millisecond as it
+   * goes: no regular expression, BigInt or float of the whole value, and
+   * the stored digits are the text itself when it has no "+" or zeros to
+   * drop. Like fromUnixNano it builds the Date directly, and it makes no
+   * BigInt (see nanosPerMillisecond).
+   */
+  public static readExactUnixNano(value: unknown): ExactUnixNano | null {
+    if (typeof value !== "string") {
+      return null;
+    }
+
+    const text: string = value;
+    const length: number = text.length;
+    let start: number = 0;
+
+    // A "+" and leading zeros read as nothing; the last digit always stays.
+    if (length > 1 && text.charCodeAt(0) === PLUS_SIGN_CODE) {
+      start = 1;
+    }
+
+    while (start < length - 1 && text.charCodeAt(start) === DIGIT_ZERO_CODE) {
+      start++;
+    }
+
+    const digitCount: number = length - start;
+
+    if (digitCount === 0 || digitCount > MAX_EXACT_UNIX_NANO_DIGITS) {
+      return null;
+    }
+
+    /*
+     * The millisecond is every digit but the last six. It is summed in two
+     * parts that stay small integers - its last nine digits, and the up to
+     * six before them - since one sum that grows past 2^31 is a float's
+     * and made the whole read about 40% slower; joined, they stay below
+     * 2^53, so exact. The last six digits are only checked.
+     */
+    const millisecondEnd: number = length - 6;
+    // Not Math.max: in a vm context (Jest's) it is a call, a third of the read.
+    const lowStart: number =
+      millisecondEnd - 9 > start ? millisecondEnd - 9 : start;
+    let high: number = 0;
+    let low: number = 0;
+    let index: number = start;
+
+    for (; index < lowStart; index++) {
+      const digit: number = text.charCodeAt(index) - DIGIT_ZERO_CODE;
+
+      if (digit < 0 || digit > 9) {
+        return null;
+      }
+
+      high = high * 10 + digit;
+    }
+
+    for (; index < millisecondEnd; index++) {
+      const digit: number = text.charCodeAt(index) - DIGIT_ZERO_CODE;
+
+      if (digit < 0 || digit > 9) {
+        return null;
+      }
+
+      low = low * 10 + digit;
+    }
+
+    for (; index < length; index++) {
+      const digit: number = text.charCodeAt(index) - DIGIT_ZERO_CODE;
+
+      if (digit < 0 || digit > 9) {
+        return null;
+      }
+    }
+
+    return {
+      nano: start === 0 ? text : text.slice(start),
+      date: new Date(high * 1000000000 + low),
+    };
   }
 
   public static parseRfc5424Timestamp(value: string): Date | undefined {
@@ -2972,16 +3104,32 @@ export default class OneUptimeDate {
     return this.formatUtcClickhouseDateTime(parsedDate);
   }
 
+  /*
+   * `nanoTimestamp` is the time in whole nanoseconds since the epoch, and
+   * the fraction is read from it rather than from the Date's milliseconds:
+   *
+   *   - digits (ExactUnixNano.nano): their last nine, exactly. Pass the Date
+   *     read from the same digits (readExactUnixNano), so the second and the
+   *     fraction agree. A float's fraction cannot go with that Date: for a
+   *     time up to 128 ns before a whole second the float is that second, so
+   *     its fraction reads .000000000 while the exact Date is still in the
+   *     second before - a second early.
+   *   - a number: its remainder in a second, as exact as the float is. Pass
+   *     the Date made from the same float (fromUnixNano), as before.
+   *   - absent, zero or below: the Date's milliseconds.
+   */
   public static toClickhouseDateTime64(
     date: Date | string,
-    nanoTimestamp?: number,
+    nanoTimestamp?: number | string,
   ): string {
     const parsedDate: Date = this.fromString(date);
     const base: string = this.formatUtcClickhouseDateTime(parsedDate);
 
     let nanoFraction: string;
 
-    if (nanoTimestamp !== undefined && nanoTimestamp > 0) {
+    if (typeof nanoTimestamp === "string") {
+      nanoFraction = nanoTimestamp.slice(-9).padStart(9, "0");
+    } else if (nanoTimestamp !== undefined && nanoTimestamp > 0) {
       // Extract sub-second nanoseconds from the unix nano timestamp
       const subSecondNanos: number = nanoTimestamp % 1_000_000_000;
       nanoFraction = subSecondNanos.toString().padStart(9, "0");

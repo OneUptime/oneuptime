@@ -82,17 +82,13 @@ export const FIRST_REFERENCE_PAGE: string = "Search Syntax";
  * because no locale has a wording for them (TelemetryExplorersDocsFacts
  * holds that they are still not keys of the Dashboard's English locale).
  * The trace page's Critical path and Errors only left this list when the
- * trace view started drawing them in the reader's language: every
- * translation names them as its Dashboard draws them.
+ * trace view started drawing them in the reader's language, and See full
+ * trace when the traces list did: every translation names them as its
+ * Dashboard draws them.
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
-    [TRACES_EXPLORER]: [
-      "Entry spans",
-      "Root spans",
-      "All spans",
-      "See full trace",
-    ],
+    [TRACES_EXPLORER]: ["Entry spans", "Root spans", "All spans"],
   };
 
 /*

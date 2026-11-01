@@ -1093,7 +1093,9 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                 {props.service.name}
               </span>
               {span.kind && (
-                <span>· {SpanUtil.getSpanKindFriendlyName(span.kind)}</span>
+                <span>
+                  · {SpanUtil.getSpanKindFriendlyName(span.kind, translator)}
+                </span>
               )}
             </div>
             <h3

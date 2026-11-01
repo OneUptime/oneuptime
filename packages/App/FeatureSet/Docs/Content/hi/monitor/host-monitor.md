@@ -102,11 +102,11 @@ OneUptime में मशीनों के लिए दो मॉनिट�
 | टेम्पलेट | गंभीरता | किस पर नज़र रखता है | कब ट्रिगर होता है | कब ठीक होता है |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | गंभीर | `system.memory.usage`, Count, पिछले 10 मिनट | पूरी विंडो में कोई डेटा नहीं | डेटा फिर से आता है |
-| High CPU Utilization | Warning | `user` और `system` स्थितियों के लिए `system.cpu.utilization`, जोड़कर प्रतिशत में दिखाया गया, पिछले 5 मिनट | 80% से ऊपर | 72% या उससे कम |
-| High Memory Utilization | Warning | `used` स्थिति के लिए `system.memory.utilization`, प्रतिशत में, पिछले 5 मिनट | 85% से ऊपर | 76.5% या उससे कम |
+| High CPU Utilization | चेतावनी | `user` और `system` स्थितियों के लिए `system.cpu.utilization`, जोड़कर प्रतिशत में दिखाया गया, पिछले 5 मिनट | 80% से ऊपर | 72% या उससे कम |
+| High Memory Utilization | चेतावनी | `used` स्थिति के लिए `system.memory.utilization`, प्रतिशत में, पिछले 5 मिनट | 85% से ऊपर | 76.5% या उससे कम |
 | High Filesystem Usage | गंभीर | `system.filesystem.utilization`, प्रति `mountpoint` और `device` Max, प्रतिशत में, पिछले 5 मिनट | 90% से ऊपर | 81% या उससे कम |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, पिछले 5 मिनट | 4 से ऊपर | 3.6 या उससे कम |
-| High Process Count | Warning | `system.processes.count`, Max, पिछले 5 मिनट | 2000 से ऊपर | 1800 या उससे कम |
+| High Load Average (1m) | चेतावनी | `system.cpu.load_average.1m`, Avg, पिछले 5 मिनट | 4 से ऊपर | 3.6 या उससे कम |
+| High Process Count | चेतावनी | `system.processes.count`, Max, पिछले 5 मिनट | 2000 से ऊपर | 1800 या उससे कम |
 
 **गंभीरता** वह लेबल है जो चयन सूची दिखाती है। टेम्पलेट जो घटना और अलर्ट बनाता है, वे आपके प्रोजेक्ट की सबसे गंभीर घटना और अलर्ट गंभीरता से शुरू होते हैं; इन्हें मानदंडों में बदलें।
 

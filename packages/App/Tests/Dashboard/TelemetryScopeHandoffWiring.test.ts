@@ -296,7 +296,7 @@ describe("the provenance chip never outruns the applied scope", () => {
       const source: string = readSquashed(relative);
 
       expect(source).toContain(
-        "describeUnappliedScopeFilters(unappliedFilters, { search: carriedSearch,",
+        "describeUnappliedScopeFilters( unappliedFilters, { search: carriedSearch",
       );
     },
   );

@@ -95,10 +95,10 @@ flowchart TB
 | قالب | دسته | شدت | چه چیزی را پایش می‌کند | چه وقت فعال می‌شود | چه وقت بهبود می‌یابد |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | در دسترس بودن | بحرانی | `iot_device_up`، Min به ازای هر `device.id`، ۳۰ دقیقه گذشته | هر خوانشی کمتر از ۱ باشد، یا دستگاهی ثبت‌شده در کل پنجره چیزی نفرستد | دوباره ۱ |
-| Low Battery | Power | Warning | `iot_battery_percent`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | کمتر از ۲۰٪ | ۲۲٪ یا بیشتر |
-| Weak Signal | اتصال | Warning | `iot_signal_strength_dbm`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | کمتر از منفی ۱۰۰ dBm | منفی ۹۰ dBm یا بیشتر |
+| Low Battery | Power | هشدار | `iot_battery_percent`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | کمتر از ۲۰٪ | ۲۲٪ یا بیشتر |
+| Weak Signal | اتصال | هشدار | `iot_signal_strength_dbm`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | کمتر از منفی ۱۰۰ dBm | منفی ۹۰ dBm یا بیشتر |
 | High Temperature | محیط | بحرانی | `iot_temperature_celsius`، Max به ازای هر `device.id`، ۵ دقیقه گذشته | بیش از ۷۰ °C | ۶۳ °C یا کمتر |
-| High CPU Usage | سیستم | Warning | `iot_cpu_usage_ratio`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | بیش از ۰٫۹ (۹۰٪ از CPU آن) | ۰٫۸۱ یا کمتر |
+| High CPU Usage | سیستم | هشدار | `iot_cpu_usage_ratio`، Avg به ازای هر `device.id`، ۵ دقیقه گذشته | بیش از ۰٫۹ (۹۰٪ از CPU آن) | ۰٫۸۱ یا کمتر |
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک قالب می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.
 

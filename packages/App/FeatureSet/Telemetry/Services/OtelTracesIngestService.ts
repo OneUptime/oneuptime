@@ -16,7 +16,7 @@ import {
   ObiStoredSpan,
   applyObiSpanSemantics,
 } from "../Utils/ObiSpanSemantics";
-import OneUptimeDate from "Common/Types/Date";
+import OneUptimeDate, { ExactUnixNano } from "Common/Types/Date";
 import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import {
@@ -98,6 +98,11 @@ type CompiledTraceScrubRule = {
 };
 
 type ParsedUnixNano = {
+  /*
+   * A float of the time, for arithmetic only (calculateDurationNano): at
+   * today's epoch it is up to 128 ns off. What is stored and shown - nano,
+   * iso, date - is read exactly when the time came as an integer string.
+   */
   unixNano: number;
   nano: string;
   iso: string;
@@ -1778,6 +1783,26 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     value: string | number | undefined,
     context: string,
   ): ParsedUnixNano {
+    /*
+     * An integer string - how OTLP/protobuf sends every time - is read
+     * exactly: the Date, the stored nanoseconds and the ISO text come from
+     * its digits (OneUptimeDate.readExactUnixNano). A float of it read them
+     * up to 128 ns off, and so a span event or an exception a millisecond
+     * early or late, and one just before a whole second in the second after.
+     * Anything else is read as before, below.
+     */
+    const exact: ExactUnixNano | null = OneUptimeDate.readExactUnixNano(value);
+
+    if (exact !== null) {
+      return {
+        // For durations only, and the float it always was.
+        unixNano: Number.parseFloat(exact.nano),
+        nano: exact.nano,
+        iso: OneUptimeDate.toString(exact.date),
+        date: exact.date,
+      };
+    }
+
     let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
 
     if (value !== undefined && value !== null) {

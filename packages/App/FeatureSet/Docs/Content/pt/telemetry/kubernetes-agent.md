@@ -293,7 +293,7 @@ Em uma tela com menos de 1024 pixels de largura, a coluna **Evento** também mos
 
 ### Pesquisar eventos e receber alertas
 
-Cada evento também é um registro. Um aviso é guardado com a gravidade **Warning**, e o que o evento diz está nos seus atributos:
+Cada evento também é um registro. Um aviso é guardado com a gravidade **Aviso**, e o que o evento diz está nos seus atributos:
 
 | Atributo | Exemplo |
 | --- | --- |
