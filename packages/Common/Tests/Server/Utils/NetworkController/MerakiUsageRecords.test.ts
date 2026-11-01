@@ -2,9 +2,12 @@ import {
   KIBIBYTE,
   MAX_APPLICATION_ROWS,
   MAX_CLIENT_ROWS,
+  MAX_LATENCY_MS,
+  MAX_LOSS_PERCENT,
   TEXT_LIMITS,
   buildApplicationRecords,
   buildClientRecords,
+  buildUplinkHealthRecords,
   buildUplinkRecords,
   capRecords,
   cleanMac,
@@ -12,6 +15,7 @@ import {
   cleanText,
   readAppliances,
   readCount,
+  readMeasurement,
   readOctets,
 } from "../../../../Server/Utils/NetworkController/Meraki/MerakiUsageRecords";
 import {
@@ -318,6 +322,232 @@ describe("uplink usage", () => {
         windowEndAt: END,
       }),
     ).toEqual([]);
+  });
+});
+
+describe("a measurement", () => {
+  test.each([
+    [0, 0],
+    [0.25, 0.25],
+    ["12.5", 12.5],
+    [0.0001, 0.0001],
+  ])(
+    "%p is read as %p: a 0 that Meraki sent is a real 0",
+    (value, expected) => {
+      expect(readMeasurement(value, 100)).toBe(expected);
+    },
+  );
+
+  test.each([
+    [null],
+    [undefined],
+    [""],
+    ["   "],
+    ["n/a"],
+    [Number.NaN],
+    [Number.POSITIVE_INFINITY],
+    [-1],
+    [{}],
+    [[]],
+  ])("%p is no measurement: unknown, never a perfect 0", (value) => {
+    expect(readMeasurement(value, 100)).toBeNull();
+  });
+
+  test("a value past its limit is held to it", () => {
+    expect(readMeasurement(250, MAX_LOSS_PERCENT)).toBe(100);
+  });
+});
+
+describe("uplink loss and latency", () => {
+  const WINDOW_END: Date = new Date("2026-10-24T10:05:00.000Z");
+
+  function build(
+    answer: Array<unknown>,
+    overrides: {
+      appliances?: Map<string, NetworkControllerAppliance> | undefined;
+      networkNames?: Map<string, string> | undefined;
+    } = {},
+  ): Array<NetworkTrafficUsageRecord> {
+    return buildUplinkHealthRecords({
+      answer,
+      appliances:
+        overrides.appliances ||
+        new Map([
+          [
+            "Q2XX-AAAA-0001",
+            {
+              serial: "Q2XX-AAAA-0001",
+              name: "MX 1",
+              model: "MX68",
+              mac: "",
+              controllerNetworkId: "L_1",
+            },
+          ],
+        ]),
+      networkNames: overrides.networkNames || new Map([["L_1", "Branch 1"]]),
+      windowStartAt: START,
+      windowEndAt: WINDOW_END,
+    });
+  }
+
+  function uplink(
+    samples: Array<unknown>,
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      networkId: "L_1",
+      serial: "q2xx-aaaa-0001",
+      uplink: "wan1",
+      ip: "8.8.8.8",
+      timeSeries: samples,
+      ...overrides,
+    };
+  }
+
+  test("a record per appliance and uplink, the average of its samples", () => {
+    const records: Array<NetworkTrafficUsageRecord> = build([
+      uplink([
+        { ts: "2026-10-24T10:00:00Z", lossPercent: 0, latencyMs: 20 },
+        { ts: "2026-10-24T10:01:00Z", lossPercent: 3, latencyMs: 40 },
+      ]),
+      uplink([{ lossPercent: 1, latencyMs: 10 }], { uplink: "wan2" }),
+    ]);
+
+    expect(records).toHaveLength(2);
+    expect(records[0]).toMatchObject({
+      kind: NetworkTrafficUsageKind.UplinkHealth,
+      controllerNetworkId: "L_1",
+      controllerNetworkName: "Branch 1",
+      // As the traffic's rows spell it, so the two join on the appliance.
+      deviceSerial: "Q2XX-AAAA-0001",
+      deviceName: "MX 1",
+      interfaceName: "wan1",
+      lossPercent: 1.5,
+      latencyMs: 30,
+      sentOctets: 0,
+      receivedOctets: 0,
+      flows: 0,
+      windowStartAt: START,
+      windowEndAt: WINDOW_END,
+    });
+    expect(records[1]).toMatchObject({
+      interfaceName: "wan2",
+      lossPercent: 1,
+      latencyMs: 10,
+    });
+  });
+
+  test("an uplink measured towards two addresses is one line: its samples average together", () => {
+    const records: Array<NetworkTrafficUsageRecord> = build([
+      uplink([{ lossPercent: 0, latencyMs: 10 }], { ip: "8.8.8.8" }),
+      uplink([{ lossPercent: 4, latencyMs: 30 }], { ip: "1.1.1.1" }),
+    ]);
+
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({ lossPercent: 2, latencyMs: 20 });
+  });
+
+  test("a minute with no sample counts for nothing, not for 0", () => {
+    const records: Array<NetworkTrafficUsageRecord> = build([
+      uplink([
+        { lossPercent: null, latencyMs: null },
+        { lossPercent: 2, latencyMs: 50 },
+        { lossPercent: null, latencyMs: null },
+      ]),
+    ]);
+
+    expect(records[0]).toMatchObject({ lossPercent: 2, latencyMs: 50 });
+  });
+
+  test("loss and latency are averaged apart: a line that is down has one and not the other", () => {
+    const records: Array<NetworkTrafficUsageRecord> = build([
+      uplink([
+        { lossPercent: 100, latencyMs: null },
+        { lossPercent: 100, latencyMs: null },
+      ]),
+    ]);
+
+    expect(records[0]).toMatchObject({ lossPercent: 100, latencyMs: null });
+  });
+
+  test("an uplink with no sample at all has no record: nothing was measured", () => {
+    expect(build([uplink([])])).toEqual([]);
+    expect(build([uplink([{ lossPercent: null, latencyMs: null }])])).toEqual(
+      [],
+    );
+  });
+
+  test("a perfect line is 0, not nothing", () => {
+    expect(
+      build([uplink([{ lossPercent: 0, latencyMs: 0 }])])[0],
+    ).toMatchObject({ lossPercent: 0, latencyMs: 0 });
+  });
+
+  test("what cannot be true is held to what can", () => {
+    const record: NetworkTrafficUsageRecord = build([
+      uplink([{ lossPercent: 900, latencyMs: Number.MAX_SAFE_INTEGER }]),
+    ])[0]!;
+
+    expect(record.lossPercent).toBe(MAX_LOSS_PERCENT);
+    expect(record.latencyMs).toBe(MAX_LATENCY_MS);
+  });
+
+  test("anything else in the answer is skipped, not trusted", () => {
+    expect(
+      build([
+        null,
+        "wan1",
+        [],
+        { serial: "Q2XX-AAAA-0001", uplink: "wan1", timeSeries: [] },
+        uplink([{ lossPercent: 1 }], { networkId: "" }),
+        uplink([{ lossPercent: 1 }], { serial: "" }),
+        uplink([{ lossPercent: 1 }], { timeSeries: "soon" }),
+        uplink(["a sample", null, 3]),
+      ]),
+    ).toEqual([]);
+  });
+
+  test("an uplink with no name still has one, as the traffic's rows do", () => {
+    expect(
+      build([uplink([{ lossPercent: 1 }], { uplink: "" })])[0]!.interfaceName,
+    ).toBe("uplink");
+  });
+
+  test("a name that is too long or holds control characters is cleaned", () => {
+    expect(
+      build([
+        uplink([{ lossPercent: 1 }], { uplink: `wan\u00001${"x".repeat(99)}` }),
+      ])[0]!.interfaceName.length,
+    ).toBeLessThanOrEqual(TEXT_LIMITS.interfaceName);
+  });
+
+  test("an appliance or a network the read did not list has no name", () => {
+    const record: NetworkTrafficUsageRecord = build(
+      [uplink([{ lossPercent: 1 }])],
+      { appliances: new Map(), networkNames: new Map() },
+    )[0]!;
+
+    expect(record.deviceName).toBe("");
+    expect(record.controllerNetworkName).toBe("");
+  });
+
+  test("the traffic's own records carry no measurement", () => {
+    const [record]: Array<NetworkTrafficUsageRecord> = buildUplinkRecords({
+      answer: [
+        {
+          networkId: "L_1",
+          name: "Branch 1",
+          byUplink: [{ serial: "S", interface: "wan1", sent: 1, received: 1 }],
+        },
+      ],
+      appliances: new Map(),
+      networkNames: new Map(),
+      windowStartAt: START,
+      windowEndAt: WINDOW_END,
+    });
+
+    expect(record!.lossPercent).toBeNull();
+    expect(record!.latencyMs).toBeNull();
   });
 });
 

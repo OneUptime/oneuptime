@@ -19,7 +19,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkControllerConnection from "../../../../Models/DatabaseModels/NetworkControllerConnection";
 import NetworkControllerConnectionService from "../../../../Server/Services/NetworkControllerConnectionService";
 import NetworkTrafficUsageAggregationService from "../../../../Server/Services/NetworkTrafficUsageAggregationService";
-import { NetworkTrafficUsageWindowKey } from "../../../../Server/Utils/NetworkController/NetworkControllerTypes";
+import {
+  NetworkControllerPullState,
+  NetworkTrafficUsageWindowKey,
+  readPullState,
+} from "../../../../Server/Utils/NetworkController/NetworkControllerTypes";
 import { getWindowKey } from "../../../../Server/Utils/NetworkController/NetworkTrafficUsageRows";
 import { JSONObject } from "../../../../Types/JSON";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
@@ -614,6 +618,7 @@ describe("moving the cursors up to the stored windows", () => {
         },
         {
           uplinkEnd: new Date("2026-10-24T11:55:00.000Z"),
+          uplinkHealthEnd: null,
           analyticsEnds: new Map([
             ["L_1", new Date("2026-10-24T11:00:00.000Z")],
             ["L_2", new Date("2026-10-24T11:00:00.000Z")],
@@ -636,12 +641,70 @@ describe("moving the cursors up to the stored windows", () => {
     expect(
       reconcilePullState(
         { uplinkCursor: "2026-10-24T11:00:00.000Z" },
-        { uplinkEnd: null, analyticsEnds: new Map() },
+        { uplinkEnd: null, uplinkHealthEnd: null, analyticsEnds: new Map() },
       ),
     ).toEqual({
       uplinkCursor: "2026-10-24T11:00:00.000Z",
       analyticsCursors: {},
     });
+  });
+
+  test("the uplinks' health has a cursor of its own, moved up the same way", () => {
+    expect(
+      reconcilePullState(
+        { uplinkHealthCursor: "2026-10-24T11:00:00.000Z" },
+        {
+          uplinkEnd: null,
+          uplinkHealthEnd: new Date("2026-10-24T11:55:00.000Z"),
+          analyticsEnds: new Map(),
+        },
+      ),
+    ).toEqual({
+      uplinkHealthCursor: "2026-10-24T11:55:00.000Z",
+      analyticsCursors: {},
+    });
+  });
+
+  test("a health cursor already past the stored end is kept", () => {
+    expect(
+      reconcilePullState(
+        { uplinkHealthCursor: "2026-10-24T12:00:00.000Z" },
+        {
+          uplinkEnd: null,
+          uplinkHealthEnd: new Date("2026-10-24T11:55:00.000Z"),
+          analyticsEnds: new Map(),
+        },
+      ).uplinkHealthCursor,
+    ).toBe("2026-10-24T12:00:00.000Z");
+  });
+
+  test("a stored health window moves neither the uplinks' cursor nor a network's", () => {
+    const state: NetworkControllerPullState = reconcilePullState(
+      {
+        uplinkCursor: "2026-10-24T11:00:00.000Z",
+        analyticsCursors: { L_1: "2026-10-24T10:00:00.000Z" },
+      },
+      {
+        uplinkEnd: null,
+        uplinkHealthEnd: new Date("2026-10-24T11:55:00.000Z"),
+        analyticsEnds: new Map(),
+      },
+    );
+
+    expect(state.uplinkCursor).toBe("2026-10-24T11:00:00.000Z");
+    expect(state.analyticsCursors).toEqual({
+      L_1: "2026-10-24T10:00:00.000Z",
+    });
+  });
+
+  test("a stored pull state keeps its health cursor; one that is no text is dropped", () => {
+    expect(
+      readPullState({ uplinkHealthCursor: "2026-10-24T11:55:00.000Z" })
+        .uplinkHealthCursor,
+    ).toBe("2026-10-24T11:55:00.000Z");
+    expect(readPullState({ uplinkHealthCursor: 12 }).uplinkHealthCursor).toBe(
+      undefined,
+    );
   });
 
   test("a cursor that is not a time gives way to the stored end", () => {
@@ -650,6 +713,7 @@ describe("moving the cursors up to the stored windows", () => {
         { uplinkCursor: "soon" },
         {
           uplinkEnd: new Date("2026-10-24T11:55:00.000Z"),
+          uplinkHealthEnd: null,
           analyticsEnds: new Map(),
         },
       ).uplinkCursor,
@@ -662,7 +726,11 @@ describe("moving the cursors up to the stored windows", () => {
     await run({
       findStoredWindowEnds: async (data: { since: Date }) => {
         since = data.since;
-        return { uplinkEnd: null, analyticsEnds: new Map() };
+        return {
+          uplinkEnd: null,
+          uplinkHealthEnd: null,
+          analyticsEnds: new Map(),
+        };
       },
     });
 

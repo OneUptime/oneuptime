@@ -72,8 +72,11 @@ function emptyAggregates(
     topNetworks: [],
     topUplinks: [],
     topApplications: [],
+    uplinkInterfaces: [],
+    uplinkSeries: [],
     topDestinations: [],
     topClients: [],
+    topConversations: [],
   };
 }
 

@@ -18,6 +18,7 @@ import NetworkControllerReadRunner, {
   NetworkControllerReadOutcome,
 } from "Common/Server/Utils/NetworkController/NetworkControllerReadRunner";
 import { NetworkTrafficUsageStoredEnds } from "Common/Server/Utils/NetworkController/NetworkControllerTypes";
+import { toUsageRow } from "Common/Server/Utils/NetworkController/NetworkTrafficUsageRows";
 import { TelemetryServiceFilter } from "Common/Server/Utils/Telemetry/TelemetryReadScope";
 import { JSONObject } from "Common/Types/JSON";
 import {
@@ -27,6 +28,7 @@ import {
 } from "Common/Types/NetFlow/NetworkTrafficUsage";
 import NetworkControllerProvider from "Common/Types/NetworkController/NetworkControllerProvider";
 import ObjectID from "Common/Types/ObjectID";
+import { MAX_UPLINK_HEALTH_WINDOWS_PER_READ } from "Common/Server/Utils/NetworkController/Meraki/MerakiTrafficReader";
 import {
   FAKE_API_KEY,
   FakeMerakiApi,
@@ -59,11 +61,12 @@ import {
  * (Postgres played by spies), then checks every number a page shows
  * against traffic whose rates are known:
  *
- *   three MX appliances, each wan1 at 10,000 B/s up and 50,000 B/s down and
- *   wan2 at 100 and 200; one application (Microsoft Teams, 1,000 up and
- *   3,000 down) and one client (100 up, 400 down) on each network. The MX
- *   of the first branch is a device in OneUptime; the other two are the
- *   project's bucket. Another project's rows are written too - and no read
+ *   three MX appliances, each wan1 at 10,000 B/s up and 50,000 B/s down,
+ *   losing 0.5% with a latency of 20 ms, and wan2 at 100 and 200, losing
+ *   1.5% at 40 ms; one application (Microsoft Teams, 1,000 up and 3,000
+ *   down) and one client (100 up, 400 down) on each network. The MX of the
+ *   first branch is a device in OneUptime; the other two are the project's
+ *   bucket. Another project's rows are written too - and no read
  *   of this project may ever count them.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
@@ -344,12 +347,16 @@ integration("Meraki traffic reads against ClickHouse", () => {
   });
 
   test("the read stored the organization's last day", async () => {
+    /*
+     * 34 uplink windows of three MXs on two uplinks, each network's
+     * applications and clients, and the windows of health read back.
+     */
+    const rows: number =
+      34 * 3 * 2 + 3 + 3 + MAX_UPLINK_HEALTH_WINDOWS_PER_READ * 3 * 2;
+
     expect(firstOutcome.status).toBe("success");
-    // 34 uplink windows of three MXs on two uplinks, and each network's applications and clients.
-    expect(firstOutcome.summary?.rowsWritten).toBe(34 * 3 * 2 + 3 + 3);
-    expect(await count(`WHERE projectId = '${PROJECT.toString()}'`)).toBe(
-      34 * 3 * 2 + 3 + 3,
-    );
+    expect(firstOutcome.summary?.rowsWritten).toBe(rows);
+    expect(await count(`WHERE projectId = '${PROJECT.toString()}'`)).toBe(rows);
   });
 
   test("an hour's uplinks: every window's share of the range, and no other project's", async () => {
@@ -430,9 +437,15 @@ integration("Meraki traffic reads against ClickHouse", () => {
     expect(result.topApplications).toHaveLength(1);
     expect(result.topApplications[0]!.application).toBe("Microsoft Teams");
     expect(result.topApplications[0]!.flows).toBe(3 * 60);
+    expect(result.topApplications[0]).toMatchObject({
+      protocol: "UDP",
+      port: 3478,
+    });
     expect(result.topDestinations[0]).toMatchObject({
       destination: "teams.microsoft.com",
       application: "Microsoft Teams",
+      protocol: "UDP",
+      port: 3478,
     });
     expect(result.topClients).toHaveLength(3);
     expect(result.topClients[0]!.manufacturer).toBe("Dell");
@@ -513,6 +526,298 @@ integration("Meraki traffic reads against ClickHouse", () => {
     ).toBe(true);
   });
 
+  test("who talks to whom: each network's destination, protocol and port", async () => {
+    const result: NetworkTrafficUsageAggregates = await aggregates();
+
+    expect(result.topConversations).toHaveLength(3);
+    expect(
+      result.topConversations
+        .map((row: { controllerNetworkName: string }) => {
+          return row.controllerNetworkName;
+        })
+        .sort(),
+    ).toEqual(["Branch 1", "Branch 2", "Branch 3"]);
+    expect(result.topConversations[0]).toMatchObject({
+      destination: "teams.microsoft.com",
+      application: "Microsoft Teams",
+      protocol: "UDP",
+      port: 3478,
+      flows: 60,
+      clients: 12,
+    });
+    // A day's window: an hour of it is ~1/24, in the same share as the rest.
+    expect(
+      Math.abs(result.topConversations[0]!.sentOctets - 1000 * RANGE_SECONDS),
+    ).toBeLessThan(1000 * RANGE_SECONDS * 0.001);
+  });
+
+  test("a network filter holds who talks to whom to it", async () => {
+    const result: NetworkTrafficUsageAggregates = await aggregates(
+      {},
+      { controllerNetworkId: "L_1001" },
+    );
+
+    expect(result.topConversations).toHaveLength(1);
+    expect(result.topConversations[0]!.controllerNetworkName).toBe("Branch 2");
+  });
+
+  describe("an uplink's filter", () => {
+    test("narrows the numbers, the chart and the lists of uplinks to it, on every appliance", async () => {
+      const result: NetworkTrafficUsageAggregates = await aggregates(
+        {},
+        { interfaceName: "wan2" },
+      );
+
+      expect(result.totals.sentOctets).toBe(3 * 100 * RANGE_SECONDS);
+      expect(result.totals.receivedOctets).toBe(3 * 200 * RANGE_SECONDS);
+      expect(result.series).toHaveLength(12);
+      expect(result.series[0]!.sentOctets).toBe(3 * 100 * 300);
+      expect(result.topUplinks).toHaveLength(3);
+      expect(
+        result.topUplinks.every((row: { interfaceName: string }) => {
+          return row.interfaceName === "wan2";
+        }),
+      ).toBe(true);
+      // Top networks says which sites use it.
+      expect(result.topNetworks[0]!.sentOctets).toBe(100 * RANGE_SECONDS);
+    });
+
+    test("with an appliance's, one uplink of one appliance: wan2 without wan1", async () => {
+      const result: NetworkTrafficUsageAggregates = await aggregates(
+        {},
+        {
+          controllerNetworkId: "L_1001",
+          deviceSerial: "Q2XX-AAAA-0001",
+          interfaceName: "wan2",
+        },
+      );
+
+      expect(result.totals.sentOctets).toBe(100 * RANGE_SECONDS);
+      expect(result.topUplinks).toHaveLength(1);
+      expect(result.topUplinks[0]!.interfaceName).toBe("wan2");
+    });
+
+    test("leaves the applications, the clients and the flows the network's", async () => {
+      const everything: NetworkTrafficUsageAggregates = await aggregates();
+      const narrowed: NetworkTrafficUsageAggregates = await aggregates(
+        {},
+        { interfaceName: "wan2" },
+      );
+
+      expect(narrowed.applicationTotals).toEqual(everything.applicationTotals);
+      expect(narrowed.clientTotals).toEqual(everything.clientTotals);
+      expect(narrowed.totals.flows).toBe(everything.totals.flows);
+      expect(narrowed.topConversations).toEqual(everything.topConversations);
+    });
+
+    test("an uplink nothing carried matches nothing", async () => {
+      const result: NetworkTrafficUsageAggregates = await aggregates(
+        {},
+        { interfaceName: "cellular" },
+      );
+
+      expect(result.totals.sentOctets).toBe(0);
+      expect(result.topUplinks).toEqual([]);
+    });
+
+    test("a name that is SQL is a value, and matches nothing", async () => {
+      const result: NetworkTrafficUsageAggregates = await aggregates(
+        {},
+        { interfaceName: "wan1' OR '1'='1" },
+      );
+
+      expect(result.totals.sentOctets).toBe(0);
+    });
+  });
+
+  describe("the page's uplinks, side by side", () => {
+    test("each carried what it should, on every appliance", async () => {
+      const result: NetworkTrafficUsageAggregates = await aggregates();
+
+      expect(result.uplinkInterfaces).toHaveLength(2);
+
+      const [wan1, wan2] = result.uplinkInterfaces;
+
+      expect(wan1).toMatchObject({
+        interfaceName: "wan1",
+        applianceCount: 3,
+        sentOctets: 3 * 10000 * RANGE_SECONDS,
+        receivedOctets: 3 * 50000 * RANGE_SECONDS,
+      });
+      expect(wan2).toMatchObject({
+        interfaceName: "wan2",
+        applianceCount: 3,
+        sentOctets: 3 * 100 * RANGE_SECONDS,
+        receivedOctets: 3 * 200 * RANGE_SECONDS,
+      });
+    });
+
+    test("narrowed to wan2, wan1 stays beside it, whole", async () => {
+      const everything: NetworkTrafficUsageAggregates = await aggregates();
+      const narrowed: NetworkTrafficUsageAggregates = await aggregates(
+        {},
+        { interfaceName: "wan2" },
+      );
+
+      expect(narrowed.uplinkInterfaces).toEqual(everything.uplinkInterfaces);
+      expect(narrowed.uplinkSeries).toEqual(everything.uplinkSeries);
+    });
+
+    test("an appliance's filter holds them to it, and a device's reader to theirs", async () => {
+      const appliance: NetworkTrafficUsageAggregates = await aggregates(
+        {},
+        { deviceSerial: "Q2XX-AAAA-0001" },
+      );
+
+      expect(appliance.uplinkInterfaces[0]).toMatchObject({
+        applianceCount: 1,
+        sentOctets: 10000 * RANGE_SECONDS,
+      });
+
+      const device: NetworkTrafficUsageAggregates = await aggregates({
+        devices: { serviceIds: [MX_DEVICE] },
+      });
+
+      expect(device.uplinkInterfaces[0]).toMatchObject({
+        applianceCount: 1,
+        sentOctets: 10000 * RANGE_SECONDS,
+      });
+    });
+
+    test("the chart splits every window over its buckets, uplink by uplink", async () => {
+      const result: NetworkTrafficUsageAggregates = await aggregates();
+
+      // Twelve five-minute buckets of two uplinks, the hour window split evenly.
+      expect(result.uplinkSeries).toHaveLength(24);
+
+      const wan1: Array<NetworkTrafficUsageAggregates["uplinkSeries"][number]> =
+        result.uplinkSeries.filter((point: { interfaceName: string }) => {
+          return point.interfaceName === "wan1";
+        });
+
+      expect(wan1).toHaveLength(12);
+      expect(wan1[0]!.time).toBe("2026-10-24T10:00:00.000Z");
+
+      for (const point of wan1) {
+        expect(point.sentOctets).toBe(3 * 10000 * 300);
+        expect(point.receivedOctets).toBe(3 * 50000 * 300);
+      }
+    });
+
+    test("what Meraki measured, averaged over the range: the health reads back two hours", async () => {
+      // The newest two hours are the ones measured.
+      const result: NetworkTrafficUsageAggregates = await aggregates({
+        startTime: new Date("2026-10-24T11:00:00.000Z"),
+        endTime: new Date("2026-10-24T11:55:00.000Z"),
+      });
+
+      const [wan1, wan2] = result.uplinkInterfaces;
+
+      expect(wan1!.lossPercent).toBeCloseTo(0.5, 6);
+      expect(wan1!.latencyMs).toBeCloseTo(20, 6);
+      expect(wan2!.lossPercent).toBeCloseTo(1.5, 6);
+      expect(wan2!.latencyMs).toBeCloseTo(40, 6);
+
+      const measured: Array<
+        NetworkTrafficUsageAggregates["uplinkSeries"][number]
+      > = result.uplinkSeries.filter((point: { interfaceName: string }) => {
+        return point.interfaceName === "wan2";
+      });
+
+      expect(measured).toHaveLength(11);
+      expect(measured[0]!.latencyMs).toBeCloseTo(40, 6);
+    });
+
+    test("traffic from before any measurement is unknown: null, never a perfect 0", async () => {
+      // The day's backfill of usage reaches back here; the health's two hours do not.
+      const result: NetworkTrafficUsageAggregates = await aggregates({
+        startTime: new Date("2026-10-24T02:00:00.000Z"),
+        endTime: new Date("2026-10-24T03:00:00.000Z"),
+      });
+
+      expect(result.uplinkInterfaces[0]!.sentOctets).toBeGreaterThan(0);
+      expect(result.uplinkInterfaces[0]!.lossPercent).toBeNull();
+      expect(result.uplinkInterfaces[0]!.latencyMs).toBeNull();
+      expect(result.uplinkSeries[0]!.sentOctets).toBeGreaterThan(0);
+      expect(result.uplinkSeries[0]!.latencyMs).toBeNull();
+    });
+
+    test("a standby line that carried nothing is compared all the same, by its measurements", async () => {
+      await NetworkTrafficUsageService.insertJsonRows([
+        toUsageRow({
+          record: {
+            kind: NetworkTrafficUsageKind.UplinkHealth,
+            controllerNetworkId: "L_1000",
+            controllerNetworkName: "Branch 1",
+            deviceSerial: "Q2XX-AAAA-0000",
+            deviceName: "MX 1",
+            interfaceName: "cellular",
+            application: "",
+            destination: "",
+            protocol: "",
+            port: 0,
+            clientKey: "",
+            clientName: "",
+            clientIp: "",
+            clientMac: "",
+            clientManufacturer: "",
+            sentOctets: 0,
+            receivedOctets: 0,
+            flows: 0,
+            clients: 0,
+            lossPercent: 0,
+            latencyMs: 71,
+            windowStartAt: new Date("2026-10-24T11:30:00.000Z"),
+            windowEndAt: new Date("2026-10-24T11:35:00.000Z"),
+          },
+          projectId: PROJECT,
+          connectionId: CONNECTION,
+          matches: { bySerial: new Map(), byNetwork: new Map() },
+          ingestedAt: START,
+        }),
+      ]);
+
+      const result: NetworkTrafficUsageAggregates = await aggregates({
+        startTime: new Date("2026-10-24T11:00:00.000Z"),
+        endTime: new Date("2026-10-24T11:55:00.000Z"),
+      });
+
+      expect(
+        result.uplinkInterfaces.find((row: { interfaceName: string }) => {
+          return row.interfaceName === "cellular";
+        }),
+      ).toEqual({
+        interfaceName: "cellular",
+        applianceCount: 0,
+        sentOctets: 0,
+        receivedOctets: 0,
+        lossPercent: 0,
+        latencyMs: 71,
+      });
+      expect(
+        result.uplinkSeries.filter((point: { interfaceName: string }) => {
+          return point.interfaceName === "cellular";
+        }),
+      ).toHaveLength(1);
+    });
+
+    test("the rows of every other kind hold no measurement, and none is taken for one", async () => {
+      expect(
+        await count(
+          `WHERE projectId = '${PROJECT.toString()}' AND kind != 'uplinkHealth' AND (lossPercent IS NOT NULL OR latencyMs IS NOT NULL)`,
+        ),
+      ).toBe(0);
+    });
+
+    test("the health rows hold no bytes: they are no traffic, and no page total counts them", async () => {
+      expect(
+        await count(
+          `WHERE projectId = '${PROJECT.toString()}' AND kind = 'uplinkHealth' AND (sentOctets != 0 OR receivedOctets != 0)`,
+        ),
+      ).toBe(0);
+    });
+  });
+
   test("a filter that is SQL is a value, and matches nothing", async () => {
     const result: NetworkTrafficUsageAggregates = await aggregates(
       {},
@@ -556,9 +861,15 @@ integration("Meraki traffic reads against ClickHouse", () => {
         ],
       });
 
-    expect(keys.size).toBe(34 + 3 + 3);
+    expect(keys.size).toBe(34 + 3 + 3 + MAX_UPLINK_HEALTH_WINDOWS_PER_READ);
     expect(
       keys.has(`uplink||${new Date("2026-10-24T11:50:00.000Z").getTime()}`),
+    ).toBe(true);
+    // The organization's, as an uplink window is: no network in its key.
+    expect(
+      keys.has(
+        `uplinkHealth||${new Date("2026-10-24T11:50:00.000Z").getTime()}`,
+      ),
     ).toBe(true);
 
     const ends: NetworkTrafficUsageStoredEnds =
@@ -569,11 +880,18 @@ integration("Meraki traffic reads against ClickHouse", () => {
       });
 
     expect(ends.uplinkEnd?.toISOString()).toBe("2026-10-24T11:55:00.000Z");
+    expect(ends.uplinkHealthEnd?.toISOString()).toBe(
+      "2026-10-24T11:55:00.000Z",
+    );
     expect(Array.from(ends.analyticsEnds.keys()).sort()).toEqual([
       "L_1000",
       "L_1001",
       "L_1002",
     ]);
+    // Each network's end is its analytics' own, a whole read after the health's.
+    for (const end of ends.analyticsEnds.values()) {
+      expect(end.getTime()).toBeGreaterThanOrEqual(START.getTime());
+    }
   });
 
   test("a read whose cursor was not recorded reads on from the stored rows, and nothing is counted twice", async () => {
@@ -592,8 +910,11 @@ integration("Meraki traffic reads against ClickHouse", () => {
     const rowsAfterFailure: number = await count(
       `WHERE projectId = '${PROJECT.toString()}'`,
     );
-    // One new five-minute window of six uplinks: nothing of the day again.
-    expect(rowsAfterFailure - rowsBefore).toBe(6);
+    /*
+     * One new five-minute window of six uplinks, and its six of health:
+     * nothing of the day again.
+     */
+    expect(rowsAfterFailure - rowsBefore).toBe(6 + 6);
 
     clock.advance(5 * 60 * 1000);
     await read(CONNECTION);
