@@ -336,8 +336,9 @@ describe("a form field says it is optional once, on its label", () => {
   });
 
   test("the placeholders it was written for now say what to pick, and no more", () => {
-    const constants: Map<string, Array<string>> =
-      collectStringConstants(sources);
+    const constants: Map<string, Array<string>> = collectStringConstants(
+      sources,
+    );
 
     expect(constants.get("MONITOR_BINDING_FIELD_PLACEHOLDER")).toEqual([
       "Select Monitor",
@@ -388,7 +389,7 @@ describe("a form field says it is optional once, on its label", () => {
     expect(
       scanText({
         "Editor.tsx": [
-          "const a = <Input placeholder=\"Unit (optional, e.g., dBm)\" />;",
+          'const a = <Input placeholder="Unit (optional, e.g., dBm)" />;',
           'const b = { field: { dns: true }, title: "DNS Server (Optional)", placeholder: "8.8.8.8" };',
           'const c = { placeholder: "Search (optional filters)" };',
           'const d = { field: { name: true }, title: "Name", placeholder: "Optionally, a name" };',
