@@ -129,7 +129,9 @@ const RecentDeploysCard: FunctionComponent<ComponentProps> = (
           const platform: string = deploy.cloudApp?.cloudPlatform || "";
           const route: Route = new Route(
             `${RouteUtil.populateRouteParams(
-              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP] as Route,
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL
+              ] as Route,
               {
                 modelId: new ObjectID(deploy.cloudResourceId!.toString()),
                 subModelId: new ObjectID(deploy.cloudAppId!.toString()),

@@ -333,10 +333,14 @@ const AppPlatformApp: FunctionComponent<
         modelId: loaded.serviceId,
       })
     : undefined;
+  const alertsRoute: Route | undefined = loaded.serviceId
+    ? RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SERVICE_VIEW_RECOMMENDATIONS] as Route,
+        { modelId: loaded.serviceId },
+      )
+    : undefined;
 
-  const notScoped: ReactElement = (
-    <ErrorMessage message={APP_NOT_SCOPED} />
-  );
+  const notScoped: ReactElement = <ErrorMessage message={APP_NOT_SCOPED} />;
 
   const tabs: Array<Tab> = [
     {
@@ -416,6 +420,7 @@ const AppPlatformApp: FunctionComponent<
           environment={environment}
           liveInstances={liveInstances}
           serviceRoute={serviceRoute}
+          alertsRoute={alertsRoute}
           environmentRoute={environmentRoute}
           controls={
             <AutoRefreshControl

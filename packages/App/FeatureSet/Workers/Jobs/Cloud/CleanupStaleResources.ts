@@ -94,15 +94,13 @@ export function isAppPruneTick(now: Date): boolean {
  * the retention days before the environment's own last telemetry.
  */
 async function pruneUnseenAppsAndRevisions(): Promise<void> {
-  const environments: Array<CloudResource> = await CloudResourceService.findBy(
-    {
-      query: { cloudResourceKind: CloudResourceKind.Environment },
-      select: { _id: true, lastSeenAt: true },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: { isRoot: true },
-    },
-  );
+  const environments: Array<CloudResource> = await CloudResourceService.findBy({
+    query: { cloudResourceKind: CloudResourceKind.Environment },
+    select: { _id: true, lastSeenAt: true },
+    skip: 0,
+    limit: LIMIT_MAX,
+    props: { isRoot: true },
+  });
 
   let apps: number = 0;
   let revisions: number = 0;

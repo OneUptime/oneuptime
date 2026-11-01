@@ -2,8 +2,11 @@ import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "./CloudResourceTelemetryScope";
 import { CLOUD_FLEET_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
 import {
+  PluralTemplate,
   getGlobalTranslator,
+  translatePlural,
   translateTemplate,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -17,6 +20,16 @@ import {
 
 // The window the Deploys tile counts deploys in.
 export const CLOUD_FLEET_DEPLOYS_WINDOW_HOURS: number = 24;
+
+/*
+ * How many environments went quiet, under their count. The noun is written
+ * out, as the Overview's platform groups write it: "{{count}} disconnected"
+ * is the probes', and its translations agree with "probe".
+ */
+export const ENVIRONMENTS_DISCONNECTED: PluralTemplate = {
+  one: "{{count}} environment disconnected",
+  other: "{{count}} environments disconnected",
+};
 
 export interface CloudFleetCounts {
   /* Unarchived environments. */
@@ -124,18 +137,16 @@ export function summarizeCloudFleet(
    */
   const appsLine: string =
     apps === 0
-      ? "none reported yet"
+      ? translationKey("none reported yet")
       : runningApps >= apps
-        ? "all running"
+        ? translationKey("all running")
         : translateTemplate("{{count}} not reporting", {
             count: formatCount(apps - runningApps),
           });
 
   const environmentsLine: string =
     total > 0 && disconnected > 0
-      ? translateTemplate("{{count}} disconnected", {
-          count: formatCount(disconnected),
-        })
+      ? translatePlural(ENVIRONMENTS_DISCONNECTED, disconnected)
       : breakdown || "none discovered yet";
 
   return [

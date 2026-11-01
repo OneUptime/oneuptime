@@ -27,7 +27,12 @@ import {
   getCloudAppState,
   getShortRevision,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
-import { APP_INSTANCE_COUNT, APP_LAST_SEEN } from "./CloudAppCells";
+import {
+  APP_DEPLOYED,
+  APP_INSTANCE_COUNT,
+  APP_LAST_SEEN,
+} from "./CloudAppCells";
+import { REVISION_REPLACED } from "./CloudAppRevisionsTab";
 
 /*
  * The top of an App Platforms app's page, above its tabs - what the app is
@@ -39,16 +44,15 @@ import { APP_INSTANCE_COUNT, APP_LAST_SEEN } from "./CloudAppCells";
  */
 
 export const APP_REVISION: string = translationKey("Revision {{revision}}");
-export const APP_REVISION_DEPLOYED: string =
-  translationKey("deployed {{time}}");
-export const APP_REVISION_REPLACED: string = translationKey(
-  "replaced {{revision}}",
-);
 export const APP_NO_REVISION: string = translationKey(
   "No revision reported yet",
 );
 export const APP_OPEN_SERVICE: string = translationKey(
   "Open the service {{service}}",
+);
+export const APP_SET_UP_ALERTS: string = translationKey("Set up alerts");
+export const APP_SET_UP_ALERTS_HINT: string = translationKey(
+  "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.",
 );
 
 const STATE_PILL_CLASS_NAMES: Readonly<Record<CloudAppState, string>> = {
@@ -68,6 +72,8 @@ export interface ComponentProps {
   liveInstances?: number | undefined;
   // The service the app's telemetry is under, in Services, when it has one.
   serviceRoute?: Route | undefined;
+  // That service's recommended alerts, when it has a service.
+  alertsRoute?: Route | undefined;
   environmentRoute: Route;
   controls?: ReactElement | undefined;
 }
@@ -206,7 +212,7 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
                       <>
                         {" · "}
                         <span className="whitespace-nowrap">
-                          {translator.translateTemplate(APP_REVISION_DEPLOYED, {
+                          {translator.translateTemplate(APP_DEPLOYED, {
                             time: OneUptimeDate.fromNow(
                               OneUptimeDate.fromString(
                                 app.currentRevisionSince,
@@ -223,15 +229,12 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
                         {" · "}
                         <span className="whitespace-nowrap text-gray-400">
                           <bdi>
-                            {translator.translateTemplate(
-                              APP_REVISION_REPLACED,
-                              {
-                                revision: getShortRevision({
-                                  revision: app.previousRevision,
-                                  appName: app.name,
-                                }),
-                              },
-                            )}
+                            {translator.translateTemplate(REVISION_REPLACED, {
+                              revision: getShortRevision({
+                                revision: app.previousRevision,
+                                appName: app.name,
+                              }),
+                            })}
                           </bdi>
                         </span>
                       </>
@@ -256,8 +259,25 @@ const CloudAppHeader: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        {props.serviceRoute || app.image ? (
-          <div className="mt-4 flex flex-wrap gap-1.5">
+        {props.serviceRoute || app.image || props.alertsRoute ? (
+          <div className="mt-4 flex flex-wrap items-center gap-1.5">
+            {/*
+             * Alerts that work out of the box: the service's recommended
+             * monitors - its requests failing, slowing or stopping - one
+             * click from the app.
+             */}
+            {props.alertsRoute ? (
+              <AppLink
+                to={props.alertsRoute}
+                className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100"
+                title={translator.translateText(APP_SET_UP_ALERTS_HINT)}
+              >
+                <Icon icon={IconProp.Bell} className="h-3 w-3" />
+                <span>{translator.translateText(APP_SET_UP_ALERTS)}</span>
+              </AppLink>
+            ) : (
+              <></>
+            )}
             {props.serviceRoute && app.serviceName ? (
               <AppLink
                 to={props.serviceRoute}

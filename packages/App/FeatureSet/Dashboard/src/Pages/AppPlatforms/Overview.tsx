@@ -100,6 +100,10 @@ export const ENVIRONMENT_LAST_SEEN: string =
 export const ENVIRONMENT_NEVER_SEEN: string = translationKey(
   "Waiting for its first data",
 );
+// A platform none of whose environments has sent anything yet.
+export const GROUP_NEVER_SEEN: string = translationKey(
+  "Waiting for first data",
+);
 export const UNKNOWN_PLATFORM: string = translationKey(
   "Platform not reported yet",
 );
@@ -193,8 +197,7 @@ const PlatformGroupRows: FunctionComponent<{
       : tone === AppPlatformGroupTone.Silent
         ? translator.translateText(NONE_CONNECTED) || NONE_CONNECTED
         : tone === AppPlatformGroupTone.Waiting
-          ? translator.translateText(ENVIRONMENT_NEVER_SEEN) ||
-            ENVIRONMENT_NEVER_SEEN
+          ? translator.translateText(GROUP_NEVER_SEEN) || GROUP_NEVER_SEEN
           : translator.translatePlural(
               SOME_DISCONNECTED,
               total - group.connected,

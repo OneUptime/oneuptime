@@ -206,7 +206,7 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
 
   const getAppRoute: (app: CloudApp) => Route = (app: CloudApp): Route => {
     return RouteUtil.populateRouteParams(
-      RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP] as Route,
+      RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL] as Route,
       {
         modelId: new ObjectID(idOf(app.cloudResourceId)),
         subModelId: new ObjectID(idOf(app._id)),
@@ -256,7 +256,9 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
     if (app.groupName && groupNoun) {
       parts.push(
         translator.translateTemplate("{{noun}} {{name}}", {
-          noun: (translator.translateText(groupNoun) || groupNoun).toLowerCase(),
+          noun: (
+            translator.translateText(groupNoun) || groupNoun
+          ).toLowerCase(),
           name: app.groupName,
         }),
       );

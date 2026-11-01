@@ -48,6 +48,17 @@ export enum CloudResourceFeedEventType {
   AppRolledBack = "AppRolledBack",
 }
 
+/*
+ * The event types only an App Platforms environment's feed has - its apps'
+ * deploys and rollbacks. A cloud resource in Cloud runs no apps, so its feed
+ * does not offer them.
+ */
+export const CLOUD_APP_FEED_EVENT_TYPES: ReadonlyArray<CloudResourceFeedEventType> =
+  [
+    CloudResourceFeedEventType.AppDeployed,
+    CloudResourceFeedEventType.AppRolledBack,
+  ];
+
 @EnableDocumentation()
 @CanAccessIfCanReadOn("cloudResource")
 @TenantColumn("projectId")

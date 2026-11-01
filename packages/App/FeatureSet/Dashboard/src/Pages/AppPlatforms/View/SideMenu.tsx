@@ -120,7 +120,7 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           activeRoute={getDetailPageActiveRoute({
-            detailPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP,
+            detailPage: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL,
             modelId: props.modelId,
           })}
           icon={IconProp.Squares}

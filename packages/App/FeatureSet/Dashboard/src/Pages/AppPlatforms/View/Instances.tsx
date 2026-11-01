@@ -71,7 +71,7 @@ export const CloudInstancesTable: FunctionComponent<
     instance: CloudResourceInstance,
   ): Route => {
     return RouteUtil.populateRouteParams(
-      RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP] as Route,
+      RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL] as Route,
       {
         modelId: props.environmentId,
         subModelId: new ObjectID(instance.cloudAppId!.toString()),
@@ -82,7 +82,9 @@ export const CloudInstancesTable: FunctionComponent<
   return (
     <ModelTable<CloudResourceInstance>
       modelType={CloudResourceInstance}
-      id={appId ? "cloud-app-instances-table" : "cloud-resource-instances-table"}
+      id={
+        appId ? "cloud-app-instances-table" : "cloud-resource-instances-table"
+      }
       userPreferencesKey={
         appId ? "cloud-app-instances-table" : "cloud-resource-instances-table"
       }
@@ -259,7 +261,8 @@ export const CloudInstancesTable: FunctionComponent<
           title: "Last Seen",
           type: FieldType.DateTime,
         },
-      ]} />
+      ]}
+    />
   );
 };
 

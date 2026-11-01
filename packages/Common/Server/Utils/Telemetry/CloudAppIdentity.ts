@@ -97,7 +97,6 @@ function isUnknownServiceName(value: string): boolean {
   return value.toLowerCase().startsWith(UNKNOWN_SERVICE_NAME_PREFIX);
 }
 
-
 // The first of `keys` the resource reports, as [key, value].
 function readFirst(data: {
   keys: ReadonlyArray<string>;
@@ -122,7 +121,8 @@ function readFirst(data: {
  */
 export function isTrackableRevision(value: string): boolean {
   return (
-    isTrackableVersion(value) && value.trim().length <= CLOUD_APP_FIELD_MAX_LENGTH
+    isTrackableVersion(value) &&
+    value.trim().length <= CLOUD_APP_FIELD_MAX_LENGTH
   );
 }
 

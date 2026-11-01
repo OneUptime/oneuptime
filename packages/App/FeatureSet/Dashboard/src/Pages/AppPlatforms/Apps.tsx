@@ -140,7 +140,9 @@ const AppPlatformsApps: FunctionComponent<
     );
   }
 
-  return <CloudAppsTable id="app-platforms-apps-table" environments={environments} />;
+  return (
+    <CloudAppsTable id="app-platforms-apps-table" environments={environments} />
+  );
 };
 
 export default AppPlatformsApps;

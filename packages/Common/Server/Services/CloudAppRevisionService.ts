@@ -316,7 +316,10 @@ export class Service extends DatabaseService<Model> {
       -CLOUD_APP_REVISION_LIVE_MINUTES,
     );
 
-    if (currentLastSeenAt && currentLastSeenAt.getTime() > liveSince.getTime()) {
+    if (
+      currentLastSeenAt &&
+      currentLastSeenAt.getTime() > liveSince.getTime()
+    ) {
       // The current revision still runs: this is an instance draining.
       return { change: null };
     }

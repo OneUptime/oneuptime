@@ -11,7 +11,11 @@ import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -103,8 +107,33 @@ const FALLBACK_TILE_STYLE: TileStyle = {
 const ENVIRONMENT: CloudResourceKind = CloudResourceKind.Environment;
 
 /*
- * Nine count requests, issued together. Providers are enumerated from the
- * shared CloudProvider enum so a new provider shows up here without a
+ * The ids of the environments the strip summarises, for the counts of their
+ * apps: an archived environment's apps are hidden as All Apps hides them.
+ */
+async function fetchEnvironmentIds(): Promise<Array<ObjectID>> {
+  const result: ListResult<CloudResource> =
+    await ModelAPI.getList<CloudResource>({
+      modelType: CloudResource,
+      query: { isArchived: false, cloudResourceKind: ENVIRONMENT },
+      select: { _id: true },
+      sort: {},
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    });
+
+  return result.data
+    .map((environment: CloudResource): ObjectID | null => {
+      return environment._id ? new ObjectID(environment._id.toString()) : null;
+    })
+    .filter((id: ObjectID | null): id is ObjectID => {
+      return id !== null;
+    });
+}
+
+/*
+ * The environments' counts and their ids, issued together, then the counts
+ * of their apps, running apps and deploys. Providers are enumerated from
+ * the shared CloudProvider enum so a new provider shows up here without a
  * dashboard change; the total stays bounded because that enum is short.
  */
 export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
@@ -117,55 +146,71 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
     -CLOUD_FLEET_DEPLOYS_WINDOW_HOURS,
   );
 
-  const [
-    total,
-    connected,
-    liveInstances,
-    apps,
-    runningApps,
-    deploys,
-    ...providerCounts
-  ]: Array<number> = await Promise.all([
-      ModelAPI.count({
-        modelType: CloudResource,
-        query: { isArchived: false, cloudResourceKind: ENVIRONMENT },
-      }),
-      ModelAPI.count({
-        modelType: CloudResource,
-        query: {
-          isArchived: false,
-          cloudResourceKind: ENVIRONMENT,
-          otelCollectorStatus: "connected",
-        },
-      }),
-      ModelAPI.count({
-        modelType: CloudResourceInstance,
-        query: { lastSeenAt: new GreaterThan<Date>(liveSince) },
-      }),
-      ModelAPI.count({ modelType: CloudApp, query: {} }),
-      ModelAPI.count({
-        modelType: CloudApp,
-        query: { lastSeenAt: new GreaterThan<Date>(liveSince) },
-      }),
-      // A deploy names the revision it replaced; an app's first does not.
-      ModelAPI.count({
-        modelType: CloudAppRevision,
-        query: {
-          firstSeenAt: new GreaterThan<Date>(deploysSince),
-          previousRevision: new NotNull(),
-        },
-      }),
-      ...providers.map((provider: CloudProvider): Promise<number> => {
-        return ModelAPI.count({
+  const [environmentIds, environmentCounts]: [Array<ObjectID>, Array<number>] =
+    await Promise.all([
+      fetchEnvironmentIds(),
+      Promise.all([
+        ModelAPI.count({
+          modelType: CloudResource,
+          query: { isArchived: false, cloudResourceKind: ENVIRONMENT },
+        }),
+        ModelAPI.count({
           modelType: CloudResource,
           query: {
             isArchived: false,
             cloudResourceKind: ENVIRONMENT,
-            cloudProvider: provider,
+            otelCollectorStatus: "connected",
           },
-        });
-      }),
+        }),
+        ModelAPI.count({
+          modelType: CloudResourceInstance,
+          query: { lastSeenAt: new GreaterThan<Date>(liveSince) },
+        }),
+        ...providers.map((provider: CloudProvider): Promise<number> => {
+          return ModelAPI.count({
+            modelType: CloudResource,
+            query: {
+              isArchived: false,
+              cloudResourceKind: ENVIRONMENT,
+              cloudProvider: provider,
+            },
+          });
+        }),
+      ]),
     ]);
+
+  const [total, connected, liveInstances, ...providerCounts]: Array<number> =
+    environmentCounts;
+
+  /*
+   * No environment, no app to count: the strip is not drawn then, and an
+   * empty Includes would match nothing anyway.
+   */
+  const [apps, runningApps, deploys]: Array<number> =
+    environmentIds.length > 0
+      ? await Promise.all([
+          ModelAPI.count({
+            modelType: CloudApp,
+            query: { cloudResourceId: new Includes(environmentIds) },
+          }),
+          ModelAPI.count({
+            modelType: CloudApp,
+            query: {
+              cloudResourceId: new Includes(environmentIds),
+              lastSeenAt: new GreaterThan<Date>(liveSince),
+            },
+          }),
+          // A deploy names the revision it replaced; an app's first does not.
+          ModelAPI.count({
+            modelType: CloudAppRevision,
+            query: {
+              cloudResourceId: new Includes(environmentIds),
+              firstSeenAt: new GreaterThan<Date>(deploysSince),
+              previousRevision: new NotNull(),
+            },
+          }),
+        ])
+      : [0, 0, 0];
 
   const byProvider: Record<string, number> = {};
   providers.forEach((provider: CloudProvider, index: number): void => {

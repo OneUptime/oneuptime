@@ -125,6 +125,12 @@ type MaintenanceFence = {
   id: string;
 };
 
+// What keepCloudAppAndRevision leaves: the environment's id after its writes, and the app's id when known.
+type KeptCloudApp = {
+  environmentId: string;
+  appId: ObjectID | null;
+};
+
 /*
  * A resource ingest discovers, as it names it: its kind, its project and the
  * value its telemetry reports (a host name, a cluster name, a cloud
@@ -541,6 +547,7 @@ export default abstract class OtelIngestBaseService {
     this.maintenanceFenceNegativeMemo.clear();
     this.unresolvedDatabaseServerMemo.clear();
     this.unresolvedCloudMonitoredResourceMemo.clear();
+    this.storedIoTFleetNames.clear();
     this.cloudAppIdMemo.clear();
   }
 
@@ -3438,76 +3445,17 @@ export default abstract class OtelIngestBaseService {
       let cloudAppId: ObjectID | null = null;
 
       if (appIdentity) {
-        const appFenceId: string = `${liveIdStr}:${appIdentity.appKey}`;
-
-        if (await this.shouldRunMaintenance("cloud-app", appFenceId)) {
-          armedFences.push({ scope: "cloud-app", id: appFenceId });
-          liveIdStr = await this.writeForDiscoveredResource({
-            kind: DiscoveredResourceKinds.CloudResource,
-            id: liveIdStr,
-            write: async (cloudResourceId: ObjectID): Promise<void> => {
-              cloudAppId = await CloudAppService.recordApp({
-                projectId: data.projectId,
-                cloudResourceId,
-                cloudPlatform,
-                identity: appIdentity,
-              });
-              this.cloudAppIdMemo.set(
-                `${cloudResourceId.toString()}:${appIdentity.appKey}`,
-                cloudAppId.toString(),
-              );
-            },
-          });
-        }
-
-        const revision: string | null = appIdentity.revision;
-        const revisionFenceId: string = `${liveIdStr}:${appIdentity.appKey}:${revision || ""}`;
-
-        if (
-          revision &&
-          (await this.shouldRunMaintenance(
-            "cloud-app-revision",
-            revisionFenceId,
-          ))
-        ) {
-          armedFences.push({ scope: "cloud-app-revision", id: revisionFenceId });
-          cloudAppId =
-            cloudAppId ||
-            (await this.resolveCloudAppId({
-              projectId: data.projectId,
-              cloudResourceId: new ObjectID(liveIdStr),
-              cloudPlatform,
-              identity: appIdentity,
-            }));
-
-          const recorded: RecordCloudAppRevisionResult =
-            await CloudAppRevisionService.recordRevision({
-              projectId: data.projectId,
-              cloudResourceId: new ObjectID(liveIdStr),
-              cloudAppId: cloudAppId,
-              revision,
-              serviceVersion: appIdentity.serviceVersion,
-              image: appIdentity.image,
-            });
-
-          if (recorded.change) {
-            CloudAppChangeRecorder.recordChange({
-              projectId: data.projectId,
-              subject: {
-                appId: cloudAppId,
-                appName: appIdentity.name,
-                groupName: appIdentity.groupName,
-                environmentId: new ObjectID(liveIdStr),
-                cloudPlatform,
-                cloudProvider,
-                cloudAccountId,
-                cloudRegion,
-                serviceVersion: appIdentity.serviceVersion,
-              },
-              change: recorded.change,
-            });
-          }
-        }
+        const keptApp: KeptCloudApp = await this.keepCloudAppAndRevision({
+          projectId: data.projectId,
+          environmentId: liveIdStr,
+          cloudPlatform,
+          cloudProvider,
+          cloudAccountId,
+          cloudRegion,
+          identity: appIdentity,
+        });
+        liveIdStr = keptApp.environmentId;
+        cloudAppId = keptApp.appId;
       }
 
       /*
@@ -3542,7 +3490,7 @@ export default abstract class OtelIngestBaseService {
           write: async (cloudResourceId: ObjectID): Promise<void> => {
             const instanceAppId: ObjectID | null = appIdentity
               ? cloudAppId ||
-                (await this.resolveCloudAppId({
+                (await this.resolveCloudAppIdOrNull({
                   projectId: data.projectId,
                   cloudResourceId,
                   cloudPlatform,
@@ -3565,6 +3513,144 @@ export default abstract class OtelIngestBaseService {
       await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Cloud resource: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Keeps an environment's app and the revision it runs (see
+   * discoverMatchedCloudResource), each under a fence of its own. A failure
+   * releases this method's fences, is logged, and never fails the batch:
+   * the environment link and the instance row matter more than the app's
+   * row, which the next window writes again. Returns the environment's id
+   * as it stands after the writes (a gone environment is resolved again)
+   * and the app's id, when this window learned it.
+   */
+  private static async keepCloudAppAndRevision(data: {
+    projectId: ObjectID;
+    environmentId: string;
+    cloudPlatform: string;
+    cloudProvider: string | null;
+    cloudAccountId: string | null;
+    cloudRegion: string | null;
+    identity: CloudAppIdentity;
+  }): Promise<KeptCloudApp> {
+    const armedFences: Array<MaintenanceFence> = [];
+    const kept: KeptCloudApp = {
+      environmentId: data.environmentId,
+      appId: null,
+    };
+
+    try {
+      const appFenceId: string = `${kept.environmentId}:${data.identity.appKey}`;
+
+      if (await this.shouldRunMaintenance("cloud-app", appFenceId)) {
+        armedFences.push({ scope: "cloud-app", id: appFenceId });
+        kept.environmentId = await this.writeForDiscoveredResource({
+          kind: DiscoveredResourceKinds.CloudResource,
+          id: kept.environmentId,
+          write: async (cloudResourceId: ObjectID): Promise<void> => {
+            const appId: ObjectID = await CloudAppService.recordApp({
+              projectId: data.projectId,
+              cloudResourceId,
+              cloudPlatform: data.cloudPlatform,
+              identity: data.identity,
+            });
+            this.cloudAppIdMemo.set(
+              `${cloudResourceId.toString()}:${data.identity.appKey}`,
+              appId.toString(),
+            );
+            kept.appId = appId;
+          },
+        });
+      }
+
+      const revision: string | null = data.identity.revision;
+
+      if (!revision) {
+        return kept;
+      }
+
+      const revisionFenceId: string = `${kept.environmentId}:${data.identity.appKey}:${revision}`;
+
+      if (
+        !(await this.shouldRunMaintenance(
+          "cloud-app-revision",
+          revisionFenceId,
+        ))
+      ) {
+        return kept;
+      }
+
+      armedFences.push({ scope: "cloud-app-revision", id: revisionFenceId });
+
+      const environmentId: ObjectID = new ObjectID(kept.environmentId);
+      const appId: ObjectID =
+        kept.appId ||
+        (await this.resolveCloudAppId({
+          projectId: data.projectId,
+          cloudResourceId: environmentId,
+          cloudPlatform: data.cloudPlatform,
+          identity: data.identity,
+        }));
+      kept.appId = appId;
+
+      const recorded: RecordCloudAppRevisionResult =
+        await CloudAppRevisionService.recordRevision({
+          projectId: data.projectId,
+          cloudResourceId: environmentId,
+          cloudAppId: appId,
+          revision,
+          serviceVersion: data.identity.serviceVersion,
+          image: data.identity.image,
+        });
+
+      if (recorded.change) {
+        CloudAppChangeRecorder.recordChange({
+          projectId: data.projectId,
+          subject: {
+            appId,
+            appName: data.identity.name,
+            groupName: data.identity.groupName,
+            environmentId,
+            cloudPlatform: data.cloudPlatform,
+            cloudProvider: data.cloudProvider,
+            cloudAccountId: data.cloudAccountId,
+            cloudRegion: data.cloudRegion,
+            serviceVersion: data.identity.serviceVersion,
+          },
+          change: recorded.change,
+        });
+      }
+
+      return kept;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error keeping a Cloud app or its revision: " + (err as Error).message,
+      );
+      return kept;
+    }
+  }
+
+  /*
+   * An app's id for an instance row, or null when it cannot be had right
+   * now: the instance is then recorded without its app (logged), and links
+   * to it on a later window.
+   */
+  private static async resolveCloudAppIdOrNull(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    cloudPlatform: string;
+    identity: CloudAppIdentity;
+  }): Promise<ObjectID | null> {
+    try {
+      return await this.resolveCloudAppId(data);
+    } catch (err) {
+      logger.error(
+        "Error resolving a Cloud app for an instance: " +
+          (err as Error).message,
       );
       return null;
     }

@@ -192,14 +192,16 @@ const AppPlatformsRoutes: FunctionComponent<ComponentProps> = (
         />
         <PageRoute
           path={RouteUtil.getLastPathForKey(
-            PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP,
+            PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL,
             2,
           )}
           element={
             <AppPlatformApp
               {...props}
               pageRoute={
-                RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP] as Route
+                RouteMap[
+                  PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL
+                ] as Route
               }
             />
           }

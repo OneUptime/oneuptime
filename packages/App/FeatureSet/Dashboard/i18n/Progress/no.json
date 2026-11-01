@@ -164,6 +164,7 @@
     "main",
     "message",
     "name",
+    "p95 {{latency}}",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

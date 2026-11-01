@@ -268,7 +268,8 @@ const APPS = EMPTY
           "aws.ecs.cluster.arn": ECS_CLUSTER,
         },
         serviceName: "checkout-api",
-        image: "4109-2277-8841.dkr.ecr.us-east-1.amazonaws.com/checkout-api:2.4.1",
+        image:
+          "4109-2277-8841.dkr.ecr.us-east-1.amazonaws.com/checkout-api:2.4.1",
         revisionAttribute: "aws.ecs.task.revision",
         currentRevision: "43",
         currentRevisionSince: new Date(LOADED_AT - 25 * MINUTE),
@@ -856,7 +857,11 @@ async function handleApi(method, options) {
     const body = options.data || {};
     const groupBy = body.groupBy || [];
     const filters = body.attributes || {};
-    fixture.analyticsRequests.push({ groupBy, filters, entryOnly: body.entryOnly });
+    fixture.analyticsRequests.push({
+      groupBy,
+      filters,
+      entryOnly: body.entryOnly,
+    });
 
     const revisionKey = groupBy.find((key) => {
       return /revision|version/.test(key);

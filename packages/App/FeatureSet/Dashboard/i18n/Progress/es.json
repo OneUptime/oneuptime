@@ -456,6 +456,7 @@
     "orders",
     "orders-prod",
     "p95",
+    "p95 {{latency}}",
     "payment-.*",
     "pods",
     "pools",

@@ -61,7 +61,7 @@ export function getAppPlatformsBreadcrumbs(
       ["Project", "App Platforms", "View Environment", "Apps"],
     ),
     ...BuildBreadcrumbLinksByTitles(
-      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP,
+      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL,
       ["Project", "App Platforms", "View Environment", "Apps", "View App"],
     ),
     ...BuildBreadcrumbLinksByTitles(

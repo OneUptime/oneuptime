@@ -42,8 +42,13 @@ export default class CloudAppChangeRecorder {
     change: CloudAppRevisionChange;
   }): void {
     CloudAppChangeRecorder.record(data).catch((error: unknown) => {
+      const what: string =
+        data.change.kind === CloudAppRevisionChangeKind.RolledBack
+          ? "rollback"
+          : "deploy";
+
       logger.warn(
-        `Could not record the ${data.change.kind} of app ${data.subject.appId.toString()}: ${
+        `Could not record the ${what} of app ${data.subject.appId.toString()} to revision ${data.change.revision}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );

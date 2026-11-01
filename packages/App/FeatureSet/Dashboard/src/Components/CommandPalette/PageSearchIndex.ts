@@ -2839,6 +2839,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.ChartBar,
             keywords: ["paas", "platform as a service", "app platforms"],
           },
+          /*
+           * Every app on every platform: the services people deploy, as
+           * each platform's console names them.
+           */
+          {
+            ...allListPage(PageMap.APP_PLATFORMS_APPS, "All Apps"),
+            icon: IconProp.Squares,
+            keywords: [
+              "apps",
+              "services",
+              "ecs services",
+              "cloud run services",
+              "container apps",
+              "web apps",
+              "deploys",
+              "deployments",
+              "revisions",
+              "releases",
+            ],
+          },
           {
             ...allListPage(
               PageMap.APP_PLATFORMS_ENVIRONMENTS,

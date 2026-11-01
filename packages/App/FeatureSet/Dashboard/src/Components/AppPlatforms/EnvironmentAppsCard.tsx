@@ -252,10 +252,7 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
     body = <PageLoader isVisible={true} />;
   } else if (apps.length === 0) {
     body = (
-      <p
-        className="text-sm text-gray-500"
-        data-testid="environment-apps-empty"
-      >
+      <p className="text-sm text-gray-500" data-testid="environment-apps-empty">
         {translator.translateText(ENVIRONMENT_APPS_EMPTY)}
       </p>
     );
@@ -268,7 +265,7 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
 
     body = (
       <ul className={ruledList} data-testid="environment-apps">
-        {shown.map((app: CloudApp): ReactElement => {
+        {shown.map((app: CloudApp, index: number): ReactElement => {
           const appId: string = app._id?.toString() || "";
           const appSignals: CloudAppSignals | undefined = signals.get(appId);
           const state: CloudAppState = getCloudAppState(app.lastSeenAt);
@@ -306,7 +303,7 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
 
           return (
             <li
-              key={appId}
+              key={appId || `app-${index}`}
               className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-baseline gap-x-3 px-5 py-3 md:px-6"
               data-testid="environment-app"
               data-state={state}
@@ -322,7 +319,9 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
               <div className="min-w-0">
                 <AppLink
                   to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP] as Route,
+                    RouteMap[
+                      PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL
+                    ] as Route,
                     {
                       modelId: new ObjectID(environmentId),
                       subModelId: new ObjectID(appId),

@@ -41,6 +41,8 @@ import {
   getShortRevision,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
 import { isCloudInstanceLive } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
+import { APP_INSTANCE_COUNT } from "./CloudAppCells";
+import { REVISION_REPLACED } from "./CloudAppRevisionsTab";
 
 /*
  * An App Platforms app's Overview tab: how it is doing in the range picked
@@ -56,7 +58,6 @@ export const DEPLOY_MARKER_LABEL: string = translationKey(
 export const ROLLBACK_MARKER_LABEL: string = translationKey(
   "Rolled back to revision {{revision}}",
 );
-export const MARKER_PREVIOUS: string = translationKey("Ran {{revision}} before");
 export const RUNNING_NOW_TITLE: string = translationKey("Running now");
 export const RUNNING_NOW_DESCRIPTION: string = translationKey(
   "The revisions this app's instances run, from the instances seen in the last 15 minutes.",
@@ -129,7 +130,12 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
     return (): void => {
       ignore = true;
     };
-  }, [scopeKey, props.start.getTime(), props.end.getTime(), props.refreshToken]);
+  }, [
+    scopeKey,
+    props.start.getTime(),
+    props.end.getTime(),
+    props.refreshToken,
+  ]);
 
   // One clock reading, so an instance cannot flip halfway through a count.
   const now: Date = OneUptimeDate.getCurrentDate();
@@ -254,7 +260,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
           isRollback ? ROLLBACK_MARKER_LABEL : DEPLOY_MARKER_LABEL,
           { revision },
         ),
-        subtitle: translator.translateTemplate(MARKER_PREVIOUS, {
+        subtitle: translator.translateTemplate(REVISION_REPLACED, {
           revision: getShortRevision({
             revision: marker.previousRevision,
             appName: props.app.name,
@@ -346,10 +352,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
       </div>
 
       <div className="mb-6">
-        <Card
-          title={RUNNING_NOW_TITLE}
-          description={RUNNING_NOW_DESCRIPTION}
-        >
+        <Card title={RUNNING_NOW_TITLE} description={RUNNING_NOW_DESCRIPTION}>
           {runningRevisions.length === 0 ? (
             <p
               className="text-sm text-gray-500"
@@ -359,51 +362,43 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
             </p>
           ) : (
             <ul className="space-y-3" data-testid="cloud-app-running-now">
-              {runningRevisions.map(
-                (entry: [string, number]): ReactElement => {
-                  const [revision, count] = entry;
-                  const share: number =
-                    totalRunning > 0 ? (count / totalRunning) * 100 : 0;
-                  const isCurrent: boolean =
-                    revision === props.app.currentRevision;
+              {runningRevisions.map((entry: [string, number]): ReactElement => {
+                const [revision, count] = entry;
+                const share: number =
+                  totalRunning > 0 ? (count / totalRunning) * 100 : 0;
+                const isCurrent: boolean =
+                  revision === props.app.currentRevision;
 
-                  return (
-                    <li
-                      key={revision}
-                      data-testid="cloud-app-running-revision"
-                      data-current={isCurrent ? "true" : "false"}
-                    >
-                      <div className="flex items-baseline justify-between gap-3 text-sm">
-                        <span className="min-w-0 truncate font-mono text-gray-900">
-                          <bdi>
-                            {getShortRevision({
-                              revision,
-                              appName: props.app.name,
-                            })}
-                          </bdi>
-                        </span>
-                        <span className="flex-shrink-0 text-gray-500">
-                          {translator.translatePlural(
-                            {
-                              one: "{{count}} instance",
-                              other: "{{count}} instances",
-                            },
-                            count,
-                          )}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-100">
-                        <div
-                          className={`h-1.5 rounded-full ${
-                            isCurrent ? "bg-emerald-500" : "bg-amber-400"
-                          }`}
-                          style={{ width: `${share}%` }}
-                        />
-                      </div>
-                    </li>
-                  );
-                },
-              )}
+                return (
+                  <li
+                    key={revision}
+                    data-testid="cloud-app-running-revision"
+                    data-current={isCurrent ? "true" : "false"}
+                  >
+                    <div className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="min-w-0 truncate font-mono text-gray-900">
+                        <bdi>
+                          {getShortRevision({
+                            revision,
+                            appName: props.app.name,
+                          })}
+                        </bdi>
+                      </span>
+                      <span className="flex-shrink-0 text-gray-500">
+                        {translator.translatePlural(APP_INSTANCE_COUNT, count)}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-100">
+                      <div
+                        className={`h-1.5 rounded-full ${
+                          isCurrent ? "bg-emerald-500" : "bg-amber-400"
+                        }`}
+                        style={{ width: `${share}%` }}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Card>
@@ -432,7 +427,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
           {props.app.revisionAttribute ? (
             <div className="px-6 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
               <dt className="text-sm font-medium text-gray-500">
-                {translator.translateText("Revision attribute")}
+                {translator.translateText("Revision Attribute")}
               </dt>
               <dd className="mt-1 break-all font-mono text-sm text-gray-900 sm:col-span-2 sm:mt-0">
                 {props.app.revisionAttribute}
@@ -444,7 +439,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
           {props.app.createdAt ? (
             <div className="px-6 py-3 sm:grid sm:grid-cols-3 sm:gap-4">
               <dt className="text-sm font-medium text-gray-500">
-                {translator.translateText("First seen")}
+                {translator.translateText("First Seen")}
               </dt>
               <dd className="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
                 {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(

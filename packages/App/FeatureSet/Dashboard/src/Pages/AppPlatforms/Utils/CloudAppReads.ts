@@ -2,6 +2,7 @@ import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceIns
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -19,6 +20,7 @@ import {
   matchCloudAppSignals,
 } from "./CloudApps";
 import {
+  CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
   CloudResourceScopeSource,
   getCloudResourceAttributeFilters,
   isCloudResourceScoped,
@@ -155,11 +157,19 @@ export async function fetchCloudAppSignals(data: {
   return { signals, failed };
 }
 
-// The instances of these apps, with the app and revision each runs.
+/*
+ * The live instances of these apps - seen inside the live window - with the
+ * app and revision each runs. A stale task is left on the server: the lists
+ * count only the ones running now.
+ */
 export async function fetchCloudAppInstances(
   appIds: ReadonlyArray<string>,
 ): Promise<Array<CloudResourceInstance>> {
-  if (appIds.length === 0) {
+  const ids: Array<string> = appIds.filter((id: string): boolean => {
+    return Boolean(id);
+  });
+
+  if (ids.length === 0) {
     return [];
   }
 
@@ -168,9 +178,12 @@ export async function fetchCloudAppInstances(
       modelType: CloudResourceInstance,
       query: {
         cloudAppId: new Includes(
-          appIds.map((id: string): ObjectID => {
+          ids.map((id: string): ObjectID => {
             return new ObjectID(id);
           }),
+        ),
+        lastSeenAt: new GreaterThan<Date>(
+          OneUptimeDate.getSomeMinutesAgo(CLOUD_INSTANCE_LIVE_WINDOW_MINUTES),
         ),
       },
       select: {

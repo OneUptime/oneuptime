@@ -91,17 +91,15 @@ export const CloudAppStateCell: FunctionComponent<CloudAppStateCellProps> = (
   }
 
   return (
-    <div
-      className="min-w-0"
-      data-testid="cloud-app-state"
-      data-state={state}
-    >
+    <div className="min-w-0" data-testid="cloud-app-state" data-state={state}>
       <div className="flex items-center gap-1.5">
         <span
           aria-hidden="true"
           className={`inline-block h-2 w-2 flex-shrink-0 rounded-full ${STATE_DOT_CLASS_NAMES[state]}`}
         />
-        <span className={`text-sm font-medium ${STATE_TEXT_CLASS_NAMES[state]}`}>
+        <span
+          className={`text-sm font-medium ${STATE_TEXT_CLASS_NAMES[state]}`}
+        >
           {label}
         </span>
       </div>
