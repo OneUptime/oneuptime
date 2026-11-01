@@ -690,9 +690,9 @@ describe("MetricBaselineService", () => {
         pointType: "Gauge",
       });
 
-      expect(await read({ aggregationType: AggregationType.Sum })).toMatchObject(
-        { stddev: 0, leftFlatHistory: true },
-      );
+      expect(
+        await read({ aggregationType: AggregationType.Sum }),
+      ).toMatchObject({ stddev: 0, leftFlatHistory: true });
     });
 
     test("a metric's name stays a string in what it asks", async () => {

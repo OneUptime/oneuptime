@@ -410,34 +410,39 @@ integration("A metric's baseline against ClickHouse", () => {
       ["Friday", 4],
       ["Saturday", 5],
       ["Sunday", 6],
-    ])("a check on a %s reads that weekday", async (_: string, weekday: number) => {
-      const project: ObjectID = newProject();
-      const monday: number = weekTurn - 3 * WEEK;
-      const samples: Array<Sample> = [];
+    ])(
+      "a check on a %s reads that weekday",
+      async (_: string, weekday: number) => {
+        const project: ObjectID = newProject();
+        const monday: number = weekTurn - 3 * WEEK;
+        const samples: Array<Sample> = [];
 
-      for (let week: number = 0; week < 2; week++) {
-        for (let day: number = 0; day < 7; day++) {
-          samples.push(
-            ...hourOf({
-              project,
-              start: monday + week * WEEK + day * DAY + 9 * HOUR,
-              mean: 100 + 100 * day,
-              spread: 5,
-            }),
-          );
+        for (let week: number = 0; week < 2; week++) {
+          for (let day: number = 0; day < 7; day++) {
+            samples.push(
+              ...hourOf({
+                project,
+                start: monday + week * WEEK + day * DAY + 9 * HOUR,
+                mean: 100 + 100 * day,
+                spread: 5,
+              }),
+            );
+          }
         }
-      }
 
-      await write(samples);
+        await write(samples);
 
-      const baseline: BaselineSummary = (await read(project, {
-        at: new Date(monday + 2 * WEEK + weekday * DAY + 9 * HOUR + 40 * MINUTE),
-      }))!;
+        const baseline: BaselineSummary = (await read(project, {
+          at: new Date(
+            monday + 2 * WEEK + weekday * DAY + 9 * HOUR + 40 * MINUTE,
+          ),
+        }))!;
 
-      expect(baseline.sampleCount).toBe(120);
-      expect(baseline.mean).toBeCloseTo(100 + 100 * weekday, 6);
-      expect(baseline.isReliable).toBe(true);
-    });
+        expect(baseline.sampleCount).toBe(120);
+        expect(baseline.mean).toBeCloseTo(100 + 100 * weekday, 6);
+        expect(baseline.isReliable).toBe(true);
+      },
+    );
 
     test("a chart's band reads the same weekday as a check", async () => {
       const project: ObjectID = newProject();
@@ -466,16 +471,15 @@ integration("A metric's baseline against ClickHouse", () => {
         }),
       ]);
 
-      const points: Array<BandPoint> = await MetricBaselineService.getBandSeries(
-        {
+      const points: Array<BandPoint> =
+        await MetricBaselineService.getBandSeries({
           projectId: project,
           metricName: METRIC,
           startTime: new Date(judged),
           endTime: new Date(judged),
           intervalMinutes: 5,
           sigmaCount: 3,
-        },
-      );
+        });
 
       expect(points[0]!.mean).toBeCloseTo(100, 6);
     });
@@ -757,7 +761,11 @@ integration("A metric's baseline against ClickHouse", () => {
       const samples: Array<Sample> = [];
 
       for (let minute: number = 0; minute < (data.minutes ?? 60); minute++) {
-        for (let series: number = 0; series < (data.seriesCount ?? 3); series++) {
+        for (
+          let series: number = 0;
+          series < (data.seriesCount ?? 3);
+          series++
+        ) {
           for (
             let sample: number = 0;
             sample < (data.samplesPerMinute ?? 2);
@@ -794,9 +802,7 @@ integration("A metric's baseline against ClickHouse", () => {
         ...fleetOf({ project, start: hourStart, mean: 500, minutes: 40 }),
       ]);
 
-      expect(
-        (await read(project))?.mean,
-      ).toBeCloseTo(100, 6);
+      expect((await read(project))?.mean).toBeCloseTo(100, 6);
 
       const baseline: BaselineSummary = (await read(project, {
         query: { aggregationType: AggregationType.Sum },
@@ -878,7 +884,13 @@ integration("A metric's baseline against ClickHouse", () => {
           count: 300,
         }),
         ...fleetOf({ project, start: hourStart - WEEK, mean: 75, count: 300 }),
-        ...fleetOf({ project, start: hourStart, mean: 75, minutes: 40, count: 300 }),
+        ...fleetOf({
+          project,
+          start: hourStart,
+          mean: 75,
+          minutes: 40,
+          count: 300,
+        }),
       ]);
 
       // What every histogram used to be judged against.
@@ -902,7 +914,13 @@ integration("A metric's baseline against ClickHouse", () => {
           count: 300,
         }),
         ...fleetOf({ project, start: hourStart - WEEK, mean: 75, count: 300 }),
-        ...fleetOf({ project, start: hourStart, mean: 75, minutes: 40, count: 300 }),
+        ...fleetOf({
+          project,
+          start: hourStart,
+          mean: 75,
+          minutes: 40,
+          count: 300,
+        }),
       ]);
 
       const baseline: BaselineSummary = (await read(project, {
@@ -914,23 +932,40 @@ integration("A metric's baseline against ClickHouse", () => {
 
     test.each([
       ["a percentile of a histogram", { aggregationType: AggregationType.P95 }],
-      ["a histogram narrowed by an attribute", { isNarrowedByAttributes: true }],
-    ])("%s has none", async (_: string, query: Partial<MetricBaselineQuery>) => {
-      const project: ObjectID = newProject();
+      [
+        "a histogram narrowed by an attribute",
+        { isNarrowedByAttributes: true },
+      ],
+    ])(
+      "%s has none",
+      async (_: string, query: Partial<MetricBaselineQuery>) => {
+        const project: ObjectID = newProject();
 
-      await write([
-        ...fleetOf({
-          project,
-          start: hourStart - 2 * WEEK,
-          mean: 75,
-          count: 300,
-        }),
-        ...fleetOf({ project, start: hourStart - WEEK, mean: 75, count: 300 }),
-        ...fleetOf({ project, start: hourStart, mean: 75, minutes: 40, count: 300 }),
-      ]);
+        await write([
+          ...fleetOf({
+            project,
+            start: hourStart - 2 * WEEK,
+            mean: 75,
+            count: 300,
+          }),
+          ...fleetOf({
+            project,
+            start: hourStart - WEEK,
+            mean: 75,
+            count: 300,
+          }),
+          ...fleetOf({
+            project,
+            start: hourStart,
+            mean: 75,
+            minutes: 40,
+            count: 300,
+          }),
+        ]);
 
-      expect(await read(project, { query })).toBeNull();
-    });
+        expect(await read(project, { query })).toBeNull();
+      },
+    );
 
     test("a Sum narrowed by an attribute has none", async () => {
       const project: ObjectID = newProject();
@@ -1256,7 +1291,10 @@ integration("A metric's baseline against ClickHouse", () => {
       );
     });
 
-    function judgeTotal(project: ObjectID, value: number): Promise<string | null> {
+    function judgeTotal(
+      project: ObjectID,
+      value: number,
+    ): Promise<string | null> {
       const totals: MetricsViewConfig = {
         queryConfigs: [
           {

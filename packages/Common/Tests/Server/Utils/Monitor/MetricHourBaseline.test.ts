@@ -161,7 +161,7 @@ describe("MetricHourBaseline.toStoredHour", () => {
       // toDayOfWeek(time, 1): Monday is 0.
       const dayOfWeek: number = (time.getUTCDay() + 6) % 7;
       const stored: number =
-        (((dayOfWeek - 1) * 24 + time.getUTCHours()) % 256 + 256) % 256;
+        ((((dayOfWeek - 1) * 24 + time.getUTCHours()) % 256) + 256) % 256;
 
       expect(
         MetricHourBaseline.toStoredHour(
@@ -178,7 +178,9 @@ describe("MetricHourBaseline.toStoredHour", () => {
       stored.add(MetricHourBaseline.toStoredHour(hour));
 
       expect(
-        MetricHourBaseline.fromStoredHour(MetricHourBaseline.toStoredHour(hour)),
+        MetricHourBaseline.fromStoredHour(
+          MetricHourBaseline.toStoredHour(hour),
+        ),
       ).toBe(hour);
     }
 
@@ -227,9 +229,9 @@ describe("MetricHourBaseline.getSource", () => {
     expect(MetricHourBaseline.getSource(plain)).toBe(
       MetricBaselineSource.Samples,
     );
-    expect(
-      MetricHourBaseline.getSource({ ...plain, isPercentile: true }),
-    ).toBe(MetricBaselineSource.Samples);
+    expect(MetricHourBaseline.getSource({ ...plain, isPercentile: true })).toBe(
+      MetricBaselineSource.Samples,
+    );
   });
 
   test("so does one narrowed by an attribute, which no table can do better for", () => {
@@ -247,25 +249,34 @@ describe("MetricHourBaseline.getSource", () => {
   test.each([
     ["an average", { isDistribution: true }],
     ["a total", { isDistribution: true, isTotal: true }],
-  ])("%s of a histogram is in its rows", (_: string, data: object) => {
-    expect(MetricHourBaseline.getSource({ ...plain, ...data })).toBe(
-      MetricBaselineSource.Rows,
-    );
-  });
+  ])(
+    "%s of a histogram is in its rows",
+    (_: string, data: Partial<typeof plain>) => {
+      expect(MetricHourBaseline.getSource({ ...plain, ...data })).toBe(
+        MetricBaselineSource.Rows,
+      );
+    },
+  );
 
   test.each([
-    ["a total narrowed by an attribute", { isTotal: true, isNarrowedByAttributes: true }],
+    [
+      "a total narrowed by an attribute",
+      { isTotal: true, isNarrowedByAttributes: true },
+    ],
     [
       "a histogram narrowed by an attribute",
       { isDistribution: true, isNarrowedByAttributes: true },
     ],
-    ["a percentile of a histogram", { isDistribution: true, isPercentile: true }],
+    [
+      "a percentile of a histogram",
+      { isDistribution: true, isPercentile: true },
+    ],
     ["a total of more than an hour", { isTotal: true, bucketInMinutes: 1440 }],
     [
       "a histogram's data point of more than an hour",
       { isDistribution: true, bucketInMinutes: 1440 },
     ],
-  ])("%s has none", (_: string, data: object) => {
+  ])("%s has none", (_: string, data: Partial<typeof plain>) => {
     expect(MetricHourBaseline.getSource({ ...plain, ...data })).toBeNull();
   });
 
@@ -299,23 +310,28 @@ describe("MetricHourBaseline.fold", () => {
     };
   };
 
-  const rowFrom: (day: number, values: Array<number>) => MetricDataPointDayRow =
-    (day: number, values: Array<number>): MetricDataPointDayRow => {
-      const { mean, variance } = momentsOf(values);
+  const rowFrom: (
+    day: number,
+    values: Array<number>,
+  ) => MetricDataPointDayRow = (
+    day: number,
+    values: Array<number>,
+  ): MetricDataPointDayRow => {
+    const { mean, variance } = momentsOf(values);
 
-      return {
-        ...rowOf({
-          day,
-          mean,
-          sampleCount: values.length,
-          low: Math.min(...values),
-          high: Math.max(...values),
-        }),
-        variance,
-        median: mean,
-        p95: Math.max(...values),
-      };
+    return {
+      ...rowOf({
+        day,
+        mean,
+        sampleCount: values.length,
+        low: Math.min(...values),
+        high: Math.max(...values),
+      }),
+      variance,
+      median: mean,
+      p95: Math.max(...values),
     };
+  };
 
   test("days merge as the states of a cell do, whatever their sizes", () => {
     const random: SeededRandom = seededRandom(7741);
@@ -1827,7 +1843,7 @@ describe("the rollup's hours", () => {
     expect(firingOn(readNow, 4)).toBeLessThan(0.1);
   });
 
-  test("so was the first Monday of it: a Sunday's hours were never there", () => {
+  test("a Sunday had nothing to read: its hours were never stored as asked for", () => {
     const traffic: Traffic = gaugeOf({ ...WEEKLY, seed: 2718 });
     const sunday: number = onDay(6) + 9 * MINUTES_PER_HOUR;
 
@@ -2073,7 +2089,11 @@ describe("a query's Sum or Count", () => {
     seriesCount: number;
     seriesSpread: number;
   }> = [
-    { name: "one series reporting twice a minute", seriesCount: 1, seriesSpread: 0 },
+    {
+      name: "one series reporting twice a minute",
+      seriesCount: 1,
+      seriesSpread: 0,
+    },
     { name: "ten series alike", seriesCount: 10, seriesSpread: 0 },
     { name: "ten series far apart", seriesCount: 10, seriesSpread: 0.3 },
   ];
@@ -2160,31 +2180,31 @@ describe("a query's Sum or Count", () => {
    * floods.
    */
   describe("the samples' cell, scaled", () => {
-    const readScaled: (data: { cell: Traffic; power: number }) => Read =
-      (data: { cell: Traffic; power: number }): Read => {
-        return (input: Parameters<Read>[0]): BaselineBand | null => {
-          const samples: number =
-            data.cell.samplesPerMinute * data.cell.series.length;
-          const band: BaselineBand | null = readNow({
-            ...input,
-            traffic: data.cell,
-          });
+    const readScaled: (data: {
+      cell: Traffic;
+      power: number;
+    }) => Read = (data: { cell: Traffic; power: number }): Read => {
+      return (input: Parameters<Read>[0]): BaselineBand | null => {
+        const samples: number =
+          data.cell.samplesPerMinute * data.cell.series.length;
+        const band: BaselineBand | null = readNow({
+          ...input,
+          traffic: data.cell,
+        });
 
-          if (!band) {
-            return null;
-          }
+        if (!band) {
+          return null;
+        }
 
-          const middle: number = (band.expectedHigh + band.expectedLow) / 2;
-          const half: number = (band.expectedHigh - band.expectedLow) / 2;
+        const middle: number = (band.expectedHigh + band.expectedLow) / 2;
+        const half: number = (band.expectedHigh - band.expectedLow) / 2;
 
-          return {
-            expectedHigh:
-              middle * samples + half * Math.pow(samples, data.power),
-            expectedLow:
-              middle * samples - half * Math.pow(samples, data.power),
-          };
+        return {
+          expectedHigh: middle * samples + half * Math.pow(samples, data.power),
+          expectedLow: middle * samples - half * Math.pow(samples, data.power),
         };
       };
+    };
 
     test("by how many there are, it cannot see a doubling of series far apart", () => {
       const cell: Traffic = gaugeOf({

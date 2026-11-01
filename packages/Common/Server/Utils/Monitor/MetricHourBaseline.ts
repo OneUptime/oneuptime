@@ -216,14 +216,15 @@ export default class MetricHourBaseline {
       return null;
     }
 
-    const weighted: (value: (row: MetricDataPointDayRow) => number) => number =
-      (value: (row: MetricDataPointDayRow) => number): number => {
-        return (
-          hours.reduce((sum: number, row: MetricDataPointDayRow): number => {
-            return sum + row.sampleCount * value(row);
-          }, 0) / sampleCount
-        );
-      };
+    const weighted: (
+      value: (row: MetricDataPointDayRow) => number,
+    ) => number = (value: (row: MetricDataPointDayRow) => number): number => {
+      return (
+        hours.reduce((sum: number, row: MetricDataPointDayRow): number => {
+          return sum + row.sampleCount * value(row);
+        }, 0) / sampleCount
+      );
+    };
 
     const mean: number = weighted((row: MetricDataPointDayRow): number => {
       return row.mean;

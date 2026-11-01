@@ -433,6 +433,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Anomaly detection",
   ],
   [METRICS_MONITOR]: [
+    "Its services.",
+    "An average, minimum, maximum or percentile of a plain metric",
+    "A Sum or a Count, and any query on a histogram,",
+    "A query filtered or grouped by an attribute",
     "Every minute.",
     "Queries, then formulas.",
     "Then the rule's measure.",

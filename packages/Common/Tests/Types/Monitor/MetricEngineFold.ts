@@ -1,6 +1,5 @@
 import { MetricService } from "../../../Server/Services/MetricService";
 import { getDistributionAwareAggregationExpression } from "../../../Server/Utils/AnalyticsDatabase/DistributionAggregation";
-import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 
 /*

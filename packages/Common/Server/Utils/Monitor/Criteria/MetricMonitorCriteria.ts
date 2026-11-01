@@ -284,6 +284,12 @@ export default class MetricMonitorCriteria {
       input.monitorStep.data?.metricMonitor?.telemetryServiceIds;
 
     /*
+     * Only a Metrics monitor's query says all it reads. An infrastructure
+     * monitor's is narrowed to its cluster, host or container by the worker.
+     */
+    const isNarrowedByMonitor: boolean = !input.monitorStep.data?.metricMonitor;
+
+    /*
      * Series-less path: one synthetic "all-series" evaluation over the
      * flat metricResult. Preserves the pre-group-by behavior exactly.
      */
@@ -304,6 +310,7 @@ export default class MetricMonitorCriteria {
           isInEffect: input.isInEffect,
           baselineReads,
           telemetryServiceIds,
+          isNarrowedByMonitor,
         });
       return [result];
     }
@@ -325,6 +332,7 @@ export default class MetricMonitorCriteria {
           isInEffect: input.isInEffect,
           baselineReads,
           telemetryServiceIds,
+          isNarrowedByMonitor,
         });
       }),
     );
@@ -523,6 +531,8 @@ export default class MetricMonitorCriteria {
     baselineReads: BaselineReads;
     // The services a Metrics monitor reads, when it names any.
     telemetryServiceIds?: Array<ObjectID> | undefined;
+    // The monitor narrows the query by attributes the query does not show.
+    isNarrowedByMonitor?: boolean | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const rawThreshold: number | null =
       CompareCriteria.convertMetricThresholdToNumber(
@@ -604,6 +614,7 @@ export default class MetricMonitorCriteria {
         baselineReads: input.baselineReads,
         window: input.window,
         telemetryServiceIds: input.telemetryServiceIds,
+        isNarrowedByMonitor: input.isNarrowedByMonitor,
       });
     }
 
@@ -1410,6 +1421,7 @@ export default class MetricMonitorCriteria {
     baselineReads: BaselineReads;
     window?: MetricEvaluationWindow | null | undefined;
     telemetryServiceIds?: Array<ObjectID> | undefined;
+    isNarrowedByMonitor?: boolean | undefined;
   }): Promise<MetricSeriesEvaluationResult> {
     const { criteriaFilter, metricContext } = input;
 
@@ -1546,6 +1558,7 @@ export default class MetricMonitorCriteria {
           query: {
             aggregationType,
             isNarrowedByAttributes:
+              Boolean(input.isNarrowedByMonitor) ||
               Object.keys(metricContext.filterAttributes).length > 0 ||
               metricContext.groupBy.length > 0,
             interval,

@@ -90,6 +90,7 @@ function buildInputs(input: {
   groupByAttributeKeys?: Array<string>;
   telemetryServiceIds?: Array<ObjectID>;
   window?: { start: string; end: string };
+  isInfrastructure?: boolean;
 }): {
   criteriaFilter: CriteriaFilter;
   monitorStep: MonitorStep;
@@ -127,13 +128,19 @@ function buildInputs(input: {
     id: ObjectID.generate().toString(),
     monitorCriteria: { data: undefined } as never,
   } as unknown as MonitorStep["data"];
-  monitorStep.data!.metricMonitor = {
-    metricViewConfig,
-    rollingTime: RollingTime.Past5Minutes,
-    ...(input.telemetryServiceIds
-      ? { telemetryServiceIds: input.telemetryServiceIds }
-      : {}),
-  };
+  if (input.isInfrastructure) {
+    (monitorStep.data as unknown as Record<string, unknown>)[
+      "kubernetesMonitor"
+    ] = { metricViewConfig };
+  } else {
+    monitorStep.data!.metricMonitor = {
+      metricViewConfig,
+      rollingTime: RollingTime.Past5Minutes,
+      ...(input.telemetryServiceIds
+        ? { telemetryServiceIds: input.telemetryServiceIds }
+        : {}),
+    };
+  }
 
   return {
     criteriaFilter: {
@@ -199,7 +206,10 @@ describe("MetricMonitorCriteria - what an anomaly condition asks the baseline fo
   });
 
   describe("what the query reads", () => {
-    const asked: () => Record<string, unknown> = (): Record<string, unknown> => {
+    const asked: () => Record<string, unknown> = (): Record<
+      string,
+      unknown
+    > => {
       return getBaseline.mock.calls[0]![0] as Record<string, unknown>;
     };
 
@@ -270,6 +280,12 @@ describe("MetricMonitorCriteria - what an anomaly condition asks the baseline fo
         points: onePoint,
         groupByAttributeKeys: ["resource.host.name"],
       });
+
+      expect(asked()["query"]).toMatchObject({ isNarrowedByAttributes: true });
+    });
+
+    test("an infrastructure monitor's query is narrowed by what the worker adds to it", async () => {
+      await evaluate({ points: onePoint, isInfrastructure: true });
 
       expect(asked()["query"]).toMatchObject({ isNarrowedByAttributes: true });
     });
@@ -352,9 +368,12 @@ describe("MetricMonitorCriteria - what an anomaly condition asks the baseline fo
       ["2026-11-30T09:36:00.000Z"],
       ["2026-11-30T09:37:00.000Z"],
       ["2026-11-30T09:38:00.000Z"],
-    ])("a whole bucket with a whole one after it is: %s", async (time: string) => {
-      expect(await firesLow(time)).toBe(true);
-    });
+    ])(
+      "a whole bucket with a whole one after it is: %s",
+      async (time: string) => {
+        expect(await firesLow(time)).toBe(true);
+      },
+    );
 
     test("a Count is a total too", async () => {
       expect(
