@@ -1,6 +1,7 @@
 import {
   InventoryAssetField,
   InventoryAssetKind,
+  NetworkDeviceUnknownReason,
 } from "Common/Utils/Inventory/InventoryAssetDetails";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -74,9 +75,10 @@ export const INVENTORY_ASSET_HELP: Readonly<
 
 /*
  * The same line for a network device the Meraki dashboard describes: the
- * dashboard was asked too, and it has not got them either (Meraki lists no
- * operating system, for one), so the line names it beside the poll and the
- * scans rather than leaving the reader to wonder whether it was read.
+ * dashboard was asked too, and it has not got them either (it knows no DNS
+ * name or street address for every device, for one), so the line names it
+ * beside the poll and the scans rather than leaving the reader to wonder
+ * whether it was read.
  */
 export const NETWORK_DEVICE_CONTROLLER_UNKNOWN: { one: string; other: string } =
   {
@@ -84,3 +86,66 @@ export const NETWORK_DEVICE_CONTROLLER_UNKNOWN: { one: string; other: string } =
     other:
       "{{count}} details are unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found them.",
   };
+
+// One line under the facts: why they are unknown, and where to read more.
+export interface InventoryAssetUnknownHelp {
+  docsUrl: string;
+  linkText: string;
+  unknown: { one: string; other: string };
+}
+
+/*
+ * The line for a device that answered its poll and reports no more (issue
+ * #5384): nothing is waiting to read these, so the line does not read as if
+ * something were.
+ */
+export const NETWORK_DEVICE_SNMP_UNKNOWN: { one: string; other: string } = {
+  one: "{{count}} detail is unknown: this device does not report it over SNMP, and no discovery scan has found it.",
+  other:
+    "{{count}} details are unknown: this device does not report them over SNMP, and no discovery scan has found them.",
+};
+
+/*
+ * The line for a Meraki device no Meraki connection describes. Its SNMP agent
+ * holds no serial number or firmware to read, so the line says who does and
+ * links to connecting it, not to a table of what a poll could have read.
+ */
+export const NETWORK_DEVICE_MERAKI_UNKNOWN: { one: string; other: string } = {
+  one: "{{count}} detail is unknown: a Cisco Meraki device reports it only to the Meraki dashboard, not over SNMP.",
+  other:
+    "{{count}} details are unknown: a Cisco Meraki device reports them only to the Meraki dashboard, not over SNMP.",
+};
+
+export const CONNECT_MERAKI_DOCS_URL: string =
+  "/docs/monitor/network-traffic#cisco-meraki-without-netflow";
+
+export const CONNECT_MERAKI_LINK_TEXT: string = translationKey(
+  "Connect the Meraki dashboard",
+);
+
+/**
+ * What the card says about a machine's unknown details: a host's, or a
+ * network device's by why they are unknown. A device read only through its
+ * Inventory item gives no reason, and gets the general line.
+ */
+export function getInventoryAssetUnknownHelp(
+  kind: InventoryAssetKind,
+  reason: NetworkDeviceUnknownReason | undefined,
+): InventoryAssetUnknownHelp {
+  const help: InventoryAssetUnknownHelp = INVENTORY_ASSET_HELP[kind];
+
+  switch (reason) {
+    case NetworkDeviceUnknownReason.NotOnController:
+      return { ...help, unknown: NETWORK_DEVICE_CONTROLLER_UNKNOWN };
+    case NetworkDeviceUnknownReason.NotReportedOverSnmp:
+      return { ...help, unknown: NETWORK_DEVICE_SNMP_UNKNOWN };
+    case NetworkDeviceUnknownReason.OnControllerOnly:
+      return {
+        docsUrl: CONNECT_MERAKI_DOCS_URL,
+        linkText: CONNECT_MERAKI_LINK_TEXT,
+        unknown: NETWORK_DEVICE_MERAKI_UNKNOWN,
+      };
+    default:
+      return help;
+  }
+}

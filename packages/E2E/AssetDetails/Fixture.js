@@ -76,6 +76,10 @@ import {
  *               | noread (the device cannot be read: the item's own facts)
  *               | meraki (a Meraki access point its probe pings, which a
  *               Meraki connection describes: Refresh is offered)
+ *               | mx (the Meraki MX of issue #5384: walked over SNMP, its
+ *               MAC from its own port, no Meraki connection)
+ *               | quiet (a switch whose walk reads its system group alone)
+ *   ?firmware=  none: the meraki scenario's dashboard lists no firmware
  *   ?probe=     none: the meraki scenario's access point has no probe -
  *               only its Meraki connection reads it
  *   ?refresh=   read (default: a refresh is read again by its readers - its
@@ -227,7 +231,9 @@ function merakiReading(readAt) {
       serialNumber: "Q2KD-ABCD-1234",
       macAddress: "e0:55:3d:12:34:56",
       ipAddress: "10.20.30.41",
-      firmwareVersion: "wireless-29-7",
+      ...(params.get("firmware") === "none"
+        ? {}
+        : { firmwareVersion: "wireless-29-7" }),
       productType: "wireless",
       networkName: "Branch 12",
       address: "1600 Amphitheatre Pkwy, Mountain View",
@@ -415,6 +421,34 @@ const DEVICES = {
       : {}),
     site: { name: "Branch 12" },
     discoveredDetails: { controller: merakiReading(minutesAgo(4)) },
+  },
+  /*
+   * The Meraki MX of issue #5384. It answers SNMP with its system group and
+   * its interface table, so a walk gives it a MAC and an operating system,
+   * and nothing about its serial number or firmware: only its dashboard has
+   * those, and no Meraki connection reads it.
+   */
+  mx: {
+    name: "UN0362WANRTR01",
+    hostname: "10.241.124.1",
+    sysName: "UN0362WANRTR01",
+    sysDescr: "Meraki MX85",
+    sysObjectId: "1.3.6.1.4.1.29671.2.500",
+    vendor: "Cisco Meraki",
+    lastSnmpSeenAt: minutesAgo(3),
+    site: { name: "WB Unit 0362" },
+    discoveredDetails: {
+      ownMacAddress: discovered("aa:bb:cc:06:25:ed", "snmp", probeReader, 3),
+    },
+  },
+  // A switch that answers its walk with its system group and nothing more.
+  quiet: {
+    name: "edge-sw-09",
+    hostname: "10.20.0.9",
+    sysName: "edge-sw-09",
+    sysDescr: "Acme Widget OS",
+    sysObjectId: "1.3.6.1.4.1.99999.1",
+    lastSnmpSeenAt: minutesAgo(3),
   },
   dns: {
     name: "core-fw-01",

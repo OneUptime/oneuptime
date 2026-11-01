@@ -402,6 +402,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
           ownerReferences={
             podObject ? getPodOwnerReferences(podObject.metadata) : undefined
           }
+          namespace={podObject?.metadata.namespace}
           modelId={modelId}
           isLoading={isLoadingObject}
         />

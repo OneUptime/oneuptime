@@ -899,7 +899,7 @@ describe("NetworkTopologyUtil.buildTopology", () => {
         now,
       );
 
-      expect(nodeById(result, "d1")?.diagnostics).toEqual({
+      expect(nodeById(result, "d1")?.diagnostics).toMatchObject({
         isNeighborDiscoveryEnabled: undefined,
         reportedNeighborCount: 1,
         unmatchedNeighborIdentifiers: ["10.0.0.42"],

@@ -3,12 +3,14 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyNode,
+  NetworkTopologyNodePlacementDiagnostics,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
   LINK_SATURATION_THRESHOLD_PERCENT,
   LINK_STATE_COLORS,
   TOPOLOGY_LEGEND,
   TopologyLegendEntry,
+  accessibleLabelForEdge,
   accessibleLabelForNode,
   buildTopologyLegend,
   describeEndpoint,
@@ -17,6 +19,7 @@ import {
   formatMbps,
   formatUtilization,
   isolationReasonForNode,
+  linkSourceLabelsForEdge,
   linkStateForEdge,
   maxUtilizationForEdge,
   nodeMatchesSearch,
@@ -77,6 +80,202 @@ describe("maxUtilizationForEdge", () => {
         edgeWith({ isOperationallyUp: true }, { isOperationallyUp: true }),
       ),
     ).toBeUndefined();
+  });
+});
+
+describe("why a device that reports no neighbours floats", () => {
+  const reasonFor: (
+    placement: NetworkTopologyNodePlacementDiagnostics,
+  ) => string | undefined = (
+    placement: NetworkTopologyNodePlacementDiagnostics,
+  ): string | undefined => {
+    return isolationReasonForNode(
+      {
+        id: "kds",
+        name: "wb-0660-kds01",
+        isManaged: true,
+        kind: "device",
+        status: "up",
+        diagnostics: {
+          isNeighborDiscoveryEnabled: true,
+          reportedNeighborCount: 0,
+          unmatchedNeighborIdentifiers: [],
+          placement,
+        },
+      },
+      false,
+    );
+  };
+
+  const ping: NetworkTopologyNodePlacementDiagnostics = {
+    hasMacAddress: false,
+    hasAddressKey: true,
+    siteEndpointCollectorCount: 0,
+    siteControllerDeviceCount: 0,
+  };
+
+  test("nothing to recognise it by comes first: nothing else could help", () => {
+    const reason: string | undefined = reasonFor({
+      ...ping,
+      hasAddressKey: false,
+      siteEndpointCollectorCount: 3,
+      siteControllerDeviceCount: 3,
+    });
+
+    expect(reason).toContain("it has no MAC address");
+    expect(reason).toContain("Set its MAC address");
+    expect(reason).not.toContain("Meraki");
+  });
+
+  test("a site Meraki describes says Meraki has not listed it, by what it looked for", () => {
+    const byAddress: string | undefined = reasonFor({
+      ...ping,
+      siteControllerDeviceCount: 3,
+    });
+
+    expect(byAddress).toContain(
+      "lists no client with this device's IP address",
+    );
+    expect(byAddress).toContain("every two hours");
+    expect(byAddress).toContain("same site as this device");
+    expect(
+      reasonFor({
+        ...ping,
+        hasMacAddress: true,
+        siteControllerDeviceCount: 3,
+      }),
+    ).toContain("lists no client with this device's MAC address");
+  });
+
+  test("a Meraki answer wins over collectors: it is what would have placed the device", () => {
+    expect(
+      reasonFor({
+        ...ping,
+        siteControllerDeviceCount: 1,
+        siteEndpointCollectorCount: 5,
+      }),
+    ).toContain("Meraki describes devices at this site");
+  });
+
+  test("nothing at the site reports anything: both ways to fix that", () => {
+    const reason: string | undefined = reasonFor(ping);
+
+    expect(reason).toContain("Nothing at this site reports");
+    expect(reason).toContain("Collect Connected Endpoints");
+    expect(reason).toContain("Meraki organization");
+  });
+
+  test("the site reports, but nothing has said which MAC is this device's", () => {
+    const reason: string | undefined = reasonFor({
+      ...ping,
+      siteEndpointCollectorCount: 2,
+    });
+
+    expect(reason).toContain("which MAC address is this device's");
+    expect(reason).toContain("router");
+  });
+
+  test("its MAC is known, and no table at the site has it", () => {
+    expect(
+      reasonFor({
+        ...ping,
+        hasMacAddress: true,
+        siteEndpointCollectorCount: 2,
+      }),
+    ).toContain(
+      "no device at this site that collects endpoints has learned it",
+    );
+  });
+
+  test("a device with links needs none of it", () => {
+    expect(
+      isolationReasonForNode(
+        {
+          id: "kds",
+          name: "x",
+          isManaged: true,
+          kind: "device",
+          status: "up",
+          diagnostics: {
+            reportedNeighborCount: 0,
+            unmatchedNeighborIdentifiers: [],
+            placement: ping,
+          },
+        },
+        true,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("what reported a link", () => {
+  const edgeOf: (
+    change: Partial<NetworkTopologyEdge>,
+  ) => NetworkTopologyEdge = (
+    change: Partial<NetworkTopologyEdge>,
+  ): NetworkTopologyEdge => {
+    return { fromNodeId: "a", toNodeId: "b", ...change };
+  };
+
+  test("the protocols, as they always read", () => {
+    expect(
+      linkSourceLabelsForEdge(edgeOf({ protocols: ["lldp", "cdp"] })),
+    ).toEqual(["LLDP", "CDP"]);
+    expect(linkSourceLabelsForEdge(edgeOf({ protocols: ["fdb"] }))).toEqual([
+      "FDB",
+    ]);
+    expect(linkSourceLabelsForEdge(edgeOf({}))).toEqual([]);
+  });
+
+  test("a neighbour Meraki reported is that neighbour, by way of Meraki", () => {
+    expect(
+      linkSourceLabelsForEdge(
+        edgeOf({ protocols: ["lldp"], reportedBy: "meraki" }),
+      ),
+    ).toEqual(["LLDP", "Meraki"]);
+  });
+
+  test("a client on a port came from Meraki's list, not from a table OneUptime walked", () => {
+    expect(
+      linkSourceLabelsForEdge(
+        edgeOf({ protocols: ["fdb"], reportedBy: "meraki" }),
+      ),
+    ).toEqual(["Meraki"]);
+  });
+
+  test("a link Meraki says nothing else about is still Meraki's", () => {
+    expect(
+      linkSourceLabelsForEdge(edgeOf({ protocols: [], reportedBy: "meraki" })),
+    ).toEqual(["Meraki"]);
+  });
+
+  test("a hand-drawn link keeps its label beside it", () => {
+    expect(
+      linkSourceLabelsForEdge(
+        edgeOf({ protocols: ["manual", "lldp"], reportedBy: "meraki" }),
+      ),
+    ).toEqual(["MANUAL", "LLDP", "Meraki"]);
+  });
+
+  test("a controller OneUptime does not know names nothing", () => {
+    expect(
+      linkSourceLabelsForEdge(
+        edgeOf({ protocols: ["fdb"], reportedBy: "somebody" }),
+      ),
+    ).toEqual(["FDB"]);
+  });
+
+  test("the tooltip says where it was read from", () => {
+    expect(
+      accessibleLabelForEdge(
+        edgeOf({ protocols: ["lldp"], reportedBy: "meraki" }),
+        "sw",
+        "rtr",
+      ),
+    ).toContain("read from Meraki");
+    expect(
+      accessibleLabelForEdge(edgeOf({ protocols: ["lldp"] }), "sw", "rtr"),
+    ).not.toContain("Meraki");
   });
 });
 
