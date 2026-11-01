@@ -32,7 +32,7 @@ flowchart LR
 | گردآورنده گره | DaemonSet | لاگ‌های پاد از `/var/log/pods`، متریک‌های kubelet و cAdvisor، و متریک‌های سیستم‌عامل گره. | بله |
 | ابزارگذاری eBPF (OBI) | DaemonSet | ترِیس‌ها و متریک‌های درخواست HTTP، gRPC، SQL و Redis از هر پاد، و نقشه سرویس. | بله |
 | عامل AI در Kubernetes | Deployment | به OneUptime AI اجازه می‌دهد هنگام بررسی یک حادثه یا هشدار روی این خوشه، `kubectl` فقط‌خواندنی اجرا کند. | بله |
-| دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که گردآورنده گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot` و `eks-fargate` |
+| دنبال‌کننده لاگ | Deployment | لاگ‌های پاد از راه API در Kubernetes، جایی که گردآورنده گره نمی‌تواند آن‌ها را بخواند. | با پیش‌تنظیم‌های `gke-autopilot`، `eks-fargate` و `openshift-restricted` |
 | پروفایلر eBPF | DaemonSet | نمودارهای شعله‌ای پیوسته CPU از هر فرایند. | خیر |
 | kube-state-metrics | Deployment | فازهای پاد، دلیل‌های انتظار کانتینر و سهمیه‌های منابع. | خیر |
 
@@ -93,6 +93,7 @@ kubectl get pods -n oneuptime-agent
 | `gke-autopilot` | **GKE Autopilot** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند | متریک‌های kubelet و cAdvisor، بدون `hostPath` |
 | `eks-fargate` | **EKS Fargate** | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند | هیچ: Fargate هیچ DaemonSet اجرا نمی‌کند |
 | `openshift` | **OpenShift**: OpenShift Container Platform، ROSA، ARO، OKD | گردآورنده گره `/var/log/pods` را می‌خواند | متریک‌های kubelet، cAdvisor و سیستم‌عامل |
+| `openshift-restricted` | **OpenShift**، جایی که مدیر نمی‌خواهد SCC اضافه کند | دنبال‌کننده لاگ آن‌ها را از راه API در Kubernetes می‌خواند | متریک‌های kubelet و cAdvisor، بدون `hostPath` |
 
 اگر مطمئن نیستید، `preset` را تعیین‌نشده بگذارید تا `standard` را بگیرید. اگر نصب با خطای Pod Security که `hostPath` را نام می‌برد شکست خورد، دوباره با `gke-autopilot` نصب کنید، یا روی EKS Fargate با `eks-fargate`.
 
@@ -137,6 +138,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set preset=openshift
 ```
 :::
+
+اگر مدیری نمی‌خواهد SCC اضافه کند، به‌جای آن با `--set preset=openshift-restricted` نصب کنید. آنگاه چارت هیچ SCC نمی‌سازد و هر پاد زیر `restricted-v2` اجرا می‌شود: لاگ‌های پاد از راه API در Kubernetes می‌آیند و متریک‌های سیستم‌عامل، ترِیس‌های eBPF و پروفایل‌ها نیستند. [OpenShift](/docs/telemetry/kubernetes-agent#openshift) را ببینید.
 
 ## برچسب زدن به خوشه
 
@@ -367,7 +370,7 @@ kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
 | `oneuptime.url` | (الزامی) | URL در OneUptime شما. |
 | `oneuptime.apiKey` | (الزامی) | کلید دریافت داده، از **تنظیمات پروژه → تله‌متری و APM → کلیدهای دریافت داده**. به‌صورت سرآیند `x-oneuptime-token` فرستاده می‌شود؛ کلید API پروژه کار نمی‌کند. |
 | `clusterName` | (الزامی) | نام خوشه، یکتا در پروژه. هر رکورد آن را به‌صورت `k8s.cluster.name` با خود دارد. |
-| `preset` | (خالی: `standard`) | `standard`، `gke-autopilot`، `eks-fargate` یا `openshift`. [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم) را ببینید. |
+| `preset` | (خالی: `standard`) | `standard`، `gke-autopilot`، `eks-fargate`، `openshift` یا `openshift-restricted`. [برگزیدن پیش‌تنظیم](#برگزیدن-پیشتنظیم) را ببینید. |
 | `oneuptime.labels` | `{}` | برچسب‌هایی برای هر رکورد از این عامل. [برچسب زدن به خوشه](#برچسب-زدن-به-خوشه) را ببینید. |
 | `namespaceFilters.rules` | `kube-system` را از `podLogs` و `ebpfDiscovery` کنار می‌گذارد | قاعده‌هایی که namespaceها را برای `podLogs`، `ebpfDiscovery`، `metrics` و `traces` در بر می‌گیرند یا کنار می‌گذارند. الگوها می‌توانند از `*` استفاده کنند، و کنار گذاشتن همیشه برنده است. |
 | `filters.logs.minSeverity` | `""` | خط‌های لاگ پاد زیر این سطح را کنار می‌گذارد: `TRACE`، `DEBUG`، `INFO`، `WARN`، `ERROR` یا `FATAL`. |

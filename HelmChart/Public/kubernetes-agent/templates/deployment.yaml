@@ -21,6 +21,11 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-deployment.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      {{- if eq (include "kubernetes-agent.openshiftRestricted" .) "true" }}
+      # OpenShift's restricted-v2 SCC, stated rather than left for it to fill in.
+      securityContext:
+        {{- include "kubernetes-agent.nonRootPodSecurityContext" (dict "root" .) | nindent 8 }}
+      {{- end }}
       # Linux nodes only — the collector image is linux-only, and Windows
       # pools (e.g. on AKS) are not tainted by default.
       nodeSelector:
@@ -33,6 +38,10 @@ spec:
         - name: otel-collector
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if eq (include "kubernetes-agent.openshiftRestricted" .) "true" }}
+          securityContext:
+            {{- include "kubernetes-agent.restrictedContainerSecurityContext" . | nindent 12 }}
+          {{- end }}
           args:
             - "--config=/etc/otel/otel-collector-config.yaml"
           env:

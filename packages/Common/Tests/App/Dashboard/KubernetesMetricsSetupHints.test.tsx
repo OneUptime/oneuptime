@@ -43,6 +43,9 @@ interface StandInView {
 let mockAnswers: Array<[string, ResultsState | "manual"]> = [];
 const mockViews: Record<string, StandInView> = {};
 const mockNavigate: MockFunction = getJestMockFunction();
+// The cluster's stored Provider, and what the page asked to read.
+let mockProvider: string | undefined = undefined;
+let mockSelect: Record<string, boolean> = {};
 
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
@@ -65,8 +68,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      getItem: () => {
-        return Promise.resolve({ clusterIdentifier: "production-us-east-1" });
+      getItem: (args: { select: Record<string, boolean> }) => {
+        mockSelect = args.select;
+
+        return Promise.resolve({
+          clusterIdentifier: "production-us-east-1",
+          provider: mockProvider,
+        });
       },
     },
   };
@@ -245,6 +253,8 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
   mockAnswers = [];
+  mockProvider = undefined;
+  mockSelect = {};
   for (const key of Object.keys(mockViews)) {
     delete mockViews[key];
   }
@@ -435,6 +445,103 @@ describe("Control Plane", () => {
     expect(hintFor("etcd")).toHaveTextContent(
       "http:// for its plain metrics port, or its HTTPS client port with controlPlane.etcd.clientCertSecret naming a Secret that holds the client certificate etcd asks for",
     );
+  });
+
+  /*
+   * The chart's OpenShift presets find the scheduler, the controller manager
+   * and etcd through service discovery, so a hint that sends the reader to
+   * list node addresses is wrong there. The page reads the cluster's stored
+   * Provider, which is the label "OpenShift", to tell.
+   */
+  describe("on an OpenShift cluster", () => {
+    test("the page reads the cluster's provider", async () => {
+      await renderControlPlane();
+
+      expect(mockSelect).toEqual({ clusterIdentifier: true, provider: true });
+    });
+
+    test("the scheduler's tab asks for no address: controlPlane.enabled is all it needs", async () => {
+      mockProvider = "OpenShift";
+      mockAnswers = [["scheduler_", "empty"]];
+
+      await renderControlPlane();
+      await openTab("Scheduler");
+
+      const hint: HTMLElement = hintFor("scheduler");
+
+      expect(codeIn(hint)).toEqual(["controlPlane.enabled"]);
+      expect(hint).toHaveTextContent(
+        "The agent then finds every scheduler on OpenShift by itself",
+      );
+      expect(hint).not.toHaveTextContent("Managed clusters such as EKS");
+      expect(commandIn(hint)).toBe(
+        [
+          "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
+          "  --namespace oneuptime-agent \\",
+          "  --reset-then-reuse-values \\",
+          "  --set controlPlane.enabled=true",
+        ].join("\n"),
+      );
+    });
+
+    test("the controller manager's tab says the same of it", async () => {
+      mockProvider = "OpenShift";
+      mockAnswers = [["workqueue_", "empty"]];
+
+      await renderControlPlane();
+      await openTab("Controller Manager");
+
+      const hint: HTMLElement = hintFor("controller-manager");
+
+      expect(codeIn(hint)).toEqual(["controlPlane.enabled"]);
+      expect(hint).toHaveTextContent(
+        "The agent then finds every controller manager on OpenShift by itself",
+      );
+    });
+
+    test("etcd's tab gives the commands that copy OpenShift's client certificate, then the upgrade that names it", async () => {
+      mockProvider = "OpenShift";
+      mockAnswers = [["etcd_", "empty"]];
+
+      await renderControlPlane();
+
+      const hint: HTMLElement = hintFor("etcd");
+
+      expect(codeIn(hint)).toEqual([
+        "controlPlane.enabled",
+        "controlPlane.etcd.clientCertSecret",
+      ]);
+      expect(commandIn(hint)).toBe(
+        [
+          "oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm",
+          "oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm",
+          "oc create secret generic etcd-client-cert \\",
+          "  --namespace oneuptime-agent \\",
+          "  --from-file=ca.crt=etcd-cert/ca-bundle.crt \\",
+          "  --from-file=tls.crt=etcd-cert/tls.crt \\",
+          "  --from-file=tls.key=etcd-cert/tls.key",
+          "rm -r etcd-cert",
+          "helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\",
+          "  --namespace oneuptime-agent \\",
+          "  --reset-then-reuse-values \\",
+          "  --set controlPlane.enabled=true \\",
+          "  --set controlPlane.etcd.clientCertSecret=etcd-client-cert",
+        ].join("\n"),
+      );
+    });
+
+    test("a cluster whose provider is another keeps the address the chart needs there", async () => {
+      mockProvider = "EKS";
+      mockAnswers = [["scheduler_", "empty"]];
+
+      await renderControlPlane();
+      await openTab("Scheduler");
+
+      expect(codeIn(hintFor("scheduler"))).toEqual([
+        "controlPlane.enabled",
+        "controlPlane.scheduler.endpoints",
+      ]);
+    });
   });
 
   test("the hint card's own Refresh checks again too", async () => {
