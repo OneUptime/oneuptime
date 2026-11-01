@@ -976,6 +976,54 @@ describe("Reset Link", () => {
     expect(description).not.toHaveTextContent("custom domains");
   });
 
+  /*
+   * The card stays mounted when the page moves to another form: while that
+   * form's custom domains are still being read, the first form's must not
+   * answer for it.
+   */
+  test("another form's custom domains never answer for this one while its own are read", async () => {
+    const OTHER_FORM_ID: string = "0e0e0e0e-0000-4000-8000-0000000000ee";
+
+    storedDomains = [liveDomain()];
+
+    const result: RenderResult = await renderLoadedCard();
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId(PUBLIC_ADDRESS_TEST_IDS.row).length).toBe(2);
+    });
+
+    // The other form's custom domains: still being read.
+    getListMock.mockImplementation((): Promise<unknown> => {
+      return new Promise((): void => {});
+    });
+
+    await act(async (): Promise<void> => {
+      result.rerender(
+        <MemoryRouter>
+          <FormShareLinkCard modelId={new ObjectID(OTHER_FORM_ID)} />
+        </MemoryRouter>,
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId(PUBLIC_ADDRESS_TEST_IDS.loading),
+      ).toBeInTheDocument();
+      expect(cardButtons()).toHaveLength(1);
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(resetLinkButton());
+    });
+
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      FormsCopy.resetLinkConfirmation,
+    );
+    expect(
+      screen.getByTestId("confirm-modal-description"),
+    ).not.toHaveTextContent("custom domains");
+  });
+
   // Nobody knows whether there are some: the question promises nothing.
   test("when the custom domains could not be read, says nothing of them", async () => {
     getListMock.mockImplementation(async (): Promise<never> => {

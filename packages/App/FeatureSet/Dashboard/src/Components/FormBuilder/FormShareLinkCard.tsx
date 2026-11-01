@@ -74,11 +74,17 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
 
   /*
-   * Whether the list read custom domains of this form: Reset Link's question
-   * then says they are not affected. Not known (not read, or the read
-   * failed) reads as none: the question never promises what it cannot see.
+   * The form whose list read custom domains of its own, if any: Reset Link's
+   * question then says they are not affected. Not known (not read, or the
+   * read failed) reads as none: the question never promises what it cannot
+   * see. Kept by form, so another form's domains never answer for this one.
    */
-  const [hasCustomDomains, setHasCustomDomains] = useState<boolean>(false);
+  const [formWithCustomDomains, setFormWithCustomDomains] = useState<
+    string | null
+  >(null);
+
+  const hasCustomDomains: boolean =
+    formWithCustomDomains === props.modelId.toString();
 
   /*
    * Reads are numbered so that only the latest one is shown: a slow answer
@@ -200,7 +206,7 @@ const FormShareLinkCard: FunctionComponent<ComponentProps> = (
           )}
           exampleDomain={FORM_EXAMPLE_DOMAIN}
           onDomainsRead={(domains: ReadonlyArray<CustomDomainModel>) => {
-            setHasCustomDomains(domains.length > 0);
+            setFormWithCustomDomains(domains.length > 0 ? shown.formId : null);
           }}
         />
 
