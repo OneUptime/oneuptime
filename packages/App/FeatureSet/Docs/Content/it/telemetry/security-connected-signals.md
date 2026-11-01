@@ -1,6 +1,6 @@
 # Segnali collegati
 
-Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali collegati dice quali di questi OneUptime conosce già - i tuoi host, host di container, cluster Kubernetes, dispositivi di rete, servizi e membri - e cosa succedeva su ciascuno attorno al caso: i suoi registri, tracce e metriche, gli incidenti e gli avvisi aperti su di esso, i monitor che lo controllano e cosa vi è cambiato. Al contrario, la pagina di un host, di un cluster, di un servizio o di un membro dice cosa ha trovato Security Events su di esso.
+Un caso di sicurezza dice quali utenti, host e indirizzi riguarda. Segnali collegati dice quali di questi OneUptime conosce già - i tuoi host, host di container, cluster Kubernetes, dispositivi di rete, risorse cloud, funzioni serverless, servizi, i monitor che li controllano e membri - e cosa succedeva su ciascuno attorno al caso: i suoi registri, tracce e metriche, gli incidenti e gli avvisi aperti su di esso, i monitor che lo controllano e cosa vi è cambiato. Al contrario, la pagina di un host, di un cluster, di una risorsa cloud, di un servizio, di un monitor o di un membro dice cosa ha trovato Security Events su di esso.
 
 :::cards
 - [Dove lo vedi](#dove-lo-vedi): La pagina di un caso, la scheda di un evento, la pagina di un'entità e le pagine di ciò che nominano.
@@ -23,7 +23,7 @@ OneUptime cerca ogni valore tra i record del progetto, dice quanto è sicura ogn
 
 ## Prima di iniziare
 
-- Eventi di sicurezza in arrivo, e host, cluster Kubernetes, servizi o membri del progetto che possano nominare. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started).
+- Eventi di sicurezza in arrivo, e host, cluster Kubernetes, risorse cloud, servizi, monitor o membri del progetto che possano nominare. Vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started).
 - Un ruolo che può leggere gli eventi di sicurezza, e i tipi di record che vuoi vedere.
 
 ## Dove lo vedi
@@ -31,7 +31,7 @@ OneUptime cerca ogni valore tra i record del progetto, dice quanto è sicura ogn
 - **Segnali collegati**, una pagina di ogni caso di sicurezza: apri un caso in **Prodotti → Security Events → Casi di sicurezza → Casi aperti**, poi **Segnali collegati** dopo **Entità** nel suo menu.
 - **Connesso**, una scheda di ogni evento di sicurezza: apri un evento in **Prodotti → Security Events → Eventi**. Elenca ciò che l'evento nomina, nell'ora attorno all'evento.
 - La pagina di un'entità, in **Prodotti → Security Events → Rischio delle entità**: dove OneUptime conosce l'utente, l'host o l'indirizzo, attorno al suo ultimo evento di sicurezza.
-- Una scheda **Sicurezza** nella pagina di ogni host, host Docker, host Podman, cluster Kubernetes, dispositivo di rete, servizio, membro ed elemento di inventario: i casi di sicurezza aperti che lo nominano, quanti eventi di sicurezza e rilevamenti lo hanno nominato negli ultimi 7 giorni, il più grave tra questi e il suo rischio. **Apri in Security Events** lo apre lì.
+- Una scheda **Sicurezza** nella pagina di ogni host, host Docker, host Podman, cluster Kubernetes, dispositivo di rete, risorsa cloud, funzione serverless, servizio, monitor, membro ed elemento di inventario: i casi di sicurezza aperti che lo nominano, quanti eventi di sicurezza e rilevamenti lo hanno nominato negli ultimi 7 giorni, il più grave tra questi e il suo rischio. **Apri in Security Events** lo apre lì. La scheda di un monitor riguarda gli host e gli indirizzi che controlla.
 - Una scheda **Sicurezza** nella pagina di un incidente, quando un caso di sicurezza ha dichiarato l'incidente (**Dichiarato da**) o casi aperti nominano un host o un cluster che colpisce (**Casi aperti che nominano ciò che colpisce**).
 
 ## Come si abbina un valore
@@ -40,14 +40,17 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 
 | Cosa nomina il caso o l'evento | Abbinato a | Quanto è sicuro |
 | --- | --- | --- |
-| Un nome di host o di dominio uguale al nome che riporta un host, un host di container, un cluster o un dispositivo di rete | Quel record | Esatto |
+| Un nome di host o di dominio uguale al nome che riporta un host, un host di container, un cluster o un dispositivo di rete, o un nome su cui risponde una risorsa cloud | Quel record | Esatto |
 | Lo stesso nome, dato senza dire che è un host | Quel record | Possibile |
 | Una forma breve o completa del nome di un record, come `web-1` e `web-1.acme.internal` | Quel record | Possibile |
-| Un indirizzo IP pubblico che ha un solo record | Quel record | Esatto |
+| Un indirizzo IP pubblico che ha un solo host o dispositivo di rete, o su cui risponde una sola risorsa cloud | Quel record | Esatto |
 | Un indirizzo IP privato, o uno che hanno più record | Ogni record che lo ha | Possibile |
+| L'ID proprio di una risorsa cloud: un ARN AWS, un ID di risorsa Azure o un nome di risorsa Google Cloud | Quella risorsa cloud | Esatto |
+| Un host, un indirizzo IP pubblico o l'host di un URL che un monitor controlla | Quel monitor | Esatto |
+| Un indirizzo IP privato che un monitor controlla | Quel monitor | Possibile |
 | L'email di un membro | Quel membro | Esatto |
-| Il record con cui è stata inviata una riga di registro, per gli eventi letti dai tuoi registri | Quell'host, cluster o servizio | Esatto |
-| Un semplice nome utente, un URL, un hash di file o un processo | Niente: nessun record è indicizzato in base a loro | - |
+| Il record con cui è stata inviata una riga di registro, per gli eventi letti dai tuoi registri | Quell'host, cluster, risorsa cloud, funzione serverless o servizio | Esatto |
+| Un semplice nome utente, un hash di file o un processo | Niente: nessun record è indicizzato in base a loro | - |
 
 - Una possibile corrispondenza mostra **Possibile corrispondenza** accanto al suo nome e dice perché. Non viene mai contata nella pagina del record, e un incidente che il caso dichiara non viene mai collegato a essa.
 - Ciò che è stato cercato e non è un record del progetto è elencato in **Non è in OneUptime**. Un valore non vi è mai elencato quando un tipo di record che potrebbe essere non è stato letto.
@@ -56,7 +59,8 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 ## Cosa mostra ogni record
 
 - I suoi segnali, ciascuno aperto sul record e sull'intervallo del caso: **Registri**, **Tracce** e **Metriche**, le **Eccezioni** di un servizio, gli **Eventi Kubernetes** di un cluster, la **Topologia** del record e il suo elemento in **Inventario** quando l'inventario ne ha uno.
-- Gli incidenti e gli avvisi aperti ora su di esso e i monitor che lo controllano, ciascuno con la propria pagina.
+- Gli incidenti e gli avvisi aperti ora su di esso e i monitor che lo controllano, ciascuno con la propria pagina. Un monitor mostra il suo stato accanto al nome, e i suoi **Registri** sono ciò che ha visto a ogni controllo.
+- Le pianificazioni di reperibilità di un membro, con **Reperibile ora** accanto a quelle per cui è reperibile adesso, e i team di cui fa parte.
 - Cosa vi è cambiato nell'intervallo: i deploy di un servizio, i rollout di un cluster e le correzioni di un host.
 
 | Dove | Intervallo |
@@ -70,21 +74,21 @@ Ogni utente, host e indirizzo che un caso o un evento nomina viene cercato tra i
 
 - Segnali collegati e la scheda **Sicurezza** di un record richiedono un ruolo che può leggere gli eventi di sicurezza: Security Admin, Security Member, Security Viewer, Project Owner o Project Admin. Nessun altro vede dati di sicurezza in alcuna pagina. Vedi [Ruoli](/docs/permissions/reference#ruoli).
 - La scheda **Sicurezza** di un incidente richiede un ruolo che può leggere i casi di sicurezza.
-- Ogni record viene letto con il tuo ruolo. Un tipo di record che il tuo ruolo non può leggere viene omesso, e la pagina lo dice; uno che non è stato possibile leggere al momento lo dice anch'esso, con **Riprova**.
+- Ogni record viene letto con il tuo ruolo, e così ciò che contiene: un ruolo che non può leggere le pianificazioni di reperibilità non vede quelle di un membro. Un tipo di record che il tuo ruolo non può leggere viene omesso, e la pagina lo dice; uno che non è stato possibile leggere al momento lo dice anch'esso, con **Riprova**.
 - La pagina di un record mostra la sua scheda **Sicurezza** solo in un progetto che usa Security Events: uno che ha ricevuto un evento di sicurezza negli ultimi 7 giorni.
 
 ## Incidenti che un caso dichiara
 
-**Dichiara incidente** su un caso, o il passaggio di un playbook che ne dichiara uno, collega l'incidente agli host, agli host Docker e Podman, ai cluster Kubernetes e ai servizi a cui il caso è collegato in modo esatto. L'incidente compare nelle loro pagine e vi si applicano le regole dei loro proprietari, e il suo feed nomina il caso e ciò a cui è stato collegato. Una possibile corrispondenza non viene mai collegata.
+**Dichiara incidente** su un caso, o il passaggio di un playbook che ne dichiara uno, collega l'incidente agli host, agli host Docker e Podman, ai cluster Kubernetes, alle risorse cloud e ai servizi a cui il caso è collegato in modo esatto. L'incidente compare nelle loro pagine e vi si applicano le regole dei loro proprietari, e il suo feed nomina il caso e ciò a cui è stato collegato. Una possibile corrispondenza non viene mai collegata, e nemmeno un monitor: un incidente su un monitor può cambiarne lo stato e comparire nelle sue pagine di stato.
 
 ## OneUptime AI
 
-Il triage di un caso da parte di OneUptime AI legge i suoi segnali collegati: cosa è aperto e cosa è cambiato sugli host, sui servizi e sui membri che il caso nomina. L'indagine su un incidente legge il caso di sicurezza che lo ha dichiarato e i casi aperti che nominano ciò che colpisce. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
+Il triage di un caso da parte di OneUptime AI legge i suoi segnali collegati: cosa è aperto e cosa è cambiato sugli host, sui servizi, sui monitor e sui membri che il caso nomina, e le pianificazioni di reperibilità e i team di un membro. L'indagine su un incidente legge il caso di sicurezza che lo ha dichiarato e i casi aperti che nominano ciò che colpisce. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
 
 ## Risoluzione dei problemi
 
 :::details Un host che il caso nomina non è elencato
-Controlla che il caso nomini l'host come l'host nomina se stesso, o nomini un indirizzo pubblico che ha solo quell'host. Un nome breve, come `web-1` per `web-1.acme.internal`, è elencato come possibile corrispondenza, e un semplice nome utente, un URL, un hash di file o un processo non viene cercato affatto.
+Controlla che il caso nomini l'host come l'host nomina se stesso, o nomini un indirizzo pubblico che ha solo quell'host. Un nome breve, come `web-1` per `web-1.acme.internal`, è elencato come possibile corrispondenza, e un semplice nome utente, un hash di file o un processo non viene cercato affatto. Un URL viene cercato solo tra i monitor che controllano il suo host.
 :::
 
 :::details L'host giusto è elencato come possibile corrispondenza
@@ -93,6 +97,10 @@ Una possibile corrispondenza non viene mai contata né collegata, perché un nom
 
 :::details La pagina di un host non ha la scheda Sicurezza
 La scheda è mostrata a un ruolo che può leggere gli eventi di sicurezza, in un progetto che ha ricevuto un evento di sicurezza negli ultimi 7 giorni. Un host che niente ha nominato in quel periodo mostra una riga che lo dice.
+:::
+
+:::details La pagina di un monitor non ha la scheda Sicurezza
+La scheda compare per un monitor che controlla un host, un indirizzo o un URL: un monitor di sito web, API, ping, porta, certificato SSL, DNS o dominio. Un heartbeat, uno script o un monitor della tua telemetria non controlla alcun host, quindi non ne ha una.
 :::
 
 :::details La pagina dice che il tuo ruolo non può vedere un tipo di record

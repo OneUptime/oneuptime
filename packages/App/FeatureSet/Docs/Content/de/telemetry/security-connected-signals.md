@@ -1,6 +1,6 @@
 # Verbundene Signale
 
-Ein Sicherheitsfall sagt, um welche Benutzer, Hosts und Adressen es geht. Verbundene Signale sagt, welche davon OneUptime bereits kennt - Ihre Hosts, Container-Hosts, Kubernetes-Cluster, Netzwerkgeräte, Dienste und Mitglieder - und was auf jedem davon rund um den Fall geschah: seine Protokolle, Traces und Metriken, die Vorfälle und Warnungen, die darauf offen sind, die Monitore, die ihn überwachen, und was sich daran geändert hat. Umgekehrt sagt die Seite eines Hosts, eines Clusters, eines Dienstes oder eines Mitglieds, was Sicherheitsereignisse darüber gefunden hat.
+Ein Sicherheitsfall sagt, um welche Benutzer, Hosts und Adressen es geht. Verbundene Signale sagt, welche davon OneUptime bereits kennt - Ihre Hosts, Container-Hosts, Kubernetes-Cluster, Netzwerkgeräte, Cloud-Ressourcen, Serverless-Funktionen, Dienste, die Monitore, die sie prüfen, und Mitglieder - und was auf jedem davon rund um den Fall geschah: seine Protokolle, Traces und Metriken, die Vorfälle und Warnungen, die darauf offen sind, die Monitore, die ihn überwachen, und was sich daran geändert hat. Umgekehrt sagt die Seite eines Hosts, eines Clusters, einer Cloud-Ressource, eines Dienstes, eines Monitors oder eines Mitglieds, was Sicherheitsereignisse darüber gefunden hat.
 
 :::cards
 - [Wo Sie es sehen](#wo-sie-es-sehen): Die Seite eines Falls, der Tab eines Ereignisses, die Seite einer Entität und die Seiten dessen, was sie nennen.
@@ -23,7 +23,7 @@ OneUptime sucht jeden Wert unter den Datensätzen des Projekts, sagt, wie sicher
 
 ## Bevor Sie beginnen
 
-- Eingehende Sicherheitsereignisse, und Hosts, Kubernetes-Cluster, Dienste oder Mitglieder im Projekt, die sie nennen können. Siehe [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started).
+- Eingehende Sicherheitsereignisse, und Hosts, Kubernetes-Cluster, Cloud-Ressourcen, Dienste, Monitore oder Mitglieder im Projekt, die sie nennen können. Siehe [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started).
 - Eine Rolle, die Sicherheitsereignisse lesen darf, und die Arten von Datensätzen, die Sie sehen möchten.
 
 ## Wo Sie es sehen
@@ -31,7 +31,7 @@ OneUptime sucht jeden Wert unter den Datensätzen des Projekts, sagt, wie sicher
 - **Verbundene Signale**, eine Seite jedes Sicherheitsfalls: Öffnen Sie einen Fall unter **Produkte → Sicherheitsereignisse → Sicherheitsfälle → Offene Fälle** und dann **Verbundene Signale** nach **Entitäten** in seinem Menü.
 - **Verbunden**, ein Tab jedes Sicherheitsereignisses: Öffnen Sie ein Ereignis unter **Produkte → Sicherheitsereignisse → Ereignisse**. Er listet, was das Ereignis nennt, in der Stunde rund um das Ereignis.
 - Die Seite einer Entität unter **Produkte → Sicherheitsereignisse → Entitätsrisiko**: wo OneUptime den Benutzer, den Host oder die Adresse kennt, rund um sein letztes Sicherheitsereignis.
-- Eine Karte **Sicherheit** auf der Seite jedes Hosts, Docker-Hosts, Podman-Hosts, Kubernetes-Clusters, Netzwerkgeräts, Dienstes, Mitglieds und Inventarelements: die offenen Sicherheitsfälle, die ihn nennen, wie viele Sicherheitsereignisse und Befunde ihn in den letzten 7 Tagen genannt haben, der schwerste davon und sein Risiko. **In Sicherheitsereignissen öffnen** öffnet ihn dort.
+- Eine Karte **Sicherheit** auf der Seite jedes Hosts, Docker-Hosts, Podman-Hosts, Kubernetes-Clusters, Netzwerkgeräts, jeder Cloud-Ressource, jeder Serverless-Funktion, jedes Dienstes, Monitors, Mitglieds und Inventarelements: die offenen Sicherheitsfälle, die ihn nennen, wie viele Sicherheitsereignisse und Befunde ihn in den letzten 7 Tagen genannt haben, der schwerste davon und sein Risiko. **In Sicherheitsereignissen öffnen** öffnet ihn dort. Die Karte eines Monitors handelt von den Hosts und Adressen, die er prüft.
 - Eine Karte **Sicherheit** auf der Seite eines Vorfalls, wenn ein Sicherheitsfall den Vorfall gemeldet hat (**Gemeldet aus**) oder offene Fälle einen Host oder Cluster nennen, den er betrifft (**Offene Fälle, die nennen, was der Vorfall betrifft**).
 
 ## Wie ein Wert zugeordnet wird
@@ -40,14 +40,17 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 
 | Was der Fall oder das Ereignis nennt | Zugeordnet zu | Wie sicher |
 | --- | --- | --- |
-| Ein Host- oder Domainname, der dem Namen entspricht, den ein Host, ein Container-Host, ein Cluster oder ein Netzwerkgerät meldet | Diesem Datensatz | Exakt |
+| Ein Host- oder Domainname, der dem Namen entspricht, den ein Host, ein Container-Host, ein Cluster oder ein Netzwerkgerät meldet, oder ein Name, unter dem eine Cloud-Ressource antwortet | Diesem Datensatz | Exakt |
 | Derselbe Name, ohne Angabe, dass es ein Host ist | Diesem Datensatz | Möglich |
 | Eine Kurz- oder Langform des Namens eines Datensatzes, etwa `web-1` und `web-1.acme.internal` | Diesem Datensatz | Möglich |
-| Eine öffentliche IP-Adresse, die nur ein Datensatz hat | Diesem Datensatz | Exakt |
+| Eine öffentliche IP-Adresse, die nur ein Host oder Netzwerkgerät hat oder unter der nur eine Cloud-Ressource antwortet | Diesem Datensatz | Exakt |
 | Eine private IP-Adresse oder eine, die mehr als ein Datensatz hat | Jedem Datensatz, der sie hat | Möglich |
+| Die eigene ID einer Cloud-Ressource: eine AWS-ARN, eine Azure-Ressourcen-ID oder ein Google-Cloud-Ressourcenname | Dieser Cloud-Ressource | Exakt |
+| Ein Host, eine öffentliche IP-Adresse oder der Host einer URL, die ein Monitor prüft | Diesem Monitor | Exakt |
+| Eine private IP-Adresse, die ein Monitor prüft | Diesem Monitor | Möglich |
 | Die E-Mail-Adresse eines Mitglieds | Diesem Mitglied | Exakt |
-| Der Datensatz, unter dem eine Protokollzeile gesendet wurde, für die Ereignisse aus Ihren Protokollen | Diesem Host, Cluster oder Dienst | Exakt |
-| Ein bloßer Benutzername, eine URL, ein Datei-Hash oder ein Prozess | Nichts: Kein Datensatz ist danach geschlüsselt | - |
+| Der Datensatz, unter dem eine Protokollzeile gesendet wurde, für die Ereignisse aus Ihren Protokollen | Diesem Host, Cluster, dieser Cloud-Ressource, Serverless-Funktion oder diesem Dienst | Exakt |
+| Ein bloßer Benutzername, ein Datei-Hash oder ein Prozess | Nichts: Kein Datensatz ist danach geschlüsselt | - |
 
 - Eine mögliche Übereinstimmung zeigt **Mögliche Übereinstimmung** neben ihrem Namen und sagt, warum. Sie wird auf der Seite des Datensatzes nie gezählt, und ein Vorfall, den der Fall meldet, wird nie mit ihr verknüpft.
 - Was gesucht wurde und kein Datensatz des Projekts ist, steht unter **Nicht in OneUptime**. Ein Wert steht dort nie, wenn eine Art von Datensatz, die er sein könnte, nicht gelesen werden konnte.
@@ -56,7 +59,8 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 ## Was jeder Datensatz zeigt
 
 - Seine Signale, jedes geöffnet auf dem Datensatz und dem Zeitraum des Falls: **Protokolle**, **Traces** und **Metriken**, die **Ausnahmen** eines Dienstes, die **Kubernetes-Ereignisse** eines Clusters, die **Topologie** des Datensatzes und sein Element im **Inventar**, wenn das Inventar eines hat.
-- Die Vorfälle und Warnungen, die jetzt darauf offen sind, und die Monitore, die ihn überwachen, jeweils mit ihrer eigenen Seite.
+- Die Vorfälle und Warnungen, die jetzt darauf offen sind, und die Monitore, die ihn überwachen, jeweils mit ihrer eigenen Seite. Ein Monitor zeigt seinen Status neben seinem Namen, und seine **Protokolle** zeigen, was er bei jeder Prüfung gesehen hat.
+- Die Bereitschaftspläne eines Mitglieds, mit **Jetzt in Bereitschaft** neben denen, für die es gerade Bereitschaft hat, und die Teams, in denen es ist.
 - Was sich im Zeitraum daran geändert hat: die Deployments eines Dienstes, die Rollouts eines Clusters und die Behebungen eines Hosts.
 
 | Wo | Zeitraum |
@@ -70,21 +74,21 @@ Jeder Benutzer, jeder Host und jede Adresse, die ein Fall oder ein Ereignis nenn
 
 - Verbundene Signale und die Karte **Sicherheit** eines Datensatzes erfordern eine Rolle, die Sicherheitsereignisse lesen darf: Security Admin, Security Member, Security Viewer, Project Owner oder Project Admin. Alle anderen sehen auf keiner Seite Sicherheitsdaten. Siehe [Rollen](/docs/permissions/reference#rollen).
 - Die Karte **Sicherheit** eines Vorfalls erfordert eine Rolle, die Sicherheitsfälle lesen darf.
-- Jeder Datensatz wird mit Ihrer eigenen Rolle gelesen. Eine Art von Datensatz, die Ihre Rolle nicht lesen darf, wird weggelassen, und die Seite sagt das; eine, die gerade nicht gelesen werden konnte, sagt das ebenfalls, mit **Erneut versuchen**.
+- Jeder Datensatz wird mit Ihrer eigenen Rolle gelesen, und ebenso, was darauf ist: Eine Rolle, die keine Bereitschaftspläne lesen darf, sieht die eines Mitglieds nicht. Eine Art von Datensatz, die Ihre Rolle nicht lesen darf, wird weggelassen, und die Seite sagt das; eine, die gerade nicht gelesen werden konnte, sagt das ebenfalls, mit **Erneut versuchen**.
 - Die Seite eines Datensatzes zeigt ihre Karte **Sicherheit** nur in einem Projekt, das Sicherheitsereignisse nutzt: einem, das in den letzten 7 Tagen ein Sicherheitsereignis erhalten hat.
 
 ## Vorfälle, die ein Fall meldet
 
-**Vorfall melden** auf einem Fall oder ein Playbook-Schritt, der einen meldet, verknüpft den Vorfall mit den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern und Diensten, mit denen der Fall exakt verbunden ist. Der Vorfall erscheint auf ihren Seiten, die Regeln ihrer Besitzer gelten für ihn, und sein Feed nennt den Fall und das, womit er verknüpft wurde. Eine mögliche Übereinstimmung wird nie verknüpft.
+**Vorfall melden** auf einem Fall oder ein Playbook-Schritt, der einen meldet, verknüpft den Vorfall mit den Hosts, Docker- und Podman-Hosts, Kubernetes-Clustern, Cloud-Ressourcen und Diensten, mit denen der Fall exakt verbunden ist. Der Vorfall erscheint auf ihren Seiten, die Regeln ihrer Besitzer gelten für ihn, und sein Feed nennt den Fall und das, womit er verknüpft wurde. Eine mögliche Übereinstimmung wird nie verknüpft, und ein Monitor auch nicht: Ein Vorfall auf einem Monitor kann seinen Status ändern und auf seinen Statusseiten erscheinen.
 
 ## OneUptime AI
 
-Die Triage eines Falls durch OneUptime AI liest seine verbundenen Signale: was offen ist und was sich an den Hosts, Diensten und Mitgliedern geändert hat, die der Fall nennt. Die Untersuchung eines Vorfalls liest den Sicherheitsfall, der ihn gemeldet hat, und die offenen Fälle, die nennen, was er betrifft. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
+Die Triage eines Falls durch OneUptime AI liest seine verbundenen Signale: was offen ist und was sich an den Hosts, Diensten, Monitoren und Mitgliedern geändert hat, die der Fall nennt, und die Bereitschaftspläne und Teams eines Mitglieds. Die Untersuchung eines Vorfalls liest den Sicherheitsfall, der ihn gemeldet hat, und die offenen Fälle, die nennen, was er betrifft. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
 
 ## Fehlerbehebung
 
 :::details Ein Host, den der Fall nennt, wird nicht aufgeführt
-Prüfen Sie, ob der Fall den Host so nennt, wie der Host sich selbst nennt, oder eine öffentliche Adresse nennt, die nur dieser Host hat. Ein Kurzname wie `web-1` für `web-1.acme.internal` wird als mögliche Übereinstimmung aufgeführt, und ein bloßer Benutzername, eine URL, ein Datei-Hash oder ein Prozess wird gar nicht gesucht.
+Prüfen Sie, ob der Fall den Host so nennt, wie der Host sich selbst nennt, oder eine öffentliche Adresse nennt, die nur dieser Host hat. Ein Kurzname wie `web-1` für `web-1.acme.internal` wird als mögliche Übereinstimmung aufgeführt, und ein bloßer Benutzername, ein Datei-Hash oder ein Prozess wird gar nicht gesucht. Eine URL wird nur unter den Monitoren gesucht, die ihren Host prüfen.
 :::
 
 :::details Der richtige Host wird als mögliche Übereinstimmung aufgeführt
@@ -93,6 +97,10 @@ Eine mögliche Übereinstimmung wird nie gezählt oder verknüpft, damit ein Nam
 
 :::details Die Seite eines Hosts hat keine Karte Sicherheit
 Die Karte wird einer Rolle gezeigt, die Sicherheitsereignisse lesen darf, in einem Projekt, das in den letzten 7 Tagen ein Sicherheitsereignis erhalten hat. Ein Host, den in dieser Zeit nichts genannt hat, zeigt eine Zeile, die das sagt.
+:::
+
+:::details Die Seite eines Monitors hat keine Karte Sicherheit
+Die Karte erscheint für einen Monitor, der einen Host, eine Adresse oder eine URL prüft: einen Website-, API-, Ping-, Port-, SSL-Zertifikat-, DNS- oder Domain-Monitor. Ein Heartbeat, ein Skript oder ein Monitor Ihrer Telemetrie prüft keinen Host und hat daher keine.
 :::
 
 :::details Die Seite sagt, dass Ihre Rolle eine Art von Datensatz nicht sehen kann

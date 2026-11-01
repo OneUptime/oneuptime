@@ -1,6 +1,6 @@
 # Sinais conectados
 
-Um caso de segurança diz a quais usuários, hosts e endereços se refere. Sinais conectados diz quais deles o OneUptime já conhece - os seus hosts, hosts de contêineres, clusters do Kubernetes, dispositivos de rede, serviços e membros - e o que acontecia em cada um em torno do caso: os seus registros, traços e métricas, os incidentes e alertas abertos nele, os monitores que o vigiam e o que mudou nele. No sentido inverso, a página de um host, de um cluster, de um serviço ou de um membro diz o que o Security Events encontrou sobre ele.
+Um caso de segurança diz a quais usuários, hosts e endereços se refere. Sinais conectados diz quais deles o OneUptime já conhece - os seus hosts, hosts de contêineres, clusters do Kubernetes, dispositivos de rede, recursos de nuvem, funções serverless, serviços, os monitores que os verificam e membros - e o que acontecia em cada um em torno do caso: os seus registros, traços e métricas, os incidentes e alertas abertos nele, os monitores que o vigiam e o que mudou nele. No sentido inverso, a página de um host, de um cluster, de um recurso de nuvem, de um serviço, de um monitor ou de um membro diz o que o Security Events encontrou sobre ele.
 
 :::cards
 - [Onde você vê](#onde-você-vê): A página de um caso, a aba de um evento, a página de uma entidade e as páginas do que eles nomeiam.
@@ -23,7 +23,7 @@ O OneUptime procura cada valor entre os itens do projeto, diz o quão certa é c
 
 ## Antes de começar
 
-- Eventos de segurança chegando, e hosts, clusters do Kubernetes, serviços ou membros do projeto que eles possam nomear. Veja [Primeiros passos com a segurança](/docs/telemetry/security-getting-started).
+- Eventos de segurança chegando, e hosts, clusters do Kubernetes, recursos de nuvem, serviços, monitores ou membros do projeto que eles possam nomear. Veja [Primeiros passos com a segurança](/docs/telemetry/security-getting-started).
 - Uma função que possa ler eventos de segurança, e os tipos de item que você quer ver.
 
 ## Onde você vê
@@ -31,7 +31,7 @@ O OneUptime procura cada valor entre os itens do projeto, diz o quão certa é c
 - **Sinais conectados**, uma página de cada caso de segurança: abra um caso em **Produtos → Security Events → Casos de segurança → Casos abertos** e depois **Sinais conectados** após **Entidades** no menu dele.
 - **Conectado**, uma aba de cada evento de segurança: abra um evento em **Produtos → Security Events → Eventos**. Ela lista o que o evento nomeia, na hora em torno dele.
 - A página de uma entidade, em **Produtos → Security Events → Risco de entidades**: onde o OneUptime conhece o usuário, o host ou o endereço, em torno do seu último evento de segurança.
-- Um cartão **Segurança** na página de cada host, host do Docker, host do Podman, cluster do Kubernetes, dispositivo de rede, serviço, membro e item de inventário: os casos de segurança abertos que o nomeiam, quantos eventos de segurança e descobertas o nomearam nos últimos 7 dias, o mais grave deles e o seu risco. **Abrir em Security Events** o abre lá.
+- Um cartão **Segurança** na página de cada host, host do Docker, host do Podman, cluster do Kubernetes, dispositivo de rede, recurso de nuvem, função serverless, serviço, monitor, membro e item de inventário: os casos de segurança abertos que o nomeiam, quantos eventos de segurança e descobertas o nomearam nos últimos 7 dias, o mais grave deles e o seu risco. **Abrir em Security Events** o abre lá. O cartão de um monitor trata dos hosts e endereços que ele verifica.
 - Um cartão **Segurança** na página de um incidente, quando um caso de segurança declarou o incidente (**Declarado a partir de**) ou casos abertos nomeiam um host ou cluster que ele afeta (**Casos abertos que nomeiam o que ele afeta**).
 
 ## Como um valor é correspondido
@@ -40,14 +40,17 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 
 | O que o caso ou o evento nomeia | Correspondido a | Certeza |
 | --- | --- | --- |
-| Um nome de host ou de domínio igual ao nome que um host, um host de contêineres, um cluster ou um dispositivo de rede informa | Esse item | Exata |
+| Um nome de host ou de domínio igual ao nome que um host, um host de contêineres, um cluster ou um dispositivo de rede informa, ou um nome em que um recurso de nuvem responde | Esse item | Exata |
 | O mesmo nome, dado sem dizer que é um host | Esse item | Possível |
 | Uma forma curta ou completa do nome de um item, como `web-1` e `web-1.acme.internal` | Esse item | Possível |
-| Um endereço IP público que só um item tem | Esse item | Exata |
+| Um endereço IP público que só um host ou dispositivo de rede tem, ou em que só um recurso de nuvem responde | Esse item | Exata |
 | Um endereço IP privado, ou um que mais de um item tem | Cada item que o tem | Possível |
+| O ID próprio de um recurso de nuvem: um ARN da AWS, um ID de recurso do Azure ou um nome de recurso do Google Cloud | Esse recurso de nuvem | Exata |
+| Um host, um endereço IP público ou o host de uma URL que um monitor verifica | Esse monitor | Exata |
+| Um endereço IP privado que um monitor verifica | Esse monitor | Possível |
 | O e-mail de um membro | Esse membro | Exata |
-| O item sob o qual uma linha de registro foi enviada, para os eventos lidos dos seus registros | Esse host, cluster ou serviço | Exata |
-| Um simples nome de usuário, uma URL, um hash de arquivo ou um processo | Nada: nenhum item é identificado por eles | - |
+| O item sob o qual uma linha de registro foi enviada, para os eventos lidos dos seus registros | Esse host, cluster, recurso de nuvem, função serverless ou serviço | Exata |
+| Um simples nome de usuário, um hash de arquivo ou um processo | Nada: nenhum item é identificado por eles | - |
 
 - Uma possível correspondência mostra **Possível correspondência** ao lado do nome e diz por quê. Ela nunca é contada na página do item, e um incidente que o caso declara nunca é vinculado a ela.
 - O que foi procurado e não é um item do projeto é listado em **Não está no OneUptime**. Um valor nunca é listado ali quando um tipo de item que ele poderia ser não pôde ser lido.
@@ -56,7 +59,8 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 ## O que cada item mostra
 
 - Os seus sinais, cada um abrindo no item e no período do caso: **Registros**, **Traços** e **Métricas**, as **Exceções** de um serviço, os **Eventos do Kubernetes** de um cluster, a **Topologia** do item e o seu item de **Inventário** quando o inventário tem um.
-- Os incidentes e alertas abertos nele agora e os monitores que o vigiam, cada um abrindo a sua página.
+- Os incidentes e alertas abertos nele agora e os monitores que o vigiam, cada um abrindo a sua página. Um monitor mostra o seu status ao lado do nome, e os seus **Registros** são o que ele viu em cada verificação.
+- Os agendamentos de plantão de um membro, com **De plantão agora** ao lado daqueles em que ele está de plantão, e as equipes de que faz parte.
 - O que mudou nele no período: as implantações de um serviço, os rollouts de um cluster e as correções de um host.
 
 | Onde | Período |
@@ -70,21 +74,21 @@ Cada usuário, host e endereço que um caso ou um evento nomeia é procurado ent
 
 - Sinais conectados e o cartão **Segurança** de um item exigem uma função que possa ler eventos de segurança: Security Admin, Security Member, Security Viewer, Project Owner ou Project Admin. Ninguém mais vê dados de segurança em nenhuma página. Veja [Funções](/docs/permissions/reference#funções).
 - O cartão **Segurança** de um incidente exige uma função que possa ler casos de segurança.
-- Cada item é lido com a sua própria função. Um tipo de item que a sua função não pode ler é deixado de fora, e a página diz isso; um que não pôde ser lido agora também diz, com **Tentar novamente**.
+- Cada item é lido com a sua própria função, e também o que há nele: uma função que não pode ler agendamentos de plantão não vê os de um membro. Um tipo de item que a sua função não pode ler é deixado de fora, e a página diz isso; um que não pôde ser lido agora também diz, com **Tentar novamente**.
 - A página de um item mostra o seu cartão **Segurança** apenas num projeto que usa o Security Events: um que recebeu um evento de segurança nos últimos 7 dias.
 
 ## Incidentes que um caso declara
 
-**Declarar incidente** num caso, ou a etapa de um playbook que declara um, vincula o incidente aos hosts, hosts do Docker e do Podman, clusters do Kubernetes e serviços aos quais o caso está conectado de forma exata. O incidente aparece nas páginas deles e as regras dos seus proprietários se aplicam a ele, e o seu feed nomeia o caso e aquilo a que foi vinculado. Uma possível correspondência nunca é vinculada.
+**Declarar incidente** num caso, ou a etapa de um playbook que declara um, vincula o incidente aos hosts, hosts do Docker e do Podman, clusters do Kubernetes, recursos de nuvem e serviços aos quais o caso está conectado de forma exata. O incidente aparece nas páginas deles e as regras dos seus proprietários se aplicam a ele, e o seu feed nomeia o caso e aquilo a que foi vinculado. Uma possível correspondência nunca é vinculada, nem um monitor: um incidente num monitor pode mudar o seu status e aparecer nas suas páginas de status.
 
 ## OneUptime AI
 
-A triagem de um caso pelo OneUptime AI lê os seus sinais conectados: o que está aberto e o que mudou nos hosts, serviços e membros que o caso nomeia. A investigação de um incidente lê o caso de segurança que o declarou e os casos abertos que nomeiam o que ele afeta. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
+A triagem de um caso pelo OneUptime AI lê os seus sinais conectados: o que está aberto e o que mudou nos hosts, serviços, monitores e membros que o caso nomeia, e os agendamentos de plantão e as equipes de um membro. A investigação de um incidente lê o caso de segurança que o declarou e os casos abertos que nomeiam o que ele afeta. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
 
 ## Solução de problemas
 
 :::details Um host que o caso nomeia não aparece
-Verifique se o caso nomeia o host como o host nomeia a si mesmo, ou nomeia um endereço público que só esse host tem. Um nome curto, como `web-1` para `web-1.acme.internal`, aparece como possível correspondência, e um simples nome de usuário, uma URL, um hash de arquivo ou um processo não é procurado de forma alguma.
+Verifique se o caso nomeia o host como o host nomeia a si mesmo, ou nomeia um endereço público que só esse host tem. Um nome curto, como `web-1` para `web-1.acme.internal`, aparece como possível correspondência, e um simples nome de usuário, um hash de arquivo ou um processo não é procurado de forma alguma. Uma URL só é procurada entre os monitores que verificam o seu host.
 :::
 
 :::details O host certo aparece como possível correspondência
@@ -93,6 +97,10 @@ Uma possível correspondência nunca é contada nem vinculada, para que um nome 
 
 :::details A página de um host não tem o cartão Segurança
 O cartão é mostrado a uma função que pode ler eventos de segurança, num projeto que recebeu um evento de segurança nos últimos 7 dias. Um host que nada nomeou nesse período mostra uma linha que diz isso.
+:::
+
+:::details A página de um monitor não tem o cartão Segurança
+O cartão aparece para um monitor que verifica um host, um endereço ou uma URL: um monitor de site, API, ping, porta, certificado SSL, DNS ou domínio. Um heartbeat, um script ou um monitor da sua telemetria não verifica nenhum host, então não tem um.
 :::
 
 :::details A página diz que a sua função não pode ver um tipo de item

@@ -4,6 +4,7 @@ import { SECURITY_CONNECTED_SIGNALS } from "./AiObservabilityDocsPages";
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   CONNECTED_NOT_FOUND_TITLE,
+  CONNECTED_ON_CALL_NOW,
   CONNECTED_POSSIBLE_PILL,
   CONNECTED_SIGNALS_TITLE,
   CONNECTED_TAB_LABEL,
@@ -31,16 +32,26 @@ import {
   SECURITY_CONNECTION_MAX_WINDOW_IN_HOURS,
   SecurityConnectionCertainty,
   SecurityConnectionKind,
+  SecurityConnectionReason,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
   getCaseConnectionWindow,
   getEventConnectionWindow,
+  getLookupKindsOf,
+  getMonitorTargetHosts,
   getSecurityConnectionLookups,
   matchAddress,
   matchEmail,
   matchHostName,
+  matchMonitorTarget,
+  matchResourceId,
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
+import Hostname from "Common/Types/API/Hostname";
+import URL from "Common/Types/API/URL";
+import IP from "Common/Types/IP/IP";
+import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -107,7 +118,10 @@ const KIND_NOUNS: Readonly<Record<SecurityConnectionKind, string>> = {
   [SecurityConnectionKind.PodmanHost]: "Podman host",
   [SecurityConnectionKind.KubernetesCluster]: "Kubernetes cluster",
   [SecurityConnectionKind.NetworkDevice]: "network device",
+  [SecurityConnectionKind.CloudResource]: "cloud resource",
+  [SecurityConnectionKind.ServerlessFunction]: "serverless function",
   [SecurityConnectionKind.Service]: "service",
+  [SecurityConnectionKind.Monitor]: "monitor",
   [SecurityConnectionKind.User]: "member",
   [SecurityConnectionKind.InventoryItem]: "inventory item",
 };
@@ -217,6 +231,23 @@ describe("the Connected Signals page", () => {
       matchAddress({ address: "203.0.113.9", holderCount: 1 })!.certainty,
       // A private one, or one held by more than one record.
       matchAddress({ address: "10.0.0.9", holderCount: 1 })!.certainty,
+      // A cloud resource's own ID, whatever it was typed as.
+      matchResourceId({
+        entityValue: "arn:aws:s3:::acme-prod-data",
+        providerResourceId: "arn:aws:s3:::acme-prod-data",
+      })!.certainty,
+      // A host, a public address or a URL's host a monitor checks.
+      matchMonitorTarget({
+        entityValue: "https://shop.acme.example/login",
+        entityType: SecurityEntityType.Url,
+        target: "shop.acme.example",
+      })!.certainty,
+      // A private address a monitor checks.
+      matchMonitorTarget({
+        entityValue: "10.0.0.9",
+        entityType: SecurityEntityType.IpAddress,
+        target: "10.0.0.9",
+      })!.certainty,
       // A member's email.
       matchEmail({
         entityValue: "kim@acme.example",
@@ -229,12 +260,40 @@ describe("the Connected Signals page", () => {
     expect(
       matchAddress({ address: "203.0.113.9", holderCount: 2 })!.certainty,
     ).toBe(SecurityConnectionCertainty.Possible);
+    // The other two a monitor checks are exact too.
+    expect(
+      [
+        matchMonitorTarget({
+          entityValue: "shop.acme.example",
+          entityType: SecurityEntityType.Host,
+          target: "shop.acme.example",
+        }),
+        matchMonitorTarget({
+          entityValue: "203.0.113.9",
+          entityType: SecurityEntityType.IpAddress,
+          target: "203.0.113.9",
+        }),
+      ].map((verdict: { certainty: SecurityConnectionCertainty } | null) => {
+        return verdict?.certainty;
+      }),
+    ).toEqual([
+      SecurityConnectionCertainty.Exact,
+      SecurityConnectionCertainty.Exact,
+    ]);
+    // A name a cloud resource answers on: exact, as the first row says.
+    expect(
+      matchHostName({
+        entityValue: "checkout-1234.elb.amazonaws.com",
+        entityType: SecurityEntityType.Domain,
+        resourceName: "checkout-1234.elb.amazonaws.com",
+        exactReason: SecurityConnectionReason.CloudEndpoint,
+      })!.certainty,
+    ).toBe(SecurityConnectionCertainty.Exact);
 
     // What is never looked up at all.
     expect(
       getSecurityConnectionLookups([
         { type: SecurityEntityType.User, value: "kmorgan" },
-        { type: SecurityEntityType.Url, value: "https://evil.example/x" },
         {
           type: SecurityEntityType.FileHash,
           value: "44d88612fea8a8f36de82e1278abb02f",
@@ -243,7 +302,63 @@ describe("the Connected Signals page", () => {
       ]).lookedUp,
     ).toEqual([]);
     expect(rows[rows.length - 1]![0]).toBe(
-      "A bare user name, a URL, a file hash or a process",
+      "A bare user name, a file hash or a process",
+    );
+    // A URL is looked up among the monitors that check its host, and nowhere else.
+    expect(
+      getLookupKindsOf({
+        type: SecurityEntityType.Url,
+        value: "https://evil.example/x",
+      }),
+    ).toEqual([SecurityConnectionKind.Monitor]);
+    expect(flat(section("Troubleshooting"))).toContain(
+      "A URL is looked up only among the monitors that check its host.",
+    );
+  });
+
+  test("says which monitors have a Security card: those that check a host, an address or a URL", () => {
+    const steps: (step: MonitorStep) => MonitorSteps = (
+      step: MonitorStep,
+    ): MonitorSteps => {
+      const monitorSteps: MonitorSteps = new MonitorSteps();
+      monitorSteps.setMonitorStepsInstanceArray([step]);
+      return monitorSteps;
+    };
+
+    // A website or an API (a URL), a ping, a port or a certificate (a host or an address), a DNS name and a domain.
+    for (const checks of [
+      new MonitorStep().setMonitorDestination(
+        URL.fromString("https://shop.acme.example"),
+      ),
+      new MonitorStep().setMonitorDestination(
+        new Hostname("db-1.acme.internal"),
+      ),
+      new MonitorStep().setMonitorDestination(new IP("203.0.113.9")),
+      new MonitorStep().setDnsMonitor({ queryName: "acme.example" } as never),
+      new MonitorStep().setDomainMonitor({
+        domainName: "acme.example",
+      } as never),
+    ]) {
+      expect(getMonitorTargetHosts(steps(checks)).length).toBe(1);
+    }
+
+    // A heartbeat, a script or telemetry: no host.
+    expect(getMonitorTargetHosts(steps(new MonitorStep()))).toEqual([]);
+
+    const where: string = flat(section("Where you see it"));
+    const troubleshooting: string = flat(section("Troubleshooting"));
+
+    expect(where).toContain(
+      "A monitor's card is about the hosts and addresses it checks.",
+    );
+    expect(troubleshooting).toContain(
+      "The card is drawn for a monitor that checks a host, an address or a URL: a website, API, ping, port, SSL certificate, DNS or domain monitor. A heartbeat, a script or a monitor of your telemetry checks no host, so it has none.",
+    );
+  });
+
+  test("names what a member's record shows, as the Dashboard labels it", () => {
+    expect(flat(section("What each record shows"))).toContain(
+      `A member's on-call schedules, with ${bold(CONNECTED_ON_CALL_NOW)} beside the ones they are on call for, and the teams they are in.`,
     );
   });
 
@@ -367,10 +482,16 @@ describe("the Connected Signals page", () => {
       SecurityConnectionKind.DockerHost,
       SecurityConnectionKind.PodmanHost,
       SecurityConnectionKind.KubernetesCluster,
+      SecurityConnectionKind.CloudResource,
       SecurityConnectionKind.Service,
     ]);
     expect(flat(section("Incidents a case declares"))).toContain(
-      "links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters and services the case is exactly connected to.",
+      "links the incident to the hosts, Docker and Podman hosts, Kubernetes clusters, cloud resources and services the case is exactly connected to.",
+    );
+    // A monitor is never one of them.
+    expect(linked).not.toContain(SecurityConnectionKind.Monitor);
+    expect(flat(section("Incidents a case declares"))).toContain(
+      "A possible match is never linked, and neither is a monitor: an incident on a monitor can change its status and show on its status pages.",
     );
   });
 });
