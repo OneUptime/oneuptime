@@ -688,4 +688,195 @@ describePostgres("KubernetesResource health on Postgres", () => {
       expect(namespace.pods).toEqual([]);
     });
   });
+
+  /*
+   * A workload list's CPU and memory: each owner's pods' latest readings
+   * added up in their own namespace (getLatestMetricsByOwner), keyed
+   * <namespace>/<name> - so shop's checkout never counts payments' pods.
+   */
+  describe("a workload's CPU and memory on its list", () => {
+    interface Reading {
+      pod: string;
+      namespace: string;
+      cpu: number;
+      memoryMiB: number;
+      deployment?: string;
+      cronJob?: string;
+      minutesAgo?: number;
+    }
+
+    async function read(readings: Array<Reading>): Promise<void> {
+      await KubernetesResourceService.bulkUpdateLatestMetrics({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        metrics: readings.map((reading: Reading) => {
+          return {
+            kind: "Pod",
+            namespaceKey: reading.namespace,
+            name: reading.pod,
+            cpuPercent: reading.cpu,
+            memoryBytes: reading.memoryMiB * 1024 * 1024,
+            memoryPercent: reading.cpu / 2,
+            observedAt: ago(reading.minutesAgo ?? 1),
+            controllerDeploymentName: reading.deployment ?? null,
+            controllerCronJobName: reading.cronJob ?? null,
+          };
+        }),
+      });
+    }
+
+    async function sums(
+      ownerKind: string,
+    ): Promise<
+      Map<
+        string,
+        { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+      >
+    > {
+      return KubernetesResourceService.getLatestMetricsByOwner({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        ownerKind: ownerKind,
+        staleAfter: ago(15),
+      });
+    }
+
+    test("two same-named Deployments in two namespaces each add up their own pods", async () => {
+      await upsert([
+        deployment("checkout", 2, "shop"),
+        deployment("checkout", 1, "payments"),
+        pod("checkout-7d9f8b6c5-a1b2c", {
+          namespace: "shop",
+          owner: ["ReplicaSet", "checkout-7d9f8b6c5"],
+        }),
+        pod("checkout-7d9f8b6c5-d3e4f", {
+          namespace: "shop",
+          owner: ["ReplicaSet", "checkout-7d9f8b6c5"],
+        }),
+        pod("checkout-5c8d7f9b4-p1q2r", {
+          namespace: "payments",
+          owner: ["ReplicaSet", "checkout-5c8d7f9b4"],
+        }),
+      ]);
+      await read([
+        {
+          pod: "checkout-7d9f8b6c5-a1b2c",
+          namespace: "shop",
+          cpu: 22,
+          memoryMiB: 318,
+          deployment: "checkout",
+        },
+        {
+          pod: "checkout-7d9f8b6c5-d3e4f",
+          namespace: "shop",
+          cpu: 19,
+          memoryMiB: 301,
+          deployment: "checkout",
+        },
+        {
+          pod: "checkout-5c8d7f9b4-p1q2r",
+          namespace: "payments",
+          cpu: 14,
+          memoryMiB: 210,
+          deployment: "checkout",
+        },
+      ]);
+
+      const result: Map<
+        string,
+        { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+      > = await sums("Deployment");
+
+      expect([...result.keys()].sort()).toEqual([
+        "payments/checkout",
+        "shop/checkout",
+      ]);
+      expect(result.get("shop/checkout")).toEqual({
+        cpuPercent: 41,
+        memoryBytes: (318 + 301) * 1024 * 1024,
+        memoryPercent: 20.5,
+      });
+      expect(result.get("payments/checkout")).toEqual({
+        cpuPercent: 14,
+        memoryBytes: 210 * 1024 * 1024,
+        memoryPercent: 7,
+      });
+      // Never the name alone, which would mix the two.
+      expect(result.has("checkout")).toBe(false);
+    });
+
+    test("a StatefulSet's pods, read from their owner references, add up in their own namespace; a stale reading is left out", async () => {
+      await upsert([
+        pod("postgres-0", {
+          namespace: "data",
+          owner: ["StatefulSet", "postgres"],
+        }),
+        pod("postgres-1", {
+          namespace: "data",
+          owner: ["StatefulSet", "postgres"],
+        }),
+        pod("postgres-0", {
+          namespace: "analytics",
+          owner: ["StatefulSet", "postgres"],
+        }),
+      ]);
+      await read([
+        { pod: "postgres-0", namespace: "data", cpu: 28, memoryMiB: 1840 },
+        // An hour old: past the fifteen minutes, so not "right now".
+        {
+          pod: "postgres-1",
+          namespace: "data",
+          cpu: 24,
+          memoryMiB: 1712,
+          minutesAgo: 60,
+        },
+        { pod: "postgres-0", namespace: "analytics", cpu: 5, memoryMiB: 400 },
+      ]);
+
+      const result: Map<
+        string,
+        { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+      > = await sums("StatefulSet");
+
+      expect(result.get("data/postgres")?.cpuPercent).toBe(28);
+      expect(result.get("analytics/postgres")?.cpuPercent).toBe(5);
+    });
+
+    test("a CronJob's runs' pods add up under the CronJob, in their own namespace", async () => {
+      await upsert([
+        pod("nightly-report-29013480-k2j4h", {
+          namespace: "shop",
+          owner: ["Job", "nightly-report-29013480"],
+        }),
+        pod("nightly-report-29013480-x9y8z", {
+          namespace: "reports",
+          owner: ["Job", "nightly-report-29013480"],
+        }),
+      ]);
+      await read([
+        {
+          pod: "nightly-report-29013480-k2j4h",
+          namespace: "shop",
+          cpu: 9,
+          memoryMiB: 120,
+          cronJob: "nightly-report",
+        },
+        {
+          pod: "nightly-report-29013480-x9y8z",
+          namespace: "reports",
+          cpu: 4,
+          memoryMiB: 80,
+          cronJob: "nightly-report",
+        },
+      ]);
+
+      const result: Map<
+        string,
+        { cpuPercent: number; memoryBytes: number; memoryPercent: number }
+      > = await sums("CronJob");
+
+      expect(result.get("shop/nightly-report")?.cpuPercent).toBe(9);
+      expect(result.get("reports/nightly-report")?.cpuPercent).toBe(4);
+    });
+  });
 });
