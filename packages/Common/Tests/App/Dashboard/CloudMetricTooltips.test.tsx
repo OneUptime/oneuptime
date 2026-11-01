@@ -54,6 +54,7 @@ interface MockInstanceRow {
 interface MockListCall {
   modelType: { name: string };
   sort?: Record<string, unknown> | undefined;
+  select?: Record<string, unknown> | undefined;
 }
 
 const mockAggregateCalls: Array<MockAggregateCall> = [];
@@ -339,9 +340,9 @@ const RANGED_KEYS: Array<CloudMetric> = [
 ];
 
 const FLEET_TILES: Array<[string, CloudFleetMetric]> = [
+  ["Apps", "apps"],
   ["Environments", "environments"],
-  ["Connected", "connected"],
-  ["Disconnected", "disconnected"],
+  ["Deploys", "deploys"],
   ["Live instances", "liveInstances"],
 ];
 
@@ -419,11 +420,17 @@ describe("CLOUD_METRIC_DESCRIPTIONS", () => {
     );
   });
 
-  test("Requests is honest that it counts spans across the environment", () => {
-    expect(D.requests).toMatch(/Every span/);
+  test("Requests counts the requests entering the environment's apps, not every span", () => {
+    /*
+     * The tile reads entry spans only (fetchSpanMetrics entrySpansOnly):
+     * one a request, whatever it calls below it.
+     */
+    expect(D.requests).toMatch(/the spans where work enters a service/);
+    expect(D.requests).toMatch(/not every database call and step under them/);
     expect(D.requests).toMatch(/cloud platform, account and region/);
-    // "usually": a trace with a single span is one request and one span.
-    expect(D.requests).toMatch(/usually higher than the request count/);
+    expect(D.requestsChart).toMatch(/^Requests to this environment's apps/);
+    expect(D.errorRate).toMatch(/this environment's requests/);
+    expect(D.p95Latency).toMatch(/the requests to this environment's apps/);
   });
 
   test("the p95 tile is an average of per-interval p95s", () => {
@@ -471,6 +478,9 @@ describe("CLOUD_FLEET_METRIC_DESCRIPTIONS", () => {
       disconnected: 0,
       byProvider: {},
       liveInstances: 0,
+      apps: 0,
+      runningApps: 0,
+      deploys: 0,
     });
 
     expect(
@@ -491,6 +501,9 @@ describe("CLOUD_FLEET_METRIC_DESCRIPTIONS", () => {
       disconnected: 0,
       byProvider: {},
       liveInstances: 0,
+      apps: 0,
+      runningApps: 0,
+      deploys: 0,
     });
     const busy: Array<CloudFleetSummaryTile> = summarizeCloudFleet({
       total: 9,
@@ -498,6 +511,9 @@ describe("CLOUD_FLEET_METRIC_DESCRIPTIONS", () => {
       disconnected: 7,
       byProvider: { aws: 9 },
       liveInstances: 40,
+      apps: 12,
+      runningApps: 9,
+      deploys: 4,
     });
 
     expect(
@@ -518,9 +534,13 @@ describe("CLOUD_FLEET_METRIC_DESCRIPTIONS", () => {
     expect(F.liveInstances).toContain(LIVE_WINDOW);
   });
 
-  test("Connected and Disconnected describe the status sweep", () => {
-    expect(F.connected).toMatch(/15 to 20 minutes/);
-    expect(F.disconnected).toMatch(/never reported/);
+  test("Apps and Deploys say what they count, and over which window", () => {
+    expect(F.apps).toContain(LIVE_WINDOW);
+    expect(F.apps).toMatch(/have not reported/);
+    expect(F.deploys).toMatch(/in the last 24 hours/);
+    // A rollback goes back to a revision the app ran: no new one.
+    expect(F.deploys).toMatch(/A rollback is not counted/);
+    expect(F.environments).toMatch(/how many are disconnected/);
   });
 });
 
@@ -698,9 +718,13 @@ describe("Cloud environment overview page", () => {
 
     await renderOverview();
 
+    // The environment's instance list, not its apps' live instances.
     const instanceList: Array<MockListCall> = mockListCalls.filter(
       (call: MockListCall): boolean => {
-        return call.modelType.name === "CloudResourceInstance";
+        return (
+          call.modelType.name === "CloudResourceInstance" &&
+          Boolean(call.select?.["latestCpuPercent"])
+        );
       },
     );
 

@@ -15,6 +15,9 @@ export class Service extends DatabaseService<Model> {
   /**
    * Upsert a cloud-resource instance / task (service.instance.id) from ingest.
    * Refreshes lastSeenAt (and cpu/mem when provided) if it already exists.
+   * The app the instance runs and that app's revision are kept when the
+   * resource names them (CloudAppIdentity); an instance that names none
+   * keeps the ones it had.
    */
   @CaptureSpan()
   public async recordInstance(data: {
@@ -23,6 +26,8 @@ export class Service extends DatabaseService<Model> {
     instanceName: string;
     cpuPercent?: number | undefined;
     memoryBytes?: number | undefined;
+    cloudAppId?: ObjectID | undefined;
+    revision?: string | undefined;
   }): Promise<void> {
     try {
       const existing: Model | null = await this.findOneBy({
@@ -42,6 +47,12 @@ export class Service extends DatabaseService<Model> {
       }
       if (data.memoryBytes !== undefined) {
         fields.latestMemoryBytes = data.memoryBytes;
+      }
+      if (data.cloudAppId) {
+        fields.cloudAppId = data.cloudAppId;
+      }
+      if (data.revision) {
+        fields.revision = data.revision;
       }
 
       if (existing && existing._id) {
@@ -63,6 +74,12 @@ export class Service extends DatabaseService<Model> {
       }
       if (data.memoryBytes !== undefined) {
         item.latestMemoryBytes = data.memoryBytes;
+      }
+      if (data.cloudAppId) {
+        item.cloudAppId = data.cloudAppId;
+      }
+      if (data.revision) {
+        item.revision = data.revision;
       }
       await this.create({ data: item, props: { isRoot: true } });
     } catch (err) {

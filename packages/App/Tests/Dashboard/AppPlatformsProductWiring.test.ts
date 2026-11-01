@@ -152,13 +152,17 @@ describe("the product's pages", () => {
   test("every routed page is mounted by the route group", () => {
     const routes: string = readCode("Routes/AppPlatformsRoutes.tsx");
 
-    // The Overview is the group's index; every other page names its key.
+    /*
+     * The Overview is the group's index; every other page names its key -
+     * an environment's app page by its last two segments (apps/:subModelId).
+     */
     const unmounted: Array<string> = ROUTED_KEYS.filter(
       (key: string): boolean => {
         return (
           key !== "APP_PLATFORMS_OVERVIEW" &&
           !routes.includes(`AppPlatformsRoutePath[PageMap.${key}]`) &&
-          !routes.includes(`RouteUtil.getLastPathForKey(PageMap.${key})`)
+          !routes.includes(`RouteUtil.getLastPathForKey(PageMap.${key})`) &&
+          !routes.includes(`RouteUtil.getLastPathForKey(PageMap.${key}, 2)`)
         );
       },
     );

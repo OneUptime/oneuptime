@@ -283,6 +283,7 @@
     "main",
     "message",
     "name",
+    "p95 {{latency}}",
     "probe",
     "prod, staging",
     "prod-.*",

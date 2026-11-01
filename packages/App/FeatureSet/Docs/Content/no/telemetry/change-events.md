@@ -30,6 +30,7 @@ Disse krever ikke at du sender noe. OneUptime registrerer dem ut fra telemetrien
 | --- | --- | --- |
 | En utrulling | En tjeneste begynner å rapportere en `service.version` den ikke har rapportert før i miljøet sitt | `service-version` |
 | En rollout | Podene i en Kubernetes-Deployment begynner å kjøre et ReplicaSet de ikke har kjørt før: et nytt image, en endret miljøvariabel eller konfigurasjonsreferanse, eller en omstart | `kubernetes` |
+| En app-utrulling | En app på en administrert app-plattform, for eksempel en ECS-tjeneste eller en Cloud Run-tjeneste, begynner å kjøre en revisjon den ikke har kjørt før, eller går tilbake til en den kjørte før | `app-platform` |
 | En rettelse OneUptime AI kjørte | En AI-agent rapporterer resultatet av en kommando som endrer noe, for eksempel `kubectl rollout restart` | `oneuptime-ai` |
 | En runbook | En runbook OneUptime kjørte, fullføres, mislykkes eller avbrytes etter at den har startet | `runbook` |
 | En skyendring | Aktivitetsloggen til en tilkoblet skykonto registrerer en endring: AWS CloudTrail, aktivitetsloggen i Azure eller revisjonsloggen Admin Activity i Google Cloud | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 En rollout krever [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), som merker telemetrien fra hver pod med podens Deployment og ReplicaSet.
+
+En app-utrulling krever at appen kjører på en [administrert app-plattform](/docs/telemetry/cloud-environments#apper-og-utrullinger). Den registreres under appens miljø og tegnes i diagrammene til miljøet og til appen selv, og der registreres også en rollback til en revisjon appen kjørte før.
 
 En skyendring eller en leverandørhendelse krever en [tilkoblet skykonto](/docs/telemetry/cloud-accounts). Hver av dem knyttes til skyressursen den nevner, når OneUptime lister den ressursen, og tegnes på ressursens diagrammer. Typen kommer fra operasjonen: `deployment`, `scaling` eller `rollback` når navnet på operasjonen sier det, ellers `config-change`, og `provider-event` for en helsehendelse. Diagrammer som ikke er filtrert til noen ressurs, utelater aktivitetsloggen til en skykonto, så en travel konto ikke fortrenger utrullingene dine; leverandørens helsehendelser blir værende.
 

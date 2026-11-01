@@ -41,7 +41,12 @@ import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
+import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import { Amber500, Indigo500 } from "Common/Types/BrandColors";
+import IsNull from "Common/Types/BaseDatabase/IsNull";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import API from "Common/UI/Utils/API/API";
@@ -62,6 +67,8 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
  */
 const params = new URLSearchParams(window.location.search);
 const EMPTY = params.get("state") === "empty";
+// Every environment connected: the strip breaks them down by provider.
+const ALL_CONNECTED = params.get("state") === "connected";
 const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -222,6 +229,13 @@ const ENVIRONMENTS = EMPTY
       }),
     ];
 
+if (ALL_CONNECTED) {
+  for (const row of ENVIRONMENTS) {
+    row.otelCollectorStatus = "connected";
+    row.lastSeenAt = new Date(LOADED_AT - MINUTE);
+  }
+}
+
 const RESOURCE = {
   _id: uuid("72000000", 1),
   projectId: PROJECT_ID,
@@ -232,7 +246,190 @@ const RESOURCE = {
   isArchived: false,
 };
 
-// The checkout environment's running tasks: CPU 30%, 36% and 42%, 1.5 GiB in all.
+/*
+ * The apps the environments run, as ingest names them: in checkout (ECS),
+ * checkout-api deployed 25 minutes ago - revision 43 replaced 42, one task
+ * still draining on 42 - and inventory, quiet for two hours; billing's one
+ * app quiet with its environment; on Cloud Run, api (deployed an hour ago,
+ * erroring at 6.2%) and worker; reports on Container Apps, rolled back 40
+ * minutes ago from v12abc (deployed two days ago) to v11def. The App Service
+ * environment that never reported has none.
+ */
+const ECS_CLUSTER = "arn:aws:ecs:us-east-1:4109-2277-8841:cluster/production";
+
+function app(number, environmentNumber, fields) {
+  return {
+    _id: uuid("75000000", number),
+    projectId: PROJECT_ID,
+    cloudResourceId: uuid("71000000", environmentNumber),
+    createdAt: new Date(LOADED_AT - 10 * 24 * HOUR),
+    ...fields,
+  };
+}
+
+const APPS = EMPTY
+  ? []
+  : [
+      app(1, 1, {
+        name: "checkout-api",
+        appKey: "checkout-api-production",
+        groupName: "production",
+        cloudPlatform: "aws_ecs",
+        telemetryAttributes: {
+          "aws.ecs.task.family": "checkout-api",
+          "aws.ecs.cluster.arn": ECS_CLUSTER,
+        },
+        serviceName: "checkout-api",
+        image:
+          "4109-2277-8841.dkr.ecr.us-east-1.amazonaws.com/checkout-api:2.4.1",
+        revisionAttribute: "aws.ecs.task.revision",
+        currentRevision: "43",
+        currentRevisionSince: new Date(LOADED_AT - 25 * MINUTE),
+        previousRevision: "42",
+        lastSeenAt: new Date(LOADED_AT - MINUTE),
+      }),
+      app(2, 1, {
+        name: "inventory",
+        appKey: "inventory-production",
+        groupName: "production",
+        cloudPlatform: "aws_ecs",
+        telemetryAttributes: {
+          "aws.ecs.task.family": "inventory",
+          "aws.ecs.cluster.arn": ECS_CLUSTER,
+        },
+        serviceName: "inventory",
+        revisionAttribute: "aws.ecs.task.revision",
+        currentRevision: "8",
+        currentRevisionSince: new Date(LOADED_AT - 6 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 2 * HOUR),
+      }),
+      app(3, 2, {
+        name: "billing-api",
+        appKey: "billing-api",
+        cloudPlatform: "aws_ecs",
+        telemetryAttributes: { "aws.ecs.task.family": "billing-api" },
+        revisionAttribute: "aws.ecs.task.revision",
+        currentRevision: "12",
+        currentRevisionSince: new Date(LOADED_AT - 9 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 3 * HOUR),
+      }),
+      app(4, 3, {
+        name: "api",
+        appKey: "api",
+        cloudPlatform: "gcp_cloud_run",
+        telemetryAttributes: { "faas.name": "api" },
+        serviceName: "api",
+        revisionAttribute: "faas.version",
+        currentRevision: "api-00042-xyz",
+        currentRevisionSince: new Date(LOADED_AT - HOUR),
+        previousRevision: "api-00041-abc",
+        lastSeenAt: new Date(LOADED_AT - MINUTE),
+      }),
+      app(5, 4, {
+        name: "worker",
+        appKey: "worker",
+        cloudPlatform: "gcp_cloud_run",
+        telemetryAttributes: { "faas.name": "worker" },
+        revisionAttribute: "faas.version",
+        currentRevision: "worker-00007-k2j",
+        currentRevisionSince: new Date(LOADED_AT - 4 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 2 * MINUTE),
+      }),
+      app(6, 5, {
+        name: "reports",
+        appKey: "reports",
+        cloudPlatform: "azure_container_apps",
+        telemetryAttributes: { "service.name": "reports" },
+        serviceName: "reports",
+        revisionAttribute: "service.version",
+        currentRevision: "reports--v11def",
+        currentRevisionSince: new Date(LOADED_AT - 40 * MINUTE),
+        previousRevision: "reports--v12abc",
+        lastSeenAt: new Date(LOADED_AT - MINUTE),
+      }),
+    ];
+
+// Their revisions: each app's first is its baseline, the rest are deploys.
+function revision(number, appNumber, environmentNumber, fields) {
+  return {
+    _id: uuid("76000000", number),
+    projectId: PROJECT_ID,
+    cloudAppId: uuid("75000000", appNumber),
+    cloudResourceId: uuid("71000000", environmentNumber),
+    cloudApp: Object.assign(
+      {},
+      APPS.find((row) => {
+        return row._id === uuid("75000000", appNumber);
+      }) || {},
+    ),
+    ...fields,
+  };
+}
+
+const REVISIONS = EMPTY
+  ? []
+  : [
+      revision(1, 1, 1, {
+        revision: "41",
+        firstSeenAt: new Date(LOADED_AT - 10 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 3 * 24 * HOUR),
+      }),
+      revision(2, 1, 1, {
+        revision: "42",
+        previousRevision: "41",
+        firstSeenAt: new Date(LOADED_AT - 3 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 2 * MINUTE),
+      }),
+      revision(3, 1, 1, {
+        revision: "43",
+        previousRevision: "42",
+        firstSeenAt: new Date(LOADED_AT - 25 * MINUTE),
+        lastSeenAt: new Date(LOADED_AT - MINUTE),
+      }),
+      revision(4, 2, 1, {
+        revision: "8",
+        firstSeenAt: new Date(LOADED_AT - 6 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 2 * HOUR),
+      }),
+      revision(5, 3, 2, {
+        revision: "12",
+        firstSeenAt: new Date(LOADED_AT - 9 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 3 * HOUR),
+      }),
+      revision(6, 4, 3, {
+        revision: "api-00041-abc",
+        firstSeenAt: new Date(LOADED_AT - 5 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 50 * MINUTE),
+      }),
+      revision(7, 4, 3, {
+        revision: "api-00042-xyz",
+        previousRevision: "api-00041-abc",
+        firstSeenAt: new Date(LOADED_AT - HOUR),
+        lastSeenAt: new Date(LOADED_AT - MINUTE),
+      }),
+      revision(8, 5, 4, {
+        revision: "worker-00007-k2j",
+        firstSeenAt: new Date(LOADED_AT - 4 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 2 * MINUTE),
+      }),
+      // reports went back to v11def when v12abc stopped, 40 minutes ago.
+      revision(9, 6, 5, {
+        revision: "reports--v11def",
+        firstSeenAt: new Date(LOADED_AT - 5 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - MINUTE),
+      }),
+      revision(10, 6, 5, {
+        revision: "reports--v12abc",
+        previousRevision: "reports--v11def",
+        firstSeenAt: new Date(LOADED_AT - 2 * 24 * HOUR),
+        lastSeenAt: new Date(LOADED_AT - 40 * MINUTE),
+      }),
+    ];
+
+/*
+ * The checkout environment's running tasks: CPU 30%, 36% and 42%, 1.5 GiB in
+ * all - checkout-api's, two on revision 43 and one still on 42.
+ */
 const INSTANCES = EMPTY
   ? []
   : [1, 2, 3].map((number) => {
@@ -240,12 +437,67 @@ const INSTANCES = EMPTY
         _id: uuid("73000000", number),
         projectId: PROJECT_ID,
         cloudResourceId: uuid("71000000", 1),
+        cloudAppId: uuid("75000000", 1),
+        cloudApp: { _id: uuid("75000000", 1), name: "checkout-api" },
+        revision: number === 3 ? "42" : "43",
         instanceName: `checkout/${number}a2b3c4d5e6f7`,
         lastSeenAt: new Date(LOADED_AT - number * MINUTE),
         latestCpuPercent: 24 + number * 6,
         latestMemoryBytes: 256 * 1024 * 1024 * number,
       };
     });
+
+/*
+ * The other running apps' instances: api's two on Cloud Run, worker's one,
+ * reports' one replica. Counted on their apps, not on checkout.
+ */
+function instance(number, appNumber, environmentNumber, fields) {
+  return {
+    _id: uuid("73000000", number),
+    projectId: PROJECT_ID,
+    cloudResourceId: uuid("71000000", environmentNumber),
+    cloudAppId: uuid("75000000", appNumber),
+    lastSeenAt: new Date(LOADED_AT - MINUTE),
+    ...fields,
+  };
+}
+
+const OTHER_INSTANCES = EMPTY
+  ? []
+  : [
+      instance(11, 4, 3, {
+        instanceName: "00f1a2b3c4d5e6f7",
+        revision: "api-00042-xyz",
+      }),
+      instance(12, 4, 3, {
+        instanceName: "00f1a2b3c4d5e6f8",
+        revision: "api-00042-xyz",
+      }),
+      instance(13, 5, 4, {
+        instanceName: "00a9b8c7d6e5f4a3",
+        revision: "worker-00007-k2j",
+      }),
+      instance(14, 6, 5, {
+        instanceName: "reports--v11def-6d9f8-xk2lp",
+        revision: "reports--v11def",
+      }),
+    ];
+
+/*
+ * Each app's requests, errors and p95 in the last hour, as the grouped trace
+ * read answers them, and each of checkout-api's revisions'.
+ */
+const APP_SIGNALS = {
+  [uuid("75000000", 1)]: { count: 1284, errorCount: 19, p95DurationMs: 122 },
+  [uuid("75000000", 4)]: { count: 412, errorCount: 26, p95DurationMs: 340 },
+  [uuid("75000000", 5)]: { count: 98, errorCount: 0, p95DurationMs: 45 },
+  [uuid("75000000", 6)]: { count: 230, errorCount: 3, p95DurationMs: 88 },
+};
+
+const REVISION_SIGNALS = {
+  43: { count: 820, errorCount: 18, p95DurationMs: 131 },
+  42: { count: 464, errorCount: 1, p95DurationMs: 104 },
+};
 
 // One rule of each kind: App Platforms', Cloud's, and one for both.
 function rule(number, fields) {
@@ -291,11 +543,55 @@ const LABEL_RULES = [
   }),
 ];
 
+/*
+ * The lines the environments' feeds hold for their apps' changes, as
+ * CloudAppChangeRecorder writes them (buildCloudAppChangeFeedMarkdown):
+ * checkout-api's deploy of 43 in checkout's feed, and reports' rollback in
+ * its environment's.
+ */
+function appLink(environmentNumber, appNumber) {
+  return `/dashboard/${PROJECT_ID}/app-platforms/${uuid("71000000", environmentNumber)}/apps/${uuid("75000000", appNumber)}`;
+}
+
+const FEED = EMPTY
+  ? []
+  : [
+      {
+        _id: uuid("78000000", 1),
+        projectId: PROJECT_ID,
+        cloudResourceId: uuid("71000000", 1),
+        cloudResourceFeedEventType: "AppDeployed",
+        displayColor: Indigo500,
+        feedInfoInMarkdown: `🚀 Deployed [production/checkout-api](${appLink(1, 1)}): revision **43** replaced **42**.`,
+        postedAt: new Date(LOADED_AT - 25 * MINUTE),
+        createdAt: new Date(LOADED_AT - 25 * MINUTE),
+      },
+      {
+        _id: uuid("78000000", 2),
+        projectId: PROJECT_ID,
+        cloudResourceId: uuid("71000000", 5),
+        cloudResourceFeedEventType: "AppRolledBack",
+        displayColor: Amber500,
+        feedInfoInMarkdown: `↩️ Rolled back [reports](${appLink(5, 6)}) to revision **v11def**: revision **v12abc** stopped reporting.`,
+        postedAt: new Date(LOADED_AT - 40 * MINUTE),
+        createdAt: new Date(LOADED_AT - 40 * MINUTE),
+      },
+    ];
+
+// The service checkout-api's telemetry is under, in Services.
+const SERVICES = EMPTY
+  ? []
+  : [{ _id: uuid("77000000", 1), projectId: PROJECT_ID, name: "checkout-api" }];
+
 const TABLES = {
   CloudResource: [...ENVIRONMENTS, RESOURCE],
-  CloudResourceInstance: INSTANCES,
+  Service: SERVICES,
+  CloudResourceInstance: [...INSTANCES, ...OTHER_INSTANCES],
+  CloudApp: APPS,
+  CloudAppRevision: REVISIONS,
   CloudResourceOwnerRule: OWNER_RULES,
   CloudResourceLabelRule: LABEL_RULES,
+  CloudResourceFeed: FEED,
 };
 
 /*
@@ -309,6 +605,7 @@ const fixture = {
   itemRequests: [],
   aggregateRequests: [],
   apiRequests: [],
+  analyticsRequests: [],
   unhandled: [],
 };
 window.__appPlatformsFixture = fixture;
@@ -378,6 +675,38 @@ function rowMatches(row, query) {
       }
       continue;
     }
+    // The revisions' and the strip's reads: set, in a window, after a time.
+    if (wanted instanceof NotNull) {
+      if (row[field] === undefined || row[field] === null) {
+        return false;
+      }
+      continue;
+    }
+    // The strip's environments that never reported: not set.
+    if (wanted instanceof IsNull) {
+      if (row[field] !== undefined && row[field] !== null) {
+        return false;
+      }
+      continue;
+    }
+    if (wanted instanceof InBetween) {
+      const time = new Date(row[field] || 0).getTime();
+      if (
+        time < new Date(wanted.startValue).getTime() ||
+        time > new Date(wanted.endValue).getTime()
+      ) {
+        return false;
+      }
+      continue;
+    }
+    if (wanted instanceof GreaterThan) {
+      if (
+        new Date(row[field] || 0).getTime() <= new Date(wanted.value).getTime()
+      ) {
+        return false;
+      }
+      continue;
+    }
     if (
       typeof wanted === "string" ||
       typeof wanted === "number" ||
@@ -408,11 +737,9 @@ const EMPTY_TABLES = [
   "User",
   "CloudResourceOwnerUser",
   "CloudResourceOwnerTeam",
-  "CloudResourceFeed",
   "TelemetryIngestionKey",
   "ProjectUser",
   // The telemetry explorers' pickers and saved views, and the metric catalog.
-  "Service",
   "Host",
   "DockerHost",
   "PodmanHost",
@@ -451,10 +778,20 @@ ModelAPI.getList = async (options) => {
       ? -1
       : 1;
     rows = [...rows].sort((a, b) => {
-      return (
-        String(a[sortField] ?? "").localeCompare(String(b[sortField] ?? "")) *
-        direction
-      );
+      const left = a[sortField];
+      const right = b[sortField];
+      // Times by time and numbers by number, as the server sorts them.
+      if (left instanceof Date || right instanceof Date) {
+        return (
+          ((left ? new Date(left).getTime() : 0) -
+            (right ? new Date(right).getTime() : 0)) *
+          direction
+        );
+      }
+      if (typeof left === "number" && typeof right === "number") {
+        return (left - right) * direction;
+      }
+      return String(left ?? "").localeCompare(String(right ?? "")) * direction;
     });
   }
 
@@ -573,6 +910,59 @@ function ok(data) {
 async function handleApi(method, options) {
   const url = new URL(options.url.toString(), window.location.origin);
   fixture.apiRequests.push({ method, url: url.pathname });
+
+  /*
+   * The grouped trace read: every app of an environment by the attributes
+   * that name it, or one app's revisions by its revision attribute.
+   */
+  if (url.pathname.endsWith("/telemetry/traces/analytics")) {
+    const body = options.data || {};
+    const groupBy = body.groupBy || [];
+    const filters = body.attributes || {};
+    fixture.analyticsRequests.push({
+      groupBy,
+      filters,
+      entryOnly: body.entryOnly,
+    });
+
+    const revisionKey = groupBy.find((key) => {
+      return /revision|version/.test(key);
+    });
+    if (revisionKey) {
+      return ok({
+        data: Object.entries(REVISION_SIGNALS).map(([value, signals]) => {
+          return { groupValues: { [revisionKey]: value }, ...signals };
+        }),
+      });
+    }
+
+    const environment = ENVIRONMENTS.find((row) => {
+      return (
+        row.cloudPlatform === filters["resource.cloud.platform"] &&
+        row.cloudRegion === filters["resource.cloud.region"]
+      );
+    });
+    const rows = APPS.filter((row) => {
+      return (
+        environment &&
+        row.cloudResourceId === environment._id &&
+        APP_SIGNALS[row._id] &&
+        Object.keys(row.telemetryAttributes)
+          .map((key) => {
+            return `resource.${key}`;
+          })
+          .sort()
+          .join(",") === [...groupBy].sort().join(",")
+      );
+    }).map((row) => {
+      const groupValues = {};
+      for (const key of groupBy) {
+        groupValues[key] = row.telemetryAttributes[key.slice(9)];
+      }
+      return { groupValues, ...APP_SIGNALS[row._id] };
+    });
+    return ok({ data: rows });
+  }
 
   // The metrics search bar's attribute keys.
   if (url.pathname.endsWith("/telemetry/metrics/get-attributes")) {

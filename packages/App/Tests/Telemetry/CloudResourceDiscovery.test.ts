@@ -43,6 +43,17 @@ import OtelIngestBaseService from "../../FeatureSet/Telemetry/Services/OtelInges
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import CloudAppService from "Common/Server/Services/CloudAppService";
+import CloudAppRevisionService from "Common/Server/Services/CloudAppRevisionService";
+import CloudAppChangeRecorder from "Common/Server/Utils/Telemetry/ChangeDetection/CloudAppChangeRecorder";
+import {
+  CloudAppRevisionChange,
+  CloudAppRevisionChangeKind,
+} from "Common/Server/Utils/Telemetry/ChangeDetection/CloudAppChangeEntries";
+import {
+  CloudAppIdentity,
+  resolveCloudAppIdentity,
+} from "Common/Server/Utils/Telemetry/CloudAppIdentity";
 import HostService from "Common/Server/Services/HostService";
 import LabelService from "Common/Server/Services/LabelService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -78,7 +89,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *     platform's id beats an SDK-minted service.instance.id), and the
  *     live-inventory fence is
  *     keyed on the resolved name;
- *   - the entity-id cache short-circuits find-or-create.
+ *   - the entity-id cache short-circuits find-or-create;
+ *   - the APP the resource belongs to (an ECS task definition family in its
+ *     cluster, a Cloud Run service) and the revision it runs are kept once
+ *     per fence window each, a deploy or rollback the revision service finds
+ *     is recorded as a change, and the instance names its app and revision;
+ *     a failure there never fails the batch.
  *
  * All Postgres / Redis access is mocked; the attribute walk runs for real.
  */
@@ -92,6 +108,9 @@ const FENCE_NAMESPACE: string = "otel-maintenance-fence";
 const TASK_ARN: string =
   "arn:aws:ecs:us-east-1:123456789012:task/my-cluster/1a2b3c4d5e6f7a8b9c0d";
 const TASK_ID: string = "1a2b3c4d5e6f7a8b9c0d";
+const CLUSTER_ARN: string =
+  "arn:aws:ecs:us-east-1:123456789012:cluster/production";
+const APP_ID: string = "55555555-5555-4555-8555-555555555555";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const baseService: Record<string, any> =
@@ -130,11 +149,37 @@ let updateLastSeen: jest.SpiedFunction<
 let recordInstance: jest.SpiedFunction<
   typeof CloudResourceInstanceService.recordInstance
 >;
+let recordApp: jest.SpiedFunction<typeof CloudAppService.recordApp>;
+let findAppId: jest.SpiedFunction<typeof CloudAppService.findAppId>;
+let recordRevision: jest.SpiedFunction<
+  typeof CloudAppRevisionService.recordRevision
+>;
+let recordChange: jest.SpiedFunction<
+  typeof CloudAppChangeRecorder.recordChange
+>;
+let deleteKey: jest.SpiedFunction<typeof GlobalCache.deleteKey>;
 let getString: jest.SpiedFunction<typeof GlobalCache.getString>;
 let setString: jest.SpiedFunction<typeof GlobalCache.setString>;
 let setStringIfNotExists: jest.SpiedFunction<
   typeof GlobalCache.setStringIfNotExists
 >;
+
+// The app identity the ingest resolves from these attributes on ECS.
+function appIdentityOf(
+  values: Record<string, string>,
+  platform: string = "aws_ecs",
+): CloudAppIdentity {
+  return resolveCloudAppIdentity({
+    platform,
+    getAttribute: (key: string): string | null => {
+      return values[key] ?? null;
+    },
+  })!;
+}
+
+function appKeyOf(values: Record<string, string>): string {
+  return appIdentityOf(values).appKey;
+}
 
 async function discover(values: Record<string, string>): Promise<unknown> {
   return baseService["autoDiscoverCloudResource"]({
@@ -188,7 +233,7 @@ beforeEach(() => {
       heldFences.add(key);
       return true;
     });
-  jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue(undefined);
+  deleteKey = jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue(undefined);
 
   const created: CloudResource = new CloudResource();
   created._id = RESOURCE_ID;
@@ -201,6 +246,20 @@ beforeEach(() => {
   recordInstance = jest
     .spyOn(CloudResourceInstanceService, "recordInstance")
     .mockResolvedValue(undefined);
+
+  // The app's row and its revisions: found or created, nothing changed.
+  recordApp = jest
+    .spyOn(CloudAppService, "recordApp")
+    .mockResolvedValue(new ObjectID(APP_ID));
+  findAppId = jest.spyOn(CloudAppService, "findAppId").mockResolvedValue(null);
+  recordRevision = jest
+    .spyOn(CloudAppRevisionService, "recordRevision")
+    .mockResolvedValue({ change: null });
+  recordChange = jest
+    .spyOn(CloudAppChangeRecorder, "recordChange")
+    .mockImplementation(() => {
+      return undefined;
+    });
 
   // Label promotion is not what is under test.
   jest.spyOn(LabelService, "findOrCreateLabelsByNames").mockResolvedValue([]);
@@ -410,6 +469,9 @@ describe("autoDiscoverCloudResource instance identity", () => {
       projectId: PROJECT_ID,
       cloudResourceId: expect.any(ObjectID),
       instanceName: TASK_ID,
+      // The app its service.name names; it reports no revision.
+      cloudAppId: expect.any(ObjectID),
+      revision: undefined,
     });
     expect(
       (call as { cloudResourceId: ObjectID }).cloudResourceId.toString(),
@@ -494,9 +556,13 @@ describe("autoDiscoverCloudResource instance identity", () => {
     expect(recordInstance).not.toHaveBeenCalled();
     /*
      * And no live-inventory fence was claimed for a nameless instance —
-     * only the environment's own maintenance fence.
+     * only the environment's own maintenance fence, and its app's (the
+     * service.name), which has no revision to keep.
      */
-    expect([...heldFences]).toEqual([`cloud-resource:${RESOURCE_ID}`]);
+    expect([...heldFences]).toEqual([
+      `cloud-resource:${RESOURCE_ID}`,
+      `cloud-app:${RESOURCE_ID}:${appKeyOf(ECS_ATTRIBUTES)}`,
+    ]);
   });
 
   test("the live-inventory fence is keyed on the RESOLVED name, not the raw ARN", async () => {
@@ -518,6 +584,275 @@ describe("autoDiscoverCloudResource instance identity", () => {
     expect(recordInstance).not.toHaveBeenCalled();
     // The environment's own maintenance is fenced independently.
     expect(updateLastSeen).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("autoDiscoverCloudResource apps and their revisions", () => {
+  // An ECS task of the checkout-api family, revision 43, in production.
+  const TASK: Record<string, string> = {
+    ...ECS_ATTRIBUTES,
+    "aws.ecs.task.family": "checkout-api",
+    "aws.ecs.task.revision": "43",
+    "aws.ecs.cluster.arn": CLUSTER_ARN,
+    "aws.ecs.task.arn": TASK_ARN,
+    "service.version": "1.4.2",
+  };
+
+  test("keeps the task's app (its family, in its cluster) and its revision, and the instance names both", async () => {
+    const result: unknown = await discover(TASK);
+
+    expect((result as ObjectID).toString()).toBe(RESOURCE_ID);
+
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    const [appCall] = recordApp.mock.calls[0]! as [
+      {
+        projectId: ObjectID;
+        cloudResourceId: ObjectID;
+        cloudPlatform: string;
+        identity: CloudAppIdentity;
+      },
+    ];
+    expect(appCall.projectId).toBe(PROJECT_ID);
+    expect(appCall.cloudResourceId.toString()).toBe(RESOURCE_ID);
+    expect(appCall.cloudPlatform).toBe("aws_ecs");
+    expect(appCall.identity).toEqual(appIdentityOf(TASK));
+    expect(appCall.identity).toEqual(
+      expect.objectContaining({
+        name: "checkout-api",
+        groupName: "production",
+        revision: "43",
+      }),
+    );
+
+    expect(recordRevision).toHaveBeenCalledTimes(1);
+    const [revisionCall] = recordRevision.mock.calls[0]! as [
+      {
+        projectId: ObjectID;
+        cloudResourceId: ObjectID;
+        cloudAppId: ObjectID;
+        revision: string;
+        serviceVersion: string | null;
+        image: string | null;
+      },
+    ];
+    expect(revisionCall.cloudResourceId.toString()).toBe(RESOURCE_ID);
+    expect(revisionCall.cloudAppId.toString()).toBe(APP_ID);
+    expect(revisionCall.revision).toBe("43");
+    expect(revisionCall.serviceVersion).toBe("1.4.2");
+
+    // The task's row names the app it runs and the revision.
+    expect(recordInstance).toHaveBeenCalledTimes(1);
+    const [instanceCall] = recordInstance.mock.calls[0]! as [
+      { instanceName: string; cloudAppId: ObjectID; revision: string },
+    ];
+    expect(instanceCall.instanceName).toBe(TASK_ID);
+    expect(instanceCall.cloudAppId.toString()).toBe(APP_ID);
+    expect(instanceCall.revision).toBe("43");
+
+    // Each under a fence of its own: the app's, and the app's revision's.
+    const key: string = appKeyOf(TASK);
+    expect(heldFences.has(`cloud-app:${RESOURCE_ID}:${key}`)).toBe(true);
+    expect(heldFences.has(`cloud-app-revision:${RESOURCE_ID}:${key}:43`)).toBe(
+      true,
+    );
+    // Found once, so not looked up again.
+    expect(findAppId).not.toHaveBeenCalled();
+  });
+
+  test("on Cloud Run, the app is the service and its revision K_REVISION", async () => {
+    await discover({
+      "cloud.platform": "gcp_cloud_run",
+      "cloud.provider": "gcp",
+      "cloud.region": "europe-west1",
+      "cloud.account.id": "my-gcp-project",
+      "faas.name": "api",
+      "faas.version": "api-00042-xyz",
+      "faas.instance": "00bf4bf02d4b1b7e2c0e5f7d6e0a3d5b",
+    });
+
+    expect(recordApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cloudPlatform: "gcp_cloud_run",
+        identity: expect.objectContaining({
+          name: "api",
+          nameAttribute: "faas.name",
+          revision: "api-00042-xyz",
+        }),
+      }),
+    );
+    expect(recordRevision).toHaveBeenCalledWith(
+      expect.objectContaining({ revision: "api-00042-xyz" }),
+    );
+    expect(recordInstance).toHaveBeenCalledWith(
+      expect.objectContaining({ revision: "api-00042-xyz" }),
+    );
+  });
+
+  test("a deploy the revision service found is recorded as a change of the app, in its environment", async () => {
+    const change: CloudAppRevisionChange = {
+      kind: CloudAppRevisionChangeKind.Deployed,
+      revision: "43",
+      previousRevision: "42",
+      time: new Date("2026-11-01T09:35:00.000Z"),
+    };
+    recordRevision.mockResolvedValue({ change });
+
+    await discover(TASK);
+
+    expect(recordChange).toHaveBeenCalledTimes(1);
+    const [changeCall] = recordChange.mock.calls[0]! as unknown as [
+      {
+        projectId: ObjectID;
+        subject: Record<string, unknown>;
+        change: CloudAppRevisionChange;
+      },
+    ];
+    expect(changeCall.projectId).toBe(PROJECT_ID);
+    expect(changeCall.change).toBe(change);
+    expect(changeCall.subject).toEqual({
+      appId: expect.any(ObjectID),
+      appName: "checkout-api",
+      groupName: "production",
+      environmentId: expect.any(ObjectID),
+      cloudPlatform: "aws_ecs",
+      cloudProvider: "aws",
+      cloudAccountId: "123456789012",
+      cloudRegion: "us-east-1",
+      serviceVersion: "1.4.2",
+    });
+    expect((changeCall.subject["appId"] as ObjectID).toString()).toBe(APP_ID);
+    expect((changeCall.subject["environmentId"] as ObjectID).toString()).toBe(
+      RESOURCE_ID,
+    );
+  });
+
+  test("a sighting that is neither a deploy nor a rollback records no change", async () => {
+    await discover(TASK);
+
+    expect(recordRevision).toHaveBeenCalledTimes(1);
+    expect(recordChange).not.toHaveBeenCalled();
+  });
+
+  test("with the app's and the revision's fences held, neither is written, and the instance still names its app", async () => {
+    const key: string = appKeyOf(TASK);
+    heldFences.add(`cloud-app:${RESOURCE_ID}:${key}`);
+    heldFences.add(`cloud-app-revision:${RESOURCE_ID}:${key}:43`);
+    findAppId.mockResolvedValue(new ObjectID(APP_ID));
+
+    await discover(TASK);
+
+    expect(recordApp).not.toHaveBeenCalled();
+    expect(recordRevision).not.toHaveBeenCalled();
+    expect(findAppId).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      cloudResourceId: expect.any(ObjectID),
+      appKey: key,
+    });
+    const [instanceCall] = recordInstance.mock.calls[0]! as [
+      { cloudAppId: ObjectID; revision: string },
+    ];
+    expect(instanceCall.cloudAppId.toString()).toBe(APP_ID);
+    expect(instanceCall.revision).toBe("43");
+  });
+
+  test("a revision of an app found earlier in the minute reads no row for the app", async () => {
+    heldFences.add(`cloud-app:${RESOURCE_ID}:${appKeyOf(TASK)}`);
+    findAppId.mockResolvedValue(new ObjectID(APP_ID));
+
+    await discover({ ...TASK, "aws.ecs.task.arn": `${TASK_ARN}1` });
+    await discover({
+      ...TASK,
+      "aws.ecs.task.revision": "44",
+      "aws.ecs.task.arn": `${TASK_ARN}2`,
+    });
+
+    // Looked up once; the second revision's sighting took the remembered id.
+    expect(findAppId).toHaveBeenCalledTimes(1);
+    expect(recordRevision).toHaveBeenCalledTimes(2);
+    expect(
+      recordRevision.mock.calls.map((call: Array<unknown>): string => {
+        return (call[0] as { revision: string }).revision;
+      }),
+    ).toEqual(["43", "44"]);
+  });
+
+  test("an app it cannot keep never fails the batch: the environment resolves, the app's fence is released, and the instance is recorded without it", async () => {
+    recordApp.mockRejectedValue(new Error("Postgres said no"));
+
+    const result: unknown = await discover(TASK);
+
+    expect((result as ObjectID).toString()).toBe(RESOURCE_ID);
+    expect(updateLastSeen).toHaveBeenCalledTimes(1);
+    expect(recordRevision).not.toHaveBeenCalled();
+    expect(deleteKey).toHaveBeenCalledWith(
+      FENCE_NAMESPACE,
+      `cloud-app:${RESOURCE_ID}:${appKeyOf(TASK)}`,
+    );
+    // The environment's own fence is kept: its heartbeat was written.
+    expect(deleteKey).not.toHaveBeenCalledWith(
+      FENCE_NAMESPACE,
+      `cloud-resource:${RESOURCE_ID}`,
+    );
+
+    expect(recordInstance).toHaveBeenCalledTimes(1);
+    const [instanceCall] = recordInstance.mock.calls[0]! as [
+      { instanceName: string; cloudAppId?: ObjectID; revision?: string },
+    ];
+    expect(instanceCall.instanceName).toBe(TASK_ID);
+    expect(instanceCall.cloudAppId).toBeUndefined();
+    expect(instanceCall.revision).toBe("43");
+  });
+
+  test("a revision it cannot keep releases its fence, and the app and instance are kept", async () => {
+    recordRevision.mockRejectedValue(new Error("Postgres said no"));
+
+    const result: unknown = await discover(TASK);
+
+    expect((result as ObjectID).toString()).toBe(RESOURCE_ID);
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    const key: string = appKeyOf(TASK);
+    expect(deleteKey).toHaveBeenCalledWith(
+      FENCE_NAMESPACE,
+      `cloud-app-revision:${RESOURCE_ID}:${key}:43`,
+    );
+    expect(deleteKey).toHaveBeenCalledWith(
+      FENCE_NAMESPACE,
+      `cloud-app:${RESOURCE_ID}:${key}`,
+    );
+    const [instanceCall] = recordInstance.mock.calls[0]! as [
+      { cloudAppId: ObjectID },
+    ];
+    expect(instanceCall.cloudAppId.toString()).toBe(APP_ID);
+  });
+
+  test("a resource that names no app keeps none, and its instance names none", async () => {
+    await discover({
+      "cloud.platform": "aws_ecs",
+      "cloud.region": "us-east-1",
+      "service.name": "unknown_service:java",
+      "aws.ecs.task.arn": TASK_ARN,
+    });
+
+    expect(recordApp).not.toHaveBeenCalled();
+    expect(recordRevision).not.toHaveBeenCalled();
+    expect(findAppId).not.toHaveBeenCalled();
+    expect(recordInstance).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      cloudResourceId: expect.any(ObjectID),
+      instanceName: TASK_ID,
+      cloudAppId: undefined,
+      revision: undefined,
+    });
+  });
+
+  test("an app with no revision keeps its row and records no revision", async () => {
+    await discover({ ...ECS_ATTRIBUTES, "aws.ecs.task.arn": TASK_ARN });
+
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    expect(recordRevision).not.toHaveBeenCalled();
+    expect(recordInstance).toHaveBeenCalledWith(
+      expect.objectContaining({ revision: undefined }),
+    );
   });
 });
 

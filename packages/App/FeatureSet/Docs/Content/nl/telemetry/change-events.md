@@ -30,6 +30,7 @@ Hiervoor hoef je niets te sturen. OneUptime legt ze vast op basis van de telemet
 | --- | --- | --- |
 | Een deploy | Een service begint een `service.version` te rapporteren die hij in zijn omgeving nog niet eerder heeft gerapporteerd | `service-version` |
 | Een rollout | De pods van een Kubernetes-Deployment beginnen een ReplicaSet te draaien die ze nog niet eerder hebben gedraaid: een nieuw image, een gewijzigde omgevingsvariabele of configuratieverwijzing, of een herstart | `kubernetes` |
+| Een app-implementatie | Een app op een beheerd app-platform, zoals een ECS-service of een Cloud Run-service, begint een revisie te draaien die hij nog niet eerder heeft gedraaid, of gaat terug naar een die hij eerder draaide | `app-platform` |
 | Een fix die OneUptime AI uitvoerde | Een AI-agent meldt het resultaat van een opdracht die iets wijzigt, zoals `kubectl rollout restart` | `oneuptime-ai` |
 | Een runbook | Een runbook dat OneUptime uitvoerde, wordt voltooid, mislukt of wordt geannuleerd nadat het is gestart | `runbook` |
 | Een cloudwijziging | Het activiteitenlogboek van een gekoppeld cloudaccount legt een wijziging vast: AWS CloudTrail, het Azure-activiteitenlogboek of het auditlogboek Admin Activity van Google Cloud | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Een rollout heeft de [Kubernetes-agent](/docs/telemetry/kubernetes-agent) nodig, die de telemetrie van elke pod voorziet van zijn Deployment en ReplicaSet.
+
+Een app-implementatie heeft een app nodig die op een [beheerd app-platform](/docs/telemetry/cloud-environments#apps-en-implementaties) draait. Ze wordt vastgelegd onder de omgeving van de app en getekend in de grafieken van de omgeving en die van de app, en daar wordt ook een rollback naar een revisie die de app eerder draaide vastgelegd.
 
 Een cloudwijziging of een gebeurtenis van de provider heeft een [gekoppeld cloudaccount](/docs/telemetry/cloud-accounts) nodig. Elk ervan wordt gekoppeld aan de cloudresource die het noemt, als OneUptime die resource vermeldt, en getekend op de grafieken van de resource. Het type volgt uit de bewerking: `deployment`, `scaling` of `rollback` als de naam van de bewerking dat zegt, anders `config-change`, en `provider-event` voor een statusgebeurtenis. Grafieken die op geen enkele resource zijn gefilterd, laten het activiteitenlogboek van een cloudaccount weg, zodat een druk account je deploys niet verdringt; de statusgebeurtenissen van de provider blijven erop staan.
 
