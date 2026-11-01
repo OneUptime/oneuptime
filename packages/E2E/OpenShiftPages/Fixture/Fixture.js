@@ -82,6 +82,10 @@ import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
 import { storedKubernetesEventLog } from "Common/Tests/Helpers/KubernetesEventRecords";
+import {
+  readKubernetesNeedsAttention,
+  readKubernetesPart,
+} from "Common/Tests/Helpers/KubernetesPartReads";
 
 /*
  * ---------------------------------------------------------------------------
@@ -1235,6 +1239,33 @@ async function handleApi(method, options) {
       degradedPods: [],
       degradedNodes: [],
     });
+  }
+
+  /*
+   * What needs attention, and an object with what it runs, as
+   * KubernetesResourceService answers them (Common/Tests/Helpers/
+   * KubernetesPartReads, held to the service's own cases).
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.includes("/kubernetes-resource/needs-attention/")
+  ) {
+    return ok(serialize(readKubernetesNeedsAttention(resources)));
+  }
+
+  if (
+    method === "POST" &&
+    parsed.pathname.includes("/kubernetes-resource/part/")
+  ) {
+    return ok(
+      serialize(
+        readKubernetesPart(resources, {
+          kind: body.kind,
+          name: body.name,
+          namespace: body.namespace,
+        }),
+      ),
+    );
   }
 
   // A DeploymentConfig's pods, added up by their label.

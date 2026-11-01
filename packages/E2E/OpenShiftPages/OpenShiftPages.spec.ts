@@ -474,7 +474,8 @@ test.describe("DeploymentConfigs", () => {
     await expect(tableRow(page, "reports")).toContainText("Scaled to zero");
     await expect(tableRow(page, "legacy-web-api")).toContainText("1/2");
     await expect(tableRow(page, "legacy-web-api")).toContainText("Recreate");
-    await expect(tableRow(page, "legacy-web-api")).toContainText("Progressing");
+    // The cluster's own word for it, as the Deployments list says it.
+    await expect(tableRow(page, "legacy-web-api")).toContainText("Rolling out");
     await expect(available).toContainText("3/3");
     await expect(available).toContainText("Available");
 
