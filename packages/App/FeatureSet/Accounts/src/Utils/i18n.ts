@@ -14,6 +14,7 @@ import {
   SUPPORTED_ACCOUNTS_LANGUAGES,
   SUPPORTED_ACCOUNTS_LANGUAGE_CODES,
 } from "Common/Types/Accounts/AccountsLanguage";
+import { DASHBOARD_LANGUAGE_STORAGE_KEY } from "Common/Types/Dashboard/DashboardLanguage";
 
 import en from "../Locales/en.json";
 import de from "../Locales/de.json";
@@ -39,7 +40,7 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
   SUPPORTED_ACCOUNTS_LANGUAGES;
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_ACCOUNTS_LANGUAGE;
-export const LANGUAGE_STORAGE_KEY: string = "oneuptimeLang";
+export const LANGUAGE_STORAGE_KEY: string = DASHBOARD_LANGUAGE_STORAGE_KEY;
 
 /*
  * Backward-compat: the language code "zh" was renamed to "zh-CN" when

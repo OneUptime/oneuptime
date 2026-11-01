@@ -30,6 +30,7 @@ You do not have to send anything for these. OneUptime records them from the tele
 | --- | --- | --- |
 | A deploy | A service starts reporting a `service.version` it has not reported before in its environment | `service-version` |
 | A rollout | The pods of a Kubernetes Deployment start running a ReplicaSet they have not run before: a new image, a changed environment variable or config reference, or a restart | `kubernetes` |
+| An app deploy | An app on a managed app platform, such as an ECS service or a Cloud Run service, starts running a revision it has not run before, or goes back to one it ran before | `app-platform` |
 | A fix OneUptime AI ran | An AI agent reports the result of a command that changes something, such as `kubectl rollout restart` | `oneuptime-ai` |
 | A runbook | A runbook OneUptime ran completes, fails, or is cancelled after it started | `runbook` |
 | A cloud change | A connected cloud account's activity log records a change: AWS CloudTrail, the Azure Activity Log or Google Cloud's Admin Activity audit log | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 A rollout needs the [Kubernetes agent](/docs/telemetry/kubernetes-agent), which stamps each pod's telemetry with its Deployment and ReplicaSet.
+
+An app deploy needs the app to run on a [managed app platform](/docs/telemetry/cloud-environments#apps-and-deploys). It is recorded under the app's environment and drawn on the environment's charts and the app's own, and there a rollback to a revision the app ran before is recorded too.
 
 A cloud change or a provider event needs a [connected cloud account](/docs/telemetry/cloud-accounts). Each is tied to the cloud resource it names, when OneUptime lists that resource, and drawn on the resource's charts. Its type comes from the operation: `deployment`, `scaling` or `rollback` when the operation's name says so, `config-change` otherwise, and `provider-event` for a health event. Charts filtered to no resource leave a cloud account's activity log out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
 

@@ -76,7 +76,42 @@ export interface ManagedCloudPlatformDescriptor {
    * in CloudInstanceIdentity — listed here so the docs can name it.
    */
   instanceAttribute: string;
+  /*
+   * The resource attributes that name one APP on this platform, best first:
+   * the platform's own name for it - an ECS task definition family, a Cloud
+   * Run or App Engine service - then the app's own service.name. Every
+   * span, log and metric an app's instances send carries it, so it is what
+   * an app is filtered by. CloudAppIdentity reads it; the docs list it.
+   */
+  appAttributes: ReadonlyArray<string>;
+  /*
+   * The resource attributes that keep two apps of one name apart, best
+   * first: the ECS cluster a task runs in, the Elastic Beanstalk environment
+   * or App Service slot. Empty where the platform's own name is unique in
+   * an account and region.
+   */
+  appGroupAttributes: ReadonlyArray<string>;
+  /*
+   * The resource attributes that name the revision an instance runs, best
+   * first: the ECS task definition revision, the Cloud Run revision, the App
+   * Engine version, then the app's service.version. A revision an app has
+   * not run before is a deploy.
+   */
+  revisionAttributes: ReadonlyArray<string>;
 }
+
+/*
+ * The attributes most platforms name their apps and revisions by, when the
+ * platform has no name of its own: OpenTelemetry's service.name and
+ * service.version, and the image tag a container was started from.
+ */
+const SERVICE_NAME_ATTRIBUTE: string = "service.name";
+const SERVICE_VERSION_ATTRIBUTE: string = "service.version";
+const IMAGE_TAG_ATTRIBUTE: string = "container.image.tag";
+const DEPLOYMENT_ENVIRONMENT_ATTRIBUTES: ReadonlyArray<string> = [
+  "deployment.environment.name",
+  "deployment.environment",
+];
 
 export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescriptor> =
   [
@@ -90,6 +125,14 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       docsUrl: "/docs/telemetry/cloud-aws-ecs",
       detection: "detector",
       instanceAttribute: "aws.ecs.task.arn",
+      appAttributes: ["aws.ecs.task.family", SERVICE_NAME_ATTRIBUTE],
+      // A family can run in two clusters of one account: staging and production.
+      appGroupAttributes: ["aws.ecs.cluster.arn"],
+      revisionAttributes: [
+        "aws.ecs.task.revision",
+        SERVICE_VERSION_ATTRIBUTE,
+        IMAGE_TAG_ATTRIBUTE,
+      ],
     },
     {
       platform: ManagedCloudPlatform.AwsElasticBeanstalk,
@@ -100,6 +143,11 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "detector",
       instanceAttribute: "host.id",
+      appAttributes: [SERVICE_NAME_ATTRIBUTE],
+      // The Elastic Beanstalk detector names the environment here.
+      appGroupAttributes: DEPLOYMENT_ENVIRONMENT_ATTRIBUTES,
+      // The detector sets it to the application version label.
+      revisionAttributes: [SERVICE_VERSION_ATTRIBUTE],
     },
     {
       platform: ManagedCloudPlatform.AwsAppRunner,
@@ -110,6 +158,9 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "manual",
       instanceAttribute: "host.name",
+      appAttributes: [SERVICE_NAME_ATTRIBUTE],
+      appGroupAttributes: [],
+      revisionAttributes: [SERVICE_VERSION_ATTRIBUTE, IMAGE_TAG_ATTRIBUTE],
     },
     {
       platform: ManagedCloudPlatform.GcpCloudRun,
@@ -120,6 +171,10 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       docsUrl: "/docs/telemetry/cloud-gcp-cloud-run",
       detection: "detector",
       instanceAttribute: "faas.instance",
+      // K_SERVICE and K_REVISION, as the Google Cloud detector reads them.
+      appAttributes: ["faas.name", SERVICE_NAME_ATTRIBUTE],
+      appGroupAttributes: [],
+      revisionAttributes: ["faas.version", SERVICE_VERSION_ATTRIBUTE],
     },
     {
       platform: ManagedCloudPlatform.GcpAppEngine,
@@ -130,6 +185,10 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "detector",
       instanceAttribute: "faas.instance",
+      // GAE_SERVICE and GAE_VERSION, as the Google Cloud detector reads them.
+      appAttributes: ["faas.name", SERVICE_NAME_ATTRIBUTE],
+      appGroupAttributes: [],
+      revisionAttributes: ["faas.version", SERVICE_VERSION_ATTRIBUTE],
     },
     {
       platform: ManagedCloudPlatform.AzureContainerApps,
@@ -146,6 +205,13 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
        */
       detection: "detector",
       instanceAttribute: "azure.container_app.instance.id",
+      /*
+       * The Azure detectors set service.name to CONTAINER_APP_NAME and
+       * service.version to CONTAINER_APP_REVISION.
+       */
+      appAttributes: [SERVICE_NAME_ATTRIBUTE],
+      appGroupAttributes: [],
+      revisionAttributes: [SERVICE_VERSION_ATTRIBUTE, IMAGE_TAG_ATTRIBUTE],
     },
     {
       platform: ManagedCloudPlatform.AzureContainerInstances,
@@ -156,6 +222,9 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "manual",
       instanceAttribute: "host.name",
+      appAttributes: [SERVICE_NAME_ATTRIBUTE],
+      appGroupAttributes: [],
+      revisionAttributes: [SERVICE_VERSION_ATTRIBUTE, IMAGE_TAG_ATTRIBUTE],
     },
     {
       platform: ManagedCloudPlatform.AzureAppService,
@@ -166,6 +235,10 @@ export const MANAGED_CLOUD_PLATFORMS: ReadonlyArray<ManagedCloudPlatformDescript
       docsUrl: "/docs/telemetry/cloud-other-platforms",
       detection: "detector",
       instanceAttribute: "host.id",
+      // The App Service detector names the site and its deployment slot.
+      appAttributes: [SERVICE_NAME_ATTRIBUTE],
+      appGroupAttributes: DEPLOYMENT_ENVIRONMENT_ATTRIBUTES,
+      revisionAttributes: [SERVICE_VERSION_ATTRIBUTE],
     },
   ];
 

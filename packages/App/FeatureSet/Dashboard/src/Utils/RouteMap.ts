@@ -566,7 +566,10 @@ export const ServerlessRoutePath: Dictionary<string> = {
  */
 export const AppPlatformsRoutePath: Dictionary<string> = {
   [PageMap.APP_PLATFORMS_ENVIRONMENTS]: `environments`,
+  [PageMap.APP_PLATFORMS_APPS]: `apps`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APPS]: `${RouteParams.ModelID}/apps`,
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL]: `${RouteParams.ModelID}/apps/${RouteParams.SubModelID}`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
@@ -5691,9 +5694,27 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.APP_PLATFORMS_APPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_APPS]
+    }`,
+  ),
+
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/app-platforms/${
       AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APPS]
+    }`,
+  ),
+
+  [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/app-platforms/${
+      AppPlatformsRoutePath[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APP_DETAIL]
     }`,
   ),
 

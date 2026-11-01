@@ -1,5 +1,6 @@
 import { IDENTITY_URL } from "../Config";
 import { AppApiRoute } from "../../ServiceRoute";
+import { KEYS_KEPT_AFTER_SIGN_OUT } from "./KeptAfterSignOut";
 import LocalStorage from "./LocalStorage";
 import URL from "../../Types/API/URL";
 import Route from "../../Types/API/Route";
@@ -174,8 +175,9 @@ export default class UserUtil {
     return LocalStorage.getItem("project") as JSONObject;
   }
 
+  // Forgets the person, not the browser: KeptAfterSignOut.ts has what stays.
   public static clear(): void {
-    LocalStorage.clear();
+    LocalStorage.clearExcept(KEYS_KEPT_AFTER_SIGN_OUT);
   }
 
   public static removeUserId(): void {
@@ -213,7 +215,7 @@ export default class UserUtil {
   }
 
   public static logout(): void {
-    LocalStorage.clear();
+    UserUtil.clear();
     SessionStorage.clear();
     Cookie.clearAllCookies();
     // The next user on this browser must not inherit this user's timezone.

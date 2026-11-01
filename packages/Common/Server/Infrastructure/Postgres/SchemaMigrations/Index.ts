@@ -246,6 +246,8 @@ import { AddProxmoxInventoryFactsAndBackups1808770000000 } from "./1808770000000
 import { AddStatusPageSubscriberLanguage1808780000000 } from "./1808780000000-AddStatusPageSubscriberLanguage";
 import { AddDataSecurityIdentities1808791000000 } from "./1808791000000-AddDataSecurityIdentities";
 import { AddDataSecurityFieldSuggestions1808792000000 } from "./1808792000000-AddDataSecurityFieldSuggestions";
+import { AddCloudApps1808795310000 } from "./1808795310000-AddCloudApps";
+import { AddCloudResourceInstanceAppIndexAndKey1808795320000 } from "./1808795320000-AddCloudResourceInstanceAppIndexAndKey";
 import { AddKubernetesResourceHealthSeverity1808800000000 } from "./1808800000000-AddKubernetesResourceHealthSeverity";
 import { AddKubernetesResourceHealthSeverityIndex1808810000000 } from "./1808810000000-AddKubernetesResourceHealthSeverityIndex";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
@@ -1696,6 +1698,8 @@ export default [
   AddStatusPageSubscriberLanguage1808780000000,
   AddDataSecurityIdentities1808791000000,
   AddDataSecurityFieldSuggestions1808792000000,
+  AddCloudApps1808795310000,
+  AddCloudResourceInstanceAppIndexAndKey1808795320000,
   AddKubernetesResourceHealthSeverity1808800000000,
   AddKubernetesResourceHealthSeverityIndex1808810000000,
 ];

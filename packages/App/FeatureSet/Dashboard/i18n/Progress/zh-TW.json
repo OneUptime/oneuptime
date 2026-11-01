@@ -83,6 +83,7 @@
     "main",
     "message",
     "name",
+    "p95 {{latency}}",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

@@ -98,7 +98,15 @@ const GERMAN: Record<string, string> = {
   // Utils/InvestigationEvidenceFormat.ts
   "Ran {{query}}": "Ausgeführt: {{query}}",
   // Pages/AppPlatforms/Utils/CloudFleetSummary.ts
-  "{{percent}}% of environments": "{{percent}} % der Umgebungen",
+  "{{count}} not reporting": "{{count}} melden nicht",
+  "{{count}} environments disconnected": "{{count}} Umgebungen getrennt",
+  "{{count}} environments disconnected_one": "{{count}} Umgebung getrennt",
+  "{{count}} environments waiting for first data":
+    "{{count}} Umgebungen warten auf die ersten Daten",
+  "{{count}} environments waiting for first data_one":
+    "{{count}} Umgebung wartet auf die ersten Daten",
+  "in the last {{hours}} hours": "in den letzten {{hours}} Stunden",
+  "seen in the last {{minutes}} min": "in den letzten {{minutes}} Min. gesehen",
   // Utils/Workflow/WorkflowVariableUtil.ts
   "Workflows refer to this variable by name, as {{reference}}. Renaming it does not update workflows that already refer to the old name.":
     "Workflows verweisen per Namen auf diese Variable, als {{reference}}. Eine Umbenennung ändert keine Workflows, die schon den alten Namen verwenden.",
@@ -439,13 +447,16 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
     ).toBe(true);
   });
 
-  test("the cloud fleet's connected tile fills its percentage into German", () => {
+  test("the cloud fleet's tiles fill their counts into German", () => {
     const tiles: ReturnType<typeof summarizeCloudFleet> = summarizeCloudFleet({
       total: 4,
       connected: 3,
       disconnected: 1,
       byProvider: {},
       liveInstances: 0,
+      apps: 5,
+      runningApps: 3,
+      deploys: 2,
     });
     const sublabels: Array<string> = tiles.map(
       (tile: { sublabel?: string | undefined }): string => {
@@ -453,7 +464,35 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
       },
     );
 
-    expect(sublabels).toContain("75 % der Umgebungen");
+    expect(sublabels).toEqual([
+      "2 melden nicht",
+      "1 Umgebung getrennt",
+      "in den letzten 24 Stunden",
+      "in den letzten 15 Min. gesehen",
+    ]);
+  });
+
+  test("the cloud fleet's environments that never reported wait, in German", () => {
+    const sublabelOf: (waiting: number) => string = (
+      waiting: number,
+    ): string => {
+      return (
+        summarizeCloudFleet({
+          total: 4,
+          connected: 4 - waiting,
+          waiting,
+          disconnected: 0,
+          byProvider: {},
+          liveInstances: 0,
+          apps: 1,
+          runningApps: 1,
+          deploys: 0,
+        })[1]?.sublabel || ""
+      );
+    };
+
+    expect(sublabelOf(1)).toBe("1 Umgebung wartet auf die ersten Daten");
+    expect(sublabelOf(2)).toBe("2 Umgebungen warten auf die ersten Daten");
   });
 
   test("a workflow variable's name field explains its reference in German", () => {

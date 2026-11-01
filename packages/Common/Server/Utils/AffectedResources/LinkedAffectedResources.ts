@@ -10,6 +10,10 @@ import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMainte
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  getCloudResourceDashboardPath,
+  getCloudResourceKindNoun,
+} from "../../../Types/Cloud/CloudResourceKind";
+import {
   getSloAffectedResourceMarkdownLines,
   SloAffectedResourceLinkSubject,
 } from "../../../Utils/Slo/SloAffectedResourceMarkdown";
@@ -66,6 +70,12 @@ export interface LinkedAffectedResource {
   type: LinkedAffectedResourceType;
   id: string;
   name: string;
+  /*
+   * A cloud resource row's kind (CloudResourceKind): an App Platforms
+   * environment is named and linked as App Platforms names it, a resource
+   * of a cloud account as Cloud does. Read for cloud resources only.
+   */
+  cloudResourceKind?: string | undefined;
 }
 
 export interface LinkedAffectedResourceRelation {
@@ -76,6 +86,8 @@ export interface LinkedAffectedResourceRelation {
   label: string;
   // The dashboard route after `/<projectId>/`, ending just before the id.
   dashboardRoute: string;
+  // More columns of the related row to read, beside its id, name and project.
+  extraColumns?: Array<string> | undefined;
 }
 
 /*
@@ -174,11 +186,18 @@ export const LINKED_AFFECTED_RESOURCE_RELATIONS: ReadonlyArray<LinkedAffectedRes
       label: "Database",
       dashboardRoute: "databases",
     },
+    /*
+     * The table holds App Platforms' environments and Cloud's resources: each
+     * is named and linked by its kind (getCloudResourceKindNoun,
+     * getCloudResourceDashboardPath). The label and route here are for a row
+     * whose kind was not read.
+     */
     {
       column: "cloudResources",
       type: LinkedAffectedResourceType.CloudResource,
       label: "Cloud Resource",
       dashboardRoute: "cloud",
+      extraColumns: ["cloudResourceKind"],
     },
     {
       column: "networkSites",
@@ -209,6 +228,7 @@ interface RelatedRow {
   _id?: string | ObjectID | undefined | null;
   name?: string | undefined | null;
   projectId?: ObjectID | string | undefined | null;
+  cloudResourceKind?: string | undefined | null;
 }
 
 type RecordWithRelations = {
@@ -379,6 +399,13 @@ export default class LinkedAffectedResources {
                   _id: true,
                   name: true,
                   projectId: true,
+                  ...Object.fromEntries(
+                    (relation.extraColumns || []).map(
+                      (column: string): [string, boolean] => {
+                        return [column, true];
+                      },
+                    ),
+                  ),
                 },
               } as unknown as Select<TBaseModel>,
               props: {
@@ -452,11 +479,20 @@ export default class LinkedAffectedResources {
 
           seen.add(key);
 
-          resources.push({
+          const resource: LinkedAffectedResource = {
             type: relation.type,
             id: id,
             name: row.name?.toString() || "",
-          });
+          };
+
+          if (
+            relation.type === LinkedAffectedResourceType.CloudResource &&
+            typeof row.cloudResourceKind === "string"
+          ) {
+            resource.cloudResourceKind = row.cloudResourceKind;
+          }
+
+          resources.push(resource);
         }
       }
     }
@@ -532,10 +568,39 @@ export default class LinkedAffectedResources {
     const relation: LinkedAffectedResourceRelation =
       LinkedAffectedResources.getRelationForType(data.resource.type);
 
+    /*
+     * A cloud row whose kind was read opens in its own product: an
+     * environment in App Platforms, a resource in Cloud. Unread, it opens in
+     * Cloud, which forwards an environment.
+     */
+    const path: string =
+      data.resource.type === LinkedAffectedResourceType.CloudResource
+        ? getCloudResourceDashboardPath({
+            cloudResourceId: data.resource.id,
+            cloudResourceKind: data.resource.cloudResourceKind,
+          })
+        : `${relation.dashboardRoute}/${data.resource.id}`;
+
     // URL.addRoute mutates, and the caller reuses its dashboard URL.
     return URL.fromString(data.dashboardUrl.toString()).addRoute(
-      `/${data.projectId.toString()}/${relation.dashboardRoute}/${data.resource.id}`,
+      `/${data.projectId.toString()}/${path}`,
     );
+  }
+
+  /*
+   * What a resource is called before its name: "Host", "Kubernetes
+   * Cluster" - and for a cloud row, "Cloud Environment" or "Cloud Resource"
+   * by its kind, when it was read.
+   */
+  public static getLabel(resource: LinkedAffectedResource): string {
+    if (
+      resource.type === LinkedAffectedResourceType.CloudResource &&
+      resource.cloudResourceKind !== undefined
+    ) {
+      return getCloudResourceKindNoun(resource.cloudResourceKind);
+    }
+
+    return LinkedAffectedResources.getRelationForType(resource.type).label;
   }
 
   /*
@@ -582,9 +647,7 @@ export default class LinkedAffectedResources {
         continue;
       }
 
-      const label: string = LinkedAffectedResources.getRelationForType(
-        resource.type,
-      ).label;
+      const label: string = LinkedAffectedResources.getLabel(resource);
       const name: string = resource.name.trim();
 
       lines.push(

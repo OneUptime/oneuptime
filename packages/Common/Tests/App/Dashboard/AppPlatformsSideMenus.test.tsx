@@ -23,13 +23,15 @@ import {
 /*
  * The App Platforms menus. App Platforms holds the apps managed app and
  * container platforms run (ECS and Fargate, Cloud Run, App Service, ...),
- * which were Cloud's environments: the product's menu (its Overview, then
- * the environments), and one environment's - the telemetry its apps send,
- * its incidents and alerts, its settings. Nothing in them leads back into
- * Cloud, whose menus are CloudSideMenus.test.tsx's.
+ * which were Cloud's environments: the product's menu (its Overview, every
+ * app, then the environments), and one environment's - its apps and their
+ * instances, the telemetry they send, its incidents and alerts, its
+ * settings. Nothing in them leads back into Cloud, whose menus are
+ * CloudSideMenus.test.tsx's.
  */
 
 const ENVIRONMENT_ID: string = "0193c0de-3333-4aaa-8bbb-000000000003";
+const APP_ID: string = "0193c0de-3333-4aaa-8bbb-000000000004";
 const APP_PLATFORMS: string = `/dashboard/${PROJECT_ID}/app-platforms`;
 const ENVIRONMENT_PATH: string = `${APP_PLATFORMS}/${ENVIRONMENT_ID}`;
 
@@ -42,7 +44,7 @@ afterEach(() => {
 });
 
 describe("the App Platforms product menu", () => {
-  test("its Overview first, then every environment; Settings folded, Archived under Advanced, its Developer pages last", async () => {
+  test("its Overview first, then every app and every environment; Settings folded, Archived under Advanced, its Developer pages last", async () => {
     goTo(APP_PLATFORMS);
     await renderMenu(<AppPlatformsSideMenu />);
 
@@ -54,6 +56,7 @@ describe("the App Platforms product menu", () => {
     ]);
     expect(linksIn("App Platforms")).toEqual([
       { title: "Overview", href: APP_PLATFORMS },
+      { title: "All Apps", href: `${APP_PLATFORMS}/apps` },
       { title: "All Environments", href: `${APP_PLATFORMS}/environments` },
     ]);
     expect(linksIn("Settings")).toEqual([
@@ -87,6 +90,7 @@ describe("the App Platforms product menu", () => {
   });
 
   test.each([
+    [`${APP_PLATFORMS}/apps`, "All Apps"],
     [`${APP_PLATFORMS}/environments`, "All Environments"],
     [`${APP_PLATFORMS}/archived`, "Archived"],
     [`${APP_PLATFORMS}/settings/owner-rules`, "Owner Rules"],
@@ -115,7 +119,7 @@ describe("the App Platforms product menu", () => {
 });
 
 describe("an environment's menu", () => {
-  test("its telemetry, its incidents and alerts, its settings - no cloud changes", async () => {
+  test("its apps and instances, its telemetry, its incidents and alerts, its settings - no cloud changes", async () => {
     goTo(ENVIRONMENT_PATH);
     await renderMenu(
       <AppPlatformEnvironmentViewSideMenu
@@ -125,6 +129,7 @@ describe("an environment's menu", () => {
 
     expect(sectionTitlesInOrder()).toEqual([
       "Basic",
+      "Workloads",
       "Observability",
       "Activity",
       "Settings",
@@ -135,12 +140,16 @@ describe("an environment's menu", () => {
       { title: "Overview", href: ENVIRONMENT_PATH },
       { title: "Documentation", href: `${ENVIRONMENT_PATH}/documentation` },
     ]);
+    // What runs on the platform: its apps, and the tasks that run them.
+    expect(linksIn("Workloads")).toEqual([
+      { title: "Apps", href: `${ENVIRONMENT_PATH}/apps` },
+      { title: "Instances", href: `${ENVIRONMENT_PATH}/instances` },
+    ]);
     // What the apps on the platform send: their own OpenTelemetry.
     expect(linksIn("Observability")).toEqual([
       { title: "Metrics", href: `${ENVIRONMENT_PATH}/metrics` },
       { title: "Logs", href: `${ENVIRONMENT_PATH}/logs` },
       { title: "Traces", href: `${ENVIRONMENT_PATH}/traces` },
-      { title: "Instances", href: `${ENVIRONMENT_PATH}/instances` },
       { title: "Feed", href: `${ENVIRONMENT_PATH}/feed` },
     ]);
     // A cloud account's activity log is Cloud's: no Changes here.
@@ -173,6 +182,9 @@ describe("an environment's menu", () => {
   });
 
   test.each([
+    ["/apps", "Apps"],
+    // An app's own page keeps Apps lit, as a record page keeps its list's.
+    [`/apps/${APP_ID}`, "Apps"],
     ["/logs", "Logs"],
     ["/traces", "Traces"],
     ["/instances", "Instances"],

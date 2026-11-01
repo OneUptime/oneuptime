@@ -70,8 +70,12 @@ import CephClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import StorageArrayFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Feed";
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
 import HostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Feed";
-import CloudResourceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Feed";
-import AppPlatformEnvironmentFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Feed";
+import CloudResourceFeedPage, {
+  CLOUD_RESOURCE_FEED_EVENT_TYPES,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Feed";
+import AppPlatformEnvironmentFeedPage, {
+  getEnvironmentFeedKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Feed";
 import CloudAccountFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Feed";
 import DatabaseServerFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Feed";
 import ServiceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Feed";
@@ -338,7 +342,17 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     modelType: CloudResourceFeed,
     resourceIdColumn: "cloudResourceId",
     eventTypeColumn: "cloudResourceFeedEventType",
-    enumObject: CloudResourceFeedEventType,
+    /*
+     * Every event type of the table but its apps' deploys and rollbacks:
+     * only an App Platforms environment runs apps.
+     */
+    enumObject: Object.fromEntries(
+      CLOUD_RESOURCE_FEED_EVENT_TYPES.map(
+        (eventType: string): [string, string] => {
+          return [eventType, eventType];
+        },
+      ),
+    ),
   },
   /*
    * One CloudResourceFeed, shown in two products: a cloud environment's in
@@ -355,6 +369,8 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     resourceIdColumn: "cloudResourceId",
     eventTypeColumn: "cloudResourceFeedEventType",
     enumObject: CloudResourceFeedEventType,
+    // Its apps' deploys are rockets and their rollbacks U-turns.
+    getKind: getEnvironmentFeedKind,
   },
   {
     product: "Cloud accounts",

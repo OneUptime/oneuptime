@@ -30,6 +30,7 @@ Per queste non devi inviare nulla. OneUptime le registra a partire dalla telemet
 | --- | --- | --- |
 | Un deploy | Un servizio inizia a riportare una `service.version` che non aveva mai riportato prima nel suo ambiente | `service-version` |
 | Un rollout | I pod di un Deployment Kubernetes iniziano a eseguire un ReplicaSet che non avevano mai eseguito: una nuova immagine, una variabile d'ambiente o un riferimento di configurazione cambiati, oppure un riavvio | `kubernetes` |
+| Una distribuzione di un'app | Un'app su una piattaforma applicativa gestita, come un servizio ECS o un servizio Cloud Run, inizia a eseguire una revisione che non aveva mai eseguito, oppure torna a una che eseguiva prima | `app-platform` |
 | Una correzione eseguita da OneUptime AI | Un agente IA riporta il risultato di un comando che cambia qualcosa, come `kubectl rollout restart` | `oneuptime-ai` |
 | Un runbook | Un runbook eseguito da OneUptime si completa, non riesce o viene annullato dopo essere partito | `runbook` |
 | Una modifica nel cloud | Il log attività di un account cloud collegato registra una modifica: AWS CloudTrail, il log attività di Azure o il log di audit Admin Activity di Google Cloud | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Un rollout richiede l'[agent Kubernetes](/docs/telemetry/kubernetes-agent), che contrassegna la telemetria di ogni pod con il suo Deployment e il suo ReplicaSet.
+
+Una distribuzione di un'app richiede che l'app giri su una [piattaforma applicativa gestita](/docs/telemetry/cloud-environments#app-e-distribuzioni). Viene registrata sotto l'ambiente dell'app e disegnata nei grafici dell'ambiente e in quelli dell'app, e lì viene registrato anche un rollback a una revisione che l'app eseguiva prima.
 
 Una modifica nel cloud o un evento del provider richiede un [account cloud collegato](/docs/telemetry/cloud-accounts). Ciascuno è collegato alla risorsa cloud che nomina, quando OneUptime elenca quella risorsa, e viene disegnato sui grafici della risorsa. Il suo tipo deriva dall'operazione: `deployment`, `scaling` o `rollback` quando il nome dell'operazione lo dice, altrimenti `config-change`, e `provider-event` per un evento di stato. I grafici non filtrati su alcuna risorsa lasciano fuori il log attività di un account cloud, così un account molto attivo non oscura i tuoi deploy; gli eventi di stato del provider restano sui grafici.
 

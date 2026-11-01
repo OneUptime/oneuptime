@@ -500,7 +500,7 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
       key: "routes",
       title: "Routes",
       description:
-        "Distinct scrubbed URLs visited while this chunk was open, in order. The session's routes[] is the union of these.",
+        "Scrubbed URLs visited while this chunk was open, in the order they were visited, ending on the page it was flushed from. The session's routes[] is the union of these.",
       /*
        * Required, like RumSession.routes. ClickHouse refuses
        * Nullable(Array(String)) outright, so an array column can never be

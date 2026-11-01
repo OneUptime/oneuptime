@@ -22,7 +22,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
+import { Gray500, Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -282,8 +282,15 @@ const AppPlatformEnvironments: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            /*
+             * The name alone: ingest names an environment after its
+             * platform, region and account ("AWS ECS · us-east-1 ·
+             * 123456789012"), so a line of its account under it, and its
+             * region beside the platform, only said them again - and at
+             * 1280 beside the side menu pushed Last Seen behind the row's
+             * buttons. The account stays a filter.
+             */
             getElement: (item: CloudResource): ReactElement => {
-              const account: string = (item.cloudAccountId as string) || "";
               const name: string = (item.name as string) || "";
               const route: Route = RouteUtil.populateRouteParams(
                 RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW] as Route,
@@ -295,17 +302,10 @@ const AppPlatformEnvironments: FunctionComponent<
                 <div className="min-w-0">
                   <AppLink
                     to={route}
-                    className="text-sm font-medium text-gray-900 truncate hover:underline"
+                    className="break-words text-sm font-medium text-gray-900 hover:underline"
                   >
                     {name || "—"}
                   </AppLink>
-                  {account && (
-                    <div className="text-xs text-gray-500 font-mono truncate">
-                      {translator.translateTemplate("account {{account}}", {
-                        account: account,
-                      })}
-                    </div>
-                  )}
                 </div>
               );
             },
@@ -324,23 +324,17 @@ const AppPlatformEnvironments: FunctionComponent<
             hideOnMobile: true,
             getElement: (item: CloudResource): ReactElement => {
               const platform: string = (item.cloudPlatform as string) || "";
-              const region: string = (item.cloudRegion as string) || "";
-              if (!platform && !region) {
-                return <span className="text-sm text-gray-400">—</span>;
+              if (!platform) {
+                return (
+                  <span className="text-sm text-gray-400">
+                    {translator.translateText("unknown")}
+                  </span>
+                );
               }
               return (
-                <div className="text-sm text-gray-700">
-                  <span>
-                    {platform
-                      ? getManagedCloudPlatformLabel(platform)
-                      : translator.translateText("unknown")}
-                  </span>
-                  {region && (
-                    <span className="ml-1.5 text-xs text-gray-500 font-mono">
-                      {region}
-                    </span>
-                  )}
-                </div>
+                <span className="text-sm text-gray-700">
+                  {getManagedCloudPlatformLabel(platform)}
+                </span>
               );
             },
           },
@@ -350,13 +344,29 @@ const AppPlatformEnvironments: FunctionComponent<
             },
             title: "Status",
             type: FieldType.Element,
+            /*
+             * One that has never sent anything is Waiting, in grey, as its
+             * platform reads on the Overview: nothing broke yet.
+             */
             getElement: (item: CloudResource): ReactElement => {
               const isConnected: boolean =
                 item.otelCollectorStatus === "connected";
+              const isWaiting: boolean = !isConnected && !item.lastSeenAt;
               return (
                 <Pill
-                  text={isConnected ? "Connected" : "Disconnected"}
-                  color={isConnected ? Green : Red}
+                  text={
+                    isConnected
+                      ? "Connected"
+                      : isWaiting
+                        ? "Waiting"
+                        : "Disconnected"
+                  }
+                  color={isConnected ? Green : isWaiting ? Gray500 : Red}
+                  tooltip={
+                    isWaiting
+                      ? translator.translateText("Waiting for its first data")
+                      : undefined
+                  }
                 />
               );
             },
@@ -378,6 +388,9 @@ const AppPlatformEnvironments: FunctionComponent<
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            // Under the name, with the owners, where the list folds.
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             getElement: (item: CloudResource): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
@@ -389,6 +402,9 @@ const AppPlatformEnvironments: FunctionComponent<
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            // Under the name, where the list folds (Labels).
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             getElement: (item: CloudResource): ReactElement => {
               return (
                 <OwnersCell
