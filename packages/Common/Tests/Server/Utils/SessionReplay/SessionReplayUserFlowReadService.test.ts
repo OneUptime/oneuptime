@@ -1,24 +1,17 @@
 import RumSessionService from "../../../../Server/Services/RumSessionService";
 import RumSessionChunkService from "../../../../Server/Services/RumSessionChunkService";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
-import SessionReplayIdentity from "../../../../Server/Utils/SessionReplay/SessionReplayIdentity";
-import SessionReplayReadService from "../../../../Server/Utils/SessionReplay/SessionReplayReadService";
 import SessionReplayUserFlowReadService, {
   clampUserFlowMaxSessions,
-  hasUserFlowPersonFilter,
-  readUserFlowPersonFilter,
   UserFlowJourneysRequest,
-  UserFlowPersonFilterResult,
+  UserFlowJourneysScope,
 } from "../../../../Server/Utils/SessionReplay/SessionReplayUserFlowReadService";
 import AnalyticsTableName from "../../../../Types/AnalyticsDatabase/AnalyticsTableName";
-import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
-import { SESSION_REPLAY_MAX_USER_REF_LENGTH } from "../../../../Types/Rum/SessionReplay";
 import {
   readUserFlowJourneysResponse,
   USER_FLOW_DEFAULT_MAX_SESSIONS,
-  USER_FLOW_IGNORED_USER_REFERENCE,
   USER_FLOW_MAX_PAGES_PER_JOURNEY,
   USER_FLOW_MAX_SESSIONS,
   UserFlowJourneysResponseDto,
@@ -134,22 +127,11 @@ describe("statements", () => {
     expect(query).toContain(
       "(flowRoute, flowAt) -> flowAt = 1 OR flowRoute != flowRawRoutes[flowAt - 1]",
     );
-    expect(boundValues(statement)).toContain(USER_FLOW_MAX_PAGES_PER_JOURNEY);
+    /* One page over the cap: how a cut journey is told from a long one. */
+    expect(boundValues(statement)).toContain(
+      USER_FLOW_MAX_PAGES_PER_JOURNEY + 1,
+    );
     expect(query).toContain("AND retentionDate >= now()");
-  });
-
-  test("the exit is read before any cap can reach it, and a cut journey says so", () => {
-    const query: string = squash(
-      SessionReplayUserFlowReadService.buildChunkStatement(REQUEST, 250).query,
-    );
-
-    expect(query).toContain("flowAllRoutes[-1] AS flowExitRoute");
-    expect(query.indexOf("flowAllRoutes[-1]")).toBeLessThan(
-      query.indexOf("GROUP BY sessionId )"),
-    );
-    expect(query).toContain("flowRouteCount > length(flowRawRoutes)");
-    expect(query).toContain("OR length(flowJourney) > ");
-    expect(query).toContain(") AS flowIsCut");
   });
 
   test("the count reads the same window", () => {
@@ -180,342 +162,297 @@ describe("statements", () => {
   });
 });
 
-describe("everyone's read", () => {
-  /*
-   * The page never asks who anyone is to draw a map, so the statements behind
-   * it must not name a person: this is what let the route say it projects no
-   * identity at all, and it keeps saying so.
-   */
-  test("names no identity column in any statement, whatever the flag says", () => {
-    for (const statement of [
-      SessionReplayUserFlowReadService.buildHeaderStatement(
-        { ...REQUEST, includeIdentifiedUserLabel: true },
-        10,
-      ),
-      SessionReplayUserFlowReadService.buildChunkStatement(
-        { ...REQUEST, includeIdentifiedUserLabel: true },
-        10,
-      ),
+describe("narrowed statements", () => {
+  const SCOPES: Array<UserFlowJourneysScope> = [
+    { kind: "user", identifiedUserKey: "k".repeat(64) },
+    { kind: "visitor", visitorId: "v".repeat(32) },
+    { kind: "session", sessionId: "s".repeat(32) },
+  ];
+
+  function statementsFor(request: UserFlowJourneysRequest): Array<Statement> {
+    return [
+      SessionReplayUserFlowReadService.buildHeaderStatement(request, 10),
+      SessionReplayUserFlowReadService.buildChunkStatement(request, 10),
+      SessionReplayUserFlowReadService.buildCountStatement(request),
+    ];
+  }
+
+  test("every statement takes the same narrowing, so they agree on the sessions", () => {
+    for (const scope of SCOPES) {
+      const value: string = Object.values(scope)[1] as string;
+
+      for (const statement of statementsFor({ ...REQUEST, scope: scope })) {
+        expect(boundValues(statement)).toContain(value);
+      }
+    }
+  });
+
+  test("a person is judged on the newest header, never in the WHERE", () => {
+    for (const statement of statementsFor({
+      ...REQUEST,
+      scope: { kind: "user", identifiedUserKey: "k".repeat(64) },
+    })) {
+      const query: string = squash(statement.query);
+
+      expect(query).toContain("HAVING argMax(identifiedUserKey, version) = ");
+      expect(query).not.toMatch(/WHERE[^)]*\bidentifiedUserKey\s*=/);
+    }
+
+    for (const statement of statementsFor({
+      ...REQUEST,
+      scope: { kind: "visitor", visitorId: "v".repeat(32) },
+    })) {
+      const query: string = squash(statement.query);
+
+      expect(query).toContain("HAVING argMax(visitorId, version) = ");
+      expect(query).not.toMatch(/WHERE[^)]*\bvisitorId\s*=/);
+    }
+  });
+
+  test("a session id goes in the WHERE, which the sort key can prune on", () => {
+    for (const statement of statementsFor({
+      ...REQUEST,
+      scope: { kind: "session", sessionId: "s".repeat(32) },
+    })) {
+      const query: string = squash(statement.query);
+
+      expect(query).toContain("AND sessionId = ");
+      expect(query).not.toContain("HAVING");
+    }
+  });
+
+  test("the count counts sessions, because a narrowing is judged per session", () => {
+    const query: string = squash(
       SessionReplayUserFlowReadService.buildCountStatement({
         ...REQUEST,
-        includeIdentifiedUserLabel: true,
-      }),
-    ]) {
-      expect(statement.query).not.toMatch(
-        /identifiedUserKey|identifiedUserLabel|visitorId/,
-      );
-      expect(statement.query).not.toContain("HAVING");
-    }
-  });
-});
-
-describe("one person", () => {
-  const KEY: string = "a".repeat(64);
-  const VISITOR: string = "b".repeat(32);
-  const SESSION: string = "c".repeat(32);
-
-  const ONE: UserFlowJourneysRequest = {
-    ...REQUEST,
-    person: { identifiedUserKey: KEY },
-  };
-
-  test("all three statements carry the same predicate, so they cannot disagree", () => {
-    for (const statement of [
-      SessionReplayUserFlowReadService.buildHeaderStatement(ONE, 10),
-      SessionReplayUserFlowReadService.buildChunkStatement(ONE, 10),
-      SessionReplayUserFlowReadService.buildCountStatement(ONE),
-    ]) {
-      expect(squash(statement.query)).toMatch(
-        /GROUP BY sessionId HAVING \(argMax\(identifiedUserKey, version\) = \{p\d+:String\}\)/,
-      );
-      expect(boundValues(statement)).toContain(KEY);
-    }
-  });
-
-  /*
-   * A WHERE would run over raw rows: a session re-identified as someone else
-   * would stay in the first person's journeys. The real-ClickHouse suite
-   * proves that; this keeps the predicate out of the WHERE for good.
-   */
-  test("the predicate is never on raw rows", () => {
-    for (const statement of [
-      SessionReplayUserFlowReadService.buildHeaderStatement(ONE, 10),
-      SessionReplayUserFlowReadService.buildCountStatement(ONE),
-    ]) {
-      const query: string = squash(statement.query);
-      const where: string = query.slice(
-        query.indexOf("WHERE"),
-        query.indexOf("GROUP BY"),
-      );
-
-      expect(where).not.toContain("identifiedUserKey");
-      expect(where).not.toContain("visitorId");
-    }
-  });
-
-  test("the count goes through the same groups, not uniqExact over raw rows", () => {
-    const query: string = squash(
-      SessionReplayUserFlowReadService.buildCountStatement(ONE).query,
+        scope: { kind: "user", identifiedUserKey: "k".repeat(64) },
+      }).query,
     );
 
-    expect(query).toContain("SELECT toFloat64(count()) AS flowSessionCount");
+    expect(query).toContain("toFloat64(count()) AS flowSessionCount");
+    expect(query).toContain("GROUP BY sessionId HAVING");
     expect(query).not.toContain("uniqExact");
   });
 
-  test("the chunk read keeps its sessions to this person's newest", () => {
-    const query: string = squash(
-      SessionReplayUserFlowReadService.buildChunkStatement(ONE, 10).query,
-    );
+  test("the label is named only when the caller may read it, and only then", () => {
+    const scope: UserFlowJourneysScope = {
+      kind: "session",
+      sessionId: "s".repeat(32),
+    };
 
-    expect(query.indexOf("HAVING")).toBeGreaterThan(
-      query.indexOf("AND sessionId IN ("),
-    );
-    expect(query.indexOf("HAVING")).toBeLessThan(
-      query.indexOf("ORDER BY flowNewestStart DESC"),
-    );
-  });
-
-  test("a typed value matches any of the three it could be", () => {
-    const statement: Statement =
-      SessionReplayUserFlowReadService.buildHeaderStatement(
-        {
-          ...REQUEST,
-          person: {
-            identifiedUserKey: KEY,
-            visitorId: VISITOR,
-            sessionId: SESSION,
-          },
-        },
-        10,
-      );
-
-    expect(squash(statement.query)).toMatch(
-      /HAVING \(argMax\(identifiedUserKey, version\) = \{p\d+:String\} OR argMax\(visitorId, version\) = \{p\d+:String\} OR sessionId = \{p\d+:String\}\)/,
-    );
-    expect(boundValues(statement)).toEqual(
-      expect.arrayContaining([KEY, VISITOR, SESSION]),
-    );
-  });
-
-  test("a person with nothing left to match matches nobody, never everyone", () => {
-    for (const statement of [
-      SessionReplayUserFlowReadService.buildHeaderStatement(
-        { ...REQUEST, person: {} },
-        10,
-      ),
-      SessionReplayUserFlowReadService.buildChunkStatement(
-        { ...REQUEST, person: {} },
-        10,
-      ),
-      SessionReplayUserFlowReadService.buildCountStatement({
-        ...REQUEST,
-        person: {},
-      }),
-    ]) {
-      expect(squash(statement.query)).toContain("GROUP BY sessionId HAVING 0");
-    }
-  });
-
-  test("the label is named only when the role may read it", () => {
     const denied: string =
-      SessionReplayUserFlowReadService.buildHeaderStatement(ONE, 10).query;
+      SessionReplayUserFlowReadService.buildHeaderStatement(
+        { ...REQUEST, scope: scope, includeIdentifiedUserLabel: false },
+        10,
+      ).query;
     const allowed: string =
       SessionReplayUserFlowReadService.buildHeaderStatement(
-        { ...ONE, includeIdentifiedUserLabel: true },
+        { ...REQUEST, scope: scope, includeIdentifiedUserLabel: true },
         10,
       ).query;
 
     expect(denied).not.toContain("identifiedUserLabel");
-    expect(allowed).toContain(
-      "argMax(identifiedUserLabel, version) AS flowUserLabel",
-    );
-    /* The digest and the visitor id are the list's, under the ordinary ACL. */
-    expect(denied).toContain(
-      "argMax(identifiedUserKey, version) AS flowUserKey",
-    );
-    expect(denied).toContain("argMax(visitorId, version) AS flowVisitorId");
+    expect(allowed).toContain("flowIdentifiedUserLabel");
   });
 
-  test("aliases never shadow a physical column", () => {
-    const query: string = SessionReplayUserFlowReadService.buildHeaderStatement(
-      { ...ONE, includeIdentifiedUserLabel: true },
-      10,
-    ).query;
-
-    for (const column of [
-      "identifiedUserKey",
-      "identifiedUserLabel",
-      "visitorId",
-      "isFinalized",
-      "sealedReason",
-      "chunkCount",
-    ]) {
-      expect(query).not.toContain(`AS ${column}`);
+  test("a read over everyone names no identity column, whatever it was told", () => {
+    for (const statement of statementsFor({
+      ...REQUEST,
+      includeIdentifiedUserLabel: true,
+    })) {
+      expect(statement.query).not.toMatch(/identifiedUser|visitorId/);
+      expect(statement.query).not.toContain("HAVING");
     }
   });
 
-  test("still never names the payload", () => {
-    expect(
-      SessionReplayUserFlowReadService.buildChunkStatement(ONE, 10).query,
-    ).not.toMatch(/\bpayload\b/);
+  test("no narrowed statement names the payload", () => {
+    for (const scope of SCOPES) {
+      for (const statement of statementsFor({
+        ...REQUEST,
+        scope: scope,
+        includeIdentifiedUserLabel: true,
+      })) {
+        expect(squash(statement.query)).not.toMatch(/\bpayload\b/);
+      }
+    }
   });
 });
 
-describe("readUserFlowPersonFilter", () => {
-  const PROJECT: ObjectID = REQUEST.projectId;
-
-  const read: (
-    filters: JSONObject,
-    canReadIdentity?: boolean,
-  ) => UserFlowPersonFilterResult = (
-    filters: JSONObject,
-    canReadIdentity: boolean = true,
-  ): UserFlowPersonFilterResult => {
-    return readUserFlowPersonFilter({
-      filters: filters,
-      projectId: PROJECT,
-      canReadIdentity: canReadIdentity,
-    });
+describe("toResponse", () => {
+  const HEADER: {
+    sessionId: string;
+    startUnixMs: number;
+    deviceType: string;
+    browserName: string;
+    countryCode: string;
+    entryUrl: string;
+  } = {
+    sessionId: "s-1",
+    startUnixMs: 1000,
+    deviceType: "desktop",
+    browserName: "Chrome",
+    countryCode: "DK",
+    entryUrl: "https://a.example.com/",
   };
 
-  const VISITOR: string = "b".repeat(32);
-
-  test("no person named reads everyone, and asks nothing about identity", () => {
-    expect(read({})).toEqual({ person: undefined, ignoredFilters: [] });
-    expect(read({ visitorId: null, sessionId: undefined } as never)).toEqual({
-      person: undefined,
-      ignoredFilters: [],
+  function pagesFrom(count: number): Array<string> {
+    return Array.from({ length: count }, (_value: unknown, index: number) => {
+      return `https://a.example.com/step-${index}`;
     });
-    expect(hasUserFlowPersonFilter({})).toBe(false);
-    expect(hasUserFlowPersonFilter({ somethingElse: "x" })).toBe(false);
-    expect(hasUserFlowPersonFilter({ sessionId: "x" })).toBe(true);
-    expect(hasUserFlowPersonFilter({ identifier: "x" })).toBe(true);
+  }
+
+  function responseFor(data: {
+    pages: Array<string>;
+    request?: Partial<UserFlowJourneysRequest>;
+  }): UserFlowJourneysResponseDto {
+    return SessionReplayUserFlowReadService.toResponse({
+      headers: [HEADER],
+      chunks: new Map([
+        [
+          "s-1",
+          {
+            pages: data.pages,
+            signals: [],
+            errorCount: 0,
+            frustrationCount: 0,
+            spanMs: 1000,
+          },
+        ],
+      ]),
+      sessionsInWindow: 1,
+      maxSessions: 5000,
+      request: { ...REQUEST, ...(data.request ?? {}) },
+    });
+  }
+
+  test("a journey at the cap is whole", () => {
+    const response: UserFlowJourneysResponseDto = responseFor({
+      pages: pagesFrom(USER_FLOW_MAX_PAGES_PER_JOURNEY),
+    });
+
+    expect(response.sessions[0]?.pages).toHaveLength(
+      USER_FLOW_MAX_PAGES_PER_JOURNEY,
+    );
+    expect(response.sessions[0]).not.toHaveProperty("isTruncated");
   });
 
-  test("a reference is hashed the way the ingest hashed it", () => {
-    const expected: string = SessionReplayIdentity.buildUserKey({
-      projectId: PROJECT,
-      userRef: "jane@example.com",
-    });
+  test("the page over the cap says the journey went on, and is not sent", () => {
+    const pages: Array<string> = pagesFrom(USER_FLOW_MAX_PAGES_PER_JOURNEY + 1);
+    const response: UserFlowJourneysResponseDto = responseFor({ pages: pages });
 
-    expect(read({ identifier: "  jane@example.com " }).person).toMatchObject({
-      identifiedUserKey: expected,
-    });
+    expect(response.sessions[0]?.pages).toHaveLength(
+      USER_FLOW_MAX_PAGES_PER_JOURNEY,
+    );
+    expect(response.sessions[0]?.isTruncated).toBe(true);
+    expect(response.pages).not.toContain(pages[pages.length - 1]);
+    /* The Dashboard's parser keeps it. */
+    expect(
+      readUserFlowJourneysResponse(JSON.parse(JSON.stringify(response)))
+        .sessions[0]?.isTruncated,
+    ).toBe(true);
   });
 
-  test("the reference itself never reaches a statement", () => {
-    const { person } = read({ identifier: "jane@example.com" });
+  test("a read over everyone carries no scope and no recording flag", () => {
+    const response: UserFlowJourneysResponseDto = responseFor({
+      pages: pagesFrom(2),
+    });
 
-    expect(person?.visitorId).toBeUndefined();
-    expect(person?.identifiedUserKey).not.toContain("jane");
+    expect(response.scope).toBeNull();
+    expect(response.sessions[0]).not.toHaveProperty("hasRecording");
+  });
 
-    const statement: Statement =
-      SessionReplayUserFlowReadService.buildHeaderStatement(
-        {
+  test("an answer with no sessions still says what was asked", () => {
+    const response: UserFlowJourneysResponseDto =
+      SessionReplayUserFlowReadService.toResponse({
+        headers: [],
+        chunks: new Map(),
+        sessionsInWindow: 0,
+        maxSessions: 5000,
+        request: {
           ...REQUEST,
-          person: { identifiedUserKey: person?.identifiedUserKey },
+          scope: { kind: "session", sessionId: "s-gone" },
+          includeIdentifiedUserLabel: true,
         },
-        10,
-      );
-
-    expect(JSON.stringify(boundValues(statement))).not.toContain("jane");
-  });
-
-  test("a value that could be a visitor id or a session id is tried as each", () => {
-    expect(read({ identifier: VISITOR }).person).toEqual({
-      identifiedUserKey: SessionReplayIdentity.buildUserKey({
-        projectId: PROJECT,
-        userRef: VISITOR,
-      }),
-      visitorId: VISITOR,
-      sessionId: VISITOR,
-    });
-  });
-
-  test("a value too long to be a session id is not tried as one", () => {
-    const long: string = "x".repeat(200);
-
-    expect(read({ identifier: long }).person?.sessionId).toBeUndefined();
-  });
-
-  /*
-   * The gate the session list has for the same reason: without it a caller
-   * denied the label could ask "does jane@example.com have sessions here"
-   * and read the answer, one candidate at a time.
-   */
-  describe("a role that may not read identity", () => {
-    test("is never told whether a reference has sessions: it is not hashed", () => {
-      const result: UserFlowPersonFilterResult = read(
-        { identifier: "jane@example.com" },
-        false,
-      );
-
-      expect(result.person?.identifiedUserKey).toBeUndefined();
-      expect(result.ignoredFilters).toEqual([USER_FLOW_IGNORED_USER_REFERENCE]);
-    });
-
-    test("can still follow a link, which names nobody", () => {
-      expect(read({ identifiedUserKey: "a".repeat(64) }, false)).toEqual({
-        person: { identifiedUserKey: "a".repeat(64) },
-        ignoredFilters: [],
       });
-      expect(read({ visitorId: VISITOR }, false)).toEqual({
-        person: { visitorId: VISITOR },
-        ignoredFilters: [],
-      });
-      expect(read({ sessionId: "s-1" }, false)).toEqual({
-        person: { sessionId: "s-1" },
-        ignoredFilters: [],
-      });
-    });
 
-    test("can still look up an id, and is told the reference half was skipped", () => {
-      const result: UserFlowPersonFilterResult = read(
-        { identifier: VISITOR },
-        false,
-      );
-
-      expect(result.person).toEqual({ visitorId: VISITOR, sessionId: VISITOR });
-      expect(result.ignoredFilters).toEqual([USER_FLOW_IGNORED_USER_REFERENCE]);
+    expect(response.scope).toEqual({
+      kind: "session",
+      identifiedUserKey: "",
+      visitorId: "",
+      sessionId: "s-gone",
+      identifiedUserLabel: "",
     });
   });
 
-  /*
-   * Dropping an unusable filter would answer a question about one person with
-   * everyone's journeys and a 200.
-   */
-  describe("refuses what it cannot use, never reading everyone instead", () => {
-    const refusals: Array<[string, JSONObject]> = [
-      ["an empty identifier", { identifier: "" }],
-      ["a blank identifier", { identifier: "   " }],
-      ["a non-string identifier", { identifier: 42 }],
-      [
-        "an identifier past the reference cap",
-        { identifier: "x".repeat(SESSION_REPLAY_MAX_USER_REF_LENGTH + 1) },
-      ],
-      ["a malformed visitor id", { visitorId: "not-a-visitor" }],
-      ["an upper-case visitor id", { visitorId: "B".repeat(32) }],
-      ["an empty digest", { identifiedUserKey: "" }],
-      ["a non-string digest", { identifiedUserKey: ["a"] as never }],
-      ["an empty session id", { sessionId: "" }],
-      ["a session id past its cap", { sessionId: "s".repeat(129) }],
-      [
-        "two people at once",
-        { identifiedUserKey: "a".repeat(64), visitorId: VISITOR },
-      ],
-      ["a person and a session", { identifier: "x", sessionId: "s" }],
-    ];
+  test("the newest session that names the person names them", () => {
+    const response: UserFlowJourneysResponseDto =
+      SessionReplayUserFlowReadService.toResponse({
+        headers: [
+          { ...HEADER, sessionId: "s-new", identifiedUserLabel: "" },
+          {
+            ...HEADER,
+            sessionId: "s-older",
+            identifiedUserLabel: "jane@example.com",
+          },
+          {
+            ...HEADER,
+            sessionId: "s-oldest",
+            identifiedUserLabel: "j.doe@example.com",
+          },
+        ],
+        chunks: new Map(),
+        sessionsInWindow: 3,
+        maxSessions: 5000,
+        request: {
+          ...REQUEST,
+          scope: { kind: "user", identifiedUserKey: "k".repeat(64) },
+          includeIdentifiedUserLabel: true,
+        },
+      });
 
-    test.each(refusals)("%s", (_name: string, filters: JSONObject) => {
-      expect(() => {
-        return read(filters);
-      }).toThrow(BadDataException);
+    expect(response.scope?.identifiedUserLabel).toBe("jane@example.com");
+  });
+
+  test("a visitor is a browser: the answer names no person", () => {
+    const response: UserFlowJourneysResponseDto =
+      SessionReplayUserFlowReadService.toResponse({
+        headers: [{ ...HEADER, identifiedUserLabel: "jane@example.com" }],
+        chunks: new Map(),
+        sessionsInWindow: 1,
+        maxSessions: 5000,
+        request: {
+          ...REQUEST,
+          scope: { kind: "visitor", visitorId: "v".repeat(32) },
+          includeIdentifiedUserLabel: true,
+        },
+      });
+
+    expect(response.scope).toEqual({
+      kind: "visitor",
+      identifiedUserKey: "",
+      visitorId: "v".repeat(32),
+      sessionId: "",
     });
+  });
+
+  test("the scope survives the Dashboard's parser unchanged", () => {
+    const response: UserFlowJourneysResponseDto = responseFor({
+      pages: pagesFrom(2),
+      request: {
+        scope: { kind: "user", identifiedUserKey: "k".repeat(64) },
+        includeIdentifiedUserLabel: false,
+      },
+    });
+
+    expect(
+      readUserFlowJourneysResponse(JSON.parse(JSON.stringify(response))),
+    ).toEqual(response);
+    expect(response.scope).not.toHaveProperty("identifiedUserLabel");
   });
 });
 
 describe("readJourneys", () => {
-  test("a narrowed read says whose each session is and whether it has ended", async () => {
+  test("a narrowed read reads who the session is and whether it can be watched", async () => {
     jest
       .spyOn(RumSessionService, "executeQuery")
       .mockImplementation(
@@ -524,187 +461,62 @@ describe("readJourneys", () => {
             typeof statement === "string" ? statement : statement.query;
 
           if (query.includes("flowSessionCount")) {
-            return fakeResultSet([{ flowSessionCount: "2" }]) as never;
+            return fakeResultSet([{ flowSessionCount: "4" }]) as never;
           }
 
-          return fakeResultSet([
-            {
-              flowSessionId: "s-live",
-              flowStartUnixMs: 2000,
-              flowEntryUrl: "https://a.example.com/",
-              flowUserKey: "k",
-              flowVisitorId: "v",
-              flowUserLabel: "jane@example.com",
-              flowIsFinalized: 0,
-              flowSealedReason: "",
-              flowChunkCount: "0",
-            },
-            {
-              flowSessionId: "s-done",
-              flowStartUnixMs: 1000,
-              flowEntryUrl: "https://a.example.com/",
-              flowUserKey: "k",
-              flowVisitorId: "v",
-              flowUserLabel: "jane@example.com",
-              flowIsFinalized: 1,
-              flowSealedReason: "recording-lost",
-              flowChunkCount: "3",
-            },
-          ]) as never;
+          return fakeResultSet(
+            [
+              ["s-finalized", true, 3, ""],
+              ["s-counting", false, 0, ""],
+              ["s-nothing-stored", true, 0, ""],
+              ["s-lost", true, 3, "recording-lost"],
+            ].map((row: Array<unknown>): JSONObject => {
+              return {
+                flowSessionId: row[0] as string,
+                flowStartUnixMs: 1000,
+                flowDeviceType: "desktop",
+                flowBrowserName: "Chrome",
+                flowCountryCode: "",
+                flowEntryUrl: "https://a.example.com/",
+                flowIdentifiedUserKey: "k".repeat(64),
+                flowVisitorId: "v".repeat(32),
+                flowIsFinalized: row[1] as boolean,
+                flowChunkCount: row[2] as number,
+                flowSealedReason: row[3] as string,
+              };
+            }),
+          ) as never;
         },
       );
+
     jest
       .spyOn(RumSessionChunkService, "executeQuery")
       .mockImplementation(async (): Promise<never> => {
         return fakeResultSet([]) as never;
       });
-
-    const ended: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(SessionReplayReadService, "readRecordingEndedSessionIds")
-      .mockResolvedValue(new Set<string>(["s-live"]) as never);
 
     const response: UserFlowJourneysResponseDto =
       await SessionReplayUserFlowReadService.readJourneys({
         ...REQUEST,
-        person: { identifiedUserKey: "k" },
-        includeIdentifiedUserLabel: true,
-        nowUnixMs: 12345,
+        scope: { kind: "visitor", visitorId: "v".repeat(32) },
       });
 
-    expect(response.sessions[0]?.detail).toEqual({
-      identifiedUserKey: "k",
-      visitorId: "v",
-      identifiedUserLabel: "jane@example.com",
-      isFinalized: false,
-      hasRecordingEnded: true,
-      sealedReason: "",
-      chunkCount: 0,
-    });
-    expect(response.sessions[1]?.detail).toMatchObject({
-      isFinalized: true,
-      hasRecordingEnded: false,
-      sealedReason: "recording-lost",
-      chunkCount: 3,
-    });
-
-    /* Only the unfinalized session is asked about. */
-    expect(ended).toHaveBeenCalledTimes(1);
-    expect(ended).toHaveBeenCalledWith({
-      projectId: REQUEST.projectId,
-      rumApplicationId: REQUEST.rumApplicationId,
-      sessionIds: ["s-live"],
-      nowUnixMs: 12345,
-    });
-
-    /* The detail survives the Dashboard's parser unchanged. */
     expect(
-      readUserFlowJourneysResponse(JSON.parse(JSON.stringify(response))),
-    ).toEqual(response);
-  });
-
-  test("everyone's read asks nothing about who or whether anything ended", async () => {
-    jest
-      .spyOn(RumSessionService, "executeQuery")
-      .mockImplementation(async (): Promise<never> => {
-        return fakeResultSet([
-          {
-            flowSessionId: "s-1",
-            flowStartUnixMs: 1000,
-            flowEntryUrl: "https://a.example.com/",
-            flowSessionCount: "1",
-          },
-        ]) as never;
-      });
-    jest
-      .spyOn(RumSessionChunkService, "executeQuery")
-      .mockImplementation(async (): Promise<never> => {
-        return fakeResultSet([]) as never;
-      });
-
-    const ended: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      SessionReplayReadService,
-      "readRecordingEndedSessionIds",
-    );
-
-    const response: UserFlowJourneysResponseDto =
-      await SessionReplayUserFlowReadService.readJourneys(REQUEST);
-
-    expect(response.sessions[0]?.detail).toBeUndefined();
-    expect(ended).not.toHaveBeenCalled();
-  });
-
-  test("a cut journey keeps where it really ended in the dictionary", () => {
-    const response: UserFlowJourneysResponseDto =
-      SessionReplayUserFlowReadService.toResponse({
-        headers: [
-          {
-            sessionId: "s",
-            startUnixMs: 1,
-            deviceType: "",
-            browserName: "",
-            countryCode: "",
-            entryUrl: "https://a.example.com/",
-          },
-        ],
-        chunks: new Map([
-          [
-            "s",
-            {
-              pages: ["https://a.example.com/1", "https://a.example.com/2"],
-              signals: [],
-              errorCount: 0,
-              frustrationCount: 0,
-              spanMs: 0,
-              exitUrl: "https://a.example.com/last",
-              isCut: true,
-            },
-          ],
-        ]),
-        sessionsInWindow: 1,
-        maxSessions: 10,
-        request: REQUEST,
-      });
-
-    expect(response.pages[response.sessions[0]?.exitPage as number]).toBe(
-      "https://a.example.com/last",
-    );
-    expect(response.sessions[0]?.pages).toEqual([0, 1]);
-  });
-
-  test("a journey that was not cut has no separate exit, and its exit adds no page", () => {
-    const response: UserFlowJourneysResponseDto =
-      SessionReplayUserFlowReadService.toResponse({
-        headers: [
-          {
-            sessionId: "s",
-            startUnixMs: 1,
-            deviceType: "",
-            browserName: "",
-            countryCode: "",
-            entryUrl: "https://a.example.com/",
-          },
-        ],
-        chunks: new Map([
-          [
-            "s",
-            {
-              pages: ["https://a.example.com/1"],
-              signals: [],
-              errorCount: 0,
-              frustrationCount: 0,
-              spanMs: 0,
-              exitUrl: "https://a.example.com/1",
-              isCut: false,
-            },
-          ],
-        ]),
-        sessionsInWindow: 1,
-        maxSessions: 10,
-        request: REQUEST,
-      });
-
-    expect(response.sessions[0]).not.toHaveProperty("exitPage");
-    expect(response.pages).toHaveLength(1);
+      response.sessions.map(
+        (
+          session: UserFlowJourneysResponseDto["sessions"][number],
+        ): [string, boolean | undefined] => {
+          return [session.sessionId, session.hasRecording];
+        },
+      ),
+    ).toEqual([
+      ["s-finalized", true],
+      /* Unfinalized: its zero means "not counted yet". */
+      ["s-counting", true],
+      ["s-nothing-stored", false],
+      ["s-lost", false],
+    ]);
+    expect(response.sessionsInWindow).toBe(4);
   });
 
   test("joins headers to chunk rollups and dictionary-encodes the pages", async () => {
@@ -822,6 +634,50 @@ describe("readJourneys", () => {
 });
 
 describe("readUserFlowJourneysResponse", () => {
+  test("a scope of an unknown kind is no scope", () => {
+    for (const scope of [null, "user", 42, {}, { kind: "everyone" }]) {
+      expect(
+        readUserFlowJourneysResponse({ pages: [], sessions: [], scope: scope })
+          .scope,
+      ).toBeNull();
+    }
+  });
+
+  test("a label that is not there stays not there", () => {
+    const scope: unknown = readUserFlowJourneysResponse({
+      scope: { kind: "user", identifiedUserKey: "k" },
+    }).scope;
+
+    expect(scope).not.toHaveProperty("identifiedUserLabel");
+    expect(
+      readUserFlowJourneysResponse({
+        scope: { kind: "user", identifiedUserLabel: "" },
+      }).scope?.identifiedUserLabel,
+    ).toBe("");
+  });
+
+  test("a recording flag is kept only when it says something", () => {
+    const parsed: UserFlowJourneysResponseDto = readUserFlowJourneysResponse({
+      pages: ["/a"],
+      sessions: [
+        { sessionId: "a", pages: [0], hasRecording: false },
+        { sessionId: "b", pages: [0], hasRecording: true },
+        { sessionId: "c", pages: [0] },
+        { sessionId: "d", pages: [0], hasRecording: "yes" },
+      ],
+    });
+
+    expect(
+      parsed.sessions.map(
+        (
+          session: UserFlowJourneysResponseDto["sessions"][number],
+        ): boolean | undefined => {
+          return session.hasRecording;
+        },
+      ),
+    ).toEqual([false, true, undefined, undefined]);
+  });
+
   test("drops what it cannot trust instead of rendering it", () => {
     const parsed: UserFlowJourneysResponseDto = readUserFlowJourneysResponse({
       pages: ["/a", "/b"],
@@ -855,64 +711,6 @@ describe("readUserFlowJourneysResponse", () => {
       expect(parsed.pages).toEqual([]);
       expect(parsed.sessions).toEqual([]);
       expect(parsed.isSampled).toBe(false);
-      expect(parsed.ignoredFilters).toEqual([]);
     }
-  });
-
-  test("an exit page outside the dictionary is dropped, not guessed", () => {
-    const parsed: UserFlowJourneysResponseDto = readUserFlowJourneysResponse({
-      pages: ["/a"],
-      sessions: [
-        { sessionId: "ok", pages: [0], exitPage: 0 },
-        { sessionId: "past", pages: [0], exitPage: 9 },
-        { sessionId: "text", pages: [0], exitPage: "nope" },
-        { sessionId: "none", pages: [0] },
-      ],
-    });
-
-    expect(parsed.sessions[0]?.exitPage).toBe(0);
-    expect(parsed.sessions[1]).not.toHaveProperty("exitPage");
-    expect(parsed.sessions[2]).not.toHaveProperty("exitPage");
-    expect(parsed.sessions[3]).not.toHaveProperty("exitPage");
-  });
-
-  test("an absent label stays absent: hidden is not the same as nobody", () => {
-    const parsed: UserFlowJourneysResponseDto = readUserFlowJourneysResponse({
-      pages: ["/a"],
-      sessions: [
-        {
-          sessionId: "hidden",
-          pages: [0],
-          detail: { identifiedUserKey: "k", chunkCount: "2", isFinalized: 1 },
-        },
-        {
-          sessionId: "visible",
-          pages: [0],
-          detail: { identifiedUserKey: "", identifiedUserLabel: "" },
-        },
-        { sessionId: "everyone", pages: [0] },
-        { sessionId: "garbage", pages: [0], detail: "nope" },
-      ],
-    });
-
-    expect(parsed.sessions[0]?.detail).not.toHaveProperty(
-      "identifiedUserLabel",
-    );
-    expect(parsed.sessions[0]?.detail?.chunkCount).toBe(2);
-    expect(parsed.sessions[0]?.detail?.isFinalized).toBe(true);
-    expect(parsed.sessions[1]?.detail?.identifiedUserLabel).toBe("");
-    expect(parsed.sessions[2]).not.toHaveProperty("detail");
-    expect(parsed.sessions[3]).not.toHaveProperty("detail");
-  });
-
-  test("ignored filters are read as text, whatever else arrives", () => {
-    expect(
-      readUserFlowJourneysResponse({
-        ignoredFilters: [USER_FLOW_IGNORED_USER_REFERENCE, 7, null],
-      }).ignoredFilters,
-    ).toEqual([USER_FLOW_IGNORED_USER_REFERENCE]);
-    expect(
-      readUserFlowJourneysResponse({ ignoredFilters: "nope" }).ignoredFilters,
-    ).toEqual([]);
   });
 });

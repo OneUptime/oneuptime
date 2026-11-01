@@ -107,7 +107,6 @@ import {
   SessionReplayListUrlState,
   SessionReplaySortOption,
 } from "./SessionReplayListFilters";
-import { buildUserFlowPersonSearch } from "../UserFlow/UserFlowUrlState";
 import {
   SEARCH_BOX_CHIP_FIELDS,
   stringifySessionReplaySearchBox,
@@ -126,6 +125,7 @@ import {
   describeSessionUser,
   SessionUserDescription,
 } from "./SessionReplayUserIdentity";
+import { buildUserFlowScopeRoute } from "../UserFlow/UserFlowScopeRoute";
 import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
 import SessionReplayIdentityNudge, {
   hasAnyVisitorId,
@@ -1439,38 +1439,8 @@ interface SessionReplayTableRow extends SessionReplaySummary {
   cells: Array<ReactElement>;
   /* See getSessionReplayFirstErrorRoute; null keeps the action off the row. */
   firstErrorRoute: Route | null;
-  /* See getSessionJourneyRoute; null keeps the action off the row. */
+  /* This session on the User Flows page. */
   journeyRoute: Route | null;
-}
-
-/*
- * This session on the User Flows page, page by page, on the window the list
- * shows, so a session the list holds is one the page can find.
- */
-export function getSessionJourneyRoute(data: {
-  sessionId: string;
-  rumApplicationId: string;
-  timeRange: RangeStartAndEndDateTime;
-}): Route | null {
-  if (!data.sessionId) {
-    return null;
-  }
-
-  try {
-    const route: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS] as Route,
-      { modelId: new ObjectID(data.rumApplicationId) },
-    );
-
-    return new Route(
-      `${route.toString()}${buildUserFlowPersonSearch(
-        { kind: "session", sessionId: data.sessionId },
-        data.timeRange,
-      )}`,
-    );
-  } catch {
-    return null;
-  }
 }
 
 /*
@@ -1484,7 +1454,9 @@ export function getSessionJourneyRoute(data: {
  * Every row's menu also has Show ID - the session's whole ID, to copy into a
  * ticket or the search box's id: - as every model table's rows have. So every
  * row carries a ⋯, and the rows' Watch buttons line up in one column: a row
- * without one used to draw its Watch where the others' ⋯ was.
+ * without one used to draw its Watch where the others' ⋯ was. View journey
+ * sits there too: the session's pages in order, which a row's route list,
+ * sorted and cut short, cannot say.
  *
  * The one thing given up: menu items are buttons, and a row action never sees
  * the click event, so Cmd/Ctrl-click and middle-click cannot open this jump in
@@ -1525,7 +1497,7 @@ function getSessionReplayRowActions(
       icon: IconProp.Share,
       buttonStyleType: ButtonStyleType.OUTLINE,
       placement: ActionButtonPlacement.MoreMenu,
-      tooltip: "See the pages visited in this session, in order",
+      tooltip: "See this session's pages in order, on User Flows",
       isVisible: (row: SessionReplayTableRow): boolean => {
         return Boolean(row.journeyRoute);
       },
@@ -1534,7 +1506,7 @@ function getSessionReplayRowActions(
         onCompleteAction: VoidFunction,
       ): void => {
         if (row.journeyRoute) {
-          Navigation.navigate(row.journeyRoute);
+          openSession(row.journeyRoute, false);
         }
 
         onCompleteAction();
@@ -2294,9 +2266,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             rumApplicationId: rumApplicationIdString,
             nowUnixMs,
           }),
-          journeyRoute: getSessionJourneyRoute({
-            sessionId: row.sessionId,
+          journeyRoute: buildUserFlowScopeRoute({
             rumApplicationId: rumApplicationIdString,
+            scope: row.sessionId
+              ? { kind: "session", sessionId: row.sessionId }
+              : null,
             timeRange: timeRange,
           }),
         };

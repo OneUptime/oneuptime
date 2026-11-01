@@ -6,34 +6,24 @@ import {
   DbJSONResponse,
   Results,
 } from "../../Services/AnalyticsDatabaseService";
-import SessionReplayIdentity from "./SessionReplayIdentity";
-import SessionReplayReadService from "./SessionReplayReadService";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
-import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import { SESSION_REPLAY_MAX_USER_REF_LENGTH } from "../../../Types/Rum/SessionReplay";
-import {
-  SESSION_REPLAY_SESSION_ID_BATCH_MAX,
-  SESSION_REPLAY_SESSION_ID_MAX_LENGTH,
-} from "../../../Types/Rum/SessionReplayApi";
+import { SessionReplaySealedReason } from "../../../Types/Rum/SessionReplay";
 import {
   USER_FLOW_DEFAULT_MAX_SESSIONS,
-  USER_FLOW_IGNORED_USER_REFERENCE,
   USER_FLOW_MAX_PAGES_PER_JOURNEY,
   USER_FLOW_MAX_SESSIONS,
-  USER_FLOW_PERSON_FILTER_KEYS,
   UserFlowJourneysResponseDto,
-  UserFlowSessionDetailDto,
+  UserFlowScopeDto,
   UserFlowSessionDto,
 } from "../../../Types/Rum/UserFlow";
-import SessionIdentity from "../../../Utils/Rum/SessionIdentity";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
  * The read behind the User Flows page: the ordered page journey of every
- * recorded session in a window, or of one person's.
+ * recorded session in a window.
  *
  * Where the order comes from. The session header's routes[] is a sorted
  * SET (the finalizer sorts it so re-finalization is byte-stable), so it
@@ -45,7 +35,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * array per session rather than one row per chunk.
  *
  * Every chunk's list is closed with the page the chunk was flushed from.
- * Recordings from before the recorder kept returns hold each page of a
+ * Recordings from before the recorders kept returns hold each page of a
  * chunk once, in first-seen order, so A -> B -> A in a session's last chunk
  * would otherwise read as leaving from B. Inside a chunk of such a recording
  * a return that was not the last page is still lost, which is why the map
@@ -66,10 +56,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * A session that started between the two reads is simply absent from the
  * chunk side and falls back to its entry URL, so the race costs nothing.
  *
- * One person. The same three statements with one more predicate, in all
- * three so they can never disagree about whose sessions these are. The
- * everyone read names no identity column; only a narrowed one does, and the
- * label only for a role that may read it (includeIdentifiedUserLabel).
+ * A read can be narrowed to one person or one session (UserFlowJourneysScope):
+ * every statement takes the same narrowing, so the three still agree. Only a
+ * narrowed read names who the sessions belong to - a read over everyone has
+ * no use for it - and the label among those columns only for a caller who may
+ * read it.
  */
 
 const RETENTION_FILTER: string = " AND retentionDate >= now()";
@@ -86,16 +77,10 @@ const READ_QUERY_SETTINGS: string = getQuerySettings({
  */
 const MAX_RAW_ROUTES_PER_SESSION: number = 2000;
 
-/*
- * The sessions of one person: those matching ANY of these. A link names one
- * of them; what someone typed may be any of the three, so it names each one
- * it could be.
- */
-export interface UserFlowPersonFilter {
-  identifiedUserKey?: string | undefined;
-  visitorId?: string | undefined;
-  sessionId?: string | undefined;
-}
+export type UserFlowJourneysScope =
+  | { kind: "user"; identifiedUserKey: string }
+  | { kind: "visitor"; visitorId: string }
+  | { kind: "session"; sessionId: string };
 
 export interface UserFlowJourneysRequest {
   projectId: ObjectID;
@@ -103,18 +88,14 @@ export interface UserFlowJourneysRequest {
   startTime: Date;
   endTime: Date;
   maxSessions?: number | undefined;
-  /* Absent reads everyone. */
-  person?: UserFlowPersonFilter | undefined;
+  /* Absent reads everyone in the window. */
+  scope?: UserFlowJourneysScope | undefined;
   /*
-   * Decided by the route against the identity permission, and enforced by
-   * not naming the column. Only read on a narrowed request.
+   * The label has a narrower ACL than the rest of the header, and this
+   * raw-SQL path never invokes ModelPermission, so the handler decides and
+   * the column is simply not named when it is not permitted.
    */
   includeIdentifiedUserLabel?: boolean | undefined;
-  /*
-   * Server "now" in unix ms for the hasRecordingEnded grace. Absent means
-   * Date.now(); a test seam, like the session list's.
-   */
-  nowUnixMs?: number | undefined;
 }
 
 interface HeaderRow {
@@ -124,8 +105,11 @@ interface HeaderRow {
   browserName: string;
   countryCode: string;
   entryUrl: string;
-  /* Only on a narrowed read. */
-  detail?: UserFlowSessionDetailDto | undefined;
+  /* Read on a narrowed read only, like everything below. */
+  identifiedUserKey?: string | undefined;
+  visitorId?: string | undefined;
+  identifiedUserLabel?: string | undefined;
+  hasRecording?: boolean | undefined;
 }
 
 interface ChunkRollupRow {
@@ -134,16 +118,6 @@ interface ChunkRollupRow {
   errorCount: number;
   frustrationCount: number;
   spanMs: number;
-  /* The last page of the whole journey, before any cap. */
-  exitUrl: string;
-  /* `pages` stopped before the journey did. */
-  isCut: boolean;
-}
-
-export interface UserFlowPersonFilterResult {
-  /* Undefined when the body names no person: the read is everyone's. */
-  person: UserFlowPersonFilter | undefined;
-  ignoredFilters: Array<string>;
 }
 
 function readString(row: JSONObject, key: string): string {
@@ -158,11 +132,10 @@ function readNumber(row: JSONObject, key: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-/* ClickHouse UInt8 booleans arrive as 0/1, sometimes as the strings "0"/"1". */
 function readBoolean(row: JSONObject, key: string): boolean {
   const value: unknown = row[key];
 
-  return value === true || value === 1 || value === "1";
+  return value === true || value === 1 || value === "1" || value === "true";
 }
 
 function readStringArray(row: JSONObject, key: string): Array<string> {
@@ -225,132 +198,23 @@ export function clampUserFlowMaxSessions(value: number | undefined): number {
   return Math.max(1, Math.min(Math.floor(value), USER_FLOW_MAX_SESSIONS));
 }
 
-function isPresent(value: unknown): boolean {
-  return value !== undefined && value !== null;
-}
-
-/* Whether the body names a person at all, so the route asks about identity. */
-export function hasUserFlowPersonFilter(filters: JSONObject): boolean {
-  return USER_FLOW_PERSON_FILTER_KEYS.some((key: string): boolean => {
-    return isPresent(filters[key]);
-  });
-}
-
-function readBoundedFilter(
-  filters: JSONObject,
-  key: string,
-  maxLength: number,
-): string {
-  const value: unknown = filters[key];
-  const text: string = typeof value === "string" ? value.trim() : "";
-
-  if (!text || text.length > maxLength) {
-    throw new BadDataException(
-      `${key} must be a non-empty string of at most ${maxLength} characters.`,
-    );
-  }
-
-  return text;
-}
-
 /*
- * The person a request's filters name, or none.
- *
- * Anything unusable is a 400, never a filter that quietly disappears: this
- * read without its filter is EVERYONE's journeys, and a question about one
- * person must never be answered with other people's activity.
- *
- * A reference is hashed only for a role that may read identity. Otherwise a
- * caller denied the label could still ask "does jane@example.com have
- * sessions here" and read the answer, which is the dictionary attack the
- * session list's gate closes. The digest and the visitor id need no gate:
- * neither names anyone, and the list hands both to every caller.
+ * The session list's own rule (getSessionReplayPlayability): a lost recording
+ * has nothing to play, and neither has a finalized session that stored no
+ * chunks. An unfinalized header's zero only means "not counted yet".
  */
-export function readUserFlowPersonFilter(data: {
-  filters: JSONObject;
-  projectId: ObjectID;
-  canReadIdentity: boolean;
-}): UserFlowPersonFilterResult {
-  const { filters, projectId, canReadIdentity } = data;
+function readHasRecording(row: JSONObject): boolean {
+  if (
+    readString(row, "flowSealedReason") ===
+    SessionReplaySealedReason.RecordingLost
+  ) {
+    return false;
+  }
 
-  const named: Array<string> = USER_FLOW_PERSON_FILTER_KEYS.filter(
-    (key: string): boolean => {
-      return isPresent(filters[key]);
-    },
+  return (
+    !readBoolean(row, "flowIsFinalized") ||
+    readNumber(row, "flowChunkCount") > 0
   );
-
-  if (named.length === 0) {
-    return { person: undefined, ignoredFilters: [] };
-  }
-
-  if (named.length > 1) {
-    throw new BadDataException(
-      `Send one of ${USER_FLOW_PERSON_FILTER_KEYS.join(", ")}, not ${named.join(" and ")}.`,
-    );
-  }
-
-  if (isPresent(filters["identifier"])) {
-    const identifier: string = readBoundedFilter(
-      filters,
-      "identifier",
-      SESSION_REPLAY_MAX_USER_REF_LENGTH,
-    );
-
-    return {
-      person: {
-        ...(canReadIdentity && {
-          identifiedUserKey: SessionReplayIdentity.buildUserKey({
-            projectId: projectId,
-            userRef: identifier,
-          }),
-        }),
-        ...(SessionIdentity.isVisitorId(identifier) && {
-          visitorId: identifier,
-        }),
-        ...(identifier.length <= SESSION_REPLAY_SESSION_ID_MAX_LENGTH && {
-          sessionId: identifier,
-        }),
-      },
-      ignoredFilters: canReadIdentity ? [] : [USER_FLOW_IGNORED_USER_REFERENCE],
-    };
-  }
-
-  if (isPresent(filters["visitorId"])) {
-    if (!SessionIdentity.isVisitorId(filters["visitorId"])) {
-      throw new BadDataException(
-        "visitorId must be a 32-character lowercase hex visitor id.",
-      );
-    }
-
-    return {
-      person: { visitorId: filters["visitorId"] },
-      ignoredFilters: [],
-    };
-  }
-
-  if (isPresent(filters["sessionId"])) {
-    return {
-      person: {
-        sessionId: readBoundedFilter(
-          filters,
-          "sessionId",
-          SESSION_REPLAY_SESSION_ID_MAX_LENGTH,
-        ),
-      },
-      ignoredFilters: [],
-    };
-  }
-
-  return {
-    person: {
-      identifiedUserKey: readBoundedFilter(
-        filters,
-        "identifiedUserKey",
-        SESSION_REPLAY_MAX_USER_REF_LENGTH,
-      ),
-    },
-    ignoredFilters: [],
-  };
 }
 
 export default class SessionReplayUserFlowReadService {
@@ -358,6 +222,9 @@ export default class SessionReplayUserFlowReadService {
    * WHERE for the header table: the sort-key prefix plus retention. Shared
    * by the header read, the chunk read's IN-subquery and the count so the
    * three can never disagree about which sessions are in the window.
+   *
+   * A session id never changes between header versions, so it is safe here,
+   * and it is the end of the sort key. A person is not: see appendScopeHaving.
    */
   private static appendHeaderWindow(
     statement: Statement,
@@ -381,76 +248,49 @@ export default class SessionReplayUserFlowReadService {
             type: TableColumnType.DateTime64,
             value: request.endTime,
           }}`);
+
+    if (request.scope?.kind === "session") {
+      statement.append(
+        SQL`
+          AND sessionId = ${{
+            type: TableColumnType.Text,
+            value: request.scope.sessionId,
+          }}`,
+      );
+    }
+
     statement.append(RETENTION_FILTER);
   }
 
   /*
-   * Whose sessions, after the GROUP BY and over the argMax'd values. Not a
-   * WHERE: that would run over raw rows, so a superseded header version would
-   * still match (a session re-identified as someone else stayed in the first
-   * person's journeys) and a provisional row, written before the recorder's
-   * first meta chunk, would decide what the group reports. Shared by all
-   * three statements so they can never disagree.
-   *
-   * A person with nothing left to match on matches nobody. It must never
-   * fall through to the everyone read.
+   * After GROUP BY sessionId: whose session it is, judged on the newest
+   * header version. Never a WHERE on the raw columns, which would match a
+   * superseded version, and miss a session whose provisional header was
+   * written before the recorder's first meta chunk carried the identity.
    */
-  private static appendPersonHaving(
+  private static appendScopeHaving(
     statement: Statement,
     request: UserFlowJourneysRequest,
   ): void {
-    if (!request.person) {
-      return;
-    }
-
-    const { identifiedUserKey, visitorId, sessionId } = request.person;
-    const clauses: Array<Statement> = [];
-
-    if (identifiedUserKey) {
-      clauses.push(
-        SQL`argMax(identifiedUserKey, version) = ${{
+    if (request.scope?.kind === "user") {
+      statement.append(
+        SQL`
+        HAVING argMax(identifiedUserKey, version) = ${{
           type: TableColumnType.Text,
-          value: identifiedUserKey,
+          value: request.scope.identifiedUserKey,
         }}`,
       );
     }
 
-    if (visitorId) {
-      clauses.push(
-        SQL`argMax(visitorId, version) = ${{
+    if (request.scope?.kind === "visitor") {
+      statement.append(
+        SQL`
+        HAVING argMax(visitorId, version) = ${{
           type: TableColumnType.Text,
-          value: visitorId,
+          value: request.scope.visitorId,
         }}`,
       );
     }
-
-    if (sessionId) {
-      clauses.push(
-        SQL`sessionId = ${{
-          type: TableColumnType.Text,
-          value: sessionId,
-        }}`,
-      );
-    }
-
-    if (clauses.length === 0) {
-      statement.append(`
-        HAVING 0`);
-      return;
-    }
-
-    statement.append(`
-        HAVING (`);
-
-    clauses.forEach((clause: Statement, index: number): void => {
-      if (index > 0) {
-        statement.append(" OR ");
-      }
-
-      statement.append(clause);
-    });
-
-    statement.append(")");
   }
 
   /*
@@ -469,7 +309,7 @@ export default class SessionReplayUserFlowReadService {
     SessionReplayUserFlowReadService.appendHeaderWindow(statement, request);
     statement.append(`
         GROUP BY sessionId`);
-    SessionReplayUserFlowReadService.appendPersonHaving(statement, request);
+    SessionReplayUserFlowReadService.appendScopeHaving(statement, request);
     statement.append(`
         ORDER BY flowNewestStart DESC, sessionId DESC`);
     statement.append(
@@ -500,21 +340,17 @@ export default class SessionReplayUserFlowReadService {
         argMax(countryCode, version) AS flowCountryCode,
         argMax(entryUrl, version) AS flowEntryUrl`;
 
-    if (request.person) {
+    if (request.scope) {
       statement.append(`,
-        argMax(identifiedUserKey, version) AS flowUserKey,
+        argMax(identifiedUserKey, version) AS flowIdentifiedUserKey,
         argMax(visitorId, version) AS flowVisitorId,
         argMax(isFinalized, version) AS flowIsFinalized,
-        argMax(sealedReason, version) AS flowSealedReason,
-        toFloat64(argMax(chunkCount, version)) AS flowChunkCount`);
+        argMax(chunkCount, version) AS flowChunkCount,
+        argMax(sealedReason, version) AS flowSealedReason`);
 
-      /*
-       * Enforced by not naming the column: there is no ModelPermission on
-       * this path to strip it after the fact.
-       */
       if (request.includeIdentifiedUserLabel) {
         statement.append(`,
-        argMax(identifiedUserLabel, version) AS flowUserLabel`);
+        argMax(identifiedUserLabel, version) AS flowIdentifiedUserLabel`);
       }
     }
 
@@ -522,7 +358,7 @@ export default class SessionReplayUserFlowReadService {
 
     statement.append(`
         GROUP BY sessionId`);
-    SessionReplayUserFlowReadService.appendPersonHaving(statement, request);
+    SessionReplayUserFlowReadService.appendScopeHaving(statement, request);
     statement.append(`
         ORDER BY flowStartUnixMs DESC, flowSessionId DESC`);
     statement.append(
@@ -540,24 +376,22 @@ export default class SessionReplayUserFlowReadService {
   public static buildCountStatement(
     request: UserFlowJourneysRequest,
   ): Statement {
-    /*
-     * uniqExact over raw rows cannot see a HAVING, so a person's count goes
-     * through the same groups the header read picks from.
-     */
-    if (request.person) {
-      const statement: Statement = SQL`
-      SELECT toFloat64(count()) AS flowSessionCount FROM (
+    if (request.scope) {
+      /* One row per session first: the narrowing is judged per session. */
+      const narrowed: Statement = SQL`
+      SELECT toFloat64(count()) AS flowSessionCount
+      FROM (
         SELECT sessionId`;
 
-      SessionReplayUserFlowReadService.appendHeaderWindow(statement, request);
-      statement.append(`
+      SessionReplayUserFlowReadService.appendHeaderWindow(narrowed, request);
+      narrowed.append(`
         GROUP BY sessionId`);
-      SessionReplayUserFlowReadService.appendPersonHaving(statement, request);
-      statement.append(`
+      SessionReplayUserFlowReadService.appendScopeHaving(narrowed, request);
+      narrowed.append(`
       )`);
-      statement.append(READ_QUERY_SETTINGS);
+      narrowed.append(READ_QUERY_SETTINGS);
 
-      return statement;
+      return narrowed;
     }
 
     const statement: Statement = SQL`
@@ -579,34 +413,25 @@ export default class SessionReplayUserFlowReadService {
      * chunk's route list closed by the page it was flushed from.
      * Middle: per session, chunks sorted by (start, tab, index) and their
      * route lists flattened; signal-bearing chunks kept with the page they
-     * were flushed from; totals and the recorded span. The exit is read
-     * here, before any cap can reach it.
-     * Outer: back-to-back repeats collapsed and the journey capped.
+     * were flushed from; totals and the recorded span.
+     * Outer: back-to-back repeats collapsed and the journey capped, one
+     * page over the cap, which is how toResponse knows the journey was cut.
      */
     const statement: Statement = SQL`
-      WITH arrayFilter(
-        (flowRoute, flowAt) -> flowAt = 1 OR flowRoute != flowRawRoutes[flowAt - 1],
-        flowRawRoutes,
-        arrayEnumerate(flowRawRoutes)
-      ) AS flowJourney
       SELECT
         flowSessionId,
         arraySlice(
-          flowJourney,
+          arrayFilter(
+            (flowRoute, flowAt) -> flowAt = 1 OR flowRoute != flowRawRoutes[flowAt - 1],
+            flowRawRoutes,
+            arrayEnumerate(flowRawRoutes)
+          ),
           1,
           ${{
             type: TableColumnType.Number,
-            value: USER_FLOW_MAX_PAGES_PER_JOURNEY,
+            value: USER_FLOW_MAX_PAGES_PER_JOURNEY + 1,
           }}
         ) AS flowPages,
-        flowExitRoute,
-        toUInt8(
-          flowRouteCount > length(flowRawRoutes)
-            OR length(flowJourney) > ${{
-              type: TableColumnType.Number,
-              value: USER_FLOW_MAX_PAGES_PER_JOURNEY,
-            }}
-        ) AS flowIsCut,
         flowSignals,
         flowErrorTotal,
         flowFrustrationTotal,
@@ -614,28 +439,25 @@ export default class SessionReplayUserFlowReadService {
       FROM (
         SELECT
           sessionId AS flowSessionId,
-          arrayFilter(
-            flowRoute -> flowRoute != '',
-            arrayFlatten(
-              arrayMap(
-                flowChunk -> flowChunk.4,
-                arraySort(
-                  flowChunk -> (flowChunk.1, flowChunk.2, flowChunk.3),
-                  groupArray((chunkStartTime, tabId, chunkIndex, flowChunkRoutes))
+          arraySlice(
+            arrayFilter(
+              flowRoute -> flowRoute != '',
+              arrayFlatten(
+                arrayMap(
+                  flowChunk -> flowChunk.4,
+                  arraySort(
+                    flowChunk -> (flowChunk.1, flowChunk.2, flowChunk.3),
+                    groupArray((chunkStartTime, tabId, chunkIndex, flowChunkRoutes))
+                  )
                 )
               )
-            )
-          ) AS flowAllRoutes,
-          arraySlice(
-            flowAllRoutes,
+            ),
             1,
             ${{
               type: TableColumnType.Number,
               value: MAX_RAW_ROUTES_PER_SESSION,
             }}
           ) AS flowRawRoutes,
-          length(flowAllRoutes) AS flowRouteCount,
-          flowAllRoutes[-1] AS flowExitRoute,
           groupArrayIf(
             (url, toFloat64(errorCount), toFloat64(rageClickCount + deadClickCount + errorClickCount + refreshRageCount)),
             url != '' AND (errorCount + rageClickCount + deadClickCount + errorClickCount + refreshRageCount) > 0
@@ -726,8 +548,6 @@ export default class SessionReplayUserFlowReadService {
       countResult.json<{ data?: Array<JSONObject> }>(),
     ]);
 
-    const isNarrowed: boolean = Boolean(request.person);
-
     const headers: Array<HeaderRow> = (headerJson.data || []).map(
       (row: JSONObject): HeaderRow => {
         return {
@@ -737,22 +557,15 @@ export default class SessionReplayUserFlowReadService {
           browserName: readString(row, "flowBrowserName"),
           countryCode: readString(row, "flowCountryCode"),
           entryUrl: readString(row, "flowEntryUrl"),
-          ...(isNarrowed && {
-            detail: SessionReplayUserFlowReadService.toSessionDetail(
-              row,
-              request,
-            ),
+          ...(request.scope && {
+            identifiedUserKey: readString(row, "flowIdentifiedUserKey"),
+            visitorId: readString(row, "flowVisitorId"),
+            identifiedUserLabel: readString(row, "flowIdentifiedUserLabel"),
+            hasRecording: readHasRecording(row),
           }),
         };
       },
     );
-
-    if (isNarrowed) {
-      await SessionReplayUserFlowReadService.markEndedRecordings(
-        headers,
-        request,
-      );
-    }
 
     const chunks: Map<string, ChunkRollupRow> = new Map<
       string,
@@ -766,8 +579,6 @@ export default class SessionReplayUserFlowReadService {
         errorCount: readNumber(row, "flowErrorTotal"),
         frustrationCount: readNumber(row, "flowFrustrationTotal"),
         spanMs: readNumber(row, "flowSpanMs"),
-        exitUrl: readString(row, "flowExitRoute"),
-        isCut: readBoolean(row, "flowIsCut"),
       });
     }
 
@@ -783,63 +594,6 @@ export default class SessionReplayUserFlowReadService {
       maxSessions: maxSessions,
       request: request,
     });
-  }
-
-  private static toSessionDetail(
-    row: JSONObject,
-    request: UserFlowJourneysRequest,
-  ): UserFlowSessionDetailDto {
-    return {
-      identifiedUserKey: readString(row, "flowUserKey"),
-      visitorId: readString(row, "flowVisitorId"),
-      ...(request.includeIdentifiedUserLabel && {
-        identifiedUserLabel: readString(row, "flowUserLabel"),
-      }),
-      isFinalized: readBoolean(row, "flowIsFinalized"),
-      hasRecordingEnded: false,
-      sealedReason: readString(row, "flowSealedReason"),
-      chunkCount: readNumber(row, "flowChunkCount"),
-    };
-  }
-
-  /*
-   * "Not finalized" is not "still recording": a closed tab must not read as
-   * live for the minutes the finalizer takes. The one rule the list and the
-   * player judge this by, for the sessions it can matter to. Bounded like
-   * the summaries' batch: a person with more sessions than that still
-   * unfinalized is a bot, and reading those few as live costs nothing.
-   */
-  private static async markEndedRecordings(
-    headers: Array<HeaderRow>,
-    request: UserFlowJourneysRequest,
-  ): Promise<void> {
-    const unfinalized: Array<HeaderRow> = headers.filter(
-      (header: HeaderRow): boolean => {
-        return header.detail ? !header.detail.isFinalized : false;
-      },
-    );
-
-    if (unfinalized.length === 0) {
-      return;
-    }
-
-    const endedSessionIds: Set<string> =
-      await SessionReplayReadService.readRecordingEndedSessionIds({
-        projectId: request.projectId,
-        rumApplicationId: request.rumApplicationId,
-        sessionIds: unfinalized
-          .slice(0, SESSION_REPLAY_SESSION_ID_BATCH_MAX)
-          .map((header: HeaderRow): string => {
-            return header.sessionId;
-          }),
-        nowUnixMs: request.nowUnixMs ?? Date.now(),
-      });
-
-    for (const header of unfinalized) {
-      if (header.detail) {
-        header.detail.hasRecordingEnded = endedSessionIds.has(header.sessionId);
-      }
-    }
   }
 
   /*
@@ -894,9 +648,11 @@ export default class SessionReplayUserFlowReadService {
       }
 
       /* The journey first, so the dictionary reads in visiting order. */
-      const pageIndexes: Array<number> = urls.map((url: string): number => {
-        return indexOf(url);
-      });
+      const pageIndexes: Array<number> = urls
+        .slice(0, USER_FLOW_MAX_PAGES_PER_JOURNEY)
+        .map((url: string): number => {
+          return indexOf(url);
+        });
 
       /* Several chunks flushed from one page fold into one entry. */
       const signalsByPage: Map<number, [number, number]> = new Map<
@@ -913,10 +669,6 @@ export default class SessionReplayUserFlowReadService {
           current[1] + frustration,
         ]);
       }
-
-      /* A cut journey still knows where it ended. */
-      const exitPage: number | undefined =
-        rollup?.isCut && rollup.exitUrl ? indexOf(rollup.exitUrl) : undefined;
 
       sessions.push({
         sessionId: header.sessionId,
@@ -937,8 +689,12 @@ export default class SessionReplayUserFlowReadService {
             return [index, errors, frustration];
           },
         ),
-        ...(exitPage === undefined ? {} : { exitPage: exitPage }),
-        ...(header.detail ? { detail: header.detail } : {}),
+        ...(urls.length > USER_FLOW_MAX_PAGES_PER_JOURNEY && {
+          isTruncated: true,
+        }),
+        ...(header.hasRecording !== undefined && {
+          hasRecording: header.hasRecording,
+        }),
       });
     }
 
@@ -950,7 +706,62 @@ export default class SessionReplayUserFlowReadService {
       maxSessions: data.maxSessions,
       startUnixMs: data.request.startTime.getTime(),
       endUnixMs: data.request.endTime.getTime(),
-      ignoredFilters: [],
+      scope: SessionReplayUserFlowReadService.toScope(
+        data.request,
+        data.headers,
+      ),
     };
+  }
+
+  /*
+   * What the read was narrowed to, and who that is. Headers are newest first,
+   * so the first one that says is the latest word on it: a session recorded
+   * before identify() has no label to give.
+   */
+  private static toScope(
+    request: UserFlowJourneysRequest,
+    headers: Array<HeaderRow>,
+  ): UserFlowScopeDto | null {
+    const scope: UserFlowJourneysScope | undefined = request.scope;
+
+    if (!scope) {
+      return null;
+    }
+
+    const label: { identifiedUserLabel?: string } =
+      request.includeIdentifiedUserLabel && scope.kind !== "visitor"
+        ? {
+            identifiedUserLabel:
+              headers.find((header: HeaderRow): boolean => {
+                return Boolean(header.identifiedUserLabel);
+              })?.identifiedUserLabel ?? "",
+          }
+        : {};
+
+    switch (scope.kind) {
+      case "user":
+        return {
+          kind: "user",
+          identifiedUserKey: scope.identifiedUserKey,
+          visitorId: "",
+          sessionId: "",
+          ...label,
+        };
+      case "visitor":
+        return {
+          kind: "visitor",
+          identifiedUserKey: "",
+          visitorId: scope.visitorId,
+          sessionId: "",
+        };
+      case "session":
+        return {
+          kind: "session",
+          identifiedUserKey: headers[0]?.identifiedUserKey ?? "",
+          visitorId: headers[0]?.visitorId ?? "",
+          sessionId: scope.sessionId,
+          ...label,
+        };
+    }
   }
 }

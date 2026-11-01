@@ -34,16 +34,17 @@ surviving a reload, the time range read from the URL into the request, the
 Top paths / Pages / Back and forth tables, an anchor nobody visited, the empty
 and error states, and a phone viewport where the map scrolls inside its card.
 
-`UserJourneys.spec.ts` covers one person's journeys over the `PEOPLE` table in
-`Fixture/Fixture.js`: finding someone by what you know, the landing page, order,
-repeat visits and exit page of each session, a session still recording and one
-with no footage, device and session filters, switching between the journeys, the
-person's flow map and everyone's, a browser or a session as a link, a role that
-may not read identity, the way in from Replay Users, and a phone. It also holds
-the one rule that must not slip: what someone typed never reaches the address.
+Narrowing to one person or one session has its own block: picking from the
+filter, a typed reference and a pasted session id, what reaches the server and
+what reaches the URL (a reference never does), the page-by-page journeys
+(landing, exit, returns, problems, the link to the recording), the time range,
+device and session filters over them, going back to everyone, widening from a
+session to its owner, a role that sees _Hidden_, the empty and refused states,
+an answer the server did not narrow, a journey cut short, the keyboard, View
+journey on the Users page and a phone viewport.
 
 `?fixture=empty` answers with no sessions, `?fixture=error` with a 500 and
-`?fixture=no-identity` as a role that may not read end-user identity.
+`?fixture=unfiltered` ignores a filter, as a server older than the page does.
 
 Screenshots are written to `output/playwright/user-flows-ui/`. They are
 production UI screenshots with synthetic data. Failure traces are under its

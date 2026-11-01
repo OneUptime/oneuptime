@@ -129,7 +129,7 @@ U kunt bij zoveel projecten horen als u wilt. De projectkiezer linksboven in het
 
 ## Taal en thema
 
-Beide worden in uw browser opgeslagen, niet in uw account, dus stel ze opnieuw in op een andere browser of een ander apparaat.
+Beide worden in uw browser opgeslagen, niet in uw account, dus stel ze opnieuw in op een andere browser of een ander apparaat. Ze blijven bewaard als u uitlogt, dus op een gedeelde computer begint de volgende persoon met uw instellingen.
 
 - **Taal**: het dashboard start in de taal van uw browser. Om die te wijzigen, gebruikt u het taalmenu onderaan elke pagina. Deze documentatie heeft bovenaan een eigen taalmenu.
 - **Thema**: kies **Licht**, **Donker** of **Systeem** in het gebruikersmenu. **Systeem** is licht of donker zoals uw apparaat is ingesteld, en verandert mee; elke browser start ermee. De aanmeldpagina's gebruiken hetzelfde thema.

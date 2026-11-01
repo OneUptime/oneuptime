@@ -1,17 +1,16 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   UserFlowJourneysResponseDto,
-  UserFlowSessionDetailDto,
   UserFlowSessionDto,
 } from "../../../Types/Rum/UserFlow";
 import {
   analyzeUserFlow,
   buildUserFlowGraph,
   buildUserFlowJourneys,
+  buildUserFlowJourneySteps,
   buildUserFlowLoops,
   buildUserFlowPageStats,
   buildUserFlowPaths,
-  buildUserFlowSessionJourneys,
   isDynamicPathSegment,
   normalizeUserFlowOptions,
   OTHER_PAGES_KEY,
@@ -27,11 +26,11 @@ import {
   UserFlowGraph,
   UserFlowInsight,
   UserFlowJourney,
+  UserFlowJourneyStep,
+  UserFlowJourneySteps,
   UserFlowLink,
   UserFlowNode,
   UserFlowPageStats,
-  UserFlowSessionJourney,
-  UserFlowVisit,
 } from "../../../Utils/Rum/UserFlow";
 
 /*
@@ -51,9 +50,6 @@ interface SessionSpec {
   deviceType?: string;
   /* [path, errors, frustration] */
   signals?: Array<[string, number, number]>;
-  /* The page a cut journey really ended on. */
-  exit?: string;
-  detail?: UserFlowSessionDetailDto;
 }
 
 /* Builds a response the way the endpoint does: one dictionary for every page. */
@@ -92,8 +88,6 @@ function response(specs: Array<SessionSpec>): UserFlowJourneysResponseDto {
             return [indexOf(path), errors, frustration];
           },
         ),
-        ...(spec.exit ? { exitPage: indexOf(spec.exit) } : {}),
-        ...(spec.detail ? { detail: spec.detail } : {}),
       };
     },
   );
@@ -106,7 +100,7 @@ function response(specs: Array<SessionSpec>): UserFlowJourneysResponseDto {
     maxSessions: 5000,
     startUnixMs: 0,
     endUnixMs: 1,
-    ignoredFilters: [],
+    scope: null,
   };
 }
 
@@ -1049,326 +1043,227 @@ describe("options", () => {
   });
 });
 
-describe("buildUserFlowSessionJourneys", () => {
-  const NO_FILTERS: {
-    sessionFilter: "all";
-    deviceType: string;
-  } = { sessionFilter: "all", deviceType: "" };
+describe("one session's journey, page by page", () => {
+  const stepsOf: (spec: SessionSpec) => UserFlowJourneySteps = (
+    spec: SessionSpec,
+  ): UserFlowJourneySteps => {
+    return buildUserFlowJourneySteps(journeysOf([spec])[0] as UserFlowJourney);
+  };
 
-  function journey(spec: SessionSpec): UserFlowSessionJourney {
-    return buildUserFlowSessionJourneys(
-      response([spec]),
-      NO_FILTERS,
-    )[0] as UserFlowSessionJourney;
-  }
-
-  function pagesOf(sessionJourney: UserFlowSessionJourney): Array<string> {
-    return sessionJourney.visits.map((visit: UserFlowVisit): string => {
-      return visit.page;
+  const pagesOf: (steps: UserFlowJourneySteps) => Array<string> = (
+    steps: UserFlowJourneySteps,
+  ): Array<string> => {
+    return steps.steps.map((step: UserFlowJourneyStep): string => {
+      return step.page;
     });
-  }
+  };
 
-  function visitAt(
-    sessionJourney: UserFlowSessionJourney,
-    index: number,
-  ): UserFlowVisit {
-    return sessionJourney.visits[index] as UserFlowVisit;
-  }
-
-  test("reads a session page by page, from its landing page to its exit", () => {
-    const result: UserFlowSessionJourney = journey({
-      id: "s",
-      pages: ["/pricing", "/cart", "/checkout"],
-    });
-
-    expect(pagesOf(result)).toEqual(["/pricing", "/cart", "/checkout"]);
+  test("the steps are the pages in the order they were lived", () => {
     expect(
-      result.visits.map((visit: UserFlowVisit): [boolean, boolean] => {
-        return [visit.isLanding, visit.isExit];
+      pagesOf(stepsOf({ id: "s", pages: ["/", "/cart", "/checkout"] })),
+    ).toEqual(["/", "/cart", "/checkout"]);
+  });
+
+  test("it marks where the session landed and where it left", () => {
+    const { steps }: UserFlowJourneySteps = stepsOf({
+      id: "s",
+      pages: ["/", "/cart", "/checkout"],
+    });
+
+    expect(
+      steps.map((step: UserFlowJourneyStep): [boolean, boolean] => {
+        return [step.isLanding, step.isExit];
       }),
     ).toEqual([
       [true, false],
       [false, false],
       [false, true],
     ]);
-    expect(result.repeatVisits).toBe(0);
-    expect(result.isCut).toBe(false);
   });
 
-  test("a session that saw one page lands and leaves on it", () => {
-    const result: UserFlowSessionJourney = journey({
-      id: "s",
-      pages: ["/pricing"],
-    });
+  test("a page seen alone is both the landing and the exit", () => {
+    const { steps }: UserFlowJourneySteps = stepsOf({ id: "s", pages: ["/"] });
 
-    expect(result.visits).toHaveLength(1);
-    expect(visitAt(result, 0).isLanding).toBe(true);
-    expect(visitAt(result, 0).isExit).toBe(true);
+    expect(steps).toHaveLength(1);
+    expect(steps[0]?.isLanding).toBe(true);
+    expect(steps[0]?.isExit).toBe(true);
   });
 
-  test("numbers each visit to a page, and counts the returns", () => {
-    const result: UserFlowSessionJourney = journey({
+  test("each return to a page counts, and says which visit it is", () => {
+    const journey: UserFlowJourneySteps = stepsOf({
       id: "s",
-      pages: ["/cart", "/checkout", "/cart", "/help", "/cart"],
+      pages: ["/list", "/item", "/list", "/other", "/list", "/item"],
     });
 
     expect(
-      result.visits.map((visit: UserFlowVisit): string => {
-        return `${visit.page} ${visit.visit}/${visit.visitsInSession}`;
+      journey.steps.map((step: UserFlowJourneyStep): number => {
+        return step.visit;
       }),
-    ).toEqual([
-      "/cart 1/3",
-      "/checkout 1/1",
-      "/cart 2/3",
-      "/help 1/1",
-      "/cart 3/3",
-    ]);
-    expect(result.repeatVisits).toBe(2);
+    ).toEqual([1, 1, 2, 1, 3, 2]);
+    expect(journey.revisits).toBe(3);
   });
 
-  /*
-   * One person, not a crowd: grouping would fold /orders/1 -> /orders/2 into
-   * one visit and hide a navigation, which the map may do and a journey may
-   * not.
-   */
-  test("keeps ids as they were: two orders are two pages", () => {
-    const result: UserFlowSessionJourney = journey({
+  test("a journey that never went back has no returns", () => {
+    expect(stepsOf({ id: "s", pages: ["/", "/a", "/b"] }).revisits).toBe(0);
+  });
+
+  test("a reload is not a return: back-to-back repeats are already collapsed", () => {
+    const journey: UserFlowJourneySteps = stepsOf({
       id: "s",
-      pages: ["/orders/1042", "/orders/1043"],
+      pages: ["/cart", "/cart", "/checkout"],
     });
 
-    expect(pagesOf(result)).toEqual(["/orders/1042", "/orders/1043"]);
-    expect(result.repeatVisits).toBe(0);
+    expect(pagesOf(journey)).toEqual(["/cart", "/checkout"]);
+    expect(journey.revisits).toBe(0);
   });
 
-  test("two spellings of one page, back to back, are one visit", () => {
-    expect(
-      pagesOf(
-        journey({
-          id: "s",
-          pages: ["/cart", "/cart/", "/cart?step=2", "/checkout"],
-        }),
-      ),
-    ).toEqual(["/cart", "/checkout"]);
-  });
-
-  test("the visit keeps the stored URL behind its page key", () => {
-    expect(journey({ id: "s", pages: ["/cart"] }).visits[0]?.url).toBe(
-      `${ORIGIN}/cart`,
-    );
-  });
-
-  test("an application on several hosts keeps the host on the page", () => {
-    expect(
-      pagesOf(
-        journey({
-          id: "s",
-          pages: ["https://shop.example.com/a", "https://app.example.com/a"],
-        }),
-      ),
-    ).toEqual(["shop.example.com/a", "app.example.com/a"]);
-  });
-
-  test("a page's problems are told on the page, on every visit, never as the visit's", () => {
-    const result: UserFlowSessionJourney = journey({
+  test("a problem is marked on every visit to its page, since it is per page", () => {
+    const { steps }: UserFlowJourneySteps = stepsOf({
       id: "s",
-      pages: ["/cart", "/checkout", "/cart"],
+      pages: ["/", "/pay", "/", "/pay"],
       errorCount: 2,
       frustrationCount: 1,
       signals: [
-        ["/cart", 2, 0],
-        ["/checkout", 0, 1],
+        ["/pay", 2, 0],
+        ["/", 0, 1],
       ],
     });
 
     expect(
-      result.visits.map((visit: UserFlowVisit): [number, number] => {
-        return [visit.errorCount, visit.frustrationCount];
+      steps.map((step: UserFlowJourneyStep): [boolean, boolean] => {
+        return [step.hadError, step.hadFrustration];
       }),
     ).toEqual([
-      [2, 0],
-      [0, 1],
-      [2, 0],
+      [false, true],
+      [true, false],
+      [false, true],
+      [true, false],
     ]);
-  });
-
-  test("signals from two spellings of a page add up", () => {
-    const result: UserFlowSessionJourney = journey({
-      id: "s",
-      pages: ["/cart"],
-      signals: [
-        ["/cart", 1, 0],
-        ["/cart/", 2, 3],
-      ],
-    });
-
-    expect(visitAt(result, 0).errorCount).toBe(3);
-    expect(visitAt(result, 0).frustrationCount).toBe(3);
-  });
-
-  describe("a journey past the cap", () => {
-    test("ends where the session really ended, marked as cut", () => {
-      const result: UserFlowSessionJourney = journey({
-        id: "s",
-        pages: ["/1", "/2", "/3"],
-        exit: "/last",
-      });
-
-      expect(pagesOf(result)).toEqual(["/1", "/2", "/3", "/last"]);
-      expect(result.isCut).toBe(true);
-      expect(visitAt(result, 2).isExit).toBe(false);
-      expect(visitAt(result, 3).isExit).toBe(true);
-    });
-
-    /*
-     * Pages are missing between the two, so it is a visit of its own even
-     * on the same page: folding it would claim the session never left.
-     */
-    test("an exit on the last page shown is still a visit of its own", () => {
-      const result: UserFlowSessionJourney = journey({
-        id: "s",
-        pages: ["/1", "/2"],
-        exit: "/2",
-      });
-
-      expect(pagesOf(result)).toEqual(["/1", "/2", "/2"]);
-      expect(result.repeatVisits).toBe(1);
-    });
-  });
-
-  describe("filters", () => {
-    const SESSIONS: Array<SessionSpec> = [
-      { id: "phone", pages: ["/a"], deviceType: "mobile", errorCount: 1 },
-      { id: "laptop", pages: ["/b"], deviceType: "desktop" },
-      {
-        id: "rage",
-        pages: ["/c"],
-        deviceType: "desktop",
-        frustrationCount: 2,
-      },
-    ];
-
-    function idsFor(
-      options: Parameters<typeof buildUserFlowSessionJourneys>[1],
-    ): Array<string> {
-      return buildUserFlowSessionJourneys(response(SESSIONS), options).map(
-        (sessionJourney: UserFlowSessionJourney): string => {
-          return sessionJourney.sessionId;
-        },
-      );
-    }
-
-    test("keeps the response's order: newest first", () => {
-      expect(idsFor(NO_FILTERS)).toEqual(["phone", "laptop", "rage"]);
-    });
-
-    test("by device", () => {
-      expect(idsFor({ ...NO_FILTERS, deviceType: "mobile" })).toEqual([
-        "phone",
-      ]);
-    });
-
-    test("by what went wrong", () => {
-      expect(idsFor({ ...NO_FILTERS, sessionFilter: "errors" })).toEqual([
-        "phone",
-      ]);
-      expect(idsFor({ ...NO_FILTERS, sessionFilter: "frustration" })).toEqual([
-        "rage",
-      ]);
-    });
-
-    test("both together, and nothing left is an empty list", () => {
-      expect(
-        idsFor({ sessionFilter: "frustration", deviceType: "mobile" }),
-      ).toEqual([]);
-    });
-  });
-
-  test("a session with no page to show is left out", () => {
-    expect(
-      buildUserFlowSessionJourneys(
-        response([{ id: "s", pages: [] }]),
-        NO_FILTERS,
-      ),
-    ).toEqual([]);
-  });
-
-  test("an index outside the dictionary is skipped, not rendered as undefined", () => {
-    const input: UserFlowJourneysResponseDto = response([
-      { id: "s", pages: ["/a"] },
-    ]);
-
-    (input.sessions[0] as UserFlowSessionDto).pages.push(99);
-    (input.sessions[0] as UserFlowSessionDto).pageSignals.push([99, 1, 1]);
-
-    expect(
-      pagesOf(
-        buildUserFlowSessionJourneys(
-          input,
-          NO_FILTERS,
-        )[0] as UserFlowSessionJourney,
-      ),
-    ).toEqual(["/a"]);
-  });
-
-  test("carries a session's facts and detail through", () => {
-    const detail: UserFlowSessionDetailDto = {
-      identifiedUserKey: "k",
-      visitorId: "v",
-      isFinalized: false,
-      hasRecordingEnded: true,
-      sealedReason: "",
-      chunkCount: 0,
-    };
-    const result: UserFlowSessionJourney = journey({
-      id: "s",
-      pages: ["/a"],
-      durationMs: 90_000,
-      deviceType: "tablet",
-      errorCount: 4,
-      detail: detail,
-    });
-
-    expect(result).toMatchObject({
-      sessionId: "s",
-      durationMs: 90_000,
-      deviceType: "tablet",
-      browserName: "Chrome",
-      countryCode: "DK",
-      errorCount: 4,
-      detail: detail,
-    });
-  });
-
-  test("everyone's read has no detail to carry", () => {
-    expect(journey({ id: "s", pages: ["/a"] })).not.toHaveProperty("detail");
   });
 
   /*
-   * What a map takes away - a hidden login page, grouped ids - must not take
-   * anything from a journey: its landing page would be wrong.
+   * The read cuts a journey at USER_FLOW_MAX_PAGES_PER_JOURNEY, and the last
+   * page sent is then just the last page sent. Calling it the exit is the
+   * one wrong claim the issue's "exit page" could make here.
    */
-  test("the same input reads the same whatever the map's controls say", () => {
-    const input: UserFlowJourneysResponseDto = response([
-      { id: "s", pages: ["/login", "/orders/1", "/orders/2"] },
+  test("a journey cut short names no exit", () => {
+    const dto: UserFlowJourneysResponseDto = response([
+      { id: "s", pages: ["/", "/a", "/b"] },
     ]);
 
-    const before: Array<UserFlowSessionJourney> = buildUserFlowSessionJourneys(
-      input,
-      NO_FILTERS,
+    (dto.sessions[0] as UserFlowSessionDto).isTruncated = true;
+
+    const journey: UserFlowJourney = analyzeUserFlow(dto).journeys[0]!;
+    const { steps }: UserFlowJourneySteps = buildUserFlowJourneySteps(journey);
+
+    expect(journey.isTruncated).toBe(true);
+    expect(steps[0]?.isLanding).toBe(true);
+    expect(
+      steps.some((step: UserFlowJourneyStep): boolean => {
+        return step.isExit;
+      }),
+    ).toBe(false);
+  });
+
+  test("hiding a page takes it out of the journey, as it does everywhere", () => {
+    const { steps, revisits }: UserFlowJourneySteps = buildUserFlowJourneySteps(
+      analyzeUserFlow(
+        response([{ id: "s", pages: ["/cart", "/login", "/cart", "/pay"] }]),
+        { hiddenPages: ["/login"] },
+      ).journeys[0]!,
     );
 
-    analyzeUserFlow(input, {
-      hiddenPages: ["/login"],
-      groupDynamicSegments: true,
-      steps: 2,
-    });
+    expect(
+      steps.map((step: UserFlowJourneyStep): string => {
+        return step.page;
+      }),
+    ).toEqual(["/cart", "/pay"]);
+    expect(revisits).toBe(0);
+  });
 
-    expect(buildUserFlowSessionJourneys(input, NO_FILTERS)).toEqual(before);
-    expect(pagesOf(before[0] as UserFlowSessionJourney)).toEqual([
-      "/login",
-      "/orders/1",
-      "/orders/2",
+  test("ids can be read apart: grouping off keeps each record a page", () => {
+    const pages: Array<string> = [
+      "/orders/1042",
+      "/orders/1043",
+      "/orders/1042",
+    ];
+    const dto: UserFlowJourneysResponseDto = response([
+      { id: "s", pages: pages },
     ]);
+
+    expect(
+      pagesOf(
+        buildUserFlowJourneySteps(
+          analyzeUserFlow(dto, { groupDynamicSegments: true }).journeys[0]!,
+        ),
+      ),
+    ).toEqual(["/orders/:id"]);
+
+    const ungrouped: UserFlowJourneySteps = buildUserFlowJourneySteps(
+      analyzeUserFlow(dto, { groupDynamicSegments: false }).journeys[0]!,
+    );
+
+    expect(pagesOf(ungrouped)).toEqual(pages);
+    expect(ungrouped.revisits).toBe(1);
+  });
+});
+
+describe("the journeys of an analysis", () => {
+  const dto: UserFlowJourneysResponseDto = response([
+    { id: "new", pages: ["/", "/a"], deviceType: "mobile", errorCount: 2 },
+    { id: "old", pages: ["/b"], deviceType: "desktop", frustrationCount: 3 },
+  ]);
+
+  test("come in the read's order, newest first", () => {
+    expect(
+      analyzeUserFlow(dto).journeys.map((journey: UserFlowJourney): string => {
+        return journey.sessionId;
+      }),
+    ).toEqual(["new", "old"]);
+  });
+
+  test("keep to the Device and Sessions controls, which re-fold them", () => {
+    expect(
+      analyzeUserFlow(dto, { deviceType: "desktop" }).journeys.map(
+        (journey: UserFlowJourney): string => {
+          return journey.sessionId;
+        },
+      ),
+    ).toEqual(["old"]);
+    expect(
+      analyzeUserFlow(dto, { sessionFilter: "errors" }).journeys.map(
+        (journey: UserFlowJourney): string => {
+          return journey.sessionId;
+        },
+      ),
+    ).toEqual(["new"]);
+    expect(analyzeUserFlow(dto, { deviceType: "tablet" }).journeys).toEqual([]);
+  });
+
+  test("carry the session's facts for its line", () => {
+    const journey: UserFlowJourney = analyzeUserFlow(dto).journeys[0]!;
+
+    expect(journey.errorCount).toBe(2);
+    expect(journey.frustrationCount).toBe(0);
+    expect(journey.isTruncated).toBe(false);
+  });
+
+  test("a recording flag is carried as the read said it: unknown stays unknown", () => {
+    const flagged: UserFlowJourneysResponseDto = response([
+      { id: "a", pages: ["/"] },
+      { id: "b", pages: ["/"] },
+      { id: "c", pages: ["/"] },
+    ]);
+
+    (flagged.sessions[0] as UserFlowSessionDto).hasRecording = true;
+    (flagged.sessions[1] as UserFlowSessionDto).hasRecording = false;
+
+    expect(
+      analyzeUserFlow(flagged).journeys.map(
+        (journey: UserFlowJourney): boolean | undefined => {
+          return journey.hasRecording;
+        },
+      ),
+    ).toEqual([true, false, undefined]);
   });
 });

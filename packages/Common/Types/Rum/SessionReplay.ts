@@ -336,6 +336,9 @@ export const SESSION_REPLAY_MAX_USER_REF_LENGTH: number = 512;
 export const SESSION_REPLAY_VISITOR_ID_PATTERN: RegExp = /^[0-9a-f]{32}$/;
 export const SESSION_REPLAY_MAX_VISITOR_ID_LENGTH: number = 32;
 
+/* What SessionReplayIdentity.buildUserKey yields: a hex SHA-256 HMAC. */
+export const SESSION_REPLAY_USER_KEY_PATTERN: RegExp = /^[0-9a-f]{64}$/;
+
 /*
  * Retention values a session may be clamped to. Under expiry-based
  * partitioning each distinct value creates its own partition per ingest

@@ -17,11 +17,11 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import TimeRange from "../../../Types/Time/TimeRange";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
-import TimeRange from "../../../Types/Time/TimeRange";
 import Navigation from "../../../UI/Utils/Navigation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -741,7 +741,7 @@ describe("SessionReplayTable rendering", () => {
     expect(screen.queryByTestId("session-row-watch")).toBeNull();
     /*
      * Both rows have errors, but no footage to jump into: no first-error
-     * action. Their ⋯ holds Show ID alone.
+     * action. Their ⋯ holds the rest.
      */
     for (const more of screen.getAllByTestId("row-actions-more-button")) {
       fireEvent.click(more);
@@ -1621,7 +1621,7 @@ describe("SessionReplayTable row actions", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("a watchable row without an error shows Watch, and no first-error jump in its ⋯", async () => {
+  it("a watchable row without an error shows Watch, and its ⋯ holds View journey and Show ID", async () => {
     mockApi(() => {
       return listResponse([
         wireRow({ errorCount: 0, hasError: 0, firstErrorOffsetMs: 0 }),
@@ -1641,11 +1641,7 @@ describe("SessionReplayTable row actions", () => {
     ]);
   });
 
-  /*
-   * No footage, but the pages it visited are stored apart from it: reading
-   * the journey is the one way left to see what happened.
-   */
-  it("an unplayable row with errors shows Signals only, and still offers its journey", async () => {
+  it("an unplayable row with errors shows Signals only, and its ⋯ holds View journey and Show ID", async () => {
     mockApi(() => {
       return listResponse([wireRow({ sealedReason: "recording-lost" })]);
     });
@@ -1663,9 +1659,13 @@ describe("SessionReplayTable row actions", () => {
     ]);
   });
 
-  it("View journey opens THAT row's session on User Flows, on the list's window", async () => {
+  /* A session's pages in order: the row's own route list is sorted. */
+  it("View journey opens THAT session on User Flows, from a row that cannot be watched too", async () => {
     mockApi(() => {
-      return listResponse([wireRow(), wireRow({ sessionId: SESSION_B })]);
+      return listResponse([
+        wireRow(),
+        wireRow({ sessionId: SESSION_B, sealedReason: "recording-lost" }),
+      ]);
     });
 
     renderTable();
@@ -1680,13 +1680,15 @@ describe("SessionReplayTable row actions", () => {
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
 
-    const [path, query] = navigatedTo(0).split("?") as [string, string];
-    const search: URLSearchParams = new URLSearchParams(query);
+    const url: URL = new URL(
+      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
+      "https://oneuptime.example.com",
+    );
 
-    expect(path).toContain("/user-flows");
-    expect(search.get("sessionId")).toBe(SESSION_B);
-    /* The list's day is written out: User Flows reads no range as a week. */
-    expect(search.get("range")).toBe(TimeRange.PAST_ONE_DAY);
+    expect(url.pathname).toContain("/user-flows");
+    expect(url.searchParams.get("sessionId")).toBe(SESSION_B);
+    /* The list's window is a day, which this page must not read as a week. */
+    expect(url.searchParams.get("range")).toBe(TimeRange.PAST_ONE_DAY);
   });
 
   /*

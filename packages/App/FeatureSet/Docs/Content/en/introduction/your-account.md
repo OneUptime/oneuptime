@@ -129,7 +129,7 @@ You can belong to any number of projects. The project picker at the top left of 
 
 ## Language and theme
 
-Both are saved in your browser, not in your account, so set them again on another browser or device.
+Both are saved in your browser, not in your account, so set them again on another browser or device. Logging out keeps them, so on a shared computer the next person starts with yours.
 
 - **Language**: the dashboard starts in your browser's language. To change it, use the language menu at the bottom of any page. These docs have a language menu of their own, at the top.
 - **Theme**: choose **Light**, **Dark** or **System** in the user menu. **System** is light or dark as your device is set, and changes with it; every browser starts with it. The sign-in pages use the same theme.

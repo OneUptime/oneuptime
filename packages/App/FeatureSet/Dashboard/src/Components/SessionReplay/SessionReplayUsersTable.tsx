@@ -56,8 +56,8 @@ import {
 } from "./SessionReplayUserIdentity";
 import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
 import { RUM_REPLAY_USERS_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
-import { UserFlowPerson } from "../UserFlow/UserFlowPerson";
-import { buildUserFlowPersonSearch } from "../UserFlow/UserFlowUrlState";
+import { getUserFlowScopeOfRollup } from "../UserFlow/UserFlowScope";
+import { buildUserFlowScopeRoute } from "../UserFlow/UserFlowScopeRoute";
 
 /*
  * The Users page's table: the same window of sessions the flat list shows, rolled
@@ -74,9 +74,9 @@ import { buildUserFlowPersonSearch } from "../UserFlow/UserFlowUrlState";
  *
  * Every row answers "who had trouble, and where do I click to see it":
  * the whole row (or its Sessions action) hands the person's identity
- * filter to the page, which opens the session list on it, and Watch
- * latest - in the row's ⋯ menu - opens their newest recording without a
- * second request.
+ * filter to the page, which opens the session list on it, and the row's ⋯
+ * menu holds Watch latest, their newest recording without a second request,
+ * and View journey, their sessions page by page on the User Flows page.
  */
 
 export const SESSION_REPLAY_USERS_PAGE_SIZE: number = 50;
@@ -107,12 +107,13 @@ interface SessionReplayUsersTableRow extends SessionReplayUserRollup {
    * itself (see getUserRollupCells).
    */
   watchLatestMenuRoute: Route | null;
-  /* This person's journeys; null for a row that names nobody. */
+  /* This person on the User Flows page; null for the unlinked bucket. */
   journeyRoute: Route | null;
 }
 
 interface UserRowContext {
   rumApplicationId: string;
+  timeRange: RangeStartAndEndDateTime;
   nowUnixMs: number;
   onViewUserSessions: (handoff: SessionReplayUserSessionsHandoff) => void;
 }
@@ -180,57 +181,12 @@ export function getWatchLatestMenuRoute(
 }
 
 /*
- * What the row's person is to the User Flows page: their digest or their
- * browser, the two things that name nobody. A label is never handed over
- * here; the page asks the server who the digest is, so the link reads the
- * same pasted into a ticket as it does clicked.
- */
-export function getUserFlowPersonOfRow(
-  row: SessionReplayUserRollup,
-): UserFlowPerson | null {
-  if (row.kind === "identified" && row.identifiedUserKey) {
-    return { kind: "user", identifiedUserKey: row.identifiedUserKey };
-  }
-
-  return row.kind === "visitor" && row.visitorId
-    ? { kind: "visitor", visitorId: row.visitorId }
-    : null;
-}
-
-/* Their journeys, on the window the table counted them in. */
-export function getJourneyRoute(
-  row: SessionReplayUserRollup,
-  rumApplicationId: string,
-  timeRange: RangeStartAndEndDateTime,
-): Route | null {
-  const person: UserFlowPerson | null = getUserFlowPersonOfRow(row);
-
-  if (!person) {
-    return null;
-  }
-
-  try {
-    const route: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS] as Route,
-      { modelId: new ObjectID(rumApplicationId) },
-    );
-
-    return new Route(
-      `${route.toString()}${buildUserFlowPersonSearch(person, timeRange)}`,
-    );
-  } catch {
-    return null;
-  }
-}
-
-/*
- * The row's ⋯ menu: Watch latest, whenever Sessions holds the row's button,
- * and View journey for a row that names someone. Sessions itself stays the
- * Actions cell's own button rather than an entry here, because its title
- * names the person on that row and a row action's tooltip is one string for
- * the whole table. The split never sees it, so these are pinned to the menu -
- * left to the split, the first it knows of would become a second button
- * beside Sessions.
+ * The row's ⋯ menu: Watch latest and View journey, whenever Sessions holds
+ * the row's button. Sessions itself stays the Actions cell's own button rather
+ * than an entry here, because its title names the person on that row and a row
+ * action's tooltip is one string for the whole table. The split never sees it,
+ * so both are pinned to the menu - left to the split, they would become
+ * buttons beside Sessions.
  */
 const SESSION_REPLAY_USER_ROW_ACTIONS: Array<
   ActionButtonSchema<SessionReplayUsersTableRow>
@@ -260,7 +216,7 @@ const SESSION_REPLAY_USER_ROW_ACTIONS: Array<
     icon: IconProp.Share,
     buttonStyleType: ButtonStyleType.OUTLINE,
     placement: ActionButtonPlacement.MoreMenu,
-    tooltip: "See the pages this person visited, session by session",
+    tooltip: "See this person's sessions page by page, on User Flows",
     isVisible: (row: SessionReplayUsersTableRow): boolean => {
       return Boolean(row.journeyRoute);
     },
@@ -736,10 +692,16 @@ const SessionReplayUsersTable: FunctionComponent<
   const context: UserRowContext = useMemo((): UserRowContext => {
     return {
       rumApplicationId: props.rumApplicationId,
+      timeRange: props.timeRange,
       nowUnixMs: nowUnixMs,
       onViewUserSessions: props.onViewUserSessions,
     };
-  }, [props.rumApplicationId, nowUnixMs, props.onViewUserSessions]);
+  }, [
+    props.rumApplicationId,
+    props.timeRange,
+    nowUnixMs,
+    props.onViewUserSessions,
+  ]);
 
   const tableRows: Array<SessionReplayUsersTableRow> =
     useMemo((): Array<SessionReplayUsersTableRow> => {
@@ -752,15 +714,15 @@ const SessionReplayUsersTable: FunctionComponent<
               row,
               context.rumApplicationId,
             ),
-            journeyRoute: getJourneyRoute(
-              row,
-              context.rumApplicationId,
-              props.timeRange,
-            ),
+            journeyRoute: buildUserFlowScopeRoute({
+              rumApplicationId: context.rumApplicationId,
+              scope: getUserFlowScopeOfRollup(row),
+              timeRange: context.timeRange,
+            }),
           };
         },
       );
-    }, [rows, context, props.timeRange]);
+    }, [rows, context]);
 
   if (error) {
     return (

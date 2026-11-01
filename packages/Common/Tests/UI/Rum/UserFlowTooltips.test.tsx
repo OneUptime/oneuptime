@@ -122,6 +122,7 @@ function response(specs: Array<SessionSpec>): UserFlowJourneysResponseDto {
     maxSessions: 5000,
     startUnixMs: 1_799_990_000_000,
     endUnixMs: 1_800_000_000_000,
+    scope: null,
   };
 }
 
@@ -616,7 +617,8 @@ describe("User Flows Back and forth", () => {
     // s2 went /home -> /cart -> /home: one session of five.
     const [row] = screen.getAllByTestId("user-flow-loop-row");
 
-    expect(row).toHaveTextContent("1 sessions");
+    expect(row).toHaveTextContent("1 session");
+    expect(row).not.toHaveTextContent("1 sessions");
     expect(row).toHaveTextContent("20%");
   });
 

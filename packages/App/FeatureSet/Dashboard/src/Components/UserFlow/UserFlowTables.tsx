@@ -4,6 +4,7 @@ import React, {
   ReactNode,
   useState,
 } from "react";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import { VoidFunction } from "Common/Types/FunctionTypes";
@@ -25,12 +26,14 @@ import {
   UserFlowPageStats,
   UserFlowPath,
 } from "Common/Utils/Rum/UserFlow";
+import AppLink from "../AppLink/AppLink";
+import { buildReplayLinkRoute } from "../SessionReplay/ReplayLinkRoute";
 import {
   formatUserFlowCount,
   formatUserFlowDuration,
   formatUserFlowShare,
+  pluralizeSessions,
 } from "./UserFlowFormat";
-import UserFlowWatchLink from "./UserFlowWatchLink";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
 /*
@@ -51,6 +54,34 @@ export interface ComponentProps {
   loops: Array<UserFlowLoop>;
   rumApplicationId: ObjectID;
   onAnchor: (page: string, direction: UserFlowDirection) => void;
+}
+
+function WatchLink(props: {
+  sessionId: string | undefined;
+  rumApplicationId: ObjectID;
+}): ReactElement {
+  if (!props.sessionId) {
+    return <></>;
+  }
+
+  const route: Route | null = buildReplayLinkRoute({
+    rumApplicationId: props.rumApplicationId,
+    sessionId: props.sessionId,
+  });
+
+  if (!route) {
+    return <></>;
+  }
+
+  return (
+    <AppLink
+      to={route}
+      className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-indigo-700 hover:underline"
+    >
+      <Icon icon={IconProp.Play} className="h-3 w-3" />
+      <span>Watch</span>
+    </AppLink>
+  );
 }
 
 function PageChip(props: { page: string; onClick: () => void }): ReactElement {
@@ -423,7 +454,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                         )}
                       </td>
                       <td className={CELL}>
-                        <UserFlowWatchLink
+                        <WatchLink
                           sessionId={path.sampleSessionIds[0]}
                           rumApplicationId={props.rumApplicationId}
                         />
@@ -614,10 +645,10 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-gray-700">
-                          {formatUserFlowCount(loop.sessions)} sessions
+                          {pluralizeSessions(loop.sessions)}
                         </span>
                         <ShareBar share={loop.share} />
-                        <UserFlowWatchLink
+                        <WatchLink
                           sessionId={loop.sampleSessionIds[0]}
                           rumApplicationId={props.rumApplicationId}
                         />

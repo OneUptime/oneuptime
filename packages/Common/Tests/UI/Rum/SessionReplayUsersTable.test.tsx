@@ -33,7 +33,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * label reads Hidden; the row and its Sessions action hand the person's
  * filter back with the key and label it was rolled up under; Watch latest
  * sits in the row's ⋯ menu beside Sessions and opens the newest recording
- * (a real link when it is the row's only action);
+ * (a real link when it is the row's only action), and View journey beside it
+ * opens the person on User Flows;
  * paging echoes the server's cursor; empty and error states are honest.
  */
 
@@ -588,7 +589,7 @@ describe("SessionReplayUsersTable row actions", () => {
     return cells[cells.length - 1] as HTMLElement;
   }
 
-  it("a person's row shows Sessions as its one button, and Watch latest and View journey in its ⋯ menu", async () => {
+  it("a person's row shows Sessions as its one button and Watch latest in its ⋯ menu", async () => {
     mockUsers(() => {
       return usersResponse([wireRollup()]);
     });
@@ -634,11 +635,7 @@ describe("SessionReplayUsersTable row actions", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  /*
-   * Nothing to watch, but the pages they visited are still there to read:
-   * a journey needs a person, not footage.
-   */
-  it("a person with no recording to open shows Sessions, and only their journey in the ⋯", async () => {
+  it("a person with no recording to open shows Sessions, and only View journey in the ⋯", async () => {
     mockUsers(() => {
       return usersResponse([wireRollup({ lastSessionId: "" })]);
     });
@@ -657,6 +654,91 @@ describe("SessionReplayUsersTable row actions", () => {
           return item.textContent || "";
         }),
     ).toEqual(["View journey"]);
+  });
+
+  describe("View journey", () => {
+    const openJourney: (row: HTMLElement) => URL = (row: HTMLElement): URL => {
+      fireEvent.click(
+        within(openMenuOf(row)).getByRole("menuitem", {
+          name: "View journey",
+        }),
+      );
+
+      return new URL(navigatedTo(0), "https://oneuptime.example.com");
+    };
+
+    it("opens an identified person on User Flows by their key, never their label", async () => {
+      mockUsers(() => {
+        return usersResponse([wireRollup()]);
+      });
+
+      const { onViewUserSessions } = renderTable();
+      const [row] = await waitForUserRows(1);
+      const url: URL = openJourney(row as HTMLElement);
+
+      expect(url.pathname).toContain(`/rum/${APP_ID}/user-flows`);
+      expect(url.searchParams.get("userKey")).toBe(USER_KEY);
+      expect(decodeURIComponent(url.href)).not.toContain("jane@acme.com");
+      expect(onViewUserSessions).not.toHaveBeenCalled();
+    });
+
+    it("opens a person whose label is hidden the same way", async () => {
+      mockUsers(() => {
+        return usersResponse([wireRollup({ identifiedUserLabel: undefined })]);
+      });
+
+      renderTable();
+
+      const [row] = await waitForUserRows(1);
+
+      expect(openJourney(row as HTMLElement).searchParams.get("userKey")).toBe(
+        USER_KEY,
+      );
+    });
+
+    it("opens a visitor by their visitor id", async () => {
+      mockUsers(() => {
+        return usersResponse([wireRollup(VISITOR_ROLLUP)]);
+      });
+
+      renderTable();
+
+      const [row] = await waitForUserRows(1);
+      const url: URL = openJourney(row as HTMLElement);
+
+      expect(url.searchParams.get("visitor")).toBe(VISITOR_A);
+      expect(url.searchParams.has("userKey")).toBe(false);
+    });
+
+    it("keeps the window the person was counted in, spelled for User Flows", async () => {
+      mockUsers(() => {
+        return usersResponse([wireRollup()]);
+      });
+
+      /*
+       * A day is this table's default, and written as absence by the list's
+       * helper, which User Flows would read as its own default of a week.
+       */
+      renderTable({ timeRange: { range: TimeRange.PAST_ONE_DAY } });
+
+      const [row] = await waitForUserRows(1);
+
+      expect(openJourney(row as HTMLElement).searchParams.get("range")).toBe(
+        TimeRange.PAST_ONE_DAY,
+      );
+    });
+
+    it("is not offered for the unlinked bucket: nothing selects it", async () => {
+      mockUsers(() => {
+        return usersResponse([wireRollup(UNLINKED_ROLLUP)]);
+      });
+
+      renderTable();
+
+      const [row] = await waitForUserRows(1);
+
+      expect(moreButtonOf(row as HTMLElement)).toBeNull();
+    });
   });
 
   it("the unlinked bucket's newest recording is its one button: a real link, and no ⋯", async () => {
@@ -707,7 +789,7 @@ describe("SessionReplayUsersTable row actions", () => {
     expect(within(cell).queryAllByRole("link")).toHaveLength(0);
   });
 
-  it("every row that names someone carries a ⋯; the unlinked bucket has no one to follow", async () => {
+  it("only the rows with a person carry a ⋯", async () => {
     mockUsers(() => {
       return usersResponse([
         wireRollup(),
@@ -725,70 +807,6 @@ describe("SessionReplayUsersTable row actions", () => {
         return Boolean(moreButtonOf(row));
       }),
     ).toEqual([true, true, false]);
-  });
-
-  it("View journey opens THAT row's person on User Flows, by what names nobody", async () => {
-    mockUsers(() => {
-      return usersResponse([wireRollup(), wireRollup(VISITOR_ROLLUP)]);
-    });
-
-    const { onViewUserSessions } = renderTable();
-
-    const rows: Array<HTMLElement> = await waitForUserRows(2);
-
-    fireEvent.click(
-      within(openMenuOf(rows[0] as HTMLElement)).getByRole("menuitem", {
-        name: "View journey",
-      }),
-    );
-
-    expect(navigateMock).toHaveBeenCalledTimes(1);
-    expect(navigatedTo(0)).toContain("/user-flows?");
-    expect(navigatedTo(0)).toContain(`userKey=${USER_KEY}`);
-    expect(navigatedTo(0)).toContain(APP_ID);
-    /* The label is the server's to give; a link never carries it. */
-    expect(decodeURIComponent(navigatedTo(0))).not.toContain("jane");
-    expect(onViewUserSessions).not.toHaveBeenCalled();
-
-    await waitFor(() => {
-      expect(screen.queryByRole("menu")).toBeNull();
-    });
-
-    fireEvent.click(
-      within(openMenuOf(rows[1] as HTMLElement)).getByRole("menuitem", {
-        name: "View journey",
-      }),
-    );
-
-    expect(navigatedTo(1)).toContain("/user-flows?");
-    expect(navigatedTo(1)).toContain(`visitor=${VISITOR_A}`);
-    expect(navigatedTo(1)).not.toContain("userKey=");
-  });
-
-  it("View journey keeps the window the person was counted in", async () => {
-    mockUsers(() => {
-      return usersResponse([wireRollup()]);
-    });
-
-    renderTable();
-
-    const [row] = await waitForUserRows(1);
-
-    fireEvent.click(
-      within(openMenuOf(row as HTMLElement)).getByRole("menuitem", {
-        name: "View journey",
-      }),
-    );
-
-    const search: URLSearchParams = new URLSearchParams(
-      navigatedTo(0).split("?")[1],
-    );
-
-    /*
-     * Written out: this table's day is the session list's default, but the
-     * User Flows page reads no range as a week.
-     */
-    expect(search.get("range")).toBe(TimeRange.PAST_ONE_DAY);
   });
 
   it("choosing Watch latest opens THAT row's newest session, and never filters by the person", async () => {

@@ -203,48 +203,4 @@ describe("the User Flows page is reachable", () => {
     expect(handler).toContain("assertSessionReplayApplicationAccess(");
     expect(handler).toContain("permissions: SESSION_REPLAY_LIST_PERMISSIONS");
   });
-
-  /*
-   * Narrowing to one person is decided by the identity permission, against
-   * the application the access check loaded, as on /list and /users.
-   */
-  test("one person's read goes through the identity gate", () => {
-    const start: number = telemetryApiSource.indexOf(
-      '"/telemetry/rum/session-replay/user-flow"',
-    );
-    const handler: string = telemetryApiSource.slice(
-      start,
-      telemetryApiSource.indexOf("router.post(", start + 1),
-    );
-
-    expect(handler).toContain("canReadIdentifiedUserLabel({");
-    expect(handler).toContain("application: application,");
-    expect(handler).toContain("canReadIdentity: includeIdentifiedUserLabel,");
-    expect(handler).toContain(
-      "includeIdentifiedUserLabel: includeIdentifiedUserLabel,",
-    );
-    /* The refusal reaches the page, or "no sessions" would be a lie. */
-    expect(handler).toContain("ignoredFilters: personFilter.ignoredFilters");
-
-    /* Everyone's flows pay nothing for a question they did not ask. */
-    expect(handler.indexOf("hasUserFlowPersonFilter(rawFilters)")).toBeLessThan(
-      handler.indexOf("canReadIdentifiedUserLabel({"),
-    );
-  });
-
-  test("the page can reach a person, and the people pages reach the page", () => {
-    expect(pageSource).toContain("UserFlowPersonSearch");
-    expect(pageSource).toContain("person: person,");
-
-    for (const relative of [
-      "FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayUsersTable.tsx",
-      "FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayTable.tsx",
-    ]) {
-      const source: string = read(relative);
-
-      expect(source).toContain('title: "View journey"');
-      expect(source).toContain("PageMap.RUM_APPLICATION_VIEW_USER_FLOWS");
-      expect(source).toContain("buildUserFlowPersonSearch");
-    }
-  });
 });

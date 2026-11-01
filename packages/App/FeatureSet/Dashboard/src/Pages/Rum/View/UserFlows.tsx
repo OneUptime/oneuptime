@@ -6,14 +6,9 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
-import {
-  USER_FLOW_IGNORED_USER_REFERENCE,
-  UserFlowJourneysResponseDto,
-  UserFlowSessionDetailDto,
-} from "Common/Types/Rum/UserFlow";
+import { UserFlowJourneysResponseDto } from "Common/Types/Rum/UserFlow";
 import {
   analyzeUserFlow,
-  buildUserFlowSessionJourneys,
   USER_FLOW_MAX_PAGES_PER_STEP,
   USER_FLOW_MAX_STEPS,
   USER_FLOW_MIN_PAGES_PER_STEP,
@@ -23,10 +18,13 @@ import {
   UserFlowOptions,
   UserFlowPageCount,
   UserFlowSessionFilter,
-  UserFlowSessionJourney,
 } from "Common/Utils/Rum/UserFlow";
 import Navigation from "Common/UI/Utils/Navigation";
 import API from "Common/UI/Utils/API/API";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import { TimeRangePickerSize } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
@@ -57,26 +55,19 @@ import UserFlowMap, {
   UserFlowSelection,
 } from "../../../Components/UserFlow/UserFlowMap";
 import UserFlowDetailPanel from "../../../Components/UserFlow/UserFlowDetailPanel";
-import UserFlowJourneyList from "../../../Components/UserFlow/UserFlowJourneyList";
+import UserFlowJourneys from "../../../Components/UserFlow/UserFlowJourneys";
 import UserFlowOverview from "../../../Components/UserFlow/UserFlowOverview";
-import {
-  UserFlowPersonBar,
-  UserFlowPersonSearch,
-} from "../../../Components/UserFlow/UserFlowPersonBar";
-import {
-  DEFAULT_USER_FLOW_PERSON_VIEW,
-  describeUserFlowPerson,
-  getUserFlowPersonKey,
-  getUserFlowSessionOwner,
-  resolveUserFlowPerson,
-  UserFlowPerson,
-  UserFlowPersonDescription,
-  UserFlowView,
-} from "../../../Components/UserFlow/UserFlowPerson";
+import UserFlowScopeBanner from "../../../Components/UserFlow/UserFlowScopeBanner";
+import UserFlowScopeFilter from "../../../Components/UserFlow/UserFlowScopeFilter";
 import UserFlowTables from "../../../Components/UserFlow/UserFlowTables";
 import {
-  buildSessionsForPersonSearch,
+  getUserFlowScopeKey,
+  isUserFlowResponseForScope,
+  UserFlowScope,
+} from "../../../Components/UserFlow/UserFlowScope";
+import {
   buildUserFlowPageUrl,
+  isGroupedByDefault,
   readUserFlowStateFromSearch,
   UserFlowUrlState,
 } from "../../../Components/UserFlow/UserFlowUrlState";
@@ -90,16 +81,15 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
  * the Session Replay recordings - where they land, which page they go to
  * next, where they give up, and where they go in circles.
  *
- * One request per time range. Everything else on the page - anchoring on a
- * page, looking backward, grouping ids, hiding a page, narrowing to mobile
- * or to sessions with errors - is a local re-fold of the same journeys by
- * Common/Utils/Rum/UserFlow.ts, so the map answers as fast as the controls
- * move. The whole state lives in the URL.
+ * One request per time range and person. Everything else on the page -
+ * anchoring on a page, looking backward, grouping ids, hiding a page,
+ * narrowing to mobile or to sessions with errors - is a local re-fold of the
+ * same journeys by Common/Utils/Rum/UserFlow.ts, so the map answers as fast as
+ * the controls move. The whole state lives in the URL.
  *
- * Narrowed to one person - a user, a browser or a session - it is a second
- * request, because the first holds only the newest sessions of the window and
- * names nobody. The page then opens on that person's journeys, page by page,
- * with their flow map a click away.
+ * One person, or one session, is the same page over fewer journeys, plus a
+ * line per session saying what they did. It is a request, not a re-fold: the
+ * read holds the newest sessions in the window, and they may not be among them.
  */
 
 type FlowMode = "start" | "forward" | "backward";
@@ -136,15 +126,7 @@ const RumApplicationUserFlows: FunctionComponent<
   const [state, setState] = useState<UserFlowUrlState>((): UserFlowUrlState => {
     return readUserFlowStateFromSearch(window.location.search);
   });
-  /*
-   * Kept with the person it was read for, so a change of person can never
-   * draw the previous answer under the new name: one person's journeys must
-   * not have anyone else's on screen, even for a moment.
-   */
-  const [loaded, setLoaded] = useState<{
-    personKey: string;
-    response: UserFlowJourneysResponseDto;
-  } | null>(null);
+  const [data, setData] = useState<UserFlowJourneysResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [reloadToken, setReloadToken] = useState<number>(0);
@@ -152,34 +134,17 @@ const RumApplicationUserFlows: FunctionComponent<
 
   const timeRange: RangeStartAndEndDateTime = state.timeRange;
   const options: UserFlowOptions = state.options;
-  const person: UserFlowPerson | undefined = state.person;
-  const personKey: string = getUserFlowPersonKey(person);
-  const view: UserFlowView = person
-    ? state.view || DEFAULT_USER_FLOW_PERSON_VIEW
-    : "map";
-
-  const data: UserFlowJourneysResponseDto | null =
-    loaded && loaded.personKey === personKey ? loaded.response : null;
-
-  /*
-   * What someone typed, once the answer says who it was. Only this reaches
-   * the address, and the read is not repeated: it already holds the answer.
-   */
-  const resolvedPerson: UserFlowPerson | undefined = useMemo(() => {
-    return person ? resolveUserFlowPerson(person, data) : undefined;
-  }, [person, data]);
+  const scope: UserFlowScope | null = state.scope;
 
   useEffect((): void => {
     window.history.replaceState(
       window.history.state,
       "",
-      buildUserFlowPageUrl(window.location.href, {
-        ...state,
-        person: resolvedPerson,
-      }),
+      buildUserFlowPageUrl(window.location.href, state, data?.scope),
     );
-  }, [state, resolvedPerson]);
+  }, [state, data]);
 
+  const scopeKey: string = getUserFlowScopeKey(scope);
   const timeRangeKey: string = [
     String(timeRange.range),
     timeRange.startAndEndDate?.startValue?.toISOString() || "",
@@ -202,14 +167,25 @@ const RumApplicationUserFlows: FunctionComponent<
       rumApplicationId: new ObjectID(rumApplicationId),
       startTime: bounds.startValue,
       endTime: bounds.endValue,
-      person: person,
+      scope: scope,
     })
       .then((response: UserFlowJourneysResponseDto): void => {
         if (generation !== generationRef.current) {
           return;
         }
 
-        setLoaded({ personKey: personKey, response: response });
+        if (!isUserFlowResponseForScope(scope, response.scope)) {
+          setData(null);
+          setError(
+            translator.translateText(
+              "The server did not narrow this read, so nothing is shown rather than other people's journeys. Reload the page and try again.",
+            ) as string,
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        setData(response);
         setIsLoading(false);
       })
       .catch((err: unknown): void => {
@@ -220,50 +196,11 @@ const RumApplicationUserFlows: FunctionComponent<
         setError(API.getFriendlyMessage(err));
         setIsLoading(false);
       });
-  }, [rumApplicationId, timeRangeKey, reloadToken, personKey]);
+  }, [rumApplicationId, timeRangeKey, scopeKey, reloadToken]);
 
   const analysis: UserFlowAnalysis | null = useMemo(() => {
-    if (!data) {
-      return null;
-    }
-
-    /*
-     * The tiles above the journeys count what the journeys list: every page
-     * as it was, whatever the map has grouped or hidden.
-     */
-    return analyzeUserFlow(
-      data,
-      view === "journeys"
-        ? { ...options, hiddenPages: [], groupDynamicSegments: false }
-        : options,
-    );
-  }, [data, options, view]);
-
-  const journeys: Array<UserFlowSessionJourney> = useMemo(() => {
-    return data && view === "journeys"
-      ? buildUserFlowSessionJourneys(data, options)
-      : [];
-  }, [data, options, view]);
-
-  const selectPerson: (next: UserFlowPerson | undefined) => void = useCallback(
-    (next: UserFlowPerson | undefined): void => {
-      setSelection(null);
-      setState((current: UserFlowUrlState): UserFlowUrlState => {
-        return { ...current, person: next, view: undefined };
-      });
-    },
-    [],
-  );
-
-  const setView: (next: UserFlowView) => void = useCallback(
-    (next: UserFlowView): void => {
-      setSelection(null);
-      setState((current: UserFlowUrlState): UserFlowUrlState => {
-        return { ...current, view: next };
-      });
-    },
-    [],
-  );
+    return data ? analyzeUserFlow(data, options) : null;
+  }, [data, options]);
 
   const updateOptions: (patch: Partial<UserFlowOptions>) => void = useCallback(
     (patch: Partial<UserFlowOptions>): void => {
@@ -276,6 +213,40 @@ const RumApplicationUserFlows: FunctionComponent<
       });
     },
     [],
+  );
+
+  /*
+   * The last read goes at once: it belongs to whoever was on screen, and drawing
+   * it under the next person's name for as long as a read takes is the one
+   * mistake this page must not make. The person already on screen is no change:
+   * nothing would ask for them again, and the page would wait for it forever.
+   *
+   * The map starts over from the session start. A page it was anchored on need
+   * not exist in the other view, where ids are grouped the other way.
+   */
+  const changeScope: (next: UserFlowScope | null) => void = useCallback(
+    (next: UserFlowScope | null): void => {
+      if (getUserFlowScopeKey(next) === scopeKey) {
+        return;
+      }
+
+      setSelection(null);
+      setData(null);
+      setIsLoading(true);
+      setState((current: UserFlowUrlState): UserFlowUrlState => {
+        return {
+          ...current,
+          scope: next,
+          options: {
+            ...current.options,
+            anchorPage: null,
+            direction: "forward",
+            groupDynamicSegments: isGroupedByDefault(next),
+          },
+        };
+      });
+    },
+    [scopeKey],
   );
 
   const anchorOn: (page: string, direction: UserFlowDirection) => void =
@@ -364,6 +335,15 @@ const RumApplicationUserFlows: FunctionComponent<
 
   const mode: FlowMode = modeOf(options);
   const pageOptions: Array<UserFlowPageCount> = analysis?.availablePages || [];
+  /*
+   * A filter set for everyone can name a device this person never used. It
+   * stays a choice, so the select says what is narrowing the page.
+   */
+  const deviceOptions: Array<string> = analysis?.deviceTypes || [];
+  const deviceChoices: Array<string> =
+    options.deviceType && !deviceOptions.includes(options.deviceType)
+      ? [...deviceOptions, options.deviceType]
+      : deviceOptions;
   const anchorMissing: boolean = Boolean(
     options.anchorPage &&
       analysis &&
@@ -372,62 +352,8 @@ const RumApplicationUserFlows: FunctionComponent<
       }),
   );
 
-  /* The two questions that make as much sense of one person as of everyone. */
-  const sessionAndDeviceFilters: ReactElement = (
-    <>
-      <label className="flex items-center gap-2">
-        {translator.translateText("Sessions")}
-        <select
-          className={SELECT_CLASS}
-          data-testid="user-flow-session-filter"
-          value={options.sessionFilter}
-          onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-            updateOptions({
-              sessionFilter: event.target.value as UserFlowSessionFilter,
-            });
-          }}
-        >
-          <option value="all">
-            {translator.translateText("All sessions")}
-          </option>
-          <option value="errors">
-            {translator.translateText("With errors")}
-          </option>
-          <option value="frustration">
-            {translator.translateText("With frustration signals")}
-          </option>
-        </select>
-      </label>
-
-      {analysis && analysis.deviceTypes.length > 0 ? (
-        <label className="flex items-center gap-2">
-          {translator.translateText("Device")}
-          <select
-            className={SELECT_CLASS}
-            data-testid="user-flow-device-filter"
-            value={options.deviceType}
-            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
-              updateOptions({ deviceType: event.target.value });
-            }}
-          >
-            <option value="">{translator.translateText("All devices")}</option>
-            {analysis.deviceTypes.map((device: string): ReactElement => {
-              return (
-                <option key={device} value={device}>
-                  {device}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-      ) : (
-        <></>
-      )}
-    </>
-  );
-
-  const mapControls: ReactElement = (
-    <>
+  const toolbar: ReactElement = (
+    <div className="mb-4 flex flex-col gap-3" data-testid="user-flow-toolbar">
       <div className="flex flex-wrap items-center gap-3">
         <div
           className="inline-flex rounded-md shadow-sm"
@@ -506,17 +432,13 @@ const RumApplicationUserFlows: FunctionComponent<
           <></>
         )}
 
-        {person ? (
-          <></>
-        ) : (
-          <div className="w-full sm:ml-auto sm:w-auto">
-            <UserFlowPersonSearch
-              onSearch={(identifier: string): void => {
-                selectPerson({ kind: "lookup", identifier: identifier });
-              }}
-            />
-          </div>
-        )}
+        <div className="w-full sm:ml-auto sm:w-auto">
+          <UserFlowScopeFilter
+            rumApplicationId={modelId}
+            timeRange={timeRange}
+            onSelect={changeScope}
+          />
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
@@ -565,7 +487,56 @@ const RumApplicationUserFlows: FunctionComponent<
           </select>
         </label>
 
-        {sessionAndDeviceFilters}
+        <label className="flex items-center gap-2">
+          {translator.translateText("Sessions")}
+          <select
+            className={SELECT_CLASS}
+            data-testid="user-flow-session-filter"
+            value={options.sessionFilter}
+            onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+              updateOptions({
+                sessionFilter: event.target.value as UserFlowSessionFilter,
+              });
+            }}
+          >
+            <option value="all">
+              {translator.translateText("All sessions")}
+            </option>
+            <option value="errors">
+              {translator.translateText("With errors")}
+            </option>
+            <option value="frustration">
+              {translator.translateText("With frustration signals")}
+            </option>
+          </select>
+        </label>
+
+        {analysis && deviceChoices.length > 0 ? (
+          <label className="flex items-center gap-2">
+            {translator.translateText("Device")}
+            <select
+              className={SELECT_CLASS}
+              data-testid="user-flow-device-filter"
+              value={options.deviceType}
+              onChange={(event: React.ChangeEvent<HTMLSelectElement>) => {
+                updateOptions({ deviceType: event.target.value });
+              }}
+            >
+              <option value="">
+                {translator.translateText("All devices")}
+              </option>
+              {deviceChoices.map((device: string): ReactElement => {
+                return (
+                  <option key={device} value={device}>
+                    {device}
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        ) : (
+          <></>
+        )}
 
         <label
           className="flex cursor-pointer items-center gap-2"
@@ -627,69 +598,6 @@ const RumApplicationUserFlows: FunctionComponent<
       ) : (
         <></>
       )}
-    </>
-  );
-
-  const personDescription: UserFlowPersonDescription | null = resolvedPerson
-    ? describeUserFlowPerson(resolvedPerson, data)
-    : null;
-
-  /*
-   * One session is one sitting. Who it belongs to is the next question, and
-   * the answer is on the same page.
-   */
-  const sessionOwnerDetail: UserFlowSessionDetailDto | undefined =
-    data?.sessions[0]?.detail;
-  const sessionOwner: UserFlowPerson | null =
-    resolvedPerson?.kind === "session"
-      ? getUserFlowSessionOwner(sessionOwnerDetail)
-      : null;
-
-  const sessionListRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY] as Route,
-    { modelId: modelId },
-  );
-  const personSessionsSearch: string = resolvedPerson
-    ? buildSessionsForPersonSearch(resolvedPerson, timeRange)
-    : "";
-
-  const toolbar: ReactElement = (
-    <div className="mb-4 flex flex-col gap-3" data-testid="user-flow-toolbar">
-      {personDescription ? (
-        <UserFlowPersonBar
-          description={personDescription}
-          sessionCount={data ? data.sessionsInWindow : null}
-          view={view}
-          onViewChange={setView}
-          onClear={(): void => {
-            selectPerson(undefined);
-          }}
-          sessionListRoute={
-            personSessionsSearch
-              ? new Route(
-                  `${sessionListRoute.toString()}${personSessionsSearch}`,
-                )
-              : null
-          }
-          onShowOwner={
-            sessionOwner
-              ? (): void => {
-                  selectPerson(sessionOwner);
-                }
-              : undefined
-          }
-        />
-      ) : (
-        <></>
-      )}
-
-      {view === "journeys" ? (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
-          {sessionAndDeviceFilters}
-        </div>
-      ) : (
-        mapControls
-      )}
     </div>
   );
 
@@ -697,11 +605,6 @@ const RumApplicationUserFlows: FunctionComponent<
     RouteMap[
       PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_DOCUMENTATION
     ] as Route,
-    { modelId: modelId },
-  );
-
-  const usersRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS] as Route,
     { modelId: modelId },
   );
 
@@ -720,37 +623,38 @@ const RumApplicationUserFlows: FunctionComponent<
         }}
       />
     );
-  } else if (person && data && data.sessions.length === 0) {
-    const isLookupRefused: boolean = data.ignoredFilters.includes(
-      USER_FLOW_IGNORED_USER_REFERENCE,
-    );
-
+  } else if (scope && data && data.sessions.length === 0) {
     body = (
       <EmptyState
-        id="user-flow-person-empty"
-        icon={IconProp.User}
+        id="user-flow-scope-empty"
+        icon={IconProp.Share}
         title={
-          isLookupRefused
-            ? "Your role can't look people up by name"
-            : "No sessions match in this range"
+          scope.kind === "session"
+            ? "No session with this ID in this range"
+            : "No recorded sessions for this user in this range"
         }
         paddingClassName="py-16"
         description={
           <span>
-            {translator.translateText(
-              isLookupRefused
-                ? "Open them from Replay Users instead: that link names nobody, so it works for every role that can see sessions."
-                : "Widen the time range, or check the value: a user has to match exactly what your application sent to identify().",
-            )}
+            {scope.kind === "session"
+              ? translator.translateText(
+                  "Widen the time range, or check the ID. To look a user up by a reference that looks like an ID, search for user: and the reference.",
+                )
+              : translator.translateText(
+                  "Widen the time range, or check the reference. Only recorded sessions are here, and only ones in which your page identified the user.",
+                )}
           </span>
         }
         footer={
-          <AppLink
-            to={usersRoute}
-            className="text-sm font-medium text-indigo-700 hover:underline"
-          >
-            {translator.translateTemplate("Browse Replay Users")}
-          </AppLink>
+          <Button
+            title="Show all users"
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            dataTestId="user-flow-scope-empty-clear"
+            onClick={(): void => {
+              changeScope(null);
+            }}
+          />
         }
       />
     );
@@ -778,64 +682,19 @@ const RumApplicationUserFlows: FunctionComponent<
         }
       />
     );
-  } else if (view === "journeys") {
+  } else {
     body = (
       <div className="space-y-5">
-        {/*
-         * Tiles without the findings: a finding points the map at a page, and
-         * it is a statement about many sessions, not a reading of one person.
-         */}
-        <UserFlowOverview
-          summary={analysis.summary}
-          insights={[]}
-          sessionsInWindow={data.sessionsInWindow}
-          isSampled={data.isSampled}
-          onFocusPage={anchorOn}
-        />
-
-        {isLoading ? (
-          <p className="text-xs text-gray-500">
-            {translator.translateText("Updating…")}
-          </p>
+        {/* What someone narrows to one person for comes first. */}
+        {scope ? (
+          <UserFlowJourneys
+            journeys={analysis.journeys}
+            rumApplicationId={modelId}
+          />
         ) : (
           <></>
         )}
 
-        {journeys.length > 0 ? (
-          <UserFlowJourneyList
-            key={personKey}
-            journeys={journeys}
-            rumApplicationId={modelId}
-            showsOwner={resolvedPerson?.kind === "visitor"}
-          />
-        ) : (
-          <div
-            className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800"
-            data-testid="user-flow-journeys-filtered"
-          >
-            <TranslatedSentence
-              template="No session here matches these filters. {{showAll}}."
-              slots={{
-                showAll: (
-                  <button
-                    type="button"
-                    className="font-medium underline"
-                    onClick={(): void => {
-                      updateOptions({ sessionFilter: "all", deviceType: "" });
-                    }}
-                  >
-                    {translator.translateText("Show all of them")}
-                  </button>
-                ),
-              }}
-            />
-          </div>
-        )}
-      </div>
-    );
-  } else {
-    body = (
-      <div className="space-y-5">
         <UserFlowOverview
           summary={analysis.summary}
           insights={analysis.insights}
@@ -890,7 +749,6 @@ const RumApplicationUserFlows: FunctionComponent<
             analysis={analysis}
             rumApplicationId={modelId}
             timeRange={timeRange}
-            person={resolvedPerson}
             onAnchor={anchorOn}
             onHide={hidePage}
             onClose={(): void => {
@@ -925,6 +783,16 @@ const RumApplicationUserFlows: FunctionComponent<
         buttons={[headerToolbar]}
       >
         <div data-testid="user-flow-page">
+          {scope ? (
+            <UserFlowScopeBanner
+              scope={scope}
+              applied={data?.scope ?? null}
+              sessionsInWindow={data ? data.sessionsInWindow : null}
+              onChange={changeScope}
+            />
+          ) : (
+            <></>
+          )}
           {toolbar}
           {body}
         </div>

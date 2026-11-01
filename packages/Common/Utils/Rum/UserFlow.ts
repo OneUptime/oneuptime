@@ -1,15 +1,13 @@
 import {
   UserFlowJourneysResponseDto,
-  UserFlowSessionDetailDto,
   UserFlowSessionDto,
 } from "../../Types/Rum/UserFlow";
 
 /*
  * The User Flows engine: recorded session journeys in, everything the page
  * draws out - the step-by-step flow map, the most common paths, per-page
- * entry / exit / drop-off numbers, back-and-forth loops, the few findings
- * worth putting in front of someone first, and one person's sessions page by
- * page.
+ * entry / exit / drop-off numbers, back-and-forth loops, and the few
+ * findings worth putting in front of someone first.
  *
  * Pure and synchronous on purpose. The endpoint returns journeys, not a
  * graph (see Types/Rum/UserFlow.ts), so every control on the page is a call
@@ -236,6 +234,8 @@ export interface UserFlowAnalysis {
   deviceTypes: Array<string>;
   /* Whether keys carry a host (the app spans several origins). */
   includesHost: boolean;
+  /* Every session the filters kept, newest first. */
+  journeys: Array<UserFlowJourney>;
 }
 
 /* A journey after grouping, hiding and collapsing. */
@@ -244,11 +244,37 @@ export interface UserFlowJourney {
   startUnixMs: number;
   durationMs: number;
   deviceType: string;
+  browserName: string;
+  countryCode: string;
   pages: Array<string>;
   errorPages: Set<string>;
   frustrationPages: Set<string>;
   hadErrors: boolean;
   hadFrustration: boolean;
+  errorCount: number;
+  frustrationCount: number;
+  /* The session went on past the last page here. */
+  isTruncated: boolean;
+  /* Undefined when the read did not say: only a narrowed read does. */
+  hasRecording: boolean | undefined;
+}
+
+/* One page of one session's journey, as the visitor lived it. */
+export interface UserFlowJourneyStep {
+  page: string;
+  /* 1 the first time the session reached the page, 2 when it came back... */
+  visit: number;
+  isLanding: boolean;
+  isExit: boolean;
+  /* Said per page, not per visit: see UserFlowSessionDto.pageSignals. */
+  hadError: boolean;
+  hadFrustration: boolean;
+}
+
+export interface UserFlowJourneySteps {
+  steps: Array<UserFlowJourneyStep>;
+  /* Steps that went back to a page the session had already seen. */
+  revisits: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -522,12 +548,51 @@ function toJourney(
     startUnixMs: session.startUnixMs,
     durationMs: session.durationMs,
     deviceType: session.deviceType,
+    browserName: session.browserName,
+    countryCode: session.countryCode,
     pages: pages,
     errorPages: errorPages,
     frustrationPages: frustrationPages,
     hadErrors: session.errorCount > 0 || errorPages.size > 0,
     hadFrustration: session.frustrationCount > 0 || frustrationPages.size > 0,
+    errorCount: session.errorCount,
+    frustrationCount: session.frustrationCount,
+    isTruncated: session.isTruncated === true,
+    hasRecording: session.hasRecording,
   };
+}
+
+/*
+ * A journey read page by page: where it landed, where it left, and each
+ * return to a page already seen. The last page of a journey that was cut is
+ * not where the session ended, so nothing is marked as the exit there.
+ */
+export function buildUserFlowJourneySteps(
+  journey: UserFlowJourney,
+): UserFlowJourneySteps {
+  const visits: Counter = new Counter();
+  let revisits: number = 0;
+
+  const steps: Array<UserFlowJourneyStep> = journey.pages.map(
+    (page: string, index: number): UserFlowJourneyStep => {
+      visits.add(page);
+
+      if (visits.get(page) > 1) {
+        revisits += 1;
+      }
+
+      return {
+        page: page,
+        visit: visits.get(page),
+        isLanding: index === 0,
+        isExit: index === journey.pages.length - 1 && !journey.isTruncated,
+        hadError: journey.errorPages.has(page),
+        hadFrustration: journey.frustrationPages.has(page),
+      };
+    },
+  );
+
+  return { steps: steps, revisits: revisits };
 }
 
 /* ------------------------------------------------------------------ */
@@ -1474,213 +1539,6 @@ export function buildUserFlowInsights(
 }
 
 /* ------------------------------------------------------------------ */
-/* One session, page by page                                           */
-/* ------------------------------------------------------------------ */
-
-/* One stop on a session's journey. */
-export interface UserFlowVisit {
-  /* The page key, with its ids as they were: see buildUserFlowVisits. */
-  page: string;
-  /* The stored URL this visit was read from. */
-  url: string;
-  /* 1 for the first time the session reached this page, 2 for its first return. */
-  visit: number;
-  /* Visits to this page in the session, this one included. */
-  visitsInSession: number;
-  isLanding: boolean;
-  isExit: boolean;
-  /*
-   * On this PAGE in this session, never on this visit: a chunk's signals are
-   * attributed to the page it was flushed from, not to one visit to it.
-   */
-  errorCount: number;
-  frustrationCount: number;
-}
-
-export interface UserFlowSessionJourney {
-  sessionId: string;
-  startUnixMs: number;
-  durationMs: number;
-  deviceType: string;
-  browserName: string;
-  countryCode: string;
-  errorCount: number;
-  frustrationCount: number;
-  visits: Array<UserFlowVisit>;
-  /* Visits that were a return to a page seen earlier in the session. */
-  repeatVisits: number;
-  /*
-   * The session went on past what the read returns, so the last visit is
-   * where it really ended, and pages between it and the one before are
-   * missing.
-   */
-  isCut: boolean;
-  /* Only on a read narrowed to one person. */
-  detail?: UserFlowSessionDetailDto | undefined;
-}
-
-/*
- * The visits of one session, from its stored URLs. A journey on the map
- * groups ids because it stands for many people; this is one person, so it
- * keeps them: "/orders/1042" then "/orders/1043" are two pages they looked
- * at, where grouping would fold them into one visit to "/orders/:id" and hide
- * the navigation. Nothing is hidden either: a hidden page shapes a map, but a
- * journey with its login page missing would have the wrong landing page.
- */
-export function buildUserFlowVisits(
-  urls: Array<string>,
-  exitUrl: string | undefined,
-  includeHost: boolean,
-  signals: Map<string, [number, number]>,
-): Array<UserFlowVisit> {
-  const toKey: (url: string) => string = (url: string): string => {
-    return toUserFlowPageKey(url, {
-      groupDynamicSegments: false,
-      includeHost: includeHost,
-    });
-  };
-
-  const stops: Array<{ page: string; url: string }> = [];
-
-  for (const url of urls) {
-    const page: string = toKey(url);
-
-    if (stops[stops.length - 1]?.page !== page) {
-      stops.push({ page: page, url: url });
-    }
-  }
-
-  /* Not collapsed: pages are missing between the two, so it is a new visit. */
-  if (exitUrl !== undefined) {
-    stops.push({ page: toKey(exitUrl), url: exitUrl });
-  }
-
-  const visitsPerPage: Counter = new Counter();
-
-  for (const stop of stops) {
-    visitsPerPage.add(stop.page);
-  }
-
-  const seen: Counter = new Counter();
-
-  return stops.map(
-    (stop: { page: string; url: string }, index: number): UserFlowVisit => {
-      seen.add(stop.page);
-
-      const [errorCount, frustrationCount]: [number, number] = signals.get(
-        stop.page,
-      ) || [0, 0];
-
-      return {
-        page: stop.page,
-        url: stop.url,
-        visit: seen.get(stop.page),
-        visitsInSession: visitsPerPage.get(stop.page),
-        isLanding: index === 0,
-        isExit: index === stops.length - 1,
-        errorCount: errorCount,
-        frustrationCount: frustrationCount,
-      };
-    },
-  );
-}
-
-/*
- * Each session's journey, newest first, for a read narrowed to one person.
- * The filters a person can still narrow by apply; what shapes a map does not
- * (steps, anchors, grouping, hiding: see buildUserFlowVisits).
- */
-export function buildUserFlowSessionJourneys(
-  response: UserFlowJourneysResponseDto,
-  options: Pick<UserFlowOptions, "sessionFilter" | "deviceType">,
-): Array<UserFlowSessionJourney> {
-  const includesHost: boolean = spansMultipleHosts(response.pages);
-  const journeys: Array<UserFlowSessionJourney> = [];
-
-  for (const session of response.sessions) {
-    if (options.deviceType && session.deviceType !== options.deviceType) {
-      continue;
-    }
-
-    if (options.sessionFilter === "errors" && session.errorCount === 0) {
-      continue;
-    }
-
-    if (
-      options.sessionFilter === "frustration" &&
-      session.frustrationCount === 0
-    ) {
-      continue;
-    }
-
-    const urls: Array<string> = session.pages
-      .map((index: number): string | undefined => {
-        return response.pages[index];
-      })
-      .filter((url: string | undefined): url is string => {
-        return url !== undefined;
-      });
-
-    if (urls.length === 0) {
-      continue;
-    }
-
-    /* Several URLs can be one page key: "/cart" and "/cart/". */
-    const signals: Map<string, [number, number]> = new Map<
-      string,
-      [number, number]
-    >();
-
-    for (const [index, errors, frustration] of session.pageSignals) {
-      const url: string | undefined = response.pages[index];
-
-      if (url === undefined) {
-        continue;
-      }
-
-      const page: string = toUserFlowPageKey(url, {
-        groupDynamicSegments: false,
-        includeHost: includesHost,
-      });
-      const current: [number, number] = signals.get(page) || [0, 0];
-
-      signals.set(page, [current[0] + errors, current[1] + frustration]);
-    }
-
-    const exitUrl: string | undefined =
-      session.exitPage === undefined
-        ? undefined
-        : response.pages[session.exitPage];
-
-    const visits: Array<UserFlowVisit> = buildUserFlowVisits(
-      urls,
-      exitUrl,
-      includesHost,
-      signals,
-    );
-
-    journeys.push({
-      sessionId: session.sessionId,
-      startUnixMs: session.startUnixMs,
-      durationMs: session.durationMs,
-      deviceType: session.deviceType,
-      browserName: session.browserName,
-      countryCode: session.countryCode,
-      errorCount: session.errorCount,
-      frustrationCount: session.frustrationCount,
-      visits: visits,
-      repeatVisits: visits.filter((visit: UserFlowVisit): boolean => {
-        return visit.visit > 1;
-      }).length,
-      isCut: exitUrl !== undefined,
-      ...(session.detail ? { detail: session.detail } : {}),
-    });
-  }
-
-  return journeys;
-}
-
-/* ------------------------------------------------------------------ */
 /* Entry point                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -1737,5 +1595,6 @@ export function analyzeUserFlow(
     }),
     deviceTypes: deviceTypes,
     includesHost: includesHost,
+    journeys: journeys,
   };
 }

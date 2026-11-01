@@ -657,12 +657,13 @@ describe("Session replay playback API", () => {
   }
 
   describe("guard shape", () => {
-    test("all ten routes are registered and every one carries the three-middleware guard", () => {
+    test("all eleven routes are registered and every one carries the three-middleware guard", () => {
       for (const uri of [
         LIST_ROUTE,
         SUMMARIES_ROUTE,
         RESOLVE_ROUTE,
         USERS_ROUTE,
+        USER_FLOW_ROUTE,
         MANIFEST_ROUTE,
         CHUNKS_ROUTE,
         HEARTBEAT_ROUTE,
@@ -709,7 +710,7 @@ describe("Session replay playback API", () => {
       expect(findRoute(FOR_EXCEPTION_ROUTE).handlers[2]).toBe(listGuard);
       /* The rollup projects nothing the list does not: same guard instance. */
       expect(findRoute(USERS_ROUTE).handlers[2]).toBe(listGuard);
-      /* One person's journeys are no more than the list knows about them. */
+      /* Nor do the journeys, narrowed or not. */
       expect(findRoute(USER_FLOW_ROUTE).handlers[2]).toBe(listGuard);
       /*
        * Audit summaries admit audit-only roles so optional enrichment cannot
@@ -750,6 +751,7 @@ describe("Session replay playback API", () => {
       SUMMARIES_ROUTE,
       RESOLVE_ROUTE,
       USERS_ROUTE,
+      USER_FLOW_ROUTE,
       MANIFEST_ROUTE,
       CHUNKS_ROUTE,
       HEARTBEAT_ROUTE,
@@ -4454,6 +4456,416 @@ describe("Session replay playback API", () => {
     });
   });
 
+  describe("user flow", () => {
+    const USER_KEY: string = "a".repeat(64);
+
+    function principalWith(permissions: Array<Permission>): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: permissions,
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      return principal;
+    }
+
+    /* Every statement the read ran: the header, the count and the chunks. */
+    function statements(): Array<Statement> {
+      return [...headerQuerySpy.mock.calls, ...chunkQuerySpy.mock.calls].map(
+        (call: Array<unknown>): Statement => {
+          return call[0] as Statement;
+        },
+      );
+    }
+
+    function readBody(
+      principal: { request: JSONObject },
+      filters?: JSONObject,
+    ): Promise<CallResult> {
+      return callRoute({
+        uri: USER_FLOW_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          ...(filters ? { filters: filters } : {}),
+        },
+      });
+    }
+
+    function headerRow(overrides: JSONObject = {}): JSONObject {
+      return {
+        flowSessionId: "session-1",
+        flowStartUnixMs: 1700000000000,
+        flowDeviceType: "desktop",
+        flowBrowserName: "Chrome",
+        flowCountryCode: "GB",
+        flowEntryUrl: "https://example.com/",
+        flowIdentifiedUserKey: USER_KEY,
+        flowVisitorId: VISITOR_ID,
+        flowIsFinalized: true,
+        flowChunkCount: 3,
+        flowSealedReason: "",
+        ...overrides,
+      };
+    }
+
+    test("a read over everyone names nobody, in the statements or the answer", async () => {
+      const result: CallResult = await readBody(
+        principalWith([Permission.ProjectOwner]),
+      );
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["scope"]).toBeNull();
+      expect(statements()).toHaveLength(3);
+
+      for (const statement of statements()) {
+        expect(statement.query).not.toMatch(/identifiedUser|visitorId/);
+      }
+    });
+
+    test("a null filter reads as no filter, as it does on the list", async () => {
+      const result: CallResult = await readBody(
+        principalWith([Permission.ProjectOwner]),
+        { visitorId: null, identifiedUserRef: null },
+      );
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["scope"]).toBeNull();
+    });
+
+    test("a reference is hashed on the server and reaches every statement as the key", async () => {
+      const result: CallResult = await readBody(
+        principalWith([Permission.ProjectOwner]),
+        { identifiedUserRef: "jane@example.com" },
+      );
+
+      const expectedKey: string = SessionReplayIdentity.buildUserKey({
+        projectId: projectId,
+        userRef: "jane@example.com",
+      });
+
+      expect(statements()).toHaveLength(3);
+
+      for (const statement of statements()) {
+        expect(statement.query).toContain("HAVING argMax(identifiedUserKey");
+
+        const bound: Array<unknown> = Object.values(statement.query_params);
+
+        expect(bound).toContain(expectedKey);
+        expect(bound).not.toContain("jane@example.com");
+      }
+
+      /* The page writes this into its link, in place of the reference. */
+      expect(result.jsonBody?.["scope"]).toEqual({
+        kind: "user",
+        identifiedUserKey: expectedKey,
+        visitorId: "",
+        sessionId: "",
+        identifiedUserLabel: "",
+      });
+    });
+
+    /*
+     * The list drops this filter and says so, because the rest of the list
+     * is worth reading. Here the rest is everybody else's journeys, under
+     * the name of the person asked about, so nothing runs at all.
+     */
+    test("a reference from a role denied identity is refused, and nothing is read", async () => {
+      for (const permission of [
+        Permission.TelemetryAdmin,
+        Permission.ReadRumSessionReplay,
+      ]) {
+        jest.clearAllMocks();
+
+        const result: CallResult = await readBody(principalWith([permission]), {
+          identifiedUserRef: "jane@example.com",
+        });
+
+        expect(result.reachedHandler).toBe(true);
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect(String((result.thrownToNext as Exception).message)).toContain(
+          "cannot read end-user identity",
+        );
+        expect(result.jsonBody).toBeUndefined();
+        expect(statements()).toHaveLength(0);
+      }
+    });
+
+    /*
+     * Not a 403. The Dashboard's API layer takes a 403 for "no access to
+     * this page" and sends the whole app to the Forbidden screen, which is
+     * no answer to having typed a reference into a filter.
+     */
+    test("that refusal is a 400 the page can show, never a 403", async () => {
+      const result: CallResult = await readBody(
+        principalWith([Permission.TelemetryAdmin]),
+        { identifiedUserRef: "jane@example.com" },
+      );
+
+      expect((result.thrownToNext as Exception).code).toBe(
+        ExceptionCode.BadDataException,
+      );
+    });
+
+    test("whether the reference exists cannot be told from the refusal", async () => {
+      const principal: { request: JSONObject } = principalWith([
+        Permission.TelemetryAdmin,
+      ]);
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet([headerRow()]) as never);
+
+      const known: CallResult = await readBody(principal, {
+        identifiedUserRef: "jane@example.com",
+      });
+
+      headerQuerySpy.mockResolvedValue(fakeResultSet([]) as never);
+
+      const unknown: CallResult = await readBody(principal, {
+        identifiedUserRef: "nobody@example.com",
+      });
+
+      expect((known.thrownToNext as Exception).message).toBe(
+        (unknown.thrownToNext as Exception).message,
+      );
+    });
+
+    test("the key needs no identity permission, and the label stays out of the read", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          headerRow({ flowIdentifiedUserLabel: "jane@example.com" }),
+        ]) as never,
+      );
+
+      const result: CallResult = await readBody(
+        principalWith([Permission.TelemetryAdmin]),
+        { identifiedUserKey: USER_KEY },
+      );
+
+      expect(result.thrownToNext).toBeUndefined();
+
+      for (const statement of statements()) {
+        expect(statement.query).not.toContain("identifiedUserLabel");
+        expect(Object.values(statement.query_params)).toContain(USER_KEY);
+      }
+
+      /* Absent, not empty: "hidden from you", never "nobody said". */
+      expect(result.jsonBody?.["scope"]).toEqual({
+        kind: "user",
+        identifiedUserKey: USER_KEY,
+        visitorId: "",
+        sessionId: "",
+      });
+      expect(JSON.stringify(result.jsonBody)).not.toContain("jane@example.com");
+    });
+
+    test("a role with identity reads the label with the key", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          headerRow({ flowIdentifiedUserLabel: "jane@example.com" }),
+        ]) as never,
+      );
+
+      const result: CallResult = await readBody(
+        principalWith([Permission.ProjectOwner]),
+        { identifiedUserKey: USER_KEY },
+      );
+
+      expect(
+        (result.jsonBody?.["scope"] as JSONObject)?.["identifiedUserLabel"],
+      ).toBe("jane@example.com");
+    });
+
+    test("the label follows the identity grant's label scope", async () => {
+      /* Identity grant scoped to label B; the application carries label A. */
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelBId],
+      });
+      grantUnscopedListPermission(principal.databaseProps, projectId);
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      const byKey: CallResult = await readBody(principal, {
+        identifiedUserKey: USER_KEY,
+      });
+
+      expect(byKey.thrownToNext).toBeUndefined();
+      expect(byKey.jsonBody?.["scope"]).not.toHaveProperty(
+        "identifiedUserLabel",
+      );
+
+      const byReference: CallResult = await readBody(principal, {
+        identifiedUserRef: "jane@example.com",
+      });
+
+      expect(byReference.thrownToNext).toBeInstanceOf(BadDataException);
+    });
+
+    test("a visitor is narrowed on the newest header and named in the answer", async () => {
+      headerQuerySpy.mockResolvedValue(fakeResultSet([headerRow()]) as never);
+
+      const result: CallResult = await readBody(
+        principalWith([Permission.ReadRumSessionReplay]),
+        { visitorId: VISITOR_ID },
+      );
+
+      expect(result.thrownToNext).toBeUndefined();
+
+      for (const statement of statements()) {
+        expect(statement.query).toContain("HAVING argMax(visitorId, version)");
+        expect(Object.values(statement.query_params)).toContain(VISITOR_ID);
+      }
+
+      expect(result.jsonBody?.["scope"]).toEqual({
+        kind: "visitor",
+        identifiedUserKey: "",
+        visitorId: VISITOR_ID,
+        sessionId: "",
+      });
+    });
+
+    test("a session is narrowed in the WHERE, and says whose it is", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          headerRow({ flowIdentifiedUserLabel: "jane@example.com" }),
+        ]) as never,
+      );
+
+      const result: CallResult = await readBody(
+        principalWith([Permission.ProjectOwner]),
+        { sessionId: "session-1" },
+      );
+
+      expect(result.thrownToNext).toBeUndefined();
+
+      for (const statement of statements()) {
+        expect(statement.query).toContain("AND sessionId = ");
+        expect(statement.query).not.toContain("HAVING");
+        expect(Object.values(statement.query_params)).toContain("session-1");
+      }
+
+      expect(result.jsonBody?.["scope"]).toEqual({
+        kind: "session",
+        identifiedUserKey: USER_KEY,
+        visitorId: VISITOR_ID,
+        sessionId: "session-1",
+        identifiedUserLabel: "jane@example.com",
+      });
+    });
+
+    /*
+     * Every one of these, dropped quietly, would answer 200 with everyone's
+     * journeys for a question about one person.
+     */
+    test("a filter that cannot be applied is a 400, and nothing is read", async () => {
+      const cases: Array<JSONObject> = [
+        { identifiedUserRef: "" },
+        { identifiedUserRef: "   " },
+        { identifiedUserRef: "z".repeat(4096) },
+        { identifiedUserRef: 42 },
+        { identifiedUserKey: "" },
+        { identifiedUserKey: "hmac-1" },
+        { identifiedUserKey: "A".repeat(64) },
+        { identifiedUserKey: 42 },
+        { visitorId: "" },
+        { visitorId: "not-a-visitor" },
+        { visitorId: VISITOR_ID.toUpperCase() },
+        { sessionId: "" },
+        { sessionId: "s".repeat(4096) },
+        { sessionId: 42 },
+      ] as unknown as Array<JSONObject>;
+
+      const principal: { request: JSONObject } = principalWith([
+        Permission.ProjectOwner,
+      ]);
+
+      for (const filters of cases) {
+        headerQuerySpy.mockClear();
+        chunkQuerySpy.mockClear();
+
+        const result: CallResult = await readBody(principal, filters);
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect(result.jsonBody).toBeUndefined();
+        expect(statements()).toHaveLength(0);
+      }
+    });
+
+    test("one person or session at a time", async () => {
+      const result: CallResult = await readBody(
+        principalWith([Permission.ProjectOwner]),
+        { identifiedUserKey: USER_KEY, sessionId: "session-1" },
+      );
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(statements()).toHaveLength(0);
+    });
+
+    test("every statement stays pinned to the tenant and the application", async () => {
+      await readBody(principalWith([Permission.ProjectOwner]), {
+        identifiedUserKey: USER_KEY,
+      });
+
+      expect(statements()).toHaveLength(3);
+
+      for (const statement of statements()) {
+        const bound: Array<unknown> = Object.values(statement.query_params);
+
+        expect(bound).toContain(projectId.toString());
+        expect(bound).toContain(applicationAId.toString());
+      }
+    });
+
+    test("a caller outside the application's labels is refused before a filter is read", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+        labelIds: [labelBId],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      const result: CallResult = await readBody(principal, {
+        identifiedUserKey: USER_KEY,
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(statements()).toHaveLength(0);
+    });
+
+    test("a Viewer is refused by the list guard", async () => {
+      const result: CallResult = await readBody(
+        principalWith([Permission.Viewer]),
+        { identifiedUserKey: USER_KEY },
+      );
+
+      expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(result.reachedHandler).toBe(false);
+      expect(statements()).toHaveLength(0);
+    });
+  });
+
   describe("manifest", () => {
     test("never names the payload column and writes the read audit row", async () => {
       const principal: {
@@ -7200,273 +7612,6 @@ describe("Session replay playback API", () => {
         "click-events",
         "tags",
       ]);
-    });
-  });
-
-  /*
-   * Issue #5375: one person's journeys. The route is where three promises
-   * meet, so they are held here through the real middleware and handler,
-   * with only ClickHouse stubbed: a reference is never looked up for a role
-   * that may not read identity, a request that names a person is never
-   * answered with everyone, and a person filter widens nobody's access.
-   */
-  describe("user flow", () => {
-    const REFERENCE: string = "jane@example.com";
-
-    function principalWith(permissions: Array<Permission>): {
-      request: JSONObject;
-      databaseProps: DatabaseCommonInteractionProps;
-    } {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = buildPrincipal({
-        projectId: projectId,
-        userId: userId,
-        permissions: permissions,
-      });
-
-      mockProps(principal.databaseProps);
-      mockApplication({ id: applicationAId, labelIds: [] });
-
-      return principal;
-    }
-
-    function callFlow(
-      principal: { request: JSONObject },
-      filters?: JSONObject,
-    ): Promise<CallResult> {
-      return callRoute({
-        uri: USER_FLOW_ROUTE,
-        request: principal.request,
-        body: {
-          rumApplicationId: applicationAId.toString(),
-          ...(filters ? { filters: filters } : {}),
-        },
-      });
-    }
-
-    function statements(): Array<Statement> {
-      return [...headerQuerySpy.mock.calls, ...chunkQuerySpy.mock.calls].map(
-        (call: Array<unknown>): Statement => {
-          return call[0] as Statement;
-        },
-      );
-    }
-
-    function everythingSentToClickHouse(): string {
-      return JSON.stringify(
-        statements().map((statement: Statement): Array<unknown> => {
-          return [statement.query, statement.query_params];
-        }),
-      );
-    }
-
-    function digestOf(reference: string): string {
-      return SessionReplayIdentity.buildUserKey({
-        projectId: projectId,
-        userRef: reference,
-      });
-    }
-
-    test("everyone's flows name nobody, and say no filter was ignored", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = principalWith([Permission.ProjectOwner]);
-
-      const result: CallResult = await callFlow(principal);
-
-      expect(result.deniedWith).toBeUndefined();
-      expect(result.thrownToNext).toBeUndefined();
-      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
-      expect(statements()).toHaveLength(3);
-      expect(everythingSentToClickHouse()).not.toMatch(
-        /identifiedUser|visitorId|HAVING/,
-      );
-    });
-
-    test("a role that may read identity finds someone by what they typed", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = principalWith([Permission.ProjectOwner]);
-
-      const result: CallResult = await callFlow(principal, {
-        identifier: REFERENCE,
-      });
-
-      expect(result.thrownToNext).toBeUndefined();
-      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
-
-      /* All three statements ask for the same digest, none for the email. */
-      for (const statement of statements()) {
-        expect(statement.query).toContain("HAVING (");
-        expect(Object.values(statement.query_params)).toContain(
-          digestOf(REFERENCE),
-        );
-      }
-
-      expect(everythingSentToClickHouse()).toContain(
-        "argMax(identifiedUserLabel, version) AS flowUserLabel",
-      );
-    });
-
-    /*
-     * The dictionary attack the list's gate closes: a caller denied the label
-     * must not be able to ask "does this address have sessions here".
-     */
-    test("a role that may not read identity is never answered about a reference", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = principalWith([Permission.TelemetryAdmin]);
-
-      const result: CallResult = await callFlow(principal, {
-        identifier: REFERENCE,
-      });
-
-      expect(result.jsonBody?.["ignoredFilters"]).toEqual([
-        "identifiedUserRef",
-      ]);
-
-      const sent: string = everythingSentToClickHouse();
-
-      expect(sent).not.toContain(digestOf(REFERENCE));
-      expect(sent).not.toContain("identifiedUserLabel");
-
-      /* Still one person's question: never everyone's journeys. */
-      for (const statement of statements()) {
-        expect(statement.query).toContain("HAVING (");
-      }
-    });
-
-    test("identity scoped to other labels does not reach this application", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = buildPrincipal({
-        projectId: projectId,
-        userId: userId,
-        permissions: [Permission.ReadRumSessionReplayPayload],
-        labelIds: [labelAId],
-      });
-
-      grantUnscopedListPermission(principal.databaseProps, projectId);
-      mockProps(principal.databaseProps);
-      mockApplication({ id: applicationBId, labelIds: [labelBId] });
-
-      const result: CallResult = await callRoute({
-        uri: USER_FLOW_ROUTE,
-        request: principal.request,
-        body: {
-          rumApplicationId: applicationBId.toString(),
-          filters: { identifier: REFERENCE },
-        },
-      });
-
-      expect(result.jsonBody?.["ignoredFilters"]).toEqual([
-        "identifiedUserRef",
-      ]);
-      expect(everythingSentToClickHouse()).not.toContain(digestOf(REFERENCE));
-    });
-
-    test("a role that may not read identity can follow a link, and gets no name", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = principalWith([Permission.TelemetryAdmin]);
-
-      const result: CallResult = await callFlow(principal, {
-        identifiedUserKey: "a".repeat(64),
-      });
-
-      expect(result.thrownToNext).toBeUndefined();
-      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
-      expect(everythingSentToClickHouse()).toContain("a".repeat(64));
-      expect(everythingSentToClickHouse()).not.toContain("identifiedUserLabel");
-    });
-
-    test("a browser and a session are links too", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = principalWith([Permission.ReadRumSessionReplay]);
-
-      await callFlow(principal, { visitorId: VISITOR_ID });
-      expect(everythingSentToClickHouse()).toContain(VISITOR_ID);
-
-      jest.clearAllMocks();
-
-      await callFlow(principal, { sessionId: "session-1" });
-      expect(everythingSentToClickHouse()).toContain("session-1");
-    });
-
-    /* Without its filter this read is everyone's journeys, with a 200. */
-    test.each([
-      ["a malformed visitor id", { visitorId: "not-a-visitor" }],
-      ["an empty identifier", { identifier: "   " }],
-      ["two people at once", { identifiedUserKey: "k", sessionId: "s" }],
-    ])(
-      "refuses %s before anything is read",
-      async (_name: string, filters: JSONObject) => {
-        const principal: {
-          request: JSONObject;
-          databaseProps: DatabaseCommonInteractionProps;
-        } = principalWith([Permission.ProjectOwner]);
-
-        const result: CallResult = await callFlow(principal, filters);
-
-        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
-        expect(statements()).toHaveLength(0);
-      },
-    );
-
-    test("a person filter widens nobody's access to an application", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = buildPrincipal({
-        projectId: projectId,
-        userId: userId,
-        permissions: [Permission.ReadRumSessionReplay],
-        labelIds: [labelAId],
-      });
-
-      mockProps(principal.databaseProps);
-      mockApplication({ id: applicationBId, labelIds: [labelBId] });
-
-      const result: CallResult = await callRoute({
-        uri: USER_FLOW_ROUTE,
-        request: principal.request,
-        body: {
-          rumApplicationId: applicationBId.toString(),
-          filters: { identifiedUserKey: "a".repeat(64) },
-        },
-      });
-
-      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
-      expect(statements()).toHaveLength(0);
-    });
-
-    test("every read is held to the caller's project and application", async () => {
-      const principal: {
-        request: JSONObject;
-        databaseProps: DatabaseCommonInteractionProps;
-      } = principalWith([Permission.ProjectOwner]);
-
-      await callFlow(principal, { identifier: REFERENCE });
-
-      for (const statement of statements()) {
-        const values: Array<string> = Object.values(statement.query_params).map(
-          (value: unknown): string => {
-            return String(value);
-          },
-        );
-
-        expect(values).toContain(projectId.toString());
-        expect(values).toContain(applicationAId.toString());
-      }
     });
   });
 });

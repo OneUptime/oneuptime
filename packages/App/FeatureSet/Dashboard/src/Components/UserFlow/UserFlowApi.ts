@@ -11,7 +11,7 @@ import {
   readUserFlowJourneysResponse,
   UserFlowJourneysResponseDto,
 } from "Common/Types/Rum/UserFlow";
-import { getUserFlowPersonFilters, UserFlowPerson } from "./UserFlowPerson";
+import { getUserFlowScopeFilters, UserFlowScope } from "./UserFlowScope";
 
 /*
  * The client half of /telemetry/rum/session-replay/user-flow. The endpoint
@@ -26,8 +26,7 @@ export async function fetchUserFlowJourneys(request: {
   rumApplicationId: ObjectID;
   startTime: Date;
   endTime: Date;
-  /* Absent reads everyone. */
-  person?: UserFlowPerson | undefined;
+  scope: UserFlowScope | null;
 }): Promise<UserFlowJourneysResponseDto> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
     {
@@ -36,8 +35,8 @@ export async function fetchUserFlowJourneys(request: {
         rumApplicationId: request.rumApplicationId.toString(),
         startTime: OneUptimeDate.toString(request.startTime),
         endTime: OneUptimeDate.toString(request.endTime),
-        ...(request.person
-          ? { filters: getUserFlowPersonFilters(request.person) }
+        ...(request.scope
+          ? { filters: getUserFlowScopeFilters(request.scope) }
           : {}),
       },
       headers: {
