@@ -25,6 +25,8 @@ import {
   TABLE_ROW_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_SELECTED_ROW_CLASS_NAME,
+  TABLE_CARD_BODY_WITH_CONTROLS_CLASS_NAME,
+  TABLE_CARD_CONTROLS_CLASS_NAME,
   TABLE_STICKY_END_BODY_CELL_CLASS_NAME,
   TABLE_STICKY_END_HEADER_CELL_CLASS_NAME,
   TABLE_STICKY_HEADER_CELL_CLASS_NAME,
@@ -933,7 +935,7 @@ describe("on a phone", () => {
     expect(cards[1]).not.toHaveClass("bg-indigo-50");
   });
 
-  test("a card's select box lines up with its words; only a drag grip, wider than its dots, is drawn 4px out", () => {
+  test("a card's select box stands beside its name, on its line; only a drag grip, wider than its dots, is drawn 4px out", () => {
     setViewportWidth(390);
     renderTable({ withBulkActions: true });
 
@@ -943,15 +945,44 @@ describe("on a phone", () => {
         .querySelector<HTMLElement>("input[type=checkbox]")!;
       let node: HTMLElement = box;
 
-      while (node.parentElement && !node.className.includes("mb-3")) {
+      while (node.parentElement && !node.className.includes("float-start")) {
         node = node.parentElement;
       }
 
       return node;
     };
 
-    expect(controls()).toHaveClass("mb-3", "flex");
+    // Floated at the start of the card's first line, on the name's 24px line.
+    expect(controls()).toHaveClass(
+      ...TABLE_CARD_CONTROLS_CLASS_NAME.split(" "),
+    );
+    expect(controls().parentElement).toHaveClass(
+      TABLE_CARD_BODY_WITH_CONTROLS_CLASS_NAME,
+    );
+    // The fields come right after them, not on a line under them.
+    expect(controls().nextElementSibling?.tagName).toBe("DL");
     expect(controls()).not.toHaveClass("-ml-1");
+
+    /*
+     * The select box's label - a row's has no words, its name is its
+     * aria-label - takes no room: its empty place, 12px of margin, put the
+     * name 24px from the box. The rule finds the place the checkbox draws.
+     */
+    expect(controls()).toHaveClass("[&_div:has(>label:empty)]:hidden");
+
+    const emptyLabelPlace: Element | null =
+      Array.from(controls().querySelectorAll("div")).find(
+        (element: Element): boolean => {
+          return Array.from(element.children).some(
+            (child: Element): boolean => {
+              return child.tagName === "LABEL" && child.textContent === "";
+            },
+          );
+        },
+      ) || null;
+
+    expect(emptyLabelPlace).not.toBeNull();
+    expect(emptyLabelPlace).toHaveClass("ml-3");
 
     cleanup();
     renderTable({ withBulkActions: true, enableDragAndDrop: true });

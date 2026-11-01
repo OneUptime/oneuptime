@@ -82,13 +82,25 @@ export default interface Columns<
    */
   hideTitleOnMobile?: boolean | undefined;
   /*
-   * Left out below lg (1024px), on a tablet's rows and a phone's cards,
-   * where another column's cell shows its value instead
-   * (useAreTableColumnsFolded) - beside a side menu a card is 430 to 700px
-   * wide there. Spread through to the table as is (see the Table Column of
-   * the same name).
+   * Foldable: left out while the table's box is narrower than 48rem or its
+   * rows do not fit it, and on a phone's cards, where another column's
+   * cell shows its value instead (foldInto, or the page's own cells by
+   * useAreTableColumnsFolded). Spread through to the table as is (see the
+   * Table Column of the same name).
    */
   hideBelowLargeScreen?: boolean | undefined;
+  /*
+   * With hideBelowLargeScreen: the column (by id or field) under whose value
+   * the table shows this one's while it is folded. Spread through to the
+   * table as is (see the Table Column of the same name).
+   */
+  foldInto?: string | undefined;
+  /*
+   * Folded under another column's value, this one's says its column's name
+   * before it - for a value that does not say what it is by itself, as a
+   * time among times does not ("Last match 2 hours ago").
+   */
+  showTitleWhenFolded?: boolean | undefined;
   /*
    * Its header has no edge to drag (see the Table Column of the same name).
    * Spread through to the table as is.

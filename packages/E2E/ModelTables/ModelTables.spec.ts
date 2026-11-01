@@ -271,12 +271,19 @@ function contrast(foreground: string, background: string): number {
 }
 
 test.describe("the Incidents list of the screenshot", () => {
+  /*
+   * Wide enough for every column whole. Narrower - at 1280px, in the
+   * fixture's 1214px card, now that its dates are short - the list gives
+   * way to fit its card instead of scrolling, its header's names breaking
+   * between their words before a value is cut short (see "a table gives
+   * way before its rows scroll").
+   */
   test("its header row is one quiet line: 'Incident Number' no longer breaks", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, INCIDENTS);
+    await open(page, INCIDENTS, 1600);
 
     const titles: Array<string> = (await header(page).allInnerTexts()).map(
       (title: string): string => {
@@ -332,7 +339,7 @@ test.describe("the Incidents list of the screenshot", () => {
       expect(cell.lines).toBeLessThanOrEqual(1);
     }
 
-    await screenshot(page, "incidents-1280");
+    await screenshot(page, "incidents-1600");
   });
 
   test("a row's values read in the reading size on a 24px line; the number is the row's name", async ({
@@ -492,6 +499,20 @@ test.describe("the Alerts list of the screenshot", () => {
     "Owners",
   ];
 
+  /*
+   * At 1280px the nine columns are 24px too wide for the fixture's card
+   * even given way: the list folds (TableFit) - the severity under the
+   * state, how long it has lasted under when it was created, the labels
+   * and owners under the title - rather than its rows scrolling.
+   */
+  const ALERT_FOLDED_COLUMNS: Array<string> = [
+    "Alert Number",
+    "Title",
+    "State",
+    "Affected Resources",
+    "Created",
+  ];
+
   // The fixture's alerts, newest first, and the monitors they were raised on.
   const FIRST_MONITOR: string = "oneuptime-test - High Node Memory Utilization";
   const PENDING_MONITOR: string = "oneuptime-test - Pod Stuck in Pending";
@@ -550,7 +571,7 @@ test.describe("the Alerts list of the screenshot", () => {
   }) => {
     await open(page, ALERTS);
 
-    expect(await columnTitles(page)).toEqual(ALERT_COLUMNS);
+    expect(await columnTitles(page)).toEqual(ALERT_FOLDED_COLUMNS);
     await expect(
       page.getByRole("columnheader", { name: "Monitor", exact: true }),
     ).toHaveCount(0);
@@ -578,6 +599,53 @@ test.describe("the Alerts list of the screenshot", () => {
     }
 
     await screenshot(page, "alerts-1280");
+  });
+
+  test("folded at 1280px, each row keeps every value: its severity under its state, its duration under when it was created", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS);
+
+    const first: Locator = rows(page).first();
+    const state: Locator = await cell(page, first, "State");
+    const created: Locator = await cell(page, first, "Created");
+
+    // The severity's pill under the state's, as its own line.
+    await expect(state.getByTestId("table-folded-value")).toHaveCount(1);
+    await expect(state.getByTestId("table-folded-value")).toBeVisible();
+    // A screen reader hears the folded column's name before its value.
+    await expect(
+      state.getByTestId("table-folded-value").locator(".sr-only"),
+    ).toHaveText("Severity");
+    await expect(created.getByTestId("table-folded-value")).toHaveCount(1);
+
+    // The row's View is on the card, nothing scrolling under it.
+    await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+      "data-overflowing",
+      "false",
+    );
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+  });
+
+  test("on a screen wide enough every column is its own: Severity, Duration, Labels and Owners too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERTS, 1600);
+
+    expect(await columnTitles(page)).toEqual(ALERT_COLUMNS);
+    await expect(page.getByTestId("table-folded-value")).toHaveCount(0);
+    await screenshot(page, "alerts-1600");
   });
 
   test("a monitor named in Affected Resources opens the monitor", async ({
@@ -1841,45 +1909,71 @@ test.describe("a row's labels, one under another, in natural order", () => {
 });
 
 test.describe("a value too long for its column", () => {
-  test("is cut short with an ellipsis inside its column, and shows in full under the pointer", async ({
+  test("is cut short inside its column - two lines, then an ellipsis - and shows in full under the pointer", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, `${INCIDENTS}?data=long`);
 
-    // The incident's title: a column after the row's name keeps its 20rem.
-    const title: Locator = bodyRows(page, "incidents-table")
+    /*
+     * The incident's title: a column after the row's name keeps its 20rem.
+     * The long list folds at 1280px (TableFit), its labels and owners on
+     * lines of their own under the title: the title is the cell's first
+     * lines - two of them, from its start, before it is cut short
+     * (TableFoldedValues' TABLE_FOLDED_MAIN_LINE_CLASS_NAME).
+     */
+    const value: Locator = bodyRows(page, "incidents-table")
       .filter({ hasText: "Checkout requests time out" })
       .locator("td")
       .nth(2)
       .locator("> div");
+    const title: Locator = value.locator("[data-table-folded-main]");
+
+    await expect(value.getByTestId("table-folded-value").first()).toBeVisible();
 
     const measure: {
       width: number;
+      height: number;
+      scrollHeight: number;
+      clientHeight: number;
       scrollWidth: number;
       clientWidth: number;
-      textOverflow: string;
+      lineClamp: string;
     } = await title.evaluate((element: Element) => {
       const style: CSSStyleDeclaration = getComputedStyle(element);
       return {
         width: element.getBoundingClientRect().width,
+        height: element.getBoundingClientRect().height,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
         scrollWidth: element.scrollWidth,
         clientWidth: element.clientWidth,
-        textOverflow: style.textOverflow,
+        lineClamp: style.getPropertyValue("-webkit-line-clamp"),
       };
     });
 
-    // Capped at 20rem, the rest of the title cut off with an ellipsis.
+    /*
+     * Capped at 20rem, on two of the row's 24px lines - never one line cut
+     * after a few words, never past its column - and the rest of the title
+     * cut off, with an ellipsis, after the second.
+     */
     expect(measure.width).toBeLessThanOrEqual(320);
-    expect(measure.scrollWidth).toBeGreaterThan(measure.clientWidth);
-    expect(measure.textOverflow).toBe("ellipsis");
+    expect(measure.lineClamp).toBe("2");
+    expect(Math.round(measure.height)).toBe(48);
+    expect(measure.scrollHeight).toBeGreaterThan(measure.clientHeight);
+    expect(measure.scrollWidth).toBeLessThanOrEqual(measure.clientWidth);
 
+    /*
+     * Under the pointer, over its line: the title in full - not its labels
+     * and owners after it, which are on lines of their own already.
+     */
     await title.hover();
     await expect(title).toHaveAttribute(
       "title",
       "Checkout requests time out for customers in every EU region while the payments gateway retries callbacks against the primary database",
     );
+    await expect(value).not.toHaveAttribute("title", /.+/);
 
     await screenshot(page, "incidents-long-1280");
   });
@@ -1923,10 +2017,19 @@ test.describe("a value too long for its column", () => {
   }) => {
     await open(page, `${INCIDENTS}?data=long`, 1600);
 
+    // Its place among the columns drawn (the long list folds even at 1600px).
+    const resources: number = (await header(page).allInnerTexts())
+      .map((title: string): string => {
+        return title.trim();
+      })
+      .indexOf("Affected Resources");
+
+    expect(resources).toBeGreaterThan(-1);
+
     const resource: Locator = bodyRows(page, "incidents-table")
       .filter({ hasText: "Checkout requests time out" })
       .locator("td")
-      .nth(5)
+      .nth(resources)
       .locator("div.truncate")
       .first();
 
@@ -2058,32 +2161,53 @@ test.describe("a row's name uses the room its row has", () => {
   });
 
   /*
-   * Its row's View is "View" now, not "View Status Page": 900px fits too,
-   * and the rows scroll from below about 860px.
+   * Its row's View is "View" now, not "View Status Page": 900px fits too.
+   * Below about 840px even 10rem does not fit; a table only up to 2rem too
+   * wide stays given way, and further past a card narrower than 48rem
+   * (724px here) a table that does not fit is drawn as cards (TableFit) -
+   * its rows no longer scroll under their sticky View, a row's name and
+   * its buttons in sight and nothing between them. (Its Owners header,
+   * which no longer sorts by a record's id, is 18px narrower than it was:
+   * at 820px the list is within those 2rem now.)
    */
-  test("at 820px even 10rem does not fit: the rows scroll, and the name is back at its cap", async ({
+  test("at 790px even 10rem does not fit: in a card that narrow each row is a card, its name whole", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, `${STATUS_PAGES}?data=long`, 820);
+    await open(page, `${STATUS_PAGES}?data=long`, 790);
 
-    await expect(page.getByTestId("table-scroll")).toHaveAttribute(
-      "data-overflowing",
-      "true",
-    );
+    const cards: Locator = page.locator("#status-page-table-body > div");
 
-    const name: Locator = statusPageName(page, 2);
-    const measure: NameMeasure = await measureName(name);
+    await expect(cards).toHaveCount(3);
+    await expect(page.locator("table")).toHaveCount(0);
 
-    expect(measure.fill).toBe("false");
-    expect(measure.width).toBeLessThanOrEqual(320);
-    expect(Math.round(measure.height)).toBe(24);
+    // The long name is the card's first line, whole over the lines it needs.
+    const name: Locator = cards.nth(2).locator("dd").first();
+
+    await expect(name).toHaveText(LONG_STATUS_PAGE);
     expect(
-      await name.evaluate((element: Element): string => {
-        return getComputedStyle(element).textOverflow;
+      await name.evaluate((element: Element): boolean => {
+        return (
+          element.scrollWidth <= element.clientWidth &&
+          element.scrollHeight <= element.clientHeight + 1
+        );
       }),
-    ).toBe("ellipsis");
+    ).toBe(true);
+
+    // The band over the cards: the select-all box, and the list's order.
+    await expect(page.getByTestId("table-cards-header")).toBeVisible();
+
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "status-pages-long-790");
   });
 
   test("a window made narrower and wider again moves between the two, and settles - with no error on the page", async ({
@@ -2095,23 +2219,31 @@ test.describe("a row's name uses the room its row has", () => {
 
     const scrollBox: Locator = page.getByTestId("table-scroll");
     const name: Locator = statusPageName(page, 2);
+    const cards: Locator = page.locator("#status-page-table-body > div");
 
-    for (const [width, overflowing, fill] of [
-      [820, "true", "false"],
-      [1000, "false", "true"],
-      [800, "true", "false"],
-      [1280, "false", "true"],
-    ] as Array<[number, string, string]>) {
+    // Cards where the rows cannot fit a card narrower than 48rem; rows otherwise.
+    for (const [width, isCards] of [
+      [790, true],
+      [1000, false],
+      [780, true],
+      [1280, false],
+    ] as Array<[number, boolean]>) {
       await page.setViewportSize({ width: width, height: 900 });
-      await expect(scrollBox).toHaveAttribute("data-overflowing", overflowing);
-      await expect(name).toHaveAttribute("data-fill", fill);
+
+      if (isCards) {
+        await expect(cards).toHaveCount(3);
+        await expect(page.locator("table")).toHaveCount(0);
+      } else {
+        await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
+        await expect(name).toHaveAttribute("data-fill", "true");
+      }
     }
 
     // A window's edge dragged across both, a few pixels a frame, and back.
-    for (let width: number = 1280; width >= 800; width -= 7) {
+    for (let width: number = 1280; width >= 780; width -= 7) {
       await page.setViewportSize({ width: width, height: 900 });
     }
-    for (let width: number = 800; width <= 1280; width += 9) {
+    for (let width: number = 780; width <= 1280; width += 9) {
       await page.setViewportSize({ width: width, height: 900 });
     }
     await expect(scrollBox).toHaveAttribute("data-overflowing", "false");
@@ -2225,7 +2357,11 @@ test.describe("a row's name uses the room its row has", () => {
  * - and scrolls as before only when that is not enough. The gallery's give
  * table (?table=give) is a list of hosts just too wide for such a card; the
  * Shell around it is 64px narrower than the window, so a 1002px window gives
- * the 938px of a card at 1280 beside a side menu.
+ * the 938px of a card at 1280 beside a side menu. Its Created date is short
+ * ("Oct 6, 10:05" - TableDate), so it is drawn whole down to a 1051px card
+ * and its header's names wrap from there to 980px; past its card even
+ * given way, it scrolls only the last few pixels (up to 2rem), and in a
+ * card narrower than 48rem its rows are cards (TableFit).
  */
 test.describe("a table gives way before its rows scroll", () => {
   const GIVE: string = `${GALLERY}?table=give`;
@@ -2310,7 +2446,7 @@ test.describe("a table gives way before its rows scroll", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, GIVE, 1120);
+    await open(page, GIVE, 1060);
     await expect(giveRows(page)).toHaveCount(4);
 
     const reading: GiveReading = await readGive(page);
@@ -2342,7 +2478,7 @@ test.describe("a table gives way before its rows scroll", () => {
     expect(reading.headerHeight).toBeGreaterThan(39);
 
     await expectRowButtonsOnTheCard(page);
-    await screenshot(page, "gallery-give-1120");
+    await screenshot(page, "gallery-give-1060");
   });
 
   test("too wide for that - the card beside a side menu at 1280px - its long host names are cut short, never below 8rem, whole under the pointer; its date, count and status stay whole", async ({
@@ -2537,7 +2673,13 @@ test.describe("a table gives way before its rows scroll", () => {
     }
   });
 
-  test("too wide even so, it scrolls as it did: its header on one line, every value whole, its Actions in sight", async ({
+  /*
+   * In German at 1280px the alerts list was 19px past its card given way,
+   * and 147px past it drawn whole: a table that only just does not fit
+   * stays given way, the end of its last value scrolling under the row's
+   * buttons (TABLE_NEARLY_FITS_WITHIN_IN_PX).
+   */
+  test("only just too wide given way - a few pixels past its card - it stays given way, the last of them scrolling under its Actions", async ({
     page,
   }: {
     page: Page;
@@ -2548,10 +2690,62 @@ test.describe("a table gives way before its rows scroll", () => {
     const reading: GiveReading = await readGive(page);
 
     expect(reading.overflowing).toBe("true");
-    expect(reading.wrapsHeaders).toBe(false);
-    expect(reading.gives).toEqual([null, null, null, null]);
-    expect(reading.headerHeight).toBeLessThanOrEqual(39);
+    expect(reading.wrapsHeaders).toBe(true);
+    expect(reading.gives).toEqual(["line", "line", "line", "line"]);
+    expect(reading.tableWidth).toBeGreaterThan(reading.boxWidth);
+    expect(reading.tableWidth - reading.boxWidth).toBeLessThanOrEqual(32);
     await expectRowButtonsOnTheCard(page);
+  });
+
+  test("too wide even given way, in a card narrower than 48rem, each row is a card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, GIVE, 800);
+
+    await expect(page.locator("#gallery-give-body > div")).toHaveCount(4);
+    await expect(page.locator("table")).toHaveCount(0);
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+  });
+
+  /*
+   * The gallery's wide table: twelve columns, none of which a page marked
+   * to fold, in a card wider than 48rem - 372px too wide given way.
+   */
+  test("too wide even so, it scrolls as it did: its header on one line, every value whole, its Actions in sight", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${GALLERY}?table=wide`, 1024);
+
+    const scroller: Locator = page.getByTestId("table-scroll");
+    const table: Locator = scroller.locator("table");
+
+    await expect(scroller).toHaveAttribute("data-overflowing", "true");
+    await expect(table).not.toHaveAttribute("data-wrap-headers", /.+/);
+    await expect(table.locator("[data-give]")).toHaveCount(0);
+    expect(
+      Math.round((await box(table.locator("thead tr").first())).height),
+    ).toBeLessThanOrEqual(39);
+
+    // Each row's buttons on the card, the cells scrolling under them.
+    const card: Box = await box(page.getByTestId("card").first());
+
+    for (const actions of await bodyRows(page, "gallery-wide")
+      .locator("td:last-child")
+      .all()) {
+      const cell: Box = await box(actions);
+      expect(cell.x + cell.width).toBeLessThanOrEqual(card.x + card.width);
+    }
   });
 
   test("a window made narrower and wider again goes through every reading and settles, with no error on the page", async ({
@@ -2573,11 +2767,20 @@ test.describe("a table gives way before its rows scroll", () => {
     for (const [width, overflowing, wraps, give] of [
       [1002, "false", "true", "line"],
       [1280, "false", null, null],
-      [840, "true", null, null],
-      [1120, "false", "true", null],
+      [840, "true", "true", "line"],
+      [1060, "false", "true", null],
+      [800, "cards", null, null],
       [1002, "false", "true", "line"],
     ] as Array<[number, string, string | null, string | null]>) {
       await page.setViewportSize({ width: width, height: 900 });
+
+      // In a card narrower than 48rem, rows that do not fit are cards.
+      if (overflowing === "cards") {
+        await expect(page.locator("#gallery-give-body > div")).toHaveCount(4);
+        await expect(table).toHaveCount(0);
+        continue;
+      }
+
       await expect(scrollBox).toHaveAttribute("data-overflowing", overflowing);
       if (wraps) {
         await expect(table).toHaveAttribute("data-wrap-headers", wraps);
@@ -2704,13 +2907,18 @@ test.describe("a table drawn without a card", () => {
   });
 });
 
+/*
+ * At 840px the fixture's card is 776px: the rich incidents list folds, and
+ * is still far too wide - in a card that wide it is not drawn as cards
+ * (TableFit draws cards below 48rem), so its rows scroll as they did.
+ */
 test.describe("a table wider than its card", () => {
   test("scrolls sideways in its own box, its Actions column stuck at the card's edge", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, `${INCIDENTS}?data=rich`);
+    await open(page, `${INCIDENTS}?data=rich`, 840);
 
     const scroller: Locator = page.getByTestId("table-scroll");
 
@@ -2766,7 +2974,7 @@ test.describe("a table wider than its card", () => {
     await scroller.evaluate((element: Element): void => {
       element.scrollLeft = 200;
     });
-    await screenshot(page, "incidents-rich-scrolled-1280");
+    await screenshot(page, "incidents-rich-scrolled-840");
   });
 
   /*
@@ -2957,7 +3165,8 @@ test.describe("the header row stays in sight", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, `${INCIDENTS}?data=rich&rows=20`, 1280, 700);
+    // Folded and still too wide for its 776px card (see "a table wider than its card").
+    await open(page, `${INCIDENTS}?data=rich&rows=20`, 840, 700);
 
     await expect(page.getByTestId("table-scroll")).toHaveAttribute(
       "data-overflowing",
@@ -2979,11 +3188,12 @@ test.describe("the header row stays in sight", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, `${STATUS_PAGES}?data=long`, 820);
+    // Too wide for its 776px card even folded; folded, it fits at 1280px.
+    await open(page, `${INCIDENTS}?data=rich`, 840);
 
     const scrollBox: Locator = page.getByTestId("table-scroll");
     const nameHeader: Locator = page.getByRole("columnheader", {
-      name: "Name",
+      name: "Title",
     });
     const positionOf: (cell: Locator) => Promise<string> = async (
       cell: Locator,
@@ -3237,9 +3447,26 @@ test.describe("on a phone", () => {
       Math.round(card.x + card.width) - 1,
     );
 
-    // Its words start where the card's title does - not 16px in.
-    const name: Box = await box(cards.first().locator("dt").first());
-    expect(Math.abs(name.x - title.x)).toBeLessThanOrEqual(1);
+    /*
+     * Its words start where the card's title does - not 16px in: the select
+     * box at the start of its first line, the row's name 12px after it
+     * (the box's empty label takes no room), the fields under them.
+     */
+    const select: Box = await box(
+      cards.first().locator("input[type=checkbox]"),
+    );
+    expect(Math.abs(select.x - title.x)).toBeLessThanOrEqual(1);
+
+    const rowName: Box = await box(cards.first().locator("dd").first());
+    expect(Math.round(rowName.x - (select.x + select.width))).toBe(12);
+    expect(Math.round(rowName.y)).toBeLessThan(
+      Math.round(select.y + select.height),
+    );
+
+    const field: Box = await box(
+      cards.first().locator("dt:not(.sr-only)").first(),
+    );
+    expect(Math.abs(field.x - title.x)).toBeLessThanOrEqual(1);
 
     // So does the footer's summary.
     const summary: Box = await box(page.getByTestId("pagination-summary"));
@@ -3537,7 +3764,8 @@ test.describe("the dark theme", () => {
   }: {
     page: Page;
   }) => {
-    await open(page, `${INCIDENTS}?data=rich&theme=dark`);
+    // Folded and still too wide for its 776px card: the rows scroll.
+    await open(page, `${INCIDENTS}?data=rich&theme=dark`, 840);
 
     await expect(page.getByTestId("table-scroll")).toHaveAttribute(
       "data-overflowing",
@@ -3577,7 +3805,7 @@ test.describe("the dark theme", () => {
     // And it is still the ticked wash, not the plain row's ground.
     expect(ticked.actions).not.toBe(plain.actions);
 
-    await screenshot(page, "incidents-rich-ticked-1280-dark");
+    await screenshot(page, "incidents-rich-ticked-840-dark");
   });
 
   test("on a phone a ticked card shows its wash", async ({
@@ -3706,6 +3934,387 @@ test.describe("the gallery", () => {
 });
 
 /*
+ * "Incidents, Alerts, Runners, Threat Intel and Execution Logs still scroll
+ * at 1280: compact dates", "Most tables at 768-900px still scroll: more
+ * folds or tablet cards", "Fold columns by the card's own width, not the
+ * window's", "a density toggle" - the maintainer, on the tables. A table
+ * fits the card it is in (TableFit): its dates short, given way, folded,
+ * or as cards; and a phone never paints its rows for a frame first.
+ */
+test.describe("a table fits its own card", () => {
+  test("a list's dates are short - no zone, the year only when it is not this year's - and whole under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS, 1600);
+
+    const dates: Array<{
+      text: string;
+      title: string | null;
+      dateTime: string | null;
+    }> = await page
+      .locator('#incidents-table-body [data-testid="table-date"]')
+      .evaluateAll(
+        (
+          elements: Array<Element>,
+        ): Array<{
+          text: string;
+          title: string | null;
+          dateTime: string | null;
+        }> => {
+          return elements.map((element: Element) => {
+            return {
+              text: (element.textContent || "").trim(),
+              title: element.getAttribute("title"),
+              dateTime: element.getAttribute("datetime"),
+            };
+          });
+        },
+      );
+
+    expect(dates.length).toBeGreaterThan(0);
+
+    for (const date of dates) {
+      // "Oct 5, 7:04 AM": this year's, in the reader's zone, unnamed.
+      expect(date.text).toMatch(/^[A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2} [AP]M$/);
+      // Whole under the pointer: its year, and the zone it is read in.
+      expect(date.title).toMatch(/2026, \d{2}:\d{2} [AP]M BST$/);
+      expect(date.dateTime).toMatch(/^2026-\d{2}-\d{2}T/);
+      expect(new Date(date.dateTime || "").toISOString()).toBe(date.dateTime);
+    }
+  });
+
+  test("a date of another year says its year, in the cell too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.clock.setFixedTime(new Date("2027-02-03T10:00:00.000Z"));
+    await open(page, INCIDENTS, 1600);
+
+    const first: Locator = page
+      .locator('#incidents-table-body [data-testid="table-date"]')
+      .first();
+
+    await expect(first).toHaveText(/^[A-Z][a-z]{2} \d{1,2}, 2026$/);
+  });
+
+  test("on a first visit - its rows drawn before the page has their rules and its font - the incidents list at 1280px keeps every column, given way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENTS);
+
+    const titles: Array<string> = (await header(page).allInnerTexts()).map(
+      (title: string): string => {
+        return title.trim();
+      },
+    );
+
+    // Not folded for what it read before them: 1420px given way, it is 1214.
+    expect(titles).toEqual(
+      expect.arrayContaining(["Severity", "Duration", "Labels", "Owners"]),
+    );
+    await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+      "data-overflowing",
+      "false",
+    );
+    await expect(
+      page.locator('#incidents-table-body [data-give="box"]').first(),
+    ).toBeVisible();
+  });
+
+  test("a phone never paints the table's rows, not for a frame: its first paint is the cards", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.addInitScript((): void => {
+      const seen: { tables: number } = { tables: 0 };
+
+      (window as unknown as { __tablesSeen: { tables: number } }).__tablesSeen =
+        seen;
+
+      new MutationObserver((records: Array<MutationRecord>): void => {
+        for (const record of records) {
+          for (const node of Array.from(record.addedNodes)) {
+            if (
+              node instanceof Element &&
+              (node.tagName === "TABLE" || node.querySelector("table"))
+            ) {
+              seen.tables++;
+            }
+          }
+        }
+      }).observe(document, { childList: true, subtree: true });
+    });
+
+    await open(page, `${INCIDENTS}?data=rich`, 390, 844);
+    await expect(
+      page.locator("#incidents-table-body > div").first(),
+    ).toBeVisible();
+
+    expect(
+      await page.evaluate((): number => {
+        return (window as unknown as { __tablesSeen: { tables: number } })
+          .__tablesSeen.tables;
+      }),
+    ).toBe(0);
+  });
+
+  test("folded, a row's title reads whole on two lines - not one line cut after a few words - and its duration breaks only between its units", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich`);
+
+    const row: Locator = bodyRows(page, "incidents-table").filter({
+      hasText: "Primary database unreachable from the EU West workers",
+    });
+    const title: Locator = row.locator("[data-table-folded-main]").first();
+
+    // Folded: the labels and owners on lines of their own under the title.
+    await expect(row.getByTestId("table-folded-value").first()).toBeVisible();
+    await expect(title).toHaveText(
+      "Primary database unreachable from the EU West workers",
+    );
+
+    const drawn: {
+      lineClamp: string;
+      whiteSpace: string;
+      scrollWidth: number;
+      clientWidth: number;
+      scrollHeight: number;
+      clientHeight: number;
+    } = await title.evaluate((element: Element) => {
+      const style: CSSStyleDeclaration = getComputedStyle(element);
+      return {
+        lineClamp: style.getPropertyValue("-webkit-line-clamp"),
+        whiteSpace: style.whiteSpace,
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+        scrollHeight: element.scrollHeight,
+        clientHeight: element.clientHeight,
+      };
+    });
+
+    // Wrapped, up to two lines: nothing of it cut, sideways or below.
+    expect(drawn.lineClamp).toBe("2");
+    expect(drawn.whiteSpace).toBe("normal");
+    expect(drawn.scrollWidth).toBeLessThanOrEqual(drawn.clientWidth);
+    expect(drawn.scrollHeight).toBeLessThanOrEqual(drawn.clientHeight + 1);
+    await title.hover();
+    await expect(title).not.toHaveAttribute("title", /.+/);
+
+    /*
+     * The duration folded under when it was declared, in a column as wide
+     * as the date: a number never parts from its unit ("1 hour, / 35
+     * minutes", never "1 hour, 35 / minutes").
+     */
+    const duration: string =
+      (await row.getByTestId("live-duration").textContent()) || "";
+
+    expect(duration).toMatch(/^\d+\u00a0\S+(, \d+\u00a0\S+)?$/);
+    await screenshot(page, "incidents-rich-folded-titles-1280");
+  });
+
+  test("in Persian, a folded English title starts where it starts: its first letter is in sight, not cut off at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich&lang=fa`);
+
+    const title: Locator = bodyRows(page, "incidents-table")
+      .filter({
+        hasText: "Primary database unreachable from the EU West workers",
+      })
+      .locator("[data-table-folded-main]")
+      .first();
+
+    await expect(title).toBeVisible();
+
+    const firstLetter: {
+      letterLeft: number;
+      letterRight: number;
+      left: number;
+      right: number;
+    } = await title.evaluate((element: Element) => {
+      const walker: TreeWalker = document.createTreeWalker(
+        element,
+        NodeFilter.SHOW_TEXT,
+      );
+      const text: Text = walker.nextNode() as Text;
+      const range: Range = document.createRange();
+
+      range.setStart(text, 0);
+      range.setEnd(text, 1);
+
+      const letter: DOMRect = range.getBoundingClientRect();
+      const frame: DOMRect = element.getBoundingClientRect();
+
+      return {
+        letterLeft: letter.left,
+        letterRight: letter.right,
+        left: frame.left,
+        right: frame.right,
+      };
+    });
+
+    expect(firstLetter.letterLeft).toBeGreaterThanOrEqual(firstLetter.left - 1);
+    expect(firstLetter.letterRight).toBeLessThanOrEqual(firstLetter.right + 1);
+    await screenshot(page, "incidents-rich-folded-titles-fa-1280");
+  });
+
+  test("owners on their way draw no line under a folded title: no row grows a line of 'Loading...' and shrinks back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?data=rich&ownersDelay=3000`);
+
+    const owned: Locator = bodyRows(page, "incidents-table").filter({
+      hasText: "Checkout latency above 2 seconds",
+    });
+    const unowned: Locator = bodyRows(page, "incidents-table").filter({
+      hasText: "Marketing site serves an old build",
+    });
+    const ownersLine: (row: Locator) => Locator = (row: Locator): Locator => {
+      return row
+        .getByTestId("table-folded-value")
+        .filter({ hasText: "Owners" });
+    };
+
+    // On their way: the cell says so, and the folded line is not drawn.
+    await expect(owned.getByText("Loading...", { exact: true })).toHaveCount(1);
+    await expect(ownersLine(owned)).toBeHidden();
+    await expect(ownersLine(unowned)).toBeHidden();
+
+    const unownedHeight: number = Math.round((await box(unowned)).height);
+
+    // In: the owners' line under the title, and a row with none as it was.
+    await expect(ownersLine(owned)).toBeVisible({ timeout: 10000 });
+    await expect(owned.getByText("Loading...", { exact: true })).toHaveCount(0);
+    await expect(ownersLine(unowned)).toBeHidden();
+    expect(Math.round((await box(unowned)).height)).toBe(unownedHeight);
+  });
+
+  test("as cards, a list is sorted from the band over them: it says its order, and a column picked asks the server for it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${STATUS_PAGES}?data=long`, 790);
+
+    const band: Locator = page.getByTestId("table-cards-header");
+    const sort: Locator = band.getByTestId("table-cards-sort");
+
+    await expect(band).toBeVisible();
+
+    const lastSort: () => Promise<unknown> = async (): Promise<unknown> => {
+      const asked: Array<{ tableName: string }> = (
+        await fixture(page)
+      ).listRequests.filter((request: { tableName: string }): boolean => {
+        return request.tableName === "StatusPage";
+      });
+
+      return (asked[asked.length - 1] as unknown as { sort: unknown }).sort;
+    };
+
+    await sort.click();
+    await page.getByTestId("table-cards-sort-name").click();
+
+    await expect(sort).toContainText("Sorted by Name");
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return Object.keys((await lastSort()) as Record<string, unknown>);
+      })
+      .toEqual(["name"]);
+
+    await sort.click();
+    await page.getByTestId("table-cards-sort-ascending").click();
+
+    await expect.poll(lastSort).toEqual({ name: "ASC" });
+    await expect(page.locator("table")).toHaveCount(0);
+    await screenshot(page, "status-pages-cards-sorted-790");
+  });
+
+  test("compact rows: the card's ⋯ makes every row 40px and the header band 32px, kept on the next visit, and back again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, MONITORS);
+
+    const rows: Locator = bodyRows(page, "Monitors-table");
+    const band: () => Promise<number> = async (): Promise<number> => {
+      return Math.round((await box(page.locator("thead tr").first())).height);
+    };
+
+    // 48px rows, ruled; a 36px band between its two rules.
+    expect(new Set(await rowHeights(rows))).toEqual(new Set([49, 48]));
+    expect(await band()).toBe(38);
+
+    await page.getByRole("button", { name: "More options" }).first().click();
+
+    const item: Locator = page.getByRole("menuitemcheckbox", {
+      name: "Compact rows",
+    });
+
+    await expect(item).toHaveAttribute("aria-checked", "false");
+    await item.click();
+
+    await expect(page.locator("table").first()).toHaveAttribute(
+      "data-density",
+      "compact",
+    );
+    await expect
+      .poll(async (): Promise<Array<number>> => {
+        return Array.from(new Set(await rowHeights(rows))).sort();
+      })
+      .toEqual([40, 41]);
+    expect(await band()).toBe(34);
+    await screenshot(page, "monitors-compact-1280");
+
+    // The next visit draws them compact from its first paint.
+    await open(page, MONITORS);
+    await expect(page.locator("table").first()).toHaveAttribute(
+      "data-density",
+      "compact",
+    );
+
+    await page.getByRole("button", { name: "More options" }).first().click();
+    await expect(
+      page.getByRole("menuitemcheckbox", { name: "Compact rows" }),
+    ).toHaveAttribute("aria-checked", "true");
+    await page.getByRole("menuitemcheckbox", { name: "Compact rows" }).click();
+
+    await expect(page.locator("table").first()).toHaveAttribute(
+      "data-density",
+      "comfortable",
+    );
+    expect(new Set(await rowHeights(rows))).toEqual(new Set([49, 48]));
+  });
+
+  test("a phone's cards keep their room: no compact rows offered there", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, MONITORS, 390, 844);
+
+    await page.getByRole("button", { name: "More options" }).first().click();
+    await expect(page.getByRole("menu")).toBeVisible();
+    await expect(
+      page.getByRole("menuitemcheckbox", { name: "Compact rows" }),
+    ).toHaveCount(0);
+  });
+});
+
+/*
  * A member whose teams grant nothing on a list (?role=none: only what every
  * member holds). A list with row actions keeps its Actions column for a
  * locked Edit or Delete, and that column alone used to count as something to
@@ -3737,6 +4346,23 @@ test.describe("a member who may read none of a list", () => {
     await expect(page.getByTestId("facet-filter-bar")).toHaveCount(0);
     await expect(page.getByTestId("filter-chip")).toHaveCount(0);
     await expect(page.getByTestId("model-table-search-slot")).toHaveCount(0);
+
+    /*
+     * Nor in its ⋯: no Filter, no Columns to draw rows with, no rows to
+     * make compact. Refresh stays - once they are granted access, it reads
+     * the list again.
+     */
+    await page.getByRole("button", { name: "More options" }).first().click();
+
+    const menu: Locator = page.getByRole("menu");
+
+    await expect(
+      menu.getByRole("menuitem", { name: "Refresh", exact: true }),
+    ).toBeVisible();
+    for (const name of ["Filter", "Columns", "Compact rows"]) {
+      await expect(menu.getByText(name, { exact: true })).toHaveCount(0);
+    }
+    await page.keyboard.press("Escape");
 
     await screenshot(page, "no-access-incidents-1280");
   });

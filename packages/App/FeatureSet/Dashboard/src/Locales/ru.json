@@ -39262,5 +39262,8 @@
   "{{count}} updates available": "Доступно обновлений: {{count}}",
   "{{count}} updates available_one": "Доступно {{count}} обновление",
   "{{healthy}} of {{total}} healthy": "Исправно {{healthy}} из {{total}}",
-  "Cluster update": "Обновление кластера"
+  "Cluster update": "Обновление кластера",
+  "Compact rows": "Компактные строки",
+  "Sort by": "Сортировать по",
+  "Sorted by {{column}}": "Сортировка: {{column}}"
 }

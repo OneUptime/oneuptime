@@ -39262,5 +39262,8 @@
   "{{count}} updates available": "{{count}} aggiornamenti disponibili",
   "{{count}} updates available_one": "{{count}} aggiornamento disponibile",
   "{{healthy}} of {{total}} healthy": "{{healthy}} di {{total}} integri",
-  "Cluster update": "Aggiornamento del cluster"
+  "Cluster update": "Aggiornamento del cluster",
+  "Compact rows": "Righe compatte",
+  "Sort by": "Ordina per",
+  "Sorted by {{column}}": "Ordinato per {{column}}"
 }

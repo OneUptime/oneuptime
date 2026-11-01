@@ -400,13 +400,18 @@ test.describe("Watchlists", () => {
     await screenshot(page, "watchlists-desktop", { fullPage: false });
   });
 
-  test("fits its card beside the side menu at 1024, and below lg folds Holds and Read By under the name", async ({
+  /*
+   * The columns fold by the card's width, not the window's (TableFit): in a
+   * card narrower than 48rem - beside the side menu at a 1024 screen as at a
+   * 768 tablet - Holds and Read By go under the name. The fixture is 64px
+   * narrower than production: 1088 here is a 1024 screen, 832 a 768 one.
+   */
+  test("fits its card beside the side menu, and in a card narrower than 48rem - at 1024 and 768 - folds Holds and Read By under the name", async ({
     page,
   }: {
     page: Page;
   }) => {
-    // 1088 here is a 1024 screen in production (the fixture is 64px narrower).
-    await open(page, WATCHLISTS_PATH, { width: 1088 });
+    await open(page, WATCHLISTS_PATH, { width: 1280 });
     await expect(rowWith(page, "vip_users")).toBeVisible({ timeout: 30000 });
 
     expect(await columnTitles(page)).toEqual(["Watchlist", "Holds", "Read By"]);
@@ -417,7 +422,7 @@ test.describe("Watchlists", () => {
       .toBeLessThanOrEqual(1);
 
     // In German too, whose View reads Anzeigen.
-    await open(page, WATCHLISTS_PATH, { width: 1088, lang: "de" });
+    await open(page, WATCHLISTS_PATH, { width: 1280, lang: "de" });
     await expect(rowWith(page, "vip_users")).toBeVisible({ timeout: 30000 });
     await expect
       .poll(async () => {
@@ -425,23 +430,26 @@ test.describe("Watchlists", () => {
       })
       .toBeLessThanOrEqual(1);
 
-    // 832 here is a 768 tablet: the name's cell says what Holds and Read By said.
-    await open(page, WATCHLISTS_PATH, { width: 832 });
-    await expect(rowWith(page, "vip_users")).toBeVisible({ timeout: 30000 });
+    // The name's cell says what Holds and Read By said.
+    for (const width of [1088, 832]) {
+      await open(page, WATCHLISTS_PATH, { width: width });
+      await expect(rowWith(page, "vip_users")).toBeVisible({ timeout: 30000 });
 
-    expect(await columnTitles(page)).toEqual(["Watchlist"]);
-    const vip: Locator = rowWith(page, "vip_users");
-    await expect(vip.getByTestId("watchlist-name-facts")).toHaveText(
-      "Users · 3 values",
-    );
-    await expect(vip.getByTestId("watchlist-name-read-by")).toHaveText(
-      `Read by: ${READING_RULE}`,
-    );
-    await expect(
-      rowWith(page, "c2_addresses").getByTestId("watchlist-name-facts"),
-    ).toHaveText(`IP addresses · Follows ${FEODO_LIST}`);
-    expect(await tableOverflow(page)).toBeLessThanOrEqual(1);
-    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      expect(await columnTitles(page), `at ${width}`).toEqual(["Watchlist"]);
+      const vip: Locator = rowWith(page, "vip_users");
+      await expect(vip.getByTestId("watchlist-name-facts")).toHaveText(
+        "Users · 3 values",
+      );
+      await expect(vip.getByTestId("watchlist-name-read-by")).toHaveText(
+        `Read by: ${READING_RULE}`,
+      );
+      await expect(
+        rowWith(page, "c2_addresses").getByTestId("watchlist-name-facts"),
+      ).toHaveText(`IP addresses · Follows ${FEODO_LIST}`);
+      expect(await tableOverflow(page), `at ${width}`).toBeLessThanOrEqual(1);
+      expect(await pageOverflow(page), `at ${width}`).toBeLessThanOrEqual(1);
+    }
+
     await screenshot(page, "watchlists-tablet", { fullPage: false });
   });
 

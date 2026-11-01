@@ -235,8 +235,18 @@ describe("the empty state in the dark theme", () => {
       'const stateBlockClassName: string = "md:-mx-6 md:px-6";',
     );
     expect(layoutCode).toContain('"border-y border-gray-200 bg-gray-50');
-    // A phone's list of cards is ruled off from the card's header by its box.
-    expect(tableCode).toContain('"min-w-full border-t border-gray-200"');
+    /*
+     * A list of cards with nothing in it is ruled off from the card's header
+     * by its box; one with cards, by the band over them (TableCardsHeader),
+     * which draws the same rule over nothing to sort.
+     */
+    expect(tableCode).toContain('<div className="border-t border-gray-200" />');
+    expect(readCode("Components/Table/TableCardsHeader.tsx")).toContain(
+      'return <div className="border-t border-gray-200" />;',
+    );
+    expect(layoutCode).toContain(
+      '"flex min-h-[2.25rem] items-center justify-between gap-3 border-y border-gray-200 bg-gray-50',
+    );
     /*
      * The list's grey runs on to the card's rounded bottom edge - or, in a
      * section of a card (CardSections), to its square one.

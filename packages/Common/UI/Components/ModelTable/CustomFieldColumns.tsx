@@ -20,6 +20,7 @@ import {
   CUSTOM_FIELD_NO_LONGER_AN_OPTION_TEXT,
 } from "../CustomFields/CustomFieldFormFields";
 import CustomFieldFileList from "../CustomFields/CustomFieldFileList";
+import TableDate from "../Table/TableDate";
 import {
   CustomFieldFile,
   formatCustomFieldFileNames,
@@ -270,8 +271,10 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
     /*
      * Stored as ISO-8601 (the shared date Input normalises every entry through
      * OneUptimeDate.toString()), which is unreadable in a cell, so it is shown
-     * in the viewer's own timezone — the same rendering Detail gives a date
-     * field, so the list and the item page agree.
+     * in the viewer's own timezone, as every date in a table is (TableDate):
+     * short in the cell - "Aug 17, 14:30", the year only when it is not this
+     * year's - and under the pointer whole, as Detail gives a date field
+     * ("Aug 17 2026, 14:30 UTC"), so the list and the item page agree.
      */
     const isDateOnly: boolean =
       definition.customFieldType === CustomFieldType.Date;
@@ -303,18 +306,7 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
       return <span>{raw}</span>;
     }
 
-    try {
-      return (
-        <span>
-          {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            parsed,
-            isDateOnly,
-          )}
-        </span>
-      );
-    } catch {
-      return <span>{raw}</span>;
-    }
+    return <TableDate value={parsed} onlyShowDate={isDateOnly} />;
   }
 
   if (definition.customFieldType === CustomFieldType.MultiSelectDropdown) {

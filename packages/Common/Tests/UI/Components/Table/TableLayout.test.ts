@@ -277,6 +277,8 @@ describe("a row and its cells", () => {
   test("a value is in the reading size on a 24px line, from the row's top", () => {
     expect(tokens(TABLE_BODY_CELL_CLASS_NAME)).toEqual([
       "py-3",
+      // 8px instead of 12 above and below for a person who likes compact rows.
+      "[[data-density=compact]_&]:py-2",
       "align-top",
       "text-sm",
       "leading-6",

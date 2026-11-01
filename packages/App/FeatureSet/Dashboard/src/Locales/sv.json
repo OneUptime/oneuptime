@@ -39262,5 +39262,8 @@
   "{{count}} updates available": "{{count}} uppdateringar tillgängliga",
   "{{count}} updates available_one": "{{count}} uppdatering tillgänglig",
   "{{healthy}} of {{total}} healthy": "{{healthy}} av {{total}} felfria",
-  "Cluster update": "Klusteruppdatering"
+  "Cluster update": "Klusteruppdatering",
+  "Compact rows": "Kompakta rader",
+  "Sort by": "Sortera efter",
+  "Sorted by {{column}}": "Sorterat efter {{column}}"
 }

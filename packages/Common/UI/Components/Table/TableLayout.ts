@@ -112,7 +112,7 @@ export const TABLE_HEADER_CELL_CLASS_NAME: string =
  * the header row twice as tall as it needed to be.
  */
 export const TABLE_HEADER_CONTENT_CLASS_NAME: string =
-  "flex w-full items-center gap-1 whitespace-nowrap py-2.5";
+  "flex w-full items-center gap-1 whitespace-nowrap py-2.5 [[data-density=compact]_&]:py-2";
 
 /*
  * ...unless the table would otherwise run past its card: then the table
@@ -180,10 +180,14 @@ export const TABLE_SELECTED_ROW_CLASS_NAME: string =
 export const TABLE_CLICKABLE_ROW_CLASS_NAME: string = "cursor-pointer";
 
 /*
- * A body cell (<td>): the reading size on a 24px line.
+ * A body cell (<td>): the reading size on a 24px line - 12px above and
+ * below it, or 8px in a table whose person likes compact rows
+ * (TableDensity: the table carries data-density="compact").
  */
-export const TABLE_BODY_CELL_CLASS_NAME: string =
-  "py-3 align-top text-sm leading-6";
+export const TABLE_DENSITY_COMPACT_ROW_CLASS_NAME: string =
+  "[[data-density=compact]_&]:py-2";
+
+export const TABLE_BODY_CELL_CLASS_NAME: string = `py-3 ${TABLE_DENSITY_COMPACT_ROW_CLASS_NAME} align-top text-sm leading-6`;
 
 /*
  * Its words: regular weight, gray-700 - the values were all a medium-weight
@@ -211,17 +215,16 @@ export const TABLE_ROW_RULE_CLASS_NAME: string = "border-b border-gray-100";
  * below it make the row's 48px) and a select box (on the row's 24px line).
  */
 export const TABLE_DRAG_HANDLE_CELL_CLASS_NAME: string =
-  "w-px whitespace-nowrap py-2.5 align-top";
+  "w-px whitespace-nowrap py-2.5 [[data-density=compact]_&]:py-1.5 align-top";
 
-export const TABLE_SELECT_CELL_CLASS_NAME: string =
-  "w-px whitespace-nowrap py-3 align-top";
+export const TABLE_SELECT_CELL_CLASS_NAME: string = `w-px whitespace-nowrap py-3 ${TABLE_DENSITY_COMPACT_ROW_CLASS_NAME} align-top`;
 
 /*
  * The header's select-all box, on the band's 36px: its 24px line, 6px above
  * and below.
  */
 export const TABLE_HEADER_SELECT_CELL_CLASS_NAME: string =
-  "w-px whitespace-nowrap py-1.5";
+  "w-px whitespace-nowrap py-1.5 [[data-density=compact]_&]:py-1";
 
 /*
  * The Actions column (a row's View and ⋯). Its header cell keeps the band's
@@ -284,7 +287,7 @@ export const TABLE_RESET_COLUMN_WIDTHS_BUTTON_CLASS_NAME: string =
 
 // The filler's header holds it with the room a cell's end has.
 export const TABLE_END_FILLER_CONTENT_CLASS_NAME: string =
-  "flex items-center justify-end py-1.5 pl-3 pr-6";
+  "flex items-center justify-end py-1.5 [[data-density=compact]_&]:py-1 pl-3 pr-6";
 
 /*
  * ...and the last header cell of a table a page draws itself
@@ -453,10 +456,38 @@ export const TABLE_VALUE_GIVE_ATTRIBUTE: string = "data-give";
 // The least a value is cut short to: 8rem.
 export const TABLE_VALUE_GIVE_FLOOR_IN_PX: number = 128;
 
+/*
+ * How far past its box a table may run with everything given way and still
+ * be drawn given way, its rows scrolling the rest: up to 2rem, the end of
+ * one value under the row's buttons. A table further past its box than that
+ * scrolls as it was, every value whole and its header on one line - it has
+ * the scroll's room to show them in - and in a box narrower than 48rem it
+ * is drawn as cards instead (TableFit). In German at 1280px the alerts list
+ * was 19px past its card given way, and 147px past it drawn whole.
+ */
+export const TABLE_NEARLY_FITS_WITHIN_IN_PX: number = 32;
+
 export const TABLE_VALUE_GIVE_CLASS_NAME: string = [
   "data-[give=line]:min-w-[8rem] data-[give=line]:whitespace-normal data-[give=line]:break-all data-[give=line]:line-clamp-1",
   "data-[give=box]:grid data-[give=box]:min-w-[8rem] data-[give=box]:grid-cols-1 data-[give=box]:justify-items-start [&[data-give=box]>*]:min-w-0 [&[data-give=box]>*]:max-w-full",
 ].join(" ");
+
+/*
+ * A value held whole while its table has the room for it (useTableScrollState's
+ * keepWholeWhatFits): a value whose part ends in "..." of its own - a
+ * person's name beside their picture - was cut short whenever a column of
+ * prose beside it was long, the table sharing its room by how long each
+ * column's values are. Held at its whole width by a class rather than by its
+ * own style: a column a person sized (ColumnResize) says min-width: 0 to its
+ * values, and is obeyed.
+ */
+export const TABLE_VALUE_WHOLE_ATTRIBUTE: string = "data-whole";
+
+export const TABLE_VALUE_WHOLE_WIDTH_PROPERTY: string =
+  "--ou-table-whole-width";
+
+export const TABLE_VALUE_WHOLE_CLASS_NAME: string =
+  "data-[whole=true]:min-w-[var(--ou-table-whole-width)]";
 
 /*
  * What a list or a pill carries to say its words end in "..." of their own
@@ -546,6 +577,55 @@ export const TABLE_MOBILE_ROW_CLASS_NAME: string =
  */
 export const TABLE_MOBILE_SELECTED_ROW_CLASS_NAME: string =
   "bg-indigo-50 px-5 py-4 transition-colors duration-150";
+
+/*
+ * The cards' list: ruled off one from the next, and the box its cards read
+ * their width from (a container): a card as wide as a phone lists its
+ * fields one under another; one from 30rem - a tablet's, or a box too
+ * narrow for the rows beside a side menu (TableFit) - lays them out two to
+ * a line, so a 560px card is not a column of fields down its left half.
+ */
+export const TABLE_CARDS_CLASS_NAME: string =
+  "divide-y divide-gray-100 bg-white [container-type:inline-size]";
+
+export const TABLE_CARD_FIELDS_CLASS_NAME: string =
+  "space-y-2.5 [@container(min-width:30rem)]:grid [@container(min-width:30rem)]:grid-cols-2 [@container(min-width:30rem)]:gap-x-6 [@container(min-width:30rem)]:gap-y-3 [@container(min-width:30rem)]:space-y-0";
+
+/*
+ * The band over a list's cards (TableCardsHeader), where the header row is
+ * over its rows: the same light band and quiet grey words, ruled above and
+ * below, as tall as the header row (36px) - the select-all box at its
+ * start, the order the list is in at its end.
+ */
+export const TABLE_CARDS_HEADER_CLASS_NAME: string =
+  "flex min-h-[2.25rem] items-center justify-between gap-3 border-y border-gray-200 bg-gray-50 px-5 py-1 text-xs text-gray-500";
+
+// "Sorted by Declared ↓": quiet until it is pointed at, as a header's name.
+export const TABLE_CARDS_SORT_BUTTON_CLASS_NAME: string =
+  "-mr-1.5 inline-flex min-w-0 items-center gap-1.5 rounded px-1.5 py-1 text-xs font-medium text-gray-500 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+/*
+ * A card with controls - a drag grip, a select box - draws them at the start
+ * of its first line, beside its name, centred on the name's 24px line: a
+ * line of their own above the fields was the card's tallest empty space.
+ * They float there, so on a phone's card only the name's line is beside
+ * them and the fields under it keep the card's whole width; a wide card's
+ * fields, two to a line, line up after them. A select box's label, which a
+ * row's has none of (its name is its aria-label), takes no room: its empty
+ * place put the name 24px from the box, twice the room the controls keep.
+ */
+export const TABLE_CARD_BODY_WITH_CONTROLS_CLASS_NAME: string = "flow-root";
+
+export const TABLE_CARD_CONTROLS_CLASS_NAME: string =
+  "float-start me-3 flex h-6 items-center gap-2 [&_div:has(>label:empty)]:hidden";
+
+/*
+ * A field that takes a card's whole width when its fields go two to a line:
+ * the row's name (its first field), a column of prose, and the row's
+ * buttons.
+ */
+export const TABLE_CARD_WIDE_FIELD_CLASS_NAME: string =
+  "[@container(min-width:30rem)]:col-span-2";
 
 /*
  * The box the table is drawn in reaches the card's edges, as a card's ruled

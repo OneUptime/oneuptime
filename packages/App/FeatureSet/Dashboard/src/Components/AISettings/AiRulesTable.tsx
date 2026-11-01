@@ -636,6 +636,13 @@ const AiRulesTable: FunctionComponent<ComponentProps> = (
           field: { isEnabled: true },
           title: "Status",
           type: FieldType.Boolean,
+          /*
+           * Under the rule's name, where the list does not fit its card
+           * (TableFit): in Russian at 1280px, beside the side menu, the
+           * row's Edit ("Редактировать") ran 14px past it.
+           */
+          hideBelowLargeScreen: true,
+          foldInto: "name",
           getElement: (item: AutoRemediationRule): ReactElement => {
             return item.isEnabled ? (
               <Pill color={Green} text="Enabled" />

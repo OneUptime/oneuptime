@@ -662,6 +662,13 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             title: "Labels",
             type: FieldType.EntityArray,
+            /*
+             * Under the Runner's name, with its owners, where the list does
+             * not fit its card (TableFit): at 1280px beside the side menu it
+             * ran 24px past its card in English and 150px in German.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             getElement: (item: Runner): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
@@ -673,6 +680,9 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            // Under the Runner's name, where the list folds (Labels).
+            hideBelowLargeScreen: true,
+            foldInto: "name",
             getElement: (item: Runner): ReactElement => {
               return (
                 <OwnersCell

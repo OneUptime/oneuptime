@@ -95,6 +95,26 @@ const READINGS: Array<Reading> = [
     },
   },
   {
+    // A date in a list's cell (Table/TableDate): this year's, no zone.
+    name: "a list's date",
+    read: (): string => {
+      return OneUptimeDate.getDateAsCompactLocalString(INSTANT, {
+        now: INSTANT,
+        use12HourFormat: false,
+      });
+    },
+  },
+  {
+    // ...and one of another year: the date alone, with its year.
+    name: "a list's date of another year",
+    read: (): string => {
+      return OneUptimeDate.getDateAsCompactLocalString(INSTANT, {
+        now: new Date("2027-02-01T00:00:00Z"),
+        use12HourFormat: false,
+      });
+    },
+  },
+  {
     name: "month and year",
     read: (): string => {
       return OneUptimeDate.getDateAsLocalMonthYearString(INSTANT);
@@ -176,6 +196,8 @@ const ENGLISH: Record<string, string> = {
   "date in the runtime's zone": "Oct 06 2026, 09:05 GMT",
   "short date and time": "Oct 6, 10:05",
   "day and month": "06 Oct",
+  "a list's date": "Oct 6, 10:05",
+  "a list's date of another year": "Oct 6, 2026",
   "month and year": "Oct 2026",
   "a weekday in another zone": "Tue, Oct 6, 2026, 05:05 EDT",
   "several zones": "Oct 06 2026, 09:05 UTC | Oct 06 2026, 14:35 IST",
@@ -194,6 +216,8 @@ const GERMAN: Record<string, string> = {
   "date in the runtime's zone": "06. Okt. 2026, 09:05 GMT",
   "short date and time": "6. Okt., 10:05",
   "day and month": "06. Okt.",
+  "a list's date": "6. Okt., 10:05",
+  "a list's date of another year": "6. Okt. 2026",
   "month and year": "Okt. 2026",
   "a weekday in another zone": "Di., 6. Okt. 2026, 05:05 EDT",
   "several zones": "06. Okt. 2026, 09:05 UTC | 06. Okt. 2026, 14:35 IST",
@@ -213,6 +237,8 @@ const JAPANESE: Record<string, string> = {
   "date in the runtime's zone": "2026年10月06日 09:05 GMT",
   "short date and time": "10月6日 10:05",
   "day and month": "10月06日",
+  "a list's date": "10月6日 10:05",
+  "a list's date of another year": "2026年10月6日",
   "month and year": "2026年10月",
   "a weekday in another zone": "2026年10月6日(火) 05:05 EDT",
   "several zones": "2026年10月06日 09:05 UTC | 2026年10月06日 14:35 IST",

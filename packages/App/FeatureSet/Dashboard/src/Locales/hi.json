@@ -39262,5 +39262,8 @@
   "{{count}} updates available": "{{count}} अपडेट उपलब्ध",
   "{{count}} updates available_one": "{{count}} अपडेट उपलब्ध",
   "{{healthy}} of {{total}} healthy": "{{total}} में से {{healthy}} स्वस्थ",
-  "Cluster update": "क्लस्टर अपडेट"
+  "Cluster update": "क्लस्टर अपडेट",
+  "Compact rows": "संक्षिप्त पंक्तियाँ",
+  "Sort by": "इसके अनुसार क्रमबद्ध करें",
+  "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध"
 }

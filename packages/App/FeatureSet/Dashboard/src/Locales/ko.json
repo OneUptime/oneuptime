@@ -39262,5 +39262,8 @@
   "{{count}} updates available": "업데이트 {{count}}개 사용 가능",
   "{{count}} updates available_one": "업데이트 {{count}}개 사용 가능",
   "{{healthy}} of {{total}} healthy": "{{total}}개 중 {{healthy}}개 정상",
-  "Cluster update": "클러스터 업데이트"
+  "Cluster update": "클러스터 업데이트",
+  "Compact rows": "촘촘한 행",
+  "Sort by": "정렬 기준",
+  "Sorted by {{column}}": "{{column}} 기준 정렬"
 }

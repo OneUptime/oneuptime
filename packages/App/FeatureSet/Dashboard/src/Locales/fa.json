@@ -39262,5 +39262,8 @@
   "{{count}} updates available": "{{count}} به‌روزرسانی در دسترس",
   "{{count}} updates available_one": "{{count}} به‌روزرسانی در دسترس",
   "{{healthy}} of {{total}} healthy": "{{healthy}} از {{total}} سالم",
-  "Cluster update": "به‌روزرسانی خوشه"
+  "Cluster update": "به‌روزرسانی خوشه",
+  "Compact rows": "سطرهای فشرده",
+  "Sort by": "مرتب‌سازی بر اساس",
+  "Sorted by {{column}}": "مرتب‌شده بر اساس {{column}}"
 }

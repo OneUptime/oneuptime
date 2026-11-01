@@ -1425,7 +1425,12 @@ test.describe("an account's pages", () => {
       headers.indexOf("Resources"),
     );
 
-    // Beside the side menu at 1024, the pills are clear of the row's actions.
+    /*
+     * Beside the side menu at 1024, the pills are clear of the row's
+     * actions: the card is 682px there - narrower than 48rem - so each
+     * account is a card (TableFit), its pill on a line above its View; as
+     * rows, the pill would sit before it.
+     */
     await page.setViewportSize({ width: 1024, height: 900 });
     await openAccounts(page, `${ACCOUNTS_PATH}?state=connected`);
     const pill: Box = await boxOf(
@@ -1434,7 +1439,9 @@ test.describe("an account's pages", () => {
     const view: Box = await boxOf(
       page.getByRole("button", { name: "View" }).first(),
     );
-    expect(pill.x + pill.width).toBeLessThanOrEqual(view.x);
+    expect(
+      pill.x + pill.width <= view.x || pill.y + pill.height <= view.y,
+    ).toBe(true);
   });
 
   test("an account's Overview: four tiles in a row, the last day's changes a click away, its counts side by side", async ({

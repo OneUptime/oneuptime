@@ -39262,5 +39262,8 @@
   "{{count}} updates available": "{{count}} updates beschikbaar",
   "{{count}} updates available_one": "{{count}} update beschikbaar",
   "{{healthy}} of {{total}} healthy": "{{healthy}} van {{total}} gezond",
-  "Cluster update": "Clusterupdate"
+  "Cluster update": "Clusterupdate",
+  "Compact rows": "Compacte rijen",
+  "Sort by": "Sorteren op",
+  "Sorted by {{column}}": "Gesorteerd op {{column}}"
 }

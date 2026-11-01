@@ -183,7 +183,7 @@ Wo die Ziele zu sehen sind:
 
 - Der Kopf des Falls nennt das nächste Ziel und wie viel Zeit bleibt, oder wie lange es überfällig ist: grau, solange Zeit bleibt, bernsteinfarben im letzten Fünftel, rot, sobald es verfehlt ist.
 - In der **Übersicht** des Falls, unter **Zeit bis zur Bestätigung** und **Zeit bis zur Eindämmung**: wie der Fall zu jedem Ziel steht, oder wie weit er darüber lag.
-- In den Listen der Warteschlange: die Zeile unter der Priorität jedes Falls und eine Spalte **Fällig**, die Sie einblenden und nach der Sie sortieren können. Die Listen zeigen sie nur, wenn eine Priorität des Projekts ein Ziel hat.
+- In den Listen der Warteschlange: die Zeile unter der Priorität jedes Falls und eine Spalte **Fällig**, die Sie einblenden und nach der Sie sortieren können. Solange die Spalte eingeblendet ist, entfällt die Zeile unter der Priorität. Die Listen zeigen sie nur, wenn eine Priorität des Projekts ein Ziel hat.
 
 ## Benachrichtigungen
 

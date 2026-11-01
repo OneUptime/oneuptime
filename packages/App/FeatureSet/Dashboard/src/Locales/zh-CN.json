@@ -39262,5 +39262,8 @@
   "{{count}} updates available": "{{count}} 个可用更新",
   "{{count}} updates available_one": "{{count}} 个可用更新",
   "{{healthy}} of {{total}} healthy": "健康 {{healthy}} / {{total}}",
-  "Cluster update": "集群更新"
+  "Cluster update": "集群更新",
+  "Compact rows": "紧凑行",
+  "Sort by": "排序依据",
+  "Sorted by {{column}}": "按{{column}}排序"
 }

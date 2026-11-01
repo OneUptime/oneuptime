@@ -1563,5 +1563,12 @@
     "note": "注記",
     "tip": "ヒント",
     "warning": "警告"
-  }
+  },
+  "Compact rows": "コンパクトな行",
+  "Sort by": "並べ替えの基準",
+  "Sorted by {{column}}": "{{column}}で並べ替え",
+  "Sort": "並べ替え",
+  "Ascending": "昇順",
+  "Descending": "降順",
+  "Select all items": "すべての項目を選択"
 }
