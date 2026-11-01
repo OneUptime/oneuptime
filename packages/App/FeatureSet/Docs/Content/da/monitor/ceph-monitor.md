@@ -233,7 +233,7 @@ Et kriterium sammenligner en af monitorens forespørgsler eller formler med en t
 | **Baseline-vindue** | Kun anomalibetingelser. 14 dage (standard), 28, 60 eller 90 dages historik. |
 | **Hvis ingen data** | Under **Flere felter**. Hvad der sker, når vinduet ikke har nogen målinger: **Ignore** (standard), **Treat As Zero** eller **Trigger**. |
 
-Anomalibetingelser sammenligner hver værdi med samme time i ugen i baselinen. De bliver i tilstanden "Learning" og rejser intet, indtil baseline-vinduet har nok historik.
+Anomalibetingelser sammenligner hver værdi med samme time i ugen i baselinen. De bliver i tilstanden "Learning" og rejser intet, indtil baseline-vinduet har nok historik. En sum, en optælling eller en forespørgsel på et histogram forbliver i den tilstand for altid: denne monitor filtrerer sine forespørgsler efter attributter, og baselinen indeholder ingen.
 
 Hvert kriterium angiver også, hvad der skal ske, når det matcher: ændre monitorstatus, oprette en advarsel eller erklære en hændelse. Kriterierne tjekkes oppefra og ned, og det første, der matcher, afgør det.
 

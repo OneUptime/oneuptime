@@ -272,7 +272,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
 | **Se nessun dato** | In **Altri campi**. Cosa succede quando la finestra non ha campioni: **Ignore** (il predefinito), **Treat As Zero** o **Trigger**. |
 
-Le condizioni di anomalia confrontano ogni valore con la stessa ora della settimana nel riferimento. Restano in uno stato «Learning», e non generano nulla, finché la finestra di riferimento non contiene abbastanza storico.
+Le condizioni di anomalia confrontano ogni valore con la stessa ora della settimana nel riferimento. Restano in uno stato «Learning», e non generano nulla, finché la finestra di riferimento non contiene abbastanza storico. Una somma, un conteggio o una query su un istogramma resta per sempre in quello stato: questo monitor filtra le sue query per attributi e la baseline non ne contiene.
 
 Alcuni criteri da cui partire:
 

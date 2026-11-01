@@ -133,6 +133,15 @@ Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den 
 
 Anomalibetingelserne har ingen tærskel. **Hvornår der advares** viser i stedet **Følsomhed** (Lav, Middel, som er standard, eller Høj), og de egne kriterier også et **Baseline-vindue** (14 dage, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med samme time på ugen på tidligere dage, så langt tilbage som det vindue rækker. Det, der sker nu, indgår aldrig i den sammenligning, så en ændring, der varer ved, bliver ved med at advare, indtil den en uge senere er kommet med i de tidligere dage. Indtil den time på ugen har to ugers historik, er kriteriet stadig ved at lære og giver ingen advarsler.
 
+Hvad et datapunkt sammenlignes med, afhænger af forespørgslen:
+
+- **Dens tjenester.** En monitor, der navngiver tjenester, sammenlignes kun med de tjenester. En, der ikke navngiver nogen, sammenlignes med alle tjenester, der rapporterer metrikken.
+- **Et gennemsnit, minimum, maksimum eller percentil af en almindelig metrik** sammenlignes med metrikkens målinger, så langt tilbage som **Baseline-vindue** rækker.
+- **En sum eller en optælling og enhver forespørgsel på et histogram** sammenlignes med forespørgslens egne datapunkter. De gemmes lige så længe som dine metrikker, så sammenligningen rækker ikke længere tilbage end det: 15 dage, medmindre du har ændret det.
+- **En forespørgsel, der er filtreret eller grupperet efter en attribut,** sammenlignes med alle serier i dens tjenester, fordi en baseline ikke indeholder attributter, så den bemærker kun en ændring, der er stor nok til at forlade dem alles område. Er det en sum, en optælling eller en forespørgsel på et histogram, er der intet at sammenligne med, og den bliver ved med at lære. Det samme gælder en percentil af et histogram.
+
+En sum eller en optælling regnes kun som lav på et fuldstændigt datapunkt med endnu et fuldstændigt efter sig, fordi de nyeste stadig fyldes op. Et vindue på ét minut kan derfor kun finde en, der er høj.
+
 En metrik-monitor, der er oprettet i Opret monitor, starter med én regel på sin første forespørgsel: **Gennemsnittet** over **Seneste 5 minutter**, **Over** den **Værdi**, du angiver, og **Opret en advarsel**.
 
 En ny metrik-monitor, der er oprettet via API'et eller Terraform uden kriterier, starter med to kriterier på sin første forespørgsel, begge med aggregeringen **Any Value**:
@@ -214,7 +223,7 @@ Forespørgslen har ingen **Gruppér efter**, så alle værter samles i ét tal. 
 :::
 
 :::details Et anomalikriterium udløses aldrig
-Det er stadig ved at lære: den time på ugen, det sammenligner med, har endnu ikke to ugers historik.
+Det er stadig ved at lære: den time på ugen, det sammenligner med, har endnu ikke to ugers historik. En sum, en optælling eller en forespørgsel på et histogram, der er filtreret eller grupperet efter en attribut, bliver ved med at lære for altid, og det gør en percentil af et histogram også: der er ingen historik at sammenligne dem med.
 :::
 
 ## Næste skridt
