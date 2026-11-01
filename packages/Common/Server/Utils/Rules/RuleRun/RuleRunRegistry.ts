@@ -336,6 +336,7 @@ import WorkflowOwnerRuleEngineService from "../../../Services/WorkflowOwnerRuleE
 import WorkflowOwnerRuleService from "../../../Services/WorkflowOwnerRuleService";
 import WorkflowService from "../../../Services/WorkflowService";
 import { RuleRunEngine } from "./RuleApplication";
+import { isCloudResourceKind } from "../../../../Types/Cloud/CloudResourceKind";
 
 /*
  * Which service, model and engine each runnable rule uses. Declarative on
@@ -355,6 +356,12 @@ export interface RuleRunDefinition {
    * them, so the caller must be allowed to.
    */
   ownerModelTypes?: Array<DatabaseBaseModelType> | undefined;
+  /*
+   * The resources a rule can apply to, when not every one of its project's:
+   * a run walks only those, so its counts are of them. Read from the rule
+   * as the engine's ruleSelect read it.
+   */
+  getResourceScope?: ((rule: BaseModel) => Record<string, unknown>) | undefined;
 }
 
 interface TypedRuleRunDefinition<
@@ -367,6 +374,20 @@ interface TypedRuleRunDefinition<
   resourceService: DatabaseService<TResource>;
   engine: RuleRunEngine<TResource, TRule>;
   ownerModelTypes?: Array<DatabaseBaseModelType> | undefined;
+  getResourceScope?: ((rule: TRule) => Record<string, unknown>) | undefined;
+}
+
+/*
+ * A cloud owner or label rule is for one product's rows - App Platforms'
+ * environments or Cloud's resources (CloudResourceKind) - so its run walks
+ * those only. A rule made before the two products split is for both.
+ */
+function getCloudRuleResourceScope(
+  rule: CloudResourceLabelRule | CloudResourceOwnerRule,
+): Record<string, unknown> {
+  return isCloudResourceKind(rule.cloudResourceKind)
+    ? { cloudResourceKind: rule.cloudResourceKind }
+    : {};
 }
 
 /*
@@ -456,6 +477,7 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     ruleService: CloudResourceLabelRuleService,
     resourceService: CloudResourceService,
     engine: CloudResourceLabelRuleEngineService,
+    getResourceScope: getCloudRuleResourceScope,
   }),
   [RuleRunType.CloudResourceOwnerRule]: defineRuleRun({
     ruleModelType: CloudResourceOwnerRule,
@@ -464,6 +486,7 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: CloudResourceService,
     engine: CloudResourceOwnerRuleEngineService,
     ownerModelTypes: [CloudResourceOwnerUser, CloudResourceOwnerTeam],
+    getResourceScope: getCloudRuleResourceScope,
   }),
   [RuleRunType.DashboardLabelRule]: defineRuleRun({
     ruleModelType: DashboardLabelRule,

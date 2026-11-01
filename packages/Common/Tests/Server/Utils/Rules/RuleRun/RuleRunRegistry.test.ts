@@ -161,6 +161,52 @@ describe("RuleRunRegistry", () => {
     }
   });
 
+  /*
+   * One CloudResource table, two products: a cloud rule is for App
+   * Platforms' environments or Cloud's resources, and its run walks only
+   * those - a rule from before the split walks both.
+   */
+  it.each([
+    RuleRunType.CloudResourceLabelRule,
+    RuleRunType.CloudResourceOwnerRule,
+  ])("%s walks only the rows of the kind the rule is for", (ruleType) => {
+    const definition: RuleRunDefinition =
+      RuleRunRegistry.getDefinition(ruleType)!;
+
+    expect(definition.getResourceScope).toBeDefined();
+    expect(
+      definition.getResourceScope!({
+        cloudResourceKind: "environment",
+      } as never),
+    ).toEqual({ cloudResourceKind: "environment" });
+    expect(
+      definition.getResourceScope!({ cloudResourceKind: "resource" } as never),
+    ).toEqual({ cloudResourceKind: "resource" });
+    expect(definition.getResourceScope!({} as never)).toEqual({});
+    expect(
+      definition.getResourceScope!({ cloudResourceKind: null } as never),
+    ).toEqual({});
+    // What the engine reads of the rule, the scope reads too.
+    expect(definition.engine.ruleSelect).toMatchObject({
+      cloudResourceKind: true,
+    });
+  });
+
+  it("scopes no other rule's walk", () => {
+    for (const ruleType of RESOURCE_RULE_TYPES) {
+      if (ruleType.startsWith("CloudResource")) {
+        continue;
+      }
+
+      expect({
+        ruleType,
+        scoped: Boolean(
+          RuleRunRegistry.getDefinition(ruleType)?.getResourceScope,
+        ),
+      }).toEqual({ ruleType, scoped: false });
+    }
+  });
+
   it.each(SYNC_RULE_TYPES)(
     "%s runs a monitor sync rather than a resource walk",
     (ruleType: RuleRunType) => {
