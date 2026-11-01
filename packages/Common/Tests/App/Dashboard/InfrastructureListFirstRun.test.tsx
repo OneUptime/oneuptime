@@ -160,7 +160,7 @@ import IoTFleetsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/IoT/Fl
 import DatabasesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Databases";
 import MessageQueuesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/MessageQueues";
 import ServerlessFunctionsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/ServerlessFunctions";
-import CloudEnvironmentsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/CloudResources";
+import CloudEnvironmentsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Environments";
 import CloudMonitoredResourcesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/MonitoredResources";
 
 import {

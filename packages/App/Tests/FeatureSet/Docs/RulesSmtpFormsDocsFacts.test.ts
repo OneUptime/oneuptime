@@ -698,7 +698,15 @@ describe("Import and Export Label Rules, against the import", () => {
      * a normal Add first, else a normal or primary one - never an outlined one.
      */
     expect(readSource("baseModelTable")).toContain(
-      "splitTableHeaderButtons(cardButtons)",
+      "splitTableHeaderButtons(headerButtons)",
+    );
+    /*
+     * The buttons it splits are the card's, less what reads the rows
+     * (Filter, Columns) in a list nobody may read - never an Import or an
+     * Export (BaseModelTable's LIST_READ_BUTTONS).
+     */
+    expect(readSource("baseModelTable")).toMatch(
+      /const headerButtons: Array<CardButtonSchema \| ReactElement> =\s*isNoAccessShown\s*\?\s*cardButtons\.filter\(/,
     );
     expect(readSource("tableHeaderControls")).toMatch(
       /schema\.buttonStyle === ButtonStyleType\.NORMAL &&\s*schema\.icon === IconProp\.Add/,

@@ -1313,6 +1313,10 @@ describe("CustomFieldColumns generated getElement", () => {
  * 24-hour from the browser locale, so both are pinned below. Without that these
  * assertions would pass or fail depending on the machine running the suite,
  * which is the same thing as not asserting anything.
+ *
+ * A cell writes a date short, as every date in a table is (TableDate): no
+ * zone, and its year only when it is not this year's - so "now" is pinned too
+ * - and whole under the pointer, as Detail writes it.
  */
 
 const dateDefinition: CustomFieldDefinition = {
@@ -1332,6 +1336,32 @@ const dateTimeDefinition: CustomFieldDefinition = {
  */
 const storedIsoValue: string = "2026-08-17T14:30:00.000Z";
 
+// "Now", for the cells: a day in the stored value's year.
+const NOW: Date = new Date("2026-10-06T12:00:00.000Z");
+
+// The cell's date: its words, and what it says under the pointer.
+type DateOfFunction = (container: HTMLElement) => {
+  text: string;
+  title: string | null;
+  dateTime: string | null;
+};
+
+const dateOf: DateOfFunction = (
+  container: HTMLElement,
+): { text: string; title: string | null; dateTime: string | null } => {
+  const time: HTMLTimeElement | null = container.querySelector("time");
+
+  if (!time) {
+    throw new Error("The cell drew no date: " + container.innerHTML);
+  }
+
+  return {
+    text: time.textContent || "",
+    title: time.getAttribute("title"),
+    dateTime: time.getAttribute("datetime"),
+  };
+};
+
 describe("CustomFieldColumns date custom fields", () => {
   beforeAll(() => {
     OneUptimeDate.setUserTimezone(Timezone.UTC);
@@ -1345,6 +1375,8 @@ describe("CustomFieldColumns date custom fields", () => {
     jest
       .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
       .mockReturnValue(false);
+
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
   });
 
   afterEach(() => {
@@ -1365,32 +1397,76 @@ describe("CustomFieldColumns date custom fields", () => {
        * Rendering the stored midnight-relative time next to it would invent a
        * precision the person filling the field never entered.
        */
-      expect(
-        renderValue({ value: storedIsoValue, definition: dateDefinition })
-          .textContent,
-      ).toEqual("Aug 17, 2026");
+      const container: HTMLElement = renderValue({
+        value: storedIsoValue,
+        definition: dateDefinition,
+      });
+
+      // This year's day, short; under the pointer, with its year.
+      expect(container.textContent).toEqual("Aug 17");
+      expect(dateOf(container).title).toEqual("Aug 17, 2026");
     });
 
     test("renders a Date value without any clock time in it at all", () => {
       // Belt and braces on the above: no "14:30", and no stray zone suffix.
-      const text: string =
-        renderValue({ value: storedIsoValue, definition: dateDefinition })
-          .textContent || "";
+      const container: HTMLElement = renderValue({
+        value: storedIsoValue,
+        definition: dateDefinition,
+      });
+      const text: string = container.textContent || "";
+      const title: string = dateOf(container).title || "";
 
       expect(text).not.toContain(":");
       expect(text).not.toContain("UTC");
+      expect(title).not.toContain(":");
+      expect(title).not.toContain("UTC");
     });
 
-    test("renders a DateTime value with the time of day and the zone", () => {
+    test("writes another year's day with its year, in the cell as well", () => {
+      const container: HTMLElement = renderValue({
+        value: "2025-08-17T14:30:00.000Z",
+        definition: dateDefinition,
+      });
+
+      expect(container.textContent).toEqual("Aug 17, 2025");
+      expect(dateOf(container).title).toEqual("Aug 17, 2025");
+    });
+
+    test("is a <time> naming the stored moment, for whatever reads the page", () => {
+      expect(
+        dateOf(
+          renderValue({
+            value: storedIsoValue,
+            definition: dateTimeDefinition,
+          }),
+        ).dateTime,
+      ).toEqual(storedIsoValue);
+    });
+
+    test("renders a DateTime value with the time of day, and the zone under the pointer", () => {
       /*
        * The other half of the field pair: "last audited at" is an instant, and
        * without the zone abbreviation a wall clock names a different instant to
-       * every reader.
+       * every reader. The cell is short - every date in the list is in the
+       * reader's own zone - and the zone is under the pointer.
        */
-      expect(
-        renderValue({ value: storedIsoValue, definition: dateTimeDefinition })
-          .textContent,
-      ).toEqual("Aug 17 2026, 14:30 UTC");
+      const container: HTMLElement = renderValue({
+        value: storedIsoValue,
+        definition: dateTimeDefinition,
+      });
+
+      expect(container.textContent).toEqual("Aug 17, 14:30");
+      expect(dateOf(container).title).toEqual("Aug 17 2026, 14:30 UTC");
+    });
+
+    test("writes another year's instant by its day and year, the time under the pointer", () => {
+      const container: HTMLElement = renderValue({
+        value: "2025-08-17T14:30:00.000Z",
+        definition: dateTimeDefinition,
+      });
+
+      expect(container.textContent).toEqual("Aug 17, 2025");
+      expect(dateOf(container).title).toEqual("Aug 17 2025, 14:30 UTC");
     });
 
     test("renders the very same stored string differently for Date and DateTime", () => {
@@ -1421,10 +1497,13 @@ describe("CustomFieldColumns date custom fields", () => {
        */
       OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
 
-      expect(
-        renderValue({ value: storedIsoValue, definition: dateTimeDefinition })
-          .textContent,
-      ).toEqual("Aug 17 2026, 10:30 EDT");
+      const container: HTMLElement = renderValue({
+        value: storedIsoValue,
+        definition: dateTimeDefinition,
+      });
+
+      expect(container.textContent).toEqual("Aug 17, 10:30");
+      expect(dateOf(container).title).toEqual("Aug 17 2026, 10:30 EDT");
     });
 
     test("reads an offset-form ISO string as the same instant as the Z form", () => {
@@ -1433,12 +1512,14 @@ describe("CustomFieldColumns date custom fields", () => {
        * writes "Z", an API client may well post "+00:00" - and they name the
        * same moment, so they have to render the same.
        */
-      expect(
-        renderValue({
-          value: "2026-08-17T14:30:00+00:00",
-          definition: dateTimeDefinition,
-        }).textContent,
-      ).toEqual("Aug 17 2026, 14:30 UTC");
+      const container: HTMLElement = renderValue({
+        value: "2026-08-17T14:30:00+00:00",
+        definition: dateTimeDefinition,
+      });
+
+      expect(container.textContent).toEqual("Aug 17, 14:30");
+      expect(dateOf(container).title).toEqual("Aug 17 2026, 14:30 UTC");
+      expect(dateOf(container).dateTime).toEqual(storedIsoValue);
     });
 
     test("renders a date as plain text rather than as a dropdown badge", () => {
@@ -1599,7 +1680,10 @@ describe("CustomFieldColumns date custom fields", () => {
         "Warranty Expiry": storedIsoValue,
       });
 
-      expect(renderColumn(column, monitor).textContent).toEqual("Aug 17, 2026");
+      expect(renderColumn(column, monitor).textContent).toEqual("Aug 17");
+      expect(dateOf(renderColumn(column, monitor)).title).toEqual(
+        "Aug 17, 2026",
+      );
       expect(exportValueOf(column, monitor)).toEqual(storedIsoValue);
     });
 
@@ -1609,12 +1693,13 @@ describe("CustomFieldColumns date custom fields", () => {
         0,
       );
 
-      expect(
-        renderColumn(
-          column,
-          monitorWithFields({ "Last Audited At": storedIsoValue }),
-        ).textContent,
-      ).toEqual("Aug 17 2026, 14:30 UTC");
+      const cell: HTMLElement = renderColumn(
+        column,
+        monitorWithFields({ "Last Audited At": storedIsoValue }),
+      );
+
+      expect(cell.textContent).toEqual("Aug 17, 14:30");
+      expect(dateOf(cell).title).toEqual("Aug 17 2026, 14:30 UTC");
     });
 
     test("renders the placeholder for a row with no date stored", () => {

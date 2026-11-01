@@ -2,10 +2,13 @@ import {
   NetworkTopologyDeviceRole,
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
+  NetworkTopologyLinkProtocol,
   NetworkTopologyNode,
   NetworkTopologyNodeDiagnostics,
+  NetworkTopologyNodePlacementDiagnostics,
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import { getNetworkControllerProviderShortTitle } from "Common/Types/NetworkController/NetworkControllerProvider";
 import { DEVICE_ROLES_IN_LEGEND_ORDER } from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
 import {
   TopologyNodeShape,
@@ -176,6 +179,51 @@ export function nodeMatchesSearch(
  * before "reported nothing", which in turn explains more than "matched
  * nothing".
  */
+/*
+ * Why nothing placed a device that reports no neighbours, and what would.
+ *
+ * A register, a handset or a kiosk that only answers ping will never report
+ * a neighbour, but what it plugs into can place it, and there are only so many
+ * ways that goes wrong. So this names the one that went wrong here, on what
+ * the map knows about the device and about its site, rather than listing them
+ * all and leaving the operator to work out which it was (issue #5379). The
+ * hand-drawn link stays as the fallback for a cable no table can see.
+ */
+function placementReasonForDiagnostics(
+  diagnostics: NetworkTopologyNodeDiagnostics,
+): string {
+  const placement: NetworkTopologyNodePlacementDiagnostics | undefined =
+    diagnostics.placement;
+
+  // A payload from before the map said what it knows.
+  if (!placement) {
+    return "This device reported no LLDP or CDP neighbours on its last poll. Either it does not run a discovery protocol, or it runs one only on ports that are down. If it only answers ping, set its MAC address on the device — or let a router at its site that collects endpoints learn it — and make sure the switch it plugs into collects endpoints: the map then finds its port in the switch's forwarding table. Draw the link by hand under Device Links if you know what it connects to.";
+  }
+
+  const opening: string =
+    "This device reported no LLDP or CDP neighbours on its last poll, so only what it plugs into can place it.";
+
+  if (!placement.hasMacAddress && !placement.hasAddressKey) {
+    return `${opening} Nothing can recognise it yet: it has no MAC address, and its hostname is a name rather than an IP address. Set its MAC address on the device, or draw the link by hand under Device Links.`;
+  }
+
+  if (placement.siteControllerDeviceCount > 0) {
+    return `${opening} Meraki describes devices at this site, but lists no client with this device's ${
+      placement.hasMacAddress ? "MAC address" : "IP address"
+    } on any of them. Meraki's clients are read every two hours, so a new device takes that long to appear. If it stays here, check that the switch it plugs into is a network device here, in the same site as this device. Draw the link by hand under Device Links if Meraki cannot see it.`;
+  }
+
+  if (placement.siteEndpointCollectorCount === 0) {
+    return `${opening} Nothing at this site reports what is plugged into it. Turn on Collect Connected Endpoints on the site's switches and router, or connect its Meraki organization on the Traffic page. Draw the link by hand under Device Links if you know what it connects to.`;
+  }
+
+  if (!placement.hasMacAddress) {
+    return `${opening} Devices at this site report what is plugged into them, but nothing has said which MAC address is this device's. Turn on Collect Connected Endpoints on the site's router, so its ARP table can say, or set the MAC address on the device.`;
+  }
+
+  return `${opening} Its MAC address is known, but no device at this site that collects endpoints has learned it. Turn on Collect Connected Endpoints on the switch it plugs into, or draw the link by hand under Device Links if that switch cannot report it.`;
+}
+
 export function isolationReasonForNode(
   node: NetworkTopologyNode,
   hasEdges: boolean,
@@ -191,13 +239,7 @@ export function isolationReasonForNode(
   }
 
   if (diagnostics.reportedNeighborCount === 0) {
-    /*
-     * Two routes, and the learned one first: a register, a handset or a
-     * kiosk that only answers ping will never report a neighbour, but the
-     * switch it plugs into already knows which port its MAC sits on. The
-     * hand-drawn link stays as the fallback for a cable no table can see.
-     */
-    return "This device reported no LLDP or CDP neighbours on its last poll. Either it does not run a discovery protocol, or it runs one only on ports that are down. If it only answers ping, set its MAC address on the device — or let a router at its site that collects endpoints learn it — and make sure the switch it plugs into collects endpoints: the map then finds its port in the switch's forwarding table. Draw the link by hand under Device Links if you know what it connects to.";
+    return placementReasonForDiagnostics(diagnostics);
   }
 
   if (diagnostics.unmatchedNeighborIdentifiers.length > 0) {
@@ -494,7 +536,39 @@ export function accessibleLabelForEdge(
   if (edge.protocols && edge.protocols.length > 0) {
     parts.push(`reported by ${edge.protocols.join(" and ").toUpperCase()}`);
   }
+  const reporter: string | undefined = getNetworkControllerProviderShortTitle(
+    edge.reportedBy,
+  );
+  if (reporter) {
+    parts.push(`read from ${reporter}`);
+  }
   return parts.join(", ");
+}
+
+/**
+ * The labels of what reported a link, for the chips on its drawer. An "fdb"
+ * edge a controller reported came from its client list, not from a table
+ * OneUptime walked, so it is labelled with the controller and not as FDB.
+ */
+export function linkSourceLabelsForEdge(
+  edge: NetworkTopologyEdge,
+): Array<string> {
+  const reporter: string | undefined = getNetworkControllerProviderShortTitle(
+    edge.reportedBy,
+  );
+  const labels: Array<string> = (edge.protocols || [])
+    .filter((protocol: NetworkTopologyLinkProtocol): boolean => {
+      return !reporter || protocol !== "fdb";
+    })
+    .map((protocol: NetworkTopologyLinkProtocol): string => {
+      return protocol.toUpperCase();
+    });
+
+  if (reporter) {
+    labels.push(reporter);
+  }
+
+  return labels;
 }
 
 /** One-line summary of an edge end for tooltips: "Gi0/1 · 84% · ↓12 ↑3 Mbps". */

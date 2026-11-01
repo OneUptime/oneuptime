@@ -685,7 +685,12 @@ const Card: FunctionComponent<ComponentProps> = (
    * (CARD_HEADER_TITLE_LINE_CLASS_NAMES, overActions). The first line is
    * read once it is drawn - before the browser paints it - and again
    * whenever its size changes: the window, the language, a table's search
-   * opening or a button coming in.
+   * opening or a button coming in. Read again on the next frame, not in the
+   * observer's call: the reading draws the controls as they would sit beside
+   * the title and back, and a size that changes inside the call is one the
+   * observer cannot deliver - the page got "ResizeObserver loop completed
+   * with undelivered notifications" as a list under it turned into cards at
+   * 1024px (Table's TableFit).
    */
   const readsActionsLine: boolean =
     isStacked &&
@@ -695,11 +700,20 @@ const Card: FunctionComponent<ComponentProps> = (
   const [actionsUnderTitle, setActionsUnderTitle] = useState<boolean>(false);
   const titleRowObserver: MutableRefObject<ResizeObserver | null> =
     useRef<ResizeObserver | null>(null);
+  // The frame a reading waits for, once the line changed size.
+  const titleRowFrame: MutableRefObject<number | null> = useRef<number | null>(
+    null,
+  );
 
   const watchTitleRow: (titleRow: HTMLDivElement | null) => void = useCallback(
     (titleRow: HTMLDivElement | null): void => {
       titleRowObserver.current?.disconnect();
       titleRowObserver.current = null;
+
+      if (titleRowFrame.current !== null) {
+        window.cancelAnimationFrame(titleRowFrame.current);
+        titleRowFrame.current = null;
+      }
 
       if (!titleRow || !readsActionsLine) {
         return;
@@ -760,7 +774,16 @@ const Card: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const observer: ResizeObserver = new ResizeObserver(read);
+      const observer: ResizeObserver = new ResizeObserver((): void => {
+        if (titleRowFrame.current !== null) {
+          window.cancelAnimationFrame(titleRowFrame.current);
+        }
+
+        titleRowFrame.current = window.requestAnimationFrame((): void => {
+          titleRowFrame.current = null;
+          read();
+        });
+      });
       observer.observe(titleRow);
       titleRowObserver.current = observer;
     },

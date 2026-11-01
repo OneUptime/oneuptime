@@ -1,5 +1,8 @@
 import EntityType from "../../Types/Telemetry/EntityType";
 import { NetworkTopologyDeviceRole } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
+import NetworkControllerProvider, {
+  getNetworkControllerProviderTitle,
+} from "../../Types/NetworkController/NetworkControllerProvider";
 import {
   NetworkDeviceDiscoverySighting,
   NetworkDeviceOtherMachineSighting,
@@ -64,6 +67,27 @@ import {
  * Pure and in Common, so the item page, the list's columns and their CSV
  * export, and the tests all read a row the same way.
  */
+
+/*
+ * Why a network device's details read Unknown, which decides what would fill
+ * them (issue #5384: "indicate when a field is unavailable through SNMP or
+ * unsupported by the device"). A gap in a device nothing has walked and a gap
+ * in one that answered every question it was asked read the same on the card
+ * otherwise, and only one of them is waiting for something.
+ */
+export enum NetworkDeviceUnknownReason {
+  // No poll of it has succeeded: it may hold them, and nothing has asked.
+  NotReadOverSnmp = "notReadOverSnmp",
+  // Its poll succeeded, and it reports them to nobody over SNMP.
+  NotReportedOverSnmp = "notReportedOverSnmp",
+  /*
+   * A Meraki device no Meraki connection describes. Polled or not, its SNMP
+   * agent does not hold them: its dashboard does.
+   */
+  OnControllerOnly = "onControllerOnly",
+  // Its controller describes it, and has not got them either.
+  NotOnController = "notOnController",
+}
 
 export enum InventoryAssetKind {
   Host = "host",
@@ -179,6 +203,11 @@ export interface InventoryAssetDetails {
   details: Array<InventoryAssetDetail>;
   // The facts of INVENTORY_ASSET_FIELDS with no value, in order.
   unknownFields: Array<InventoryAssetField>;
+  /*
+   * Why a network device's unknown details are unknown. Read from the device
+   * itself, so an item's facts alone cannot say.
+   */
+  unknownReason?: NetworkDeviceUnknownReason | undefined;
   /*
    * A network device read from its own record: the discovery scan that last
    * found it at its address, and a scan that found another machine there.
@@ -554,6 +583,27 @@ function assetDetailOf(
   return detail;
 }
 
+// Why a device's unknown details are unknown: see NetworkDeviceUnknownReason.
+function getNetworkDeviceUnknownReason(
+  device: NetworkDeviceAssetSource,
+  facts: NetworkDeviceFactDetails,
+): NetworkDeviceUnknownReason {
+  if (facts.controller) {
+    return NetworkDeviceUnknownReason.NotOnController;
+  }
+
+  if (
+    facts.facts.manufacturer.value ===
+    getNetworkControllerProviderTitle(NetworkControllerProvider.Meraki)
+  ) {
+    return NetworkDeviceUnknownReason.OnControllerOnly;
+  }
+
+  return device.lastSnmpSeenAt
+    ? NetworkDeviceUnknownReason.NotReportedOverSnmp
+    : NetworkDeviceUnknownReason.NotReadOverSnmp;
+}
+
 /**
  * A network device's asset details read from its OWN record rather than from
  * its Inventory item, with where each one came from and when (issue #5185).
@@ -627,6 +677,7 @@ export function getNetworkDeviceInventoryAssetDetails(
     kind: InventoryAssetKind.NetworkDevice,
     details: details,
     unknownFields: unknownFields,
+    unknownReason: getNetworkDeviceUnknownReason(device, facts),
   };
 
   if (facts.foundBy) {

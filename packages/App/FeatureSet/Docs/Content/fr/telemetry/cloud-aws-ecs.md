@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-Le flux de journaux CloudWatch du collecteur (`otel/otel-collector/...`) doit indiquer `Everything is ready`, sans ligne `401` ou `connection refused`. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Cloud → Tous les environnements** sous le nom _AWS ECS · us-east-1 · 123456789012_.
+Le flux de journaux CloudWatch du collecteur (`otel/otel-collector/...`) doit indiquer `Everything is ready`, sans ligne `401` ou `connection refused`. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Plateformes d'applications → Tous les environnements** sous le nom _AWS ECS · us-east-1 · 123456789012_.
 :::
 
 ## La définition de tâche complète

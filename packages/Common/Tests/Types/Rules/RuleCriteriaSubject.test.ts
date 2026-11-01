@@ -9,6 +9,7 @@ import RuleCriteriaSubject, {
   resolveRuleCriteriaSubject,
   RULE_CRITERIA_MODELS_NAMED_BY_THEIR_TABLE,
   RULE_CRITERIA_SUBJECT_BY_MODEL,
+  RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE,
 } from "../../../Types/Rules/RuleCriteriaSubject";
 import { RULE_CRITERIA_SUBJECT_COPY } from "../../../UI/Components/RuleCriteria/RuleCriteriaSubjectCopy";
 
@@ -151,7 +152,7 @@ describe("RULE_CRITERIA_SUBJECT_BY_MODEL", () => {
     },
   );
 
-  test("every kind of record is some rule's", () => {
+  test("every kind of record is some rule's, or a page's", () => {
     const used: Set<RuleCriteriaSubject> = new Set<RuleCriteriaSubject>();
 
     for (const subject of Object.values(RULE_CRITERIA_SUBJECT_BY_MODEL)) {
@@ -160,9 +161,35 @@ describe("RULE_CRITERIA_SUBJECT_BY_MODEL", () => {
       }
     }
 
-    expect(Array.from(used).sort()).toEqual(
-      [...Object.values(RuleCriteriaSubject)].sort(),
+    expect(
+      [...Array.from(used), ...RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE].sort(),
+    ).toEqual([...Object.values(RuleCriteriaSubject)].sort());
+  });
+
+  /*
+   * A page's subject is no model's own: the model keeps its records' word,
+   * which the API and the pages that name nothing use.
+   */
+  test("a subject only a page names is no model's", () => {
+    for (const subject of RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE) {
+      expect(Object.values(RULE_CRITERIA_SUBJECT_BY_MODEL)).not.toContain(
+        subject,
+      );
+    }
+
+    expect(RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE).toEqual([
+      RuleCriteriaSubject.CloudEnvironments,
+    ]);
+    // The cloud rules' own records are Cloud's, the model's word.
+    expect(getRuleCriteriaSubjectForModel("CloudResourceOwnerRule")).toBe(
+      RuleCriteriaSubject.CloudResources,
     );
+    expect(
+      resolveRuleCriteriaSubject({
+        modelName: "CloudResourceOwnerRule",
+        subject: RuleCriteriaSubject.CloudEnvironments,
+      }),
+    ).toBe(RuleCriteriaSubject.CloudEnvironments);
   });
 });
 

@@ -84,7 +84,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-带有 `"valid": true` 的 `200` 表示 OneUptime 接受该密钥；`401` 表示该密钥未知、已吊销、已禁用或已过期。然后调用函数。一旦它发送了 span、日志或指标，它就会出现在 **产品 → 基础设施 → 无服务器 → 所有函数** 下。
+带有 `"valid": true` 的 `200` 表示 OneUptime 接受该密钥；`401` 表示该密钥未知、已吊销、已禁用或已过期。然后调用函数。一旦它发送了 span、日志或指标，它就会出现在 **产品 → 云 → 无服务器 → 所有函数** 下。
 :::
 
 ## Azure Functions
@@ -197,7 +197,7 @@ az functionapp config appsettings set \
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-如果要改为按函数名称添加标签或分配所有者，请打开 **产品 → 基础设施 → 无服务器**，并使用侧边菜单中的 **标签规则** 和 **所有者规则**。规则在创建函数时运行，包括自动发现的函数。要把规则应用到已有的函数，请使用该规则的 **立即运行**（参见 [对现有资源运行规则](/docs/configuration/run-rules-now)）。
+如果要改为按函数名称添加标签或分配所有者，请打开 **产品 → 云 → 无服务器**，并使用侧边菜单中的 **标签规则** 和 **所有者规则**。规则在创建函数时运行，包括自动发现的函数。要把规则应用到已有的函数，请使用该规则的 **立即运行**（参见 [对现有资源运行规则](/docs/configuration/run-rules-now)）。
 
 ## 故障排查
 

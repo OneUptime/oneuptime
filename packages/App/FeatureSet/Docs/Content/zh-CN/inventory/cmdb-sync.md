@@ -140,8 +140,8 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | --- | --- | --- | --- |
 | 主机名 | `host.name` | 主机的名称。它是主机的身份，因此位于 `identifyingAttributes` 中 | 设备自己的名称：其 SNMP `sysName`，否则为发现时找到的 NetBIOS 或 DNS 名称。绝不会是它的 IP 地址 |
 | IP 地址 | `host.ip` | 采集器报告的每个地址 | OneUptime 轮询的地址（当它是 IP 地址时），否则为其探测器将该 DNS 名称解析到的地址 |
-| MAC 地址 | `host.mac` | 检测得到 | 在设备上输入，或从遍历过的路由器的 ARP 表中获知 |
-| 序列号 | `host.serial_number` | 标注 | ENTITY-MIB |
+| MAC 地址 | `host.mac` | 检测得到 | 在设备上输入，从遍历过的路由器的 ARP 表中获知，或从设备自身的端口读取 |
+| 序列号 | `host.serial_number` | 标注 | ENTITY-MIB，否则为供应商自己的 MIB |
 | 制造商 | `device.manufacturer` | 标注 | ENTITY-MIB，否则为 `sysDescr` 或 `sysObjectID` 指明的内容 |
 | 模型 | `device.model.name` | 标注 | ENTITY-MIB，否则为 `sysDescr` 指明的内容 |
 | 固件版本 | `device.firmware.version` | 标注 | ENTITY-MIB，否则为 `sysDescr` 指明的内容 |
@@ -191,22 +191,22 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 主机名 | `host.name` | 设备自己的名称：其 SNMP `sysName`，否则为发现时找到的 NetBIOS 或反向 DNS 名称。只有 IP 地址能命名它时省略 |
 | IP 地址 | `host.ip` | OneUptime 轮询的地址（当它是 IP 地址时）。对于按 DNS 名称轮询的设备，为其探测器最近一次将该名称解析到的地址 |
 | DNS 名称 | `net.device.dns_name` | 发现时找到的反向 DNS 名称，或 OneUptime 轮询的 DNS 名称 |
-| MAC 地址 | `host.mac` | 在设备上输入，或从遍历过的路由器的 ARP 表中获知 |
+| MAC 地址 | `host.mac` | 在设备上输入，或从遍历过的路由器的 ARP 表中获知。否则为其 SNMP 遍历或发现扫描读取到的第一个以太网端口的 MAC |
 | 制造商 | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`，否则为 `sysDescr` 指明的厂商，否则为 `sysObjectID` 的供应商 |
 | 型号 | `device.model.name` | ENTITY-MIB `entPhysicalModelName`，否则为 `sysDescr` 指明的型号 |
-| 序列号 | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| 固件版本 | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`，否则为 Ubiquiti、HPE 和 Aruba 设备上 `sysDescr` 指明的固件 |
-| 操作系统 | `os.name` | `sysDescr` 指明的操作系统 |
-| 软件或操作系统版本 | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`，否则为 `sysDescr` 指明的版本 |
+| 序列号 | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum`，否则为 FortiGate、Juniper、MikroTik 和 Sophos 设备上供应商自己的 MIB |
+| 固件版本 | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`，否则为 FortiGate、MikroTik 和 Sophos 设备上供应商自己的 MIB，否则为 Ubiquiti、HPE 和 Aruba 设备上 `sysDescr` 指明的固件 |
+| 操作系统 | `os.name` | `sysDescr` 指明的操作系统，或平台始终运行的操作系统：FortiGate 上的 FortiOS，MX 上 Meraki 的 MX 固件 |
+| 软件或操作系统版本 | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`，否则为供应商自己的 MIB，否则为 `sysDescr` 指明的版本 |
 | 系统描述 | `os.description` | `sysDescr` |
 | 设备类型 | `device.type` | 你为设备分配的角色，否则为拓扑图对它的分类角色，使用你的项目为该角色起的名称 |
 | 位置 | `device.location` | `sysLocation`，除非它是代理的默认值，例如 Net-SNMP 的“Sitting on the Dock of the Bay” |
 | 站点 | `oneuptime.site.name` | 设备所分配到的 Network Site |
 | 轮询地址 | `net.device.hostname` | OneUptime 轮询的地址：IP 地址或 DNS 名称。为在 `host.name` 和 `host.ip` 出现之前编写的同步而保留 |
 
-ENTITY-MIB 行会在设备的首次 SNMP 遍历之后填充。未被遍历的设备（仅通过 ping 监控或尚未轮询）仍会从对其地址的最近一次发现扫描通过 SNMP 读取的内容中获得名称、制造商、操作系统和位置，并从遍历过的路由器的 ARP 表中获得 MAC 地址。不实现 ENTITY-MIB 的设备没有可报告的序列号或固件。不过对许多平台而言，它的 `sysDescr` 仍会指明型号和操作系统：Cisco Meraki MX 报告 `Meraki MX85`，从而填充制造商和型号。`sysDescr` 没有已知格式的平台不会添加任何内容，而不是去猜测。
+ENTITY-MIB 行会在设备的首次 SNMP 遍历之后填充。未被遍历的设备（仅通过 ping 监控或尚未轮询）仍会从对其地址的最近一次发现扫描通过 SNMP 读取的内容中获得名称、制造商、型号、序列号、固件、操作系统、操作系统版本和位置，并从遍历过的路由器的 ARP 表或该次扫描中获得 MAC 地址。不实现 ENTITY-MIB 的设备没有可报告的序列号或固件，除非其供应商将它们保存在 OneUptime 会读取的自有 MIB 中：FortiGate、Juniper、MikroTik 和 Sophos。不过对许多平台而言，它的 `sysDescr` 仍会指明型号和操作系统：Cisco Meraki MX 报告 `Meraki MX85`，从而填充制造商、型号和操作系统。`sysDescr` 没有已知格式的平台不会添加任何内容，而不是去猜测。
 
-当 [Meraki 连接](/docs/monitor/network-traffic#不用-netflow-的-cisco-meraki) 读取其组织时，Meraki 设备会从 Meraki 控制台获取其自身轮询留空的信息：序列号、型号、固件和制造商，MAC 地址，名称，管理地址，所登记的街道地址，以及类型。如果设备的序列号或 MAC 地址与 Meraki 设备相同，或者 OneUptime 在 Meraki 设备的管理地址上轮询该设备且名称相同，该设备就是该组织的设备之一。保存在设备上的值以及其自身轮询读取的值优先。
+当 [Meraki 连接](/docs/monitor/network-traffic#不用-netflow-的-cisco-meraki) 读取其组织时，Meraki 设备会从 Meraki 控制台获取其自身轮询留空的信息：序列号、型号、固件和制造商，MAC 地址，名称，管理地址，所登记的街道地址，以及类型。其型号和固件还可得出其操作系统和操作系统版本。如果设备的序列号或 MAC 地址与 Meraki 设备相同，或者 OneUptime 在 Meraki 设备的管理地址上轮询该设备且名称相同，该设备就是该组织的设备之一。Meraki 没有列出 MX 的此类地址，而且它列出的 MAC 不在 MX 的任何端口上，因此 MX 通过其名称和一个略高于该 MAC 的端口 MAC 进行匹配。保存在设备上的值以及其自身轮询读取的值优先。唯一的例外是 MAC 地址：Meraki 提供的 MAC 地址，即机身标签上的地址，优先于从设备自身端口读取的地址。
 
 保存在设备上的值（手动输入或通过 API 设置）绝不会被发现读取的内容替换。在设备自身遍历读取的值和扫描读取的值之间，使用较新的那个。只有当扫描在该地址找到的是同一台机器时，才会使用它读取的内容：当它读取的系统名称、`sysObjectID` 或 NetBIOS 名称与设备的不符时，它在那里读取的任何内容都不会被使用。条目的 **资产详情** 卡片会说明每个值的来源和时间。
 

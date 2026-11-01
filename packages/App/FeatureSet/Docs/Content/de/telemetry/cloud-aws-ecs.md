@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-Der CloudWatch-Logstream des Collectors (`otel/otel-collector/...`) sollte `Everything is ready` melden, ohne Zeilen mit `401` oder `connection refused`. Innerhalb einer Minute nach dem ersten Span, Log oder der ersten Metrik erscheint die Umgebung unter **Cloud → Alle Umgebungen** als _AWS ECS · us-east-1 · 123456789012_.
+Der CloudWatch-Logstream des Collectors (`otel/otel-collector/...`) sollte `Everything is ready` melden, ohne Zeilen mit `401` oder `connection refused`. Innerhalb einer Minute nach dem ersten Span, Log oder der ersten Metrik erscheint die Umgebung unter **App-Plattformen → Alle Umgebungen** als _AWS ECS · us-east-1 · 123456789012_.
 :::
 
 ## Die vollständige Task-Definition

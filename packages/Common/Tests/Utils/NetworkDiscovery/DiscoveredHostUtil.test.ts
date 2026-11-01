@@ -252,6 +252,86 @@ describe("normalizeDiscoveredHosts", () => {
  * for an older probe, a modified one, or a row written straight through the
  * API.
  */
+describe("normalizeDiscoveredHosts — what a host said about its hardware", () => {
+  test("a usable value is cleaned the way the one reader of it will read it", () => {
+    const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      {
+        ipAddress: "10.0.0.5",
+        snmpReachable: true,
+        scannedMacAddress: "00-1B-54-C2-7A-01",
+        model: "  WS-C2960X-48TS-L ",
+        serialNumber: "FOC1932\u0000X0K1",
+        firmwareVersion: "15.2(7r)E\r\n",
+        softwareVersion: "15.2(7)E2",
+      },
+    ]);
+
+    expect(result[0]).toEqual({
+      ipAddress: "10.0.0.5",
+      snmpReachable: true,
+      scannedMacAddress: "00:1b:54:c2:7a:01",
+      model: "WS-C2960X-48TS-L",
+      serialNumber: "FOC1932 X0K1",
+      firmwareVersion: "15.2(7r)E",
+      softwareVersion: "15.2(7)E2",
+    });
+  });
+
+  test("anything unusable is DELETED, so `in` and truthiness cannot disagree", () => {
+    const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      {
+        ipAddress: "10.0.0.5",
+        scannedMacAddress: "not a mac",
+        model: 42 as unknown as string,
+        serialNumber: "   ",
+        firmwareVersion: null as unknown as string,
+        softwareVersion: {} as unknown as string,
+      },
+    ]);
+
+    expect(result[0]).toEqual({ ipAddress: "10.0.0.5" });
+
+    for (const key of [
+      "scannedMacAddress",
+      "model",
+      "serialNumber",
+      "firmwareVersion",
+      "softwareVersion",
+    ]) {
+      expect(key in result[0]!).toBe(false);
+    }
+  });
+
+  test("a row stored before this read does not gain its keys", () => {
+    expect(
+      Object.keys(
+        normalizeDiscoveredHosts([
+          { ipAddress: "10.0.0.5", snmpReachable: true },
+        ])[0]!,
+      ).sort(),
+    ).toEqual(["ipAddress", "snmpReachable"]);
+  });
+
+  test("the row is a copy: the stored object is left as it was", () => {
+    const stored: DiscoveredNetworkDevice = {
+      ipAddress: "10.0.0.5",
+      serialNumber: "   ",
+    };
+
+    normalizeDiscoveredHosts([stored]);
+
+    expect(stored.serialNumber).toBe("   ");
+  });
+
+  test("a megabyte of serial number is cut, not a stall", () => {
+    const result: Array<DiscoveredNetworkDevice> = normalizeDiscoveredHosts([
+      { ipAddress: "10.0.0.5", serialNumber: "x".repeat(1024 * 1024) },
+    ]);
+
+    expect(result[0]!.serialNumber).toBe("x".repeat(100));
+  });
+});
+
 describe("normalizeDiscoveredHosts — the reverse-DNS name (issue #3529)", () => {
   test("a usable PTR name is carried through unchanged", () => {
     const [normalized] = normalizeDiscoveredHosts([

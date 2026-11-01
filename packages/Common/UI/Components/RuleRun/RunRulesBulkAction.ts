@@ -1,6 +1,9 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
-import { RuleRunType } from "../../../Types/Rules/RuleRun";
+import {
+  RuleRunResourceNouns,
+  RuleRunType,
+} from "../../../Types/Rules/RuleRun";
 import RuleRunSummary from "../../../Utils/Rules/RuleRunSummary";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -31,6 +34,8 @@ import {
 export function getRunRulesBulkAction<TBaseModel extends BaseModel>(data: {
   ruleType: RuleRunType;
   modelType: { new (): TBaseModel };
+  // What the confirmation calls the records, when the page calls them otherwise.
+  nouns?: RuleRunResourceNouns | undefined;
 }): BulkActionButtonSchema<TBaseModel> {
   // Running a rule is a use of it, gated like editing it; the server re-checks.
   const gate: PermissionGateResult = PermissionGate.check(
@@ -53,6 +58,7 @@ export function getRunRulesBulkAction<TBaseModel extends BaseModel>(data: {
       return RuleRunSummary.describeBulkConfirmation({
         ruleType: data.ruleType,
         ruleCount: items.length,
+        nouns: data.nouns,
       });
     },
     confirmButtonStyleType: ButtonStyleType.PRIMARY,
@@ -72,6 +78,7 @@ export function getRunRulesBulkAction<TBaseModel extends BaseModel>(data: {
             ruleId: item.id?.toString() || item._id?.toString() || "",
             notifyOwners: false,
             headers: ModelAPI.getCommonHeaders(),
+            nouns: data.nouns,
           });
 
           // A run that did not succeed fails its rule, in the run's words.

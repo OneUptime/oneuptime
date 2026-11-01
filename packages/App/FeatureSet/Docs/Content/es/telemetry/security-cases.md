@@ -183,7 +183,7 @@ Dónde se ven los objetivos:
 
 - La cabecera del caso nombra el siguiente objetivo y cuánto queda, o cuánto lleva vencido: en gris mientras hay tiempo, en ámbar en su último quinto y en rojo una vez incumplido.
 - En la **Vista general** del caso, bajo **Tiempo hasta el reconocimiento** y **Tiempo hasta la contención**: cómo va el caso frente a cada objetivo, o cuánto lo superó.
-- En las listas de la cola: la línea bajo la prioridad de cada caso, y una columna **Vencimiento** que puedes activar y por la que puedes ordenar. Las listas las muestran solo cuando alguna prioridad del proyecto tiene un objetivo.
+- En las listas de la cola: la línea bajo la prioridad de cada caso, y una columna **Vencimiento** que puedes activar y por la que puedes ordenar. Mientras la columna está activada, la línea bajo la prioridad no se muestra. Las listas las muestran solo cuando alguna prioridad del proyecto tiene un objetivo.
 
 ## Notificaciones
 

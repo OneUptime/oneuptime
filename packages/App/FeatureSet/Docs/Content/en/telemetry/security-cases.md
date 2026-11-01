@@ -183,7 +183,7 @@ Where the targets show:
 
 - The case's header names the next target and how long is left, or how long it is overdue: grey while there is time, amber in its last fifth, red once missed.
 - On the case's **Overview**, under **Time to Acknowledge** and **Time to Contain**: where the case stands against each target, or how far over it the case went.
-- In the queue's lists: the line under each case's priority, and a **Due** column you can turn on and sort by. The lists draw them only when one of the project's priorities has a target.
+- In the queue's lists: the line under each case's priority, and a **Due** column you can turn on and sort by. While the column is on, the line under the priority is left out. The lists draw them only when one of the project's priorities has a target.
 
 ## Notifications
 

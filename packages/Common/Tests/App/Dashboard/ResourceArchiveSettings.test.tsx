@@ -19,17 +19,20 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { MemoryRouter, Route as PageRoute, Routes } from "react-router-dom";
 import RumSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Settings";
 import CloudSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Settings";
+import AppPlatformEnvironmentSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Settings";
 import ServerlessSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Settings";
 import DatabaseServerSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Settings";
 import MessageQueueSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/Settings";
 import RumSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SideMenu";
 import CloudSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/SideMenu";
+import AppPlatformEnvironmentSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/SideMenu";
 import ServerlessSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/SideMenu";
 import DatabaseServerSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/SideMenu";
 import MessageQueueSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/MessageQueue/View/SideMenu";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { getRumBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/RumBreadcrumbs";
 import { getCloudBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CloudBreadcrumbs";
+import { getAppPlatformsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AppPlatformsBreadcrumbs";
 import { getServerlessBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ServerlessBreadcrumbs";
 import { getDatabaseBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DatabaseBreadcrumbs";
 import { getMessageQueueBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MessageQueueBreadcrumbs";
@@ -144,6 +147,12 @@ interface ResourceSettingsCase {
   settingsKey: PageMap;
   overviewKey: PageMap;
   productPath: string;
+  /*
+   * Where Archive returns to, under the project, when it is not the
+   * product's own address: App Platforms opens on its Overview, and its
+   * environments are listed under it.
+   */
+  listPath?: string | undefined;
   getBreadcrumbs: (path: string) => Array<Link> | undefined;
   breadcrumbTitles: Array<string>;
 }
@@ -166,15 +175,36 @@ const RESOURCES: Array<ResourceSettingsCase> = [
       "Settings",
     ],
   },
+  // One CloudResource table, two products: its environments...
   {
     name: "Cloud environment",
+    Page: AppPlatformEnvironmentSettings,
+    SideMenu: AppPlatformEnvironmentSideMenu,
+    modelType: CloudResource,
+    singularName: "cloud environment",
+    settingsKey: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS,
+    overviewKey: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+    productPath: "app-platforms",
+    listPath: "app-platforms/environments",
+    getBreadcrumbs: getAppPlatformsBreadcrumbs,
+    breadcrumbTitles: [
+      "Project",
+      "App Platforms",
+      "View Environment",
+      "Settings",
+    ],
+  },
+  // ...and the resources in its cloud accounts.
+  {
+    name: "Cloud resource",
     Page: CloudSettings,
     SideMenu: CloudSideMenu,
     modelType: CloudResource,
-    singularName: "cloud environment",
+    singularName: "cloud resource",
     settingsKey: PageMap.CLOUD_RESOURCE_VIEW_SETTINGS,
     overviewKey: PageMap.CLOUD_RESOURCE_VIEW,
     productPath: "cloud",
+    listPath: "cloud/resources",
     getBreadcrumbs: getCloudBreadcrumbs,
     breadcrumbTitles: ["Project", "Cloud", "View Resource", "Settings"],
   },
@@ -329,7 +359,7 @@ describe.each(RESOURCES)("$name Settings", (resource: ResourceSettingsCase) => {
       expect(navigate).toHaveBeenCalledTimes(1);
     });
     expect(String(navigate.mock.calls[0]![0])).toBe(
-      `/dashboard/${PROJECT_ID}/${resource.productPath}`,
+      `/dashboard/${PROJECT_ID}/${resource.listPath || resource.productPath}`,
     );
   });
 

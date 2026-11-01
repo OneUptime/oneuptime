@@ -191,7 +191,7 @@ jest.mock(
 );
 
 import CephSettings from "@oneuptime/dashboard/Pages/Ceph/View/Settings";
-import CloudSettings from "@oneuptime/dashboard/Pages/Cloud/View/Settings";
+import AppPlatformEnvironmentSettings from "@oneuptime/dashboard/Pages/AppPlatforms/View/Settings";
 import DatabaseServerSettings, {
   DATABASE_RETENTION_SCOPE_NOTE,
 } from "@oneuptime/dashboard/Pages/Database/View/Settings";
@@ -358,11 +358,16 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     detailIdPrefix: "rum-application",
     hasSessionReplayRetention: true,
   },
+  /*
+   * A cloud environment, in App Platforms: the row its apps' telemetry is
+   * filed under. A resource in a cloud account (Cloud) has no retention of
+   * its own.
+   */
   {
-    name: "cloud resource",
-    Page: CloudSettings,
+    name: "cloud environment",
+    Page: AppPlatformEnvironmentSettings,
     modelType: CloudResource,
-    settingsKey: PageMap.CLOUD_RESOURCE_VIEW_SETTINGS,
+    settingsKey: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS,
     detailIdPrefix: "cloud-resource",
     hasSessionReplayRetention: false,
   },
@@ -726,7 +731,7 @@ describe("database retention scope", () => {
 describe.each([
   resourceNamed("service"),
   resourceNamed("host"),
-  resourceNamed("cloud resource"),
+  resourceNamed("cloud environment"),
 ])("$name default retention", (resource: ResourceSettingsCase) => {
   test("rejects a zero-day default and persists a valid default on the correct model", async () => {
     const user: UserEvent = await renderSettings(
@@ -855,7 +860,7 @@ const CONFIGURED: TelemetryRetentionConfig = {
 };
 
 describe.each([
-  resourceNamed("cloud resource"),
+  resourceNamed("cloud environment"),
   resourceNamed("Kubernetes cluster"),
 ])("$name retention by telemetry type", (resource: ResourceSettingsCase) => {
   const overridesId: string = `${resource.detailIdPrefix}-telemetry-retention-overrides`;

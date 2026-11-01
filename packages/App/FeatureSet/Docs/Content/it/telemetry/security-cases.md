@@ -183,7 +183,7 @@ Dove si vedono gli obiettivi:
 
 - L'intestazione del caso nomina il prossimo obiettivo e quanto tempo resta, o da quanto è scaduto: grigio finché c'è tempo, ambra nell'ultimo quinto, rosso una volta mancato.
 - Nella **Panoramica** del caso, sotto **Tempo al riconoscimento** e **Tempo al contenimento**: a che punto è il caso rispetto a ogni obiettivo, o di quanto l'ha superato.
-- Negli elenchi della coda: la riga sotto la priorità di ogni caso e una colonna **Scadenza** che puoi attivare e usare per ordinare. Gli elenchi li mostrano solo quando una priorità del progetto ha un obiettivo.
+- Negli elenchi della coda: la riga sotto la priorità di ogni caso e una colonna **Scadenza** che puoi attivare e usare per ordinare. Finché la colonna è attiva, la riga sotto la priorità non viene mostrata. Gli elenchi li mostrano solo quando una priorità del progetto ha un obiettivo.
 
 ## Notifiche
 

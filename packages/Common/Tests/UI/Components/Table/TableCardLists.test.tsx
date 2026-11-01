@@ -19,6 +19,7 @@ import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../../UI/Components/Table/Table
 import {
   TABLE_CARD_LIST_ITEM_CLASS_NAME,
   TABLE_LIST_ITEM_CLASS_NAME,
+  TABLE_CARD_WIDE_FIELD_CLASS_NAME,
   TABLE_MOBILE_FIELD_CLASS_NAME,
 } from "../../../../UI/Components/Table/TableLayout";
 import TableBody from "../../../../UI/Components/Table/TableBody";
@@ -227,8 +228,9 @@ describe("a list in a phone's card", () => {
     // The dash alone in the field's value: the field hides itself.
     expect(dash.parentElement?.tagName).toBe("DD");
     expect(dash.parentElement?.childElementCount).toBe(1);
+    // The row's first field, so as wide as the card on a wide one.
     expect(dash.parentElement?.parentElement?.className).toBe(
-      TABLE_MOBILE_FIELD_CLASS_NAME,
+      `${TABLE_MOBILE_FIELD_CLASS_NAME} ${TABLE_CARD_WIDE_FIELD_CLASS_NAME}`,
     );
     expect(screen.queryByText("No resources.", { selector: "p" })).toBeNull();
   });

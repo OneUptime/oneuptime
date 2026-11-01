@@ -70,6 +70,8 @@ const INCIDENT_AND_ALERT_RESOURCES: Array<CreateFromRecordKind> = [
   CreateFromRecordKind.IoTFleet,
   CreateFromRecordKind.DatabaseServer,
   CreateFromRecordKind.CloudResource,
+  // A cloud environment: a CloudResource row, opened from App Platforms.
+  CreateFromRecordKind.CloudEnvironment,
   CreateFromRecordKind.Service,
 ];
 
@@ -564,6 +566,113 @@ describe("the form's starting values", () => {
     ).toEqual([MONITOR_ID, OTHER_HOST_ID, HOST_ID, STATUS_PAGE_ID]);
     expect(readRecordIds(undefined)).toEqual([]);
     expect(readRecordIds({ _id: MONITOR_ID })).toEqual([]);
+  });
+});
+
+/*
+ * One CloudResource table, two products: a cloud environment's tabs are App
+ * Platforms', a cloud resource's Cloud's. Each is a kind of its own, with
+ * its own parameter and trail, picked into the same relation.
+ */
+describe("a cloud environment and a cloud resource", () => {
+  const ENVIRONMENT_ID: string = "0193c0de-1111-4aaa-8bbb-000000000006";
+
+  test("each has a parameter of its own, and both are picked into cloudResources", () => {
+    expect(
+      getCreateFromRecordDefinition(CreateFromRecordKind.CloudResource)
+        .queryParam,
+    ).toBe("cloudResourceId");
+    expect(
+      getCreateFromRecordDefinition(CreateFromRecordKind.CloudEnvironment)
+        .queryParam,
+    ).toBe("cloudEnvironmentId");
+
+    for (const created of [
+      CreatedRecordKind.Incident,
+      CreatedRecordKind.Alert,
+    ]) {
+      expect(
+        getCreateFromRecordField(
+          CreateFromRecordKind.CloudEnvironment,
+          created,
+        ),
+      ).toEqual({
+        key: "cloudResources",
+        holds: RecordFieldValue.NamedRecords,
+      });
+      expect(
+        getCreateFromRecordField(CreateFromRecordKind.CloudResource, created),
+      ).toEqual({
+        key: "cloudResources",
+        holds: RecordFieldValue.NamedRecords,
+      });
+    }
+
+    // Neither is a maintenance event's.
+    expect(
+      getCreateFromRecordKinds(CreatedRecordKind.ScheduledMaintenance),
+    ).not.toContain(CreateFromRecordKind.CloudEnvironment);
+  });
+
+  test("an environment's Incidents tab opens with it picked, and the page reads it back", () => {
+    const address: CreateFromRecordAddress = {
+      kind: CreateFromRecordKind.CloudEnvironment,
+      id: ENVIRONMENT_ID,
+    };
+
+    expect(
+      getCreateFromRecordQuery(CreatedRecordKind.Incident, address),
+    ).toEqual({ cloudEnvironmentId: ENVIRONMENT_ID });
+    expect(
+      readCreateFromRecord(
+        CreatedRecordKind.Incident,
+        addressReader({ cloudEnvironmentId: ENVIRONMENT_ID }),
+      ),
+    ).toEqual(address);
+    // An address from before the split still opens with the row picked.
+    expect(
+      readCreateFromRecord(
+        CreatedRecordKind.Alert,
+        addressReader({ cloudResourceId: ENVIRONMENT_ID }),
+      ),
+    ).toEqual({ kind: CreateFromRecordKind.CloudResource, id: ENVIRONMENT_ID });
+  });
+
+  test("the trail goes back through App Platforms for an environment, and Cloud for a resource", () => {
+    expect(
+      getCreateFromRecordTrail(
+        { kind: CreateFromRecordKind.CloudEnvironment, id: ENVIRONMENT_ID },
+        CreatedRecordKind.Incident,
+      ),
+    ).toEqual([
+      { title: PROJECT_CRUMB_TITLE, page: PageMap.HOME },
+      { title: "App Platforms", page: PageMap.APP_PLATFORMS_OVERVIEW },
+      {
+        title: "View Environment",
+        page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+        modelId: ENVIRONMENT_ID,
+      },
+      {
+        title: "Incidents",
+        page: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS,
+        modelId: ENVIRONMENT_ID,
+      },
+      { title: "Declare New Incident", page: PageMap.INCIDENT_CREATE },
+    ]);
+    expect(
+      getCreateFromRecordTrail(
+        { kind: CreateFromRecordKind.CloudResource, id: ENVIRONMENT_ID },
+        CreatedRecordKind.Alert,
+      )?.map((crumb: CreateFromRecordCrumb): string => {
+        return `${crumb.title} ${crumb.page}`;
+      }),
+    ).toEqual([
+      `${PROJECT_CRUMB_TITLE} ${PageMap.HOME}`,
+      `Cloud ${PageMap.CLOUD_HOME}`,
+      `View Resource ${PageMap.CLOUD_RESOURCE_VIEW}`,
+      `Alerts ${PageMap.CLOUD_RESOURCE_VIEW_ALERTS}`,
+      `Create Alert ${PageMap.ALERT_CREATE}`,
+    ]);
   });
 });
 

@@ -183,7 +183,7 @@ Onde as metas aparecem:
 
 - O cabeçalho do caso nomeia a próxima meta e quanto tempo falta, ou há quanto tempo está vencida: cinza enquanto há tempo, âmbar no último quinto, vermelho depois de perdida.
 - Na **Visão geral** do caso, sob **Tempo até a confirmação** e **Tempo até a contenção**: como o caso está em relação a cada meta, ou quanto passou dela.
-- Nas listas da fila: a linha sob a prioridade de cada caso, e uma coluna **Prazo** que você pode ativar e usar para ordenar. As listas as mostram só quando alguma prioridade do projeto tem uma meta.
+- Nas listas da fila: a linha sob a prioridade de cada caso, e uma coluna **Prazo** que você pode ativar e usar para ordenar. Enquanto a coluna está ativada, a linha sob a prioridade não aparece. As listas as mostram só quando alguma prioridade do projeto tem uma meta.
 
 ## Notificações
 

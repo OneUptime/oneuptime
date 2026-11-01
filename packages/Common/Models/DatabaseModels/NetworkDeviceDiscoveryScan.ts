@@ -18,12 +18,21 @@ import {
   DiscoveredHostReverseDnsStatus,
 } from "../../Types/NetworkDevice/DiscoveredHostNamingStatus";
 import IconProp from "../../Types/Icon/IconProp";
+import SnmpHardwareIdentity from "../../Types/Monitor/SnmpMonitor/SnmpHardwareIdentity";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { DiscoveryScanSnmpConfig } from "../../Utils/NetworkDiscovery/SnmpScanConfigUtil";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
-export interface DiscoveredNetworkDevice {
+/*
+ * SnmpHardwareIdentity: what a host that answered the scan's SNMP query said
+ * about its hardware when the probe asked it next. Absent on ping-only hosts,
+ * on rows stored by a probe older than this read, on a row uploaded while the
+ * read was still running, and for anything the read did not get, so a missing
+ * key never says the host has no such thing. SELF-REPORTED like the system
+ * group: read it only through normalizeDiscoveredHosts.
+ */
+export interface DiscoveredNetworkDevice extends SnmpHardwareIdentity {
   ipAddress: string;
   sysName?: string | undefined;
   sysDescr?: string | undefined;

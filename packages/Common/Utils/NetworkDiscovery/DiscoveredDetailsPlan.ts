@@ -3,6 +3,7 @@ import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
 import {
   DISCOVERED_DETAILS_FOUND_BY_KEY,
   DISCOVERED_DETAILS_OTHER_MACHINE_KEY,
+  NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS,
   NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS,
   NetworkDeviceDiscoveredField,
   NetworkDeviceDiscoveredValue,
@@ -33,7 +34,8 @@ import { ScanNameUtil } from "./ScanNameUtil";
  * at the addresses it swept (OneUptime issue #5185).
  *
  * A scan asks every host that answers for its SNMP system group (when the
- * scan checks SNMP), looks its address up in reverse DNS and, for Windows
+ * scan checks SNMP) and then, when it answered that, for its MAC, model, serial
+ * number and firmware; looks its address up in reverse DNS and, for Windows
  * hosts, asks for its NetBIOS name. Until #5185 that was used to NAME new
  * devices and to rename the ones discovery had named, and thrown away for
  * every other device at those addresses - a switch added by hand, a printer
@@ -70,6 +72,12 @@ import { ScanNameUtil } from "./ScanNameUtil";
  * value the result did not read is kept, with the time it was read - unless
  * the result shows it is gone: a host that answered the scan's SNMP query
  * with no location has no location any more, so its old one is dropped.
+ *
+ * Only the system group can show that, because only it is read whole. What a
+ * host says about its hardware is read after it, best-effort and within a
+ * budget, and an older probe does not read it at all, so a result with no
+ * serial number says nothing about the device's. Such a value is only ever
+ * replaced, as its own poll treats the same details.
  *
  * NEVER BACKWARDS. Results are not always processed in the order they were
  * read - two scans cover the same subnet, a worker catches up on a backlog -
@@ -186,16 +194,22 @@ export interface DiscoveredAddressFindings {
    */
   answeredSnmp: boolean;
   snmp: Partial<Record<NetworkDeviceDiscoveredField, string>>;
+  /*
+   * What the host said about its hardware, off the row `snmp` came from. Not
+   * whole, unlike `snmp`: a field missing here says nothing about the device.
+   */
+  hardware: Partial<Record<NetworkDeviceDiscoveredField, string>>;
   dnsName?: string | undefined;
   netbiosName?: string | undefined;
 }
 
-function snmpValuesOf(
+function valuesOf(
   host: DiscoveredNetworkDevice,
+  fields: ReadonlyArray<NetworkDeviceDiscoveredField>,
 ): Partial<Record<NetworkDeviceDiscoveredField, string>> {
   const values: Partial<Record<NetworkDeviceDiscoveredField, string>> = {};
 
-  for (const field of NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS) {
+  for (const field of fields) {
     const value: string | undefined = normalizeDiscoveredValue(
       field,
       (host as unknown as Record<string, unknown>)[field],
@@ -239,21 +253,27 @@ export function getDiscoveredAddressFindings(
       address: address,
       answeredSnmp: false,
       snmp: {},
+      hardware: {},
     };
 
     const snmp: Partial<Record<NetworkDeviceDiscoveredField, string>> =
-      snmpValuesOf(host);
+      valuesOf(host, NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS);
     const snmpCount: number = Object.keys(snmp).length;
 
     /*
-     * The row whose SNMP answer says the most wins, whole. A row that
-     * answered ping only (snmpReachable false) never read the system group.
+     * The row whose SNMP answer says the most wins, whole, what it said about
+     * its hardware included. A row that answered ping only (snmpReachable
+     * false) never read the system group.
      */
     if (
       host.snmpReachable !== false &&
       snmpCount > Object.keys(current.snmp).length
     ) {
       current.snmp = snmp;
+      current.hardware = valuesOf(
+        host,
+        NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS,
+      );
       current.answeredSnmp = true;
     }
 
@@ -463,6 +483,10 @@ export function buildFoundMachineEntries(data: {
 
   for (const field of NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS) {
     add(field, data.found.snmp[field]);
+  }
+
+  for (const field of NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS) {
+    add(field, data.found.hardware[field]);
   }
 
   add(NetworkDeviceDiscoveredField.DnsName, data.found.dnsName);

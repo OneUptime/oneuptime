@@ -6,6 +6,7 @@ import { JSONObject } from "../../../Types/JSON";
 import {
   MAX_RULE_RUN_PASSES,
   RuleRunPassResult,
+  RuleRunResourceNouns,
   RuleRunResult,
   RuleRunResultUtil,
   RuleRunType,
@@ -46,6 +47,8 @@ export interface RunRuleData {
   // Called after every pass that is not the last, with the totals so far.
   onProgress?: ((result: RuleRunResult) => void) | undefined;
   maxPasses?: number | undefined;
+  // What the report calls the records, when the page calls them otherwise.
+  nouns?: RuleRunResourceNouns | undefined;
 }
 
 export default class RuleRunClient {
@@ -104,6 +107,7 @@ export default class RuleRunClient {
             summary: RuleRunSummary.describe({
               ruleType: data.ruleType,
               result: partial,
+              nouns: data.nouns,
             }),
           },
         ),
@@ -181,6 +185,7 @@ export default class RuleRunClient {
       message: RuleRunSummary.describe({
         ruleType: data.ruleType,
         result: result,
+        nouns: data.nouns,
       }),
       result: result,
     };

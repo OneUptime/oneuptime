@@ -169,6 +169,7 @@ describe("which columns a table draws", () => {
     expect(getDrawnTableColumns<Rule>(columns, false)).toEqual({
       columns: columns,
       areColumnsFolded: false,
+      foldedColumns: [],
     });
     // The same array: nothing new to lay out.
     expect(getDrawnTableColumns<Rule>(columns, false).columns).toBe(columns);

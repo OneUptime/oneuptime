@@ -266,6 +266,7 @@ describe("the device Overview Connected to card", () => {
     const empty: HTMLElement = screen.getByTestId("device-attachment-empty");
     expect(empty).toHaveTextContent("Collect Connected Endpoints");
     expect(empty).toHaveTextContent("No switch at this site has reported");
+    expect(empty).toHaveTextContent("A Meraki connection places it too");
     expect(empty.querySelector("a")?.getAttribute("href")).toBe(SETTINGS_HREF);
 
     expect(
@@ -298,6 +299,112 @@ describe("the device Overview Connected to card", () => {
  * a core switch with five neighbours on the map that no switch had reported
  * it yet.
  */
+describe("what Meraki reports on the Connected to card (#5379)", () => {
+  const SWITCH_ID: string = "66666666-6666-4666-8666-666666666666";
+
+  beforeEach(() => {
+    deviceRow = null;
+    endpointRows = [];
+    listQueries = [];
+    interfaceRows = [];
+    neighbourDeviceRows = [];
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("a client Meraki lists says who said so, above how it was matched", async () => {
+    deviceRow = device({ hostname: "10.0.12.41", macAddress: REGISTER_MAC });
+
+    const row: NetworkEndpoint = new NetworkEndpoint();
+    row._id = "77777777-7777-4777-8777-777777777777";
+    row.macAddress = REGISTER_MAC;
+    row.attachedPortName = "Port 7";
+    row.attachmentSource = "meraki";
+    row.lastSeenAt = new Date();
+    endpointRows = [row];
+
+    await renderCard();
+
+    expect(
+      screen.getByTestId("device-attachment-reported-by"),
+    ).toHaveTextContent("Reported by Meraki");
+    expect(screen.getByTestId("device-attachment-port")).toHaveTextContent(
+      "Port 7",
+    );
+  });
+
+  test("a row a walk found says nothing of the kind", async () => {
+    deviceRow = device({ hostname: "10.0.12.41", macAddress: REGISTER_MAC });
+
+    const row: NetworkEndpoint = new NetworkEndpoint();
+    row._id = "77777777-7777-4777-8777-777777777777";
+    row.macAddress = REGISTER_MAC;
+    row.attachedPortName = "Gi0/7";
+    row.lastSeenAt = new Date();
+    endpointRows = [row];
+
+    await renderCard();
+
+    expect(screen.queryByTestId("device-attachment-reported-by")).toBeNull();
+  });
+
+  test("a device nothing walks lists the links Meraki reports, each with its own port, linked by id", async () => {
+    const row: NetworkDevice = device({ hostname: "10.1.1.1" });
+
+    row.discoveredDetails = {
+      controllerLinks: {
+        provider: "meraki",
+        readBy: { type: "networkController", id: "connection", name: "Stores" },
+        readAt: new Date().toISOString(),
+        links: [
+          {
+            port: "Port 3",
+            peerDeviceId: SWITCH_ID,
+            peerName: "UN0660LANSWI01",
+            peerPort: "Port 49",
+            protocols: ["lldp"],
+          },
+        ],
+      },
+    } as never;
+    deviceRow = row;
+
+    await renderCard();
+
+    const neighbour: HTMLElement = screen.getByTestId("device-neighbour");
+
+    expect(neighbour).toHaveTextContent("Port 3");
+    expect(neighbour).toHaveTextContent("UN0660LANSWI01");
+    expect(neighbour).toHaveTextContent("Port 49");
+    expect(neighbour.querySelector("a")?.getAttribute("href")).toContain(
+      SWITCH_ID,
+    );
+    expect(screen.getByTestId("device-neighbours")).toHaveTextContent(
+      "Some are reported by Meraki.",
+    );
+  });
+
+  test("a reading too old to vouch for lists nothing", async () => {
+    const row: NetworkDevice = device({ hostname: "10.1.1.1" });
+
+    row.discoveredDetails = {
+      controllerLinks: {
+        provider: "meraki",
+        readBy: { type: "networkController", id: "connection" },
+        readAt: "2020-01-01T00:00:00.000Z",
+        links: [{ port: "Port 3", peerName: "gone", protocols: [] }],
+      },
+    } as never;
+    deviceRow = row;
+
+    await renderCard();
+
+    expect(screen.queryByTestId("device-neighbours")).toBeNull();
+  });
+});
+
 describe("the Connected to card of a device that reports its neighbours", () => {
   const CORE_ID: string = "66666666-6666-4666-8666-666666666666";
 

@@ -31,7 +31,11 @@ import CloudResourceLabelRuleEngineService from "./CloudResourceLabelRuleEngineS
 import CloudResourceOwnerRuleEngineService from "./CloudResourceOwnerRuleEngineService";
 import InProcessMemo from "../Utils/InProcessMemo";
 import PartialEntity from "../../Types/Database/PartialEntity";
-import { CloudResourceKind } from "../../Types/Cloud/CloudResourceKind";
+import {
+  CloudResourceKind,
+  getCloudResourceDashboardPath,
+  getCloudResourceKindNoun,
+} from "../../Types/Cloud/CloudResourceKind";
 import {
   CloudMonitoredResource,
   buildCloudMonitoredResourceIdentifier,
@@ -1214,22 +1218,41 @@ export class Service extends ProjectReferencesService<Model> {
 
   /**
    * "[Cloud Resource prod-1](https://…)" - the form every feed item uses to
-   * name the resource it is about.
+   * name the row it is about. An environment is a "Cloud Environment" and
+   * links to its page in App Platforms, a resource to its page in Cloud:
+   * the one read of its name says which it is.
    */
   @CaptureSpan()
   public async getCloudResourceMarkdownLink(
     projectId: ObjectID,
     cloudResourceId: ObjectID,
   ): Promise<MarkdownText> {
-    const name: string = await this.getCloudResourceName({
-      cloudResourceId: cloudResourceId,
+    const cloudResource: Model | null = await this.findOneById({
+      id: cloudResourceId,
+      select: {
+        name: true,
+        cloudResourceKind: true,
+      },
+      props: {
+        isRoot: true,
+      },
     });
-    const link: URL = await this.getCloudResourceLinkInDashboard(
-      projectId,
-      cloudResourceId,
+    const name: string = cloudResource?.name || "";
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+    const link: URL = URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/${getCloudResourceDashboardPath({
+        cloudResourceId: cloudResourceId.toString(),
+        // A row that is gone links as before, to Cloud.
+        cloudResourceKind: cloudResource
+          ? cloudResource.cloudResourceKind || null
+          : undefined,
+      })}`,
     );
+    const noun: string = cloudResource
+      ? getCloudResourceKindNoun(cloudResource.cloudResourceKind)
+      : getCloudResourceKindNoun(CloudResourceKind.Resource);
 
-    return mdText`[Cloud Resource ${name}](${link.toString()})`;
+    return mdText`[${noun} ${name}](${link.toString()})`;
   }
 
   private async writeCloudResourceCreatedFeed(
@@ -1257,7 +1280,10 @@ export class Service extends ProjectReferencesService<Model> {
       feedInfoInMarkdown: string;
       moreInformationInMarkdown: string;
     } = await ResourceFeedUtil.getCreatedFeedMarkdown({
-      resourceTypeName: "cloud resource",
+      resourceTypeName:
+        createdItem.cloudResourceKind === CloudResourceKind.Resource
+          ? "cloud resource"
+          : "cloud environment",
       resourceMarkdownLink: await this.getCloudResourceMarkdownLink(
         projectId,
         cloudResourceId,

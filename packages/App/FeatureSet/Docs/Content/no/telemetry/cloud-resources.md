@@ -34,7 +34,7 @@ Skyressurser er ett av flere steder skyen din dukker opp:
 
 | Du kjører | Hvor det vises | Hvordan |
 | --- | --- | --- |
-| Containere på ECS, Cloud Run, Container Apps, App Service, … | **Sky → All Environments** | Arbeidsbelastningenes egen telemetri, etter `cloud.platform`. Se [Skymiljøer](/docs/telemetry/cloud-environments) |
+| Containere på ECS, Cloud Run, Container Apps, App Service, … | **App-plattformer → Alle miljøer** | Arbeidsbelastningenes egen telemetri, etter `cloud.platform`. Se [Skymiljøer](/docs/telemetry/cloud-environments) |
 | Enhver IaaS- eller PaaS-ressurs leverandøren overvåker | **Sky → Alle ressurser** | Leverandørens overvåkings-API, lest av en collector: denne siden |
 | Virtuelle maskiner med en OpenTelemetry Collector på | **Verter** | Vertens egne metrikker og logger. Se [OpenTelemetry-collector på verten](/docs/telemetry/host-otel-collector) |
 | Køer og emner som applikasjonene dine bruker | **Queues** | Spenn, og de samme skymetrikkene. Se [Køer](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Selvhostede installasjoner kan endre dette med miljøvariabler på appen:
 ## Inventar og regler
 
 - **Inventar:** Skyressurser vises i [Inventar](/docs/inventory/overview) som elementer av typen **Skyressurs**, med leverandørens ID som `cloud.resource.id` og typen som `cloud.resource.type`. Ressursverktøyene til AI-agenten viser dem også.
-- **Regler:** **Sky → Innstillinger → Etikettregler** og **Eierregler** gjelder for dem slik de gjør for skymiljøer.
+- **Regler:** **Sky → Innstillinger → Etikettregler** og **Eierregler** gjelder for dem. App-plattformer har egne for skymiljøer, og en regel som ble laget før de to ble delt, gjelder for begge.
 
 ## Feilsøking
 

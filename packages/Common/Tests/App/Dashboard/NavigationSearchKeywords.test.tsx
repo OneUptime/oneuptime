@@ -102,9 +102,24 @@ const SEARCH_CASES: Array<[string, string, string]> = [
   ["snmp", "Network", PageMap.NETWORK_OVERVIEW],
   ["flamegraph", "Performance Profiles", PageMap.PROFILES],
   ["lambda", "Serverless", PageMap.SERVERLESS_FUNCTIONS],
-  ["aws", "Cloud", PageMap.CLOUD_RESOURCES],
-  ["azure", "Cloud", PageMap.CLOUD_RESOURCES],
-  ["gcp", "Cloud", PageMap.CLOUD_RESOURCES],
+  // Cloud opens on the accounts connected to it.
+  ["aws", "Cloud", PageMap.CLOUD_ACCOUNTS],
+  ["azure", "Cloud", PageMap.CLOUD_ACCOUNTS],
+  ["gcp", "Cloud", PageMap.CLOUD_ACCOUNTS],
+  ["ec2", "Cloud", PageMap.CLOUD_ACCOUNTS],
+  ["iaas", "Cloud", PageMap.CLOUD_ACCOUNTS],
+  /*
+   * The apps a managed platform runs were Cloud's environments; the
+   * platforms' names find App Platforms, on its Overview.
+   */
+  ["paas", "App Platforms", PageMap.APP_PLATFORMS_OVERVIEW],
+  ["fargate", "App Platforms", PageMap.APP_PLATFORMS_OVERVIEW],
+  ["aws ecs", "App Platforms", PageMap.APP_PLATFORMS_OVERVIEW],
+  ["elastic beanstalk", "App Platforms", PageMap.APP_PLATFORMS_OVERVIEW],
+  ["cloud run", "App Platforms", PageMap.APP_PLATFORMS_OVERVIEW],
+  ["app engine", "App Platforms", PageMap.APP_PLATFORMS_OVERVIEW],
+  ["app service", "App Platforms", PageMap.APP_PLATFORMS_OVERVIEW],
+  ["container apps", "App Platforms", PageMap.APP_PLATFORMS_OVERVIEW],
   ["oncall", "On-Call Duty", PageMap.ON_CALL_DUTY],
   ["escalation", "On-Call Duty", PageMap.ON_CALL_DUTY],
   ["rca", "Insights", PageMap.AI_INSIGHTS],
@@ -198,6 +213,36 @@ describe("dashboard product search keywords", () => {
       expect(link).toHaveTextContent(title);
       expect(link).toHaveAttribute("href", expect.stringContaining(PROJECT_ID));
       expect(link.getAttribute("href")).not.toContain(":projectId");
+    },
+  );
+
+  /*
+   * Cloud and App Platforms split: a platform's name finds only App
+   * Platforms, and a cloud's own words only Cloud.
+   */
+  test.each([
+    ["paas", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_ACCOUNTS],
+    ["fargate", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_ACCOUNTS],
+    ["cloud run", PageMap.APP_PLATFORMS_OVERVIEW, PageMap.CLOUD_ACCOUNTS],
+    ["ec2", PageMap.CLOUD_ACCOUNTS, PageMap.APP_PLATFORMS_OVERVIEW],
+    ["cloud accounts", PageMap.CLOUD_ACCOUNTS, PageMap.APP_PLATFORMS_OVERVIEW],
+  ])(
+    "%j finds its own product and not the other",
+    (query: string, found: string, notFound: string) => {
+      render(navbar());
+      openProducts();
+
+      queryFor(query);
+
+      expect(productLink(found)).toBeVisible();
+      const otherHref: string = routeFor(notFound);
+      expect(
+        within(screen.getByRole("listbox"))
+          .queryAllByRole("link")
+          .map((link: HTMLElement): string | null => {
+            return link.getAttribute("href");
+          }),
+      ).not.toContain(otherHref);
     },
   );
 

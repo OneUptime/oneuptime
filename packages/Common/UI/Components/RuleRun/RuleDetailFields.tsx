@@ -2,6 +2,7 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Label from "../../../Models/DatabaseModels/Label";
 import User from "../../../Models/DatabaseModels/User";
 import Select from "../../../Types/BaseDatabase/Select";
+import RuleCriteriaSubject from "../../../Types/Rules/RuleCriteriaSubject";
 import { DropdownOption, DropdownOptionGroup } from "../Dropdown/Dropdown";
 import type { ModelField } from "../Forms/ModelForm";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
@@ -343,6 +344,12 @@ function getDetailField<TBaseModel extends BaseModel>(data: {
 export function getRuleDetailFields<TBaseModel extends BaseModel>(data: {
   model: TBaseModel;
   formFields: Array<ModelField<TBaseModel>>;
+  /*
+   * The records the page says the rule is about, where that is not the
+   * model's (RuleCriteriaSubject.CloudEnvironments): a rule with no
+   * condition reads "All cloud environments" on App Platforms' pages.
+   */
+  subject?: RuleCriteriaSubject | undefined;
 }): RuleDetailFields<TBaseModel> {
   const legacyCriteriaFields: Array<ModelField<TBaseModel>> =
     getLegacyRuleCriteriaFields(data.formFields);
@@ -413,7 +420,11 @@ export function getRuleDetailFields<TBaseModel extends BaseModel>(data: {
         fieldType: FieldType.Element,
         getElement: (item: TBaseModel): ReactElement => {
           return (
-            <RuleCriteriaSummary fields={legacyCriteriaFields} item={item} />
+            <RuleCriteriaSummary
+              fields={legacyCriteriaFields}
+              item={item}
+              subject={data.subject}
+            />
           );
         },
       });

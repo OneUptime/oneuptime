@@ -26,6 +26,11 @@ export interface CardMenuExtraItem {
   icon: IconProp;
   onClick: () => void;
   dataTestId?: string | undefined;
+  /*
+   * An item that is on or off - a table's "Compact rows": its tick at the
+   * menu's end while it is on, and a screen reader hears which.
+   */
+  isChecked?: boolean | undefined;
 }
 
 export interface CardMenuExtras {

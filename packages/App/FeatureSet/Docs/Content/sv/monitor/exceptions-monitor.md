@@ -45,7 +45,7 @@ Under **Vad ska den här övervakningen berätta om?** väljer du **Alla undanta
 
 ### Välj vilka undantag som ska räknas
 
-I **Undantag att bevaka** anger du **Meddelandet innehåller**, **Undantagstyper** och **Environments**. Ett filter som du lämnar tomt matchar alla undantag. **Matchande undantag** under filtren visar de undantag som de matchar just nu.
+I **Undantag att bevaka** anger du **Meddelandet innehåller**, **Undantagstyper** och **Miljöer**. Ett filter som du lämnar tomt matchar alla undantag. **Matchande undantag** under filtren visar de undantag som de matchar just nu.
 
 ### Begränsa dem (valfritt)
 
@@ -70,7 +70,7 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 | --- | --- | --- |
 | **Meddelandet innehåller** | Undantag vars meddelande innehåller denna text, utan skillnad på versaler och gemener. | Tomt: alla undantag |
 | **Undantagstyper** | Undantag av någon av dessa typer, separerade med kommatecken, som `TypeError, NullReferenceException`. Typnamnet måste matcha exakt. | Tomt: alla typer |
-| **Environments** | Undantag från någon av dessa miljöer, separerade med kommatecken (se [Miljöer](#miljöer)). | Tomt: alla miljöer |
+| **Miljöer** | Undantag från någon av dessa miljöer, separerade med kommatecken (se [Miljöer](#miljöer)). | Tomt: alla miljöer |
 | **Tidsfönster** (i **När det ska larmas**) | Undantag från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 5 minuterna** |
 | **Filtrera efter telemetritjänst** (under **Fler fält**) | Undantag från någon av de valda tjänsterna. | Tomt: alla tjänster |
 | **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Undantag från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
@@ -160,7 +160,7 @@ Nya och återkomna undantag filtreras på tjänst, undantagstyp, miljö och medd
 
 ## Genomgånget exempel: bara produktionsundantag
 
-Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och ingenting för staging. Du väljer **Alla undantag**, ställer in **Environments** på `production`, behåller **Tidsfönster** på **Senaste 5 minuterna** och väljer **Deklarera en incident** under **Vad som händer**. Under de senaste fem minuterna:
+Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och ingenting för staging. Du väljer **Alla undantag**, ställer in **Miljöer** på `production`, behåller **Tidsfönster** på **Senaste 5 minuterna** och väljer **Deklarera en incident** under **Vad som händer**. Under de senaste fem minuterna:
 
 | Undantag | Miljö | Tillstånd | Räknas? |
 | --- | --- | --- | --- |
@@ -174,7 +174,7 @@ Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och 
 ## Felsökning
 
 :::details Undantag visas i utforskaren, men monitorn räknar 0
-Jämför värdet i **Environments** med utforskarens filter `env:`: jämförelsen är exakt och skiljer på versaler och gemener, och undantag utan miljö utelämnas när filtret är angivet. Kontrollera sedan om de undantagen är lösta eller arkiverade. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Matchande undantag** visar vad filtren matchar.
+Jämför värdet i **Miljöer** med utforskarens filter `env:`: jämförelsen är exakt och skiljer på versaler och gemener, och undantag utan miljö utelämnas när filtret är angivet. Kontrollera sedan om de undantagen är lösta eller arkiverade. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Matchande undantag** visar vad filtren matchar.
 :::
 
 :::details Incidenten löstes när jag löste undantaget

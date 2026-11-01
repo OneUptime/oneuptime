@@ -1,5 +1,5 @@
-import { AddDataSecurityIdentities1808760000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808760000000-AddDataSecurityIdentities";
-import { AddDataSecurityFieldSuggestions1808770000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808770000000-AddDataSecurityFieldSuggestions";
+import { AddDataSecurityIdentities1808770000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808770000000-AddDataSecurityIdentities";
+import { AddDataSecurityFieldSuggestions1808780000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808780000000-AddDataSecurityFieldSuggestions";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
@@ -21,7 +21,7 @@ import { describe, expect, test } from "@jest/globals";
 
 type MigrationClass = new () => MigrationInterface;
 
-const MIGRATION_NAME: string = "AddDataSecurityFieldSuggestions1808770000000";
+const MIGRATION_NAME: string = "AddDataSecurityFieldSuggestions1808780000000";
 const MIGRATIONS_FOLDER: string = path.join(
   __dirname,
   "../../../../Server/Infrastructure/Postgres/SchemaMigrations",
@@ -42,8 +42,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
       steps.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: AddDataSecurityFieldSuggestions1808770000000 =
-    new AddDataSecurityFieldSuggestions1808770000000();
+  const migration: AddDataSecurityFieldSuggestions1808780000000 =
+    new AddDataSecurityFieldSuggestions1808780000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -63,7 +63,7 @@ function timestampOf(migration: MigrationClass): number {
 
 describe("the Data Security field suggestions migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddDataSecurityFieldSuggestions1808770000000().name).toBe(
+    expect(new AddDataSecurityFieldSuggestions1808780000000().name).toBe(
       MIGRATION_NAME,
     );
   });
@@ -72,21 +72,21 @@ describe("the Data Security field suggestions migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddDataSecurityFieldSuggestions1808770000000,
+      AddDataSecurityFieldSuggestions1808780000000,
     );
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
-        return candidate === AddDataSecurityFieldSuggestions1808770000000;
+        return candidate === AddDataSecurityFieldSuggestions1808780000000;
       }),
     ).toHaveLength(1);
     expect(at).toBeGreaterThan(
-      registered.indexOf(AddDataSecurityIdentities1808760000000),
+      registered.indexOf(AddDataSecurityIdentities1808770000000),
     );
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddDataSecurityFieldSuggestions1808770000000),
+        timestampOf(AddDataSecurityFieldSuggestions1808780000000),
       );
     }
   });
@@ -95,10 +95,10 @@ describe("the Data Security field suggestions migration", () => {
     expect(
       fs.readdirSync(MIGRATIONS_FOLDER).filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddDataSecurityFieldSuggestions1808770000000)}-`,
+          `${timestampOf(AddDataSecurityFieldSuggestions1808780000000)}-`,
         );
       }),
-    ).toEqual(["1808770000000-AddDataSecurityFieldSuggestions.ts"]);
+    ).toEqual(["1808780000000-AddDataSecurityFieldSuggestions.ts"]);
   });
 
   test("up adds the four columns, each nullable or with a constant default, and touches no row", async () => {

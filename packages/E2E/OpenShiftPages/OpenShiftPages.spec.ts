@@ -570,7 +570,9 @@ test.describe("a DeploymentConfig's page", () => {
 
     await page.getByRole("link", { name: "legacy-web-7", exact: true }).click();
 
-    await expect(page).toHaveURL(/\/deploymentconfigs\/legacy-web/);
+    await expect(page).toHaveURL(
+      /\/deploymentconfigs\/legacy-web\?namespace=shop$/,
+    );
   });
 
   test("its Metrics tab reads its pods by their label, in its namespace", async ({
@@ -957,6 +959,22 @@ test.describe("the cluster's Recommendations", () => {
   });
 });
 
+test("an Event about a Service opens that Service, not a namesake in another namespace", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page, "events");
+
+  await page
+    .getByRole("link", { name: "frontend", exact: true })
+    .first()
+    .click();
+
+  await expect(page).toHaveURL(/\/services\/frontend\?namespace=payments$/);
+  await expect(page.getByText("172.30.90.7", { exact: true })).toBeVisible();
+});
+
 test("a pod of a DeploymentConfig is owned by it, not by a rollout's controller", async ({
   page,
 }: {
@@ -966,7 +984,9 @@ test("a pod of a DeploymentConfig is owned by it, not by a rollout's controller"
 
   await objectLink(page, "legacy-web").click();
 
-  await expect(page).toHaveURL(/\/deploymentconfigs\/legacy-web/);
+  await expect(page).toHaveURL(
+    /\/deploymentconfigs\/legacy-web\?namespace=shop$/,
+  );
   await expect(page.getByText("3/3 ready", { exact: true })).toBeVisible();
 });
 
@@ -994,6 +1014,27 @@ test.describe("a phone", () => {
       await screenshot(page, `${name}-phone`);
     });
   }
+});
+
+test("the pages read in German", async ({ page }: { page: Page }) => {
+  await page.goto(`${CLUSTER_PATH}?health=degraded&lang=de`);
+
+  const card: Locator = page.getByTestId("openshift-health-card");
+
+  await expect(card.getByTestId("openshift-update")).toContainText(
+    "Cluster-Update",
+  );
+  await expect(card.getByTestId("openshift-operators")).toContainText(
+    "11 von 12 fehlerfrei",
+  );
+  await expect(
+    card.getByRole("button", { name: "Alle 12 Operatoren anzeigen" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Netzwerk", level: 6 }),
+  ).toBeVisible();
+
+  await screenshot(page, "overview-german");
 });
 
 test("dark mode draws the pages on the dark surface", async ({

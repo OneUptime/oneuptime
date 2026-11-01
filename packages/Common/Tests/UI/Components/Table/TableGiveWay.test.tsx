@@ -20,12 +20,16 @@ import {
   TABLE_VALUE_GIVE_ATTRIBUTE,
   TABLE_VALUE_GIVE_CLASS_NAME,
   TABLE_VALUE_GIVE_FLOOR_IN_PX,
+  TABLE_VALUE_WHOLE_ATTRIBUTE,
 } from "../../../../UI/Components/Table/TableLayout";
 import useTableScrollState, {
   TABLE_FILL_ATTRIBUTE,
   TABLE_GIVE_WAY_READINGS,
   TABLE_NAME_ATTRIBUTE,
+  TableCannotFit,
   TableScrollState,
+  areGivenWayRulesDrawn,
+  areTableFontsLoaded,
   getValueGiveKind,
 } from "../../../../UI/Components/Table/useTableScrollState";
 import Pill from "../../../../UI/Components/Pill/Pill";
@@ -363,6 +367,7 @@ interface ProbeProps {
   onState: (state: TableScrollState) => void;
   // How wide the row's name is as its words: 216px unless a test says.
   nameWidth?: number | undefined;
+  onCannotFit?: ((cannotFit: TableCannotFit) => void) | undefined;
 }
 
 const rect: (width: number) => DOMRect = (width: number): DOMRect => {
@@ -391,6 +396,7 @@ function Probe(props: ProbeProps): ReactElement {
     scrollRef: scrollRef as React.RefObject<HTMLElement>,
     tableRef: tableRef as React.RefObject<HTMLElement>,
     watch: [props.boxWidth, props.widthFor],
+    onCannotFit: props.onCannotFit,
   });
 
   props.onState(state);
@@ -529,6 +535,37 @@ const renderProbe: (
   return result;
 };
 
+/*
+ * The readings a measurement tried, in the order it first tried them: after
+ * a table fits given way, the values that could be whole are tried whole
+ * (keepWholeWhatFits), and a table too wide even so is read once more at
+ * its tightest - readings of states already tried.
+ */
+const tried: (result: ProbeResult) => Array<Giving> = (
+  result: ProbeResult,
+): Array<Giving> => {
+  const seen: Array<string> = [];
+
+  return result.readings.filter((giving: Giving): boolean => {
+    const key: string = JSON.stringify(giving);
+
+    if (seen.includes(key)) {
+      return false;
+    }
+
+    seen.push(key);
+    return true;
+  });
+};
+
+const wholeOf: (index: number) => string | null = (
+  index: number,
+): string | null => {
+  return screen
+    .getByTestId(`value-${index}`)
+    .getAttribute(TABLE_VALUE_WHOLE_ATTRIBUTE);
+};
+
 const lastState: (result: ProbeResult) => TableScrollState | undefined = (
   result: ProbeResult,
 ): TableScrollState | undefined => {
@@ -603,23 +640,64 @@ describe("useTableScrollState gives way before the rows scroll", () => {
   });
 
   test("a table that fits once its long values give way: only the long lines and boxes are cut short", () => {
-    const result: ProbeResult = renderProbe(938, TIGHT);
+    /*
+     * Given way, the table fits by any value given way at all: each one is
+     * then tried whole again, and held whole where the table still fits.
+     */
+    const result: ProbeResult = renderProbe(938, (giving: Giving): number => {
+      return giving.give ? 878 : TIGHT(giving);
+    });
 
     expect(wrapOf()).toBe("true");
     expect(
       VALUES.map((_value: unknown, index: number): string | null => {
         return giveOf(index);
       }),
-    ).toEqual(["line", null, "box", null]);
+    ).toEqual([null, null, "box", null]);
+    // The host's name had the room to be whole: it is held so.
+    expect(wholeOf(0)).toBe("true");
+    expect(wholeOf(2)).toBeNull();
     expect(lastState(result)).toEqual({
       isOverflowing: false,
       canStickHeader: true,
     });
-    expect(result.readings).toEqual([
+    expect(tried(result)).toEqual([
       { fill: true, wrap: false, give: false },
       { fill: true, wrap: true, give: false },
       { fill: true, wrap: true, give: true },
     ]);
+  });
+
+  test("only what has to be cut short is: a value the table has the room for is held whole", () => {
+    // 31px a value given way: one given fits, none does not.
+    const result: ProbeResult = renderProbe(938, (giving: Giving): number => {
+      if (!giving.give) {
+        return TIGHT(giving);
+      }
+
+      const given: number = document.querySelectorAll(
+        `[${TABLE_VALUE_GIVE_ATTRIBUTE}]`,
+      ).length;
+
+      return 940 - 31 * given;
+    });
+
+    // One of the two long values stays cut short, the other is whole.
+    const given: Array<string | null> = VALUES.map(
+      (_value: unknown, index: number): string | null => {
+        return giveOf(index);
+      },
+    );
+
+    expect(
+      given.filter((kind: string | null): boolean => {
+        return kind !== null;
+      }),
+    ).toHaveLength(1);
+    expect(lastState(result)).toEqual({
+      isOverflowing: false,
+      canStickHeader: true,
+    });
   });
 
   test("the readings, in the order they are tried", () => {
@@ -656,12 +734,75 @@ describe("useTableScrollState gives way before the rows scroll", () => {
       isOverflowing: true,
       canStickHeader: false,
     });
-    expect(result.readings).toEqual([
+    expect(tried(result)).toEqual([
       { fill: true, wrap: false, give: false },
       { fill: true, wrap: true, give: false },
       { fill: true, wrap: true, give: true },
       { fill: false, wrap: false, give: false },
     ]);
+    // Every value whole, held so: it has the scroll's room.
+    expect(wholeOf(0)).toBe("true");
+    expect(wholeOf(2)).toBe("true");
+  });
+
+  test("a table only just too wide given way stays given way, and scrolls the last few pixels", () => {
+    // 20px over given way, 362px over whole.
+    const result: ProbeResult = renderProbe(938, (giving: Giving) => {
+      return giving.give ? 958 : 1300;
+    });
+
+    expect(wrapOf()).toBe("true");
+    expect(giveOf(0)).toBe("line");
+    expect(giveOf(2)).toBe("box");
+    expect(wholeOf(0)).toBeNull();
+    expect(screen.getByTestId("name")).toHaveAttribute(
+      TABLE_FILL_ATTRIBUTE,
+      "true",
+    );
+    expect(lastState(result)).toEqual({
+      isOverflowing: true,
+      canStickHeader: false,
+    });
+  });
+
+  test("the table says it cannot fit, and how wide it was at its tightest", () => {
+    const told: Array<TableCannotFit> = [];
+
+    render(
+      <Probe
+        boxWidth={938}
+        widthFor={(giving: Giving): number => {
+          return giving.give ? 1300 : 1500;
+        }}
+        values={VALUES}
+        readings={[]}
+        onState={(): void => {}}
+        onCannotFit={(cannotFit: TableCannotFit): void => {
+          told.push(cannotFit);
+        }}
+      />,
+    );
+
+    expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+  });
+
+  test("a table that fits says nothing of the kind", () => {
+    const told: Array<TableCannotFit> = [];
+
+    render(
+      <Probe
+        boxWidth={938}
+        widthFor={TIGHT}
+        values={VALUES}
+        readings={[]}
+        onState={(): void => {}}
+        onCannotFit={(cannotFit: TableCannotFit): void => {
+          told.push(cannotFit);
+        }}
+      />,
+    );
+
+    expect(told).toEqual([]);
   });
 
   test("a table of short names, which the fill's floor only widens, fits with nothing given way, as it always did", () => {
@@ -720,9 +861,11 @@ describe("useTableScrollState gives way before the rows scroll", () => {
       "false",
     );
     expect(wrapOf()).toBe("true");
-    expect(giveOf(0)).toBe("line");
+    // The host's name fits whole beside the list given way: held whole.
+    expect(giveOf(0)).toBeNull();
+    expect(wholeOf(0)).toBe("true");
     expect(giveOf(2)).toBe("box");
-    expect(result.readings).toEqual([
+    expect(tried(result)).toEqual([
       { fill: false, wrap: false, give: false },
       { fill: false, wrap: true, give: false },
       { fill: false, wrap: true, give: true },
@@ -743,16 +886,19 @@ describe("useTableScrollState gives way before the rows scroll", () => {
       window.dispatchEvent(new Event("resize"));
     });
 
-    // Three readings a measurement, each starting from the first.
-    expect(result.readings).toHaveLength(9);
-    for (let index: number = 0; index < 9; index += 3) {
-      expect(result.readings[index]).toEqual({
-        fill: true,
-        wrap: false,
-        give: false,
-      });
-    }
-    expect(giveOf(0)).toBe("line");
+    // Three measurements, each starting from the first reading.
+    expect(
+      result.readings.filter((giving: Giving): boolean => {
+        return giving.fill && !giving.wrap && !giving.give;
+      }),
+    ).toHaveLength(3);
+    expect(result.readings[0]).toEqual({
+      fill: true,
+      wrap: false,
+      give: false,
+    });
+    expect(wholeOf(0)).toBe("true");
+    expect(giveOf(2)).toBe("box");
     expect(wrapOf()).toBe("true");
     expect(lastState(result)).toEqual({
       isOverflowing: false,
@@ -780,7 +926,7 @@ describe("useTableScrollState gives way before the rows scroll", () => {
 
     const { rerender } = render(draw());
 
-    expect(giveOf(0)).toBe("line");
+    expect(giveOf(2)).toBe("box");
 
     boxWidth = 1200;
     rerender(draw());
@@ -792,6 +938,579 @@ describe("useTableScrollState gives way before the rows scroll", () => {
       isOverflowing: false,
       canStickHeader: true,
     });
+  });
+});
+
+/*
+ * The Dashboard's Tailwind runtime writes a class's rule only once an
+ * element carrying it is on the page - after the commit that drew it. A
+ * table measured in that commit (its first rows) read them as though
+ * nothing could give way, and its "cannot fit" folded it for good: the
+ * incidents list folded at 1280px, where with its rules it fits.
+ *
+ * jsdom draws no rules at all, so which are "on the page" is said here, by
+ * what getComputedStyle answers for a value given way or a name set free.
+ */
+interface RulesSwitch {
+  isOn: boolean;
+}
+
+type DrawRulesFunction = (rules: RulesSwitch) => void;
+
+const drawRulesWhen: DrawRulesFunction = (rules: RulesSwitch): void => {
+  const realGetComputedStyle: typeof window.getComputedStyle =
+    window.getComputedStyle.bind(window);
+
+  jest
+    .spyOn(window, "getComputedStyle")
+    .mockImplementation(
+      (element: Element, pseudo?: string | null): CSSStyleDeclaration => {
+        const style: CSSStyleDeclaration = realGetComputedStyle(
+          element,
+          pseudo,
+        );
+
+        if (!rules.isOn) {
+          return style;
+        }
+
+        const overrides: Record<string, string> = {};
+        const given: string | null = element.getAttribute(
+          TABLE_VALUE_GIVE_ATTRIBUTE,
+        );
+
+        if (given === "box") {
+          overrides["display"] = "grid";
+        }
+
+        if (
+          given === "line" ||
+          element.getAttribute(TABLE_FILL_ATTRIBUTE) === "true"
+        ) {
+          overrides["-webkit-line-clamp"] = "1";
+        }
+
+        return new Proxy(style, {
+          get: (target: CSSStyleDeclaration, key: string | symbol): unknown => {
+            if (key === "getPropertyValue") {
+              return (name: string): string => {
+                return overrides[name] ?? target.getPropertyValue(name);
+              };
+            }
+
+            if (typeof key === "string" && overrides[key] !== undefined) {
+              return overrides[key];
+            }
+
+            const value: unknown = Reflect.get(target, key);
+
+            return typeof value === "function"
+              ? (value as (...args: Array<unknown>) => unknown).bind(target)
+              : value;
+          },
+        });
+      },
+    );
+};
+
+/*
+ * A ResizeObserver whose first call - which a browser makes as soon as it
+ * starts watching a box - the test makes, and the animation frames it asks
+ * for, which the test runs.
+ */
+interface FakeFrames {
+  observe: () => void;
+  runFrames: () => void;
+  restore: () => void;
+}
+
+const fakeResizeObserver: () => FakeFrames = (): FakeFrames => {
+  const callbacks: Array<() => void> = [];
+  const frames: Map<number, FrameRequestCallback> = new Map();
+  let nextFrame: number = 1;
+
+  class FakeResizeObserver {
+    public constructor(callback: () => void) {
+      callbacks.push(callback);
+    }
+
+    public observe(): void {}
+
+    public unobserve(): void {}
+
+    public disconnect(): void {}
+  }
+
+  const originalObserver: unknown = (
+    window as unknown as { ResizeObserver?: unknown }
+  ).ResizeObserver;
+  const originalRequest: typeof window.requestAnimationFrame =
+    window.requestAnimationFrame;
+  const originalCancel: typeof window.cancelAnimationFrame =
+    window.cancelAnimationFrame;
+
+  (window as unknown as { ResizeObserver: unknown }).ResizeObserver =
+    FakeResizeObserver;
+  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+    FakeResizeObserver;
+  window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
+    const id: number = nextFrame++;
+    frames.set(id, callback);
+    return id;
+  };
+  window.cancelAnimationFrame = (id: number): void => {
+    frames.delete(id);
+  };
+
+  return {
+    observe: (): void => {
+      act(() => {
+        for (const callback of callbacks) {
+          callback();
+        }
+      });
+    },
+    runFrames: (): void => {
+      const pending: Array<FrameRequestCallback> = Array.from(frames.values());
+      frames.clear();
+      act(() => {
+        for (const callback of pending) {
+          callback(0);
+        }
+      });
+    },
+    restore: (): void => {
+      (window as unknown as { ResizeObserver?: unknown }).ResizeObserver =
+        originalObserver;
+      (globalThis as unknown as { ResizeObserver?: unknown }).ResizeObserver =
+        originalObserver;
+      window.requestAnimationFrame = originalRequest;
+      window.cancelAnimationFrame = originalCancel;
+    },
+  };
+};
+
+// A table 1300px wide given way in a 938px card: it cannot fit.
+const TOO_WIDE: (giving: Giving) => number = (giving: Giving): number => {
+  return giving.give ? 1300 : 1500;
+};
+
+describe("a table measured before the page has the rules it gives way by", () => {
+  type DrawFunction = (data: {
+    told: Array<TableCannotFit>;
+    widthFor?: (giving: Giving) => number;
+  }) => void;
+
+  const draw: DrawFunction = (data: {
+    told: Array<TableCannotFit>;
+    widthFor?: (giving: Giving) => number;
+  }): void => {
+    render(
+      <Probe
+        boxWidth={938}
+        widthFor={data.widthFor || TOO_WIDE}
+        values={VALUES}
+        readings={[]}
+        onState={(): void => {}}
+        onCannotFit={(cannotFit: TableCannotFit): void => {
+          data.told.push(cannotFit);
+        }}
+      />,
+    );
+  };
+
+  test("waits for the next frame's measurement, which has them, before it says it cannot fit", () => {
+    const rules: RulesSwitch = { isOn: false };
+    const frames: FakeFrames = fakeResizeObserver();
+
+    drawRulesWhen(rules);
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      draw({ told: told });
+
+      // Read without its rules: not a width to fold the table for.
+      expect(told).toEqual([]);
+
+      // The page writes the rules; the browser tells of the box's size.
+      rules.isOn = true;
+      frames.observe();
+      frames.runFrames();
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+    } finally {
+      frames.restore();
+    }
+  });
+
+  test("still draws the rows as it read them meanwhile: scrolling, every value whole", () => {
+    const rules: RulesSwitch = { isOn: false };
+    const frames: FakeFrames = fakeResizeObserver();
+    const states: Array<TableScrollState> = [];
+
+    drawRulesWhen(rules);
+
+    try {
+      render(
+        <Probe
+          boxWidth={938}
+          widthFor={TOO_WIDE}
+          values={VALUES}
+          readings={[]}
+          onState={(state: TableScrollState): void => {
+            states.push(state);
+          }}
+        />,
+      );
+
+      expect(states[states.length - 1]).toEqual({
+        isOverflowing: true,
+        canStickHeader: false,
+      });
+      expect(giveOf(0)).toBeNull();
+      expect(wrapOf()).toBeNull();
+    } finally {
+      frames.restore();
+    }
+  });
+
+  test("with its rules on the page, it says so at once - no frame of rows that do not fit", () => {
+    const frames: FakeFrames = fakeResizeObserver();
+
+    drawRulesWhen({ isOn: true });
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      draw({ told: told });
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+    } finally {
+      frames.restore();
+    }
+  });
+
+  test("a later measurement is trusted as it is: a page whose rules never come still folds", () => {
+    const frames: FakeFrames = fakeResizeObserver();
+
+    drawRulesWhen({ isOn: false });
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      draw({ told: told });
+      expect(told).toEqual([]);
+
+      frames.observe();
+      frames.runFrames();
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+    } finally {
+      frames.restore();
+    }
+  });
+
+  test("where nothing measures it again (no ResizeObserver, as in jsdom), it says so at once", () => {
+    expect(
+      (window as unknown as { ResizeObserver?: unknown }).ResizeObserver,
+    ).toBeUndefined();
+
+    drawRulesWhen({ isOn: false });
+
+    const told: Array<TableCannotFit> = [];
+
+    draw({ told: told });
+
+    expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+  });
+
+  test("a table that fits once its rules are in says nothing, then or later", () => {
+    const rules: RulesSwitch = { isOn: false };
+    const frames: FakeFrames = fakeResizeObserver();
+
+    drawRulesWhen(rules);
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      /*
+       * Without its rules nothing gives way (1500px); with them it fits
+       * given way (878px).
+       */
+      draw({
+        told: told,
+        widthFor: (giving: Giving): number => {
+          return giving.give && rules.isOn ? 878 : 1500;
+        },
+      });
+
+      expect(told).toEqual([]);
+
+      rules.isOn = true;
+      frames.observe();
+      frames.runFrames();
+
+      expect(told).toEqual([]);
+      expect(giveOf(2)).toBe("box");
+    } finally {
+      frames.restore();
+    }
+  });
+});
+
+/*
+ * The Dashboard draws its words in Inter, held invisible while it loads
+ * (font-display: block) and laid out meanwhile in a fallback of other
+ * widths. A table measured then - on a first visit, its rows in before the
+ * font - is not folded for good on what the fallback took: it is measured
+ * again once the fonts are in.
+ */
+interface FakeFonts {
+  status: string;
+  ready: Promise<void>;
+  load: () => Promise<void>;
+  restore: () => void;
+}
+
+const fakeFonts: (status: string) => FakeFonts = (
+  status: string,
+): FakeFonts => {
+  let resolveReady: () => void = (): void => {};
+  const ready: Promise<void> = new Promise<void>((resolve: () => void) => {
+    resolveReady = resolve;
+  });
+  const fonts: { status: string; ready: Promise<void> } = {
+    status: status,
+    ready: status === "loading" ? ready : Promise.resolve(),
+  };
+
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    value: fonts,
+  });
+
+  return {
+    get status(): string {
+      return fonts.status;
+    },
+    ready: fonts.ready,
+    load: async (): Promise<void> => {
+      fonts.status = "loaded";
+      resolveReady();
+      await act(async () => {
+        await fonts.ready;
+      });
+    },
+    restore: (): void => {
+      delete (document as unknown as { fonts?: unknown }).fonts;
+    },
+  };
+};
+
+describe("a table measured before the page's fonts are in", () => {
+  type DrawFunction = (
+    told: Array<TableCannotFit>,
+  ) => ReturnType<typeof render>;
+
+  const draw: DrawFunction = (
+    told: Array<TableCannotFit>,
+  ): ReturnType<typeof render> => {
+    return render(
+      <Probe
+        boxWidth={938}
+        widthFor={TOO_WIDE}
+        values={VALUES}
+        readings={[]}
+        onState={(): void => {}}
+        onCannotFit={(cannotFit: TableCannotFit): void => {
+          told.push(cannotFit);
+        }}
+      />,
+    );
+  };
+
+  test("waits for them - the next frame's measurement too - and is measured again once they are in", async () => {
+    const frames: FakeFrames = fakeResizeObserver();
+    const fonts: FakeFonts = fakeFonts("loading");
+
+    drawRulesWhen({ isOn: true });
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      draw(told);
+      expect(told).toEqual([]);
+
+      frames.observe();
+      frames.runFrames();
+      expect(told).toEqual([]);
+
+      // The font is in: the table is measured again, whatever its size did.
+      await fonts.load();
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+    } finally {
+      fonts.restore();
+      frames.restore();
+    }
+  });
+
+  test("fonts that are in already: it says so at once", () => {
+    const frames: FakeFrames = fakeResizeObserver();
+    const fonts: FakeFonts = fakeFonts("loaded");
+
+    drawRulesWhen({ isOn: true });
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      draw(told);
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+    } finally {
+      fonts.restore();
+      frames.restore();
+    }
+  });
+
+  test("a table gone before its fonts come in is not measured, nor told of", async () => {
+    const frames: FakeFrames = fakeResizeObserver();
+    const fonts: FakeFonts = fakeFonts("loading");
+
+    drawRulesWhen({ isOn: true });
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      draw(told).unmount();
+      await fonts.load();
+
+      expect(told).toEqual([]);
+    } finally {
+      fonts.restore();
+      frames.restore();
+    }
+  });
+
+  test("waits for its fonts once, however often it is measured meanwhile", async () => {
+    const frames: FakeFrames = fakeResizeObserver();
+    const fonts: FakeFonts = fakeFonts("loading");
+
+    drawRulesWhen({ isOn: true });
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      draw(told);
+
+      for (let frame: number = 0; frame < 3; frame++) {
+        frames.observe();
+        frames.runFrames();
+      }
+
+      await fonts.load();
+
+      // One measurement for the fonts, one word of it.
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+    } finally {
+      fonts.restore();
+      frames.restore();
+    }
+  });
+
+  test("where nothing would measure it again (no ResizeObserver), the width there is is the one it says", () => {
+    const fonts: FakeFonts = fakeFonts("loading");
+
+    try {
+      const told: Array<TableCannotFit> = [];
+
+      draw(told);
+
+      expect(told).toEqual([{ tightWidth: 1300, boxWidth: 938 }]);
+    } finally {
+      fonts.restore();
+    }
+  });
+
+  test("areTableFontsLoaded: not while a font loads; a page that says nothing of its fonts has them", () => {
+    expect((document as unknown as { fonts?: unknown }).fonts).toBeUndefined();
+    expect(areTableFontsLoaded()).toBe(true);
+
+    const loading: FakeFonts = fakeFonts("loading");
+    expect(areTableFontsLoaded()).toBe(false);
+    loading.restore();
+
+    const loaded: FakeFonts = fakeFonts("loaded");
+    expect(areTableFontsLoaded()).toBe(true);
+    loaded.restore();
+  });
+});
+
+describe("areGivenWayRulesDrawn", () => {
+  type TableOfFunction = (markup: string) => HTMLElement;
+
+  const tableOf: TableOfFunction = (markup: string): HTMLElement => {
+    const table: HTMLElement = document.createElement("table");
+    table.innerHTML = `<tbody><tr><td>${markup}</td></tr></tbody>`;
+    document.body.appendChild(table);
+    return table;
+  };
+
+  test("a value given way as a box: drawn once it is laid out as a grid", () => {
+    const table: HTMLElement = tableOf(
+      `<div ${TABLE_VALUE_GIVE_ATTRIBUTE}="box">resources</div>`,
+    );
+
+    drawRulesWhen({ isOn: false });
+    expect(areGivenWayRulesDrawn(table)).toBe(false);
+
+    jest.restoreAllMocks();
+    drawRulesWhen({ isOn: true });
+    expect(areGivenWayRulesDrawn(table)).toBe(true);
+  });
+
+  test("a value given way as a line: drawn once it is clamped to its first line", () => {
+    const table: HTMLElement = tableOf(
+      `<div ${TABLE_VALUE_GIVE_ATTRIBUTE}="line">web-prod-03</div>`,
+    );
+
+    drawRulesWhen({ isOn: false });
+    expect(areGivenWayRulesDrawn(table)).toBe(false);
+
+    jest.restoreAllMocks();
+    drawRulesWhen({ isOn: true });
+    expect(areGivenWayRulesDrawn(table)).toBe(true);
+  });
+
+  test("no value given way: a name set free tells instead", () => {
+    const table: HTMLElement = tableOf(
+      `<div ${TABLE_FILL_ATTRIBUTE}="true">Customer-Facing Status Page</div>`,
+    );
+
+    drawRulesWhen({ isOn: false });
+    expect(areGivenWayRulesDrawn(table)).toBe(false);
+
+    jest.restoreAllMocks();
+    drawRulesWhen({ isOn: true });
+    expect(areGivenWayRulesDrawn(table)).toBe(true);
+  });
+
+  test("a name at its cap tells nothing: nothing gave way, so nothing was read by a rule", () => {
+    const table: HTMLElement = tableOf(
+      `<div ${TABLE_FILL_ATTRIBUTE}="false">Checkout API</div><div>12</div>`,
+    );
+
+    drawRulesWhen({ isOn: false });
+    expect(areGivenWayRulesDrawn(table)).toBe(true);
+  });
+
+  test("a page that draws a box any other way - a block, as with no rules - is not taken for one drawn with them", () => {
+    const table: HTMLElement = tableOf(
+      `<div ${TABLE_VALUE_GIVE_ATTRIBUTE}="box" style="display: block">resources</div>`,
+    );
+
+    expect(areGivenWayRulesDrawn(table)).toBe(false);
   });
 });
 

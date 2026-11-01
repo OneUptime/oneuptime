@@ -136,13 +136,25 @@ import { startsCollapsed } from "Common/UI/Components/SideMenu/SideMenuSectionSt
 import { EVERY_FIFTEEN_MINUTE, EVERY_THREE_HOURS } from "Common/Utils/CronTime";
 import { INVENTORY_ASSET_FIELDS } from "Common/Utils/Inventory/InventoryAssetDetails";
 import {
+  NetworkDeviceAssetFactKey,
+  NetworkDeviceFactDetails,
   getNetworkDeviceAssetFacts,
   getNetworkDeviceDnsName,
+  getNetworkDeviceFactDetails,
   getNetworkDeviceHostname,
   getNetworkDeviceIpAddress,
   getNetworkDeviceLocation,
   getNetworkDeviceManufacturer,
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
+import {
+  DiscoveredDetailsPatch,
+  planDiscoveredDetails,
+} from "Common/Utils/NetworkDiscovery/DiscoveredDetailsPlan";
+import {
+  SnmpVendorIdentityRead,
+  getSnmpVendorIdentity,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpVendorIdentity";
+import { pickDeviceOwnMac } from "Common/Utils/NetworkDevice/DeviceOwnMacUtil";
 import { parseSystemDescription } from "Common/Utils/NetworkDevice/SystemDescriptionUtil";
 import { inferRelationshipType } from "Common/Utils/Telemetry/EntityRelationship";
 import { beforeAll, describe, expect, it } from "@jest/globals";
@@ -172,6 +184,7 @@ import "../../../FeatureSet/Workers/Jobs/TelemetryEntity/SyncInventoryEntities";
  * tables of the CMDB page to the asset vocabulary.
  */
 
+const DEVICE_GUIDE: string = "monitor/network-device-monitor";
 const DASHBOARD_APP: string = "App/FeatureSet/Dashboard/src";
 const INVENTORY_MENU: string = `${DASHBOARD_APP}/Pages/Inventory/SideMenu.tsx`;
 const ITEM_MENU: string = `${DASHBOARD_APP}/Pages/Inventory/View/SideMenu.tsx`;
@@ -1325,10 +1338,216 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
     expect(parseSystemDescription("Meraki MX85")).toEqual({
       manufacturer: "Cisco Meraki",
       model: "MX85",
+      operatingSystem: "Meraki MX firmware",
     });
     expect(parseSystemDescription("Acme Widget OS 1.2 on a box")).toEqual({});
     expect(networkSection()).toContain(
-      "a Cisco Meraki MX reports `Meraki MX85`, which fills in the make and model. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.",
+      "a Cisco Meraki MX reports `Meraki MX85`, which fills in the make, the model and the operating system. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.",
+    );
+  });
+
+  /*
+   * Issue #5384: the vendors the page names are the ones the poll asks, for
+   * the fields the page says it asks them for, and an MX is not one of them.
+   */
+  it("names the vendors whose own MIB is read, for what each one fills", () => {
+    function fieldsOf(sysObjectId: string): Array<string> {
+      return Array.from(
+        new Set<string>(
+          (getSnmpVendorIdentity(sysObjectId)?.reads || []).map(
+            (read: SnmpVendorIdentityRead): string => {
+              return read.field;
+            },
+          ),
+        ),
+      );
+    }
+
+    const FORTIGATE: string = "1.3.6.1.4.1.12356.101.1.644";
+    const JUNIPER: string = "1.3.6.1.4.1.2636.1.1.1.2.57";
+    const MIKROTIK: string = "1.3.6.1.4.1.14988.1";
+    const SOPHOS: string = "1.3.6.1.4.1.2604.5";
+
+    for (const sysObjectId of [FORTIGATE, JUNIPER, MIKROTIK, SOPHOS]) {
+      expect(fieldsOf(sysObjectId)).toContain("serialNumber");
+    }
+
+    expect(sourceOf("host.serial_number")).toBe(
+      "ENTITY-MIB `entPhysicalSerialNum`, else the vendor's own MIB on FortiGate, Juniper, MikroTik and Sophos devices",
+    );
+
+    // Juniper's sysDescr names its release; the others' firmware is the MIB's.
+    expect(fieldsOf(JUNIPER)).not.toContain("firmwareVersion");
+
+    for (const sysObjectId of [FORTIGATE, MIKROTIK, SOPHOS]) {
+      expect(fieldsOf(sysObjectId)).toContain("firmwareVersion");
+    }
+
+    expect(getSnmpVendorIdentity("1.3.6.1.4.1.29671.2.111")).toBeUndefined();
+    expect(networkSection()).toContain(
+      "unless its vendor keeps them in a MIB of its own that OneUptime reads: FortiGate, Juniper, MikroTik and Sophos.",
+    );
+  });
+
+  it("fills a MAC nothing else names from the device's first Ethernet port, after what was typed or learned", () => {
+    const ownPort: Record<string, unknown> = {
+      ownMacAddress: {
+        value: pickDeviceOwnMac([
+          {
+            interfaceIndex: 2,
+            macAddress: "aa:bb:cc:06:25:ee",
+            interfaceType: 6,
+          },
+          {
+            interfaceIndex: 1,
+            macAddress: "aa:bb:cc:06:25:ed",
+            interfaceType: 6,
+          },
+        ]),
+        method: "snmp",
+        readBy: { type: "probe", id: "probe-1" },
+        readAt: "2026-10-23T09:00:00.000Z",
+      },
+    };
+
+    expect(
+      getNetworkDeviceAssetFacts({ discoveredDetails: ownPort }).macAddress,
+    ).toBe("AA-BB-CC-06-25-ED");
+    expect(
+      getNetworkDeviceAssetFacts({
+        macAddress: "00:1b:54:c2:7a:01",
+        discoveredDetails: ownPort,
+      }).macAddress,
+    ).toBe("00-1B-54-C2-7A-01");
+    expect(sourceOf("host.mac")).toBe(
+      "Typed on the device, or learned from a walked router's ARP table. Otherwise the MAC of its first Ethernet port, as its SNMP walk or a discovery scan reads it",
+    );
+  });
+
+  /*
+   * A device with no SNMP credentials of its own is not walked, so what a
+   * discovery scan reads of it is all it has. The page says it gets these, and
+   * that the scan is where they came from; these read them back the way the
+   * Asset Details card does.
+   */
+  describe("what a discovery scan reads of a device nothing walks", () => {
+    const SCAN: Record<string, unknown> = {
+      type: "discoveryScan",
+      id: "20000000-0000-4000-8000-000000000001",
+      name: "Store subnets",
+    };
+
+    function reading(value: string): Record<string, unknown> {
+      return {
+        value: value,
+        method: "snmp",
+        readBy: SCAN,
+        readAt: "2026-10-23T09:00:00.000Z",
+      };
+    }
+
+    const SCANNED: Record<string, unknown> = {
+      scannedMacAddress: reading("00:1b:54:c2:7a:01"),
+      model: reading("WS-C2960X-48TS-L"),
+      serialNumber: reading("FOC1932X0K1"),
+      firmwareVersion: reading("15.2(7r)E"),
+      softwareVersion: reading("15.2(7)E2"),
+    };
+
+    const SCAN_READING: Array<NetworkDeviceAssetFactKey> = [
+      "macAddress",
+      "model",
+      "serialNumber",
+      "firmwareVersion",
+      "osVersion",
+    ];
+
+    it("gives it the details the page lists, with the scan as their source", () => {
+      const details: NetworkDeviceFactDetails = getNetworkDeviceFactDetails({
+        hostname: "10.20.12.7",
+        discoveredDetails: SCANNED,
+      });
+
+      expect(details.facts.macAddress.value).toBe("00-1B-54-C2-7A-01");
+      expect(details.facts.model.value).toBe("WS-C2960X-48TS-L");
+      expect(details.facts.serialNumber.value).toBe("FOC1932X0K1");
+      expect(details.facts.firmwareVersion.value).toBe("15.2(7r)E");
+      expect(details.facts.osVersion.value).toBe("15.2(7)E2");
+
+      for (const fact of SCAN_READING) {
+        expect(details.facts[fact].source?.readBy).toEqual(SCAN);
+      }
+
+      expect(networkSection()).toContain(
+        "A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, model, serial number, firmware, operating system, OS version and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table or from that scan.",
+      );
+    });
+
+    it("lists them on the device guide, and what the scan could not read keeps its last value", () => {
+      const guide: string = englishPage(DEVICE_GUIDE);
+
+      expect(guide).toContain(
+        "- The system name, description, `sysObjectID`, location, contact, model, serial number, firmware and software version the last [discovery scan](#discovering-devices-with-a-network-scan) of its address read over SNMP, and the reverse-DNS and NetBIOS names it found.",
+      );
+      expect(guide).toContain(
+        "- Its MAC address, from the ARP table of a walked router in its site, or else from the first Ethernet port that scan read.",
+      );
+
+      // A result that read none of them, as a probe older than this one sends.
+      const patch: DiscoveredDetailsPatch = planDiscoveredDetails({
+        projectId: "10000000-0000-4000-8000-000000000001",
+        scan: {
+          id: "20000000-0000-4000-8000-000000000002",
+          completedAt: "2026-10-24T09:00:00.000Z",
+        },
+        hosts: [
+          {
+            ipAddress: "10.20.12.7",
+            sysName: "edge-sw-07",
+            snmpReachable: true,
+          },
+        ],
+        devices: [
+          {
+            deviceId: "40000000-0000-4000-8000-000000000007",
+            projectId: "10000000-0000-4000-8000-000000000001",
+            hostname: "10.20.12.7",
+            discoveredDetails: SCANNED,
+          },
+        ],
+      })[0]!;
+
+      for (const key of Object.keys(SCANNED)) {
+        expect(patch.unset).not.toContain(key);
+        expect(Object.keys(patch.set)).not.toContain(key);
+      }
+
+      expect(guide).toContain(
+        "A host that stops answering them still counts as having answered, and what the scan could not read keeps its last value.",
+      );
+    });
+
+    it("says how long a scan may take over them", () => {
+      expect(
+        readRepoFile("Probe/Utils/Monitors/MonitorTypes/SnmpMonitor.ts"),
+      ).toContain("const HARDWARE_IDENTITY_BUDGET_MS: number = 5000;");
+      expect(englishPage(DEVICE_GUIDE)).toContain(
+        "A scan reads a host's MAC address, model, serial number, firmware and software version with a few more requests after its system group, for at most five seconds per host.",
+      );
+    });
+  });
+
+  it("names the operating system a platform always runs, whatever its sysDescr says", () => {
+    expect(
+      getNetworkDeviceAssetFacts({
+        sysObjectId: "1.3.6.1.4.1.12356.101.1.644",
+      }).operatingSystem,
+    ).toBe("FortiOS");
+    expect(
+      getNetworkDeviceAssetFacts({ sysDescr: "Meraki MX85" }).operatingSystem,
+    ).toBe("Meraki MX firmware");
+    expect(sourceOf("os.name")).toBe(
+      "The operating system `sysDescr` names, or the one the platform always runs: FortiOS on a FortiGate, Meraki's MX firmware on an MX",
     );
   });
 
@@ -1418,7 +1637,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       }).firmwareVersion,
     ).toBe("1.2.3");
     expect(sourceOf("device.firmware.version")).toBe(
-      "ENTITY-MIB `entPhysicalFirmwareRev`, else the firmware `sysDescr` names on Ubiquiti, HPE and Aruba devices",
+      "ENTITY-MIB `entPhysicalFirmwareRev`, else the vendor's own MIB on FortiGate, MikroTik and Sophos devices, else the firmware `sysDescr` names on Ubiquiti, HPE and Aruba devices",
     );
   });
 
@@ -1496,7 +1715,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
    * discovery scan that last read its address; ENTITY-MIB's rows still need
    * its own walk.
    */
-  it("fills a device that is not walked from what a discovery scan read, and only ENTITY-MIB waits for its walk", () => {
+  it("fills a device that is not walked from what a discovery scan read, and a detail no scan read stays unknown", () => {
     const scan: Record<string, unknown> = {
       type: "discoveryScan",
       id: "80000000-0000-4000-8000-000000000001",
@@ -1546,7 +1765,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       serialNumber: undefined,
     });
     expect(networkSection()).toContain(
-      "The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, operating system and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table.",
+      "The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, model, serial number, firmware, operating system, OS version and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table or from that scan.",
     );
   });
 

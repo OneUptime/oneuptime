@@ -1,7 +1,7 @@
 import { AddDataSecurity1808500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808500000000-AddDataSecurity";
 import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808450000000-AddSecurityHunts";
-import { AddDataSecurityIdentities1808760000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808760000000-AddDataSecurityIdentities";
-import { AddDataSecurityFieldSuggestions1808770000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808770000000-AddDataSecurityFieldSuggestions";
+import { AddDataSecurityIdentities1808770000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808770000000-AddDataSecurityIdentities";
+import { AddDataSecurityFieldSuggestions1808780000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808780000000-AddDataSecurityFieldSuggestions";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -105,26 +105,26 @@ const JOIN_TABLES: ReadonlyArray<[string, string, string, string]> = [
  * that adds it: what this migration made stays as it shipped.
  */
 const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
-  ["DataStoreAccess", "isUnused", AddDataSecurityIdentities1808760000000],
+  ["DataStoreAccess", "isUnused", AddDataSecurityIdentities1808770000000],
   [
     "DataStore",
     "fieldSuggestionState",
-    AddDataSecurityFieldSuggestions1808770000000,
+    AddDataSecurityFieldSuggestions1808780000000,
   ],
   [
     "DataStoreFinding",
     "isConfirmed",
-    AddDataSecurityFieldSuggestions1808770000000,
+    AddDataSecurityFieldSuggestions1808780000000,
   ],
   [
     "DataStoreFinding",
     "isAiSuggested",
-    AddDataSecurityFieldSuggestions1808770000000,
+    AddDataSecurityFieldSuggestions1808780000000,
   ],
   [
     "DataStoreFinding",
     "aiReason",
-    AddDataSecurityFieldSuggestions1808770000000,
+    AddDataSecurityFieldSuggestions1808780000000,
   ],
 ];
 

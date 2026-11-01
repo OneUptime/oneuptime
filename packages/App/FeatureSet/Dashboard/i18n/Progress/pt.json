@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39284,
-    "untranslated": 13266
+    "keys": 39356,
+    "untranslated": 13208
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -37,8 +37,10 @@
     "Datastore",
     "Datastores",
     "Deployment",
+    "DeploymentConfigs",
     "Desktop",
     "Docker Compose",
+    "Edge",
     "Embedding",
     "Endpoint",
     "Endpoints",
@@ -83,9 +85,11 @@
     "OSDs",
     "Offline",
     "Online",
+    "OpenShift",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Passthrough",
     "Playbook",
     "Playbooks",
     "Playlist",
@@ -106,6 +110,8 @@
     "Pull request {{label}}",
     "Pull requests",
     "Purity//FA 6.7.3 · 48 volumes · 12 hosts",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
@@ -121,6 +127,7 @@
     "Stack trace",
     "Stacks",
     "Status",
+    "TLS",
     "Tablet",
     "Tags",
     "Tokens",

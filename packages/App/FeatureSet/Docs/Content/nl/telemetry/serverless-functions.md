@@ -84,7 +84,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` met `"valid": true` betekent dat OneUptime de sleutel accepteert; `401` betekent dat hij onbekend, ingetrokken, uitgeschakeld of verlopen is. Roep daarna de functie aan. Zodra ze een span, een log of een metric verstuurt, verschijnt ze onder **Producten → Infrastructuur → Serverless → Alle functies**.
+`200` met `"valid": true` betekent dat OneUptime de sleutel accepteert; `401` betekent dat hij onbekend, ingetrokken, uitgeschakeld of verlopen is. Roep daarna de functie aan. Zodra ze een span, een log of een metric verstuurt, verschijnt ze onder **Producten → Cloud → Serverless → Alle functies**.
 :::
 
 ## Azure Functions
@@ -197,7 +197,7 @@ Een resource-attribuut dat begint met `oneuptime.label.` wordt een projectlabel 
 OTEL_RESOURCE_ATTRIBUTES="faas.name=checkout-handler,oneuptime.label.team=payments,oneuptime.label.env=production"
 ```
 
-Om functies in plaats daarvan op hun naam te labelen of eigenaren toe te wijzen, open je **Producten → Infrastructuur → Serverless** en gebruik je **Labelregels** en **Eigenaarsregels** in het zijmenu. Regels lopen wanneer een functie wordt aangemaakt, automatisch ontdekte inbegrepen. Om een regel toe te passen op de functies die je al hebt, gebruik je de knop **Nu uitvoeren** ervan (zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now)).
+Om functies in plaats daarvan op hun naam te labelen of eigenaren toe te wijzen, open je **Producten → Cloud → Serverless** en gebruik je **Labelregels** en **Eigenaarsregels** in het zijmenu. Regels lopen wanneer een functie wordt aangemaakt, automatisch ontdekte inbegrepen. Om een regel toe te passen op de functies die je al hebt, gebruik je de knop **Nu uitvoeren** ervan (zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now)).
 
 ## Problemen oplossen
 

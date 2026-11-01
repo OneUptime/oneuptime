@@ -1,5 +1,6 @@
 import {
   RuleRunAction,
+  RuleRunResourceNouns,
   RuleRunResult,
   RuleRunType,
   RuleRunTypeMetadata,
@@ -14,6 +15,10 @@ import {
  * common case once a rule has been run - "matched 40, added 0" with no reason
  * reads as a broken button - so how each outcome is phrased is the part of
  * this feature that most needs every branch pinned by a test.
+ *
+ * Each takes the nouns of the page the rule runs from, when that page calls
+ * its records otherwise than the rule's model does (RuleRunResourceNouns):
+ * App Platforms runs the cloud rules over its environments.
  */
 
 function count(value: number, singular: string, plural: string): string {
@@ -56,8 +61,14 @@ export function withIndefiniteArticle(noun: string): string {
 
 export default class RuleRunSummary {
   // What the confirmation modal says the run is about to do.
-  public static describeConfirmation(ruleType: RuleRunType): string {
-    const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(ruleType);
+  public static describeConfirmation(
+    ruleType: RuleRunType,
+    nouns?: RuleRunResourceNouns | undefined,
+  ): string {
+    const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(
+      ruleType,
+      nouns,
+    );
 
     switch (meta.action) {
       case RuleRunAction.AddLabels:
@@ -79,8 +90,14 @@ export default class RuleRunSummary {
   }
 
   // The sentence beside "Run Now" on a rule's own view page.
-  public static describeRunNowCard(ruleType: RuleRunType): string {
-    const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(ruleType);
+  public static describeRunNowCard(
+    ruleType: RuleRunType,
+    nouns?: RuleRunResourceNouns | undefined,
+  ): string {
+    const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(
+      ruleType,
+      nouns,
+    );
 
     if (meta.action === RuleRunAction.SyncStatusPageMonitors) {
       return "Re-sync this status page with this rule now: add the monitors it matches and remove the ones it added that no longer match.";
@@ -101,9 +118,11 @@ export default class RuleRunSummary {
   public static describeBulkConfirmation(data: {
     ruleType: RuleRunType;
     ruleCount: number;
+    nouns?: RuleRunResourceNouns | undefined;
   }): string {
     const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(
       data.ruleType,
+      data.nouns,
     );
     const rules: string = count(
       data.ruleCount,
@@ -136,9 +155,11 @@ export default class RuleRunSummary {
   public static describeProgress(data: {
     ruleType: RuleRunType;
     result: RuleRunResult;
+    nouns?: RuleRunResourceNouns | undefined;
   }): string {
     const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(
       data.ruleType,
+      data.nouns,
     );
 
     return `Evaluated ${resources(
@@ -151,9 +172,11 @@ export default class RuleRunSummary {
   public static describe(data: {
     ruleType: RuleRunType;
     result: RuleRunResult;
+    nouns?: RuleRunResourceNouns | undefined;
   }): string {
     const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(
       data.ruleType,
+      data.nouns,
     );
     const result: RuleRunResult = data.result;
 

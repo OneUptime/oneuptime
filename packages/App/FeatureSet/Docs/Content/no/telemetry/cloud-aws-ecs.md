@@ -1,6 +1,6 @@
 # AWS ECS / Fargate
 
-Send spor, logger og metrikker fra Amazon ECS-oppgavene dine til OneUptime, både med Fargate- og EC2-oppstartstypen. Hver oppgave som rapporterer `cloud.platform=aws_ecs`, havner i ett **Cloud Environment** per AWS-konto og region, for eksempel _AWS ECS · us-east-1 · 123456789012_, enten den kjører én tjeneste eller femti.
+Send spor, logger og metrikker fra Amazon ECS-oppgavene dine til OneUptime, både med Fargate- og EC2-oppstartstypen. Hver oppgave som rapporterer `cloud.platform=aws_ecs`, havner i ett **Skymiljø** per AWS-konto og region, for eksempel _AWS ECS · us-east-1 · 123456789012_, enten den kjører én tjeneste eller femti.
 
 :::cards
 - [Slik fungerer det](#slik-fungerer-det): Hva ECS-detektoren og sidecar-collectoren gjør.
@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-Collectorens CloudWatch-loggstrøm (`otel/otel-collector/...`) skal vise `Everything is ready`, uten linjer med `401` eller `connection refused`. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **Sky → All Environments** som _AWS ECS · us-east-1 · 123456789012_.
+Collectorens CloudWatch-loggstrøm (`otel/otel-collector/...`) skal vise `Everything is ready`, uten linjer med `401` eller `connection refused`. Innen ett minutt etter det første spennet, den første loggen eller metrikken vises miljøet under **App-plattformer → Alle miljøer** som _AWS ECS · us-east-1 · 123456789012_.
 :::
 
 ## Den fullstendige oppgavedefinisjonen

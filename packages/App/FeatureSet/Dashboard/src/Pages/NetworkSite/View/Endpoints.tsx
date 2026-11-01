@@ -92,6 +92,21 @@ const NetworkSiteEndpoints: FunctionComponent<
           },
           {
             field: {
+              hostname: true,
+            },
+            title: "Hostname",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: NetworkEndpoint): ReactElement => {
+              return (
+                <span className="text-sm text-gray-900">
+                  {item.hostname || "—"}
+                </span>
+              );
+            },
+          },
+          {
+            field: {
               ipAddress: true,
             },
             title: "IP Address",

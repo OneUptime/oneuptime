@@ -1,6 +1,6 @@
 # AWS ECS / Fargate
 
-ترِیس‌ها، لاگ‌ها و متریک‌های وظیفه‌های Amazon ECS خود را به OneUptime بفرستید، چه با نوع راه‌اندازی Fargate و چه EC2. هر وظیفه‌ای که `cloud.platform=aws_ecs` را گزارش کند، برای هر حساب AWS و منطقه در یک **Cloud Environment** قرار می‌گیرد، مانند _AWS ECS · us-east-1 · 123456789012_، چه یک سرویس اجرا کند چه پنجاه.
+ترِیس‌ها، لاگ‌ها و متریک‌های وظیفه‌های Amazon ECS خود را به OneUptime بفرستید، چه با نوع راه‌اندازی Fargate و چه EC2. هر وظیفه‌ای که `cloud.platform=aws_ecs` را گزارش کند، برای هر حساب AWS و منطقه در یک **محیط ابری** قرار می‌گیرد، مانند _AWS ECS · us-east-1 · 123456789012_، چه یک سرویس اجرا کند چه پنجاه.
 
 :::cards
 - [چگونه کار می‌کند](#چگونه-کار-میکند): تشخیص‌دهندهٔ ECS و کالکتور sidecar چه می‌کنند.
@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-جریان لاگ CloudWatch در Collector (`otel/otel-collector/...`) باید `Everything is ready` را نشان دهد، بدون هیچ خطی با `401` یا `connection refused`. ظرف یک دقیقه پس از نخستین اسپن، لاگ یا متریک، محیط در **ابر** > **All Environments** با نام _AWS ECS · us-east-1 · 123456789012_ نمایش داده می‌شود.
+جریان لاگ CloudWatch در Collector (`otel/otel-collector/...`) باید `Everything is ready` را نشان دهد، بدون هیچ خطی با `401` یا `connection refused`. ظرف یک دقیقه پس از نخستین اسپن، لاگ یا متریک، محیط در **بسترهای برنامه** > **همه محیط‌ها** با نام _AWS ECS · us-east-1 · 123456789012_ نمایش داده می‌شود.
 :::
 
 ## تعریف کامل وظیفه

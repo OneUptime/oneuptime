@@ -21,6 +21,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { useIsTableColumnDrawn } from "Common/UI/Components/Table/TableCellContext";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -37,6 +38,13 @@ import React, {
  */
 export const SECURITY_CASE_DUE_LINE_CLASS_NAME: string =
   "mt-1 flex min-w-0 items-start gap-1 whitespace-normal text-xs font-medium";
+
+/*
+ * The case lists' Due column, by its id: while a list draws it, a row's
+ * priority leaves out the due line under it (SecurityCaseDueLine), which
+ * would say the same thing twice on the row.
+ */
+export const SECURITY_CASE_DUE_COLUMN_ID: string = "due";
 
 // How often a due time on screen is read again: often enough for minutes.
 export const SECURITY_CASE_TARGET_REFRESH_MS: number = 30 * 1000;
@@ -183,13 +191,20 @@ export const SecurityCaseDueLine: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const now: Date = useTargetClock();
+  /*
+   * The person turned the Due column on (Columns): it says when the next
+   * target is due, so the line under the priority is not drawn twice.
+   */
+  const isDueColumnDrawn: boolean = useIsTableColumnDrawn(
+    SECURITY_CASE_DUE_COLUMN_ID,
+  );
   const due: SecurityCaseDue | null = getSecurityCaseDue({
     securityCase: props.securityCase,
     priorities: props.priorities,
     now,
   });
 
-  if (!due) {
+  if (!due || isDueColumnDrawn) {
     return <></>;
   }
 

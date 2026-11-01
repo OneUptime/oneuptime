@@ -726,6 +726,16 @@ const logs = IS_PLAIN_CLUSTER
         controller: "kubelet",
         at: 12,
       }),
+      // About a Service whose name repeats in `shop`.
+      storedEvent({
+        namespace: "payments",
+        type: "Warning",
+        reason: "FailedToUpdateEndpoint",
+        message: "Failed to update endpoint payments/frontend",
+        object: { kind: "Service", name: "frontend" },
+        controller: "endpoint-controller",
+        at: 15,
+      }),
       // The neighbour's: never on legacy-web's page.
       storedEvent({
         namespace: "shop",

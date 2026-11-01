@@ -114,13 +114,14 @@ test("keeps title and description searches and restores the folded menu when cle
   const search: Locator = page.getByRole("combobox");
   /*
    * The menu opens on the seven Essentials; every other section is one
-   * folded line (ProductsMenuFolding.spec.ts). Search ignores folding.
+   * folded line (ProductsMenuFolding.spec.ts) - eight of them since Cloud
+   * became a section of its own. Search ignores folding.
    */
   await expect(page.getByRole("option")).toHaveCount(7);
   const foldedSections: Locator = page.locator(
     '#navbar-menu-listbox button[aria-expanded="false"]',
   );
-  await expect(foldedSections).toHaveCount(7);
+  await expect(foldedSections).toHaveCount(8);
   await search.fill("Kubernetes");
   await expect(page.getByRole("option")).toHaveCount(1);
   await expect(page.getByRole("option")).toContainText("Kubernetes");
@@ -132,7 +133,7 @@ test("keeps title and description searches and restores the folded menu when cle
   await expect(search).toHaveValue("");
   await expect(search).toBeFocused();
   await expect(page.getByRole("option")).toHaveCount(7);
-  await expect(foldedSections).toHaveCount(7);
+  await expect(foldedSections).toHaveCount(8);
 });
 
 test("does not navigate for an unmatched query and recovers when a matching alias is typed", async ({

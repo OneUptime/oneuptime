@@ -183,7 +183,7 @@ Waar de doelen te zien zijn:
 
 - De kop van de zaak noemt het volgende doel en hoeveel tijd er nog is, of hoe lang het al is verlopen: grijs zolang er tijd is, amber in het laatste vijfde, rood zodra het is gemist.
 - In het **Overzicht** van de zaak, onder **Tijd tot bevestiging** en **Tijd tot indamming**: hoe de zaak ervoor staat ten opzichte van elk doel, of hoe ver ze erover ging.
-- In de lijsten van de wachtrij: de regel onder de prioriteit van elke zaak, en een kolom **Termijn** die je kunt inschakelen en waarop je kunt sorteren. De lijsten tonen ze alleen als een prioriteit van het project een doel heeft.
+- In de lijsten van de wachtrij: de regel onder de prioriteit van elke zaak, en een kolom **Termijn** die je kunt inschakelen en waarop je kunt sorteren. Zolang de kolom aan staat, vervalt de regel onder de prioriteit. De lijsten tonen ze alleen als een prioriteit van het project een doel heeft.
 
 ## Meldingen
 

@@ -34,7 +34,7 @@ Recursos en la nube es uno de los varios lugares donde aparece su nube:
 
 | Usted ejecuta | Dónde aparece | Cómo |
 | --- | --- | --- |
-| Contenedores en ECS, Cloud Run, Container Apps, App Service, … | **Nube → Todos los entornos** | La telemetría propia de sus cargas de trabajo, por su `cloud.platform`. Consulte [Entornos en la nube](/docs/telemetry/cloud-environments) |
+| Contenedores en ECS, Cloud Run, Container Apps, App Service, … | **Plataformas de aplicaciones → Todos los entornos** | La telemetría propia de sus cargas de trabajo, por su `cloud.platform`. Consulte [Entornos en la nube](/docs/telemetry/cloud-environments) |
 | Cualquier recurso IaaS o PaaS que supervise el proveedor | **Nube → Todos los recursos** | La API de supervisión del proveedor, leída por un colector: esta página |
 | Máquinas virtuales con un OpenTelemetry Collector instalado | **Hosts** | Las métricas y registros propios del host. Consulte [Colector OpenTelemetry en el host](/docs/telemetry/host-otel-collector) |
 | Colas y temas que usan sus aplicaciones | **Colas** | Spans, y las mismas métricas de la nube. Consulte [Colas](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Las instalaciones autoalojadas pueden cambiar estos valores con variables de ent
 ## Inventario y reglas
 
 - **Inventario:** los recursos en la nube aparecen en el [Inventario](/docs/inventory/overview) como elementos de tipo **Recurso en la nube**, con el ID del proveedor como `cloud.resource.id` y el tipo como `cloud.resource.type`. Las herramientas de recursos del agente de IA también los listan.
-- **Reglas:** **Nube → Ajustes → Reglas de etiquetas** y **Reglas del propietario** se aplican a ellos igual que a los entornos en la nube.
+- **Reglas:** **Nube → Ajustes → Reglas de etiquetas** y **Reglas del propietario** se aplican a ellos. Plataformas de aplicaciones tiene las suyas para los entornos en la nube, y una regla creada antes de que ambos se separaran se aplica a los dos.
 
 ## Solución de problemas
 

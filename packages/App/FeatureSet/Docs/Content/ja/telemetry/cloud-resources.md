@@ -34,7 +34,7 @@ flowchart TB
 
 | 実行しているもの | 表示される場所 | 方法 |
 | --- | --- | --- |
-| ECS、Cloud Run、Container Apps、App Service などのコンテナ | **クラウド → すべての環境** | ワークロード自身のテレメトリ (`cloud.platform` で判断)。[クラウド環境](/docs/telemetry/cloud-environments) を参照してください |
+| ECS、Cloud Run、Container Apps、App Service などのコンテナ | **アプリプラットフォーム → すべての環境** | ワークロード自身のテレメトリ (`cloud.platform` で判断)。[クラウド環境](/docs/telemetry/cloud-environments) を参照してください |
 | プロバイダーが監視する任意の IaaS / PaaS リソース | **クラウド → すべてのリソース** | Collector が読み取るプロバイダーの監視 API。このページです |
 | OpenTelemetry Collector を入れた仮想マシン | **ホスト** | ホスト自身のメトリクスとログ。[ホスト OpenTelemetry Collector](/docs/telemetry/host-otel-collector) を参照してください |
 | アプリケーションが使うキューとトピック | **キュー** | スパンと、同じクラウドメトリクス。[キュー](/docs/telemetry/queues) を参照してください |
@@ -639,7 +639,7 @@ stateDiagram-v2
 ## インベントリとルール
 
 - **インベントリ:** クラウドリソースは [インベントリ](/docs/inventory/overview) に **クラウドリソース** の項目として表示され、プロバイダーの ID が `cloud.resource.id`、種類が `cloud.resource.type` になります。AI エージェントのリソースツールでも一覧されます。
-- **ルール:** **クラウド → 設定 → ラベルルール** と **所有者ルール** は、クラウド環境と同じようにクラウドリソースにも適用されます。
+- **ルール:** **クラウド → 設定 → ラベルルール** と **所有者ルール** は、クラウドリソースに適用されます。クラウド環境には アプリプラットフォーム 独自のルールがあり、両者が分かれる前に作成したルールは両方に適用されます。
 
 ## トラブルシューティング
 

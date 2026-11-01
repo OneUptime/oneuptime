@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39284,
-    "untranslated": 12914
+    "keys": 39356,
+    "untranslated": 12857
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -19,8 +19,10 @@
     "CrowdStrike",
     "DE",
     "Deployment",
+    "DeploymentConfigs",
     "Docker Compose",
     "Down · In",
+    "Edge",
     "Elasticsearch URL",
     "Gemini for Google Workspace",
     "Google SecOps",
@@ -40,17 +42,22 @@
     "OK",
     "OS",
     "OSD",
+    "OpenShift",
     "PR #{{number}}",
     "PV",
     "PVC",
+    "Passthrough",
     "Pod · data",
     "Pod · production",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Runner",
     "SLI %",
     "SLOs",
     "Slug",
     "Splunk On-Call API ID",
+    "TLS",
     "Top P",
     "UTC",
     "Up · In",

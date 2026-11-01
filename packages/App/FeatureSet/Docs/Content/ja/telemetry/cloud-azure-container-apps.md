@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-`Everything is ready` が表示され、`401` や `connection refused` がないことを確認します。最初のスパン、ログ、メトリクスが届いてから 1 分以内に、環境が **クラウド → すべての環境** に _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ として表示されます。
+`Everything is ready` が表示され、`401` や `connection refused` がないことを確認します。最初のスパン、ログ、メトリクスが届いてから 1 分以内に、環境が **アプリプラットフォーム → すべての環境** に _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ として表示されます。
 :::
 
 ## 環境のマネージド OpenTelemetry エージェントを使う

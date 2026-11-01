@@ -799,16 +799,17 @@ const DocsNav: NavGroup[] = [
     ],
   },
   /*
-   * One page per managed platform, right under the hub, so the sidebar
-   * mirrors the platform picker on the in-app guide. The order is the hub
-   * page's order: the three container platforms with their own pages, then
-   * the rest, then the shared troubleshooting page, then the IaaS and PaaS
-   * resources discovered from Azure Monitor, CloudWatch and Cloud
-   * Monitoring - the Cloud product's other list: connected from the
-   * dashboard (Cloud > Connect), or sent by a collector you run.
+   * The two products the Dashboard has for the clouds, as its products menu
+   * has them. App Platforms: the apps a managed app or container platform
+   * runs, one page per platform right under the hub, so the sidebar mirrors
+   * the platform picker on the in-app guide - the three container platforms
+   * with their own pages, then the rest, then the shared troubleshooting
+   * page. Cloud: the AWS, Azure and Google Cloud accounts connected from the
+   * dashboard (Cloud > Connect), and every IaaS and PaaS resource in them,
+   * discovered from Azure Monitor, CloudWatch and Cloud Monitoring.
    */
   {
-    title: "Cloud",
+    title: "App Platforms",
     section: "Observability",
     links: [
       {
@@ -835,6 +836,12 @@ const DocsNav: NavGroup[] = [
         title: "Cloud Troubleshooting",
         url: "/docs/telemetry/cloud-troubleshooting",
       },
+    ],
+  },
+  {
+    title: "Cloud",
+    section: "Observability",
+    links: [
       {
         title: "Connect a Cloud Account",
         url: "/docs/telemetry/cloud-accounts",

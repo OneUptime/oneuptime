@@ -140,8 +140,8 @@ Verter og nettverksenheter beskrives med de samme opplysningene, lagret under de
 | --- | --- | --- | --- |
 | Vertsnavn | `host.name` | Vertens navn. Det er vertens identitet, så det står i `identifyingAttributes` | Enhetens eget navn: SNMP-`sysName`, ellers NetBIOS- eller DNS-navnet oppdagelsen fant. Aldri IP-adressen |
 | IP-adresse | `host.ip` | Hver adresse collectoren rapporterer | Adressen OneUptime poller, når den er en IP-adresse, ellers adressen sonden slo opp DNS-navnet til |
-| MAC-adresse | `host.mac` | Oppdaget | Skrevet inn på enheten, eller lært fra ARP-tabellen i en gjennomgått ruter |
-| Serienummer | `host.serial_number` | Stemplet | ENTITY-MIB |
+| MAC-adresse | `host.mac` | Oppdaget | Skrevet inn på enheten, lært fra ARP-tabellen i en gjennomgått ruter, eller lest fra enhetens egne porter |
+| Serienummer | `host.serial_number` | Stemplet | ENTITY-MIB, ellers leverandørens egen MIB |
 | Produsent | `device.manufacturer` | Stemplet | ENTITY-MIB, ellers det `sysDescr` eller `sysObjectID` nevner |
 | Modell | `device.model.name` | Stemplet | ENTITY-MIB, ellers det `sysDescr` nevner |
 | Fastvareversjon | `device.firmware.version` | Stemplet | ENTITY-MIB, ellers det `sysDescr` nevner |
@@ -191,22 +191,22 @@ En nettverksenhet (`entityType: network.device`) speiles fra Network Device-post
 | Vertsnavn | `host.name` | Enhetens eget navn: SNMP-`sysName`, ellers NetBIOS- eller revers-DNS-navnet oppdagelsen fant. Utelates når bare IP-adressen navngir den |
 | IP-adresse | `host.ip` | Adressen OneUptime poller, når den er en IP-adresse. For en enhet som polles på et DNS-navn, adressen sonden sist slo opp navnet til |
 | DNS-navn | `net.device.dns_name` | Revers-DNS-navnet som ble funnet ved oppdagelsen, eller DNS-navnet OneUptime poller |
-| MAC-adresse | `host.mac` | Skrevet inn på enheten, eller lært fra ARP-tabellen i en gjennomgått ruter |
+| MAC-adresse | `host.mac` | Skrevet inn på enheten, eller lært fra ARP-tabellen i en gjennomgått ruter. Ellers MAC-en til enhetens første Ethernet-port, slik SNMP-walken eller en discovery-skanning leser den |
 | Merke | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, ellers produsenten `sysDescr` nevner, ellers leverandøren til `sysObjectID` |
 | Modell | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, ellers modellen `sysDescr` nevner |
-| Serienummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Fastvareversjon | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, ellers fastvaren `sysDescr` nevner på Ubiquiti-, HPE- og Aruba-enheter |
-| Operativsystem | `os.name` | Operativsystemet `sysDescr` nevner |
-| Programvare- eller OS-versjon | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, ellers utgivelsen `sysDescr` nevner |
+| Serienummer | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum`, ellers leverandørens egen MIB på FortiGate-, Juniper-, MikroTik- og Sophos-enheter |
+| Fastvareversjon | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, ellers leverandørens egen MIB på FortiGate-, MikroTik- og Sophos-enheter, ellers fastvaren `sysDescr` nevner på Ubiquiti-, HPE- og Aruba-enheter |
+| Operativsystem | `os.name` | Operativsystemet `sysDescr` nevner, eller det plattformen alltid kjører: FortiOS på en FortiGate, Merakis MX-fastvare på en MX |
+| Programvare- eller OS-versjon | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, ellers leverandørens egen MIB, ellers utgivelsen `sysDescr` nevner |
 | Systembeskrivelse | `os.description` | `sysDescr` |
 | Enhetstype | `device.type` | Rollen du har tildelt enheten, ellers rollen topologikartet klassifiserer den som, under prosjektets navn på den |
 | Plassering | `device.location` | `sysLocation`, med mindre det er en agents standardverdi, som Net-SNMPs «Sitting on the Dock of the Bay» |
 | Sted | `oneuptime.site.name` | Network Site som enheten er tildelt |
 | Pollet adresse | `net.device.hostname` | Adressen OneUptime poller: en IP-adresse eller et DNS-navn. Beholdt for synkroniseringer som ble skrevet før `host.name` og `host.ip` fantes |
 
-ENTITY-MIB-radene fylles ut etter enhetens første SNMP-walk. En enhet som ikke gjennomgås, fordi den bare overvåkes med ping eller ikke er pollet ennå, får likevel navn, merke, operativsystem og plassering fra det den siste discovery-skanningen av adressen leste over SNMP, og MAC-adressen fra ARP-tabellen i en gjennomgått ruter. En enhet som ikke implementerer ENTITY-MIB, har ikke noe serienummer eller fastvare å rapportere. `sysDescr` nevner likevel modell og operativsystem for mange plattformer: en Cisco Meraki MX rapporterer `Meraki MX85`, som fyller ut merke og modell. En plattform der `sysDescr` ikke har en kjent form, legger ikke til noe, i stedet for å gjette.
+ENTITY-MIB-radene fylles ut etter enhetens første SNMP-walk. En enhet som ikke gjennomgås, fordi den bare overvåkes med ping eller ikke er pollet ennå, får likevel navn, merke, modell, serienummer, fastvare, operativsystem, OS-versjon og plassering fra det den siste discovery-skanningen av adressen leste over SNMP, og MAC-adressen fra ARP-tabellen i en gjennomgått ruter eller fra den skanningen. En enhet som ikke implementerer ENTITY-MIB, har ikke noe serienummer eller fastvare å rapportere, med mindre leverandøren har dem i en egen MIB som OneUptime leser: FortiGate, Juniper, MikroTik og Sophos. `sysDescr` nevner likevel modell og operativsystem for mange plattformer: en Cisco Meraki MX rapporterer `Meraki MX85`, som fyller ut merke, modell og operativsystem. En plattform der `sysDescr` ikke har en kjent form, legger ikke til noe, i stedet for å gjette.
 
-En Meraki-enhet henter det dens egen polling lar stå tomt, fra Meraki-dashbordet når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens: serienummer, modell, fastvare og merke, MAC-adresse, navn, administrasjonsadresse, postadressen den er registrert under, og type. En enhet er en av organisasjonens enheter når serienummeret eller MAC-adressen er Meraki-enhetens, eller når OneUptime poller den på Meraki-enhetens administrasjonsadresse og den har samme navn. En verdi som er lagret på enheten, og det dens egen polling leser, går foran.
+En Meraki-enhet henter det dens egen polling lar stå tomt, fra Meraki-dashbordet når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens: serienummer, modell, fastvare og merke, MAC-adresse, navn, administrasjonsadresse, postadressen den er registrert under, og type. Modellen og fastvaren gir også operativsystemet og OS-versjonen. En enhet er en av organisasjonens enheter når serienummeret eller MAC-adressen er Meraki-enhetens, eller når OneUptime poller den på Meraki-enhetens administrasjonsadresse og den har samme navn. Meraki oppgir ingen slik adresse for en MX, og MAC-en Meraki oppgir, finnes ikke på noen av portene til MX-en, så en MX matches på navnet og en port-MAC rett over den MAC-en. En verdi som er lagret på enheten, og det dens egen polling leser, går foran. Det eneste unntaket er MAC-adressen: Merakis, den på etiketten på boksen, går foran en som er lest fra enhetens egen port.
 
 En verdi som er lagret på enheten, skrevet inn eller satt via API-et, erstattes aldri av det discovery leser. Av en verdi enhetens egen walk leste og en en skanning leste, brukes den nyeste. Det en skanning leste, brukes bare når skanningen fant den samme maskinen på adressen: når systemnavnet, `sysObjectID` eller NetBIOS-navnet den leste, motsier enhetens, brukes ingenting av det den leste der. Elementets kort **Eiendelsdetaljer** viser hvor hver verdi kom fra, og når.
 

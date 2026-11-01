@@ -183,7 +183,7 @@ Här syns målen:
 
 - Ärendets huvud nämner nästa mål och hur mycket tid som är kvar, eller hur länge det har varit försenat: grått medan det finns tid, bärnstensgult under den sista femtedelen, rött när det är missat.
 - På ärendets **Översikt**, under **Tid till bekräftelse** och **Tid till begränsning**: hur ärendet ligger till mot varje mål, eller hur långt över det ärendet gick.
-- I köns listor: raden under varje ärendes prioritet, och en kolumn **Förfaller** som du kan slå på och sortera efter. Listorna visar dem bara när någon av projektets prioriteter har ett mål.
+- I köns listor: raden under varje ärendes prioritet, och en kolumn **Förfaller** som du kan slå på och sortera efter. Medan kolumnen är på visas inte raden under prioriteten. Listorna visar dem bara när någon av projektets prioriteter har ett mål.
 
 ## Aviseringar
 

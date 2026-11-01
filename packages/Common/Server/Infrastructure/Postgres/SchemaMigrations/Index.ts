@@ -240,8 +240,10 @@ import { AddExceptionSavedView1808690000000 } from "./1808690000000-AddException
 import { AddDashboardDarkThemeLogo1808700000000 } from "./1808700000000-AddDashboardDarkThemeLogo";
 import { AddDashboardDarkThemeLogoKey1808710000000 } from "./1808710000000-AddDashboardDarkThemeLogoKey";
 import { AddFormDomain1808712000000 } from "./1808712000000-AddFormDomain";
-import { AddDataSecurityIdentities1808760000000 } from "./1808760000000-AddDataSecurityIdentities";
-import { AddDataSecurityFieldSuggestions1808770000000 } from "./1808770000000-AddDataSecurityFieldSuggestions";
+import { AddNetworkEndpointHostnameAndAttachmentSource1808720000000 } from "./1808720000000-AddNetworkEndpointHostnameAndAttachmentSource";
+import { AddCloudRuleKind1808760000000 } from "./1808760000000-AddCloudRuleKind";
+import { AddDataSecurityIdentities1808770000000 } from "./1808770000000-AddDataSecurityIdentities";
+import { AddDataSecurityFieldSuggestions1808780000000 } from "./1808780000000-AddDataSecurityFieldSuggestions";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1684,6 +1686,8 @@ export default [
   AddDashboardDarkThemeLogo1808700000000,
   AddDashboardDarkThemeLogoKey1808710000000,
   AddFormDomain1808712000000,
-  AddDataSecurityIdentities1808760000000,
-  AddDataSecurityFieldSuggestions1808770000000,
+  AddNetworkEndpointHostnameAndAttachmentSource1808720000000,
+  AddCloudRuleKind1808760000000,
+  AddDataSecurityIdentities1808770000000,
+  AddDataSecurityFieldSuggestions1808780000000,
 ];

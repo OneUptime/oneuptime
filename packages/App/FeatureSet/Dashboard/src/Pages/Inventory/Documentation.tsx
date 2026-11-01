@@ -284,7 +284,7 @@ const InventoryDocumentation: FunctionComponent<
             />
             <AppLink
               to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.CLOUD_RESOURCES] as Route,
+                RouteMap[PageMap.CLOUD_CONNECT] as Route,
               )}
               className="font-medium text-indigo-600 hover:text-indigo-800"
             >

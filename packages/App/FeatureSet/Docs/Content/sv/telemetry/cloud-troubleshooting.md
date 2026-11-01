@@ -29,7 +29,7 @@ Om du driftar OneUptime själv använder du `https://YOUR-ONEUPTIME-HOST/otlp/v1
 
 ## Miljön visas inte
 
-Inget under **Moln → All Environments** en minut efter den första begäran. Kontrollera de här tre, i den här ordningen.
+Inget under **Appplattformar → Alla miljöer** en minut efter den första begäran. Kontrollera de här tre, i den här ordningen.
 
 **`cloud.platform` saknas, eller är inte ett hanterat värde.** OneUptime arkiverar bara telemetri under Molnmiljöer när resursen bär ett av de här värdena: `aws_ecs`, `aws_elastic_beanstalk`, `aws_app_runner`, `gcp_cloud_run`, `gcp_app_engine`, `azure_container_apps`, `azure_container_instances` eller `azure_app_service`. De vanliga orsakerna:
 

@@ -506,17 +506,17 @@ An investigation by OneUptime AI of an incident or alert from a Network Device m
 
 ### Device Identity
 
-After the first successful walk, OneUptime reads the SNMPv2 system group and, where the device supports it, ENTITY-MIB, and fills in the device record: system name, description, location, contact, uptime, vendor, model, serial number and firmware version. The vendor's enterprise OID (`sysObjectID`) is the device's fingerprint: it names the vendor and picks the matching vendor template. The same facts appear in [Inventory](/docs/inventory/cmdb-sync#network-device-asset-attributes) with every other asset.
+After the first successful walk, OneUptime reads the SNMPv2 system group and, where the device supports it, ENTITY-MIB, and fills in the device record: system name, description, location, contact, uptime, vendor, model, serial number and firmware version. On FortiGate, Juniper, MikroTik and Sophos devices, one more request reads what ENTITY-MIB leaves empty from the vendor's own MIB. The vendor's enterprise OID (`sysObjectID`) is the device's fingerprint: it names the vendor and picks the matching vendor template. The same facts appear in [Inventory](/docs/inventory/cmdb-sync#network-device-asset-attributes) with every other asset.
 
 A ping-only device keeps the name and address you, or a discovery scan, gave it. What its own poll has not read, it takes from discovery:
 
-- The system name, description, `sysObjectID`, location and contact the last [discovery scan](#discovering-devices-with-a-network-scan) of its address read over SNMP, and the reverse-DNS and NetBIOS names it found.
-- Its MAC address, from the ARP table of a walked router in its site.
+- The system name, description, `sysObjectID`, location, contact, model, serial number, firmware and software version the last [discovery scan](#discovering-devices-with-a-network-scan) of its address read over SNMP, and the reverse-DNS and NetBIOS names it found.
+- Its MAC address, from the ARP table of a walked router in its site, or else from the first Ethernet port that scan read.
 - For a device polled at a DNS name, the address its probe resolved the name to.
 
-These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. The device's Overview and its Inventory item say which scan, router or probe read each value, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
+These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. A scan reads a host's MAC address, model, serial number, firmware and software version with a few more requests after its system group, for at most five seconds per host. A host that stops answering them still counts as having answered, and what the scan could not read keeps its last value. The device's Overview and its Inventory item say which scan, router or probe read each value, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
 
-A Meraki switch, access point or appliance reads no serial number, model or firmware over SNMP: Meraki implements no ENTITY-MIB. When a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization, the device takes those, and whatever else its poll leaves empty, from the Meraki dashboard, and its **Inventory** card names the connection in a **Meraki** row.
+A Meraki switch, access point or appliance reads no serial number or firmware over SNMP: polled directly, it answers the system group and the interface tables, which give its model and its MAC address, and nothing more. When a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization, the device takes those, and whatever else its poll leaves empty, from the Meraki dashboard, and its **Inventory** card names the connection in a **Meraki** row.
 
 To read a device again now, press **Refresh** on its **Inventory** card. Its probe polls it within a minute, and its Meraki connection reads the organization again. The card says when the new reading has landed, or that the probe could not reach the device. **Refresh** is there for whoever may edit network devices, on a device a probe polls or a Meraki connection describes.
 
@@ -957,6 +957,7 @@ For the map to fill in:
 - Give the devices SNMP credentials. Neighbour tables come from the walk, so a ping-only device appears on the map but reports no neighbours of its own.
 - Keep **Walk Interfaces** on in the devices' polling settings: the neighbour tables are walked with the interfaces.
 - Turn on LLDP, or CDP on Cisco devices, on the devices themselves.
+- On a Meraki network, connect the dashboard. A [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) draws the cables Meraki knows, including those of an MX that only answers ping.
 
 Click an unmanaged peer and **Add to Monitoring** registers it as a probe-polled device. It takes the probe its neighbours agree on, so it is pinged from its first poll, and you can add credentials later if it turns out to have SNMP.
 
@@ -995,6 +996,8 @@ For that, the map has to know which learned MAC is the device's. There are two w
 - By typing it: set **MAC Address** on the device, on its **Settings** page or the Overview card, when its hostname is a DNS name or no router at the site is walked. Any of the usual spellings is accepted.
 
 The switch the device hangs off needs **Collect Connected Endpoints** on as well: that is where the port comes from. Addresses are matched within the device's site, since every branch has a `10.0.0.5`; a MAC matches whatever the site.
+
+A [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) does all of this with nothing to turn on. Meraki's client list says which switch and port each client is on, so a device is placed once that switch is a network device here, in the same site. The list gives the device its MAC address too, and what Meraki calls a client appears in the **Hostname** column under **Endpoints**. It is read every two hours, so a new device can take that long to appear. While Meraki reports a client, its port outranks a walked forwarding table, because Meraki can tell an access port from an uplink. A Wi-Fi client is placed on its access point only when it is a device here: the phones on a guest network stay off the map.
 
 The device's Overview has a **Connected to** card naming the switch, port and VLAN. A switch, router or firewall that reports its neighbours over LLDP or CDP lists them there instead: its own port, the neighbour (a link when it is a device here) and the port at the far end, with **Open the map** beside them. On the map, the device's drawer shows the same under **Connected to**, and the link's drawer says it was learned from the switch's forwarding table. The Parent-Child view draws the device beneath its switch. A link you drew by hand under **Device Links** for the same pair merges with the learned one rather than doubling it: the learned port replaces a mistyped one, and a parent you set on the hand-drawn link is kept.
 
@@ -1053,6 +1056,8 @@ The map draws a ping-only device's cable from its switch's forwarding table, whi
 - The switch collects endpoints: **Collect Connected Endpoints** on in its polling settings, with credentials that let the walk succeed. The device's Overview shows a **Connected to** card once a switch has learned it.
 - The device's MAC is known: its **MAC Address** is set, or a router at the site collects endpoints and the device's hostname is the address that router's ARP table binds. A device registered by DNS name with no MAC cannot be matched, so type the MAC in.
 - The same site: an address is matched only to a device in the same site as the switch that learned it. A device with no site matches by address only when that switch has no site either; if the switch is in a site, put the device in the same one. A MAC matches whatever the site.
+
+The device's drawer on the map says which of these is missing. On a Meraki network, Meraki's client list stands in for the first two: check that the switch is a network device here, in the same site, and allow two hours for a new device to appear.
 
 If the device is behind an unmanaged switch or a hub, the managed switch learns every MAC behind it on one port, and that is the port the map draws: the physical truth as the managed switch sees it.
 :::

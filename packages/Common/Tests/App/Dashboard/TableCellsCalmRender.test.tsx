@@ -13,6 +13,10 @@ import OwnersCell from "../../../../App/FeatureSet/Dashboard/src/Components/Reso
 import LiveDuration from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/LiveDuration";
 import { ResourceOwnerEntry } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/OwnerEntry";
 import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../UI/Components/Table/TableEmptyValue";
+import {
+  TABLE_FOLDED_VALUE_CLASS_NAME,
+  TABLE_VALUE_LOADING_ATTRIBUTE,
+} from "../../../UI/Components/Table/TableFoldedValues";
 import User from "../../../Models/DatabaseModels/User";
 import Team from "../../../Models/DatabaseModels/Team";
 import Name from "../../../Types/Name";
@@ -70,6 +74,29 @@ describe("a row's owners", () => {
     render(<OwnersCell owners={undefined} isLoading={true} />);
 
     expect(screen.getByText("Loading...")).toBeInTheDocument();
+  });
+
+  test("and marks it as on its way: folded under a row's title, its line is left out until the owners are in", () => {
+    render(<OwnersCell owners={undefined} isLoading={true} />);
+
+    expect(screen.getByText("Loading...")).toHaveAttribute(
+      TABLE_VALUE_LOADING_ATTRIBUTE,
+      "true",
+    );
+    // What a folded line hides on (TableFoldedValues).
+    expect(TABLE_FOLDED_VALUE_CLASS_NAME).toContain(
+      `[&:has(>div>[${TABLE_VALUE_LOADING_ATTRIBUTE}]:only-child)]:hidden`,
+    );
+  });
+
+  test("owners that are in are not marked as on their way", () => {
+    const { container } = render(
+      <OwnersCell owners={[makeUser(1, "Ada Lovelace")]} isLoading={true} />,
+    );
+
+    expect(
+      container.querySelector(`[${TABLE_VALUE_LOADING_ATTRIBUTE}]`),
+    ).toBeNull();
   });
 
   test("each avatar is the row's 24px line tall, overlapping the one before it", () => {

@@ -126,6 +126,13 @@ const OBJECT_PAGES: Record<string, PageMap> = {
   Service: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
 };
 
+// The Kinds whose names repeat across namespaces, and whose page asks which.
+const PAGES_THAT_READ_THE_NAMESPACE: ReadonlyArray<string> = [
+  "DeploymentConfig",
+  "Route",
+  "Service",
+];
+
 /*
  * The page of an Event's object, or null for a Kind OneUptime has no page
  * for (an Ingress, ...). A ReplicaSet opens its Deployment: a ReplicaSet is
@@ -136,6 +143,7 @@ export function getKubernetesObjectRoute(data: {
   clusterId: ObjectID;
   kind: string;
   name: string;
+  namespace?: string | undefined;
 }): Route | null {
   let kind: string = data.kind;
   let name: string = data.name;
@@ -157,10 +165,14 @@ export function getKubernetesObjectRoute(data: {
     return null;
   }
 
-  return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
+  const route: Route = RouteUtil.populateRouteParams(RouteMap[page] as Route, {
     modelId: data.clusterId,
     subModelId: new ObjectID(name),
   });
+
+  return data.namespace && PAGES_THAT_READ_THE_NAMESPACE.includes(kind)
+    ? route.addQueryParams({ namespace: data.namespace })
+    : route;
 }
 
 type SortKey = "lastSeenAt" | "count" | "reason" | "objectName";
@@ -240,11 +252,13 @@ export const KubernetesNamespaceChip: FunctionComponent<{
 export const KubernetesObjectChip: FunctionComponent<{
   kind: string;
   name: string;
+  namespace?: string | undefined;
   clusterId: ObjectID;
   dataTestId: string;
 }> = (props: {
   kind: string;
   name: string;
+  namespace?: string | undefined;
   clusterId: ObjectID;
   dataTestId: string;
 }): ReactElement => {
@@ -252,6 +266,7 @@ export const KubernetesObjectChip: FunctionComponent<{
     clusterId: props.clusterId,
     kind: props.kind,
     name: props.name,
+    namespace: props.namespace,
   });
 
   return (
@@ -413,6 +428,7 @@ const EventCell: FunctionComponent<{
               <KubernetesObjectChip
                 kind={row.objectKind}
                 name={row.objectName}
+                namespace={row.namespace}
                 clusterId={props.clusterId}
                 dataTestId="kubernetes-event-object"
               />
@@ -478,6 +494,7 @@ const ObjectCell: FunctionComponent<{
     clusterId: props.clusterId,
     kind: row.objectKind,
     name: row.objectName,
+    namespace: row.namespace,
   });
 
   return (
