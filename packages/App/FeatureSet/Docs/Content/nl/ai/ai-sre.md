@@ -38,6 +38,7 @@ Als een onderzoek klaar is, plaatst OneUptime AI een oorzaakanalyse met deze sec
 - **Summary**: een of twee zinnen die een opgeroepen engineer in vijf seconden kan lezen.
 - **Most likely root cause**: de hypothese, met alleen de zekerheid die het bewijs toelaat, en elke feitelijke bewering met bronvermelding. Is de telemetrie onvoldoende, dan zegt de AI dat duidelijk en somt ze op wat ze heeft gecontroleerd in plaats van te gokken.
 - **Evidence**: de belangrijkste bevindingen die de hypothese ondersteunen of uitsluiten, elk met bronvermelding.
+- **Ruled out**: de andere waarschijnlijke oorzaken die het controleerde, zoals een recente wijziging, een capaciteitsgrens, een afhankelijkheid of de cloud eronder, elk met het geciteerde bewijs dat ze uitsluit. De kaart toont ze één per regel. Een analyse die geen andere oorzaak controleerde, laat de sectie weg.
 - **Suggested next steps**: concrete acties voor de on-call-engineer.
 
 Bij incidenten wordt de analyse in de feed van het incident geplaatst **en** als interne notitie bij het incident (waar de hulpverleners samenwerken). Bij waarschuwingen wordt ze in de feed van de waarschuwing geplaatst.
@@ -65,6 +66,7 @@ Een onderzoek begint bij het incident of de waarschuwing en bij de infrastructuu
 - De eigen metrics van de infrastructuur, gelezen zoals mensen ze lezen. Hostmetrics zoals `system.cpu.utilization` en `system.memory.utilization` worden één keer per status gerapporteerd, en de statussen tellen op tot 100%, dus één gemiddelde over alle zegt niets. OneUptime AI leest ze status voor status (bezette CPU is user plus system), en elke metric per container, per koppelpunt of naar elk ander attribuut.
 - De containers van een Docker- of Podman-host: de drukste naar CPU, geheugen of herstarts, en de containers die niets meer melden. Een gestopte container stuurt niets in plaats van nul, dus de cijfers van de hele host verbergen hem.
 - De wijzigingen die zijn vastgelegd in de 2 uur vóór het incident of de waarschuwing (deploys, Kubernetes-rollouts, configuratiewijzigingen en de fixes die OneUptime uitvoerde), en welke daarvan door de telemetrie van de bijbehorende services verdacht worden: een service die direct na een wijziging meetbaar slechter werd. Zie [Deploys en wijzigingen](/docs/telemetry/change-events).
+- De opgeloste incidenten van het project die de monitoren of labels van het incident delen: hoe elk werd opgelost en, wanneer de fix van OneUptime AI voor een ervan werd geverifieerd, wat die fix uitvoerde, zodat een herhaling de fix noemt die de vorige keer werkte. Privé-incidenten blijven buiten beschouwing.
 
 De activiteit van het onderzoek op de kaart **OneUptime AI** zegt hoeveel open of recente waarschuwingen het heeft gelezen, en op welke resources.
 
@@ -412,6 +414,25 @@ Is het incident aan helemaal geen cluster en geen infrastructuurresource gekoppe
 Een beslissing wordt één keer genomen, met de instellingen van het project op dat moment: een schakelaar die later wordt aangezet, werkt niet terug op incidenten die al open zijn. Zodra zo'n schakelaar aan staat, zegt de regel dat hij uit stond toen OneUptime AI keek en nu aan staat, en bij een open incident waarvoor niets werd hersteld, beslist **Opnieuw proberen** opnieuw met de instellingen van nu, zoals voor een nieuw incident. Iedereen die het incident mag bewerken, kan erop drukken. Het wordt niet aangeboden zolang een fix wordt uitgewerkt of op goedkeuring wacht, of zolang het herstel op het onderzoek wacht, en vlak nadat OneUptime AI keek, vraagt het je het zo dadelijk opnieuw te proberen.
 
 Als het onderzoek de oorzaak in de code vindt, zegt de stap wat ervan terechtkwam: de pull request met de fix die OneUptime AI schrijft of opende, met een link ernaar in Code; de ene instellingsstap die in de weg staat, zoals **Een repository verbinden**; of **Herstel-pull-request openen**, met de reden waarom OneUptime AI die niet zelf opende (zie [Automatische codefixes](#automatische-codefixes)).
+
+### Voordat je een fix goedkeurt
+
+Een fix die op goedkeuring wacht, toont onder elke wijziging wat je nodig hebt om te beslissen:
+
+- **Wat hij doet, in gewone woorden.** Een cloudwijziging zegt het boven haar exacte opdracht, bijvoorbeeld "ECS-service checkout-api: opschalen naar 8 taken". De woorden worden uit de opdracht zelf gelezen, nooit uit wat het model schreef, en wat wordt uitgevoerd is de opdracht.
+- **Hoe dezelfde wijziging eerder afliep.** Als OneUptime AI dezelfde wijziging de afgelopen 90 dagen op hetzelfde cluster of dezelfde resource voor andere incidenten en waarschuwingen maakte, zegt de wijziging hoe vaak die werkte, bijvoorbeeld "Werkte alle 3 keer dat het hier eerder draaide", met een link naar elk incident en elke waarschuwing waarvoor ze draaide, en in rood als ze nooit werkte. Een wijziging werkte als de verificatie vaststelde dat haar fix werkte; een wijziging die nooit draaide, telt niet mee. Dezelfde wijziging is dezelfde actie op hetzelfde object, wat haar getallen ook zijn: schalen naar 6 en schalen naar 8 zijn één wijziging. Privé-incidenten en -waarschuwingen worden niet genoemd en niet geteld.
+
+OneUptime AI leest dezelfde geschiedenis voordat het plant: als het bewijs past bij een fix die hier eerder werkte, probeert het die fix eerst, en een wijziging die niet werkte stelt het niet opnieuw voor zonder te zeggen waarom die nu wel zou werken.
+
+### Een fix goedkeuren of afwijzen vanuit Slack of Microsoft Teams
+
+Wanneer een fix op goedkeuring wacht, toont zijn bericht in de Slack- en Microsoft Teams-kanalen van het incident of de waarschuwing zijn wijzigingen, elk met hoe die eerder afliep, en drie knoppen:
+
+- **Review and approve** toont alles wat de fix uitvoert, met **Approve and run**. Goedkeuren voert precies uit wat werd getoond, onder je eigen OneUptime-account, en de fix wordt geverifieerd en teruggedraaid zoals een fix die op de kaart is goedgekeurd.
+- **Dismiss** wijst de fix af: OneUptime AI voert hem niet uit, en het incident of de waarschuwing houdt wat het voorstelde.
+- **View in OneUptime** opent het incident of de waarschuwing.
+
+Een klik wordt gecontroleerd zoals de knoppen van de kaart: je chataccount moet met OneUptime verbonden zijn, je moet in het project fixes mogen goedkeuren en het incident of de waarschuwing mogen zien, en een fix aan een cluster of resource vereist toestemming om die te bewerken. Een fix die veranderde nadat zijn bericht was geplaatst, wordt geweigerd, en er wordt niets uitgevoerd. Een klik nadat iemand anders de fix goedkeurde of afwees, zegt wie dat deed, en wanneer. De feed van het incident of de waarschuwing zegt wie hem goedkeurde of afwees, en vanuit welke chat.
 
 ## OneUptime AI reageert eerst
 

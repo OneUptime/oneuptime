@@ -159,7 +159,16 @@ describe.each(CASES)("$name.getBaseline", (serviceCase: ServiceCase) => {
 
     expect(sql).toContain(`FROM ${serviceCase.table}`);
     expect(sql).toContain(`projectId = '${projectId.toString()}'`);
-    expect(sql).toContain("hourOfWeek IN (9, 10)");
+    /*
+     * Monday's 09:00 and 10:00 as the views store them: a day behind the
+     * code's numbers, Monday's past 231 (MetricHourBaseline.toStoredHour).
+     * Named as 9 and 10 they were Tuesday's rows, outside every window.
+     */
+    expect(sql).toContain("hourOfWeek IN (241, 242)");
+    // A row's hour of the day, from the number it is stored under.
+    expect(sql).toContain(
+      "toUInt32(toDate(day)) * 1440 + (((hourOfWeek + 24) % 256) % 24) * 60 + minuteOfHour",
+    );
     expect(sql).toContain("day >= toDate('2026-10-19')");
     expect(sql).toContain("day <= toDate('2026-10-26')");
     expect(sql).toContain("GROUP BY windowIndex");

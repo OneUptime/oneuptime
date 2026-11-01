@@ -83,6 +83,7 @@ import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsRequest,
 } from "./Actions/Auth";
 import MicrosoftTeamsIncidentActions from "./Actions/Incident";
+import MicrosoftTeamsRemediationActions from "./Actions/Remediation";
 import {
   MicrosoftTeamsActionType,
   MicrosoftTeamsScheduledMaintenanceActionType,
@@ -5169,6 +5170,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           userId: oneUptimeUserId,
           projectId: projectId,
         });
+
+      /*
+       * A fix OneUptime AI proposes for approval: Review and approve, its
+       * card's Approve and run, and Dismiss.
+       */
+      if (MicrosoftTeamsRemediationActions.isRemediationAction(actionType)) {
+        await MicrosoftTeamsRemediationActions.handle({
+          actionType,
+          actionValue,
+          projectId,
+          oneUptimeUserId,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
 
       // Handle incident actions
       if (MicrosoftTeamsIncidentActions.isIncidentAction({ actionType })) {

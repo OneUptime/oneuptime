@@ -14,10 +14,13 @@ import {
   InvestigationReportSection,
   InvestigationReportSectionKind,
   ParsedInvestigationReport,
+  parseRuledOutCauses,
+  RuledOutCause,
 } from "Common/Utils/AI/InvestigationReport";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import { getShownMarkdownReadingDirection } from "Common/UI/Components/Markdown.tsx/MarkdownReadingDirection";
 import type {
   MarkdownEventReference,
   MarkdownInlineReferenceRenderers,
@@ -55,6 +58,26 @@ export const REPORT_SECTION_BODY_CLASS_NAME: string =
 export const REPORT_CAVEAT_TEXT: string = translationKey(
   "AI-generated first pass — verify before acting.",
 );
+
+/*
+ * A word of lowercase letters at the start of a text, before a space, a
+ * mark or the end: "its" in "its CPU stayed ...", never "eBPF" or "iOS".
+ */
+const LOWERCASE_FIRST_WORD: RegExp = /^[a-z]+(?=[\s,.;:!?)]|$)/;
+
+/*
+ * Why a ruled-out cause is ruled out, as its own line: the model writes it
+ * after the cause and a colon - "**A traffic spike:** checkout requests
+ * were flat ..." - so it starts in lowercase, which reads wrong once it
+ * sits on a line under the cause. A first word of plain lowercase letters
+ * takes a capital; anything else (code, a number, "eBPF") is left as
+ * written.
+ */
+export function getRuledOutReasonForDisplay(reasonMarkdown: string): string {
+  return LOWERCASE_FIRST_WORD.test(reasonMarkdown)
+    ? `${reasonMarkdown.charAt(0).toUpperCase()}${reasonMarkdown.slice(1)}`
+    : reasonMarkdown;
+}
 
 /*
  * A completed AI investigation, laid out for a responder as one plain
@@ -300,6 +323,18 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
               }): ReactElement => {
                 const headingId: string = `${idPrefix}-report-section-${entry.index}`;
 
+                /*
+                 * The causes the investigation ruled out, one per line
+                 * with a cross before it, the cause first and why after
+                 * it: a list a responder runs an eye down, rather than
+                 * prose. A section that is not such a list is drawn as
+                 * written, like every other.
+                 */
+                const ruledOutCauses: Array<RuledOutCause> =
+                  entry.section.kind === InvestigationReportSectionKind.RuledOut
+                    ? parseRuledOutCauses(entry.section.markdown)
+                    : [];
+
                 return (
                   <section
                     key={headingId}
@@ -312,9 +347,75 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
                     >
                       {entry.section.title}
                     </h3>
-                    <div className={REPORT_SECTION_BODY_CLASS_NAME}>
-                      {renderMarkdown(entry.section.markdown)}
-                    </div>
+                    {ruledOutCauses.length > 0 ? (
+                      <ul
+                        data-testid="investigation-ruled-out"
+                        className="mt-2 space-y-3"
+                      >
+                        {ruledOutCauses.map(
+                          (
+                            cause: RuledOutCause,
+                            causeIndex: number,
+                          ): ReactElement => {
+                            /*
+                             * Each cause reads the way it is written, as
+                             * the report's other lists do (the markdown
+                             * viewer's MarkdownReadingDirection): an
+                             * English cause on a Persian page keeps its
+                             * cross beside its first word, at the left.
+                             */
+                            return (
+                              <li
+                                key={`${headingId}-cause-${causeIndex}`}
+                                dir={getShownMarkdownReadingDirection(
+                                  `${cause.causeMarkdown}\n${cause.reasonMarkdown}`,
+                                )}
+                                data-testid="investigation-ruled-out-cause"
+                                className="flex items-start gap-3"
+                              >
+                                {/*
+                                  A div, not a span: Icon renders its own
+                                  div around the svg.
+                                */}
+                                <div className="flex h-6 w-4 flex-shrink-0 items-center justify-center">
+                                  <Icon
+                                    icon={IconProp.Close}
+                                    className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1 break-words text-sm leading-6 text-gray-700 [&_.max-w-none>*:first-child]:mt-0 [&_.max-w-none>*:last-child]:mb-0">
+                                  {cause.causeMarkdown ? (
+                                    <div
+                                      data-testid="investigation-ruled-out-cause-name"
+                                      className="font-medium text-gray-900"
+                                    >
+                                      {renderMarkdown(cause.causeMarkdown)}
+                                    </div>
+                                  ) : (
+                                    <></>
+                                  )}
+                                  {cause.reasonMarkdown ? (
+                                    <div data-testid="investigation-ruled-out-cause-reason">
+                                      {renderMarkdown(
+                                        getRuledOutReasonForDisplay(
+                                          cause.reasonMarkdown,
+                                        ),
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <></>
+                                  )}
+                                </div>
+                              </li>
+                            );
+                          },
+                        )}
+                      </ul>
+                    ) : (
+                      <div className={REPORT_SECTION_BODY_CLASS_NAME}>
+                        {renderMarkdown(entry.section.markdown)}
+                      </div>
+                    )}
                   </section>
                 );
               },

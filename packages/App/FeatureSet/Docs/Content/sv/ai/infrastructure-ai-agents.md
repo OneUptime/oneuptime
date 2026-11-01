@@ -402,6 +402,8 @@ En ändring namnger en resurs med dess id, som en läsning gör, och körs bara 
 
 Innan någon godkänner en åtgärd som ändrar ett molnkonto gör OneUptime en provkörning av varje ändring den föreslår, och åtgärdens kort på incidenten eller larmet visar svaret under ändringen: den skulle köras, med anropet den skulle göra och hur den ångras; den skulle nekas, och varför; eller provkörningen kunde inte slutföras. **Upprepa provkörning** kontrollerar igen. En provkörning ändrar ingenting: agenten stannar före anropet som skulle göra ändringen, och på AWS får sessionen av skrivrollen som den använder bara läsa.
 
+På åtgärdens kort och i dess Slack- och Microsoft Teams-meddelande säger en molnändring också med vanliga ord vad den gör, ovanför sitt exakta kommando: ”ECS-tjänst web: skala upp till 4 uppgifter”. Orden läses ur kommandot enligt katalogens grammatik, aldrig ur det som OneUptime AI skrev. När OneUptime AI planerar en åtgärd för ett konto får den veta vad incidenten eller larmet är kopplat till där: dess Cloud-resurser, via de id:n som en ändring namnger dem med, och dess App Platforms-miljöer, där en åtgärd ändrar tjänsterna som körs i dem.
+
 ### Listan över tillåtna kommandon
 
 I läget **Automatiskt** låter resursens **Tillåtna kommandon** på AI-agentens sida de mer riskfyllda kommandon som du anger köras utan godkännande. Listan matchas ord för ord mot kommandot, inte som text:

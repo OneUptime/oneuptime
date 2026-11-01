@@ -402,6 +402,8 @@ En ændring navngiver én ressource ved dens id, som en læsning gør, og kører
 
 Før nogen godkender en rettelse, der ændrer en cloudkonto, foretager OneUptime en prøvekørsel af hver ændring, den foreslår, og rettelsens kort på hændelsen eller advarslen viser svaret under ændringen: den ville køre, med det kald, den ville foretage, og hvordan den fortrydes; den ville blive afvist, og hvorfor; eller prøvekørslen kunne ikke gennemføres. **Gentag prøvekørsel** kontrollerer igen. En prøvekørsel ændrer intet: agenten stopper før det kald, der ville foretage ændringen, og på AWS må den session af skriverollen, den bruger, kun læse.
 
+På rettelsens kort og i dens Slack- og Microsoft Teams-besked siger en cloud-ændring også med almindelige ord, hvad den gør, over sin præcise kommando: "ECS-tjeneste web: skaler op til 4 opgaver". Ordene læses ud af kommandoen efter katalogets grammatik, aldrig ud af det, OneUptime AI skrev. Når OneUptime AI planlægger en rettelse for en konto, får den at vide, hvad hændelsen eller advarslen er knyttet til dér: dens Cloud-ressourcer, via de id'er, en ændring navngiver dem med, og dens App Platforms-miljøer, hvor en rettelse ændrer de tjenester, der kører i dem.
+
 ### Listen over tilladte kommandoer
 
 I tilstanden **Automatisk** lader ressourcens **Tilladte kommandoer** på AI-agentens side de mere risikable kommandoer, du nævner, køre uden godkendelse. Listen matches ord for ord mod kommandoen, ikke som tekst:

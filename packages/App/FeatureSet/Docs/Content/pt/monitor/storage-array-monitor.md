@@ -272,7 +272,7 @@ Um critério compara uma das consultas ou fórmulas do monitor com um limite. Os
 | **Janela de linha de base** | Só condições de anomalia. 14 dias (o padrão), 28, 60 ou 90 dias de histórico. |
 | **Se não houver dados** | Em **Mais campos**. O que acontece quando a janela não tem amostras: **Ignore** (o padrão), **Treat As Zero** ou **Gatilho**. |
 
-As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não disparam nada, até que a janela de linha de base tenha histórico suficiente.
+As condições de anomalia comparam cada valor com a mesma hora da semana na linha de base. Elas ficam em um estado "Learning", e não disparam nada, até que a janela de linha de base tenha histórico suficiente. Uma soma, uma contagem ou uma consulta sobre um histograma permanece nesse estado para sempre: este monitor filtra suas consultas por atributos, e a linha de base não guarda nenhum.
 
 Alguns critérios para começar:
 

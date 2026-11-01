@@ -278,6 +278,10 @@ OneUptime 的 Slack 訊息上的按鈕同樣以您的身分執行：也就是以
 - **在哪裡收到回覆。** 在帶有按鈕的訊息下方，以只有您看得到的訊息回覆；只有當 Slack 拒絕時，才會改用私人訊息。按得太晚的按鈕會說明誰先操作了、何時操作的，例如 "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **如果您的 Slack 帳戶未連接。** 回覆會請您連接它，並附上一個 **Connect Slack account** 按鈕。該按鈕會開啟您在 OneUptime 中自己的 Slack 設定，並在您視需要登入 OneUptime 後一步連接您的帳戶。隨後 OneUptime 會以您的身分完成您按下的操作，並在同一則訊息下方回覆；對於開啟表單的按鈕或命令，它會請您再按一次或再執行一次。該按鈕只能使用一次，有效 30 分鐘，並且只對按下它的 Slack 帳戶有效：以其他人的身分登入 Slack 時，它不會連接任何帳戶。
 
+## 核准 OneUptime AI 提出的修正
+
+OneUptime AI 提出待核准的修正時，會將其變更連同三個按鈕發布到事件或警示的頻道中。 **Review and approve** 會開啟修正要執行的全部內容，並附有 **Approve and run**，它會以您的身分準確執行這些內容。 **Dismiss** 會駁回修正， **View in OneUptime** 會開啟事件或警示。與 OneUptime 的 Slack 訊息上的每個按鈕一樣，它們以您的身分執行：核准需要在專案中核准修正的權限，對於叢集或資源的修正，還需要編輯它的權限。在訊息發布後發生了變化的修正會被拒絕，什麼都不會執行。請參閱 [從 Slack 或 Microsoft Teams 核准或駁回修正](/docs/ai/ai-sre#從-slack-或-microsoft-teams-核准或駁回修正)。
+
 ## 中斷連接
 
 - **中斷連線** 只解除您自己的 Slack 帳戶的連結，並同時移除您的 Slack 通知方式。

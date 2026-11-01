@@ -402,6 +402,8 @@ Eine Änderung nennt eine Ressource über ihre ID, wie ein Lesevorgang, und läu
 
 Bevor jemand eine Korrektur genehmigt, die ein Cloud-Konto ändert, führt OneUptime für jede vorgeschlagene Änderung einen Probelauf aus, und die Karte der Korrektur am Vorfall oder an der Warnung zeigt die Antwort unter der Änderung: Sie würde laufen, mit dem Aufruf, den sie machen würde, und ihrer Rückgängigmachung; sie würde abgelehnt, und warum; oder der Probelauf konnte nicht abgeschlossen werden. **Probelauf wiederholen** prüft noch einmal. Ein Probelauf ändert nichts: Der Agent hält vor dem Aufruf an, der die Änderung vornehmen würde, und auf AWS darf die Sitzung der Schreibrolle, die er nutzt, nur lesen.
 
+Auf der Karte der Korrektur und in ihrer Slack- und Microsoft-Teams-Nachricht sagt eine Cloud-Änderung außerdem in klaren Worten, was sie tut, über ihrem genauen Befehl: „ECS-Dienst web: auf 4 Tasks hochskalieren“. Die Worte werden mit der Grammatik des Katalogs aus dem Befehl gelesen, nie aus dem, was OneUptime AI geschrieben hat. Plant OneUptime AI eine Korrektur für ein Konto, erfährt es, womit der Vorfall oder die Warnung dort verknüpft ist: mit seinen Cloud-Ressourcen, über die IDs, mit denen eine Änderung sie benennt, und mit seinen App-Platforms-Umgebungen, in denen eine Korrektur die dort laufenden Dienste ändert.
+
 ### Die Befehls-Zulassungsliste
 
 Im Modus **Automatisch** lässt die **Befehls-Zulassungsliste** der Ressource auf der Seite des KI-Agenten riskantere Befehle, die Sie nennen, ohne Genehmigung laufen. Sie wird Wort für Wort mit dem Befehl abgeglichen, nicht als Text:

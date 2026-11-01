@@ -41,6 +41,10 @@ import { getFormSubmissionNote } from "Common/Server/Utils/Form/FormSubmissionNo
 import MicrosoftTeamsIncidentActions from "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
 import MicrosoftTeamsOnCallDutyActions from "Common/Server/Utils/Workspace/MicrosoftTeams/Actions/OnCallDutyPolicy";
 import { MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE } from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
+import {
+  getViewInProductTitle,
+  REMEDIATION_CHAT_WORDS,
+} from "Common/Server/Utils/AutoRemediation/RemediationChatWords";
 import SlackIncidentActions from "Common/Server/Utils/Workspace/Slack/Actions/Incident";
 import WorkspaceActionAuthorization from "Common/Server/Utils/Workspace/WorkspaceActionAuthorization";
 import {
@@ -158,6 +162,18 @@ const CHAT_BUTTONS: Array<string> = [
 
 // Microsoft Teams cards' own Escalate, and the lead of the bullet about it.
 const TEAMS_CARD_BUTTONS: Array<string> = ["Escalate", "Escalate."];
+
+/*
+ * The buttons of a fix OneUptime AI proposes - its Slack message and its
+ * Microsoft Teams card - and of the approval it opens, as the server writes
+ * them, in English (REMEDIATION_CHAT_WORDS).
+ */
+const FIX_MESSAGE_BUTTONS: Array<string> = [
+  REMEDIATION_CHAT_WORDS.reviewAndApprove,
+  REMEDIATION_CHAT_WORDS.approveAndRun,
+  REMEDIATION_CHAT_WORDS.dismiss,
+  getViewInProductTitle(),
+];
 
 /*
  * An incident's message - Slack's, and Microsoft Teams' card of it - and its
@@ -314,6 +330,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [SLACK]: [
     "Growth",
     ...CHAT_BUTTONS,
+    ...FIX_MESSAGE_BUTTONS,
     ...INCIDENT_MESSAGE_BUTTONS,
     ...SEEDED_INCIDENT_ROLES,
     ...SLACK_CONNECT_BUTTON,
@@ -326,6 +343,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   [TEAMS]: [
     "Growth",
     ...CHAT_BUTTONS,
+    ...FIX_MESSAGE_BUTTONS,
     ...INCIDENT_MESSAGE_BUTTONS,
     ...SEEDED_INCIDENT_ROLES,
     ...TEAMS_CARD_BUTTONS,
@@ -1216,6 +1234,7 @@ describe("the lists this test keeps", () => {
     const external: Array<string> = [
       ...PLANS,
       ...CHAT_BUTTONS,
+      ...FIX_MESSAGE_BUTTONS,
       ...INCIDENT_MESSAGE_BUTTONS,
       ...SEEDED_INCIDENT_ROLES,
       ...SLACK_CONNECT_BUTTON,

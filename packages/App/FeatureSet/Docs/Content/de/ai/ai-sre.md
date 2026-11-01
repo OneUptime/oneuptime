@@ -38,6 +38,7 @@ Wenn eine Untersuchung abgeschlossen ist, veröffentlicht OneUptime AI eine Ursa
 - **Summary** – ein oder zwei Sätze, die eine alarmierte Person in fünf Sekunden lesen kann.
 - **Most likely root cause** – die Hypothese, nur mit der Sicherheit, die die Belege hergeben, und jede sachliche Aussage belegt. Reicht die Telemetrie nicht aus, sagt die KI das klar und listet auf, was sie geprüft hat, statt zu raten.
 - **Evidence** – die wichtigsten Befunde, die die Hypothese stützen oder ausschließen, jeder belegt.
+- **Ruled out** – die anderen wahrscheinlichen Ursachen, die sie geprüft hat, etwa eine kürzliche Änderung, eine Kapazitätsgrenze, eine Abhängigkeit oder die Cloud darunter, jede mit dem belegten Befund, der sie ausschließt. Die Karte listet sie eine pro Zeile. Eine Analyse, die keine andere Ursache geprüft hat, lässt den Abschnitt weg.
 - **Suggested next steps** – konkrete Schritte für die Person in Bereitschaft.
 
 Bei Vorfällen wird die Analyse im Feed des Vorfalls **und** als interne Notiz des Vorfalls veröffentlicht (wo die Beteiligten zusammenarbeiten). Bei Warnungen wird sie im Feed der Warnung veröffentlicht.
@@ -65,6 +66,7 @@ Eine Untersuchung beginnt beim Vorfall oder bei der Warnung und bei der Infrastr
 - Die eigenen Metriken der Infrastruktur, so gelesen, wie Menschen sie lesen. Host-Metriken wie `system.cpu.utilization` und `system.memory.utilization` werden einmal je Zustand gemeldet, und die Zustände ergeben zusammen 100 %, daher sagt ein Durchschnitt über alle nichts aus. OneUptime AI liest sie Zustand für Zustand (belegte CPU ist user plus system) und jede Metrik pro Container, pro Mountpoint oder nach jedem anderen Attribut.
 - Die Container eines Docker- oder Podman-Hosts: die am stärksten ausgelasteten nach CPU, Arbeitsspeicher oder Neustarts und die, die keine Daten mehr melden. Ein gestoppter Container sendet nichts statt null, daher verbergen ihn die Zahlen des ganzen Hosts.
 - Die Änderungen, die in den 2 Stunden vor dem Vorfall oder der Warnung aufgezeichnet wurden – Deploys, Kubernetes-Rollouts, Konfigurationsänderungen und die Korrekturen, die OneUptime ausgeführt hat –, und welche davon die Telemetrie der zugehörigen Dienste verdächtig macht: ein Dienst, der sich direkt nach einer Änderung messbar verschlechtert hat. Siehe [Deploys und Änderungen](/docs/telemetry/change-events).
+- Die gelösten Vorfälle des Projekts, die die Monitore oder Labels des Vorfalls teilen: wie jeder gelöst wurde und, wenn die Korrektur von OneUptime AI für einen davon verifiziert wurde, was diese Korrektur ausgeführt hat, sodass eine Wiederholung die Korrektur nennt, die beim letzten Mal geholfen hat. Private Vorfälle bleiben außen vor.
 
 Die Aktivität der Untersuchung auf der Karte **OneUptime AI** zeigt, wie viele offene oder neue Warnungen sie gelesen hat und auf welchen Ressourcen.
 
@@ -412,6 +414,25 @@ Ist der Vorfall mit überhaupt keinem Cluster und keiner Infrastrukturressource 
 Eine Entscheidung fällt einmal, mit den Einstellungen des Projekts in diesem Moment: Ein später eingeschalteter Schalter wirkt nicht auf Vorfälle zurück, die schon offen sind. Sobald ein solcher Schalter an ist, sagt die Zeile, dass er aus war, als OneUptime AI geprüft hat, und jetzt an ist, und bei einem offenen Vorfall, für den nichts behoben wurde, entscheidet **Erneut versuchen** neu, mit den Einstellungen von jetzt, wie bei einem neuen Vorfall. Jeder, der den Vorfall bearbeiten darf, kann es drücken. Es wird nicht angeboten, solange eine Korrektur ausgearbeitet wird oder auf Genehmigung wartet oder die Behebung auf die Untersuchung wartet, und direkt nachdem OneUptime AI geprüft hat, bittet es Sie, es gleich noch einmal zu versuchen.
 
 Findet die Untersuchung die Ursache im Code, sagt der Schritt, was daraus wurde: den Korrektur-Pull-Request, den OneUptime AI schreibt oder geöffnet hat, mit einem Link dorthin in Code; den einen Einrichtungsschritt, der im Weg steht, etwa **Repository verbinden**; oder **Korrektur-Pull-Request öffnen**, mit dem Grund, warum OneUptime AI ihn nicht von selbst geöffnet hat (siehe [Automatische Code-Korrekturen](#automatische-code-korrekturen)).
+
+### Bevor Sie eine Korrektur genehmigen
+
+Eine Korrektur, die auf Genehmigung wartet, zeigt unter jeder Änderung, was Sie zur Entscheidung brauchen:
+
+- **Was sie tut, in klaren Worten.** Eine Cloud-Änderung sagt es über ihrem genauen Befehl, etwa „ECS-Dienst checkout-api: auf 8 Tasks hochskalieren“. Die Worte werden aus dem Befehl selbst gelesen, nie aus dem, was das Modell geschrieben hat, und ausgeführt wird der Befehl.
+- **Wie dieselbe Änderung zuvor ausging.** Hat OneUptime AI dieselbe Änderung in den letzten 90 Tagen auf demselben Cluster oder derselben Ressource für andere Vorfälle und Warnungen vorgenommen, sagt die Änderung, wie oft sie geholfen hat, etwa „Hat bei allen 3 früheren Ausführungen hier geholfen“, mit einem Link zu jedem Vorfall und jeder Warnung, für die sie lief, und in Rot, wenn sie nie geholfen hat. Eine Änderung hat geholfen, wenn die Verifizierung ergab, dass ihre Korrektur geholfen hat; eine Änderung, die nie lief, wird nicht gezählt. Dieselbe Änderung ist dieselbe Aktion am selben Objekt, unabhängig von ihren Zahlen: eine Skalierung auf 6 und eine auf 8 sind eine Änderung. Private Vorfälle und Warnungen werden weder genannt noch gezählt.
+
+OneUptime AI liest dieselbe Bilanz, bevor es plant: Passen die Befunde zu einer Korrektur, die hier zuvor geholfen hat, versucht es diese zuerst, und eine Änderung, die nicht geholfen hat, schlägt es nicht erneut vor, ohne zu sagen, warum sie jetzt helfen würde.
+
+### Eine Korrektur aus Slack oder Microsoft Teams genehmigen oder verwerfen
+
+Wartet eine Korrektur auf Genehmigung, listet ihre Nachricht in den Slack- und Microsoft-Teams-Kanälen des Vorfalls oder der Warnung ihre Änderungen auf, jede mit dem, wie sie zuvor ausging, und drei Schaltflächen:
+
+- **Review and approve** zeigt alles, was die Korrektur ausführt, mit **Approve and run**. Die Genehmigung führt genau das Gezeigte aus, unter Ihrem eigenen OneUptime-Konto, und die Korrektur wird verifiziert und zurückgesetzt wie eine auf der Karte genehmigte.
+- **Dismiss** verwirft die Korrektur: OneUptime AI führt sie nicht aus, und der Vorfall oder die Warnung behält, was vorgeschlagen wurde.
+- **View in OneUptime** öffnet den Vorfall oder die Warnung.
+
+Ein Klick wird geprüft wie die Schaltflächen der Karte: Ihr Chat-Konto muss mit OneUptime verbunden sein, Sie müssen im Projekt Korrekturen genehmigen und den Vorfall oder die Warnung sehen dürfen, und eine Korrektur an einem Cluster oder einer Ressource erfordert die Berechtigung, diese zu bearbeiten. Eine Korrektur, die sich geändert hat, nachdem ihre Nachricht gepostet wurde, wird abgelehnt, und nichts wird ausgeführt. Ein Klick, nachdem jemand anderes die Korrektur genehmigt oder verworfen hat, sagt, wer es war und wann. Der Feed des Vorfalls oder der Warnung sagt, wer sie genehmigt oder verworfen hat und aus welchem Chat.
 
 ## OneUptime AI reagiert zuerst
 
