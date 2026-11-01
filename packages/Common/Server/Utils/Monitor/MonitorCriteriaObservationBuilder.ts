@@ -65,6 +65,9 @@ import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
 import ServerMonitorCriteria from "./Criteria/ServerMonitorCriteria";
+import ExceptionMonitorCriteria from "./Criteria/ExceptionMonitorCriteria";
+import ExceptionLearnedBaselineUtil from "./ExceptionLearnedBaseline";
+import { isExceptionCountAnomaly } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorEvaluation";
 import PerEntityCriteriaFanOut from "./PerEntityCriteriaFanOut";
 
 // A sentence's closing period, dropped where it is quoted mid-sentence.
@@ -226,6 +229,7 @@ export default class MonitorCriteriaObservationBuilder {
           {
             dataToProcess: input.dataToProcess,
             checkOn: criteriaFilter.checkOn,
+            criteriaFilter,
           },
         );
       case CheckOn.ProfileCount:
@@ -1588,6 +1592,7 @@ export default class MonitorCriteriaObservationBuilder {
   public static describeExceptionCountObservation(input: {
     dataToProcess: DataToProcess;
     checkOn?: CheckOn | undefined;
+    criteriaFilter?: CriteriaFilter | undefined;
   }): string | null {
     const exceptionResponse: ExceptionMonitorResponse | null =
       MonitorCriteriaDataExtractor.getExceptionMonitorResponse(
@@ -1596,6 +1601,16 @@ export default class MonitorCriteriaObservationBuilder {
 
     if (!exceptionResponse) {
       return null;
+    }
+
+    // The range the count was judged against, or that it is still learning.
+    if (input.criteriaFilter && isExceptionCountAnomaly(input.criteriaFilter)) {
+      return ExceptionLearnedBaselineUtil.describeObservation(
+        ExceptionMonitorCriteria.judgeAnomaly({
+          response: exceptionResponse,
+          criteriaFilter: input.criteriaFilter,
+        }),
+      );
     }
 
     const plural: (count: number, one: string, other: string) => string = (
