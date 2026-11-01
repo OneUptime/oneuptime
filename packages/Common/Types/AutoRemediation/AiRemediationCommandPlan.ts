@@ -22,6 +22,10 @@ import {
   AiRemediationGitOpsUtil,
   AiRemediationRevertWatch,
 } from "./AiRemediationGitOps";
+import {
+  parseRemediationTrackRecord,
+  RemediationTrackRecord,
+} from "./RemediationTrackRecord";
 
 /*
  * Defined in a leaf module of their own (no imports) so the pure kubectl
@@ -267,6 +271,13 @@ export interface AiRemediationCommand {
    * Absent when none was asked for.
    */
   dryRun?: AiRemediationCommandDryRun | undefined;
+  /*
+   * A change proposed for approval: how the same change went the last
+   * times OneUptime AI made it on the same cluster or resource
+   * (Types/AutoRemediation/RemediationTrackRecord), as it stood when the
+   * fix was proposed. Absent when it never ran there before.
+   */
+  trackRecord?: RemediationTrackRecord | undefined;
   execution?: AiRemediationCommandExecutionState | undefined;
   rollbackExecution?: AiRemediationCommandExecutionState | undefined;
 }
@@ -670,6 +681,9 @@ export class AiRemediationCommandPlanUtil {
           ? AiRemediationCommandPlanUtil.parseKubectlFacts(obj)
           : {}),
         ...AiRemediationCommandPlanUtil.parseDryRunFact(obj["dryRun"]),
+        ...AiRemediationCommandPlanUtil.parseTrackRecordFact(
+          obj["trackRecord"],
+        ),
         execution: AiRemediationCommandPlanUtil.parseExecutionState(
           obj["execution"],
         ),
@@ -865,6 +879,19 @@ export class AiRemediationCommandPlanUtil {
     }
 
     return { dryRun };
+  }
+
+  /*
+   * A stored track record, when well-formed (parseRemediationTrackRecord);
+   * dropped otherwise - a fact, never what decides a run.
+   */
+  public static parseTrackRecordFact(
+    value: unknown,
+  ): Pick<AiRemediationCommand, "trackRecord"> {
+    const trackRecord: RemediationTrackRecord | undefined =
+      parseRemediationTrackRecord(value);
+
+    return trackRecord ? { trackRecord } : {};
   }
 
   public static toJSON(plan: AiRemediationCommandPlan): JSONObject {

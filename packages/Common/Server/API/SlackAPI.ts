@@ -30,6 +30,7 @@ import SlackAuthAction, {
   SlackRequest,
 } from "../Utils/Workspace/Slack/Actions/Auth";
 import SlackIncidentActions from "../Utils/Workspace/Slack/Actions/Incident";
+import SlackRemediationActions from "../Utils/Workspace/Slack/Actions/Remediation";
 import SlackActionType from "../Utils/Workspace/Slack/Actions/ActionTypes";
 import SlackAlertActions from "../Utils/Workspace/Slack/Actions/Alert";
 import SlackAlertEpisodeActions from "../Utils/Workspace/Slack/Actions/AlertEpisode";
@@ -1203,6 +1204,23 @@ export default class SlackAPI {
             })
           ) {
             return SlackPageActions.handlePageAction({
+              slackRequest: authResult,
+              action: action,
+              req: req,
+              res: res,
+            });
+          }
+
+          /*
+           * A fix OneUptime AI proposes for approval: Review and approve,
+           * its dialog's Approve and run, and Dismiss.
+           */
+          if (
+            SlackRemediationActions.isRemediationAction({
+              actionType: action.actionType,
+            })
+          ) {
+            return SlackRemediationActions.handleRemediationAction({
               slackRequest: authResult,
               action: action,
               req: req,

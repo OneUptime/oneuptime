@@ -105,9 +105,58 @@ import {
   ExternalMcpToolCallPlan,
   ExternalMcpToolCallPlanUtil,
 } from "../../../Types/AutoRemediation/ExternalMcpToolCallPlan";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../../Types/Workspace/WorkspaceType";
+import ProductBrandingText from "../ProductBrandingText";
+import {
+  getRemediationPlanFingerprint,
+  isRemediationPlanFingerprint,
+} from "./RemediationPlanFingerprint";
 
 // What an approval, a dry run or a dismissal answers, as the routes send it.
 export type RemediationApprovalResult = JSONObject;
+
+/*
+ * Why a press on a Slack or Microsoft Teams message about a fix did
+ * nothing: the fix no longer runs what the message showed (its plan
+ * fingerprint changed), so what the person read is not what they would
+ * approve.
+ */
+export function getFixChangedSinceMessage(): string {
+  return `This fix changed after the message you pressed was posted, so nothing was done. Open it in ${ProductBrandingText.getProductName()} to see what it runs now.`;
+}
+
+/*
+ * Where an approval or a dismissal was made, when not in the Dashboard: the
+ * feed entry says so ("approved the AI command plan from Slack"), and so the
+ * record's channels do.
+ */
+function describeWhere(from: WorkspaceType | undefined): string {
+  return from ? ` from ${getWorkspaceTypeDisplayName(from)}` : "";
+}
+
+/*
+ * The fingerprint a chat press carries, checked against the fix as it is
+ * now: a fix that changed since its message was posted is not approved, nor
+ * dismissed, from that message.
+ */
+function assertFixIsWhatTheMessageShowed(data: {
+  suggestion: AutoRemediationSuggestion;
+  expectedPlanFingerprint?: string | undefined;
+}): void {
+  if (data.expectedPlanFingerprint === undefined) {
+    return;
+  }
+
+  if (
+    !isRemediationPlanFingerprint(data.expectedPlanFingerprint) ||
+    getRemediationPlanFingerprint(data.suggestion) !==
+      data.expectedPlanFingerprint
+  ) {
+    throw new BadDataException(getFixChangedSinceMessage());
+  }
+}
 
 /*
  * Access check under the USER's permissions: a null result means "does not
@@ -881,6 +930,7 @@ async function postFeedItem(data: {
 async function approveMcpToolCalls(data: {
   props: DatabaseCommonInteractionProps;
   suggestion: AutoRemediationSuggestion;
+  from?: WorkspaceType | undefined;
 }): Promise<RemediationApprovalResult> {
   const { props, suggestion } = data;
   const projectId: ObjectID = suggestion.projectId!;
@@ -969,7 +1019,7 @@ async function approveMcpToolCalls(data: {
   await postFeedItem({
     suggestion,
     markdown:
-      mdText`⚡ Approved the **fix through MCP servers** (${ExternalMcpToolCallPlanUtil.describeChangeCount(proposed.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString(),
+      mdText`⚡ Approved the **fix through MCP servers**${describeWhere(data.from)} (${ExternalMcpToolCallPlanUtil.describeChangeCount(proposed.length)}). The changes are being made; verification will watch the monitors for recovery.`.toString(),
     userId: props.userId!,
     pingWorkspace: true,
   });
@@ -990,6 +1040,13 @@ export default class RemediationApproval {
   public static async approve(data: {
     props: DatabaseCommonInteractionProps;
     suggestionId: unknown;
+    /*
+     * A press on a Slack or Microsoft Teams message: the fingerprint of the
+     * fix the message showed (RemediationPlanFingerprint), and where it was
+     * pressed. The Dashboard's Approve passes neither.
+     */
+    expectedPlanFingerprint?: string | undefined;
+    from?: WorkspaceType | undefined;
   }): Promise<RemediationApprovalResult> {
     const props: DatabaseCommonInteractionProps = data.props;
 
@@ -1007,6 +1064,11 @@ export default class RemediationApproval {
       );
     }
 
+    assertFixIsWhatTheMessageShowed({
+      suggestion,
+      expectedPlanFingerprint: data.expectedPlanFingerprint,
+    });
+
     if (!suggestion.projectId) {
       throw new BadDataException("This suggestion has no project.");
     }
@@ -1021,7 +1083,11 @@ export default class RemediationApproval {
     if (
       suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
     ) {
-      return await approveMcpToolCalls({ props, suggestion });
+      return await approveMcpToolCalls({
+        props,
+        suggestion,
+        from: data.from,
+      });
     }
 
     /*
@@ -1255,7 +1321,7 @@ export default class RemediationApproval {
       await postFeedItem({
         suggestion,
         markdown:
-          mdText`⚡ Approved the **AI command plan**: ${describeCommandCount(plan.commands.length)} ${plan.commands.length === 1 ? "is" : "are"} being run. Verification will watch the monitors for recovery.`.toString(),
+          mdText`⚡ Approved the **AI command plan**${describeWhere(data.from)}: ${describeCommandCount(plan.commands.length)} ${plan.commands.length === 1 ? "is" : "are"} being run. Verification will watch the monitors for recovery.`.toString(),
         userId: props.userId!,
         pingWorkspace: true,
       });
@@ -1383,7 +1449,7 @@ export default class RemediationApproval {
     await postFeedItem({
       suggestion,
       markdown:
-        mdText`⚡ Approved the **auto-remediation suggestion**: runbook "${suggestion.runbookNameSnapshot || "Runbook"}" was started.`.toString(),
+        mdText`⚡ Approved the **auto-remediation suggestion**${describeWhere(data.from)}: runbook "${suggestion.runbookNameSnapshot || "Runbook"}" was started.`.toString(),
       userId: props.userId!,
       pingWorkspace: true,
     });
@@ -1489,6 +1555,9 @@ export default class RemediationApproval {
   public static async dismiss(data: {
     props: DatabaseCommonInteractionProps;
     suggestionId: unknown;
+    // A press on a Slack or Microsoft Teams message, as for approve.
+    expectedPlanFingerprint?: string | undefined;
+    from?: WorkspaceType | undefined;
   }): Promise<RemediationApprovalResult> {
     const props: DatabaseCommonInteractionProps = data.props;
 
@@ -1499,6 +1568,23 @@ export default class RemediationApproval {
 
     const suggestion: AutoRemediationSuggestion =
       await loadSuggestionAsRoot(suggestionId);
+
+    /*
+     * From a message, only the fix it showed, while it waits: a fix that
+     * moved on or changed since is told, never dismissed in its place.
+     */
+    if (data.expectedPlanFingerprint !== undefined) {
+      if (suggestion.status !== AutoRemediationSuggestionStatus.Suggested) {
+        throw new BadDataException(
+          `Only suggested or planning remediations can be dismissed — this one is ${suggestion.status}.`,
+        );
+      }
+
+      assertFixIsWhatTheMessageShowed({
+        suggestion,
+        expectedPlanFingerprint: data.expectedPlanFingerprint,
+      });
+    }
 
     /*
      * Both Suggested and still-Planning suggestions can be dismissed —
@@ -1570,21 +1656,21 @@ export default class RemediationApproval {
     let dismissMarkdown: string;
     if (alreadyExecutedCount > 0 && dismissedMcpPlan) {
       dismissMarkdown =
-        mdText`⚠️ Dismissed the **auto-remediation suggestion**, but **${ExternalMcpToolCallPlanUtil.describeChangeCount(alreadyExecutedCount)} through MCP servers had ALREADY been made.** No further changes will be made and nothing was undone. Review them on the Remediation card.`.toString();
+        mdText`⚠️ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}, but **${ExternalMcpToolCallPlanUtil.describeChangeCount(alreadyExecutedCount)} through MCP servers had ALREADY been made.** No further changes will be made and nothing was undone. Review them on the Remediation card.`.toString();
     } else if (
       suggestion.suggestionType === AutoRemediationSuggestionType.McpToolCalls
     ) {
-      dismissMarkdown = `⚡ Dismissed the **auto-remediation suggestion**: the fix through MCP servers will not be made.`;
+      dismissMarkdown = `⚡ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}: the fix through MCP servers will not be made.`;
     } else if (alreadyExecutedCount > 0) {
       dismissMarkdown =
-        mdText`⚠️ Dismissed the **auto-remediation suggestion**, but **${describeCommandCount(alreadyExecutedCount)} had ALREADY run.** No further commands will run and nothing was rolled back automatically. Review the executed commands and their output on the suggestion.`.toString();
+        mdText`⚠️ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}, but **${describeCommandCount(alreadyExecutedCount)} had ALREADY run.** No further commands will run and nothing was rolled back automatically. Review the executed commands and their output on the suggestion.`.toString();
     } else if (
       suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
     ) {
-      dismissMarkdown = `⚡ Dismissed the **auto-remediation suggestion**: the AI-composed command plan will not be run.`;
+      dismissMarkdown = `⚡ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}: the AI-composed command plan will not be run.`;
     } else {
       dismissMarkdown =
-        mdText`⚡ Dismissed the **auto-remediation suggestion**: runbook "${suggestion.runbookNameSnapshot || "(not yet picked)"}" will not be run.`.toString();
+        mdText`⚡ Dismissed the **auto-remediation suggestion**${describeWhere(data.from)}: runbook "${suggestion.runbookNameSnapshot || "(not yet picked)"}" will not be run.`.toString();
     }
 
     await postFeedItem({

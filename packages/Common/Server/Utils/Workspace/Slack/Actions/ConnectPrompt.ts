@@ -23,6 +23,10 @@ import WorkspaceConnectPromptOnce, {
 } from "../../WorkspaceConnectPromptOnce";
 import WorkspaceProjectResolver from "../../WorkspaceProjectResolution";
 import SlackActionType from "./ActionTypes";
+import {
+  REMEDIATION_PRESSES,
+  RemediationPress,
+} from "../../../AutoRemediation/RemediationChatWords";
 import SlackActionAnswer, {
   SlackAnswerDelivery,
   SlackAnswerPlace,
@@ -412,6 +416,23 @@ export default class SlackConnectPrompt {
               ? WorkspaceConnectRequestAgainKind.MenuItem
               : WorkspaceConnectRequestAgainKind.Button,
           label: form.button,
+        },
+      };
+    }
+
+    /*
+     * A fix OneUptime AI proposes: never approved or dismissed for somebody
+     * once they connect - they read what it runs and press again.
+     */
+    const fixPress: RemediationPress | undefined =
+      REMEDIATION_PRESSES.get(actionType);
+
+    if (fixPress) {
+      return {
+        purpose: fixPress.purpose,
+        again: {
+          kind: WorkspaceConnectRequestAgainKind.Button,
+          label: fixPress.button,
         },
       };
     }
