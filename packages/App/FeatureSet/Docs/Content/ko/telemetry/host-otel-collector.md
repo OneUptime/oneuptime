@@ -1193,9 +1193,11 @@ exporters:
 Collector는 호스트가 보고하는 것을 보내고, **호스트 AI 에이전트**는 OneUptime AI가 그 호스트의 인시던트나 알림을 조사하는 동안 호스트 자체에 물어볼 수 있게 합니다. 읽기 전용 명령(`systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn`)을 실행하고, 허용한 경우에만 지정한 systemd 유닛 재시작 같은 수정을 적용합니다. 자체 설치 프로그램이 있는 Linux 컨테이너(이미지 `oneuptime/resource-ai-agent:release`)이며, Docker(rootless Docker가 아닌 시스템 엔진)와 Docker Compose 플러그인이 필요합니다:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+각 OneUptime은 자기 릴리스의 이 설치 프로그램을 제공합니다. 자체 호스팅 OneUptime에서는 `https://oneuptime.com` 대신 사용자의 URL에서 내려받으세요. 먼저 `install.sh`로 저장되므로, 실행하기 전에 읽어 볼 수 있습니다.
 
 - **AI 조사는 기본적으로 켜져 있습니다.** 에이전트가 연결되면 OneUptime AI가 에이전트로 이 호스트의 인시던트와 알림을 조사하며, 호스트의 **개요**에 에이전트 상태가 표시됩니다. 중지하려면 에이전트가 실행되는 곳에서 `ONEUPTIME_AI_INVESTIGATION=false`를 설정하거나(AI 에이전트 페이지의 **AI가 할 수 있는 작업** 아래 **변경**에서 방법을 볼 수 있습니다) 에이전트를 제거하세요.
 - `HOST_NAME`으로 등록됩니다. 비워 두면 호스트 자체의 호스트 이름을 사용하며, 다른 이름을 설정하지 않는 한 이 Collector가 `host.name`으로 보고하는 것도 그 이름입니다. 두 값이 일치해야 에이전트가 이 Collector가 만든 호스트를 담당합니다. OneUptime에서 호스트의 **AI 에이전트** 페이지에 나타납니다.

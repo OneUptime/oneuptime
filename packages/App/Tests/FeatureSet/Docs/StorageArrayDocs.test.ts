@@ -889,10 +889,10 @@ describe("Storage Array docs", (): void => {
       expect(markdown).toContain("`/opt/oneuptime-storage-array-agent`");
       expect(markdown).toContain("oneuptime-storage-array-agent");
       expect(markdown).toContain(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/install.sh",
+        "curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh",
       );
       expect(markdown).toContain(
-        "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/troubleshoot.sh",
+        "curl -fsSL https://oneuptime.com/install/storage-array-agent/troubleshoot.sh -o troubleshoot.sh",
       );
       expect(markdown).toContain("pureadmin create --role readonly");
       expect(markdown).toContain("pureadmin create --api-token");

@@ -731,7 +731,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       // With no -n it looks where the Dashboard and the docs install.
       expect(script).toContain(`NS="${KUBERNETES_AGENT_HELM_NAMESPACE}"`);
       expect(english).toContain(
-        "curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \\\n  | bash -s -- -n oneuptime-agent",
+        "curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \\\n  | bash -s -- -n oneuptime-agent",
       );
     });
   });

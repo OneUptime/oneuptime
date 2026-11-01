@@ -79,7 +79,6 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Runner/RunnerImage";
 import {
   PROXMOX_AGENT_INSTALL_DIR,
-  PROXMOX_AGENT_RAW_URL,
   PROXMOX_AGENT_RECREATE_COMMAND,
   PROXMOX_CONNECT_METHODS,
   ProxmoxConnectMethod,
@@ -89,7 +88,6 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import {
   CEPH_AGENT_INSTALL_DIR,
-  CEPH_AGENT_RAW_URL,
   CEPH_AGENT_RECREATE_COMMAND,
   CEPH_INSTALL_METHODS,
   CephInstallMethod,
@@ -99,7 +97,6 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/Utils/DocumentationMarkdown";
 import {
   VMWARE_AGENT_INSTALL_DIR,
-  VMWARE_AGENT_RAW_URL,
   VMWARE_AGENT_RECREATE_COMMAND,
   VMWARE_INSTALL_METHODS,
   VMwareInstallMethod,
@@ -111,7 +108,6 @@ import {
 import {
   STORAGE_ARRAY_AGENT_FILES,
   STORAGE_ARRAY_AGENT_INSTALL_DIR,
-  STORAGE_ARRAY_AGENT_RAW_URL,
   STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
   STORAGE_ARRAY_PLATFORMS,
   StorageArrayPlatform,
@@ -167,7 +163,10 @@ function guideFor(
   kind: AgentKind,
   context?: Parameters<typeof getAgentUpgradeGuide>[1],
 ): AgentUpgradeGuide {
-  const guide: AgentUpgradeGuide | null = getAgentUpgradeGuide(kind, context);
+  const guide: AgentUpgradeGuide | null = getAgentUpgradeGuide(kind, {
+    oneuptimeUrl: URL,
+    ...context,
+  });
   expect(guide).not.toBeNull();
   return guide as AgentUpgradeGuide;
 }
@@ -684,7 +683,7 @@ describe("Docker Swarm agent: the install script again, or the files again", () 
 
   test("the script tab runs the install script, which fetches the latest files", () => {
     expect(codesOf(methodLabelled(guide, "Install script"))).toEqual([
-      getDockerSwarmAgentInstallScriptCommand(),
+      getDockerSwarmAgentInstallScriptCommand(URL),
     ]);
   });
 
@@ -693,7 +692,7 @@ describe("Docker Swarm agent: the install script again, or the files again", () 
       methodLabelled(guide, "Docker Compose"),
     );
     expect(compose).toEqual([
-      getDockerSwarmAgentDownloadCommand(),
+      getDockerSwarmAgentDownloadCommand(URL),
       DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND,
     ]);
     for (const file of DOCKER_SWARM_AGENT_FILES) {
@@ -744,7 +743,7 @@ describe("Database agent", () => {
       }),
     ).toEqual(["Install script"]);
     const script: AgentUpgradeMethod = guide.methods[0]!;
-    expect(codesOf(script)).toEqual([getDatabaseAgentUpgradeCommand()]);
+    expect(codesOf(script)).toEqual([getDatabaseAgentUpgradeCommand(URL)]);
     expect(script.note).toContain("INSTALL_DIR");
     expect(script.noteValues).toEqual({
       directory: DATABASE_AGENT_INSTALL_DIRECTORY,
@@ -783,7 +782,7 @@ describe("Database agent", () => {
         "Docker Compose",
       );
       expect(codesOf(compose)).toEqual([
-        getDatabaseAgentDownloadCommand(engine as DatabaseAgentEngine),
+        getDatabaseAgentDownloadCommand(URL, engine as DatabaseAgentEngine),
         DATABASE_AGENT_RECREATE_COMMAND,
       ]);
       // The download is the guide's own Compose step; the recreate is what its upgrade topic says.
@@ -792,13 +791,13 @@ describe("Database agent", () => {
           return block.trim();
         }),
       ).toContain(
-        getDatabaseAgentDownloadCommand(engine as DatabaseAgentEngine),
+        getDatabaseAgentDownloadCommand(URL, engine as DatabaseAgentEngine),
       );
       expect(getSetupGuideMarkdown(setupGuide)).toContain(
         `\`${DATABASE_AGENT_RECREATE_COMMAND}\``,
       );
       expect(
-        getDatabaseAgentDownloadCommand(engine as DatabaseAgentEngine),
+        getDatabaseAgentDownloadCommand(URL, engine as DatabaseAgentEngine),
       ).toContain(`/configs/${engine}.yaml -o otel-collector-config.yaml`);
     },
   );
@@ -841,7 +840,7 @@ describe("Database agent", () => {
       engine: "mysql",
     });
     expect(upgradeTopicOf(setupGuide).markdown).toContain(
-      getDatabaseAgentUpgradeCommand(),
+      getDatabaseAgentUpgradeCommand(URL),
     );
   });
 });
@@ -1003,14 +1002,15 @@ describe.each([
     kind: AgentKind.ProxmoxAgent,
     agentDir: "ProxmoxAgent",
     installDir: PROXMOX_AGENT_INSTALL_DIR,
-    rawUrl: PROXMOX_AGENT_RAW_URL,
+    served: `${URL}/install/proxmox-agent`,
+    installName: "proxmox-agent",
     methods: PROXMOX_CONNECT_METHODS.filter(
       (option: SetupGuideOption<ProxmoxConnectMethod>): boolean => {
         return option.key !== "native-push";
       },
     ) as Array<SetupGuideOption<string>>,
-    upgrade: getProxmoxAgentUpgradeCommand(),
-    download: getProxmoxAgentDownloadCommand(),
+    upgrade: getProxmoxAgentUpgradeCommand(URL),
+    download: getProxmoxAgentDownloadCommand(URL),
     recreate: PROXMOX_AGENT_RECREATE_COMMAND,
     setupGuide: (method: string): SetupGuideContent => {
       return getProxmoxSetupGuide({
@@ -1026,10 +1026,11 @@ describe.each([
     kind: AgentKind.CephAgent,
     agentDir: "CephAgent",
     installDir: CEPH_AGENT_INSTALL_DIR,
-    rawUrl: CEPH_AGENT_RAW_URL,
+    served: `${URL}/install/ceph-agent`,
+    installName: "ceph-agent",
     methods: CEPH_INSTALL_METHODS as Array<SetupGuideOption<string>>,
-    upgrade: getCephAgentUpgradeCommand(),
-    download: getCephAgentDownloadCommand(),
+    upgrade: getCephAgentUpgradeCommand(URL),
+    download: getCephAgentDownloadCommand(URL),
     recreate: CEPH_AGENT_RECREATE_COMMAND,
     setupGuide: (method: string): SetupGuideContent => {
       return getCephSetupGuide({
@@ -1045,12 +1046,13 @@ describe.each([
     kind: AgentKind.VMwareAgent,
     agentDir: "VMwareAgent",
     installDir: VMWARE_AGENT_INSTALL_DIR,
-    rawUrl: VMWARE_AGENT_RAW_URL,
+    served: `${URL}/install/vmware-agent`,
+    installName: "vmware-agent",
     methods: VMWARE_INSTALL_METHODS as Array<SetupGuideOption<string>>,
-    upgrade: getVMwareAgentUpgradeCommand(),
-    download: getVMwareAgentDownloadCommand(),
+    upgrade: getVMwareAgentUpgradeCommand(URL),
+    download: getVMwareAgentDownloadCommand(URL),
     recreate: VMWARE_AGENT_RECREATE_COMMAND,
-    withoutDocker: getVMwareNativeUpgradeCommand(),
+    withoutDocker: getVMwareNativeUpgradeCommand(URL),
     setupGuide: (method: string): SetupGuideContent => {
       return getVMwareSetupGuide({
         oneuptimeUrl: URL,
@@ -1067,7 +1069,8 @@ describe.each([
     kind: AgentKind;
     agentDir: string;
     installDir: string;
-    rawUrl: string;
+    served: string;
+    installName: string;
     methods: Array<SetupGuideOption<string>>;
     upgrade: string;
     download: string;
@@ -1120,8 +1123,9 @@ describe.each([
         "Run it on the machine the agent runs on. It reuses your .env without asking anything again, downloads the latest files and recreates the agent.",
       );
       expect(codesOf(script)).toEqual([agent.upgrade]);
+      // The script from the reader's own OneUptime, which serves it for its release.
       expect(agent.upgrade).toBe(
-        `curl -sSL ${agent.rawUrl}/install.sh -o install.sh\nbash install.sh`,
+        `curl -fsSL ${agent.served} -o install.sh\nbash install.sh`,
       );
       // A key or URL on the command would override what .env holds.
       expect(agent.upgrade).not.toContain("ONEUPTIME_");
@@ -1148,10 +1152,13 @@ describe.each([
       expect(script).toContain(
         `INSTALL_DIR="\${INSTALL_DIR:-${agent.installDir}}"`,
       );
-      expect(script).toContain(`REPO_BASE="${agent.rawUrl}"`);
+      // It downloads its files from the OneUptime it reports to.
+      expect(script).toContain(
+        `AGENT_FILES_PATH="install/${agent.installName}"`,
+      );
     });
 
-    test("the Compose tab downloads both files from the agent's folder of the repository, then pulls and recreates", () => {
+    test("the Compose tab downloads both files from the reader's OneUptime, then pulls and recreates", () => {
       const compose: AgentUpgradeMethod = methodLabelled(
         guide,
         "Docker Compose",
@@ -1167,8 +1174,8 @@ describe.each([
       expect(codesOf(compose)).toEqual([agent.download, agent.recreate]);
       expect(agent.download).toBe(
         [
-          `curl -fsSLO ${agent.rawUrl}/docker-compose.yml`,
-          `curl -fsSLO ${agent.rawUrl}/otel-collector-config.yaml`,
+          `curl -fsSLO ${agent.served}/docker-compose.yml`,
+          `curl -fsSLO ${agent.served}/otel-collector-config.yaml`,
         ].join("\n"),
       );
       expect(agent.recreate).toBe(
@@ -1214,7 +1221,7 @@ describe("VMware agent without Docker: the release and files again, then a resta
     expect(method.steps[0]!.description).toBe(
       "Run this on the machine the agent runs on. It installs the collector release and the files this OneUptime pins over the old ones, then restarts the agent. Your .env stays; re-apply any change you made to otel-collector-config.yaml.",
     );
-    expect(codesOf(method)).toEqual([getVMwareNativeUpgradeCommand()]);
+    expect(codesOf(method)).toEqual([getVMwareNativeUpgradeCommand(URL)]);
     expect(method.steps[0]!.needsSetupGuide).toBeFalsy();
     expect(method.steps[0]!.language).toBeUndefined();
     expect(method.note).toBeUndefined();
@@ -1229,9 +1236,9 @@ describe("VMware agent without Docker: the release and files again, then a resta
     });
     expectCommandsFromGuide(method, setupGuide);
     expect(topicCodeBlocks(upgradeTopicOf(setupGuide))).toContain(
-      getVMwareNativeUpgradeCommand(),
+      getVMwareNativeUpgradeCommand(URL),
     );
-    const command: string = getVMwareNativeUpgradeCommand();
+    const command: string = getVMwareNativeUpgradeCommand(URL);
     expect(command).not.toContain("ONEUPTIME_");
     expect(command).not.toContain(KEY);
     expect(command).not.toMatch(/docker/i);
@@ -1328,16 +1335,16 @@ describe("Storage Array agent: the install script again, or every file again", (
         return step.title;
       }),
     ).toEqual(["Run the install script again"]);
-    expect(codesOf(script)).toEqual([getStorageArrayAgentUpgradeCommand()]);
-    expect(getStorageArrayAgentUpgradeCommand()).toBe(
-      `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/install.sh -o install.sh\nbash install.sh`,
+    expect(codesOf(script)).toEqual([getStorageArrayAgentUpgradeCommand(URL)]);
+    expect(getStorageArrayAgentUpgradeCommand(URL)).toBe(
+      `curl -fsSL ${URL}/install/storage-array-agent -o install.sh\nbash install.sh`,
     );
     /*
      * A key, a URL, a name or a config on the command would override what
      * .env holds - the install guide's own command carries the platform.
      */
-    expect(getStorageArrayAgentUpgradeCommand()).not.toContain("ONEUPTIME_");
-    expect(getStorageArrayAgentUpgradeCommand()).not.toContain(
+    expect(getStorageArrayAgentUpgradeCommand(URL)).not.toContain("ONEUPTIME_");
+    expect(getStorageArrayAgentUpgradeCommand(URL)).not.toContain(
       "STORAGE_ARRAY_",
     );
     // Nothing here needs a key, so nothing sends the reader to the guide.
@@ -1382,7 +1389,7 @@ describe("Storage Array agent: the install script again, or every file again", (
   test("the Compose tab downloads the compose file and every config, then pulls and recreates", () => {
     const compose: AgentUpgradeMethod = methodLabelled(guide, "Docker Compose");
     expect(codesOf(compose)).toEqual([
-      getStorageArrayAgentDownloadCommand(),
+      getStorageArrayAgentDownloadCommand(URL),
       STORAGE_ARRAY_AGENT_RECREATE_COMMAND,
     ]);
     expect(
@@ -1393,9 +1400,9 @@ describe("Storage Array agent: the install script again, or every file again", (
       "Download the latest files",
       "Pull the latest images and recreate the agent",
     ]);
-    expect(getStorageArrayAgentDownloadCommand()).toBe(
+    expect(getStorageArrayAgentDownloadCommand(URL)).toBe(
       STORAGE_ARRAY_AGENT_FILES.map((file: string): string => {
-        return `curl -fsSLO ${STORAGE_ARRAY_AGENT_RAW_URL}/${file}`;
+        return `curl -fsSLO ${URL}/install/storage-array-agent/${file}`;
       }).join("\n"),
     );
     expect(STORAGE_ARRAY_AGENT_FILES).toEqual([
@@ -1410,7 +1417,7 @@ describe("Storage Array agent: the install script again, or every file again", (
     // The same files the guide's own Compose install downloads.
     for (const platform of PLATFORMS) {
       expect(getSetupGuideMarkdown(setupGuideFor(platform))).toContain(
-        `mkdir oneuptime-storage-array-agent && cd oneuptime-storage-array-agent\n${getStorageArrayAgentDownloadCommand()}`,
+        `mkdir oneuptime-storage-array-agent && cd oneuptime-storage-array-agent\n${getStorageArrayAgentDownloadCommand(URL)}`,
       );
     }
   });

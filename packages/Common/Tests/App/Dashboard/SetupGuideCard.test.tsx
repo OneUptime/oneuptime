@@ -809,6 +809,62 @@ describe("SetupGuideCard", () => {
       ).not.toBeInTheDocument();
     });
 
+    /*
+     * An install step's note is about its command's first line, so the
+     * note sits right under the command, and what the script asks for
+     * (the step's details) under the note.
+     */
+    test("a step's details are drawn under its note, which stays under its code", () => {
+      renderGuide({
+        getContent: (): SetupGuideContent => {
+          return {
+            steps: [
+              {
+                title: "Install the agent",
+                markdown: "COMMAND BODY",
+                note: "Read it first.",
+                details: "WHAT IT ASKS",
+              },
+            ],
+          };
+        },
+      });
+
+      const step: HTMLElement = screen.getByTestId("setup-guide-step-2");
+      const command: HTMLElement = within(step).getByText("COMMAND BODY");
+      const note: HTMLElement = within(step).getByTestId(
+        "setup-guide-step-note",
+      );
+      const details: HTMLElement = within(step).getByTestId(
+        "setup-guide-step-details",
+      );
+
+      expect(note).toHaveTextContent("Read it first.");
+      expect(details).toHaveTextContent("WHAT IT ASKS");
+      expect(
+        command.compareDocumentPosition(note) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        note.compareDocumentPosition(details) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("a step without details draws none", () => {
+      renderGuide({
+        getContent: (): SetupGuideContent => {
+          return {
+            steps: [{ title: "Run it", markdown: "RUN BODY", note: "A note." }],
+          };
+        },
+      });
+
+      expect(
+        screen.queryByTestId("setup-guide-step-details"),
+      ).not.toBeInTheDocument();
+    });
+
     test("a step's note is drawn under its code", () => {
       renderGuide({
         getContent: (): SetupGuideContent => {

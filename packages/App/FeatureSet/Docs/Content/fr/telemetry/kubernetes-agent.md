@@ -998,9 +998,11 @@ L'utilisation de la télémétrie est comptée par jour : vérifiez donc la tend
 Commencez par le script de diagnostic. Il vérifie l'état des pods, décode et valide la clé d'ingestion, vérifie que le cluster peut joindre OneUptime et demande à OneUptime s'il accepte votre clé, puis affiche un verdict qui nomme la cause la plus probable :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Chaque instance de OneUptime sert ce script pour sa propre version : sur une instance auto-hébergée, utilisez votre URL au lieu de `https://oneuptime.com`. Pour lire le script avant de l'exécuter, ouvrez son adresse dans un navigateur.
 
 Il se contente de lire l'état du cluster et d'exécuter quelques sondes ; il ne modifie rien. Pour le test de sortie le plus précis, installez d'abord avec `--set debug.enabled=true` : cela ajoute un petit sidecar d'outils réseau aux pods de l'agent, afin que le script teste le chemin de sortie du collecteur lui-même.
 

@@ -1193,9 +1193,11 @@ Bakom en proxy använder collectorn standardvariablerna `HTTPS_PROXY`, `HTTP_PRO
 Collectorn skickar det som en värd rapporterar; **Värd-AI-agenten** låter OneUptime AI fråga värden själv medan den undersöker en incident eller ett larm där. Den kör skrivskyddade kommandon — `systemctl status nginx --no-pager -n 50`, `journalctl -u nginx -n 200 --no-pager`, `df -h`, `free -m`, `ps aux --sort=-%cpu`, `ss -tulpn` — och, bara om du tillåter det, genomför åtgärder som att starta om en namngiven systemd-enhet. Den är en Linux-container (imagen `oneuptime/resource-ai-agent:release`) med ett eget installationsprogram, som behöver Docker (systemmotorn, inte rootless Docker) och insticksprogrammet Docker Compose:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/host-ai-agent -o install.sh
 sudo bash install.sh
 ```
+
+Varje OneUptime tillhandahåller det här installationsprogrammet från sin egen version: På en egenvärdad OneUptime laddar du ned det från din URL i stället för `https://oneuptime.com`. Det sparas först som `install.sh`, så att du kan läsa det innan du kör det.
 
 - **AI-undersökningar är på som standard.** När agenten väl ansluter undersöker OneUptime AI incidenter och larm på den här värden med den, och värdens **Översikt** visar agentens status. För att stoppa sätter du `ONEUPTIME_AI_INVESTIGATION=false` där agenten körs (**Ändra** under **Vad AI får göra** på AI-agentsidan visar hur), eller tar bort agenten.
 - Den registrerar sig under `HOST_NAME`; lämna det tomt för att använda värdens eget värdnamn, vilket är det som den här collectorn rapporterar som `host.name` om du inte anger ett annat namn. De två måste stämma överens, så att agenten betjänar den värd som den här collectorn skapade. Den visas på värdens sida **AI-agent** i OneUptime.

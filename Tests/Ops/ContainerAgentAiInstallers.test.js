@@ -26,6 +26,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { agentFilesCurlStub } = require("./Utils/AgentFilesCurlStub");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENTS_DIR = path.join(REPO_ROOT, "agents");
@@ -59,7 +60,8 @@ function writeExecutable(file, text) {
  * Podman's rootless flag, API socket and storage a rootful Podman whose
  * socket is on (ContainerAgentInstallers.test.js varies those); `compose up`
  * records the protected-targets value it was started with. `curl` serves
- * the Swarm agent's files from this checkout.
+ * the Swarm agent's files from this checkout, as the OneUptime the agent
+ * reports to serves them (Utils/AgentFilesCurlStub).
  */
 function installStubs(dir) {
   const bin = path.join(dir, "bin");
@@ -103,19 +105,11 @@ exit 0
   writeExecutable(path.join(bin, "podman"), engine);
   writeExecutable(
     path.join(bin, "curl"),
-    `#!/usr/bin/env bash
-url=""; out=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -o) out="$2"; shift 2 ;;
-    -*) shift ;;
-    *) url="$1"; shift ;;
-  esac
-done
-rel="\${url#https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/}"
-[ -f "${SWARM_DIR}/$rel" ] || exit 22
-cp "${SWARM_DIR}/$rel" "$out"
-`,
+    agentFilesCurlStub({
+      installName: "docker-swarm-agent",
+      agentDirectory: "DockerSwarmAgent",
+      servedDir: SWARM_DIR,
+    }),
   );
 
   return bin;

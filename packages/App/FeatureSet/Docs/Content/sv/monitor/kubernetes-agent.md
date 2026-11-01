@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 Kör chartets diagnosskript. Det kontrollerar poddarna, intagningsnyckeln och vägen ut ur klustret, frågar OneUptime om nyckeln godtas och skriver ut ett enda utlåtande. Det läser bara och ändrar ingenting:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Varje OneUptime tillhandahåller det här skriptet från sin egen version: På en egenvärdad OneUptime använder du din URL i stället för `https://oneuptime.com`. Öppna skriptets adress i en webbläsare för att läsa det innan du kör det.
 
 Den vanliga orsaken, särskilt efter en ominstallation, är en felaktig eller återkallad intagningsnyckel: OneUptime avvisar den, och collectorn kastar varje batch medan dess poddar förblir `Running`.
 :::

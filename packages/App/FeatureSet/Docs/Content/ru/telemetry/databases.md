@@ -300,12 +300,14 @@ POST /_security/user/oneuptime_monitor
 
 ### Установите и запустите агент
 
+Каждый OneUptime раздаёт скрипт установки и файлы агента своего релиза: команды ниже скачивают их с `https://oneuptime.com`, поэтому на самостоятельно размещённом OneUptime замените этот адрес на свой URL. Скрипт установки сначала сохраняется в файл `install.sh`, чтобы вы могли прочитать его перед запуском.
+
 :::tabs
 @tab install.sh
 Скачайте скрипт установки и запустите его на машине, где будет работать агент:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
 
@@ -315,11 +317,11 @@ bash install.sh
 
 В пароле допустим любой символ, кроме тех немногих, которые не может передать строка подключения SQL Server (см. вкладку SQL Server в разделе [Создание пользователя для мониторинга](#создание-пользователя-для-мониторинга)). Коллектор ещё раз раскрывает `$` внутри значений, которые читает (`$$` превращается в `$`, а `${NAME}` в другую переменную), поэтому скрипт записывает каждый `$` в `DATABASE_USERNAME` и `DATABASE_PASSWORD` удвоенным, а также берёт значения в кавычки для Docker Compose.
 @tab Docker Compose
-Скачайте `docker-compose.yml` и конфигурацию для вашего движка из [каталога DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) в одну папку, сохранив конфигурацию как `otel-collector-config.yaml`:
+Скачайте `docker-compose.yml` и конфигурацию для вашего движка с вашего OneUptime в одну папку, сохранив конфигурацию как `otel-collector-config.yaml`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
 ```
 
 Создайте рядом с ними файл `.env` (`chmod 600 .env`; в нём хранится пароль):
@@ -458,7 +460,7 @@ sudo systemctl enable --now oneuptime-database-agent
 Поместите конфигурацию для вашего движка в ConfigMap, а секреты в Secret (запишите каждый `$` в пароле как `$$`; коллектор его раскрывает):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o config.yaml
 kubectl -n prod create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='YOUR_TELEMETRY_INGESTION_KEY' \
@@ -664,7 +666,7 @@ service:
 ### Сначала запустите диагностический скрипт
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

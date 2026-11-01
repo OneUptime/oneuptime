@@ -998,9 +998,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 با اسکریپت تشخیصی شروع کنید. سلامت پادها را بررسی می‌کند، کلید دریافت داده را رمزگشایی و اعتبارسنجی می‌کند، بررسی می‌کند که خوشه به OneUptime می‌رسد و از OneUptime می‌پرسد که آیا کلید شما را می‌پذیرد، سپس یک حکم با محتمل‌ترین علت چاپ می‌کند:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+هر OneUptime این اسکریپت را از انتشار خودش ارائه می‌کند: در یک OneUptime خودمیزبان، به‌جای `https://oneuptime.com` از نشانی خودتان استفاده کنید. برای خواندن اسکریپت پیش از اجرا، نشانی آن را در یک مرورگر باز کنید.
 
 فقط وضعیت خوشه را می‌خواند و چند پروب اجرا می‌کند؛ هیچ چیزی را تغییر نمی‌دهد. برای دقیق‌ترین آزمون ترافیک خروجی، نخست با `--set debug.enabled=true` نصب کنید: این کار یک sidecar کوچک ابزارهای شبکه به پادهای عامل می‌افزاید تا اسکریپت مسیر خروجی خود کالکتور را بیازماید.
 

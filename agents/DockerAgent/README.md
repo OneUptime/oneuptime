@@ -27,9 +27,25 @@ docker run -d \
 
 That's it. The host will appear automatically in the Docker section of OneUptime.
 
+## Quick Start — Install Script
+
+```bash
+curl -fsSL https://oneuptime.com/install/docker-agent -o install.sh
+bash install.sh
+```
+
+The script asks for your OneUptime URL, the service token and a name for the host, then starts the agent and the [AI agent](#ai-agent) (`--no-ai-agent` leaves it out). Every OneUptime serves this script and the agent's `docker-compose.yml` for its own release, at `<your OneUptime URL>/install/docker-agent`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com`. The first line saves the script as `install.sh`, so you can read it before you run it.
+
 ## Quick Start — Docker Compose
 
-Create a `.env` file:
+Download `docker-compose.yml` from your OneUptime into a new folder:
+
+```bash
+mkdir oneuptime-docker-agent && cd oneuptime-docker-agent
+curl -fsSLO https://oneuptime.com/install/docker-agent/docker-compose.yml
+```
+
+Create a `.env` file next to it:
 
 ```bash
 ONEUPTIME_URL=https://oneuptime.com

@@ -300,12 +300,14 @@ Memcached에는 사용자가 없습니다. 리시버는 텍스트 프로토콜�
 
 ### 에이전트 설치 및 시작
 
+각 OneUptime은 자기 릴리스의 에이전트 설치 스크립트와 파일을 제공합니다. 아래 명령은 `https://oneuptime.com`에서 내려받으므로, 자체 호스팅 OneUptime에서는 이 주소를 사용자의 URL로 바꾸세요. 설치 스크립트는 먼저 `install.sh`로 저장되므로, 실행하기 전에 읽어 볼 수 있습니다.
+
 :::tabs
 @tab install.sh
 에이전트를 실행할 머신에서 설치 스크립트를 내려받아 실행하세요:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/database-agent -o install.sh
 bash install.sh
 ```
 
@@ -315,11 +317,11 @@ bash install.sh
 
 SQL Server의 연결 문자열이 담지 못하는 몇 가지 문자를 제외하면 비밀번호에는 어떤 문자든 쓸 수 있습니다([모니터링 사용자 만들기](#모니터링-사용자-만들기)의 SQL Server 탭 참조). Collector는 읽어 들인 값 안의 `$`를 한 번 더 확장하므로(`$$`는 `$`가 되고 `${NAME}`은 다른 변수가 됨), 스크립트는 Docker Compose용으로 값을 따옴표로 감싸는 것에 더해 `DATABASE_USERNAME`과 `DATABASE_PASSWORD`의 모든 `$`를 두 번 써 넣습니다.
 @tab Docker Compose
-[DatabaseAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)에서 `docker-compose.yml`과 엔진용 구성을 한 폴더에 내려받고, 구성은 `otel-collector-config.yaml`로 저장하세요:
+사용 중인 OneUptime에서 `docker-compose.yml`과 엔진용 구성을 한 폴더에 내려받고, 구성은 `otel-collector-config.yaml`로 저장하세요:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml
 ```
 
 그 옆에 `.env` 파일을 만드세요(`chmod 600 .env`. 비밀번호가 들어 있습니다):
@@ -458,7 +460,7 @@ OneUptime Kubernetes 에이전트가 있는 클러스터에서 실행되는 데�
 엔진용 구성은 ConfigMap에, 시크릿은 Secret에 넣으세요(비밀번호의 모든 `$`는 `$$`로 쓰세요. Collector가 확장합니다):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml
+curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o config.yaml
 kubectl -n prod create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n prod create secret generic oneuptime-database-agent \
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='YOUR_TELEMETRY_INGESTION_KEY' \
@@ -664,7 +666,7 @@ SQL Server의 `sqlserver.*.rate` 메트릭(일괄 처리 요청, 컴파일, 잠�
 ### 먼저 진단 스크립트를 실행하세요
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/database-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 

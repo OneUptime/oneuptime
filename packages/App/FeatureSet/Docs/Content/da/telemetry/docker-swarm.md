@@ -47,23 +47,25 @@ Kør den på en manager-node. Collectoren rapporterer containerne på den node, 
 :::steps
 ### Installer og start agenten
 
+Hver OneUptime leverer agentens installationsscript og filer fra sin egen udgivelse: Kommandoerne nedenfor henter dem fra `https://oneuptime.com`, så på en selvhostet OneUptime skal du erstatte den adresse med din URL. Installationsscriptet gemmes først som `install.sh`, så du kan læse det, før du kører det.
+
 :::tabs
 @tab install.sh
 Hent installationsscriptet, og kør det på en manager-node:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 Scriptet spørger efter din OneUptime-URL, indtagelsesnøglen og et navn til klyngen. Det installerer i `/opt/oneuptime-docker-swarm-agent`, skriver en `.env`-fil, som kun dens ejer kan læse, med nodens værtsnavn som `DOCKER_SWARM_NODE_NAME`, og starter alle tre containere. Tilføj `--no-ai-agent` for at udelade AI-agenten.
 @tab Docker Compose
-Hent `docker-compose.yml`, `otel-collector-config.yaml` og `inventory-snapshot.sh` fra [DockerSwarmAgent-mappen](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) ind i en ny mappe på en manager-node:
+Hent `docker-compose.yml`, `otel-collector-config.yaml` og `inventory-snapshot.sh` fra din OneUptime ind i en ny mappe på en manager-node:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ Collectoren læser kun sin konfiguration, når den starter: Kør `docker compose
 For at starte agenten sammen med noden og genstarte den, når den fejler, skal du installere dens systemd-enhed. Den antager, at agenten bor i `/opt/oneuptime-docker-swarm-agent`, hvor installationsscriptet lægger den:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ Agenten rapporterer versionen af sine filer: den collector-udgivelse, de kører,
 Kør installationsscriptet igen på manager-noden, og besvar dets spørgsmål med samme URL, nøgle og klyngenavn. Det henter de nyeste filer, henter imagene og genstarter agenten:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ Hvad den må køre, hvordan rettelser virker, og hvordan du fejlsøger den: [Inf
 ## Fejlfinding
 
 :::details Kør diagnosescriptet først
-Agenten leveres med et script, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh), der kontrollerer hele kæden: containerne, at inventar-polleren kører på en manager (`docker node ls`), snapshot-filen, klyngenavnet stemplet på alt, tokenets form, collectorens egne metrikker, og om OneUptime accepterer indtagelsesnøglen. Den sidste kontrol betyder mest. OneUptime afviser en forkert nøgle med `401` (`422` for en deaktiveret nøgle eller en browsernøgle), og collectoren logger det som én `Exporting failed`-linje pr. batch, som er let at overse. Scriptet spørger `GET <url>/otlp/v1/validate` efter et direkte `200` (gyldig) eller `401` (ugyldig). Kør det på manager-noden:
+Agenten leveres med et script, [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh), der kontrollerer hele kæden: containerne, at inventar-polleren kører på en manager (`docker node ls`), snapshot-filen, klyngenavnet stemplet på alt, tokenets form, collectorens egne metrikker, og om OneUptime accepterer indtagelsesnøglen. Den sidste kontrol betyder mest. OneUptime afviser en forkert nøgle med `401` (`422` for en deaktiveret nøgle eller en browsernøgle), og collectoren logger det som én `Exporting failed`-linje pr. batch, som er let at overse. Scriptet spørger `GET <url>/otlp/v1/validate` efter et direkte `200` (gyldig) eller `401` (ugyldig). Kør det på manager-noden:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

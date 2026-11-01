@@ -87,6 +87,56 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+/*
+ * A diagnostic command's address is longer than the card's column: it
+ * breaks after a slash of its path - "https://oneuptime.com/" "install/"
+ * "proxmox-agent/" - never mid-word ("instal" / "l/..."), and the command
+ * on screen is still the command, character for character.
+ */
+describe("ResourceConnectionGuideCard's long addresses", () => {
+  const DIAGNOSE: string =
+    "curl -fsSL https://oneuptime.com/install/proxmox-agent/troubleshoot.sh -o troubleshoot.sh && bash troubleshoot.sh";
+
+  test("break after a slash of their path, the command unchanged", () => {
+    render(
+      <ResourceConnectionGuideCard
+        status="disconnected"
+        lastSeenAt={NOW}
+        guide={{
+          ...GUIDE,
+          troubleshootingSteps: [
+            {
+              title: "Run the diagnostic script",
+              description: "It checks the whole chain.",
+              code: DIAGNOSE,
+            },
+          ],
+        }}
+        documentationRoute={DOCS}
+      />,
+    );
+
+    const code: HTMLElement = screen.getByText(DIAGNOSE);
+    expect(code.tagName).toBe("CODE");
+    expect(code.textContent).toBe(DIAGNOSE);
+    expect(code.querySelectorAll("wbr")).toHaveLength(3);
+    expect(
+      Array.from(code.childNodes)
+        .filter((node: ChildNode): boolean => {
+          return node.nodeType === Node.TEXT_NODE;
+        })
+        .map((node: ChildNode): string => {
+          return node.textContent || "";
+        }),
+    ).toEqual([
+      "curl -fsSL https://oneuptime.com/",
+      "install/",
+      "proxmox-agent/",
+      "troubleshoot.sh -o troubleshoot.sh && bash troubleshoot.sh",
+    ]);
+  });
+});
+
 describe("ResourceConnectionGuideCard while connected", () => {
   test.each([
     ["connected", NOW],

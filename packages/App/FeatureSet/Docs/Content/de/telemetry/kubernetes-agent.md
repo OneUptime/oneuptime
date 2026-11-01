@@ -998,9 +998,11 @@ Die Telemetrienutzung wird pro Tag gezählt; prüfen Sie den Verlauf daher über
 Beginnen Sie mit dem Diagnoseskript. Es prüft den Zustand der Pods, dekodiert und validiert den Ingestion-Schlüssel, prüft, ob der Cluster OneUptime erreicht, und fragt OneUptime, ob es Ihren Schlüssel akzeptiert, und gibt dann ein Urteil mit der wahrscheinlichsten Ursache aus:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Jede OneUptime-Instanz stellt dieses Skript für ihr eigenes Release bereit: Verwenden Sie bei einer selbst gehosteten Instanz Ihre URL statt `https://oneuptime.com`. Um das Skript vor dem Ausführen zu lesen, öffnen Sie seine Adresse in einem Browser.
 
 Es liest nur den Zustand des Clusters und führt ein paar Prüfungen aus; es ändert nichts. Für den genauesten Egress-Test installieren Sie zuerst mit `--set debug.enabled=true`: Das fügt den Pods des Agents einen kleinen Sidecar mit Netzwerkwerkzeugen hinzu, sodass das Skript den Weg des Collectors selbst nach außen testet.
 

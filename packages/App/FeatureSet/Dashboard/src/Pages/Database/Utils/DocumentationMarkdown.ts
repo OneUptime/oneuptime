@@ -6,6 +6,12 @@ import {
   DatabaseAgentEngine,
 } from "./DatabaseAgentConfigs";
 import {
+  getAgentFileDownloadToCommand,
+  getInstallScriptDownloadCommand,
+  getTroubleshootScriptDownloadCommand,
+} from "../../../Components/SetupGuide/AgentInstallCommands";
+import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
   SETUP_GUIDE_URL_PLACEHOLDER,
   SetupGuideContent,
@@ -66,10 +72,27 @@ import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
  * Pure: plain strings in, markdown out. No React, no API.
  */
 
-export const DATABASE_AGENT_DIRECTORY_URL: string =
-  "https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent";
-export const DATABASE_AGENT_RAW_URL: string =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent";
+/*
+ * Where every OneUptime serves the agent's install script and files, for
+ * its own release (Common/Types/InstallScripts): /install/database-agent on
+ * the reader's OneUptime, configs/<engine>.yaml among them.
+ */
+export const DATABASE_AGENT_INSTALL_NAME: InstallScriptName =
+  InstallScriptName.DatabaseAgent;
+
+// One engine's collector config, downloaded to `destination`.
+function getEngineConfigDownloadCommand(data: {
+  oneuptimeUrl: string;
+  engine: DatabaseAgentEngine;
+  destination: string;
+}): string {
+  return getAgentFileDownloadToCommand(
+    data.oneuptimeUrl,
+    DATABASE_AGENT_INSTALL_NAME,
+    `configs/${data.engine}.yaml`,
+    data.destination,
+  );
+}
 
 // Where install.sh installs, and where troubleshoot.sh looks by default.
 export const DATABASE_AGENT_INSTALL_DIRECTORY: string =
@@ -940,7 +963,7 @@ function kubernetesDeploymentMarkdown(data: {
 
 ${codeBlock(
   "bash",
-  `curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/${data.engine}.yaml -o config.yaml
+  `${getEngineConfigDownloadCommand({ oneuptimeUrl: data.oneuptimeUrl, engine: data.engine, destination: "config.yaml" })}
 kubectl -n ${namespace} create configmap oneuptime-database-agent --from-file=config.yaml=config.yaml
 kubectl -n ${namespace} create secret generic oneuptime-database-agent \\
   --from-literal=ONEUPTIME_TELEMETRY_INGESTION_KEY='${data.apiKey}' \\
@@ -1174,8 +1197,12 @@ function installScriptWords(data: {
   });
 }
 
-function installScriptCommand(words: Array<string>): string {
-  return `curl -sSL ${DATABASE_AGENT_RAW_URL}/install.sh -o install.sh
+// install.sh, downloaded from the reader's OneUptime and run with `words` in its environment.
+function installScriptCommand(
+  oneuptimeUrl: string,
+  words: Array<string>,
+): string {
+  return `${getInstallScriptDownloadCommand(oneuptimeUrl, DATABASE_AGENT_INSTALL_NAME)}
 ${[...words, "bash install.sh"].join(" ")}`;
 }
 
@@ -1187,8 +1214,8 @@ ${[...words, "bash install.sh"].join(" ")}`;
  * outdated agent version (Components/AgentVersion) both show this command,
  * so the two never drift.
  */
-export function getDatabaseAgentUpgradeCommand(): string {
-  return installScriptCommand([]);
+export function getDatabaseAgentUpgradeCommand(oneuptimeUrl: string): string {
+  return installScriptCommand(oneuptimeUrl, []);
 }
 
 /*
@@ -1197,10 +1224,11 @@ export function getDatabaseAgentUpgradeCommand(): string {
  * agent installed that way.
  */
 export function getDatabaseAgentDownloadCommand(
+  oneuptimeUrl: string,
   engine: DatabaseAgentEngine,
 ): string {
-  return `curl -fsSL ${DATABASE_AGENT_RAW_URL}/docker-compose.yml -o docker-compose.yml
-curl -fsSL ${DATABASE_AGENT_RAW_URL}/configs/${engine}.yaml -o otel-collector-config.yaml`;
+  return `${getAgentFileDownloadToCommand(oneuptimeUrl, DATABASE_AGENT_INSTALL_NAME, "docker-compose.yml", "docker-compose.yml")}
+${getEngineConfigDownloadCommand({ oneuptimeUrl: oneuptimeUrl, engine: engine, destination: "otel-collector-config.yaml" })}`;
 }
 
 /*
@@ -1312,6 +1340,7 @@ ${getMonitoringUserMarkdown(data.engine, "document")}
 ${codeBlock(
   "bash",
   installScriptCommand(
+    data.oneuptimeUrl,
     installScriptWords({
       system: system,
       identity: identity,
@@ -1324,7 +1353,11 @@ The script asks for anything not given up front (your OneUptime URL and ingestio
 
 ## Quick Start — Docker Compose
 
-Download \`docker-compose.yml\` and \`configs/${data.engine}.yaml\` (saved as \`otel-collector-config.yaml\`) from the [DatabaseAgent directory](${DATABASE_AGENT_DIRECTORY_URL}) into one folder, then create a \`.env\` file next to them (\`chmod 600 .env\` — it holds a password):
+Download \`docker-compose.yml\` and \`configs/${data.engine}.yaml\` (saved as \`otel-collector-config.yaml\`) from this OneUptime into one folder:
+
+${codeBlock("bash", getDatabaseAgentDownloadCommand(data.oneuptimeUrl, data.engine))}
+
+Then create a \`.env\` file next to them (\`chmod 600 .env\` — it holds a password):
 
 ${codeBlock(
   "bash",
@@ -1361,7 +1394,7 @@ After the first collection (about one \`DATABASE_COLLECTION_INTERVAL\`) the data
 
 ${codeBlock(
   "bash",
-  `curl -sSL ${DATABASE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+  `${getTroubleshootScriptDownloadCommand(data.oneuptimeUrl, DATABASE_AGENT_INSTALL_NAME)}
 bash troubleshoot.sh`,
 )}
 ${
@@ -1410,8 +1443,10 @@ export interface DatabaseAgentSetupGuideOptions {
 
 const PICK_KEY_NOTE: string = `Pick an ingestion key in step 1 to fill in \`${SETUP_GUIDE_API_KEY_PLACEHOLDER}\`.`;
 
-const TROUBLESHOOT_COMMAND: string = `curl -sSL ${DATABASE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+function getTroubleshootCommand(oneuptimeUrl: string): string {
+  return `${getTroubleshootScriptDownloadCommand(oneuptimeUrl, DATABASE_AGENT_INSTALL_NAME)}
 bash troubleshoot.sh    # add -d <dir> if you installed outside ${DATABASE_AGENT_INSTALL_DIRECTORY}`;
+}
 
 function joinWithAnd(parts: Array<string>): string {
   if (parts.length <= 1) {
@@ -1534,6 +1569,7 @@ function getInstallScriptVariant(data: {
   }
 
   const notes: Array<string> = [
+    "The first line downloads the script as `install.sh`, so you can read it before you run it.",
     `The script asks for ${joinWithAnd(asked)}${
       hasLogin(data.engine) ? " (the password is read without echo)" : ""
     }, then installs to \`${DATABASE_AGENT_INSTALL_DIRECTORY}\`, writes a \`0600\` \`.env\` file and starts the agent.`,
@@ -1548,7 +1584,7 @@ function getInstallScriptVariant(data: {
   return {
     label: "Install script",
     markdown: [
-      codeBlock("bash", installScriptCommand(words)),
+      codeBlock("bash", installScriptCommand(data.oneuptimeUrl, words)),
       notes.join(" "),
     ].join("\n\n"),
   };
@@ -1573,8 +1609,11 @@ function getDockerComposeVariant(data: {
   return {
     label: "Docker Compose",
     markdown: [
-      `Download \`docker-compose.yml\` and \`configs/${data.engine}.yaml\` (saved as \`otel-collector-config.yaml\`) from the [DatabaseAgent directory](${DATABASE_AGENT_DIRECTORY_URL}) into one folder:`,
-      codeBlock("bash", getDatabaseAgentDownloadCommand(data.engine)),
+      `Download \`docker-compose.yml\` and \`configs/${data.engine}.yaml\` (saved as \`otel-collector-config.yaml\`) from this OneUptime into one folder:`,
+      codeBlock(
+        "bash",
+        getDatabaseAgentDownloadCommand(data.oneuptimeUrl, data.engine),
+      ),
       `Create a \`.env\` file next to them (\`chmod 600 .env\` — it holds ${
         hasLogin(data.engine) ? "a password" : "your ingestion key"
       }):`,
@@ -1612,6 +1651,7 @@ function getKubernetesVariant(data: {
 }
 
 function getAgentVerifyStep(data: {
+  oneuptimeUrl: string;
   database: DatabaseDocumentationTarget | null;
   namespace: string | null;
   engine: DatabaseAgentEngine;
@@ -1623,7 +1663,7 @@ function getAgentVerifyStep(data: {
   const parts: Array<string> = [
     arrival,
     "If nothing arrives, run the diagnostic script where the agent runs. It checks the container, the identity in `.env`, the connection to the database, the collector's log and the ingestion key, and names the most likely problem:",
-    codeBlock("bash", TROUBLESHOOT_COMMAND),
+    codeBlock("bash", getTroubleshootCommand(data.oneuptimeUrl)),
   ];
 
   if (data.namespace !== null) {
@@ -1727,6 +1767,7 @@ function getAgentFilesTopic(
 }
 
 function getUpgradeTopic(data: {
+  oneuptimeUrl: string;
   engine: DatabaseAgentEngine;
   system: string;
   connection: Array<string>;
@@ -1744,7 +1785,7 @@ function getUpgradeTopic(data: {
       "Move to the current config and keep your settings, monitor a second server, or remove the agent.",
     markdown: [
       `**Upgrade** by running the current install script again. It reuses your \`.env\`, replaces \`docker-compose.yml\` and \`otel-collector-config.yaml\` with the current versions and recreates the container; a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\`.`,
-      codeBlock("bash", getDatabaseAgentUpgradeCommand()),
+      codeBlock("bash", getDatabaseAgentUpgradeCommand(data.oneuptimeUrl)),
       `After editing \`.env\` or \`otel-collector-config.yaml\` yourself, apply the change with \`${DATABASE_AGENT_RECREATE_COMMAND}\` in the agent's folder: the collector reads its config only when it starts, and a plain \`docker compose up -d\` keeps the running container when only the config file changed.`,
       "**Monitor a second database server** with a second agent in a directory of its own — one agent monitors one server:",
       codeBlock("bash", secondAgent),
@@ -1763,6 +1804,7 @@ function getUpgradeTopic(data: {
 }
 
 function getAgentAdvancedTopics(data: {
+  oneuptimeUrl: string;
   engine: DatabaseAgentEngine;
   system: string;
   identity: DatabaseAgentIdentity;
@@ -1814,6 +1856,7 @@ function getAgentAdvancedTopics(data: {
     },
     getAgentFilesTopic(data.engine, data.system),
     getUpgradeTopic({
+      oneuptimeUrl: data.oneuptimeUrl,
       engine: data.engine,
       system: data.system,
       connection: data.connection,
@@ -2136,6 +2179,7 @@ export function getDatabaseAgentSetupGuide(
       variants: variants,
     },
     getAgentVerifyStep({
+      oneuptimeUrl: options.oneuptimeUrl,
       database: database,
       namespace: namespace,
       engine: engine,
@@ -2143,6 +2187,7 @@ export function getDatabaseAgentSetupGuide(
   );
 
   const advanced: Array<SetupGuideTopic> = getAgentAdvancedTopics({
+    oneuptimeUrl: options.oneuptimeUrl,
     engine: engine,
     system: system,
     identity: identity,

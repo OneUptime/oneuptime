@@ -147,6 +147,11 @@ services:
       # App simply runs as the Community Edition.
       - ./ee:/usr/src/ee:cached
       - /usr/src/ee/node_modules/
+      # The agents' install scripts and their files, which /install/<agent>
+      # serves (packages/App/FeatureSet/Install), where the production image
+      # copies them (packages/App/Dockerfile.tpl): read-only, as there.
+      - ./agents:/usr/src/agents:ro
+      - ./HelmChart/Public/kubernetes-agent/troubleshoot.sh:/usr/src/HelmChart/Public/kubernetes-agent/troubleshoot.sh:ro
     extends:
       file: ./docker-compose.base.yml
       service: app

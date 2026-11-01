@@ -4,10 +4,10 @@ import path from "path";
 import yaml from "js-yaml";
 import {
   DEFAULT_DOCKER_SWARM_INSTALL_METHOD,
-  DOCKER_SWARM_AGENT_DIRECTORY_URL,
+  DOCKER_SWARM_AGENT_DEFAULT_URL,
   DOCKER_SWARM_AGENT_FILES,
   DOCKER_SWARM_AGENT_INSTALL_DIR,
-  DOCKER_SWARM_AGENT_RAW_BASE_URL,
+  DOCKER_SWARM_AGENT_INSTALL_NAME,
   DOCKER_SWARM_AI_AGENT_CONTAINER_NAME,
   DOCKER_SWARM_COLLECTOR_CONTAINER_NAME,
   DOCKER_SWARM_DEFAULT_API_VERSION,
@@ -18,6 +18,7 @@ import {
   DOCKER_SWARM_INVENTORY_CONTAINER_NAME,
   DockerSwarmInstallMethod,
   getDockerSwarmAgentFileUrl,
+  getDockerSwarmAgentInstallScriptCommand,
   getDockerSwarmEnvFile,
   DOCKER_SWARM_NODE_NAME_COMMAND,
   getDockerSwarmSetupGuide,
@@ -25,14 +26,18 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/Utils/DocumentationMarkdown";
 import {
   SETUP_GUIDE_API_KEY_PLACEHOLDER,
+  SETUP_GUIDE_URL_PLACEHOLDER,
   SetupGuideContent,
   SetupGuideOption,
   SetupGuideStep,
   SetupGuideTopic,
+  codeBlock,
   getSetupGuideCodeBlocks,
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import DOCKER_SWARM_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/DockerSwarm/DockerSwarmClusterShowcase";
+import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
+import { getInstallScriptEntry } from "../../../Types/InstallScripts/InstallScripts";
 
 /*
  * The Docker Swarm agent guide asks how the agent is installed — the
@@ -40,8 +45,10 @@ import DOCKER_SWARM_CLUSTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/
  * only that way's steps. These tests pin, for both ways:
  *
  *   - that the agent runs on a manager node, said before anything else;
- *   - that the install script, which always prompts, is never handed the
- *     URL or key on its command line — and that the Compose .env is;
+ *   - that the install script, which always prompts, is handed only the
+ *     reader's URL, as the answer Enter takes, never the key — and that the
+ *     Compose .env is; and that the script and its files come from the
+ *     reader's own OneUptime, never GitHub;
  *   - what the (skipped, but kept truthful) E2E spec reads off the page;
  *   - that every file, URL, container name and variable the guide uses is
  *     the one agents/DockerSwarmAgent really ships.
@@ -60,6 +67,13 @@ const E2E_SPEC: string = path.join(
 
 const URL: string = "https://oneuptime.example.com";
 const KEY: string = "tik_secret_123";
+
+// A line of a .env file that sets the URL (not a command that passes it on).
+const ENV_LINE_PATTERN: RegExp = /^ONEUPTIME_URL=\S+$/m;
+
+// An address of this OneUptime's Swarm agent files: the script, or one file.
+const SERVED_FILE_PATTERN: RegExp =
+  /https:\/\/oneuptime\.example\.com\/install\/docker-swarm-agent(?:\/([A-Za-z0-9._/-]+))?/g;
 // Ingestion keys are UUIDs; the E2E spec matches the key by that shape.
 const UUID_KEY: string = "0f8fad5b-d9cb-469f-a165-70867728950e";
 
@@ -161,7 +175,13 @@ const envNamesOf: (service: ComposeService) => Array<string> = (
   );
 };
 
-const INSTALL_COMMAND: string = `curl -sSL ${DOCKER_SWARM_AGENT_RAW_BASE_URL}/install.sh -o install.sh\nsh install.sh`;
+/*
+ * The script and its files come from the reader's own OneUptime, which
+ * serves them for its release; the URL in the script's environment is the
+ * answer Enter takes at its URL question.
+ */
+const SERVED: string = `${URL}/install/docker-swarm-agent`;
+const INSTALL_COMMAND: string = `curl -fsSL ${SERVED} -o install.sh\nONEUPTIME_URL=${URL} sh install.sh`;
 
 describe("the install method picker", () => {
   test("offers the install script first, then Docker Compose", () => {
@@ -261,10 +281,13 @@ describe.each(METHODS)("the %s guide", (method: DockerSwarmInstallMethod) => {
   test("shows only this method's commands", () => {
     if (isScript) {
       expect(markdown).toContain(INSTALL_COMMAND);
-      expect(markdown).not.toContain("ONEUPTIME_URL=");
+      // No .env to write: the script asks (Enter takes the URL the command sets).
+      expect(markdown).not.toMatch(ENV_LINE_PATTERN);
       expect(markdown).not.toContain("ONEUPTIME_SERVICE_TOKEN=");
       expect(markdown).not.toContain("DOCKER_SWARM_CLUSTER_NAME=");
-      expect(markdown).not.toContain("curl -fsSL");
+      // No agent file downloaded by hand: the script downloads them.
+      expect(markdown).not.toContain("-o docker-compose.yml");
+      expect(markdown).not.toContain("-o otel-collector-config.yaml");
       expect(markdown).not.toContain("# In the agent's folder");
       expect(markdown).not.toContain("delete the `");
     } else {
@@ -401,19 +424,22 @@ describe.each(METHODS)("the %s guide", (method: DockerSwarmInstallMethod) => {
     }
   });
 
-  test("every agent file the guide downloads or links to exists in the repository", () => {
-    const rawUrls: Array<string> = Array.from(
-      markdown.matchAll(
-        /https:\/\/raw\.githubusercontent\.com\/OneUptime\/oneuptime\/master\/(\S+?)(?=\s|$|\)|`)/gm,
-      ),
+  test("every agent file the guide downloads is one this OneUptime serves, and exists in the repository", () => {
+    expect(markdown).not.toContain("githubusercontent");
+    const served: Array<string> = Array.from(
+      markdown.matchAll(SERVED_FILE_PATTERN),
     ).map((match: RegExpMatchArray): string => {
-      return match[1]!;
+      // The address alone is the install script.
+      return match[1] || "install.sh";
     });
-    expect(rawUrls.length).toBeGreaterThan(0);
-    for (const file of rawUrls) {
+    expect(served.length).toBeGreaterThan(0);
+    for (const file of served) {
+      expect(
+        getInstallScriptEntry(DOCKER_SWARM_AGENT_INSTALL_NAME)?.files,
+      ).toContain(file);
       expect({
         file: file,
-        exists: fs.existsSync(path.join(REPO_ROOT, file)),
+        exists: fs.existsSync(path.join(AGENT_DIR, file)),
       }).toEqual({ file: file, exists: true });
     }
 
@@ -509,7 +535,7 @@ describe.each(METHODS)("the %s guide", (method: DockerSwarmInstallMethod) => {
       "Cluster never appears",
     ).markdown;
     expect(topic).toContain(
-      `curl -sSL ${DOCKER_SWARM_AGENT_RAW_BASE_URL}/troubleshoot.sh -o troubleshoot.sh`,
+      `curl -fsSL ${SERVED}/troubleshoot.sh -o troubleshoot.sh`,
     );
     if (isScript) {
       expect(topic).toContain("bash troubleshoot.sh\n```");
@@ -558,7 +584,7 @@ describe.each(METHODS)("the %s guide", (method: DockerSwarmInstallMethod) => {
 describe("the install script", () => {
   const install: SetupGuideStep = guideFor("install-script").steps[0]!;
 
-  test("is the plain download-and-run command, even with a key picked", () => {
+  test("is the download-and-run command, with the reader's URL as the answer Enter takes, even with a key picked", () => {
     expect(install.markdown).toContain(
       `\`\`\`bash\n${INSTALL_COMMAND}\n\`\`\``,
     );
@@ -566,23 +592,71 @@ describe("the install script", () => {
       const markdown: string = getSetupGuideMarkdown(
         guideFor("install-script", { apiKey: apiKey }),
       );
-      // The script always prompts, so nothing is pre-filled for it...
+      // The script always prompts for the key and the cluster name...
       expect(markdown).not.toMatch(
-        /(ONEUPTIME_URL|ONEUPTIME_SERVICE_TOKEN|DOCKER_SWARM_CLUSTER_NAME)=\S* +(ba)?sh install\.sh/,
+        /(ONEUPTIME_SERVICE_TOKEN|DOCKER_SWARM_CLUSTER_NAME)=\S* +(ba)?sh install\.sh/,
       );
       // ...and neither the key nor the placeholder is on the page at all.
       expect(markdown).not.toContain(apiKey);
     }
   });
 
+  test("the script and the URL it offers are the reader's own OneUptime: Cloud, a custom domain, a path, plain HTTP", () => {
+    for (const oneuptimeUrl of [
+      "https://oneuptime.com",
+      "https://oneuptime.acme.internal:8443",
+      "http://10.0.0.5",
+      "https://tools.acme.com/oneuptime/",
+    ]) {
+      const base: string = oneuptimeUrl.replace(/\/+$/, "");
+      // The question's own answer is OneUptime Cloud: only another is named.
+      const run: string =
+        oneuptimeUrl === DOCKER_SWARM_AGENT_DEFAULT_URL
+          ? "sh install.sh"
+          : `ONEUPTIME_URL=${oneuptimeUrl} sh install.sh`;
+
+      expect(getDockerSwarmAgentInstallScriptCommand(oneuptimeUrl)).toBe(
+        `curl -fsSL ${base}/install/docker-swarm-agent -o install.sh\n${run}`,
+      );
+    }
+    // A OneUptime that does not know its own host leaves the URL to the question.
+    expect(
+      getDockerSwarmAgentInstallScriptCommand(SETUP_GUIDE_URL_PLACEHOLDER),
+    ).toBe(
+      `curl -fsSL '${SETUP_GUIDE_URL_PLACEHOLDER}/install/docker-swarm-agent' -o install.sh\nsh install.sh`,
+    );
+  });
+
+  /*
+   * The note is about the command's first line, so it sits right under the
+   * command - the step's markdown is the command alone - and what to answer
+   * comes after it, as the step's details.
+   */
+  test("says the script can be read before it runs, right under the command", () => {
+    expect(install.note).toBe(INSTALL_SCRIPT_READ_FIRST_NOTE);
+    expect(install.markdown).toBe(codeBlock("bash", INSTALL_COMMAND));
+    expect(install.details).toBeTruthy();
+    expect(install.details).not.toContain("```");
+    expect(getSetupGuideMarkdown(guideFor("install-script"))).toContain(
+      `${install.markdown}\n\n${INSTALL_SCRIPT_READ_FIRST_NOTE}\n\n${install.details!.trim()}`,
+    );
+    expect(
+      guideFor("docker-compose").steps.map(
+        (step: SetupGuideStep): string | undefined => {
+          return step.note;
+        },
+      ),
+    ).not.toContain(INSTALL_SCRIPT_READ_FIRST_NOTE);
+  });
+
   test("says it asks for the URL and the key shown in step 1", () => {
     expect(install.description).toContain(
       "It asks for your OneUptime URL, the ingestion key and a cluster name",
     );
-    expect(install.markdown).toContain(
+    expect(install.details).toContain(
       "When it asks, enter the OneUptime URL and the ingestion key shown in step 1",
     );
-    expect(install.markdown).toContain(
+    expect(install.details).toContain(
       `puts the agent in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\``,
     );
   });
@@ -590,11 +664,11 @@ describe("the install script", () => {
   test("names the cluster a known cluster's tab installs for", () => {
     const known: string =
       guideFor("install-script", { clusterName: "prod-swarm-eu" }).steps[0]!
-        .markdown || "";
+        .details || "";
     expect(known).toContain(
       "and **`prod-swarm-eu`** as the cluster name — exactly",
     );
-    expect(install.markdown).toContain(
+    expect(install.details).toContain(
       "a name for the cluster, such as `prod-swarm`",
     );
   });
@@ -680,7 +754,7 @@ describe("the Docker Compose .env", () => {
     );
     expect(download).toEqual([
       ...DOCKER_SWARM_AGENT_FILES.map((fileName: string): string => {
-        return `curl -fsSL ${getDockerSwarmAgentFileUrl(fileName)} -o ${fileName}`;
+        return `curl -fsSL ${getDockerSwarmAgentFileUrl(URL, fileName)} -o ${fileName}`;
       }),
       "chmod +x inventory-snapshot.sh",
     ]);
@@ -806,15 +880,19 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
     guideFor("docker-compose"),
   );
 
-  test("the installer downloads from the guide's base URL into the guide's folder", () => {
+  test("the installer downloads from where the guide does into the guide's folder", () => {
+    // The OneUptime the agent reports to: the guide's URL.
     expect(installScript).toContain(
-      `RAW_BASE="${DOCKER_SWARM_AGENT_RAW_BASE_URL}"`,
+      `AGENT_FILES_PATH="install/${DOCKER_SWARM_AGENT_INSTALL_NAME}"`,
+    );
+    expect(getDockerSwarmAgentFileUrl(URL, "docker-compose.yml")).toBe(
+      `${SERVED}/docker-compose.yml`,
     );
     expect(installScript).toContain(
       `INSTALL_DIR="\${INSTALL_DIR:-${DOCKER_SWARM_AGENT_INSTALL_DIR}}"`,
     );
     const downloaded: Array<string> = Array.from(
-      installScript.matchAll(/curl -fsSL "\$\{RAW_BASE\}\/([^"]+)" -o (\S+)/g),
+      installScript.matchAll(/^fetch_agent_file (\S+) (\S+)$/gm),
     ).map((match: RegExpMatchArray): string => {
       expect(match[2]).toBe(match[1]);
       return match[1]!;
@@ -827,19 +905,18 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
     ]) {
       expect(fs.existsSync(path.join(AGENT_DIR, file))).toBe(true);
     }
-    expect(DOCKER_SWARM_AGENT_DIRECTORY_URL).toBe(
-      "https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent",
-    );
   });
 
-  test("the installer always prompts, which is why nothing is pre-filled for it", () => {
+  test("the installer always prompts, which is why only the URL is pre-filled for it, as the answer Enter takes", () => {
     /*
      * The prompts are unconditional: no `if [ -z "$ONEUPTIME_URL" ]` guard
-     * skips them, so a value set before running the script is overwritten.
+     * skips them. A URL set before running the script is what Enter takes
+     * at the question; without one, Enter takes OneUptime Cloud.
      */
     expect(installScript).toContain(
-      'printf "OneUptime URL [https://oneuptime.com]: "\nread -r ONEUPTIME_URL\n',
+      `ONEUPTIME_URL_DEFAULT="\${ONEUPTIME_URL:-${DOCKER_SWARM_AGENT_DEFAULT_URL}}"\nprintf "OneUptime URL [%s]: " "\${ONEUPTIME_URL_DEFAULT}"\nread -r ONEUPTIME_URL\nONEUPTIME_URL="\${ONEUPTIME_URL:-\${ONEUPTIME_URL_DEFAULT}}"\n`,
     );
+    expect(DOCKER_SWARM_AGENT_DEFAULT_URL).toBe("https://oneuptime.com");
     expect(installScript).toContain(
       'printf "OneUptime Telemetry Ingestion Key: "\nread -r ONEUPTIME_SERVICE_TOKEN\n',
     );
@@ -849,6 +926,16 @@ describe("the guide matches agents/DockerSwarmAgent", () => {
     expect(installScript).toContain(
       `DOCKER_SWARM_CLUSTER_NAME="\${DOCKER_SWARM_CLUSTER_NAME:-${DOCKER_SWARM_EXAMPLE_CLUSTER_NAME}}"`,
     );
+  });
+
+  test("on OneUptime Cloud the command names no URL: Enter already takes it", () => {
+    expect(
+      getDockerSwarmAgentInstallScriptCommand(DOCKER_SWARM_AGENT_DEFAULT_URL),
+    ).toBe(
+      "curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh\nsh install.sh",
+    );
+    // Any other OneUptime is named, so Enter takes it instead.
+    expect(getDockerSwarmAgentInstallScriptCommand(URL)).toBe(INSTALL_COMMAND);
   });
 
   test("the installer has the --no-ai-agent switch the guide mentions", () => {

@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 Run the chart's diagnostic script. It checks the pods, the ingestion key and the way out of the cluster, asks OneUptime whether the key is accepted, and prints one verdict. It only reads, and changes nothing:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Every OneUptime serves this script for its own release: on a self-hosted OneUptime, use your URL instead of `https://oneuptime.com`. To read the script before you run it, open its address in a browser.
 
 The usual cause, especially after a reinstall, is a wrong or revoked ingestion key: OneUptime refuses it, and the collector drops every batch while its pods stay `Running`.
 :::

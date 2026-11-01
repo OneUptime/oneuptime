@@ -67,6 +67,8 @@ jest.mock("../Utils/Config", () => {
   const homeFolder: string = nodePath.join(__dirname, "..");
 
   return {
+    // The addresses it names (InfrastructureAgentInstallScriptPath) as they are.
+    ...jest.requireActual("../Utils/Config"),
     __esModule: true,
     ViewsPath: nodePath.join(homeFolder, "Views"),
     StaticPath: nodePath.join(homeFolder, "Static"),
@@ -686,15 +688,15 @@ describe("the route table over HTTP", () => {
       );
     });
 
-    test("the infrastructure agent installer stays a temporary redirect to GitHub", async () => {
+    test("the infrastructure agent installer stays a temporary redirect, to the copy this host serves with its docs", async () => {
       const answer: Answer = await home.request(
         "GET",
         "/infrastructure-agent/install.sh",
       );
 
       expect(answer.status).toBe(302);
-      expect(answer.location).toMatch(
-        /^https:\/\/raw\.githubusercontent\.com\/OneUptime\/oneuptime\/release\//,
+      expect(answer.location).toBe(
+        "/docs/static/scripts/infrastructure-agent/install.sh",
       );
     });
   });

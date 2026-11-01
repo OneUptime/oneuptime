@@ -998,9 +998,11 @@ Telemetriegebruik wordt per dag geteld, dus bekijk de trend onder **Projectinste
 Begin met het diagnosescript. Het controleert de gezondheid van de pods, decodeert en valideert de ingestiesleutel, controleert of het cluster OneUptime kan bereiken en vraagt OneUptime of het je sleutel accepteert, en drukt daarna één oordeel af met de meest waarschijnlijke oorzaak:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Elke OneUptime serveert dit script voor zijn eigen release: gebruik bij een zelf gehoste OneUptime je URL in plaats van `https://oneuptime.com`. Open het adres van het script in een browser om het te lezen voordat je het uitvoert.
 
 Het leest alleen de status van het cluster en voert een paar probes uit; het wijzigt niets. Voor de nauwkeurigste egresstest installeer je eerst met `--set debug.enabled=true`: dat voegt een kleine sidecar met netwerktools toe aan de pods van de agent, zodat het script de eigen uitgaande route van de collector test.
 

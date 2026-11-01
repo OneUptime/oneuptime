@@ -15,7 +15,6 @@
 set -eu
 
 INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-docker-swarm-agent}"
-RAW_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent"
 AI_AGENT_SERVICE="oneuptime-docker-swarm-ai-agent"
 # The first line of the compose override --no-ai-agent writes.
 AI_AGENT_OVERRIDE_MARKER="# Written by the OneUptime Docker Swarm Agent installer (--no-ai-agent)."
@@ -95,9 +94,13 @@ if [ "${AI_AGENT_NOT_ON_MANAGER}" = "true" ]; then
 fi
 echo ""
 
-printf "OneUptime URL [https://oneuptime.com]: "
+# Enter takes the OneUptime URL in the environment, which the install
+# command OneUptime shows sets to the reader's own OneUptime (the address
+# this script and the agent's files come from), or else OneUptime Cloud's.
+ONEUPTIME_URL_DEFAULT="${ONEUPTIME_URL:-https://oneuptime.com}"
+printf "OneUptime URL [%s]: " "${ONEUPTIME_URL_DEFAULT}"
 read -r ONEUPTIME_URL
-ONEUPTIME_URL="${ONEUPTIME_URL:-https://oneuptime.com}"
+ONEUPTIME_URL="${ONEUPTIME_URL:-${ONEUPTIME_URL_DEFAULT}}"
 
 printf "OneUptime Telemetry Ingestion Key: "
 read -r ONEUPTIME_SERVICE_TOKEN
@@ -122,13 +125,67 @@ if [ -z "${DOCKER_SWARM_NODE_NAME:-}" ]; then
 fi
 DOCKER_SWARM_NODE_NAME="$(printf '%s' "${DOCKER_SWARM_NODE_NAME}" | tr -cd 'A-Za-z0-9._-')"
 
+# ----------------------------------------------------------------------------
+# Where the agent's files come from
+# ----------------------------------------------------------------------------
+# The OneUptime this agent reports to serves the files of its own release,
+# and this script, at <ONEUPTIME_URL>/install/<agent>, so the agent always
+# matches its OneUptime. A OneUptime older than that answers with a 404 or a
+# page of its own instead: the files then come from GitHub, as this script
+# downloaded them before. Any other answer (none at all, a server error)
+# stops the install, and every file must arrive as plain text, wherever it
+# comes from. Every agent's install.sh has this same block.
+AGENT_FILES_PATH="install/docker-swarm-agent"
+AGENT_FILES_ON_GITHUB="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent"
+AGENT_FILES_URL=""
+AGENT_FILE_ANSWER=""
+
+# download_agent_text <url> <destination>: true when the URL answers 200 with
+# plain text; AGENT_FILE_ANSWER holds its status and content type either way.
+download_agent_text() {
+    AGENT_FILE_ANSWER="$(curl -sSL -o "$2" -w '%{http_code} %{content_type}' "$1")" || AGENT_FILE_ANSWER="000"
+    case "$AGENT_FILE_ANSWER" in
+        "200 text/plain"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# fetch_agent_file <file> <destination>: one of the agent's files, from
+# where the first one came from.
+fetch_agent_file() {
+    if [ -z "$AGENT_FILES_URL" ]; then
+        AGENT_FILES_URL="${ONEUPTIME_URL%/}/$AGENT_FILES_PATH"
+        if download_agent_text "$AGENT_FILES_URL/$1" "$2"; then
+            return 0
+        fi
+        case "$AGENT_FILE_ANSWER" in
+            "404 "* | "200 "*)
+                echo "$ONEUPTIME_URL does not serve the agent's files: it runs a OneUptime older"
+                echo "than this installer. Downloading them from GitHub instead."
+                AGENT_FILES_URL="$AGENT_FILES_ON_GITHUB"
+                if download_agent_text "$AGENT_FILES_URL/$1" "$2"; then
+                    return 0
+                fi
+                ;;
+        esac
+    elif download_agent_text "$AGENT_FILES_URL/$1" "$2"; then
+        return 0
+    fi
+    rm -f "$2"
+    case "$AGENT_FILE_ANSWER" in
+        000*) echo "Error: could not reach $AGENT_FILES_URL/$1" ;;
+        *) echo "Error: $AGENT_FILES_URL/$1 answered ${AGENT_FILE_ANSWER%% *}, not the file" ;;
+    esac
+    exit 1
+}
+
 mkdir -p "${INSTALL_DIR}"
 cd "${INSTALL_DIR}"
 
 echo "Downloading agent files into ${INSTALL_DIR}..."
-curl -fsSL "${RAW_BASE}/docker-compose.yml" -o docker-compose.yml
-curl -fsSL "${RAW_BASE}/otel-collector-config.yaml" -o otel-collector-config.yaml
-curl -fsSL "${RAW_BASE}/inventory-snapshot.sh" -o inventory-snapshot.sh
+fetch_agent_file docker-compose.yml docker-compose.yml
+fetch_agent_file otel-collector-config.yaml otel-collector-config.yaml
+fetch_agent_file inventory-snapshot.sh inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 
 # The .env holds the ingestion key: readable by its owner only.

@@ -9,6 +9,13 @@ import {
   resolveSetupGuideOption,
   shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import {
+  getAgentFileDownloadCommand,
+  getAgentFileDownloadToCommand,
+  getInstallScriptDownloadCommand,
+  getTroubleshootScriptDownloadCommand,
+} from "../../../Components/SetupGuide/AgentInstallCommands";
+import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 
 /*
@@ -82,17 +89,20 @@ export function getStorageArrayPlatformForSystem(
   return undefined;
 }
 
-// Where the agent's files are published, and where install.sh puts them.
-export const STORAGE_ARRAY_AGENT_RAW_URL: string =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent";
-export const STORAGE_ARRAY_AGENT_SOURCE_URL: string =
-  "https://github.com/OneUptime/oneuptime/tree/master/agents/StorageArrayAgent";
+/*
+ * Where every OneUptime serves the agent's install script and files, for
+ * its own release (Common/Types/InstallScripts): /install/storage-array-agent
+ * on the reader's OneUptime. And where install.sh puts them.
+ */
+export const STORAGE_ARRAY_AGENT_INSTALL_NAME: InstallScriptName =
+  InstallScriptName.StorageArrayAgent;
 export const STORAGE_ARRAY_AGENT_INSTALL_DIR: string =
   "/opt/oneuptime-storage-array-agent";
 
 /*
  * The agent's systemd unit, and its file in the agent's directory. install.sh
- * never downloads systemd/, so the guide fetches the unit from the raw URL.
+ * never downloads systemd/, so the guide fetches the unit from the reader's
+ * OneUptime, which serves it beside the agent's other files.
  */
 export const STORAGE_ARRAY_AGENT_SYSTEMD_UNIT: string =
   "oneuptime-storage-array-agent";
@@ -870,10 +880,16 @@ function isPrefilled(context: { apiKey: string; hasApiKey: boolean }): boolean {
   );
 }
 
-// install.sh, downloaded and run with `words` in its environment.
-function installScriptCommand(words: Array<string>): string {
+// install.sh, downloaded from the reader's OneUptime and run with `words` in its environment.
+function installScriptCommand(
+  oneuptimeUrl: string,
+  words: Array<string>,
+): string {
   return [
-    `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/install.sh -o install.sh`,
+    getInstallScriptDownloadCommand(
+      oneuptimeUrl,
+      STORAGE_ARRAY_AGENT_INSTALL_NAME,
+    ),
     [...words, "bash install.sh"].join(" "),
   ].join("\n");
 }
@@ -915,7 +931,7 @@ export function getStorageArrayInstallScriptCommand(data: {
     `STORAGE_ARRAY_COLLECTOR_CONFIG=${settings.collectorConfigFile}`,
   );
 
-  return installScriptCommand(environment);
+  return installScriptCommand(data.oneuptimeUrl, environment);
 }
 
 /*
@@ -933,13 +949,21 @@ export function getStorageArrayInstallScriptCommand(data: {
  * topic and the dialog beside an outdated agent version
  * (Components/AgentVersion) both show these.
  */
-export function getStorageArrayAgentUpgradeCommand(): string {
-  return installScriptCommand([]);
+export function getStorageArrayAgentUpgradeCommand(
+  oneuptimeUrl: string,
+): string {
+  return installScriptCommand(oneuptimeUrl, []);
 }
 
-export function getStorageArrayAgentDownloadCommand(): string {
+export function getStorageArrayAgentDownloadCommand(
+  oneuptimeUrl: string,
+): string {
   return STORAGE_ARRAY_AGENT_FILES.map((file: string): string => {
-    return `curl -fsSLO ${STORAGE_ARRAY_AGENT_RAW_URL}/${file}`;
+    return getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      STORAGE_ARRAY_AGENT_INSTALL_NAME,
+      file,
+    );
   }).join("\n");
 }
 
@@ -1103,6 +1127,8 @@ function getInstallScriptVariant(context: GuideContext): string {
     }),
   )}
 
+The first line downloads the script as \`install.sh\`, so you can read it before you run it.
+
 ${intro}
 
 ${asks
@@ -1126,13 +1152,13 @@ function getDockerComposeVariant(context: GuideContext): string {
     );
   }
 
-  return `Download the compose file and the three collector configs from the [StorageArrayAgent directory](${STORAGE_ARRAY_AGENT_SOURCE_URL}) into a new folder:
+  return `Download the compose file and the three collector configs from this OneUptime into a new folder:
 
 ${codeBlock(
   "bash",
   [
     "mkdir oneuptime-storage-array-agent && cd oneuptime-storage-array-agent",
-    getStorageArrayAgentDownloadCommand(),
+    getStorageArrayAgentDownloadCommand(context.oneuptimeUrl),
   ].join("\n"),
 )}
 
@@ -1358,7 +1384,7 @@ ${codeBlock(
   };
 }
 
-function getSystemdTopic(): SetupGuideTopic {
+function getSystemdTopic(oneuptimeUrl: string): SetupGuideTopic {
   return {
     title: "Run as a systemd service",
     summary:
@@ -1368,7 +1394,12 @@ function getSystemdTopic(): SetupGuideTopic {
 ${codeBlock(
   "bash",
   [
-    `sudo curl -fsSL ${STORAGE_ARRAY_AGENT_RAW_URL}/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE} -o /etc/systemd/system/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}.service`,
+    `sudo ${getAgentFileDownloadToCommand(
+      oneuptimeUrl,
+      STORAGE_ARRAY_AGENT_INSTALL_NAME,
+      STORAGE_ARRAY_AGENT_SYSTEMD_UNIT_FILE,
+      `/etc/systemd/system/${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}.service`,
+    )}`,
     "sudo systemctl daemon-reload",
     `sudo systemctl enable --now ${STORAGE_ARRAY_AGENT_SYSTEMD_UNIT}`,
   ].join("\n"),
@@ -1376,20 +1407,20 @@ ${codeBlock(
   };
 }
 
-function getUpgradeTopic(): SetupGuideTopic {
+function getUpgradeTopic(oneuptimeUrl: string): SetupGuideTopic {
   return {
     title: "Upgrade or uninstall the agent",
     summary:
       "Download the latest files and recreate the agent, or stop and remove it.",
     markdown: `**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its configs are files beside it, so pulling alone does not move the agent forward. Re-run the install script. It reuses every value in your existing \`.env\` (nothing is prompted for again), downloads the latest \`docker-compose.yml\` and collector configs — a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\` — and recreates the agent with them:
 
-${codeBlock("bash", getStorageArrayAgentUpgradeCommand())}
+${codeBlock("bash", getStorageArrayAgentUpgradeCommand(oneuptimeUrl))}
 
 An agent installed outside \`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\` (a second array's, say) needs its folder: \`INSTALL_DIR=<folder> bash install.sh\`.
 
 Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your \`.env\` stays, and a change you made to any of them has to be made again:
 
-${codeBlock("bash", getStorageArrayAgentDownloadCommand())}
+${codeBlock("bash", getStorageArrayAgentDownloadCommand(oneuptimeUrl))}
 
 Then pull the images and recreate the agent, so the collector reads its new config:
 
@@ -1413,8 +1444,8 @@ function getAdvancedTopics(context: GuideContext): Array<SetupGuideTopic> {
     getLabelsTopic(),
     getCollectedDataTopic(context),
     getSeveralArraysTopic(),
-    getSystemdTopic(),
-    getUpgradeTopic(),
+    getSystemdTopic(context.oneuptimeUrl),
+    getUpgradeTopic(context.oneuptimeUrl),
   ];
 }
 
@@ -1432,7 +1463,7 @@ function getTroubleshootingTopics(
 
 ${codeBlock(
   "bash",
-  `curl -sSL ${STORAGE_ARRAY_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+  `${getTroubleshootScriptDownloadCommand(context.oneuptimeUrl, STORAGE_ARRAY_AGENT_INSTALL_NAME)}
 bash troubleshoot.sh -d ${STORAGE_ARRAY_AGENT_INSTALL_DIR}    # or the folder with docker-compose.yml`,
 )}
 

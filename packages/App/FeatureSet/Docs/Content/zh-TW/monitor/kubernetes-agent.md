@@ -408,9 +408,11 @@ kubectl delete namespace oneuptime-agent
 執行 Chart 的診斷指令碼。它會檢查 Pod、擷取金鑰以及離開叢集的網路路徑，詢問 OneUptime 金鑰是否被接受，並印出一個結論。它只會讀取，不做任何變更：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+每個 OneUptime 都提供其自身發行版本的這個指令碼：在自行架設的 OneUptime 上，請使用你的 URL 而不是 `https://oneuptime.com`。要在執行前閱讀指令碼，請在瀏覽器中開啟它的位址。
 
 常見原因(尤其是在重新安裝之後)是擷取金鑰錯誤或已被撤銷：OneUptime 拒絕它，收集器會捨棄每一批資料，而它的 Pod 仍處於 `Running` 狀態。
 :::
