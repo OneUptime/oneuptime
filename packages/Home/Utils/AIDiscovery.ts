@@ -12,7 +12,19 @@
 import PageSEOConfig, { PageSEOData } from "./PageSEO";
 import Pricing, { PricingPlans } from "./Pricing";
 import { ResellersPageContent } from "./Resellers";
-import { AirGappedPageContent, AirGappedStep } from "./AirGapped";
+import {
+  AirGappedPageContent,
+  AirGappedStep,
+  AirGappedTopicContent,
+} from "./AirGapped";
+import {
+  AirGappedTopicCapability,
+  AirGappedTopicCard,
+  AirGappedTopicChange,
+  AirGappedTopicChangeStatus,
+  AirGappedTopicConfigureStep,
+  AirGappedTopicFaq,
+} from "./AirGappedPages";
 import {
   CloudMarketplaceLink,
   CloudMarketplacesContent,
@@ -592,6 +604,15 @@ export function generateAirGappedMarkdown(
   }
 
   lines.push("");
+  lines.push("## Air-gapped, product by product");
+  lines.push("");
+  for (const topic of content.topics) {
+    lines.push(
+      `- [${topic.title}](${baseUrl}${topic.path}.md): ${topic.summary}`,
+    );
+  }
+
+  lines.push("");
   lines.push("## Four steps to an air-gapped install");
   lines.push("");
   lines.push(
@@ -709,6 +730,131 @@ export function generateAirGappedMarkdown(
     `- [Offline license activation](${absoluteLink(baseUrl, content.docs.offlineActivation)})`,
   );
   lines.push(`- [Helm chart configuration](${content.helmDocs.configuration})`);
+  lines.push(
+    `- [All OneUptime products and links for LLMs](${baseUrl}/llms.txt)`,
+  );
+  lines.push("");
+
+  return lines.join("\n");
+}
+
+// What each change's status says, as the page's pill words it.
+const AIR_GAPPED_CHANGE_STATUS_WORDS: Record<
+  AirGappedTopicChangeStatus,
+  string
+> = {
+  "change-a-setting": "Change a setting",
+  "use-your-own": "Use your own",
+  "needs-a-route": "Needs a route",
+};
+
+/*
+ * /enterprise/air-gapped/<product>.md: one product behind an air gap, section
+ * by section, from the same content the page renders (Utils/AirGappedPages.ts)
+ * - what runs inside, what changes, what to configure, the same four steps as
+ * every air-gapped install, and the questions buyers ask.
+ */
+export function generateAirGappedTopicMarkdown(
+  homeUrl: string,
+  content: AirGappedTopicContent,
+): string {
+  const baseUrl: string = normalizeBaseUrl(homeUrl);
+  const hubUrl: string = `${baseUrl}${content.hub.pagePath}`;
+  const lines: Array<string> = [];
+
+  lines.push(`# ${content.title}`);
+  lines.push("");
+  lines.push(`> ${content.seo.description}`);
+  lines.push("");
+  lines.push(`Canonical page: ${baseUrl}${content.path}`);
+  lines.push("");
+  lines.push(content.lead);
+
+  lines.push("");
+  lines.push(`## ${content.inside.title}`);
+  lines.push("");
+  lines.push(content.inside.lead);
+  lines.push("");
+  for (const capability of content.inside
+    .capabilities as Array<AirGappedTopicCapability>) {
+    lines.push(
+      `- **${capability.title}**: ${capability.description} ([${capability.link.label}](${absoluteLink(baseUrl, capability.link.href)}))`,
+    );
+  }
+
+  lines.push("");
+  lines.push(`## ${content.changes.title}`);
+  lines.push("");
+  lines.push(content.changes.lead);
+  lines.push("");
+  lines.push(
+    "| Feature | With a route out | Inside an air gap | What it takes |",
+  );
+  lines.push("|---|---|---|---|");
+  for (const change of content.changes.rows as Array<AirGappedTopicChange>) {
+    lines.push(
+      `| ${tableCell(change.name)} | ${tableCell(change.usually)} | ${tableCell(change.inside)} | ${AIR_GAPPED_CHANGE_STATUS_WORDS[change.status]} |`,
+    );
+  }
+  lines.push("");
+  lines.push(
+    `Every connection a self-hosted install makes: [what reaches out, and what to use instead](${hubUrl}#connections-out).`,
+  );
+
+  lines.push("");
+  lines.push(`## ${content.configure.title}`);
+  lines.push("");
+  lines.push(content.configure.lead);
+  lines.push("");
+  content.configure.steps.forEach(
+    (step: AirGappedTopicConfigureStep, index: number) => {
+      lines.push(`${index + 1}. **${step.title}**: ${step.description}`);
+    },
+  );
+  lines.push("");
+  lines.push(`\`\`\`${content.configure.code.language}`);
+  lines.push(content.configure.code.text);
+  lines.push("```");
+  lines.push("");
+  lines.push(
+    `${content.configure.caption} See [${content.configure.link.label}](${absoluteLink(baseUrl, content.configure.link.href)}).`,
+  );
+
+  lines.push("");
+  lines.push("## The same four steps as every air-gapped install");
+  lines.push("");
+  content.hub.steps.forEach(
+    (step: { key: string; title: string }, index: number) => {
+      lines.push(`${index + 1}. [${step.title}](${hubUrl}#step-${step.key})`);
+    },
+  );
+
+  lines.push("");
+  lines.push("## Questions buyers ask");
+  for (const faq of content.faqs as Array<AirGappedTopicFaq>) {
+    lines.push("");
+    lines.push(`### ${faq.question}`);
+    lines.push("");
+    lines.push(faq.answer);
+  }
+
+  lines.push("");
+  lines.push("## Plan your install");
+  lines.push("");
+  lines.push(
+    `Book a working session with OneUptime's engineers at ${hubUrl}#plan-your-install, or email ${content.hub.email}.`,
+  );
+
+  lines.push("");
+  lines.push("## Learn More");
+  lines.push("");
+  lines.push(`- [Air-gapped installs](${hubUrl}.md)`);
+  lines.push(
+    `- [${content.product.label}](${absoluteLink(baseUrl, content.product.href)}.md)`,
+  );
+  for (const related of content.related as Array<AirGappedTopicCard>) {
+    lines.push(`- [${related.title}](${baseUrl}${related.path}.md)`);
+  }
   lines.push(
     `- [All OneUptime products and links for LLMs](${baseUrl}/llms.txt)`,
   );

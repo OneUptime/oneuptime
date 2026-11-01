@@ -48,6 +48,7 @@ import {
   generateCompareIndexJson,
   generateResellersMarkdown,
   generateAirGappedMarkdown,
+  generateAirGappedTopicMarkdown,
   RecentBlogPostLink,
 } from "./Utils/AIDiscovery";
 import { generateNostrWellKnown } from "./Utils/Nostr";
@@ -57,7 +58,15 @@ import {
 } from "./Utils/MicrosoftIdentityAssociation";
 import BlogPostUtil, { BlogPostHeader } from "./Utils/BlogPost";
 import { getSelfHostedContent } from "./Utils/SelfHosted";
-import { getAirGappedContent } from "./Utils/AirGapped";
+import {
+  getAirGappedContent,
+  getAirGappedTopicContent,
+} from "./Utils/AirGapped";
+import {
+  AirGappedTopicSlug,
+  getAirGappedProductLinks,
+  getAirGappedTopicSlugForPath,
+} from "./Utils/AirGappedPages";
 import { getDatabasesPageContent } from "./Utils/Databases";
 import { getQueuesPageContent } from "./Utils/Queues";
 import { getCliPageContent } from "./Utils/CliPage";
@@ -213,6 +222,13 @@ const HomeFeatureSet: FeatureSet = {
      * them from app.locals, as it reads the stylesheet's URL.
      */
     app.locals["frameworkGuides"] = getFeaturedGuideCards();
+
+    /*
+     * The air-gapped page of each product, by the product page's address: the
+     * enterprise block on those pages leads to it
+     * (Views/Partials/enterprise-ready.ejs).
+     */
+    app.locals["airGappedProductLinks"] = getAirGappedProductLinks();
 
     app.get(
       ProductIconSpriteRoutePattern,
@@ -476,6 +492,8 @@ const HomeFeatureSet: FeatureSet = {
       res.setHeader("X-Robots-Tag", "noindex");
       const homeUrl: string = res.locals["homeUrl"] as string;
       const pagePath: string = req.path.replace(/\.md$/, "");
+      const airGappedTopic: AirGappedTopicSlug | undefined =
+        getAirGappedTopicSlugForPath(pagePath);
 
       let markdown: string | null = null;
 
@@ -490,6 +508,11 @@ const HomeFeatureSet: FeatureSet = {
         );
       } else if (pagePath === "/enterprise/air-gapped") {
         markdown = generateAirGappedMarkdown(homeUrl, getAirGappedContent());
+      } else if (airGappedTopic) {
+        markdown = generateAirGappedTopicMarkdown(
+          homeUrl,
+          getAirGappedTopicContent(airGappedTopic),
+        );
       } else if (pagePath === OPEN_TELEMETRY_GUIDES_INDEX_PATH) {
         markdown = generateIntegrationsIndexMarkdown(homeUrl);
       } else if (pagePath.startsWith(OPEN_TELEMETRY_GUIDE_PATH_PREFIX)) {
@@ -1383,6 +1406,191 @@ const HomeFeatureSet: FeatureSet = {
           enableGoogleTagManager: GoogleTagManagerEnabled,
           seo,
           airGapped: getAirGappedContent(),
+        });
+      },
+    );
+
+    /*
+     * The air-gapped page of each product: one template, one entry each in
+     * Utils/AirGappedPages.ts, which holds every fact the page states. Written
+     * out rather than looped, so the tests that read this table find each.
+     */
+    app.get(
+      "/enterprise/air-gapped/observability",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/observability",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("observability"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/log-management",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/log-management",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("log-management"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/monitoring",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/monitoring",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("monitoring"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/incident-management",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/incident-management",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("incident-management"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/on-call",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/on-call",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("on-call"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/status-pages",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/status-pages",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("status-pages"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/kubernetes",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/kubernetes",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("kubernetes"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/network-monitoring",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/network-monitoring",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("network-monitoring"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/infrastructure",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/infrastructure",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("infrastructure"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/ai",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/ai",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("ai"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/security-events",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/security-events",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("security-events"),
+        });
+      },
+    );
+
+    app.get(
+      "/enterprise/air-gapped/workflows",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/enterprise/air-gapped/workflows",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/air-gapped-topic`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+          airGappedTopic: getAirGappedTopicContent("workflows"),
         });
       },
     );
