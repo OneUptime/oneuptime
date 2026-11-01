@@ -842,6 +842,10 @@ jobs:
           # by button and key, skipped dashboards, Create, Edit and Delete, a
           # Viewer - at 1280, 1024, 768 and 390 pixels, dark, German, Japanese
           # and Persian) joined them later that day: about 20.5.
+          # On 14.0.100's first gate run (2026-11-01) this group's step hit its
+          # 28 minutes in Topology, the last suite (Workflow Builder's half
+          # 11.3, Kubernetes Events 3.6, OpenShift Pages 2.8): OpenShift Pages
+          # and Topology (about 2.8 each) moved to group 15. About 22.5.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -852,8 +856,6 @@ jobs:
               test-postmortems-ui
               test-archivable-values-ui
               test-kubernetes-events-ui
-              test-openshift-pages-ui
-              test-topology-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -1106,12 +1108,16 @@ jobs:
           # second half of Model Tables (88 tests, 6.9 minutes locally) and
           # Metrics AI (3.0 on 14.0.100's first gate run) from group 4, whose
           # step hit its 28 minutes there. Groups 1, 2, 3, 5 and 12 took 19.6
-          # to 23.2 minutes on that run: about 12.
+          # to 23.2 minutes on that run: about 12. OpenShift Pages and Topology
+          # (about 2.8 each) from group 9, whose step hit its 28 on that run
+          # too: about 17.5.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
               test-model-tables-ui
               test-metrics-ai-ui
+              test-openshift-pages-ui
+              test-topology-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
