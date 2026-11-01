@@ -18,6 +18,8 @@ const AppPlatformEnvironmentDelete: FunctionComponent<
       <ModelDelete
         modelType={CloudResource}
         modelId={modelId}
+        // The model's noun is Cloud's (Cloud Resource); this is an environment.
+        singularName="Cloud Environment"
         onDeleteSuccess={() => {
           // Back to the list the environment was on.
           Navigation.navigate(
