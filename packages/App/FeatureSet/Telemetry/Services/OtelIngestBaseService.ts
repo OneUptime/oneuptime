@@ -23,6 +23,15 @@ import CloudResourceService, {
 import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import CloudAppService from "Common/Server/Services/CloudAppService";
+import CloudAppRevisionService, {
+  RecordCloudAppRevisionResult,
+} from "Common/Server/Services/CloudAppRevisionService";
+import CloudAppChangeRecorder from "Common/Server/Utils/Telemetry/ChangeDetection/CloudAppChangeRecorder";
+import {
+  CloudAppIdentity,
+  resolveCloudAppIdentity,
+} from "Common/Server/Utils/Telemetry/CloudAppIdentity";
 import RumApplicationClientService from "Common/Server/Services/RumApplicationClientService";
 import DatabaseServerService, {
   DatabaseServerCollectorReport,
@@ -532,6 +541,7 @@ export default abstract class OtelIngestBaseService {
     this.maintenanceFenceNegativeMemo.clear();
     this.unresolvedDatabaseServerMemo.clear();
     this.unresolvedCloudMonitoredResourceMemo.clear();
+    this.cloudAppIdMemo.clear();
   }
 
   /*
@@ -3410,13 +3420,105 @@ export default abstract class OtelIngestBaseService {
       }
 
       /*
+       * The app this resource belongs to - an ECS task definition family,
+       * a Cloud Run service, a Container App - and the revision it runs
+       * (CloudAppIdentity). The app's row is kept once per app per fence
+       * window, its revision once per revision: a revision the app never
+       * ran is a deploy, and an older one that outlives the current one is
+       * a rollback (CloudAppRevisionService), each written as a change
+       * event and a line in the environment's feed.
+       */
+      const appIdentity: CloudAppIdentity | null = resolveCloudAppIdentity({
+        platform: cloudPlatform,
+        getAttribute: (key: string): string | null => {
+          return this.getStringAttribute(data.attributes, key);
+        },
+      });
+
+      let cloudAppId: ObjectID | null = null;
+
+      if (appIdentity) {
+        const appFenceId: string = `${liveIdStr}:${appIdentity.appKey}`;
+
+        if (await this.shouldRunMaintenance("cloud-app", appFenceId)) {
+          armedFences.push({ scope: "cloud-app", id: appFenceId });
+          liveIdStr = await this.writeForDiscoveredResource({
+            kind: DiscoveredResourceKinds.CloudResource,
+            id: liveIdStr,
+            write: async (cloudResourceId: ObjectID): Promise<void> => {
+              cloudAppId = await CloudAppService.recordApp({
+                projectId: data.projectId,
+                cloudResourceId,
+                cloudPlatform,
+                identity: appIdentity,
+              });
+              this.cloudAppIdMemo.set(
+                `${cloudResourceId.toString()}:${appIdentity.appKey}`,
+                cloudAppId.toString(),
+              );
+            },
+          });
+        }
+
+        const revision: string | null = appIdentity.revision;
+        const revisionFenceId: string = `${liveIdStr}:${appIdentity.appKey}:${revision || ""}`;
+
+        if (
+          revision &&
+          (await this.shouldRunMaintenance(
+            "cloud-app-revision",
+            revisionFenceId,
+          ))
+        ) {
+          armedFences.push({ scope: "cloud-app-revision", id: revisionFenceId });
+          cloudAppId =
+            cloudAppId ||
+            (await this.resolveCloudAppId({
+              projectId: data.projectId,
+              cloudResourceId: new ObjectID(liveIdStr),
+              cloudPlatform,
+              identity: appIdentity,
+            }));
+
+          const recorded: RecordCloudAppRevisionResult =
+            await CloudAppRevisionService.recordRevision({
+              projectId: data.projectId,
+              cloudResourceId: new ObjectID(liveIdStr),
+              cloudAppId: cloudAppId,
+              revision,
+              serviceVersion: appIdentity.serviceVersion,
+              image: appIdentity.image,
+            });
+
+          if (recorded.change) {
+            CloudAppChangeRecorder.recordChange({
+              projectId: data.projectId,
+              subject: {
+                appId: cloudAppId,
+                appName: appIdentity.name,
+                groupName: appIdentity.groupName,
+                environmentId: new ObjectID(liveIdStr),
+                cloudPlatform,
+                cloudProvider,
+                cloudAccountId,
+                cloudRegion,
+                serviceVersion: appIdentity.serviceVersion,
+              },
+              change: recorded.change,
+            });
+          }
+        }
+      }
+
+      /*
        * Live inventory: record this instance / task. service.instance.id
        * is preferred, but almost nothing on a managed platform sets it —
        * the ECS detector stamps the task ARN, Cloud Run stamps
        * faas.instance — so the identity walks the shared fallback chain.
        * The metrics snapshot fold (OtelMetricsIngestService) resolves the
        * same chain over the same attributes, which is what lets the CPU /
-       * memory point land on the row this call creates.
+       * memory point land on the row this call creates. The instance names
+       * its app and revision when the resource does.
        */
       const instanceName: string | null = resolveCloudInstanceName(
         (key: string): string | null => {
@@ -3438,10 +3540,22 @@ export default abstract class OtelIngestBaseService {
           kind: DiscoveredResourceKinds.CloudResource,
           id: liveIdStr,
           write: async (cloudResourceId: ObjectID): Promise<void> => {
+            const instanceAppId: ObjectID | null = appIdentity
+              ? cloudAppId ||
+                (await this.resolveCloudAppId({
+                  projectId: data.projectId,
+                  cloudResourceId,
+                  cloudPlatform,
+                  identity: appIdentity,
+                }))
+              : null;
+
             await CloudResourceInstanceService.recordInstance({
               projectId: data.projectId,
               cloudResourceId,
               instanceName,
+              cloudAppId: instanceAppId || undefined,
+              revision: appIdentity?.revision || undefined,
             });
           },
         });
@@ -3454,6 +3568,51 @@ export default abstract class OtelIngestBaseService {
       );
       return null;
     }
+  }
+
+  /*
+   * The ids of the apps this process found or created lately, by
+   * environment and app key. An instance or a revision is recorded more often
+   * than its app's row is kept (each under a fence of its own), and every one
+   * of them needs the app's id. A minute, as the other ingest memos: an app
+   * deleted in that minute is found again by its key (recordApp).
+   */
+  private static readonly cloudAppIdMemo: InProcessMemo<string> =
+    new InProcessMemo<string>({
+      ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
+  // An app's id: from the memo, else its row (found by key, or created).
+  protected static async resolveCloudAppId(data: {
+    projectId: ObjectID;
+    cloudResourceId: ObjectID;
+    cloudPlatform: string;
+    identity: CloudAppIdentity;
+  }): Promise<ObjectID> {
+    const memoKey: string = `${data.cloudResourceId.toString()}:${data.identity.appKey}`;
+    const remembered: string | undefined = this.cloudAppIdMemo.get(memoKey);
+
+    if (remembered) {
+      return new ObjectID(remembered);
+    }
+
+    const appId: ObjectID =
+      (await CloudAppService.findAppId({
+        projectId: data.projectId,
+        cloudResourceId: data.cloudResourceId,
+        appKey: data.identity.appKey,
+      })) ||
+      (await CloudAppService.recordApp({
+        projectId: data.projectId,
+        cloudResourceId: data.cloudResourceId,
+        cloudPlatform: data.cloudPlatform,
+        identity: data.identity,
+      }));
+
+    this.cloudAppIdMemo.set(memoKey, appId.toString());
+
+    return appId;
   }
 
   protected static async promoteOneuptimeLabelsToCloudResource(data: {

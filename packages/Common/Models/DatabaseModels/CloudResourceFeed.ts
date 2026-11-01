@@ -39,6 +39,13 @@ export enum CloudResourceFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OwnerRuleExecuted = "OwnerRuleExecuted",
   LabelRuleExecuted = "LabelRuleExecuted",
+  /*
+   * An app of an App Platforms environment started running a revision it
+   * had not run before, or went back to one it ran before
+   * (CloudAppChangeRecorder).
+   */
+  AppDeployed = "AppDeployed",
+  AppRolledBack = "AppRolledBack",
 }
 
 @EnableDocumentation()

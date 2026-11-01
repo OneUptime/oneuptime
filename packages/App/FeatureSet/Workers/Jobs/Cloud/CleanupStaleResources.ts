@@ -3,6 +3,9 @@ import RunCron from "../../Utils/Cron";
 import logger from "Common/Server/Utils/Logger";
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import CloudAppService from "Common/Server/Services/CloudAppService";
+import CloudAppRevisionService from "Common/Server/Services/CloudAppRevisionService";
+import OneUptimeDate from "Common/Types/Date";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
@@ -63,10 +66,79 @@ import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
  *      stops reporting - and restored as soon as it reports again
  *      (archiveUnseenMonitoredResources / restoreReportingMonitoredResources;
  *      the rules for a person's own archive and restore live there).
+ *
+ * App Platforms' apps (CloudApp) and their revisions (CloudAppRevision) get
+ * a fifth step, once an hour (the first tick of each hour):
+ *   5. An app that sent nothing for CLOUD_APP_RETENTION_DAYS (30) is
+ *      removed with its revisions - a service deleted on its platform just
+ *      stops sending - and a revision no instance reported for as long is
+ *      removed, except the one its app runs now. Anchored to the
+ *      environment's own lastSeenAt, as the instance prune is: an
+ *      environment whose telemetry stopped altogether keeps its apps and
+ *      their history until it reports again.
  * ------------------------------------------------------------------
  */
 
 const JOB_NAME: string = "Cloud:CleanupStaleResources";
+
+/*
+ * Whether this tick prunes apps and revisions: the first tick of each hour.
+ * Exported for tests.
+ */
+export function isAppPruneTick(now: Date): boolean {
+  return now.getUTCMinutes() < 5;
+}
+
+/*
+ * Step 5: every environment's apps and revisions that have sent nothing for
+ * the retention days before the environment's own last telemetry.
+ */
+async function pruneUnseenAppsAndRevisions(): Promise<void> {
+  const environments: Array<CloudResource> = await CloudResourceService.findBy(
+    {
+      query: { cloudResourceKind: CloudResourceKind.Environment },
+      select: { _id: true, lastSeenAt: true },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    },
+  );
+
+  let apps: number = 0;
+  let revisions: number = 0;
+
+  for (const environment of environments) {
+    if (!environment._id || !environment.lastSeenAt) {
+      continue;
+    }
+
+    const cloudResourceId: ObjectID = new ObjectID(environment._id.toString());
+    const cutoff: Date = CloudAppService.getUnseenThresholdDate(
+      OneUptimeDate.fromString(environment.lastSeenAt),
+    );
+
+    try {
+      apps += await CloudAppService.deleteUnseenForResource({
+        cloudResourceId,
+        olderThan: cutoff,
+      });
+      revisions += await CloudAppRevisionService.deleteUnseenForResource({
+        cloudResourceId,
+        olderThan: cutoff,
+      });
+    } catch (err) {
+      logger.error(
+        `${JOB_NAME}: app prune failed for cloud environment ${environment._id.toString()}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  if (apps > 0 || revisions > 0) {
+    logger.debug(
+      `${JOB_NAME}: removed ${apps} app(s) and ${revisions} revision(s) that sent nothing for ${CloudAppService.getRetentionDays()} days`,
+    );
+  }
+}
 
 RunCron(
   JOB_NAME,
@@ -113,6 +185,17 @@ RunCron(
         logger.error(
           `${JOB_NAME}: cloud resource auto-archive failed: ${err instanceof Error ? err.message : String(err)}`,
         );
+      }
+
+      // Step 5, once an hour, in its own try block like the others.
+      if (isAppPruneTick(OneUptimeDate.getCurrentDate())) {
+        try {
+          await pruneUnseenAppsAndRevisions();
+        } catch (err) {
+          logger.error(
+            `${JOB_NAME}: app prune failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
       }
 
       /*

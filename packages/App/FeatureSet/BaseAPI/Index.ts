@@ -846,6 +846,12 @@ import ServerlessFunctionInstanceService, {
 import CloudResourceInstanceService, {
   Service as CloudResourceInstanceServiceType,
 } from "Common/Server/Services/CloudResourceInstanceService";
+import CloudAppService, {
+  Service as CloudAppServiceType,
+} from "Common/Server/Services/CloudAppService";
+import CloudAppRevisionService, {
+  Service as CloudAppRevisionServiceType,
+} from "Common/Server/Services/CloudAppRevisionService";
 import RumApplicationClientService, {
   Service as RumApplicationClientServiceType,
 } from "Common/Server/Services/RumApplicationClientService";
@@ -1542,6 +1548,8 @@ import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplication
 import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplicationOwnerRule";
 import ServerlessFunctionInstance from "Common/Models/DatabaseModels/ServerlessFunctionInstance";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import CloudApp from "Common/Models/DatabaseModels/CloudApp";
+import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
@@ -5262,6 +5270,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudResourceInstance, CloudResourceInstanceServiceType>(
         CloudResourceInstance,
         CloudResourceInstanceService,
+      ).getRouter(),
+    );
+
+    // An App Platforms environment's apps and their revisions: read-only.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudApp, CloudAppServiceType>(
+        CloudApp,
+        CloudAppService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudAppRevision, CloudAppRevisionServiceType>(
+        CloudAppRevision,
+        CloudAppRevisionService,
       ).getRouter(),
     );
 
