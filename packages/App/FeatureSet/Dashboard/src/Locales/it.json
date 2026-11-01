@@ -8617,7 +8617,7 @@
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
   "Change Monitor Status to": "Cambia lo stato del monitor in",
-  "Change Plan": "Change Plan",
+  "Change Plan": "Cambia piano",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
   "Change event": "Change event",
@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} e {{second}} sembrano uguali alle persone con daltonismo rosso-verde.",
   "{{percent}}% or more": "{{percent}}% o più",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "{{probe}}, la sonda che interroga questo dispositivo, è precedente alla {{version}} e non può leggere le tabelle Wi-Fi. Aggiornala per vedere le radio.",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "Un piano a pagamento viene fatturato dal momento in cui passi a esso, e ogni utente che inviti viene fatturato quando lo inviti.",
+  "Changing plan does not start a free trial": "Cambiare piano non avvia una prova gratuita",
+  "Your free trial carries over": "La tua prova gratuita continua",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "La tua prova gratuita dura fino al {{date}}, qualunque piano tu scelga. La fatturazione inizia quando finisce.",
   "Started by User": "Avviato dall'utente",
   "Started by User ID": "ID dell'utente che l'ha avviato",
   "Started by hand while this workflow was off.": "Avviato manualmente mentre questo flusso di lavoro era disattivato.",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "Chiederemo a Let's Encrypt un certificato completamente nuovo per questo dominio e lo useremo al posto di quello che serviamo ora. Nel frattempo il tuo modulo resta online con il certificato esistente, e il nuovo certificato viene servito entro 15 minuti.",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "I tuoi domini su cui risponde un modulo, come report.acmeinc.com, verificati e serviti tramite HTTPS.",
   "report (leave blank for root)": "report (lasciare vuoto per la radice)",
-  "Current plan": "Piano attuale"
+  "Current plan": "Piano attuale",
+  "Current plan, billed yearly": "Piano attuale, fatturato annualmente",
+  "Current plan, billed monthly": "Piano attuale, fatturato mensilmente",
+  "The project is already on this plan. Pick another plan to change to.": "Il progetto è già su questo piano. Scegli un altro piano a cui passare."
 }

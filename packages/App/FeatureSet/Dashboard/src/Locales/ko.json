@@ -8617,7 +8617,7 @@
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
   "Change Monitor Status to": "모니터 상태를 다음으로 변경",
-  "Change Plan": "Change Plan",
+  "Change Plan": "요금제 변경",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
   "Change event": "Change event",
@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}}과(와) {{second}}은(는) 적록 색맹인 사람에게 똑같아 보입니다.",
   "{{percent}}% or more": "{{percent}}% 이상",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "이 디바이스를 폴링하는 프로브 {{probe}}이(가) {{version}}보다 오래되어 Wi-Fi 테이블을 읽을 수 없습니다. 라디오를 보려면 업데이트하세요.",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "유료 요금제는 변경한 순간부터 청구되며, 그 요금제에서 초대하는 모든 사용자는 초대할 때 청구됩니다.",
+  "Changing plan does not start a free trial": "요금제를 변경해도 무료 체험이 시작되지 않습니다",
+  "Your free trial carries over": "무료 체험이 이어집니다",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "어떤 요금제를 선택하든 무료 체험은 {{date}}까지 이어집니다. 체험이 끝나면 청구가 시작됩니다.",
   "Started by User": "시작한 사용자",
   "Started by User ID": "시작한 사용자 ID",
   "Started by hand while this workflow was off.": "이 워크플로가 꺼져 있을 때 수동으로 시작되었습니다.",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "Let's Encrypt에 이 도메인의 새 인증서를 요청하고 현재 제공 중인 인증서를 새 인증서로 교체합니다. 그동안 양식은 기존 인증서로 계속 온라인 상태를 유지하며, 새 인증서는 15분 이내에 제공됩니다.",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "양식이 응답하는 자체 도메인(예: report.acmeinc.com)으로, 확인을 마치고 HTTPS로 제공됩니다.",
   "report (leave blank for root)": "report (루트는 비워 두기)",
-  "Current plan": "현재 요금제"
+  "Current plan": "현재 요금제",
+  "Current plan, billed yearly": "현재 요금제, 매년 청구",
+  "Current plan, billed monthly": "현재 요금제, 매월 청구",
+  "The project is already on this plan. Pick another plan to change to.": "프로젝트가 이미 이 요금제를 사용하고 있습니다. 변경할 다른 요금제를 선택하세요."
 }

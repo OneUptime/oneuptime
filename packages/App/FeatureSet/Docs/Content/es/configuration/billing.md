@@ -56,7 +56,7 @@ En la tarjeta **Plan actual**, haga clic en **Cambiar plan**. Los planes se abre
 
 ### Elegir el plan
 
-Cada plan muestra su precio por usuario, y **Plan actual** marca el plan en el que está el proyecto. La nota bajo los planes dice qué pasa con su prueba: **Your free trial carries over** mientras el proyecto sigue en su prueba, y **Changing plan does not start a free trial** cuando ya no lo está.
+Cada plan muestra su precio por usuario, y **Plan actual** marca el plan en el que está el proyecto. La nota bajo los planes dice qué pasa con su prueba: **Tu prueba gratuita continúa** mientras el proyecto sigue en su prueba, y **Cambiar de plan no inicia una prueba gratuita** cuando ya no lo está.
 
 ### Guardar el cambio
 

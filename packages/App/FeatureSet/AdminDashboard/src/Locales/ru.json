@@ -925,6 +925,8 @@
   "{{price}} per user, billed monthly from today.": "{{price}} за пользователя, оплата ежемесячно с сегодняшнего дня.",
   "Our sales team will contact you to agree on a price.": "Наш отдел продаж свяжется с вами, чтобы согласовать цену.",
   "Current plan": "Текущий план",
+  "Current plan, billed yearly": "Текущий план, оплата ежегодно",
+  "Current plan, billed monthly": "Текущий план, оплата ежемесячно",
   "{{count}}-day free trial": "Пробный период {{count}} дн.",
   "{{count}}-day free trial_one": "Пробный период {{count}} день",
   "Free for {{count}} days, no card needed to start.": "Бесплатно {{count}} дн., карта для начала не нужна.",

@@ -56,7 +56,7 @@ Sur la carte **Forfait actuel**, cliquez sur **Changer de forfait**. Les forfait
 
 ### Choisir le forfait
 
-Chaque forfait affiche son prix par utilisateur, et **Forfait actuel** marque celui du projet. La note sous les forfaits dit ce qu'il advient de votre essai : **Your free trial carries over** tant que le projet est encore en période d'essai, et **Changing plan does not start a free trial** une fois qu'il ne l'est plus.
+Chaque forfait affiche son prix par utilisateur, et **Forfait actuel** marque celui du projet. La note sous les forfaits dit ce qu'il advient de votre essai : **Votre essai gratuit est conservé** tant que le projet est encore en période d'essai, et **Changer de forfait ne démarre pas d'essai gratuit** une fois qu'il ne l'est plus.
 
 ### Enregistrer le changement
 

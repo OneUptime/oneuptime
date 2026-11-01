@@ -5,10 +5,12 @@ import {
   BillingPeriod,
   YearlySaving,
   formatPlanPriceInUSD,
+  getBillingPeriodOfPlanId,
   getChargePerUserInUSD,
   getMonthlyPricePerUserInUSD,
   getTrialDays,
   isPlanFree,
+  isPlanFreeEitherWay,
 } from "../../../../Types/Billing/SubscriptionPlanPricing";
 import {
   PluralTemplate,
@@ -61,6 +63,8 @@ export const PlanPickerCopy: {
   billedMonthlyFromToday: string;
   salesWillContact: string;
   currentPlan: string;
+  currentPlanBilledYearly: string;
+  currentPlanBilledMonthly: string;
 } = {
   label: translationKey("Plan"),
   monthly: translationKey("Monthly"),
@@ -95,6 +99,57 @@ export const PlanPickerCopy: {
   ),
   // In a plan change: the pill on the plan, at the period, the project is on.
   currentPlan: translationKey("Current plan"),
+  /*
+   * The same pill while the other period's prices are shown: the plan the
+   * project is on, and how it is billed now (getCurrentPlanText).
+   */
+  currentPlanBilledYearly: translationKey("Current plan, billed yearly"),
+  currentPlanBilledMonthly: translationKey("Current plan, billed monthly"),
+};
+
+/*
+ * The pill on the plan a project is on, in a plan change, or null on any
+ * other plan. At the period it is billed for: "Current plan". At the other
+ * period it still names the plan, with how the project is billed now -
+ * "Current plan, billed yearly" over Growth's monthly price - so the reader
+ * who looks at the other prices never loses the plan they are on, and sees
+ * that picking it there would change how it is billed. A plan that costs
+ * nothing either way is the current plan at both periods.
+ */
+export const getCurrentPlanText: (data: {
+  plan: SubscriptionPlan;
+  // The period the prices are shown for.
+  period: BillingPeriod;
+  // The price the project is subscribed to.
+  currentPlanId: string | null | undefined;
+  translator: Translator;
+}) => string | null = (data: {
+  plan: SubscriptionPlan;
+  period: BillingPeriod;
+  currentPlanId: string | null | undefined;
+  translator: Translator;
+}): string | null => {
+  if (!data.currentPlanId) {
+    return null;
+  }
+
+  const currentPeriod: BillingPeriod | null = getBillingPeriodOfPlanId(
+    data.plan,
+    data.currentPlanId,
+  );
+
+  if (!currentPeriod) {
+    return null;
+  }
+
+  const text: string =
+    currentPeriod === data.period || isPlanFreeEitherWay(data.plan)
+      ? PlanPickerCopy.currentPlan
+      : currentPeriod === BillingPeriod.Yearly
+        ? PlanPickerCopy.currentPlanBilledYearly
+        : PlanPickerCopy.currentPlanBilledMonthly;
+
+  return data.translator.translateText(text) || text;
 };
 
 // The pill on a plan that a new project tries for free first.

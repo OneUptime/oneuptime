@@ -925,6 +925,8 @@
   "{{price}} per user, billed monthly from today.": "{{price}} per användare, faktureras månadsvis från i dag.",
   "Our sales team will contact you to agree on a price.": "Vårt säljteam kontaktar dig för att komma överens om ett pris.",
   "Current plan": "Aktuell plan",
+  "Current plan, billed yearly": "Aktuell plan, faktureras årsvis",
+  "Current plan, billed monthly": "Aktuell plan, faktureras månadsvis",
   "{{count}}-day free trial": "{{count}} dagars gratis provperiod",
   "{{count}}-day free trial_one": "{{count}} dags gratis provperiod",
   "Free for {{count}} days, no card needed to start.": "Gratis i {{count}} dagar, inget kort behövs för att börja.",

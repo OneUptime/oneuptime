@@ -46,8 +46,14 @@ export const CRITERIA_BODY_CLASS_NAME: string =
 /*
  * Filters, Actions and Settings (CollapsibleSection, bordered, flush on a
  * phone): across the criteria's box on a phone, framed from sm up.
+ *
+ * On a phone they are one list, as a settings screen's rows are: each
+ * section sits right under the one before and takes its rule over that
+ * one's (-mt-px), so one rule parts two sections. Spaced 16px apart, two
+ * rules and a strip of white came between every two.
  */
-export const CRITERIA_SECTION_CLASS_NAME: string = "mb-4 -mx-3 sm:mx-0";
+export const CRITERIA_SECTION_CLASS_NAME: string =
+  "-mx-3 -mt-px sm:mx-0 sm:mt-0 sm:mb-4";
 
 /*
  * The box that opens under an action's switch - the status to change to,

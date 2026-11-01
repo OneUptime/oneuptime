@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}}と{{second}}は、赤緑色覚異常の人には同じように見えます。",
   "{{percent}}% or more": "{{percent}}%以上",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "このデバイスをポーリングするプローブ {{probe}} は {{version}} より古く、Wi-Fi テーブルを読み取れません。無線を表示するには更新してください。",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "有料プランは変更した時点から請求され、そのプランで招待したユーザーは招待した時点で請求されます。",
+  "Changing plan does not start a free trial": "プランを変更しても無料トライアルは始まりません",
+  "Your free trial carries over": "無料トライアルは引き継がれます",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "無料トライアルは、どのプランを選んでも {{date}} まで続きます。終了すると請求が始まります。",
   "Started by User": "開始したユーザー",
   "Started by User ID": "開始したユーザーの ID",
   "Started by hand while this workflow was off.": "このワークフローがオフのときに手動で開始されました。",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "Let's Encrypt にこのドメインの新しい証明書を要求し、現在提供しているものと置き換えます。その間もフォームは既存の証明書でオンラインのままで、新しい証明書は 15 分以内に提供されます。",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "フォームを公開する独自ドメイン（report.acmeinc.com など）。確認済みで、HTTPS で提供されます。",
   "report (leave blank for root)": "report（ルートの場合は空欄）",
-  "Current plan": "現在のプラン"
+  "Current plan": "現在のプラン",
+  "Current plan, billed yearly": "現在のプラン（毎年請求）",
+  "Current plan, billed monthly": "現在のプラン（毎月請求）",
+  "The project is already on this plan. Pick another plan to change to.": "プロジェクトはすでにこのプランです。変更先の別のプランを選んでください。"
 }

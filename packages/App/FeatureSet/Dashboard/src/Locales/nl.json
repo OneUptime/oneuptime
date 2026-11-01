@@ -8617,7 +8617,7 @@
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
   "Change Monitor Status to": "Monitorstatus wijzigen naar",
-  "Change Plan": "Change Plan",
+  "Change Plan": "Abonnement wijzigen",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
   "Change event": "Change event",
@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} en {{second}} zien er voor mensen met rood-groenkleurenblindheid hetzelfde uit.",
   "{{percent}}% or more": "{{percent}}% of meer",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "{{probe}}, de sonde die dit apparaat pollt, is ouder dan {{version}} en kan geen wifi-tabellen lezen. Werk hem bij om de radio's te zien.",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "Een betaald abonnement wordt gefactureerd vanaf het moment dat u overstapt, en elke gebruiker die u erop uitnodigt, wordt gefactureerd wanneer u diegene uitnodigt.",
+  "Changing plan does not start a free trial": "Van abonnement wisselen start geen gratis proefperiode",
+  "Your free trial carries over": "Uw gratis proefperiode loopt door",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Uw gratis proefperiode loopt tot {{date}}, welk abonnement u ook kiest. De facturering begint wanneer die afloopt.",
   "Started by User": "Gestart door gebruiker",
   "Started by User ID": "ID van de gebruiker die hem startte",
   "Started by hand while this workflow was off.": "Handmatig gestart terwijl deze workflow uit stond.",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "We vragen Let's Encrypt om een gloednieuw certificaat voor dit domein en vervangen daarmee het certificaat dat we nu aanbieden. Uw formulier blijft intussen online met het bestaande certificaat, en het nieuwe certificaat wordt binnen 15 minuten aangeboden.",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "Uw eigen domeinen waarop een formulier bereikbaar is, zoals report.acmeinc.com, geverifieerd en aangeboden via HTTPS.",
   "report (leave blank for root)": "report (laat leeg voor root)",
-  "Current plan": "Huidig abonnement"
+  "Current plan": "Huidig abonnement",
+  "Current plan, billed yearly": "Huidig abonnement, jaarlijks gefactureerd",
+  "Current plan, billed monthly": "Huidig abonnement, maandelijks gefactureerd",
+  "The project is already on this plan. Pick another plan to change to.": "Het project heeft dit abonnement al. Kies een ander abonnement om naar over te stappen."
 }

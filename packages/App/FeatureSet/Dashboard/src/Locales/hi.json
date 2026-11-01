@@ -8617,7 +8617,7 @@
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
   "Change Monitor Status to": "मॉनिटर स्थिति बदलकर करें",
-  "Change Plan": "Change Plan",
+  "Change Plan": "योजना बदलें",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
   "Change event": "Change event",
@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "लाल-हरा रंग-अंधता वाले लोगों को {{first}} और {{second}} एक जैसे दिखते हैं।",
   "{{percent}}% or more": "{{percent}}% या अधिक",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "{{probe}}, जो प्रोब इस डिवाइस को पोल करता है, {{version}} से पुराना है और Wi-Fi टेबल नहीं पढ़ सकता। रेडियो देखने के लिए इसे अपडेट करें।",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "भुगतान वाली योजना का बिल उसी समय से बनता है जब आप उस पर बदलते हैं, और उस पर आमंत्रित हर उपयोगकर्ता का बिल आमंत्रण के समय बनता है।",
+  "Changing plan does not start a free trial": "योजना बदलने से मुफ़्त ट्रायल शुरू नहीं होता",
+  "Your free trial carries over": "आपका मुफ़्त ट्रायल जारी रहता है",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "आपका मुफ़्त ट्रायल {{date}} तक चलता है, आप कोई भी योजना चुनें। इसके खत्म होने पर बिलिंग शुरू होती है।",
   "Started by User": "शुरू करने वाला उपयोगकर्ता",
   "Started by User ID": "शुरू करने वाले उपयोगकर्ता की ID",
   "Started by hand while this workflow was off.": "यह वर्कफ़्लो बंद रहते हुए हाथ से शुरू किया गया।",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "हम Let's Encrypt से इस डोमेन के लिए एक बिल्कुल नया प्रमाणपत्र माँगेंगे और अभी जो प्रमाणपत्र दे रहे हैं उसे उससे बदल देंगे। इस दौरान आपका फ़ॉर्म मौजूदा प्रमाणपत्र के साथ ऑनलाइन रहता है, और नया प्रमाणपत्र 15 मिनट के भीतर लागू हो जाता है।",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "आपके अपने डोमेन जिन पर कोई फ़ॉर्म खुलता है, जैसे report.acmeinc.com, सत्यापित और HTTPS पर परोसे गए।",
   "report (leave blank for root)": "report (रूट के लिए खाली छोड़ें)",
-  "Current plan": "वर्तमान योजना"
+  "Current plan": "वर्तमान योजना",
+  "Current plan, billed yearly": "वर्तमान योजना, वार्षिक बिलिंग",
+  "Current plan, billed monthly": "वर्तमान योजना, मासिक बिलिंग",
+  "The project is already on this plan. Pick another plan to change to.": "प्रोजेक्ट पहले से इसी योजना पर है। बदलने के लिए कोई दूसरी योजना चुनें।"
 }

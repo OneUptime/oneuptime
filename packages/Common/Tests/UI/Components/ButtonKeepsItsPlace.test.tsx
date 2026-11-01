@@ -145,6 +145,82 @@ describe("a locked button's wrapper takes the button's place in its row", () => 
 });
 
 /*
+ * UI review: the wrapper takes the keyboard's stop in place of the button,
+ * and the browser drew its own outline round it - a black square round
+ * the button and the 12px margin the button carries from md up, touching
+ * the Cancel beside a locked Save. Now the wrapper draws no outline, and
+ * the button draws its own focus ring - the product's, in its own colour -
+ * while the wrapper has the keyboard's focus.
+ */
+describe("the keyboard's focus on a wrapped button is the button's own ring", () => {
+  test.each([
+    ["locked", { disabled: true }],
+    ["busy", { isLoading: true }],
+  ])(
+    "%s: the wrapper draws no outline, and the button its ring while the wrapper has the focus",
+    (_name: string, state: { disabled?: boolean; isLoading?: boolean }) => {
+      render(
+        <Button
+          dataTestId="save"
+          title="Save Changes"
+          buttonStyle={ButtonStyleType.PRIMARY}
+          tooltip="You need the Edit Project permission."
+          {...state}
+        />,
+      );
+
+      expect(screen.getByTestId("save-disabled-wrapper")).toHaveClass(
+        "group/inert",
+        "focus:outline-none",
+      );
+      expect(screen.getByTestId("save")).toHaveClass(
+        "group-focus-visible/inert:ring-2",
+        "group-focus-visible/inert:ring-indigo-500",
+        "group-focus-visible/inert:ring-offset-2",
+      );
+    },
+  );
+
+  test("in the colour the button's own focus ring has: red on a Delete", () => {
+    render(
+      <Button
+        dataTestId="delete"
+        title="Delete"
+        buttonStyle={ButtonStyleType.DANGER}
+        disabled={true}
+        tooltip="Only the owner can delete the project."
+      />,
+    );
+
+    expect(screen.getByTestId("delete")).toHaveClass(
+      "group-focus-visible/inert:ring-red-500",
+    );
+    expect(screen.getByTestId("delete")).not.toHaveClass(
+      "group-focus-visible/inert:ring-indigo-500",
+    );
+  });
+
+  test("a button that is not wrapped keeps only its own focus ring", () => {
+    render(
+      <div>
+        <Button dataTestId="plain" title="Save Changes" />
+        <Button dataTestId="locked-quietly" title="Save" disabled={true} />
+      </div>,
+    );
+
+    for (const testId of ["plain", "locked-quietly"]) {
+      const button: HTMLElement = screen.getByTestId(testId);
+
+      expect(button).toHaveClass("focus-visible:ring-2");
+      expect(button.className).not.toContain("group-focus-visible/inert:");
+    }
+
+    expect(screen.queryByTestId("plain-disabled-wrapper")).toBeNull();
+    expect(screen.queryByTestId("locked-quietly-disabled-wrapper")).toBeNull();
+  });
+});
+
+/*
  * A button whose press makes it busy until the caller says it is done, as
  * a Save or a Refresh does.
  */

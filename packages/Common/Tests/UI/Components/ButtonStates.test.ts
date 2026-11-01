@@ -4,12 +4,16 @@ import {
   BUTTON_DISABLED_FADE_CLASS_NAME,
   getHandDrawnButtonStateClassName,
   getHandDrawnLookClassName,
+  getInertButtonFocusRingClassName,
   getInertButtonWrapperClassName,
   getLockedPartClassName,
   getRestingClassName,
+  INERT_BUTTON_WRAPPER_FOCUS_CLASS_NAME,
 } from "../../../UI/Components/Button/ButtonStates";
 import * as ButtonModule from "../../../UI/Components/Button/Button";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The locked and busy look every button takes - Button's own, and a button
@@ -222,6 +226,51 @@ describe("getHandDrawnLookClassName", () => {
         isLocked: true,
       }),
     ).toBe("border-gray-300 bg-white text-gray-700");
+  });
+});
+
+/*
+ * The keyboard's focus on a wrapped button (a locked or busy one with a
+ * reason): its wrapper takes the keyboard's stop, and the button draws its
+ * own focus ring while the wrapper has the focus.
+ */
+describe("getInertButtonFocusRingClassName", () => {
+  test("mirrors each of the button's focus-visible classes onto the wrapper's focus", () => {
+    expect(
+      tokensOf(
+        getInertButtonFocusRingClassName(
+          "inline-flex rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 md:ml-3",
+        ),
+      ),
+    ).toEqual([
+      "group-focus-visible/inert:ring-2",
+      "group-focus-visible/inert:ring-indigo-500",
+      "group-focus-visible/inert:ring-offset-2",
+    ]);
+  });
+
+  test("is nothing for a button with no focus ring of its own", () => {
+    expect(getInertButtonFocusRingClassName("inline-flex px-3")).toBe("");
+  });
+
+  test("names the group the wrapper is, and takes the browser's outline off it", () => {
+    expect(tokensOf(INERT_BUTTON_WRAPPER_FOCUS_CLASS_NAME)).toEqual([
+      "group/inert",
+      "focus:outline-none",
+    ]);
+  });
+
+  test("keeps the dark theme's focus colours: Theme.css softens the ring as it softens a button's own", () => {
+    const theme: string = fs.readFileSync(
+      path.join(__dirname, "..", "..", "..", "UI", "Styles", "Theme.css"),
+      "utf8",
+    );
+
+    for (const colour of ["indigo", "red", "green"]) {
+      expect(theme).toContain(
+        `html.dark .group\\/inert:focus-visible > [class*="group-focus-visible/inert:ring-${colour}-"]`,
+      );
+    }
   });
 });
 

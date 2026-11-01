@@ -553,22 +553,73 @@ describe("PlanPicker for a plan change", () => {
     expect(describedText(radio("Growth"))).not.toContain("Current plan");
   });
 
-  it("marks the plan only at the period it is billed for", () => {
+  /*
+   * UI review: the pill used to go when the reader looked at the other
+   * period's prices, so a project on Scale billed yearly that looked at the
+   * monthly prices saw no plan marked at all - with Scale still picked, at a
+   * price it is not on. The pill stays on the plan, and says how the project
+   * is billed now.
+   */
+  it("keeps marking the plan at the other period, with how it is billed now", () => {
     render(
       <PlanChange value="price_scale_year" currentPlanId="price_scale_year" />,
     );
 
-    expect(screen.getByTestId("plan-picker-current-plan")).toBeInTheDocument();
+    expect(
+      within(row("Scale")).getByTestId("plan-picker-current-plan"),
+    ).toHaveTextContent(/^Current plan$/);
 
     fireEvent.click(period("monthly"));
 
-    // Scale billed monthly is another price to move to.
-    expect(screen.queryByTestId("plan-picker-current-plan")).toBeNull();
+    // Scale billed monthly is another price to move to, and the pill says so.
     expect(onChange).toHaveBeenLastCalledWith("price_scale_month");
+    expect(
+      within(row("Scale")).getByTestId("plan-picker-current-plan"),
+    ).toHaveTextContent(/^Current plan, billed yearly$/);
+    expect(screen.getAllByTestId("plan-picker-current-plan")).toHaveLength(1);
+    expect(describedText(radio("Scale"))).toContain(
+      "Current plan, billed yearly",
+    );
 
     fireEvent.click(period("yearly"));
 
-    expect(screen.getByTestId("plan-picker-current-plan")).toBeInTheDocument();
+    expect(
+      within(row("Scale")).getByTestId("plan-picker-current-plan"),
+    ).toHaveTextContent(/^Current plan$/);
+  });
+
+  it("says billed monthly over the yearly prices of a plan billed monthly", () => {
+    render(
+      <PlanChange
+        value="price_growth_month"
+        currentPlanId="price_growth_month"
+      />,
+    );
+
+    fireEvent.click(period("yearly"));
+
+    expect(
+      within(row("Growth")).getByTestId("plan-picker-current-plan"),
+    ).toHaveTextContent(/^Current plan, billed monthly$/);
+  });
+
+  it("calls a plan that costs nothing either way the current plan at both periods", () => {
+    render(
+      <PlanChange value="price_free_month" currentPlanId="price_free_month" />,
+    );
+
+    fireEvent.click(period("yearly"));
+
+    // Free billed yearly costs what Free billed monthly does: nothing.
+    expect(
+      within(row("Free")).getByTestId("plan-picker-current-plan"),
+    ).toHaveTextContent(/^Current plan$/);
+  });
+
+  it("marks nothing when the project's price is none of the plans'", () => {
+    render(<PlanChange value="" currentPlanId="price_retired_legacy_plan" />);
+
+    expect(screen.queryByTestId("plan-picker-current-plan")).toBeNull();
   });
 
   it("says on a plan's row what moving to it stops, and reads it with the radio", () => {
@@ -623,7 +674,10 @@ describe("PlanPicker for a plan change", () => {
 
     expect(radio("Growth").value).toBe("price_growth_month");
     expect(radio("Growth")).toBeChecked();
-    expect(screen.queryByTestId("plan-picker-current-plan")).toBeNull();
+    // Its plan is still marked, with how it is billed now: a private yearly offer.
+    expect(
+      within(row("Growth")).getByTestId("plan-picker-current-plan"),
+    ).toHaveTextContent(/^Current plan, billed yearly$/);
     // Nothing is changed for the reader until they pick.
     expect(onChange).not.toHaveBeenCalled();
   });

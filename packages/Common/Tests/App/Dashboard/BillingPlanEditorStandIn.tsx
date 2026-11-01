@@ -11,6 +11,12 @@ import { CustomElementProps } from "../../../UI/Components/Forms/Types/Field";
  *
  * The plan the project is on is the one the suite last gave
  * setPlanEditorProjectPlan, as the dialog would load it from the project.
+ *
+ * What the dialog's form asks of the field is drawn too: the error its
+ * customValidation gives for the plan picked (plan-editor-error), which
+ * the form shows under the plans when Save Changes is pressed. And Save
+ * Changes itself, as a saved change ends: the card's onSaveSuccess
+ * (plan-editor-saved).
  */
 
 let projectPlanId: string = "";
@@ -26,18 +32,29 @@ interface PlanField {
     | ((values: unknown, props: CustomElementProps) => ReactElement)
     | undefined;
   footerElement?: ReactElement | undefined;
+  customValidation?:
+    | ((values: { paymentProviderPlanId?: string }) => string | null)
+    | undefined;
 }
 
 interface StandInProps {
   cardProps: { title: string };
   editModalTitle?: string | undefined;
   formFields?: Array<PlanField> | undefined;
+  onSaveSuccess?: (() => void) | undefined;
 }
 
-const PlanEditor: (props: { field: PlanField }) => ReactElement = (props: {
+const PlanEditor: (props: {
   field: PlanField;
+  onSaveSuccess?: (() => void) | undefined;
+}) => ReactElement = (props: {
+  field: PlanField;
+  onSaveSuccess?: (() => void) | undefined;
 }): ReactElement => {
   const [value, setValue] = useState<string>(projectPlanId);
+  const error: string | null = props.field.customValidation
+    ? props.field.customValidation({ paymentProviderPlanId: value })
+    : null;
 
   return (
     <section aria-label="Plan options">
@@ -53,6 +70,16 @@ const PlanEditor: (props: { field: PlanField }) => ReactElement = (props: {
       )}
       <div data-testid="plan-footer">{props.field.footerElement}</div>
       <p data-testid="plan-editor-value">{value}</p>
+      <p data-testid="plan-editor-error">{error || ""}</p>
+      <button
+        type="button"
+        data-testid="plan-editor-saved"
+        onClick={() => {
+          props.onSaveSuccess?.();
+        }}
+      >
+        Saved
+      </button>
     </section>
   );
 };
@@ -68,7 +95,11 @@ const BillingPlanEditorStandIn: (props: StandInProps) => ReactElement = (
 
   return (
     <div data-testid="plan-editor" data-title={props.editModalTitle || ""}>
-      {field ? <PlanEditor field={field} /> : <></>}
+      {field ? (
+        <PlanEditor field={field} onSaveSuccess={props.onSaveSuccess} />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

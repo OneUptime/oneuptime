@@ -270,6 +270,26 @@ function sectionFrames(box: Locator): Locator {
   );
 }
 
+// Where each of Filters, Actions and Settings starts and ends, as drawn.
+async function sectionEdges(
+  box: Locator,
+): Promise<Array<{ top: number; bottom: number }>> {
+  const sections: Array<Locator> = await sectionFrames(box).all();
+
+  return Promise.all(
+    sections.map(
+      (section: Locator): Promise<{ top: number; bottom: number }> => {
+        return section.evaluate(
+          (element: Element): { top: number; bottom: number } => {
+            const rect: DOMRect = element.getBoundingClientRect();
+            return { top: rect.top, bottom: rect.bottom };
+          },
+        );
+      },
+    ),
+  );
+}
+
 // The first criteria's bands: its actions' boxes and its first filter's.
 function bands(box: Locator): Array<Locator> {
   return [
@@ -393,6 +413,31 @@ test.describe("The criteria editor on a phone", () => {
       expect([drawnSection.borderLeft, drawnSection.borderRight]).toEqual([
         0, 0,
       ]);
+    }
+  });
+
+  /*
+   * UI review: 16px apart, each ruled above and below, two rules and a
+   * strip of white came between every two sections. On a phone they are one
+   * list: each takes its rule over the one before's, so one rule parts them.
+   */
+  test("Filters, Actions and Settings are one list: one rule between two sections", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    const box: Locator = await openCriteria(page);
+    const edges: Array<{ top: number; bottom: number }> =
+      await sectionEdges(box);
+
+    expect(edges).toHaveLength(3);
+
+    for (let index: number = 1; index < edges.length; index++) {
+      // Its 1px top rule lies on the one before's bottom rule.
+      expect(
+        Math.abs(edges[index]!.top - (edges[index - 1]!.bottom - 1)),
+      ).toBeLessThanOrEqual(0.5);
     }
   });
 
@@ -612,6 +657,16 @@ test.describe("The criteria editor from sm up: nothing changes", () => {
           drawnSection.borderLeft,
           drawnSection.radius,
         ]).toEqual([1, 1, 1, 1, 8]);
+      }
+
+      // Framed sections 16px apart, as they always were.
+      const edges: Array<{ top: number; bottom: number }> =
+        await sectionEdges(box);
+
+      for (let index: number = 1; index < edges.length; index++) {
+        expect(Math.round(edges[index]!.top - edges[index - 1]!.bottom)).toBe(
+          16,
+        );
       }
 
       for (const testId of [

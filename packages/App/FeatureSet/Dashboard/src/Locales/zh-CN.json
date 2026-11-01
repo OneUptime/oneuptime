@@ -8617,7 +8617,7 @@
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
   "Change Monitor Status to": "将监视器状态更改为",
-  "Change Plan": "Change Plan",
+  "Change Plan": "更改套餐",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
   "Change event": "Change event",
@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "对红绿色盲人士来说，{{first}} 和 {{second}} 看起来一样。",
   "{{percent}}% or more": "{{percent}}% 或以上",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "轮询此设备的探测器 {{probe}} 早于 {{version}}，无法读取 Wi-Fi 表。请更新它以查看无线电。",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "付费套餐从您更改的那一刻起计费，在该套餐中邀请的每位用户在邀请时计费。",
+  "Changing plan does not start a free trial": "更改套餐不会开始免费试用",
+  "Your free trial carries over": "您的免费试用将延续",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "无论选择哪个套餐，您的免费试用都持续到 {{date}}。试用结束后开始计费。",
   "Started by User": "启动者",
   "Started by User ID": "启动者 ID",
   "Started by hand while this workflow was off.": "在此工作流关闭时手动启动。",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "我们会向 Let's Encrypt 申请此域名的全新证书，并用它替换我们当前提供的证书。在此期间，您的表单继续使用现有证书在线运行，新证书将在 15 分钟内生效。",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "表单所在的您自己的域名，例如 report.acmeinc.com，已验证并通过 HTTPS 提供。",
   "report (leave blank for root)": "report（留空表示根域名）",
-  "Current plan": "当前套餐"
+  "Current plan": "当前套餐",
+  "Current plan, billed yearly": "当前套餐（按年计费）",
+  "Current plan, billed monthly": "当前套餐（按月计费）",
+  "The project is already on this plan. Pick another plan to change to.": "项目已在使用此套餐。请选择要更改为的其他套餐。"
 }

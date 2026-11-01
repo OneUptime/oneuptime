@@ -232,6 +232,20 @@ function rowText(plan: string): string {
   return screen.getByTestId(`plan-picker-option-${plan}`).textContent || "";
 }
 
+// The Current plan pill on a plan's row, or null when it has none.
+function currentPlanPill(plan: string): string | null {
+  const pill: HTMLElement | null = within(
+    screen.getByTestId(`plan-picker-option-${plan}`),
+  ).queryByTestId("plan-picker-current-plan");
+
+  return pill ? pill.textContent : null;
+}
+
+// What the dialog's form would say under the plans on Save Changes.
+function editorError(): string {
+  return screen.getByTestId("plan-editor-error").textContent || "";
+}
+
 // The price the plan's radio picks: the plan, at the period shown.
 function valueOf(plan: string): string {
   return (screen.getByRole("radio", { name: plan }) as HTMLInputElement).value;
@@ -438,7 +452,7 @@ describe("a project on Free with no trial - the reported case", () => {
 });
 
 describe("a project billed yearly", () => {
-  it("opens at the yearly prices, with its plan marked at that period only", async () => {
+  it("opens at the yearly prices, with its plan marked - at the monthly prices too", async () => {
     await renderBilling({
       paymentProviderPlanId: "price_growth_year",
       trialEndsAt: null,
@@ -446,14 +460,19 @@ describe("a project billed yearly", () => {
 
     expect(periodButton("yearly")).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("radio", { name: "Growth" })).toBeChecked();
-    expect(rowText("Growth")).toContain("Current plan");
+    expect(currentPlanPill("Growth")).toBe("Current plan");
 
-    // Growth billed monthly is another plan to move to: no pill there.
+    /*
+     * Growth billed monthly is another price to move to. The pill stays on
+     * Growth and says how the project is billed now, so a reader looking at
+     * the monthly prices still sees the plan they are on.
+     */
     await act(async () => {
       fireEvent.click(periodButton("monthly"));
     });
 
-    expect(rowText("Growth")).not.toContain("Current plan");
+    expect(currentPlanPill("Growth")).toBe("Current plan, billed yearly");
+    expect(screen.getAllByTestId("plan-picker-current-plan")).toHaveLength(1);
   });
 });
 
@@ -548,8 +567,148 @@ describe("a project a cloud marketplace bills", () => {
 
     expect(valueOf("Growth")).toBe("price_growth_month");
     expect(rowText("Growth")).toContain("$22");
-    // The yearly price it is on is not one of those shown.
-    expect(rowText("Growth")).not.toContain("Current plan");
+    // The yearly price it is on is not one of those shown: the pill says it.
+    expect(currentPlanPill("Growth")).toBe("Current plan, billed yearly");
+  });
+});
+
+/*
+ * UI review: Save Changes with the plan the project is on still picked ran
+ * a whole plan change - the price swapped for itself at the payment
+ * provider, and the change reported - for a project that stayed where it
+ * was. The dialog opens on that plan, so it was one press away. Now the
+ * form's check says so under the plans instead (getChangePlanError).
+ */
+describe("Save Changes with the plan the project is on", () => {
+  it("says the project is already on it, rather than changing nothing", async () => {
+    await renderBilling({
+      paymentProviderPlanId: "price_growth_year",
+      trialEndsAt: null,
+    });
+
+    expect(editorError()).toBe(
+      "The project is already on this plan. Pick another plan to change to.",
+    );
+  });
+
+  it("goes ahead once another plan is picked", async () => {
+    await renderBilling({
+      paymentProviderPlanId: "price_growth_year",
+      trialEndsAt: null,
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("radio", { name: "Scale" }));
+    });
+
+    expect(editorError()).toBe("");
+  });
+
+  it("goes ahead for the same paid plan at the other period: that is a change", async () => {
+    await renderBilling({
+      paymentProviderPlanId: "price_growth_year",
+      trialEndsAt: null,
+    });
+
+    await act(async () => {
+      fireEvent.click(periodButton("monthly"));
+    });
+
+    expect(screen.getByTestId("plan-editor-value")).toHaveTextContent(
+      "price_growth_month",
+    );
+    expect(editorError()).toBe("");
+  });
+
+  it("says so for Free at the other period: it costs nothing either way", async () => {
+    await renderBilling({
+      paymentProviderPlanId: "price_free_month",
+      trialEndsAt: null,
+    });
+
+    await act(async () => {
+      fireEvent.click(periodButton("yearly"));
+    });
+
+    expect(screen.getByTestId("plan-editor-value")).toHaveTextContent(
+      "price_free_year",
+    );
+    expect(editorError()).toBe(
+      "The project is already on this plan. Pick another plan to change to.",
+    );
+  });
+});
+
+/*
+ * After a plan change saves, the page is on the new plan: the Current plan
+ * pill moves to it, and the next change is checked against it.
+ */
+describe("after a plan change is saved", () => {
+  it("marks the plan the project moved to, and no longer the one it left", async () => {
+    await renderBilling({
+      paymentProviderPlanId: "price_growth_year",
+      trialEndsAt: null,
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("radio", { name: "Scale" }));
+    });
+
+    // What the change-plan API left on the project.
+    getItemMock.mockResolvedValue({
+      paymentProviderPlanId: "price_scale_year",
+      paymentProviderSubscriptionSeats: 4,
+      trialEndsAt: null,
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("plan-editor-saved"));
+    });
+
+    await act(async () => {
+      for (let i: number = 0; i < 10; i++) {
+        await Promise.resolve();
+      }
+    });
+
+    expect(currentPlanPill("Scale")).toBe("Current plan");
+    expect(
+      within(screen.getByTestId("plan-picker-option-Growth")).queryByTestId(
+        "plan-picker-current-plan",
+      ),
+    ).toBeNull();
+    // Scale is the plan the project is on now: saving it again changes nothing.
+    expect(editorError()).toBe(
+      "The project is already on this plan. Pick another plan to change to.",
+    );
+  });
+
+  it("reads the project's trial again with its plan", async () => {
+    await renderBilling({
+      paymentProviderPlanId: "price_growth_year",
+      trialEndsAt: null,
+    });
+
+    getItemMock.mockClear();
+    getItemMock.mockResolvedValue({
+      paymentProviderPlanId: "price_scale_year",
+      paymentProviderSubscriptionSeats: 4,
+      trialEndsAt: null,
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("plan-editor-saved"));
+    });
+
+    const request: { select: Record<string, unknown> } = getItemMock.mock
+      .calls[0]![0] as { select: Record<string, unknown> };
+
+    expect(request.select).toEqual(
+      expect.objectContaining({
+        paymentProviderPlanId: true,
+        trialEndsAt: true,
+      }),
+    );
   });
 });
 

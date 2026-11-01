@@ -560,6 +560,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                   },
                 )}
                 options={props.monitorStatusDropdownOptions}
+                /*
+                 * The switch above asks for a status change: a status is
+                 * always picked, so there is no clear button to empty it.
+                 */
+                isClearable={false}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {

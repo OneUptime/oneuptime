@@ -10,6 +10,7 @@ import {
   PlanTermsText,
   TRIAL_BADGE,
   TRIAL_TERMS,
+  getCurrentPlanText,
   getPlanAudience,
   getPlanPickerOptionText,
   getPlanTermsText,
@@ -508,6 +509,87 @@ describe("PlanPickerCopy: the saving beside Yearly", () => {
         translator: translatorFor("fa"),
       }),
     ).toContain(translatorFor("fa").formatNumber(15));
+  });
+});
+
+/*
+ * The pill on the plan a project is on, in Change Plan. At the period the
+ * project is billed for it says Current plan; at the other period it says
+ * how the project is billed now, so the reader looking at the other prices
+ * never loses the plan they are on (UI review of #5482: it used to vanish).
+ */
+describe("PlanPickerCopy: the current plan's pill", () => {
+  function pill(
+    plan: SubscriptionPlan,
+    period: BillingPeriod,
+    currentPlanId: string | null | undefined,
+    translator: Translator = english,
+  ): string | null {
+    return getCurrentPlanText({ plan, period, currentPlanId, translator });
+  }
+
+  it("says Current plan at the period the project is billed for", () => {
+    expect(pill(GROWTH, BillingPeriod.Yearly, "price_growth_year")).toBe(
+      "Current plan",
+    );
+    expect(pill(GROWTH, BillingPeriod.Monthly, "price_growth_month")).toBe(
+      "Current plan",
+    );
+  });
+
+  it("says how the project is billed now while the other period's prices are shown", () => {
+    expect(pill(GROWTH, BillingPeriod.Monthly, "price_growth_year")).toBe(
+      "Current plan, billed yearly",
+    );
+    expect(pill(SCALE, BillingPeriod.Yearly, "price_scale_month")).toBe(
+      "Current plan, billed monthly",
+    );
+    expect(
+      pill(ENTERPRISE, BillingPeriod.Monthly, "price_enterprise_year"),
+    ).toBe("Current plan, billed yearly");
+  });
+
+  it("calls a plan that costs nothing either way the current plan at both periods", () => {
+    expect(pill(FREE, BillingPeriod.Yearly, "price_free_month")).toBe(
+      "Current plan",
+    );
+    expect(pill(FREE, BillingPeriod.Monthly, "price_free_year")).toBe(
+      "Current plan",
+    );
+  });
+
+  it("is on no other plan, and on none when the project's price is unknown", () => {
+    expect(pill(SCALE, BillingPeriod.Yearly, "price_growth_year")).toBeNull();
+    expect(pill(GROWTH, BillingPeriod.Yearly, "price_retired")).toBeNull();
+    expect(pill(GROWTH, BillingPeriod.Yearly, null)).toBeNull();
+    expect(pill(GROWTH, BillingPeriod.Yearly, undefined)).toBeNull();
+  });
+
+  it("is in the reader's language, as the German and Persian Dashboards word it", () => {
+    expect(
+      pill(
+        GROWTH,
+        BillingPeriod.Monthly,
+        "price_growth_year",
+        translatorFor("de"),
+      ),
+    ).toBe("Aktueller Tarif, jährlich abgerechnet");
+    expect(
+      pill(
+        GROWTH,
+        BillingPeriod.Yearly,
+        "price_growth_year",
+        translatorFor("de"),
+      ),
+    ).toBe("Aktueller Tarif");
+    expect(
+      pill(
+        GROWTH,
+        BillingPeriod.Yearly,
+        "price_growth_month",
+        translatorFor("fa"),
+      ),
+    ).toBe("طرح فعلی، صورت‌حساب ماهانه");
   });
 });
 

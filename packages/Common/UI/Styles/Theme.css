@@ -1193,6 +1193,23 @@ html.dark [class*="focus-visible:ring-green-"]:focus-visible {
   --tw-ring-color: rgb(96 165 250 / 50%) !important;
 }
 
+/*
+ * A locked or busy Button's own ring, drawn round it while the wrapper that
+ * takes its keyboard stop has the focus (ButtonStates'
+ * getInertButtonFocusRingClassName): the same colours as above.
+ */
+html.dark .group\/inert:focus-visible > [class*="group-focus-visible/inert:ring-indigo-"] {
+  --tw-ring-color: rgb(129 140 248 / 55%) !important;
+}
+
+html.dark .group\/inert:focus-visible > [class*="group-focus-visible/inert:ring-red-"] {
+  --tw-ring-color: rgb(248 113 113 / 50%) !important;
+}
+
+html.dark .group\/inert:focus-visible > [class*="group-focus-visible/inert:ring-green-"] {
+  --tw-ring-color: rgb(96 165 250 / 50%) !important;
+}
+
 html.dark :is(
     [class*="hover:border-indigo-"],
     [class*="focus:border-indigo-"]

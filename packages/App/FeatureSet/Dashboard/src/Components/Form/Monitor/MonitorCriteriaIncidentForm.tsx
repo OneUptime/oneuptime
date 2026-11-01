@@ -205,6 +205,11 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
               },
             )}
             options={props.incidentSeverityDropdownOptions}
+            /*
+             * Required: an incident always has a severity, so there is no
+             * clear button to empty it (as a form's required pick has none).
+             */
+            isClearable={false}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               updateField(
                 "incidentSeverityId",

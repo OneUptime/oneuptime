@@ -8617,7 +8617,7 @@
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
   "Change Monitor Status to": "Изменить статус монитора на",
-  "Change Plan": "Change Plan",
+  "Change Plan": "Изменить план",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
   "Change event": "Change event",
@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} и {{second}} выглядят одинаково для людей с красно-зелёной цветовой слепотой.",
   "{{percent}}% or more": "{{percent}}% и выше",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "{{probe}} — зонд, опрашивающий это устройство, — старше {{version}} и не умеет читать таблицы Wi-Fi. Обновите его, чтобы увидеть радиомодули.",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "Платный план оплачивается с момента перехода на него, а каждый пользователь, которого вы приглашаете, оплачивается в момент приглашения.",
+  "Changing plan does not start a free trial": "Смена плана не начинает бесплатный пробный период",
+  "Your free trial carries over": "Бесплатный пробный период сохраняется",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Бесплатный пробный период длится до {{date}}, какой бы план вы ни выбрали. Оплата начнётся, когда он закончится.",
   "Started by User": "Запустивший пользователь",
   "Started by User ID": "ID запустившего пользователя",
   "Started by hand while this workflow was off.": "Запущен вручную, когда этот рабочий процесс был выключен.",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "Мы запросим у Let's Encrypt совершенно новый сертификат для этого домена и заменим им сертификат, который используем сейчас. Пока это происходит, ваша форма остаётся доступной с текущим сертификатом, а новый сертификат начнёт использоваться в течение 15 минут.",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "Ваши собственные домены, на которых открывается форма, например report.acmeinc.com, подтверждённые и работающие по HTTPS.",
   "report (leave blank for root)": "report (оставьте пустым для корня)",
-  "Current plan": "Текущий план"
+  "Current plan": "Текущий план",
+  "Current plan, billed yearly": "Текущий план, оплата ежегодно",
+  "Current plan, billed monthly": "Текущий план, оплата ежемесячно",
+  "The project is already on this plan. Pick another plan to change to.": "Проект уже на этом плане. Выберите другой план, на который нужно перейти."
 }

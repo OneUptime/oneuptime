@@ -17,6 +17,7 @@ import {
   PlanPickerCopy,
   PlanPickerOptionText,
   PlanTermsText,
+  getCurrentPlanText,
   getPlanPickerOptionText,
   getPlanTermsText,
   getSentenceSeparator,
@@ -48,7 +49,8 @@ import React, {
  *
  * The Billing page's Change Plan is the same picker for a plan change
  * (isPlanChange): it opens at the period the project is billed for, the
- * plan it is on carries a Current plan pill, no plan offers a trial and the
+ * plan it is on carries a Current plan pill - at the other period too, with
+ * how it is billed now (getCurrentPlanText) - no plan offers a trial and the
  * dialog says what happens to a running one, a plan's row says what moving
  * to it stops (getPlanNote), and a project a marketplace bills month to
  * month sees one period (periods). It used to be a stack of cards of its
@@ -73,8 +75,9 @@ export interface ComponentProps {
    */
   isPlanChange?: boolean | undefined;
   /*
-   * The price the project is subscribed to: its plan, at that period,
-   * carries a Current plan pill.
+   * The price the project is subscribed to: its plan carries a Current plan
+   * pill, which says how it is billed now while the other period's prices
+   * are shown (getCurrentPlanText).
    */
   currentPlanId?: string | undefined;
   /*
@@ -221,16 +224,19 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
     const optionId: string = `${id}-option-${index}`;
     const isFirst: boolean = index === 0;
     const isLast: boolean = index === props.plans.length - 1;
-    // The plan, at the period shown, the project is subscribed to.
-    const isCurrent: boolean = Boolean(
-      props.currentPlanId && planId === props.currentPlanId,
-    );
+    // The plan the project is subscribed to, at either period.
+    const currentPlanText: string | null = getCurrentPlanText({
+      plan,
+      period,
+      currentPlanId: props.currentPlanId,
+      translator,
+    });
     const note: string | null = props.getPlanNote
       ? props.getPlanNote(plan)
       : null;
 
     const describedBy: string = [
-      isCurrent ? `${optionId}-current` : "",
+      currentPlanText ? `${optionId}-current` : "",
       text.trialBadge ? `${optionId}-trial` : "",
       text.audience ? `${optionId}-audience` : "",
       note ? `${optionId}-note` : "",
@@ -279,13 +285,13 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
               >
                 {text.name}
               </span>
-              {isCurrent && (
+              {currentPlanText && (
                 <span
                   id={`${optionId}-current`}
                   data-testid="plan-picker-current-plan"
                   className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-200"
                 >
-                  {translator.translateText(PlanPickerCopy.currentPlan)}
+                  {currentPlanText}
                 </span>
               )}
               {text.trialBadge && (

@@ -48,15 +48,15 @@ En person tæller som en plads, fra du inviterer personen, allerede før den acc
 :::steps
 ### Tilføj først en betalingsmetode
 
-Et planskift kræver en betalingsmetode. Uden en åbner **Change Plan** i stedet **Add a Payment Method**: se [Betalingsmetoder](#betalingsmetoder).
+Et planskift kræver en betalingsmetode. Uden en åbner **Skift plan** i stedet **Add a Payment Method**: se [Betalingsmetoder](#betalingsmetoder).
 
-### Klik på Change Plan
+### Klik på Skift plan
 
-Klik på **Change Plan** på kortet **Aktuel plan**. Planerne åbner med den periode, projektet faktureres for; skift mellem **Månedlig** og **Årlig** for at se de andre priser.
+Klik på **Skift plan** på kortet **Aktuel plan**. Planerne åbner med den periode, projektet faktureres for; skift mellem **Månedlig** og **Årlig** for at se de andre priser.
 
 ### Vælg planen
 
-Hver plan viser sin pris pr. bruger, og **Aktuel plan** markerer den, projektet er på. Noten under planerne siger, hvad der sker med din prøveperiode: **Your free trial carries over**, så længe projektet stadig er i sin prøveperiode, og **Changing plan does not start a free trial**, når det ikke længere er.
+Hver plan viser sin pris pr. bruger, og **Aktuel plan** markerer den, projektet er på. Noten under planerne siger, hvad der sker med din prøveperiode: **Din gratis prøveperiode fortsætter**, så længe projektet stadig er i sin prøveperiode, og **Et planskift starter ikke en gratis prøveperiode**, når det ikke længere er.
 
 ### Gem ændringen
 
@@ -184,7 +184,7 @@ Et projekt på Free-planen skal have en betalingsmetode, før det opretter aktiv
 Et projekt med ubetalte fakturaer bliver inaktivt og slettes, hvis de forbliver ubetalte. Åbn **Fakturaer**, og klik på **Betal faktura** på hver, der stadig er ubetalt.
 :::
 
-:::details Change Plan åbner Add a Payment Method
+:::details Skift plan åbner Add a Payment Method
 Projektet har endnu ingen betalingsmetode. Tilføj en, og skift så plan.
 :::
 

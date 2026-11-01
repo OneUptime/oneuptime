@@ -196,6 +196,45 @@ export const getInertButtonWrapperClassName: (data: {
 };
 
 /*
+ * The wrapper's part in the keyboard's focus. The wrapper takes the
+ * keyboard's stop in place of the button inside it - a locked button's, to
+ * say why it is locked; a busy one's, while it works - so the button's own
+ * focus ring is drawn round the button whenever the wrapper has the
+ * keyboard's focus (getInertButtonFocusRingClassName), and the wrapper
+ * draws none of its own. The browser's outline round the wrapper was a
+ * black square that took in the 12px margin a button carries from md up,
+ * so it touched the Cancel beside a locked Save.
+ */
+export const INERT_BUTTON_WRAPPER_FOCUS_CLASS_NAME: string =
+  "group/inert focus:outline-none";
+
+const FOCUS_VISIBLE_VARIANT: string = "focus-visible:";
+
+const INERT_WRAPPER_FOCUS_VISIBLE_VARIANT: string =
+  "group-focus-visible/inert:";
+
+/*
+ * A wrapped button's focus ring: each of its focus-visible: classes, drawn
+ * while its wrapper has the keyboard's focus - the same ring, in the same
+ * colour, as the button draws when it has the focus itself.
+ */
+export const getInertButtonFocusRingClassName: (
+  buttonClassName: string,
+) => string = (buttonClassName: string): string => {
+  return buttonClassName
+    .split(CLASS_SEPARATOR)
+    .filter((token: string): boolean => {
+      return token.startsWith(FOCUS_VISIBLE_VARIANT);
+    })
+    .map((token: string): string => {
+      return `${INERT_WRAPPER_FOCUS_VISIBLE_VARIANT}${token.slice(
+        FOCUS_VISIBLE_VARIANT.length,
+      )}`;
+    })
+    .join(" ");
+};
+
+/*
  * A look written with its hover in it, in a state: as written while it can
  * be pressed; at rest while it is busy; at rest and faded, with the
  * not-allowed cursor, while it is locked.

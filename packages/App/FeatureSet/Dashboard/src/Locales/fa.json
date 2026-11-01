@@ -8617,7 +8617,7 @@
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
   "Change Monitor Status to": "تغییر وضعیت مانیتور به",
-  "Change Plan": "Change Plan",
+  "Change Plan": "تغییر طرح",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
   "Change event": "Change event",
@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} و {{second}} برای افراد دارای کوررنگی قرمز-سبز یکسان به نظر می‌رسند.",
   "{{percent}}% or more": "٪{{percent}} یا بیشتر",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "{{probe}}، پرابی که این دستگاه را پایش می‌کند، قدیمی‌تر از {{version}} است و نمی‌تواند جدول‌های Wi-Fi را بخواند. برای دیدن رادیوها آن را به‌روزرسانی کنید.",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "طرح پولی از لحظه‌ای که به آن تغییر می‌دهید صورت‌حساب می‌شود، و هر کاربری که در آن دعوت می‌کنید هنگام دعوت صورت‌حساب می‌شود.",
+  "Changing plan does not start a free trial": "تغییر طرح، دورهٔ آزمایشی رایگان را شروع نمی‌کند",
+  "Your free trial carries over": "دورهٔ آزمایشی رایگان شما ادامه می‌یابد",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "دورهٔ آزمایشی رایگان شما تا {{date}} ادامه دارد، با هر طرحی که انتخاب کنید. صورت‌حساب پس از پایان آن شروع می‌شود.",
   "Started by User": "کاربر آغازکننده",
   "Started by User ID": "شناسه کاربر آغازکننده",
   "Started by hand while this workflow was off.": "در زمانی که این گردش کاری خاموش بود، به‌صورت دستی آغاز شد.",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "ما از Let's Encrypt یک گواهی کاملاً تازه برای این دامنه درخواست می‌کنیم و گواهی‌ای را که اکنون ارائه می‌دهیم با آن جایگزین می‌کنیم. در این مدت فرم شما با گواهی فعلی در دسترس می‌ماند و گواهی تازه ظرف ۱۵ دقیقه ارائه می‌شود.",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "دامنه‌های خودتان که فرم روی آن‌ها پاسخ می‌دهد، مانند report.acmeinc.com، تأییدشده و ارائه‌شده روی HTTPS.",
   "report (leave blank for root)": "report (برای ریشه خالی بگذارید)",
-  "Current plan": "طرح فعلی"
+  "Current plan": "طرح فعلی",
+  "Current plan, billed yearly": "طرح فعلی، صورت‌حساب سالانه",
+  "Current plan, billed monthly": "طرح فعلی، صورت‌حساب ماهانه",
+  "The project is already on this plan. Pick another plan to change to.": "پروژه همین حالا روی این طرح است. طرح دیگری را برای تغییر انتخاب کنید."
 }

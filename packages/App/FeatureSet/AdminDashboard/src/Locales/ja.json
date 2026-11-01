@@ -925,6 +925,8 @@
   "{{price}} per user, billed monthly from today.": "1 ユーザーあたり {{price}}、本日から毎月請求されます。",
   "Our sales team will contact you to agree on a price.": "営業チームからご連絡し、価格をご相談します。",
   "Current plan": "現在のプラン",
+  "Current plan, billed yearly": "現在のプラン（毎年請求）",
+  "Current plan, billed monthly": "現在のプラン（毎月請求）",
   "{{count}}-day free trial": "{{count}} 日間の無料トライアル",
   "{{count}}-day free trial_one": "{{count}} 日間の無料トライアル",
   "Free for {{count}} days, no card needed to start.": "{{count}} 日間無料。開始時にカードは不要です。",

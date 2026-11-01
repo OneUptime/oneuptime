@@ -16,8 +16,10 @@ import {
   BUTTON_DISABLED_CLASS_NAME,
   BUTTON_DISABLED_CURSOR_CLASS_NAME,
   getHandDrawnButtonStateClassName,
+  getInertButtonFocusRingClassName,
   getInertButtonWrapperClassName,
   HandDrawnButtonState,
+  INERT_BUTTON_WRAPPER_FOCUS_CLASS_NAME,
 } from "./ButtonStates";
 
 /*
@@ -485,6 +487,17 @@ const Button: FunctionComponent<ComponentProps> = ({
   }
 
   /*
+   * Wrapped - a locked or busy button with a reason - the button's own
+   * focus ring is drawn round it while the wrapper, which takes the
+   * keyboard's stop in its place, has the keyboard's focus.
+   */
+  if (isInert && translatedTooltip) {
+    buttonStyleCssClass += ` ${getInertButtonFocusRingClassName(
+      buttonStyleCssClass,
+    )}`;
+  }
+
+  /*
    * An icon button, or any button with no words (a phone's menu toggle, a
    * row's trash can), is named by its title or else its tooltip.
    */
@@ -575,10 +588,10 @@ const Button: FunctionComponent<ComponentProps> = ({
              * takes the button's place in its row - as wide as a phone,
              * where the button is - not only as wide as its words.
              */
-            className={getInertButtonWrapperClassName({
+            className={`${getInertButtonWrapperClassName({
               buttonClassName: buttonStyleCssClass,
               isLocked: isLocked,
-            })}
+            })} ${INERT_BUTTON_WRAPPER_FOCUS_CLASS_NAME}`}
             tabIndex={0}
             data-testid={
               dataTestId ? `${dataTestId}-disabled-wrapper` : undefined

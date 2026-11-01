@@ -8617,7 +8617,7 @@
   "Change Monitor Status To": "Change Monitor Status To",
   "Change Monitor Status To ID": "Change Monitor Status To ID",
   "Change Monitor Status to": "Ändra övervakningsstatus till",
-  "Change Plan": "Change Plan",
+  "Change Plan": "Byt plan",
   "Change Plan Link": "Change Plan Link",
   "Change budget": "Change budget",
   "Change event": "Change event",
@@ -27438,10 +27438,10 @@
   "{{first}} and {{second}} look alike to people with red-green color blindness.": "{{first}} och {{second}} ser likadana ut för personer med röd-grön färgblindhet.",
   "{{percent}}% or more": "{{percent}} % eller mer",
   "{{probe}}, the probe that polls this device, is older than {{version}} and cannot read Wi-Fi tables. Update it to see the radios.": "{{probe}}, sonden som pollar den här enheten, är äldre än {{version}} och kan inte läsa Wi-Fi-tabeller. Uppdatera den för att se radiomodulerna.",
-  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.",
-  "Changing plan does not start a free trial": "Changing plan does not start a free trial",
-  "Your free trial carries over": "Your free trial carries over",
-  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
+  "A paid plan is billed from the moment you change to it, and every user you invite on it is billed when you invite them.": "En betald plan faktureras från det ögonblick du byter till den, och varje användare du bjuder in på den faktureras när du bjuder in dem.",
+  "Changing plan does not start a free trial": "Att byta plan startar ingen gratis provperiod",
+  "Your free trial carries over": "Din gratis provperiod fortsätter",
+  "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.": "Din gratis provperiod pågår till {{date}}, vilken plan du än väljer. Faktureringen börjar när den tar slut.",
   "Started by User": "Startad av användare",
   "Started by User ID": "ID för användaren som startade den",
   "Started by hand while this workflow was off.": "Startades manuellt medan det här arbetsflödet var avstängt.",
@@ -39138,5 +39138,8 @@
   "We will ask Let's Encrypt for a brand new certificate for this domain, and replace the one we currently serve with it. Your form stays online on the existing certificate while this happens, and the new certificate is served within 15 minutes.": "Vi ber Let's Encrypt om ett helt nytt certifikat för den här domänen och ersätter certifikatet vi levererar nu med det. Ditt formulär är fortsatt tillgängligt med det befintliga certifikatet under tiden, och det nya certifikatet levereras inom 15 minuter.",
   "Your own domains a form answers on, such as report.acmeinc.com, verified and served over HTTPS.": "Dina egna domäner som ett formulär svarar på, till exempel report.acmeinc.com, verifierade och levererade över HTTPS.",
   "report (leave blank for root)": "report (lämna tomt för rot)",
-  "Current plan": "Aktuell plan"
+  "Current plan": "Aktuell plan",
+  "Current plan, billed yearly": "Aktuell plan, faktureras årsvis",
+  "Current plan, billed monthly": "Aktuell plan, faktureras månadsvis",
+  "The project is already on this plan. Pick another plan to change to.": "Projektet har redan den här planen. Välj en annan plan att byta till."
 }

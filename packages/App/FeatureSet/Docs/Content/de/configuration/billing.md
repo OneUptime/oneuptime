@@ -56,7 +56,7 @@ Klicken Sie auf der Karte **Aktueller Tarif** auf **Tarif ändern**. Die Tarife 
 
 ### Den Tarif wählen
 
-Jeder Tarif zeigt seinen Preis pro Benutzer, und **Aktueller Tarif** markiert den Tarif, auf dem das Projekt ist. Der Hinweis unter den Tarifen sagt, was mit Ihrer Testphase geschieht: **Your free trial carries over**, solange das Projekt noch in seiner Testphase ist, und **Changing plan does not start a free trial**, sobald nicht mehr.
+Jeder Tarif zeigt seinen Preis pro Benutzer, und **Aktueller Tarif** markiert den Tarif, auf dem das Projekt ist. Der Hinweis unter den Tarifen sagt, was mit Ihrer Testphase geschieht: **Ihre kostenlose Testphase bleibt bestehen**, solange das Projekt noch in seiner Testphase ist, und **Ein Tarifwechsel startet keine kostenlose Testphase**, sobald nicht mehr.
 
 ### Die Änderung speichern
 

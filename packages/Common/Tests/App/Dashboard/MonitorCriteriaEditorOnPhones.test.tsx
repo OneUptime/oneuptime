@@ -366,6 +366,63 @@ describe("the criteria editor on a phone: the criteria's box is the one frame", 
     }
   });
 
+  /*
+   * UI review: spaced 16px apart, each section ruled above and below, two
+   * rules and a strip of white came between every two sections - three
+   * rules within 40px between the incident's form and Settings. On a phone
+   * they are one list now, as a settings screen's rows are: each section
+   * sits right under the one before and takes its rule over that one's.
+   */
+  test("Filters, Actions and Settings are one list: one rule between two, no gap", () => {
+    renderEditor();
+
+    const frames: Map<string, HTMLElement> = sectionFrames();
+
+    for (const title of SECTION_TITLES) {
+      for (const width of PHONE_WIDTHS) {
+        const margin: BoxSpacing = resolveMargin(
+          frames.get(title)!.className,
+          width,
+        );
+
+        expect([title, width, margin.top, margin.bottom]).toEqual([
+          title,
+          width,
+          -1,
+          0,
+        ]);
+      }
+    }
+
+    // In this order, one after the other, with nothing between them.
+    const order: Array<HTMLElement> = SECTION_TITLES.map(
+      (title: string): HTMLElement => {
+        return frames.get(title)!;
+      },
+    );
+
+    expect(order[0]!.nextElementSibling).toBe(order[1]!);
+    expect(order[1]!.nextElementSibling).toBe(order[2]!);
+  });
+
+  /*
+   * UI review: the status a criteria changes the monitor to, and the alert's
+   * and the incident's severity, are required picks, and each had a clear
+   * button that only emptied what the criteria must have - as a form's
+   * required dropdown no longer does (FormField: isClearable={!required}).
+   */
+  test("the required picks have no clear button: the status, the alert's and the incident's severity", () => {
+    renderEditor();
+
+    for (const form of actionForms()) {
+      expect([
+        form.getAttribute("data-testid"),
+        form.querySelectorAll(".ou-select__control").length > 0,
+        form.querySelectorAll(".ou-select__clear-indicator").length,
+      ]).toEqual([form.getAttribute("data-testid"), true, 0]);
+    }
+  });
+
   test("no box is left between the criteria's box and an action's fields", () => {
     renderEditor();
 

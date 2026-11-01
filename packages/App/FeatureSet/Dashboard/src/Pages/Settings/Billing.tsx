@@ -34,6 +34,7 @@ import {
 import PlanCutoffNote from "../../Components/Billing/PlanCutoffNote";
 import usePlanCutoffCounts from "../../Components/Billing/UsePlanCutoffCounts";
 import ChangePlanBillingNote from "../../Components/Billing/ChangePlanBillingNote";
+import { getChangePlanError } from "../../Components/Billing/ChangePlanBilling";
 import { Green } from "Common/Types/BrandColors";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -519,6 +520,7 @@ const Settings: FunctionComponent<ComponentProps> = (
           select: {
             paymentProviderPlanId: true,
             paymentProviderSubscriptionSeats: true,
+            trialEndsAt: true,
           },
         });
 
@@ -527,6 +529,14 @@ const Settings: FunctionComponent<ComponentProps> = (
         if (!newPlanId || newPlanId === currentPlanId) {
           return;
         }
+
+        /*
+         * The page moves to the new plan first - the Current plan pill, the
+         * cut-off notes and the trial note all read it - so an analytics
+         * call that throws below never leaves Change Plan on the old one.
+         */
+        setCurrentPlanId(newPlanId);
+        setTrialEndsAt(project?.trialEndsAt || null);
 
         const newPlan: SubscriptionPlan | undefined =
           SubscriptionPlan.getSubscriptionPlanById(newPlanId, getAllEnvVars());
@@ -618,8 +628,6 @@ const Settings: FunctionComponent<ComponentProps> = (
             },
           );
         }
-
-        setCurrentPlanId(newPlanId);
       } catch {
         // Analytics must never break the billing page.
       }
@@ -782,6 +790,27 @@ const Settings: FunctionComponent<ComponentProps> = (
                   // The picker draws "Plan" itself, with the Monthly | Yearly switch beside it.
                   customElementDrawsOwnLabel: true,
                   required: true,
+                  /*
+                   * Save Changes with the plan the project is on still
+                   * picked says so under the plans, rather than running a
+                   * plan change that changes nothing (getChangePlanError).
+                   */
+                  customValidation: (
+                    values: FormValues<Project>,
+                  ): string | null => {
+                    const error: string | null = getChangePlanError({
+                      plans:
+                        SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()),
+                      pickedPlanId: values.paymentProviderPlanId as
+                        | string
+                        | undefined,
+                      currentPlanId: currentPlanId,
+                    });
+
+                    return error
+                      ? translator.translateText(error) || error
+                      : null;
+                  },
                   /*
                    * The plan picker a new project starts on, for a plan
                    * change: it opens at the period the project is billed

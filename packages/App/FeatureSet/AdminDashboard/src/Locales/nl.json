@@ -925,6 +925,8 @@
   "{{price}} per user, billed monthly from today.": "{{price}} per gebruiker, vanaf vandaag maandelijks gefactureerd.",
   "Our sales team will contact you to agree on a price.": "Ons verkoopteam neemt contact met u op om een prijs af te spreken.",
   "Current plan": "Huidig abonnement",
+  "Current plan, billed yearly": "Huidig abonnement, jaarlijks gefactureerd",
+  "Current plan, billed monthly": "Huidig abonnement, maandelijks gefactureerd",
   "{{count}}-day free trial": "{{count}} dagen gratis proberen",
   "{{count}}-day free trial_one": "{{count}} dag gratis proberen",
   "Free for {{count}} days, no card needed to start.": "{{count}} dagen gratis, geen kaart nodig om te beginnen.",
