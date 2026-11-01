@@ -5,11 +5,12 @@
  * step catalogue - English - or what a set-up step does, in the reader's
  * language: "environment را با ۲ حالت مقایسه می‌کند" for a Switch / Case on a
  * Persian page, starting with the field it checks. The canvas is laid out
- * left to right in every language, and each line of a card reads the way
- * most of its words do (IsolatedText): an English description keeps its full
- * stop at its end on a Persian page, and a Persian summary reads from the
- * right though its first word is English - read by its first letter, it
- * would read left to right.
+ * left to right in every language, and the card's name and description
+ * each read the way most of their words do (dir): an English description
+ * keeps its full stop at its end on a Persian page, and a Persian summary
+ * reads from the right though its first word is English - read by its first
+ * letter, it would read left to right. No element is added around the words:
+ * the browser suites find a step's header as the name's parent.
  *
  * Theme.css says how the rest of a node's lines read on a page read right to
  * left (unicode-bidi: plaintext); jsdom applies no styles, so the rule is
@@ -81,11 +82,11 @@ const logData: DataFunction = (
   };
 };
 
-// The isolate a card's line is drawn in.
-const isolateOf: (testId: string) => Element | null = (
+// A line of the card, by its test id.
+const lineOf: (testId: string) => HTMLElement = (
   testId: string,
-): Element | null => {
-  return screen.getByTestId(testId).querySelector("bdi");
+): HTMLElement => {
+  return screen.getByTestId(testId);
 };
 
 // A run of white space: the stylesheet is read with each run as one space.
@@ -110,15 +111,13 @@ describe("a step's card", () => {
   test("its English name and description read left to right, the full stop at the end", () => {
     render(<WorkflowNode data={logData()} selected={false} />);
 
-    expect(isolateOf("workflow-node-title")).toHaveAttribute("dir", "ltr");
-    expect(isolateOf("workflow-node-title")).toHaveTextContent(
-      LOG_METADATA.title,
-    );
+    expect(lineOf("workflow-node-title")).toHaveAttribute("dir", "ltr");
+    expect(lineOf("workflow-node-title").innerHTML).toBe(LOG_METADATA.title);
 
-    const description: Element | null = isolateOf("workflow-node-description");
+    const description: HTMLElement = lineOf("workflow-node-description");
 
     expect(description).toHaveAttribute("dir", "ltr");
-    expect(description?.textContent).toBe(LOG_METADATA.description);
+    expect(description.innerHTML).toBe(LOG_METADATA.description);
     expect(LOG_METADATA.description.endsWith(".")).toBe(true);
   });
 
@@ -130,14 +129,22 @@ describe("a step's card", () => {
       />,
     );
 
-    expect(isolateOf("workflow-node-title")).toHaveAttribute("dir", "rtl");
-    expect(isolateOf("workflow-node-description")).toHaveAttribute(
-      "dir",
-      "rtl",
-    );
-    expect(isolateOf("workflow-node-description")?.textContent).toBe(
+    expect(lineOf("workflow-node-title")).toHaveAttribute("dir", "rtl");
+    expect(lineOf("workflow-node-description")).toHaveAttribute("dir", "rtl");
+    expect(lineOf("workflow-node-description").textContent).toBe(
       PERSIAN_SUMMARY,
     );
+  });
+
+  test("a line with no letters reads as the card does", () => {
+    render(
+      <WorkflowNode
+        data={logData({ description: "2026-10-26" })}
+        selected={false}
+      />,
+    );
+
+    expect(lineOf("workflow-node-description")).not.toHaveAttribute("dir");
   });
 
   test("its name stays whole under the pointer", () => {
