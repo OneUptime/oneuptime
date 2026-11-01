@@ -253,6 +253,24 @@ export const PROVIDER_LOGO_MARK_LOADERS: Readonly<
   [ProviderLogo.Phoenix]: () => {
     return import("../../../Types/ProviderLogo/Marks/phoenix");
   },
+  [ProviderLogo.Datadog]: () => {
+    return import("../../../Types/ProviderLogo/Marks/datadog");
+  },
+  [ProviderLogo.NewRelic]: () => {
+    return import("../../../Types/ProviderLogo/Marks/new-relic");
+  },
+  [ProviderLogo.Dynatrace]: () => {
+    return import("../../../Types/ProviderLogo/Marks/dynatrace");
+  },
+  [ProviderLogo.Sentry]: () => {
+    return import("../../../Types/ProviderLogo/Marks/sentry");
+  },
+  [ProviderLogo.Instatus]: () => {
+    return import("../../../Types/ProviderLogo/Marks/instatus");
+  },
+  [ProviderLogo.Prometheus]: () => {
+    return import("../../../Types/ProviderLogo/Marks/prometheus");
+  },
   [ProviderLogo.WhatsApp]: () => {
     return import("../../../Types/ProviderLogo/Marks/whatsapp");
   },

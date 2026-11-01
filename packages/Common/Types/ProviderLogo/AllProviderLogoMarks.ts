@@ -76,6 +76,12 @@ import SidekiqMark from "./Marks/sidekiq";
 import SlimMark from "./Marks/slim";
 import ActixWebMark from "./Marks/actix-web";
 import PhoenixMark from "./Marks/phoenix";
+import DatadogMark from "./Marks/datadog";
+import NewRelicMark from "./Marks/new-relic";
+import DynatraceMark from "./Marks/dynatrace";
+import SentryMark from "./Marks/sentry";
+import InstatusMark from "./Marks/instatus";
+import PrometheusMark from "./Marks/prometheus";
 import WhatsAppMark from "./Marks/whatsapp";
 import DockerMark from "./Marks/docker";
 import TerraformMark from "./Marks/terraform";
@@ -173,6 +179,12 @@ const ALL_PROVIDER_LOGO_MARKS: Readonly<
   [ProviderLogo.Slim]: SlimMark,
   [ProviderLogo.ActixWeb]: ActixWebMark,
   [ProviderLogo.Phoenix]: PhoenixMark,
+  [ProviderLogo.Datadog]: DatadogMark,
+  [ProviderLogo.NewRelic]: NewRelicMark,
+  [ProviderLogo.Dynatrace]: DynatraceMark,
+  [ProviderLogo.Sentry]: SentryMark,
+  [ProviderLogo.Instatus]: InstatusMark,
+  [ProviderLogo.Prometheus]: PrometheusMark,
   [ProviderLogo.WhatsApp]: WhatsAppMark,
   [ProviderLogo.Docker]: DockerMark,
   [ProviderLogo.Terraform]: TerraformMark,

@@ -46,7 +46,7 @@
       <section id="<%= group.id %>" class="mb-14 scroll-mt-8" data-integrations-group aria-labelledby="<%= group.id %>-title">
         <div class="flex items-center gap-3">
           <% if (group.logo) { %>
-          <img src="<%= group.logo.src %>" alt="" width="28" height="28" class="h-7 w-7 object-contain" decoding="async">
+          <svg class="h-7 w-7 flex-none text-gray-700" viewBox="<%= group.logo.viewBox %>" fill="currentColor" aria-hidden="true" focusable="false" data-mark-logo><%- group.logo.shapesHtml %></svg>
           <% } %>
           <h2 id="<%= group.id %>-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= group.title %></h2>
         </div>

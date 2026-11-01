@@ -7,10 +7,10 @@ import ProviderLogo, {
 } from "../../../Types/ProviderLogo/ProviderLogo";
 
 /*
- * The logos of other companies' products the product shows (official logos
- * audit): every logo has the name it is read out as, the names are the
- * products' own, and the values are the file names in
- * Common/UI/Images/ProviderLogos.
+ * The other companies' products the product shows by their marks (official
+ * logos audit): every logo has the name it is read out as, the names are
+ * the products' own, and the values are the file names of their marks in
+ * Common/Types/ProviderLogo/Marks.
  */
 
 const FILE_NAME: RegExp = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -25,7 +25,10 @@ describe("ProviderLogo", () => {
     "%s is a file name: lower case words joined by hyphens, never -dark",
     (logo: ProviderLogo) => {
       expect(logo).toMatch(FILE_NAME);
-      // A "-dark" file is a logo's mark for dark backgrounds, not a logo.
+      /*
+       * A one-colour mark is drawn in the colour around it, light or dark:
+       * there is no mark for dark backgrounds any more, nor a value for one.
+       */
       expect(logo.endsWith("-dark")).toBe(false);
     },
   );
@@ -63,6 +66,37 @@ describe("ProviderLogo", () => {
     expect(PROVIDER_LOGO_NAMES[ProviderLogo.AtlassianStatuspage]).toBe(
       "Statuspage",
     );
+    expect(PROVIDER_LOGO_NAMES[ProviderLogo.GitHub]).toBe("GitHub");
+    expect(PROVIDER_LOGO_NAMES[ProviderLogo.WhatsApp]).toBe("WhatsApp");
+    expect(PROVIDER_LOGO_NAMES[ProviderLogo.NewRelic]).toBe("New Relic");
+  });
+
+  /*
+   * The brands the icon set and the code pages draw, and the tools the
+   * website compares OneUptime with, are in the registry too: every mark of
+   * another company's product the project draws comes from one place.
+   */
+  test("the icon set's brands, the code hosts and the compared tools are registered", () => {
+    for (const logo of [
+      ProviderLogo.WhatsApp,
+      ProviderLogo.Docker,
+      ProviderLogo.Terraform,
+      ProviderLogo.Proxmox,
+      ProviderLogo.Ceph,
+      ProviderLogo.GitHub,
+      ProviderLogo.GitLab,
+      ProviderLogo.Forgejo,
+      ProviderLogo.Gitea,
+      ProviderLogo.Git,
+      ProviderLogo.Datadog,
+      ProviderLogo.NewRelic,
+      ProviderLogo.Dynatrace,
+      ProviderLogo.Sentry,
+      ProviderLogo.Instatus,
+      ProviderLogo.Prometheus,
+    ]) {
+      expect(isProviderLogo(logo)).toBe(true);
+    }
   });
 
   test("isProviderLogo knows a logo from anything else", () => {

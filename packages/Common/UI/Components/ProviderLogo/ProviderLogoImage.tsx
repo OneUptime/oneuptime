@@ -138,7 +138,8 @@ export function getProviderLogoTileSizeClassName(
 /*
  * The size a mark is drawn at: on a tile, as large as the tile's icon, a
  * wordmark at most three quarters of the tile wide; bare, as large as the
- * size given, a wordmark at most one and three quarters of it wide.
+ * size given, a wordmark at most one and a half times as wide (a 16px
+ * wordmark fills the 24px slot a column of marks keeps for it).
  */
 export function getProviderLogoDrawnSize(data: {
   box: ProviderLogoMarkBox;
@@ -149,7 +150,7 @@ export function getProviderLogoDrawnSize(data: {
     return getProviderLogoMarkSize({
       box: data.box,
       size: data.size,
-      maxWidth: Math.round(data.size * 1.75),
+      maxWidth: Math.round(data.size * 1.5),
     });
   }
 
@@ -263,6 +264,14 @@ const ProviderLogoImage: FunctionComponent<ComponentProps> = (
   return (
     <span
       {...accessibility}
+      /*
+       * A bare mark keeps at least an icon's square, the narrow ones (MinIO's
+       * bird, Ollama's llama) centred in it: the words after a column of
+       * marks start at one place.
+       */
+      {...(isBare
+        ? { style: { minWidth: `${size}px`, minHeight: `${size}px` } }
+        : {})}
       data-testid={`${PROVIDER_LOGO_TEST_ID_PREFIX}${props.logo}`}
       data-provider-logo={props.logo}
       {...(mark ? { "data-provider-logo-mark": mark } : {})}

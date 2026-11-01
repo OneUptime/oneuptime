@@ -2,6 +2,7 @@ import "@testing-library/jest-dom";
 import {
   afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -68,6 +69,10 @@ import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  getDrawnMark,
+  preloadProviderLogoMarks,
+} from "../../Helpers/ProviderLogoMarks";
 
 /*
  * Replace only ModelTable's data-loading boundary: the real TableRow decides
@@ -468,6 +473,10 @@ function mockTransport(): void {
 }
 
 describe("SecurityEventConnectionsTable", () => {
+  beforeAll(async (): Promise<void> => {
+    await preloadProviderLogoMarks();
+  });
+
   beforeEach((): void => {
     /*
      * Health is judged against the clock, so pin it next to the fixtures'
@@ -1270,17 +1279,21 @@ describe("SecurityEventConnectionsTable", () => {
       );
     }
 
-    // The wordmark is exactly as wide as the slot; the square marks are narrower.
+    // The wordmark is exactly as wide as the slot (24px); the square marks are narrower.
     expect(
-      within(row("Acme Splunk"))
-        .getByTestId("security-event-connection-provider-logo-slot")
-        .querySelector("[data-provider-logo] > span"),
-    ).toHaveClass("w-6");
+      getDrawnMark(
+        within(row("Acme Splunk")).getByTestId(
+          "security-event-connection-provider-logo-slot",
+        ),
+      ),
+    ).toHaveAttribute("width", "24");
     expect(
-      within(row("Acme Okta"))
-        .getByTestId("security-event-connection-provider-logo-slot")
-        .querySelector("[data-provider-logo] > span"),
-    ).toHaveClass("w-4");
+      getDrawnMark(
+        within(row("Acme Okta")).getByTestId(
+          "security-event-connection-provider-logo-slot",
+        ),
+      ),
+    ).toHaveAttribute("width", "16");
   });
 
   /*

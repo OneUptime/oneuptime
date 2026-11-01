@@ -128,6 +128,14 @@ enum ProviderLogo {
   ActixWeb = "actix-web",
   Phoenix = "phoenix",
 
+  // The tools the website compares OneUptime with, beside the ones above
+  Datadog = "datadog",
+  NewRelic = "new-relic",
+  Dynatrace = "dynatrace",
+  Sentry = "sentry",
+  Instatus = "instatus",
+  Prometheus = "prometheus",
+
   /*
    * Drawn by the icon set (Common/UI/Components/Icon) and the code pages:
    * the chat apps and infrastructure the side menus and buttons name, and
@@ -242,6 +250,12 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.Slim]: "Slim",
   [ProviderLogo.ActixWeb]: "Actix Web",
   [ProviderLogo.Phoenix]: "Phoenix",
+  [ProviderLogo.Datadog]: "Datadog",
+  [ProviderLogo.NewRelic]: "New Relic",
+  [ProviderLogo.Dynatrace]: "Dynatrace",
+  [ProviderLogo.Sentry]: "Sentry",
+  [ProviderLogo.Instatus]: "Instatus",
+  [ProviderLogo.Prometheus]: "Prometheus",
   [ProviderLogo.WhatsApp]: "WhatsApp",
   [ProviderLogo.Docker]: "Docker",
   [ProviderLogo.Terraform]: "Terraform",

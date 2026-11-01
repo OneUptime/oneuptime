@@ -4,8 +4,9 @@ The marks OneUptime shows next to a third-party product's name: the storage
 an audit log export or a backup goes to, the security tools a project
 connects, its clouds and AI providers, Slack and Microsoft Teams, the tools
 Import from another tool reads, the languages and frameworks the telemetry
-guide and the website's OpenTelemetry guides are written for, and the chat
-apps, infrastructure and code hosts the icon set names.
+guide and the website's OpenTelemetry guides are written for, the tools the
+website compares OneUptime with, and the chat apps, infrastructure and code
+hosts the icon set names.
 
 `ProviderLogo.ts` names them. `ProviderLogoMarks.ts` says how each one is
 drawn and the box its mark sits in; `Marks/<logo>.ts` holds each mark's
@@ -193,6 +194,12 @@ mark without its row here.
 | `slim.ts` | Slim | the Slim Framework's logo as SVG Logos draws it (`slim`, CC0), its two halves in one colour | [slimframework.com](https://www.slimframework.com) |
 | `actix-web.ts` | Actix Web | Actix's mark: Simple Icons 16.36.0, `actix` | [actix.rs](https://actix.rs) |
 | `phoenix.ts` | Phoenix | Phoenix Framework's mark: Simple Icons 16.36.0, `phoenixframework` | [phoenixframework.org](https://www.phoenixframework.org) |
+| `datadog.ts` | Datadog | Simple Icons 16.36.0, `datadog` | [brand guidelines](https://www.datadoghq.com/about/resources/) |
+| `new-relic.ts` | New Relic | Simple Icons 16.36.0, `newrelic` | [brand guidelines](https://newrelic.com/about/media-assets#guidelines) |
+| `dynatrace.ts` | Dynatrace | Simple Icons 16.36.0, `dynatrace` | [dynatrace.com](https://www.dynatrace.com) |
+| `sentry.ts` | Sentry | Simple Icons 16.36.0, `sentry` | [Sentry branding](https://sentry.io/branding/) |
+| `instatus.ts` | Instatus | Simple Icons 16.36.0, `instatus` | [instatus.com](https://instatus.com) |
+| `prometheus.ts` | Prometheus | Simple Icons 16.36.0, `prometheus` | [Prometheus (CNCF artwork)](https://github.com/cncf/artwork/tree/main/projects/prometheus) |
 | `docker.ts` | Docker | Simple Icons 16.36.0, `docker` | [Docker brand](https://www.docker.com/company/newsroom/media-resources/) |
 | `terraform.ts` | Terraform | Simple Icons 16.36.0, `terraform` | [HashiCorp brand](https://www.hashicorp.com/brand) |
 | `proxmox.ts` | Proxmox | Simple Icons 16.36.0, `proxmox` | [Proxmox media kit](https://www.proxmox.com/en/news/media-kit) |
