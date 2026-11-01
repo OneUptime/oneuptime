@@ -64,6 +64,9 @@ const CLUSTER_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000d1";
 const SERVICE_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000e1";
 const SLO_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000c1";
 const SITE_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000f1";
+const ENVIRONMENT_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000e7";
+const RESOURCE_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000e8";
+const OTHER_RESOURCE_ID: string = "0193c0de-dddd-4aaa-8bbb-0000000000e9";
 
 function row(
   id: string | undefined,
@@ -355,6 +358,35 @@ describe("dashboard links match each resource's own link", () => {
       }).toString(),
     ).toBe(`${DASHBOARD}/${PROJECT.toString()}/${route}/${ID.toString()}`);
   });
+
+  /*
+   * An App Platforms environment opens in App Platforms, a cloud account's
+   * resource in Cloud; a row whose kind was not read opens in Cloud, which
+   * forwards an environment to App Platforms.
+   */
+  test.each([
+    ["environment", `app-platforms/${ENVIRONMENT_ID}`],
+    ["resource", `cloud/${ENVIRONMENT_ID}`],
+    [undefined, `cloud/${ENVIRONMENT_ID}`],
+  ])(
+    "a cloud row of kind %s opens at %s",
+    (kind: string | undefined, route: string) => {
+      expect(
+        LinkedAffectedResources.getDashboardUrl({
+          dashboardUrl: URL.fromString(DASHBOARD),
+          projectId: PROJECT,
+          resource: {
+            ...resource(
+              LinkedAffectedResourceType.CloudResource,
+              ENVIRONMENT_ID,
+              "x",
+            ),
+            cloudResourceKind: kind,
+          },
+        }).toString(),
+      ).toBe(`${DASHBOARD}/${PROJECT.toString()}/${route}`);
+    },
+  );
 
   test("does not mutate the caller's dashboard URL", () => {
     const dashboardUrl: URL = URL.fromString(DASHBOARD);
@@ -660,13 +692,62 @@ describe("reading a record's relations", () => {
       );
 
       expect(relationKeys).toHaveLength(1);
-      expect(args.select[relationKeys[0]!]).toEqual({
-        _id: true,
-        name: true,
-        projectId: true,
-      });
+      /*
+       * A cloud row's kind is read too: an App Platforms environment and a
+       * Cloud resource are named and linked by their own products.
+       */
+      expect(args.select[relationKeys[0]!]).toEqual(
+        relationKeys[0] === "cloudResources"
+          ? { _id: true, name: true, projectId: true, cloudResourceKind: true }
+          : { _id: true, name: true, projectId: true },
+      );
       expect(args.select["projectId"]).toBe(true);
     }
+  });
+
+  test("a cloud row carries the kind it was read with", async () => {
+    answerFrom(IncidentService, [
+      {
+        _id: RECORD_ID.toString(),
+        projectId: PROJECT_ID as unknown as JSONObject,
+        cloudResources: [
+          {
+            ...row(ENVIRONMENT_ID, "prod · us-east-1"),
+            cloudResourceKind: "environment",
+          },
+          { ...row(RESOURCE_ID, "orders-db"), cloudResourceKind: "resource" },
+          // A row read before the kind was: no kind, opened in Cloud.
+          row(OTHER_RESOURCE_ID, "legacy"),
+        ],
+      },
+    ]);
+
+    const resources: Array<LinkedAffectedResource> =
+      await LinkedAffectedResources.readForIncident({
+        service: IncidentService,
+        projectId: PROJECT_ID,
+        incidentId: RECORD_ID,
+      });
+
+    expect(resources).toEqual([
+      {
+        type: LinkedAffectedResourceType.CloudResource,
+        id: ENVIRONMENT_ID,
+        name: "prod · us-east-1",
+        cloudResourceKind: "environment",
+      },
+      {
+        type: LinkedAffectedResourceType.CloudResource,
+        id: RESOURCE_ID,
+        name: "orders-db",
+        cloudResourceKind: "resource",
+      },
+      resource(
+        LinkedAffectedResourceType.CloudResource,
+        OTHER_RESOURCE_ID,
+        "legacy",
+      ),
+    ]);
   });
 
   test("an SLO burn-rate alert with no monitor reads as its SLO", async () => {
@@ -872,6 +953,61 @@ describe("feed markdown", () => {
       `- [Kubernetes Cluster prod-eu](${DASHBOARD}/${PROJECT_ID.toString()}/kubernetes/${CLUSTER_ID})`,
       `- [SLO Checkout availability](${DASHBOARD}/${PROJECT_ID.toString()}/slos/${SLO_ID})`,
     ]);
+  });
+
+  test("a cloud environment is named and linked as App Platforms names it, a cloud resource as Cloud does", () => {
+    expect(
+      getMarkdownLines([
+        {
+          ...resource(
+            LinkedAffectedResourceType.CloudResource,
+            ENVIRONMENT_ID,
+            "prod · us-east-1",
+          ),
+          cloudResourceKind: "environment",
+        },
+        {
+          ...resource(
+            LinkedAffectedResourceType.CloudResource,
+            RESOURCE_ID,
+            "orders-db",
+          ),
+          cloudResourceKind: "resource",
+        },
+        resource(
+          LinkedAffectedResourceType.CloudResource,
+          OTHER_RESOURCE_ID,
+          "legacy",
+        ),
+      ]),
+    ).toEqual([
+      `- [Cloud Environment prod · us-east-1](${DASHBOARD}/${PROJECT_ID.toString()}/app-platforms/${ENVIRONMENT_ID})`,
+      `- [Cloud Resource orders-db](${DASHBOARD}/${PROJECT_ID.toString()}/cloud/${RESOURCE_ID})`,
+      `- [Cloud Resource legacy](${DASHBOARD}/${PROJECT_ID.toString()}/cloud/${OTHER_RESOURCE_ID})`,
+    ]);
+  });
+
+  test("getLabel names a cloud row by its kind, every other row by its relation", () => {
+    expect(
+      LinkedAffectedResources.getLabel({
+        ...resource(
+          LinkedAffectedResourceType.CloudResource,
+          ENVIRONMENT_ID,
+          "x",
+        ),
+        cloudResourceKind: "environment",
+      }),
+    ).toBe("Cloud Environment");
+    expect(
+      LinkedAffectedResources.getLabel(
+        resource(LinkedAffectedResourceType.CloudResource, RESOURCE_ID, "x"),
+      ),
+    ).toBe("Cloud Resource");
+    expect(
+      LinkedAffectedResources.getLabel(
+        resource(LinkedAffectedResourceType.Host, HOST_ID, "x"),
+      ),
+    ).toBe("Host");
   });
 
   test("a storage array bullet is labelled and links to its storage arrays page", () => {

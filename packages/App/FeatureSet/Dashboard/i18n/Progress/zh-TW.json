@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39759,
-    "untranslated": 12447
+    "keys": 39842,
+    "untranslated": 12438
   },
   "sameAsEnglish": [
     "2xx",
@@ -31,11 +31,9 @@
     "JavaScript API",
     "K8s Pod",
     "LXC 201 · pve3",
-    "Log4Shell",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
-    "Markdown",
     "OK",
     "OSD",
     "OpenShift",
@@ -85,7 +83,7 @@
     "main",
     "message",
     "name",
-    "p95",
+    "p95 {{latency}}",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

@@ -21,13 +21,23 @@ interface CountRequest {
   query: Record<string, unknown>;
 }
 
+interface ListRequest {
+  modelType: { name: string };
+  query: Record<string, unknown>;
+  select: Record<string, unknown>;
+}
+
 const mockCountCalls: Array<CountRequest> = [];
+const mockListCalls: Array<ListRequest> = [];
 
 let mockCountResponse: (
   request: CountRequest,
 ) => Promise<number> = (): Promise<number> => {
   return Promise.resolve(0);
 };
+
+// The ids of the unarchived environments the strip lists.
+let mockEnvironmentIds: Array<string> = [];
 
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -36,6 +46,17 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       count: (request: CountRequest): Promise<number> => {
         mockCountCalls.push(request);
         return mockCountResponse(request);
+      },
+      getList: (
+        request: ListRequest,
+      ): Promise<{ data: Array<{ _id: string }>; count: number }> => {
+        mockListCalls.push(request);
+        return Promise.resolve({
+          data: mockEnvironmentIds.map((id: string): { _id: string } => {
+            return { _id: id };
+          }),
+          count: mockEnvironmentIds.length,
+        });
       },
     },
   };
@@ -47,25 +68,56 @@ import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.j
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
+import NotNull from "../../../Types/BaseDatabase/NotNull";
+import ObjectID from "../../../Types/ObjectID";
 
 const LATIN_DIGIT: RegExp = /[0-9]/;
 
-/*
- * Answers each of the six count requests from what it asks for, so the
- * test describes a fleet rather than a call order.
- */
-function fleet(counts: {
+interface FleetCounts {
   total: number;
   connected: number;
+  // Environments that never reported (no lastSeenAt).
+  waiting?: number | undefined;
   byProvider: Record<string, number>;
   liveInstances: number;
-}): (request: CountRequest) => Promise<number> {
+  apps?: number | undefined;
+  runningApps?: number | undefined;
+  deploys?: number | undefined;
+}
+
+/*
+ * Answers each count request from what it asks for, so the test describes
+ * a fleet rather than a call order. The environments it lists are `total`
+ * fresh ids.
+ */
+function fleet(
+  counts: FleetCounts,
+): (request: CountRequest) => Promise<number> {
+  mockEnvironmentIds = Array.from({ length: counts.total }, (): string => {
+    return ObjectID.generate().toString();
+  });
+
   return (request: CountRequest): Promise<number> => {
+    if (request.modelType.name === "CloudAppRevision") {
+      return Promise.resolve(counts.deploys || 0);
+    }
+    if (request.modelType.name === "CloudApp") {
+      return Promise.resolve(
+        request.query["lastSeenAt"]
+          ? counts.runningApps || 0
+          : counts.apps || 0,
+      );
+    }
     if (request.modelType.name === "CloudResourceInstance") {
       return Promise.resolve(counts.liveInstances);
     }
     if (request.query["otelCollectorStatus"] === "connected") {
       return Promise.resolve(counts.connected);
+    }
+    if (request.query["lastSeenAt"] instanceof IsNull) {
+      return Promise.resolve(counts.waiting || 0);
     }
     if (typeof request.query["cloudProvider"] === "string") {
       return Promise.resolve(
@@ -76,8 +128,22 @@ function fleet(counts: {
   };
 }
 
+function countsOf(modelName: string): Array<CountRequest> {
+  return mockCountCalls.filter((request: CountRequest): boolean => {
+    return request.modelType.name === modelName;
+  });
+}
+
+// Minutes between a GreaterThan lower bound on a date and now.
+function minutesAgo(bound: unknown): number {
+  expect(bound).toBeInstanceOf(GreaterThan);
+  const since: Date = (bound as GreaterThan<Date>).value;
+  return (Date.now() - since.getTime()) / 60000;
+}
+
 beforeEach(() => {
   mockCountCalls.length = 0;
+  mockListCalls.length = 0;
   mockCountResponse = fleet({
     total: 0,
     connected: 0,
@@ -94,9 +160,12 @@ describe("CloudFleetSummary", () => {
   test("renders one tile per summary entry from the counts it fetched", async () => {
     mockCountResponse = fleet({
       total: 5,
-      connected: 3,
+      connected: 5,
       byProvider: { aws: 4, gcp: 1 },
       liveInstances: 12,
+      apps: 8,
+      runningApps: 7,
+      deploys: 3,
     });
 
     render(<CloudFleetSummary />);
@@ -107,11 +176,15 @@ describe("CloudFleetSummary", () => {
 
     expect(screen.getAllByTestId("cloud-fleet-summary-tile")).toHaveLength(4);
 
+    expect(screen.getByText("Apps")).toBeInTheDocument();
+    expect(screen.getByText("8")).toBeInTheDocument();
+    expect(screen.getByText("1 not reporting")).toBeInTheDocument();
+
     expect(screen.getByText("Environments")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     const breakdown: HTMLElement = screen.getAllByTestId(
       "cloud-fleet-summary-tile-sublabel",
-    )[0]!;
+    )[1]!;
     expect(breakdown).toHaveTextContent("4 AWS · 1 Google Cloud");
     /*
      * Each provider is one part that never breaks ("1 Google" over "Cloud"
@@ -134,25 +207,23 @@ describe("CloudFleetSummary", () => {
     expect(breakdown.querySelector("bdi")).not.toBeNull();
     expect(breakdown.querySelector("bdi")!.contains(parts[0]!)).toBe(true);
 
-    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.getByText("Deploys")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
-    expect(screen.getByText("60% of environments")).toBeInTheDocument();
-
-    // Disconnected is derived: total - connected, never a seventh request.
-    expect(screen.getByText("Disconnected")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("in the last 24 hours")).toBeInTheDocument();
 
     expect(screen.getByText("Live instances")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
     expect(screen.getByText("seen in the last 15 min")).toBeInTheDocument();
   });
 
-  test("issues at most six count requests, all scoped to unarchived rows", async () => {
+  test("names the disconnected environments first, over the providers", async () => {
     mockCountResponse = fleet({
-      total: 1,
-      connected: 1,
-      byProvider: { azure: 1 },
-      liveInstances: 0,
+      total: 5,
+      connected: 3,
+      byProvider: { aws: 4, gcp: 1 },
+      liveInstances: 2,
+      apps: 2,
+      runningApps: 2,
     });
 
     render(<CloudFleetSummary />);
@@ -161,23 +232,116 @@ describe("CloudFleetSummary", () => {
       expect(screen.getByTestId("cloud-fleet-summary")).toBeInTheDocument();
     });
 
-    expect(mockCountCalls.length).toBeLessThanOrEqual(6);
+    // Disconnected is derived: total - connected, never a request of its own.
+    expect(screen.getByText("2 environments disconnected")).toBeInTheDocument();
+    expect(screen.queryByText(/AWS/)).not.toBeInTheDocument();
+    expect(screen.getByText("all running")).toBeInTheDocument();
+  });
 
-    const environmentCounts: Array<CountRequest> = mockCountCalls.filter(
-      (request: CountRequest): boolean => {
-        return request.modelType.name === "CloudResource";
-      },
-    );
-    const instanceCounts: Array<CountRequest> = mockCountCalls.filter(
-      (request: CountRequest): boolean => {
-        return request.modelType.name === "CloudResourceInstance";
-      },
-    );
+  /*
+   * An environment that has never sent anything is new, not broken: grey
+   * and "Waiting" on its platform's card, so the strip does not count it
+   * disconnected either. It said "2 environments disconnected" over a card
+   * that showed one disconnected and one waiting (#5511's UI review).
+   */
+  test("counts an environment that never reported as waiting, not disconnected", async () => {
+    mockCountResponse = fleet({
+      total: 6,
+      connected: 4,
+      waiting: 1,
+      byProvider: { aws: 2, gcp: 2, azure: 2 },
+      liveInstances: 7,
+      apps: 6,
+      runningApps: 4,
+    });
 
-    // total, connected, and one per provider (aws, gcp, azure).
-    expect(environmentCounts).toHaveLength(5);
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cloud-fleet-summary")).toBeInTheDocument();
+    });
+
+    // The quiet one comes first; the waiting one is not called disconnected.
+    expect(screen.getByText("1 environment disconnected")).toBeInTheDocument();
+    expect(screen.queryByText(/waiting/)).not.toBeInTheDocument();
+
+    // The ones never heard from: environments with no lastSeenAt.
+    const waitingCount: CountRequest = countsOf("CloudResource").find(
+      (request: CountRequest): boolean => {
+        return request.query["lastSeenAt"] instanceof IsNull;
+      },
+    )!;
+    expect(waitingCount.query["isArchived"]).toBe(false);
+    expect(waitingCount.query["cloudResourceKind"]).toBe("environment");
+  });
+
+  test("says how many wait for their first data when none went quiet", async () => {
+    mockCountResponse = fleet({
+      total: 3,
+      connected: 1,
+      waiting: 2,
+      byProvider: { aws: 3 },
+      liveInstances: 1,
+      apps: 1,
+      runningApps: 1,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("2 environments waiting for first data"),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/disconnected/)).not.toBeInTheDocument();
+  });
+
+  test("never counts more waiting environments than are not connected", async () => {
+    // A connected row whose lastSeenAt is not written yet is not waiting.
+    mockCountResponse = fleet({
+      total: 2,
+      connected: 2,
+      waiting: 1,
+      byProvider: { gcp: 2 },
+      liveInstances: 2,
+      apps: 2,
+      runningApps: 2,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getByText("2 Google Cloud")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/waiting/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/disconnected/)).not.toBeInTheDocument();
+  });
+
+  test("counts the environments unarchived, and their apps, running apps and deploys only", async () => {
+    mockCountResponse = fleet({
+      total: 2,
+      connected: 2,
+      byProvider: { azure: 2 },
+      liveInstances: 0,
+      apps: 3,
+      runningApps: 1,
+      deploys: 1,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cloud-fleet-summary")).toBeInTheDocument();
+    });
+
+    // total, connected, never reported, and one per provider (aws, gcp, azure).
+    const environmentCounts: Array<CountRequest> = countsOf("CloudResource");
+    expect(environmentCounts).toHaveLength(6);
     for (const request of environmentCounts) {
       expect(request.query["isArchived"]).toBe(false);
+      expect(request.query["cloudResourceKind"]).toBe("environment");
     }
     expect(
       environmentCounts
@@ -188,20 +352,70 @@ describe("CloudFleetSummary", () => {
         .sort(),
     ).toEqual(["aws", "azure", "gcp"]);
 
+    // The environments' ids are read once, unarchived, ids only.
+    expect(mockListCalls).toHaveLength(1);
+    expect(mockListCalls[0]!.modelType.name).toBe("CloudResource");
+    expect(mockListCalls[0]!.query).toEqual({
+      isArchived: false,
+      cloudResourceKind: "environment",
+    });
+    expect(mockListCalls[0]!.select).toEqual({ _id: true });
+
     /*
      * The live-instance count has to be a lower bound on lastSeenAt; a
      * plain equality or no filter would count every row ever written.
      */
+    const instanceCounts: Array<CountRequest> = countsOf(
+      "CloudResourceInstance",
+    );
     expect(instanceCounts).toHaveLength(1);
-    const lastSeenAt: unknown = instanceCounts[0]!.query["lastSeenAt"];
-    expect(lastSeenAt).toBeInstanceOf(GreaterThan);
-    const since: Date = (lastSeenAt as GreaterThan<Date>).value;
-    const ageInMinutes: number = (Date.now() - since.getTime()) / 60000;
-    expect(ageInMinutes).toBeGreaterThan(14);
-    expect(ageInMinutes).toBeLessThan(16);
+    expect(minutesAgo(instanceCounts[0]!.query["lastSeenAt"])).toBeGreaterThan(
+      14,
+    );
+    expect(minutesAgo(instanceCounts[0]!.query["lastSeenAt"])).toBeLessThan(16);
+
+    /*
+     * Every app count is of the listed environments' apps, so an archived
+     * environment's apps are left out, as All Apps leaves them out.
+     */
+    const appCounts: Array<CountRequest> = [
+      ...countsOf("CloudApp"),
+      ...countsOf("CloudAppRevision"),
+    ];
+    expect(appCounts).toHaveLength(3);
+    for (const request of appCounts) {
+      const scope: unknown = request.query["cloudResourceId"];
+      expect(scope).toBeInstanceOf(Includes);
+      expect(
+        (scope as Includes).values.map((id: unknown): string => {
+          return String(id);
+        }),
+      ).toEqual(mockEnvironmentIds);
+    }
+
+    const runningCount: CountRequest = countsOf("CloudApp").find(
+      (request: CountRequest): boolean => {
+        return Boolean(request.query["lastSeenAt"]);
+      },
+    )!;
+    expect(minutesAgo(runningCount.query["lastSeenAt"])).toBeGreaterThan(14);
+    expect(minutesAgo(runningCount.query["lastSeenAt"])).toBeLessThan(16);
+
+    // A deploy replaced a revision, in the last day.
+    const deployCount: CountRequest = countsOf("CloudAppRevision")[0]!;
+    expect(deployCount.query["previousRevision"]).toBeInstanceOf(NotNull);
+    expect(minutesAgo(deployCount.query["firstSeenAt"])).toBeGreaterThan(
+      24 * 60 - 1,
+    );
+    expect(minutesAgo(deployCount.query["firstSeenAt"])).toBeLessThan(
+      24 * 60 + 1,
+    );
+
+    expect(mockCountCalls.length).toBeLessThanOrEqual(10);
+    expect(screen.getByText("2 not reporting")).toBeInTheDocument();
   });
 
-  test("renders nothing while there are no environments to summarise", async () => {
+  test("renders nothing while there are no environments to summarise, and counts no apps", async () => {
     mockCountResponse = fleet({
       total: 0,
       connected: 0,
@@ -222,6 +436,9 @@ describe("CloudFleetSummary", () => {
 
     expect(screen.queryByTestId("cloud-fleet-summary")).not.toBeInTheDocument();
     expect(container).toBeEmptyDOMElement();
+    // No environment, so no Includes of nothing is ever sent.
+    expect(countsOf("CloudApp")).toHaveLength(0);
+    expect(countsOf("CloudAppRevision")).toHaveLength(0);
   });
 
   test("renders nothing, and does not throw, when a count fails", async () => {
@@ -284,7 +501,7 @@ describe("CloudFleetSummary", () => {
  * sets the global instance's language.
  */
 describe("CloudFleetSummary in the reader's language", () => {
-  test("draws every title and line under it in German, each title saying its language", async () => {
+  test("draws every title and line under it in German, each translated title saying its language", async () => {
     await i18next.use(initReactI18next).init({
       lng: "de",
       fallbackLng: false,
@@ -299,6 +516,9 @@ describe("CloudFleetSummary in the reader's language", () => {
       connected: 4,
       byProvider: { aws: 2, gcp: 2, azure: 2 },
       liveInstances: 3,
+      apps: 9,
+      runningApps: 7,
+      deploys: 4,
     });
 
     render(<CloudFleetSummary />);
@@ -315,12 +535,14 @@ describe("CloudFleetSummary in the reader's language", () => {
     });
 
     expect(titles).toEqual([
+      "Apps",
       "Umgebungen",
-      "Verbunden",
-      "Getrennt",
+      "Deployments",
       "Aktive Instanzen",
     ]);
-    tiles.forEach((tile: HTMLElement): void => {
+    // "Apps" reads the same in German, so it claims no language of its own.
+    expect(tiles[0]!.querySelector("span")).not.toHaveAttribute("lang");
+    tiles.slice(1).forEach((tile: HTMLElement): void => {
       expect(tile.querySelector("span")).toHaveAttribute("lang", "de");
     });
 
@@ -331,12 +553,59 @@ describe("CloudFleetSummary in the reader's language", () => {
       });
 
     expect(sublabels).toEqual([
-      // Provider names are names, in every language.
-      "2 AWS · 2 Azure · 2 Google Cloud",
-      "67 % der Umgebungen",
-      "in letzter Zeit keine Telemetrie",
+      "2 melden nicht",
+      "2 Umgebungen getrennt",
+      "in den letzten 24 Stunden",
       "in den letzten 15 Min. gesehen",
     ]);
+  });
+
+  test("draws the empty and all-well lines in German too", async () => {
+    await i18next.use(initReactI18next).init({
+      lng: "de",
+      fallbackLng: false,
+      resources: { de: { translation: germanLocale } },
+      keySeparator: false,
+      nsSeparator: false,
+      interpolation: { escapeValue: false },
+    });
+
+    mockCountResponse = fleet({
+      total: 2,
+      connected: 2,
+      byProvider: { aws: 2 },
+      liveInstances: 1,
+      apps: 0,
+    });
+
+    const { unmount } = render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("cloud-fleet-summary-tile")).toHaveLength(4);
+    });
+
+    expect(
+      screen.getAllByTestId("cloud-fleet-summary-tile-sublabel")[0],
+    ).toHaveTextContent("noch keine gemeldet");
+
+    unmount();
+
+    mockCountResponse = fleet({
+      total: 2,
+      connected: 2,
+      byProvider: { aws: 2 },
+      liveInstances: 1,
+      apps: 2,
+      runningApps: 2,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("cloud-fleet-summary-tile-sublabel")[0],
+      ).toHaveTextContent("alle laufen");
+    });
   });
 
   /*
@@ -357,9 +626,12 @@ describe("CloudFleetSummary in the reader's language", () => {
 
     mockCountResponse = fleet({
       total: 6,
-      connected: 4,
+      connected: 6,
       byProvider: { aws: 2, gcp: 2, azure: 2 },
       liveInstances: 3,
+      apps: 8,
+      runningApps: 7,
+      deploys: 5,
     });
 
     render(<CloudFleetSummary />);
@@ -374,7 +646,7 @@ describe("CloudFleetSummary in the reader's language", () => {
         return tile.querySelector(".text-2xl")?.textContent || "";
       });
 
-    expect(values).toEqual(["\u06f6", "\u06f4", "\u06f2", "\u06f3"]);
+    expect(values).toEqual(["۸", "۶", "۵", "۳"]);
 
     const sublabels: Array<string> = screen
       .getAllByTestId("cloud-fleet-summary-tile-sublabel")
@@ -382,11 +654,10 @@ describe("CloudFleetSummary in the reader's language", () => {
         return line.textContent || "";
       });
 
-    expect(sublabels[0]).toBe(
-      "\u06f2 AWS \u00b7 \u06f2 Azure \u00b7 \u06f2 Google Cloud",
-    );
-    expect(sublabels[1]).toContain("\u06f6\u06f7");
-    expect(sublabels[3]).toContain("\u06f1\u06f5");
+    expect(sublabels[0]).toContain("۱");
+    expect(sublabels[1]).toBe("۲ AWS · ۲ Azure · ۲ Google Cloud");
+    expect(sublabels[2]).toContain("۲۴");
+    expect(sublabels[3]).toContain("۱۵");
     // No Latin digit is left in any of them.
     for (const line of [...values, ...sublabels]) {
       expect(line).not.toMatch(LATIN_DIGIT);

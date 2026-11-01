@@ -30,6 +30,7 @@ Para estos no tienes que enviar nada. OneUptime los registra a partir de la tele
 | --- | --- | --- |
 | Un despliegue | Un servicio empieza a informar una `service.version` que nunca había informado en su entorno | `service-version` |
 | Un rollout | Los pods de un Deployment de Kubernetes empiezan a ejecutar un ReplicaSet que nunca habían ejecutado: una imagen nueva, una variable de entorno o una referencia de configuración que cambió, o un reinicio | `kubernetes` |
+| Un despliegue de aplicación | Una aplicación en una plataforma de aplicaciones gestionada, como un servicio de ECS o un servicio de Cloud Run, empieza a ejecutar una revisión que nunca había ejecutado, o vuelve a una que ejecutó antes | `app-platform` |
 | Una corrección que ejecutó OneUptime AI | Un agente de IA informa del resultado de un comando que cambia algo, como `kubectl rollout restart` | `oneuptime-ai` |
 | Un runbook | Un runbook que ejecutó OneUptime termina, falla o se cancela después de haber empezado | `runbook` |
 | Un cambio en la nube | El registro de actividad de una cuenta en la nube conectada registra un cambio: AWS CloudTrail, el registro de actividad de Azure o el registro de auditoría Admin Activity de Google Cloud | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Un rollout necesita el [agente de Kubernetes](/docs/telemetry/kubernetes-agent), que marca la telemetría de cada pod con su Deployment y su ReplicaSet.
+
+Un despliegue de aplicación necesita que la aplicación se ejecute en una [plataforma de aplicaciones gestionada](/docs/telemetry/cloud-environments#aplicaciones-y-despliegues). Se registra en el entorno de la aplicación y se dibuja en los gráficos del entorno y en los de la propia aplicación, y allí también se registra una reversión a una revisión que la aplicación ejecutó antes.
 
 Un cambio en la nube o un evento del proveedor necesita una [cuenta en la nube conectada](/docs/telemetry/cloud-accounts). Cada uno queda vinculado al recurso en la nube que nombra, cuando OneUptime lista ese recurso, y se dibuja en los gráficos del recurso. Su tipo sale de la operación: `deployment`, `scaling` o `rollback` cuando el nombre de la operación lo dice, `config-change` en otro caso, y `provider-event` para un evento de estado. Los gráficos que no están filtrados a ningún recurso dejan fuera el registro de actividad de una cuenta en la nube, para que una cuenta con mucho movimiento no tape tus despliegues; los eventos de estado del proveedor siguen en ellos.
 

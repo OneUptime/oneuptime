@@ -11,6 +11,8 @@ import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 
 import {
   DEFAULT_STATUS_PAGE_LANGUAGE,
+  STATUS_PAGE_LANGUAGE_STORAGE_KEY,
+  STATUS_PAGE_LANGUAGE_USER_CHOICE_KEY,
   StatusPageLanguage,
   SUPPORTED_STATUS_PAGE_LANGUAGES,
   SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
@@ -40,14 +42,9 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
   SUPPORTED_STATUS_PAGE_LANGUAGES;
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_STATUS_PAGE_LANGUAGE;
-export const LANGUAGE_STORAGE_KEY: string = "statusPageLang";
-/*
- * Separate key tracks whether the user explicitly chose a language (vs.
- * the value being auto-detected from the browser). Without this we cannot
- * distinguish a stored auto-detection from a real user choice, so the
- * status page's configured default would be ignored after the first visit.
- */
-export const LANGUAGE_USER_CHOICE_KEY: string = "statusPageLangUserChoice";
+export const LANGUAGE_STORAGE_KEY: string = STATUS_PAGE_LANGUAGE_STORAGE_KEY;
+export const LANGUAGE_USER_CHOICE_KEY: string =
+  STATUS_PAGE_LANGUAGE_USER_CHOICE_KEY;
 
 /*
  * Backward-compat: the language code "zh" was renamed to "zh-CN" when

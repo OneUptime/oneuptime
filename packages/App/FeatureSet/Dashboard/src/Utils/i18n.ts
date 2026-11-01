@@ -4,6 +4,7 @@ import { initReactI18next } from "react-i18next";
 import { toDetectedLanguage } from "Common/Types/ReaderLanguage";
 
 import {
+  DASHBOARD_LANGUAGE_STORAGE_KEY,
   DashboardLanguage,
   DEFAULT_DASHBOARD_LANGUAGE,
   SUPPORTED_DASHBOARD_LANGUAGES,
@@ -42,7 +43,7 @@ export const SUPPORTED_LANGUAGES: Array<SupportedLanguage> =
   SUPPORTED_DASHBOARD_LANGUAGES;
 
 export const DEFAULT_LANGUAGE: string = DEFAULT_DASHBOARD_LANGUAGE;
-export const LANGUAGE_STORAGE_KEY: string = "oneuptimeLang";
+export const LANGUAGE_STORAGE_KEY: string = DASHBOARD_LANGUAGE_STORAGE_KEY;
 
 /*
  * Backward-compat: the language code "zh" was renamed to "zh-CN" when

@@ -455,7 +455,7 @@ describe("the menu paths", () => {
     expect(menuSections(APP_PLATFORMS_SIDE_MENU)).toEqual([
       {
         title: "App Platforms",
-        items: ["Overview", "All Environments"],
+        items: ["Overview", "All Apps", "All Environments"],
       },
       { title: "Settings", items: ["Owner Rules", "Label Rules"] },
       { title: "Advanced", items: ["Archived"] },
@@ -615,8 +615,11 @@ describe("the environments list and its Add guide", () => {
   });
 
   it("names the status pill as the list draws it", () => {
-    expect(readSource(ENVIRONMENTS_PAGE)).toContain(
-      'text={isConnected ? "Connected" : "Disconnected"}',
+    expect(readSource(ENVIRONMENTS_PAGE).replace(/\s+/g, " ")).toContain(
+      'text={ isConnected ? "Connected" : isWaiting ? "Waiting" : "Disconnected" }',
+    );
+    expect(pageProse(HUB)).toContain(
+      "An environment that has sent nothing yet shows **Waiting**.",
     );
     expect(pageProse(HUB)).toContain(
       "shows **Disconnected**, and the next span, log or metric brings it back to **Connected**",
@@ -733,7 +736,7 @@ describe("the clocks the sweeps keep", () => {
 
     expect(minutes).toBe(15);
     expect(pageProse(HUB)).toContain(
-      `An environment whose telemetry stops for ${minutes} minutes shows **Disconnected**`,
+      `One whose telemetry stops for ${minutes} minutes shows **Disconnected**`,
     );
     expect(pageProse(TROUBLESHOOTING)).toContain(
       `when no telemetry has arrived for it in ${minutes} minutes`,

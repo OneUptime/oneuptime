@@ -129,7 +129,7 @@ Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venst
 
 ## Språk og tema
 
-Begge lagres i nettleseren din, ikke på kontoen, så still dem inn på nytt i en annen nettleser eller på en annen enhet.
+Begge lagres i nettleseren din, ikke på kontoen, så still dem inn på nytt i en annen nettleser eller på en annen enhet. De beholdes når du logger ut, så på en delt datamaskin starter neste person med innstillingene dine.
 
 - **Språk**: dashbordet starter på nettleserens språk. Bruk språkmenyen nederst på hver side for å bytte. Denne dokumentasjonen har sin egen språkmeny øverst.
 - **Tema**: velg **Lyst**, **Mørkt** eller **System** i brukermenyen. **System** er lyst eller mørkt etter hvordan enheten din er stilt inn, og skifter med den; alle nettlesere starter med det. Påloggingssidene bruker samme tema.

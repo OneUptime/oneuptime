@@ -56,9 +56,9 @@ function isLifecycleEvent(type: number): boolean {
  * 3.3 KB of tags and 4.9 KB of traits) room inside the 8 KB ceiling only
  * because the recorder ALSO measures the finished envelope and sheds
  * optional fields that do not fit - see Recorder.fitEnvelope. A chunk covers
- * ~15s, so a page doing more DISTINCT navigations than these caps allow is
- * rewriting its URL programmatically rather than being navigated by a
- * person; routeCount still counts every change past them.
+ * ~15s, so a page doing more navigations than these caps allow is rewriting
+ * its URL programmatically rather than being navigated by a person;
+ * routeCount still counts every change past them.
  */
 const MAX_ROUTES_PER_CHUNK: number = 32;
 const MAX_ROUTE_BYTES_PER_CHUNK: number = 2 * 1024;
@@ -154,18 +154,20 @@ export interface PendingChunk {
   traceIds: Array<string>;
 
   /*
-   * Scrubbed URLs the page was on while this chunk was open, in first-seen
-   * order. routeCount already says HOW MANY route changes happened; this
-   * says WHICH pages, which is what the session header's routes[] column and
-   * the "sessions that hit /checkout" filter are built on. Without it the
-   * server can only see the URL the chunk was flushed from, so two
-   * navigations inside one flush window collapse to one.
+   * Scrubbed URLs the page was on while this chunk was open, in the order
+   * they were visited. routeCount already says HOW MANY route changes
+   * happened; this says WHICH pages, which is what the session header's
+   * routes[] column and the "sessions that hit /checkout" filter are built
+   * on. Without it the server can only see the URL the chunk was flushed
+   * from, so two navigations inside one flush window collapse to one.
    *
-   * The order is meaningful only within a chunk, and nothing downstream
-   * depends on it: the session header's routes[] is a de-duplicated SET
-   * across every chunk and every tab, sorted for determinism, and the
-   * envelope's scalar `url` is what carries "where was this chunk flushed
-   * from" - which is how the finalizer resolves the exit page.
+   * A page the user came back to appears again: A -> B -> A is three
+   * entries, because the order is what User Flows reads a journey from.
+   * Only a back-to-back repeat is dropped. The session header's routes[] is
+   * still a de-duplicated SET across every chunk and every tab, sorted for
+   * determinism, and the envelope's scalar `url` is what carries "where was
+   * this chunk flushed from" - which is how the finalizer resolves the exit
+   * page.
    */
   routes: Array<string>;
 }
@@ -248,11 +250,12 @@ export default class Chunker {
   private traceIdBytes: number = 0;
 
   /*
-   * A Set for de-duplication, but iteration order is insertion order, so the
-   * emitted array is chronological - which is what makes the last element
-   * usable as the chunk's exit URL.
+   * In the order they were visited, which is what makes the last element
+   * the chunk's exit URL. A list rather than a Set: a Set keeps a return to
+   * an earlier page at its first position, so A -> B -> A read as ending on
+   * B and the return was lost.
    */
-  private routes: Set<string> = new Set<string>();
+  private routes: Array<string> = [];
 
   /* Running UTF-8 size of `routes`, for the envelope byte budget. */
   private routeBytes: number = 0;
@@ -908,7 +911,7 @@ export default class Chunker {
      * carrying them forward would only make every chunk after the first
      * repeat the whole history for no gain.
      */
-    this.routes = new Set<string>();
+    this.routes = [];
     this.routeBytes = 0;
   }
 
@@ -1012,11 +1015,12 @@ export default class Chunker {
    * routeCount still counts every change past it.
    */
   public addRoute(url: string): void {
-    if (!url || this.routes.size >= MAX_ROUTES_PER_CHUNK) {
+    if (!url || this.routes.length >= MAX_ROUTES_PER_CHUNK) {
       return;
     }
 
-    if (this.routes.has(url)) {
+    /* The same page again is no navigation; a return after another one is. */
+    if (this.routes[this.routes.length - 1] === url) {
       return;
     }
 
@@ -1027,7 +1031,7 @@ export default class Chunker {
     }
 
     this.routeBytes += bytes;
-    this.routes.add(url);
+    this.routes.push(url);
   }
 
   public getSignals(): SessionReplaySignalCounts {

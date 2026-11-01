@@ -14,9 +14,11 @@ import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocs
  * App Platforms: the apps a managed app or container platform runs for you
  * - AWS ECS and Fargate, App Runner and Elastic Beanstalk, Google Cloud Run
  * and App Engine, Azure Container Apps, Container Instances and App
- * Service. Its Overview says how they are doing across every platform, and
- * All Environments lists one environment per platform, account and region,
- * as the apps' own OpenTelemetry reports them.
+ * Service. Its Overview says how they are doing across every platform, All
+ * Apps lists every app - an ECS service, a Cloud Run service, a Container
+ * App - with its requests, errors and latency, and All Environments lists
+ * one environment per platform, account and region, as the apps' own
+ * OpenTelemetry reports them.
  */
 const AppPlatformsSideMenu: FunctionComponent = (): ReactElement => {
   const sections: SideMenuSectionProps[] = [
@@ -32,6 +34,15 @@ const AppPlatformsSideMenu: FunctionComponent = (): ReactElement => {
           },
           // As Inventory's Overview: how the whole product is doing.
           icon: IconProp.ChartBar,
+        },
+        {
+          link: {
+            title: "All Apps",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_APPS] as Route,
+            ),
+          },
+          icon: IconProp.Squares,
         },
         {
           link: {

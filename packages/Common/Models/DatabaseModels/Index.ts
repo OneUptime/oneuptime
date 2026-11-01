@@ -105,6 +105,8 @@ import RumApplicationLabelRule from "./RumApplicationLabelRule";
 import RumApplicationOwnerRule from "./RumApplicationOwnerRule";
 import ServerlessFunctionInstance from "./ServerlessFunctionInstance";
 import CloudResourceInstance from "./CloudResourceInstance";
+import CloudApp from "./CloudApp";
+import CloudAppRevision from "./CloudAppRevision";
 import RumApplicationClient from "./RumApplicationClient";
 import RumSessionReplayView from "./RumSessionReplayView";
 import RumSessionErasureRequest from "./RumSessionErasureRequest";
@@ -1193,6 +1195,8 @@ const AllModelTypes: Array<{
   RumApplicationOwnerRule,
   ServerlessFunctionInstance,
   CloudResourceInstance,
+  CloudApp,
+  CloudAppRevision,
   RumApplicationClient,
   RumSessionReplayView,
   RumSessionErasureRequest,

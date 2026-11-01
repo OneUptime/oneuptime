@@ -6,9 +6,10 @@ import Dictionary from "../../Types/Dictionary";
  * Change events (Models/AnalyticsModels/ChangeEvent) come from several
  * places: CI/CD pipelines and the CLI post them to the ingest API, and
  * OneUptime records others itself - a service that starts reporting a new
- * service.version, a Kubernetes Deployment that starts a new ReplicaSet, a
- * fix command OneUptime AI ran, a runbook that ran, a change a cloud
- * account's activity log recorded, a health event its provider published.
+ * service.version, a Kubernetes Deployment that starts a new ReplicaSet, an
+ * app on an app platform that starts running a new revision, a fix command
+ * OneUptime AI ran, a runbook that ran, a change a cloud account's activity
+ * log recorded, a health event its provider published.
  * They all keep what
  * they know in the row's attributes map, under OpenTelemetry's semantic
  * convention names where one exists (service.version,
@@ -47,6 +48,12 @@ export enum ChangeEventSource {
   ServiceVersion = "service-version",
   // A Kubernetes Deployment started a new ReplicaSet.
   Kubernetes = "kubernetes",
+  /*
+   * An app on a managed app platform (ECS, Cloud Run, Container Apps...)
+   * started running a revision it had not run before, or went back to one
+   * it ran before (CloudAppRevisionService).
+   */
+  AppPlatform = "app-platform",
   // A fix command OneUptime AI ran.
   OneUptimeAi = "oneuptime-ai",
   // A runbook OneUptime ran.
@@ -93,6 +100,11 @@ export const ChangeEventAttribute: {
   readonly CloudActor: string;
   readonly CloudEventId: string;
   readonly CloudAccountRecordId: string;
+  readonly CloudPlatform: string;
+  readonly AppPlatformApp: string;
+  readonly AppPlatformAppId: string;
+  readonly AppPlatformRevision: string;
+  readonly PreviousRevision: string;
 } = {
   Source: "oneuptime.change.source",
   Status: "oneuptime.change.status",
@@ -128,6 +140,13 @@ export const ChangeEventAttribute: {
   CloudEventId: "oneuptime.cloud.event_id",
   // The CloudAccount row the change belongs to.
   CloudAccountRecordId: "oneuptime.cloud_account.id",
+  // The app platform an app runs on: OpenTelemetry's cloud.platform.
+  CloudPlatform: "cloud.platform",
+  // An App Platforms app (CloudApp): its name, its row and its revisions.
+  AppPlatformApp: "oneuptime.app_platform.app",
+  AppPlatformAppId: "oneuptime.app_platform.app_id",
+  AppPlatformRevision: "oneuptime.app_platform.revision",
+  PreviousRevision: "oneuptime.change.previous_revision",
 };
 
 /*
@@ -233,6 +252,11 @@ export interface ChangeEventFields {
   cloudOperation?: string | undefined;
   cloudActor?: string | undefined;
   cloudAccountRecordId?: string | undefined;
+  cloudPlatform?: string | undefined;
+  appPlatformApp?: string | undefined;
+  appPlatformAppId?: string | undefined;
+  appPlatformRevision?: string | undefined;
+  previousRevision?: string | undefined;
 }
 
 function firstValue(
@@ -302,6 +326,11 @@ export function readChangeEventFields(
     cloudOperation: read(ChangeEventAttribute.CloudOperation),
     cloudActor: read(ChangeEventAttribute.CloudActor),
     cloudAccountRecordId: read(ChangeEventAttribute.CloudAccountRecordId),
+    cloudPlatform: read(ChangeEventAttribute.CloudPlatform),
+    appPlatformApp: read(ChangeEventAttribute.AppPlatformApp),
+    appPlatformAppId: read(ChangeEventAttribute.AppPlatformAppId),
+    appPlatformRevision: read(ChangeEventAttribute.AppPlatformRevision),
+    previousRevision: read(ChangeEventAttribute.PreviousRevision),
   };
 
   for (const key of Object.keys(fields) as Array<keyof ChangeEventFields>) {
@@ -345,6 +374,18 @@ export function describeChangeEventFields(fields: ChangeEventFields): string {
       ? `${fields.kubernetesNamespace}/`
       : "";
     parts.push(`deployment ${namespace}${fields.kubernetesDeployment}`);
+  }
+
+  if (fields.appPlatformApp) {
+    parts.push(`app ${fields.appPlatformApp}`);
+  }
+
+  if (fields.appPlatformRevision && fields.previousRevision) {
+    parts.push(
+      `revision ${fields.previousRevision} → ${fields.appPlatformRevision}`,
+    );
+  } else if (fields.appPlatformRevision) {
+    parts.push(`revision ${fields.appPlatformRevision}`);
   }
 
   if (fields.kubernetesReplicaSet && fields.previousReplicaSet) {
@@ -415,6 +456,8 @@ export function describeChangeEventSource(source: string): string {
       return "a new service.version in telemetry";
     case ChangeEventSource.Kubernetes:
       return "a new Kubernetes ReplicaSet";
+    case ChangeEventSource.AppPlatform:
+      return "a new revision on an app platform";
     case ChangeEventSource.OneUptimeAi:
       return "a fix OneUptime AI ran";
     case ChangeEventSource.Runbook:

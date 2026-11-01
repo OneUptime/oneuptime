@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39759,
-    "untranslated": 12449
+    "keys": 39842,
+    "untranslated": 12440
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -37,11 +37,9 @@
     "JavaScript API",
     "K8s Deployment",
     "LXC 201 · pve3",
-    "Log4Shell",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
-    "Markdown",
     "OK",
     "OS",
     "OSD",
@@ -94,7 +92,7 @@
     "main",
     "message",
     "name",
-    "p95",
+    "p95 {{latency}}",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

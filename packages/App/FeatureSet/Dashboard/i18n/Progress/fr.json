@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39759,
-    "untranslated": 7340
+    "keys": 39842,
+    "untranslated": 7332
   },
   "sameAsEnglish": [
     " incidents",
@@ -184,7 +184,6 @@
     "Exceptions",
     "Exceptions ({{count}})",
     "Exclusion",
-    "Export",
     "Expression",
     "Fatal",
     "Favicon",
@@ -271,7 +270,6 @@
     "Liberia",
     "Liechtenstein",
     "Local",
-    "Log4Shell",
     "Logo",
     "Longitude",
     "Loopback",
@@ -351,7 +349,6 @@
     "PV",
     "PVC",
     "Page",
-    "Page {{current}}",
     "Page {{page}}",
     "Parent",
     "Passthrough",
@@ -472,7 +469,7 @@
     "main",
     "message",
     "name",
-    "p95",
+    "p95 {{latency}}",
     "port {{port}}",
     "prod, staging",
     "prod-.*",
@@ -509,6 +506,8 @@
     "{{count}} exceptions",
     "{{count}} incident",
     "{{count}} incidents",
+    "{{count}} instance",
+    "{{count}} instances",
     "{{count}} minute",
     "{{count}} minutes",
     "{{count}} option",

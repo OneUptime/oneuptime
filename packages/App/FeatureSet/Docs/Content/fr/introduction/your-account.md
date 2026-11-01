@@ -129,7 +129,7 @@ Les **Paramètres utilisateur**, à droite dans la barre sous la barre supérieu
 
 ## Langue et thème
 
-Les deux sont enregistrés dans votre navigateur, pas dans votre compte : réglez-les à nouveau dans un autre navigateur ou sur un autre appareil.
+Les deux sont enregistrés dans votre navigateur, pas dans votre compte : réglez-les à nouveau dans un autre navigateur ou sur un autre appareil. Ils sont conservés lorsque vous vous déconnectez : sur un ordinateur partagé, la personne suivante commence donc avec vos réglages.
 
 - **Langue** : le tableau de bord démarre dans la langue de votre navigateur. Pour la changer, utilisez le menu des langues en bas de chaque page. Cette documentation a son propre menu des langues, en haut.
 - **Thème** : choisissez **Clair**, **Sombre** ou **Système** dans le menu utilisateur. **Système** est clair ou sombre selon le réglage de votre appareil, et change avec lui ; chaque navigateur démarre avec lui. Les pages de connexion utilisent le même thème.

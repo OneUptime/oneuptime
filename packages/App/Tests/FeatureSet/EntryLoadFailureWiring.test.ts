@@ -1,3 +1,8 @@
+import { DASHBOARD_LANGUAGE_STORAGE_KEY } from "Common/Types/Dashboard/DashboardLanguage";
+import {
+  STATUS_PAGE_LANGUAGE_STORAGE_KEY,
+  STATUS_PAGE_LANGUAGE_USER_CHOICE_KEY,
+} from "Common/Types/StatusPage/StatusPageLanguage";
 import { describe, expect, test } from "@jest/globals";
 import ejs from "ejs";
 import fs from "fs";
@@ -79,6 +84,28 @@ const FRONTENDS: Array<Frontend> = [
   },
 ];
 
+/*
+ * The keys live in Common, where signing out can name them too (UI/Utils/
+ * KeptAfterSignOut.ts): the value of the constant an app's i18n.ts assigns
+ * to one of its own names.
+ */
+const COMMON_LANGUAGE_KEYS: Record<string, string> = {
+  DASHBOARD_LANGUAGE_STORAGE_KEY,
+  STATUS_PAGE_LANGUAGE_STORAGE_KEY,
+  STATUS_PAGE_LANGUAGE_USER_CHOICE_KEY,
+};
+
+const keyTheAppKeeps: (i18n: string, name: string) => string | undefined = (
+  i18n: string,
+  name: string,
+): string | undefined => {
+  const assigned: RegExpExecArray | null = new RegExp(
+    `export const ${name}: string =\\s*(\\w+);`,
+  ).exec(i18n);
+
+  return assigned ? COMMON_LANGUAGE_KEYS[assigned[1] as string] : undefined;
+};
+
 const ROOT: string = '<div id="root"></div>';
 
 const PARTIAL_MARKER: string = 'var ENTRY_PATH_END = "/dist/Index.js";';
@@ -152,10 +179,14 @@ describe.each(FRONTENDS)("the $name's page", (frontend: Frontend) => {
       "utf8",
     );
 
-    expect(i18n).toContain(`"${frontend.options.storageKey}"`);
+    expect(keyTheAppKeeps(i18n, "LANGUAGE_STORAGE_KEY")).toBe(
+      frontend.options.storageKey,
+    );
 
     if (frontend.options.choiceKey) {
-      expect(i18n).toContain(`"${frontend.options.choiceKey}"`);
+      expect(keyTheAppKeeps(i18n, "LANGUAGE_USER_CHOICE_KEY")).toBe(
+        frontend.options.choiceKey,
+      );
     }
   });
 });
