@@ -31,6 +31,15 @@ import * as fs from "fs";
 import * as path from "path";
 
 /*
+ * How the Kubernetes agent's chart names its cumulative-to-delta processor:
+ * as the agent's collector knows it, cumulative_to_delta from collector
+ * 0.157.0 and cumulativetodelta before (_helpers.tpl). The chart's own
+ * tests pin both names.
+ */
+const CUMULATIVE_TO_DELTA: string =
+  '{{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}';
+
+/*
  * These tests lock in the subtle, easy-to-regress decisions in the
  * per-series ratio alert templates (node request/usage utilization, plus
  * the autoscaling and container-limit saturation templates):
@@ -888,10 +897,10 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
     );
     expect(config).toContain("- 'name != \"k8s.container.restarts\"'");
     expect(config).toContain('- delete_key(attributes, "container.id")');
-    expect(config).toContain("  cumulative_to_delta/restarts-increase:\n");
+    expect(config).toContain(`  ${CUMULATIVE_TO_DELTA}/restarts-increase:\n`);
     expect(config).toContain("        metrics/restarts-increase:\n");
     expect(config).toContain(
-      "            - cumulative_to_delta/restarts-increase\n",
+      `            - ${CUMULATIVE_TO_DELTA}/restarts-increase\n`,
     );
   });
 
@@ -936,7 +945,7 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
     );
     expect(metricsPipeline).toContain("            - k8sattributes\n");
     expect(restartsPipeline).toContain(
-      "            - cumulative_to_delta/restarts-increase\n          exporters:\n            - forward/restarts-increase\n",
+      `            - ${CUMULATIVE_TO_DELTA}/restarts-increase\n          exporters:\n            - forward/restarts-increase\n`,
     );
 
     /*
@@ -1883,10 +1892,10 @@ describe("KubernetesAlertTemplates - Job Failures clear on their own", () => {
       '- convert_gauge_to_sum("cumulative", true) where name == "k8s.job.failed_pods.increase"',
     );
     expect(config).toContain(
-      "  cumulative_to_delta/job-failures-increase:\n        include:\n          metrics:\n            - k8s.job.failed_pods.increase\n          match_type: strict\n        initial_value: drop\n",
+      `  ${CUMULATIVE_TO_DELTA}/job-failures-increase:\n        include:\n          metrics:\n            - k8s.job.failed_pods.increase\n          match_type: strict\n        initial_value: drop\n`,
     );
     expect(config).toContain(
-      "            - transform/job-failures-increase\n            - cumulative_to_delta/job-failures-increase\n",
+      `            - transform/job-failures-increase\n            - ${CUMULATIVE_TO_DELTA}/job-failures-increase\n`,
     );
     expect(AGENT_EMITTED_METRIC_NAMES).toContain(
       "k8s.job.failed_pods.increase",
