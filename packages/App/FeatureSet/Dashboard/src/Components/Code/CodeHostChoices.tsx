@@ -1,3 +1,8 @@
+import {
+  getHandDrawnButtonStateClassName,
+  getHandDrawnLookClassName,
+  getLockedPartClassName,
+} from "Common/UI/Components/Button/ButtonStates";
 import CodeHostMark from "./CodeHostMark";
 import {
   CODE_CONNECT_COPY,
@@ -58,33 +63,44 @@ const CodeHostChoices: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                   props.onChoose(provider);
                 }}
-                className={`group flex min-w-0 items-start gap-3 rounded-xl border p-4 text-left shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
-                  isDisabled
-                    ? "cursor-not-allowed border-gray-200 bg-gray-50"
-                    : "border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/40"
-                }`}
+                className={`group flex min-w-0 items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: isDisabled,
+                    /*
+                     * Locked, its mark and its name fade; the line that says
+                     * GitHub is not set up here stays as easy to read.
+                     */
+                    holdsItsReason: true,
+                    hoverClassName:
+                      "hover:border-indigo-300 hover:bg-indigo-50/40",
+                  },
+                )}`}
               >
                 <span
                   aria-hidden="true"
-                  className={`flex h-10 w-10 flex-none items-center justify-center rounded-lg ${
-                    isDisabled
-                      ? "bg-gray-200 text-gray-500"
-                      : "bg-gray-900 text-white"
-                  }`}
+                  className={`flex h-10 w-10 flex-none items-center justify-center rounded-lg bg-gray-900 text-white ${getLockedPartClassName(
+                    { isLocked: isDisabled },
+                  )}`}
                 >
                   <CodeHostMark provider={provider} className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span
-                    className={`block text-sm font-semibold ${
-                      isDisabled ? "text-gray-500" : "text-gray-900"
-                    }`}
+                    className={`block text-sm font-semibold text-gray-900 ${getLockedPartClassName(
+                      { isLocked: isDisabled },
+                    )}`}
                   >
                     {translator.translateText(
                       CODE_HOST_CHOICE_COPY[provider].title,
                     )}
                   </span>
-                  <span className="mt-0.5 block text-sm leading-5 text-gray-500">
+                  <span
+                    className={`mt-0.5 block text-sm leading-5 text-gray-500 ${
+                      isUnavailable
+                        ? ""
+                        : getLockedPartClassName({ isLocked: isDisabled })
+                    }`}
+                  >
                     {translator.translateText(
                       isUnavailable
                         ? CODE_CONNECT_COPY.gitHubNotConfigured
@@ -155,11 +171,13 @@ export const CodeOtherHosts: FunctionComponent<{
               onClick={() => {
                 props.onChoose(provider);
               }}
-              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
-                lock.isLocked
-                  ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400"
-                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnLookClassName(
+                {
+                  className:
+                    "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+                  isLocked: lock.isLocked,
+                },
+              )}`}
             >
               <CodeHostMark provider={provider} className="h-4 w-4" />
               {translator.translateText(CODE_HOST_CHOICE_COPY[provider].title)}

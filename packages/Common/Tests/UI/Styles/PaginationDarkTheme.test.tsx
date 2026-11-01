@@ -237,9 +237,9 @@ describe("the pagination bar in the dark theme", () => {
     const live: HTMLElement = screen.getByTestId("pagination-next-button");
 
     expect(live).toHaveClass(...ARROW_CLASS_NAME.split(" "));
-    expect(dead).toHaveClass("text-gray-500", "opacity-40");
+    expect(dead).toHaveClass("text-gray-500", "opacity-50");
     expect(live).toHaveClass("text-gray-500");
-    expect(live).not.toHaveClass("opacity-40");
+    expect(live).not.toHaveClass("opacity-50");
   });
 
   test("nothing on the bar is drawn in text-gray-300, in any state", () => {

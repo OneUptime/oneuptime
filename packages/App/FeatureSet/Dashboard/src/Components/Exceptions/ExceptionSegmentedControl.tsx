@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, { KeyboardEvent, ReactElement, useRef } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -133,9 +134,10 @@ const ExceptionSegmentedControl: <TValue extends string>(
               className={`inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 isActive
                   ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200"
-                  : option.isDisabled
-                    ? "cursor-not-allowed text-gray-300"
-                    : "text-gray-600 hover:text-gray-900"
+                  : getHandDrawnLookClassName({
+                      className: "text-gray-600 hover:text-gray-900",
+                      isLocked: option.isDisabled,
+                    })
               }`}
             >
               {translator.translateText(option.label)}

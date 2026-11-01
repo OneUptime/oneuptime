@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   ChangeEvent,
   FunctionComponent,
@@ -44,8 +45,17 @@ export interface ComponentProps {
 const triggerButtonClassName: string =
   "inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors";
 
-const iconButtonClassName: string =
-  "rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400";
+// Move up, Move down and Remove; a move at the list's end looks locked.
+const getIconButtonClassName: (isLocked: boolean) => string = (
+  isLocked: boolean,
+): string => {
+  return `rounded p-1 text-gray-400 transition-colors ${getHandDrawnButtonStateClassName(
+    {
+      isLocked: isLocked,
+      hoverClassName: "hover:bg-gray-100 hover:text-gray-700",
+    },
+  )}`;
+};
 
 /*
  * "Columns" for the security events list: which source attributes each row
@@ -267,7 +277,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                         <div className="flex flex-shrink-0 items-center">
                           <button
                             type="button"
-                            className={iconButtonClassName}
+                            className={getIconButtonClassName(index === 0)}
                             aria-label={`Move ${column.key} up`}
                             title="Move up"
                             disabled={index === 0}
@@ -282,7 +292,9 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                           </button>
                           <button
                             type="button"
-                            className={iconButtonClassName}
+                            className={getIconButtonClassName(
+                              index === selectedColumns.length - 1,
+                            )}
                             aria-label={`Move ${column.key} down`}
                             title="Move down"
                             disabled={index === selectedColumns.length - 1}
@@ -297,7 +309,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
                           </button>
                           <button
                             type="button"
-                            className={iconButtonClassName}
+                            className={getIconButtonClassName(false)}
                             aria-label={`Remove ${column.key}`}
                             title="Remove"
                             onClick={() => {

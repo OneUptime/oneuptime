@@ -18,12 +18,17 @@ const kindToPageMap: Record<string, PageMap> = {
   PersistentVolumeClaim: PageMap.KUBERNETES_CLUSTER_VIEW_PVC_DETAIL,
   PersistentVolume: PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL,
   ReplicaSet: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENT_DETAIL, // ReplicaSets are managed by Deployments
+  DeploymentConfig: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
+  Route: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
+  Service: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
 };
 
 export interface ComponentProps {
   modelId: ObjectID;
   resourceKind: string;
   resourceName: string;
+  // Which one, for a kind whose names repeat across namespaces.
+  namespace?: string | undefined;
   className?: string | undefined;
 }
 
@@ -40,11 +45,18 @@ const KubernetesResourceLink: FunctionComponent<ComponentProps> = (
   return (
     <span
       onClick={() => {
-        Navigation.navigate(
-          RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
+        const route: Route = RouteUtil.populateRouteParams(
+          RouteMap[pageMap] as Route,
+          {
             modelId: props.modelId,
             subModelId: new ObjectID(props.resourceName),
-          }),
+          },
+        );
+
+        Navigation.navigate(
+          props.namespace
+            ? route.addQueryParams({ namespace: props.namespace })
+            : route,
         );
       }}
       className={`text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium ${props.className || ""}`}

@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import AppLink from "../../AppLink/AppLink";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -714,7 +715,12 @@ const DiscoveryImportProgressPanel: FunctionComponent<
                 type="button"
                 data-testid="discovery-import-show-all"
                 disabled={props.isLoadingAllResults}
-                className="font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:underline disabled:cursor-wait disabled:text-indigo-300"
+                className={`font-medium text-indigo-600 focus:outline-none focus-visible:underline ${getHandDrawnButtonStateClassName(
+                  {
+                    isBusy: props.isLoadingAllResults,
+                    hoverClassName: "hover:text-indigo-700 hover:underline",
+                  },
+                )}`}
                 onClick={props.onShowAllResults}
               >
                 {translator.translatePlural(

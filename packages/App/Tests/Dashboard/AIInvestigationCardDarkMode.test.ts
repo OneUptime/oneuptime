@@ -172,8 +172,6 @@ const GROUP_HOVER_GREY_TEXT_RULE: string =
  * so the list cannot outlive what it excuses.
  */
 const KNOWN_EXCEPTIONS: Record<string, string> = {
-  // The verdict's answers while a save is in flight: disabled and hovered.
-  "disabled:hover:text-gray-600": "InvestigationPanel.tsx",
   // Rows returned as text, in a code block that is dark in both themes.
   "text-gray-100": "InvestigationReport/InvestigationEvidenceList.tsx",
 };
@@ -386,12 +384,18 @@ describe("the AI Investigation card in the dark theme", () => {
         "focus-within:ring-indigo-500",
         "bg-indigo-600",
         "hover:bg-indigo-500",
-        "bg-gray-100",
-        "text-gray-400",
         "bg-gray-900",
         "hover:bg-gray-800",
       ]),
     );
+    /*
+     * Send with nothing to send is locked as every button is - its own
+     * indigo, faded - not the grey of its own it had (bg-gray-100,
+     * text-gray-400).
+     */
+    expect(
+      tokensOf("InvestigationConversation/ConversationComposer.tsx"),
+    ).not.toEqual(expect.arrayContaining(["bg-gray-100", "text-gray-400"]));
     expect(
       tokensOf("InvestigationConversation/InvestigationConversation.tsx"),
     ).toEqual(

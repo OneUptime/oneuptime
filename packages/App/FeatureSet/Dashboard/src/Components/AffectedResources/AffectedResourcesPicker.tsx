@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -3006,7 +3007,12 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   setSelectedLabelIds([]);
                 }}
                 disabled={isApplyingLabels}
-                className="rounded px-2 py-1 text-xs font-medium text-gray-600 hover:bg-white hover:text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
+                className={`rounded px-2 py-1 text-xs font-medium text-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: isApplyingLabels,
+                    hoverClassName: "hover:bg-white hover:text-gray-800",
+                  },
+                )}`}
               >
                 {translator.translateText("Clear")}
               </button>
@@ -3021,7 +3027,12 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
                   void applyLabelSelection();
                 }}
                 disabled={isApplyingLabels}
-                className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60"
+                className={`inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1 text-xs font-semibold text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${getHandDrawnButtonStateClassName(
+                  {
+                    isBusy: isApplyingLabels,
+                    hoverClassName: "hover:bg-indigo-700",
+                  },
+                )}`}
               >
                 {isApplyingLabels && (
                   <svg

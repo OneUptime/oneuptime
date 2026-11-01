@@ -263,7 +263,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitors (optional)",
+          placeholder: "Select Monitors",
         },
         ...(props.triggerEntityType === RunbookRuleTriggerEntity.Incident
           ? [
@@ -281,7 +281,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
                   },
                 },
                 required: false,
-                placeholder: "Select Severities (optional)",
+                placeholder: "Select Severities",
               },
             ]
           : []),
@@ -301,7 +301,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
                   },
                 },
                 required: false,
-                placeholder: "Select Severities (optional)",
+                placeholder: "Select Severities",
               },
             ]
           : []),
@@ -316,7 +316,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Labels (optional)",
+          placeholder: "Select Labels",
         },
         {
           field: { monitorLabels: true },
@@ -330,7 +330,7 @@ const RunbookRulesTable: FunctionComponent<ComponentProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Monitor Labels (optional)",
+          placeholder: "Select Monitor Labels",
         },
         {
           field: { titlePattern: true },

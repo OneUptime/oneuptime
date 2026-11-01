@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import AIChatPermissionMode, {
   AIChatPermissionModeHelper,
   AIChatPermissionModeOption,
@@ -131,7 +132,12 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
           });
         }}
         title={translator.translateText("Choose what the AI is allowed to do")}
-        className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
+        className={`flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: props.disabled,
+            hoverClassName: "hover:border-gray-300 hover:bg-gray-50",
+          },
+        )}`}
       >
         <Icon
           icon={modeIcon[props.value]}

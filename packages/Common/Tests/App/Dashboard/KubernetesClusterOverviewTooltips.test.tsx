@@ -569,7 +569,8 @@ describe("the cluster overview page", () => {
     for (const [key, text] of Object.entries(TEXT)) {
       expect({ key, shown: shown.has(text) }).toEqual({
         key,
-        shown: key !== "networkThroughput",
+        // On a cluster with ClusterOperators, which this page has none of.
+        shown: !["networkThroughput", "clusterHealthOpenShift"].includes(key),
       });
     }
   });

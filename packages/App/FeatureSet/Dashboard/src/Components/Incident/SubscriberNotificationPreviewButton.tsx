@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import IconProp from "Common/Types/Icon/IconProp";
 import { SubscriberNotificationPreviewRequest } from "Common/Types/StatusPage/SubscriberNotificationPreview";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -46,7 +47,7 @@ export interface ComponentProps {
    * nothing.
    */
   getRequest: () => SubscriberNotificationPreviewRequest | null;
-  // Nothing to preview yet: grey, with disabledReason saying why.
+  // Nothing to preview yet: locked, with disabledReason saying why.
   isDisabled?: boolean | undefined;
   disabledReason?: string | undefined;
   className?: string | undefined;
@@ -56,8 +57,6 @@ export interface ComponentProps {
 // The link colour, underlined on hover.
 const ENABLED_CLASS_NAME: string =
   "cursor-pointer text-indigo-600 hover:text-indigo-700 hover:underline";
-
-const DISABLED_CLASS_NAME: string = "cursor-not-allowed text-gray-400";
 
 /*
  * The size of the text it sits in. The padding makes the hit area 24px tall
@@ -108,9 +107,10 @@ const SubscriberNotificationPreviewButton: FunctionComponent<ComponentProps> = (
           setOpenRequest(request);
         }
       }}
-      className={`${LINK_CLASS_NAME} ${
-        isDisabled ? DISABLED_CLASS_NAME : ENABLED_CLASS_NAME
-      } ${props.className || ""}`}
+      className={`${LINK_CLASS_NAME} ${getHandDrawnLookClassName({
+        className: ENABLED_CLASS_NAME,
+        isLocked: isDisabled,
+      })} ${props.className || ""}`}
     >
       <Icon icon={IconProp.Eye} className="h-4 w-4 shrink-0" />
       <span>{translate(SubscriberNotificationPreviewCopy.previewButton)}</span>

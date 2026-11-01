@@ -197,6 +197,21 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
         collectionPage: PageMap.KUBERNETES_CLUSTER_VIEW_VPAS,
         detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL,
       },
+      {
+        kind: AIResourceSubresourceKind.DeploymentConfig,
+        collectionPage: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS,
+        detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
+      },
+      {
+        kind: AIResourceSubresourceKind.Route,
+        collectionPage: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES,
+        detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
+      },
+      {
+        kind: AIResourceSubresourceKind.Service,
+        collectionPage: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES,
+        detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
+      },
     ],
   },
   [AIResourceType.DockerSwarmCluster]: {

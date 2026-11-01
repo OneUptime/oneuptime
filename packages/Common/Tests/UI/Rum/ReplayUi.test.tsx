@@ -224,9 +224,18 @@ describe("ReplayToolButton disabled state", () => {
       />,
     );
 
-    /* Disabled wins: a dead control must never look selected. */
-    expect(screen.getByRole("button").className).toContain("text-gray-300");
-    expect(screen.getByRole("button").className).not.toContain("shadow-sm");
+    /*
+     * Disabled wins: a dead control must never look selected. It is drawn
+     * unpressed, and locked as every control is - its own grey, faded,
+     * with the not-allowed cursor and no hover.
+     */
+    const className: string = screen.getByRole("button").className;
+    expect(className).not.toContain("shadow-sm");
+    expect(className).not.toContain("bg-white ");
+    expect(className).toContain("text-gray-600");
+    expect(className).toContain("cursor-not-allowed");
+    expect(className).toContain("opacity-50");
+    expect(className).not.toContain("hover:");
   });
 
   it("keeps a loading action labelled, busy and inside the shared geometry", () => {

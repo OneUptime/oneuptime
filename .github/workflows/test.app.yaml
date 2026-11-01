@@ -842,6 +842,7 @@ jobs:
               test-postmortems-ui
               test-archivable-values-ui
               test-kubernetes-events-ui
+              test-openshift-pages-ui
               test-topology-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
@@ -1329,6 +1330,8 @@ jobs:
             output/playwright/first-on-call-policy-ui/test-results
             output/playwright/kubernetes-events-ui/*.png
             output/playwright/kubernetes-events-ui/test-results
+            output/playwright/openshift-pages-ui/*.png
+            output/playwright/openshift-pages-ui/test-results
             output/playwright/snmp-walk-ui/*.png
             output/playwright/snmp-walk-ui/test-results
             output/playwright/asset-details-ui/*.png

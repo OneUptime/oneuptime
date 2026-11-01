@@ -146,7 +146,7 @@ const AppPlatformsLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Labels (optional)",
+          placeholder: "Select Labels",
         },
         {
           field: { nameRegexPattern: true },

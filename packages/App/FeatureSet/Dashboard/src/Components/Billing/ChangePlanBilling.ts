@@ -1,3 +1,5 @@
+import SubscriptionPlan from "Common/Types/Billing/SubscriptionPlan";
+import { isSamePlanChoice } from "Common/Types/Billing/SubscriptionPlanPricing";
 import OneUptimeDate from "Common/Types/Date";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -42,6 +44,37 @@ export const ChangePlanBillingCopy: {
   trialDescription: translationKey(
     "Your free trial runs until {{date}} on whichever plan you choose. Billing starts when it ends.",
   ),
+};
+
+/*
+ * Change Plan's Save Changes with the plan the project is on still picked:
+ * said under the plans rather than sent. The dialog opens on that plan, so
+ * a Save that changed nothing used to run a whole plan change - the price
+ * swapped for itself at the payment provider, and the change reported - for
+ * a project that stayed where it was.
+ */
+export const CHANGE_PLAN_SAME_PLAN_ERROR: string = translationKey(
+  "The project is already on this plan. Pick another plan to change to.",
+);
+
+/*
+ * The error under the plans when the plan picked is the one the project is
+ * on (isSamePlanChoice: the same price, or the other period of a plan that
+ * costs nothing either way), or null when Save Changes may go ahead. In
+ * English, as a translation key: the page translates it.
+ */
+export const getChangePlanError: (data: {
+  plans: Array<SubscriptionPlan>;
+  pickedPlanId: string | null | undefined;
+  currentPlanId: string | null | undefined;
+}) => string | null = (data: {
+  plans: Array<SubscriptionPlan>;
+  pickedPlanId: string | null | undefined;
+  currentPlanId: string | null | undefined;
+}): string | null => {
+  return isSamePlanChoice(data.plans, data.currentPlanId, data.pickedPlanId)
+    ? CHANGE_PLAN_SAME_PLAN_ERROR
+    : null;
 };
 
 /*

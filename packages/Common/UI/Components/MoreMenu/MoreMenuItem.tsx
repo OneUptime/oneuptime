@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CLASS_NAME } from "../Button/ButtonStates";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import { Placement } from "tippy.js";
 import Color from "../../../Types/Color";
@@ -100,7 +101,7 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
    * reached with the arrow keys looks exactly as active as one under the mouse.
    */
   const stateClassName: string = isDisabled
-    ? "cursor-not-allowed opacity-50 focus-visible:outline-none focus-visible:bg-gray-100"
+    ? `${BUTTON_DISABLED_CLASS_NAME} focus-visible:outline-none focus-visible:bg-gray-100`
     : isDestructive
       ? "cursor-pointer hover:bg-red-50 hover:text-red-700 focus-visible:outline-none focus-visible:bg-red-50 focus-visible:text-red-700"
       : "cursor-pointer hover:bg-indigo-50 hover:text-gray-900 focus-visible:outline-none focus-visible:bg-indigo-50 focus-visible:text-gray-900";

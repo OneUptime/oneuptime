@@ -137,6 +137,7 @@ export function getStatusBadgeClass(status: string): string {
     s === "bound" ||
     s === "succeeded" ||
     s === "available" ||
+    s === "admitted" ||
     s === "true" ||
     s === "up" ||
     s === "online" ||
@@ -163,6 +164,8 @@ export function getStatusBadgeClass(status: string): string {
     s === "crashloopbackoff" ||
     s === "error" ||
     s === "lost" ||
+    s === "rejected" ||
+    s === "unavailable" ||
     s === "notready" ||
     s === "imagepullbackoff" ||
     s === "false" ||

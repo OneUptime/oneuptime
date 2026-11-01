@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import DashboardVariable, {
   DashboardVariableType,
   DashboardVariableOption,
@@ -123,7 +124,10 @@ const MultiSelectPopover: FunctionComponent<{
             </span>
             <button
               type="button"
-              className="text-blue-600 hover:underline disabled:text-gray-300"
+              className={`text-blue-600 ${getHandDrawnButtonStateClassName({
+                isLocked: selected.length === 0,
+                hoverClassName: "hover:underline",
+              })}`}
               disabled={selected.length === 0}
               onClick={() => {
                 onChange([]);

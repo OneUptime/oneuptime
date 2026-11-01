@@ -1440,10 +1440,17 @@ describe("EventStatusPanel state change permissions", () => {
       stateChangeGate: { isAllowed: false, disabledReason: REASON },
     });
 
-    expect(screen.getByRole("button", { name: "Acknowledge" })).toHaveClass(
+    const acknowledge: HTMLElement = screen.getByRole("button", {
+      name: "Acknowledge",
+    });
+
+    // Its own colours, faded as every locked button is, and no hover.
+    expect(acknowledge).toHaveClass(
       "bg-indigo-600",
-      "disabled:opacity-50",
+      "opacity-50",
+      "cursor-not-allowed",
     );
+    expect(acknowledge).not.toHaveClass("hover:bg-indigo-700");
   });
 
   test("looks the reason up in the reader's language", () => {

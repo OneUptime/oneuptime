@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { ThickProp } from "Common/UI/Components/Icon/Icon";
 import StatusPageLiveRefreshUtil from "../../Utils/LiveRefresh";
@@ -104,7 +105,12 @@ const LastUpdated: FunctionComponent<ComponentProps> = (
         onClick={props.onRefreshClick}
         disabled={props.isRefreshing}
         data-testid="status-page-refresh-button"
-        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+          {
+            isBusy: props.isRefreshing,
+            hoverClassName: "hover:bg-gray-100 hover:text-gray-900",
+          },
+        )}`}
       >
         <Icon
           icon={IconProp.Refresh}
