@@ -78,13 +78,13 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | --- | --- | --- |
 | **IoT Fleet** | Alla | Krävs. Begränsar varje fråga till `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avancerad | Valfritt. En enhet, via `device.id`, som `sensor-001`. |
-| **Device Type** | Custom Metric, Avancerad | Valfritt. Enheterna som rapporterar denna `iot.device.type`, som `sensor` eller `gateway`. |
+| **Enhetstyp** | Custom Metric, Avancerad | Valfritt. Enheterna som rapporterar denna `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). |
 | **Aggregering** | Custom Metric | Hur stickprov kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |
 | **Tidsintervall** | Alla | Det glidande fönstret som frågan läser, från **Past 1 Minute** till **Past 365 Days**. En ny monitor börjar på **Past 1 Minute**; mallar sätter sitt eget. |
 | **Välj mått** | Avancerad | Frågebyggaren: **Mätvärde**, **Aggregate by**, **Filter by attributes**, **Gruppera efter**, plus **Lägg till mätvärde** och **Lägg till formel** för att kombinera frågor. |
 
-Filtren verkar tillsammans: med ett **Device ID** och en **Device Type** matchar en enhet av en annan typ ingenting.
+Filtren verkar tillsammans: med ett **Device ID** och en **Enhetstyp** matchar en enhet av en annan typ ingenting.
 
 ## Färdiga larmmallar
 
@@ -152,7 +152,7 @@ Ett kriterium jämför en av monitorns frågor eller formler med ett tröskelvä
 | **Baslinjefönster** | Bara anomalivillkor. 14 dagar (standard), 28, 60 eller 90 dagars historik. |
 | **Om ingen data** | Under **Fler fält**. Vad som händer när en serie inte har några stickprov i fönstret: **Ignore** (standard) hoppar över den, **Treat As Zero** läser den som `0`, och **Utlösare** får kriteriet att matcha. |
 
-Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i tillståndet "Learning", och skickar inte ut något, tills baslinjefönstret innehåller tillräckligt med historik.
+Anomalivillkor jämför varje värde med samma timme i veckan i baslinjen. De stannar i tillståndet "Learning", och skickar inte ut något, tills baslinjefönstret innehåller tillräckligt med historik. En summa, ett antal eller en fråga på ett histogram stannar i det tillståndet för alltid: den här monitorn filtrerar sina frågor på attribut, och baslinjen innehåller inga.
 
 ### Standardkriterier
 

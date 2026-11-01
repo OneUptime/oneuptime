@@ -76,7 +76,7 @@ flowchart TB
     done -->|"Nei"| shown["Sjekklisten med<br/>stegene som gjenstår"]
 ```
 
-Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Lukk** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**.
+Sjekklisten forsvinner når alle fire steg er fullført. Klikk på **Skjul** for å skjule den før. Det huskes i denne nettleseren, for dette prosjektet; alt stegene åpner, ligger fortsatt i menyen **Produkter**.
 
 ### Krever oppmerksomhet
 

@@ -18,7 +18,7 @@ Configurar a segurança exige a função Project Owner, Project Admin ou Securit
 :::steps
 ### Ativar o que a maioria das equipes precisa
 
-Abra **Produtos → Security Events**. Em **Visão geral**, clique em **Ativar o recomendado**. Três coisas são ativadas de uma vez: **Encontrar eventos de segurança nos seus logs**, as regras de detecção recomendadas e **Enriquecer novos casos**, um playbook que compara cada caso novo com a inteligência de ameaças e deixa nele uma lista de verificação para a triagem.
+Abra **Produtos → Eventos de segurança**. Em **Visão geral**, clique em **Ativar o recomendado**. Três coisas são ativadas de uma vez: **Encontrar eventos de segurança nos seus logs**, as regras de detecção recomendadas e **Enriquecer novos casos**, um playbook que compara cada caso novo com a inteligência de ameaças e deixa nele uma lista de verificação para a triagem.
 
 ### Enviar um ataque de teste
 

@@ -157,6 +157,10 @@ html.dark .oneuptime-error-boundary { --oueb-surface: var(--ou-surface-primary, 
       return code;
     }
     var base = lower.split(/[-_]/)[0];
+<%# Norwegian Bokmål and Nynorsk (nb, nn) read Norwegian, as in Common/Types/ReaderLanguage. -%>
+    if (base === "nb" || base === "nn" || base === "no") {
+      return WORDS.no ? "no" : "";
+    }
     return WORDS[base] ? base : "";
   };
 

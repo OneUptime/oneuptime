@@ -131,7 +131,7 @@ Med standardtærsklen på 20 % bliver et truet SLO sundt igen ved 25 % resterend
 Når et SLO skifter til **I risiko** eller **Budget opbrugt**, giver OneUptime dets ejere besked:
 
 - Ejerne er de brugere og teammedlemmer på SLO'ets side **Ejere**, der stadig er medlemmer af projektet. Et SLO uden ejere giver i stedet projektets ejere besked.
-- Hver ejer får en e-mail som standard, og beskeden på enhver anden kanal, vedkommende slår til for **SLO status changed** under **Brugerindstillinger** → **Notifikationsindstillinger** → **Overvågning**.
+- Hver ejer får en e-mail som standard, og beskeden på enhver anden kanal, vedkommende slår til for **SLO-status ændret** under **Brugerindstillinger** → **Notifikationsindstillinger** → **Overvågning**.
 - E-mailens emne nævner status og SLO'et, for eksempel `[SLO At Risk] API Availability`.
 
 For at et SLO tæt på en grænse ikke skal blive ved med at give besked, får dets ejere højst én besked i timen. Et skift til **Budget opbrugt** sendes altid, også inden for den time.

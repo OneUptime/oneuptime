@@ -34,7 +34,7 @@ Una lacuna è una gravità senza regola, sulla scheda degli incidenti, degli epi
 
 ## La pagina Prontezza
 
-Aprite **Reperibilità → Prontezza**. La scheda **On-call readiness** elenca ogni persona che una policy di reperibilità del progetto può raggiungere, prima quelle che hanno bisogno di qualcosa. Chiunque nel progetto può aprirla.
+Aprite **Reperibilità → Prontezza**. La scheda **Preparazione della reperibilità** elenca ogni persona che una policy di reperibilità del progetto può raggiungere, prima quelle che hanno bisogno di qualcosa. Chiunque nel progetto può aprirla.
 
 Sopra l'elenco, i riquadri contano **Destinatari**, **Pronto**, **Da configurare** e **Irraggiungibile**. Fate clic su **Pronto**, **Da configurare** o **Irraggiungibile** per elencare solo quei destinatari, e fate di nuovo clic per elencare tutti.
 
@@ -43,10 +43,10 @@ Sopra l'elenco, i riquadri contano **Destinatari**, **Pronto**, **Da configurare
 | **Destinatario** | La persona, con il suo indirizzo e-mail. |
 | **Stato** | **Pronto**, **Irraggiungibile** o quante lacune ha. |
 | **Canali** | Un segmento per canale: pieno per un metodo verificato, vuoto per uno non ancora verificato. |
-| **Coverage** | Quante gravità hanno una regola, su ogni scheda, sul totale. |
-| **Reached via** | Come la raggiungono le policy: ogni team che la avvisa tramite una regola di escalation, con il suo nome, oppure **Direct**, **Pianificazione** o **Sostituzione**. |
+| **Copertura** | Quante gravità hanno una regola, su ogni scheda, sul totale. |
+| **Raggiunto tramite** | Come la raggiungono le policy: ogni team che la avvisa tramite una regola di escalation, con il suo nome, oppure **Diretto**, **Pianificazione** o **Sostituzione**. |
 
-**Coverage** su una riga mostra i metodi di notifica della persona, perché ha il suo stato e una griglia di ogni gravità con o senza regola. L'imbuto filtra l'elenco per **Destinatario**, **Stato**, **Team** o **Reached via**. La risposta può avere un minuto: **Aggiorna** la ricalcola.
+**Copertura** su una riga mostra i metodi di notifica della persona, perché ha il suo stato e una griglia di ogni gravità con o senza regola. L'imbuto filtra l'elenco per **Destinatario**, **Stato**, **Team** o **Raggiunto tramite**. La risposta può avere un minuto: **Aggiorna** la ricalcola.
 
 ## Ricordare alle persone di completare la configurazione
 

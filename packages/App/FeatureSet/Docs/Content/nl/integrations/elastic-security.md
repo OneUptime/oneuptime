@@ -44,7 +44,7 @@ Alerts worden per space opgeslagen. Open de space waarin je regels draaien: de I
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Elastic Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de sleutel in **API-sleutel**.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Elastic Security** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de sleutel in **API-sleutel**.
 
 ### Testen voordat je opslaat
 
@@ -154,7 +154,7 @@ Open in Kibana **Stack Management → API keys**, klik op **Create API key**, ge
 
 ### De bestemming toevoegen
 
-Open **Producten → Security Events → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Elastic Security onder **SIEM** en klik op **Volgende**. Vul de **Elasticsearch-URL** in, het Elasticsearch-eindpunt van de deployment en niet dat van Kibana, en plak de sleutel in **API-sleutel**. **Datastream** is optioneel: leeg gelaten gaan documenten naar `logs-oneuptime.security-default`, die Elasticsearch bij de eerste schrijfactie maakt.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen**. Klik onder **Naar uw SIEM sturen** op **Bestemming toevoegen**, kies Elastic Security onder **SIEM** en klik op **Volgende**. Vul de **Elasticsearch-URL** in, het Elasticsearch-eindpunt van de deployment en niet dat van Kibana, en plak de sleutel in **API-sleutel**. **Datastream** is optioneel: leeg gelaten gaan documenten naar `logs-oneuptime.security-default`, die Elasticsearch bij de eerste schrijfactie maakt.
 
 ### Een testgebeurtenis verzenden en beginnen met verzenden
 

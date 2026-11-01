@@ -48,7 +48,7 @@ x-oneuptime-token: <your telemetry ingestion key>
 
 ### 检查警报是否到达
 
-运行该 playbook。它的警报会在几秒内出现在 **产品 → Security Events** 中。
+运行该 playbook。它的警报会在几秒内出现在 **产品 → 安全事件** 中。
 :::
 
 ## 转发 UDM 事件
@@ -97,7 +97,7 @@ OneUptime 按间隔轮询你租户的检测和警报，无需任何 SOAR 配置�
 
 ### 添加连接
 
-打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），选择 **添加连接**，选择 **Google SecOps**，并用下表中的设置填写表单。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），选择 **添加连接**，选择 **Google SecOps**，并用下表中的设置填写表单。
 
 ### 保存之前先测试
 
@@ -247,7 +247,7 @@ OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队�
 
 ### 添加目标
 
-打开 **产品 → Security Events → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Google SecOps，然后点击 **下一步**。选择 **区域**，像上面的连接器一样填写 **实例资源名称**，并把密钥粘贴到 **服务账户 JSON** 中。
+打开 **产品 → 安全事件 → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Google SecOps，然后点击 **下一步**。选择 **区域**，像上面的连接器一样填写 **实例资源名称**，并把密钥粘贴到 **服务账户 JSON** 中。
 
 ### 发送测试事件
 
@@ -321,7 +321,7 @@ OneUptime 也可以把发现的内容发送到 Google SecOps，让您的团队�
 1. 检查 **正在运行的应用和工作进程镜像版本**。更新本地的连接器源文件或重新上传服务账号 JSON，都不会更新已部署的容器。请把包含连接器修正的镜像部署到每个运行轮询作业的应用或专用工作进程。如果你自己构建镜像，请用修正后的源代码重新构建，并部署一个新的、不可变的标签；用旧镜像重启 pod 是不够的。
 2. 对照 [Google API 参考](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacyFetchAlertsView) 核实警报视图请求。它使用 `timeRange.startTime`、`timeRange.endTime`、`snapshotQuery=`（空值包括所有警报状态）、`alertListOptions.maxReturnedAlerts`，以及根据已保存的 **Data to import** 选择显式设置的 `includeNonAlertingDetections`。它不得在该终结点上发送 `pageSize` 或 `pageToken`。两个按创建时间的读取过程使用 [`legacySearchDetections`](https://docs.cloud.google.com/chronicle/docs/reference/rest/v1alpha/projects.locations.instances.legacy/legacySearchDetections) 和 `legacySearchCuratedDetections`，它们记录的参数是 `ruleId`、`listBasis`、`alertState`、`pageSize` 和 `pageToken`，它们的失败带有的是检测搜索前缀。`legacySearchCuratedDetections` 总是接收一个精选规则 ID，从不接收 `-`。不要改用排除已关闭警报的过滤器，那样会丢失检测。
 3. 把完整的 `projects/{project}/locations/{location}/instances/{instance}` 资源与你的 Google SecOps 租户设置中的值进行比较。instance 部分必须是 SecOps 实例 ID；连接的显示名称或服务账号名称不能替代它。确认区域终结点与实例位置相匹配。
-4. 发布完成后，等待下一个配置的轮询间隔。在一次完整轮询后，**最近轮询** 应当前进，**最近错误** 应当被清除。如果窗口中有检测，它们应当出现在 **产品 → Security Events** 下；一个安静的窗口摄取零个事件也完全正常。
+4. 发布完成后，等待下一个配置的轮询间隔。在一次完整轮询后，**最近轮询** 应当前进，**最近错误** 应当被清除。如果窗口中有检测，它们应当出现在 **产品 → 安全事件** 下；一个安静的窗口摄取零个事件也完全正常。
 
 如果同样的错误仍然存在，请从连接的 **操作** 列打开 **查看错误**，在对话框中使用 **复制错误**，并把该消息、镜像标签或摘要、区域和实例资源名称提供给支持人员。记录的消息中的凭据已被隐去；请不要另外发送服务账号私钥、JWT 断言或访问令牌。升级之前记录的错误可能已被截断；之后失败的轮询会记录完整的消息。失败的轮询会保留它的窗口以便重试，而部分完成的轮询会缩小下一个窗口，或越过它在 Last Error 中指明的单独一分钟。计划的追赶每次运行最多处理 24 小时。
 
@@ -332,7 +332,7 @@ Google SecOps 过去有自己的连接卡片、API 和轮询器。现在它是 S
 - **连接会自动迁移。** 升级后的版本运行数据迁移时，每个 Google SecOps 连接都会以提供商 `google-secops` 复制到 Security Event Connections 中。它会保留自己的 ID、名称、**区域**、**实例资源名称**、服务账号密钥、**已启用** 状态、轮询间隔、**Data to import** 选择、轮询游标、Last Polled、Last Successful Poll、Last Event Imported 和 Last Error，所以轮询会从停下的地方继续。连接器保留了早期连接器导入时使用的 `Google` / `Google SecOps` 身份，所以已导入的检测会被计为 **Already imported**，而不会被存储两次。
 - **最近的运行历史也会一起迁移。** 每个连接最近的 500 次运行会被复制到 **诊断** 中它的运行历史里。仍在排队或运行中的运行会以失败状态复制，并附带 `This operation was still in progress when Google SecOps moved to Security Event Connections, so its outcome was not recorded here. Check the imported security events before running it again.`
 - **早期的行会被禁用，而不是删除。** 因此，在滚动部署期间仍在运行的旧工作进程无法再次轮询同一个实例。回滚到带有早期连接器的版本时，需要重新启用这些行。
-- **无法迁移的连接会留在原处。** 没有存储密钥的连接，或者其密钥无法用这台服务器的 `ENCRYPTION_SECRET` 解密的连接，会被跳过，并在工作进程日志中列出名称；请在 **产品 → Security Events → 连接** 下重新添加它。保存的设置已无法通过当前验证的连接仍会被迁移，但在你编辑它之前，它的轮询会失败，并带有指明相应字段的消息。因临时数据库错误而中断的连接，会在下一次工作进程启动、迁移再次运行时被迁移，轮询会从复制过来的游标处继续。
+- **无法迁移的连接会留在原处。** 没有存储密钥的连接，或者其密钥无法用这台服务器的 `ENCRYPTION_SECRET` 解密的连接，会被跳过，并在工作进程日志中列出名称；请在 **产品 → 安全事件 → 连接** 下重新添加它。保存的设置已无法通过当前验证的连接仍会被迁移，但在你编辑它之前，它的轮询会失败，并带有指明相应字段的消息。因临时数据库错误而中断的连接，会在下一次工作进程启动、迁移再次运行时被迁移，轮询会从复制过来的游标处继续。
 - **API 路由已更改。** `/google-secops-connection` 和 `/google-secops-connection-run` 路由（包括 `/google-secops-connection/test` 和 `/google-secops-connection/:connectionId/run`）被提供商为 `google-secops` 的 `/security-event-connection` 和 `/security-event-connection-run` 取代；对应的操作是 `/security-event-connection/test` 和 `/security-event-connection/:connectionId/run`。早期的顶层字段移入 `config` 和 `secrets`：
 
   ```json

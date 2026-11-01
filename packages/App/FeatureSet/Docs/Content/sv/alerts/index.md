@@ -141,7 +141,7 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 **Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
-- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står först i rubriken. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **OneUptime AI** med **Ask OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
+- **Översikt** — rubriken nämner larmets **Ägare**, team först, bredvid dess monitor och episod. Rutan **Skapad** visar när och av vad larmet skapades, två andra hur lång tid det tog att bekräfta och lösa det; hur länge det har pågått står först i rubriken. Kortet **Vad som hände** står överst på sidan — larmets beskrivning och dess **Rotorsak** — sedan kortet **OneUptime AI** med **Fråga OneUptime AI** längst ner, och **Larm Flöde** registrerar allt som hände med larmet. Bredvid finns kortet **Berörda resurser**, kortet **Larmdetaljer** och larmets mätningar.
 - **Tillståndstidslinje** — varje tillstånd larmet har varit i, när och hur länge. Se [Tillståndstidslinjen](/docs/alerts/states-and-severities#tillståndstidslinjen).
 - **Länkade incidenter** — incidenterna som larmet är en del av, med **Länka incident** och **Deklarera incident**.
 - **Inställningar** — **Vem kan se det här larmet** med reglaget **Privat larm**, och **Påminnelser** med **Skicka påminnelser**. Varje reglage sparar i samma ögonblick som du slår om det.
@@ -157,7 +157,7 @@ En episod som ett privat larm öppnar är inte privat, så den visar aldrig larm
 ## Vem som får veta om ett larm
 
 - **Jouren.** Larmets jourpolicyer larmar sina personer, var och en på det sätt de har ställt in under **Användarinställningar → Jourregler** på fliken **Larm**. Den som svarar på larmanropet bekräftar larmet, och larmningen upphör.
-- **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Larm**: **Larm skapat**, **Larmtillstånd ändrades** och **Alert reminder** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället projektets ägare.
+- **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Larm**: **Larm skapat**, **Larmtillstånd ändrades** och **Påminnelse om larm** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället projektets ägare.
 - **Dina chattverktyg.** **Larm → Arbetsyta** innehåller Slack- och Microsoft Teams-reglerna som publicerar larm och episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Felsökning

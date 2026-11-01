@@ -82,7 +82,7 @@ Gebeurtenissen, waarschuwingen en waarden van entiteiten komen van buiten het pr
 
 ## Nieuwe zaken automatisch beoordelen
 
-Open **Producten → Security Events → AI → Instellingen** en zet **Nieuwe zaken beoordelen** aan: dan wordt elke zaak die een detectie opent, beoordeeld zodra ze opent. De schakelaar slaat op zodra je hem omzet. Project Owner en Project Admin kunnen hem wijzigen.
+Open **Producten → Beveiligingsgebeurtenissen → AI → Instellingen** en zet **Nieuwe zaken beoordelen** aan: dan wordt elke zaak die een detectie opent, beoordeeld zodra ze opent. De schakelaar slaat op zodra je hem omzet. Project Owner en Project Admin kunnen hem wijzigen.
 
 Nieuwe projecten beginnen met de optie aan; een eerder aangemaakt project houdt hem uit tot iemand hem aanzet. Een met de hand geopende zaak, en de zaak van de testaanval uit **Testaanval sturen**, worden beoordeeld als iemand op **Beoordelen met AI** klikt.
 
@@ -119,7 +119,7 @@ Als de AI-tegoeden van het project op zijn of een dagelijkse AI-limiet is bereik
 ## Problemen oplossen
 
 :::details Een nieuwe zaak is niet beoordeeld
-Controleer of **AI inschakelen** aan staat, en ook **Nieuwe zaken beoordelen** onder **Producten → Security Events → AI → Instellingen**. Een met de hand geopende zaak en de zaak van de testaanval worden alleen beoordeeld als iemand erom vraagt. Open de zaak: als iets een beoordeling tegenhoudt, zegt de kaart wat, en waar je het oplost.
+Controleer of **AI inschakelen** aan staat, en ook **Nieuwe zaken beoordelen** onder **Producten → Beveiligingsgebeurtenissen → AI → Instellingen**. Een met de hand geopende zaak en de zaak van de testaanval worden alleen beoordeeld als iemand erom vraagt. Open de zaak: als iets een beoordeling tegenhoudt, zegt de kaart wat, en waar je het oplost.
 :::
 
 :::details De kaart zegt dat het project geen AI-tegoed meer heeft, of zijn dagelijkse AI-limiet heeft bereikt

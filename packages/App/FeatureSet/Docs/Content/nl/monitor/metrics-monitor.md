@@ -133,6 +133,15 @@ Deze monitoren evalueren altijd de **Metric Value**: de geaggregeerde waarde van
 
 De anomaliecondities hebben geen drempel. **Wanneer waarschuwen** toont in plaats daarvan **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog), en de eigen criteria ook een **Baseline-venster** (14 dagen, de standaard, 28, 60 of 90), en elk datapunt wordt vergeleken met hetzelfde uur van de week op eerdere dagen, zo ver als dat venster teruggaat. Wat er nu gebeurt, hoort nooit bij die vergelijking, dus een verandering die aanhoudt blijft waarschuwen totdat ze een week later in die eerdere dagen is opgenomen. Zolang dat uur van de week geen twee weken geschiedenis heeft, is het criterium nog aan het leren en levert het geen waarschuwingen op.
 
+Waarmee een datapunt wordt vergeleken, hangt af van de query:
+
+- **Zijn services.** Een monitor die services noemt, wordt alleen met die services vergeleken. Een monitor die er geen noemt, wordt vergeleken met elke service die de metric rapporteert.
+- **Een gemiddelde, minimum, maximum of percentiel van een gewone metric** wordt vergeleken met de samples van de metric, zo ver als het **Baseline-venster** teruggaat.
+- **Een som of een telling, en elke query op een histogram,** wordt vergeleken met de eigen datapunten van de query. Die worden net zo lang bewaard als de metrics, dus de vergelijking gaat niet verder terug dan dat: 15 dagen, tenzij dat is gewijzigd.
+- **Een query die op een attribuut is gefilterd of gegroepeerd** wordt vergeleken met alle reeksen van zijn services, omdat een baseline geen attributen bevat. Hij merkt dus alleen een verandering op die groot genoeg is om buiten het bereik van al die reeksen te vallen. Is het een som, een telling of een query op een histogram, dan is er niets om mee te vergelijken en blijft hij leren. Dat geldt ook voor een percentiel van een histogram.
+
+Een som of een telling telt alleen als laag op een volledig datapunt met nog een volledig datapunt erna, omdat de nieuwste nog vollopen. Een venster van één minuut kan dus alleen een hoge waarde vinden.
+
 Een metrics-monitor die in Monitor maken is aangemaakt, begint met één regel op zijn eerste query: **Het gemiddelde** over **Laatste 5 minuten**, **Boven** de **Waarde** die u invult, en **Een waarschuwing maken**.
 
 Een nieuwe metrics-monitor die via de API of Terraform zonder criteria is aangemaakt, begint met twee criteria op zijn eerste query, allebei met de aggregatie **Any Value**:
@@ -214,7 +223,7 @@ De query heeft geen **Groeperen op**, dus alle hosts worden samengevoegd tot é�
 :::
 
 :::details Een anomaliecriterium gaat nooit af
-Het is nog aan het leren: het uur van de week waarmee het vergelijkt, heeft nog geen twee weken geschiedenis.
+Het is nog aan het leren: het uur van de week waarmee het vergelijkt, heeft nog geen twee weken geschiedenis. Een som, een telling of een query op een histogram die op een attribuut is gefilterd of gegroepeerd, blijft voorgoed leren, en dat geldt ook voor een percentiel van een histogram: er is geen geschiedenis om ze mee te vergelijken.
 :::
 
 ## Volgende stappen

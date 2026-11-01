@@ -117,7 +117,7 @@ I løpet av et minutt eller to viser hendelsens kort **OneUptime AI** **Foreslå
 
 ### Bruk den, eller avvis den
 
-**Bruk som rotårsak** åpner forslaget, med sitater og alt, i rotårsakens editor. Endre det du trenger, og lagre: Det blir hendelsens rotårsak som din egen endring, notert i feeden. **Lukk** legger forslaget til side, og **Angre** henter det tilbake.
+**Bruk som rotårsak** åpner forslaget, med sitater og alt, i rotårsakens editor. Endre det du trenger, og lagre: Det blir hendelsens rotårsak som din egen endring, notert i feeden. **Skjul** legger forslaget til side, og **Angre** henter det tilbake.
 :::
 
 OneUptime AI foreslår bare en årsak når samtalen nevner en, med linjene som sier det, og siterer de linjene slik transkripsjonen har dem. Når samtalen ikke avklarte årsaken, sier kortet **Det ble ikke sagt nok i samtalen til å foreslå en rotårsak** i stedet for å gjette.

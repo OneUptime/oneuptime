@@ -84,7 +84,7 @@ In **Promemoria**, impostate **Intervallo del promemoria (minuti)**, ogni quanto
 
 L'API e Terraform rifiutano una regola che attenderebbe l'inizio dell'evento e si fermerebbe quando inizia: non invierebbe mai un promemoria. Una regola più vecchia salvata così è contrassegnata nell'elenco con **Non invia mai promemoria**, e il suo modulo vi chiede di scegliere quando ricordare.
 
-I proprietari ricevono ogni promemoria come **Maintenance reminder**, attivo via e-mail per ogni nuovo membro. Salvare, modificare o eliminare una regola di promemoria riassegna la regola a ogni evento non ancora completato. Per fermare i promemoria di un evento, disattivate **Invia promemoria** nella sua pagina **Impostazioni**; salva nel momento in cui lo spostate.
+I proprietari ricevono ogni promemoria come **Promemoria manutenzione**, attivo via e-mail per ogni nuovo membro. Salvare, modificare o eliminare una regola di promemoria riassegna la regola a ogni evento non ancora completato. Per fermare i promemoria di un evento, disattivate **Invia promemoria** nella sua pagina **Impostazioni**; salva nel momento in cui lo spostate.
 
 Questi promemoria sono per il vostro team. I promemoria che gli iscritti delle vostre pagine di stato ricevono prima dell'inizio di un evento si impostano sull'evento stesso, in **Promemoria prima dell'evento**.
 
@@ -132,7 +132,7 @@ Aprite la regola e controllate le sue condizioni: ogni condizione compilata deve
 :::
 
 :::details I proprietari non hanno ricevuto nessun promemoria
-Controllate che una regola di promemoria corrisponda alle etichette dell'evento, che **Invia promemoria** dell'evento sia attivo e che **Maintenance reminder** sia attivo nelle impostazioni delle notifiche dei proprietari. Una regola impostata su **Mentre è in corso** non invia nulla prima che l'evento inizi.
+Controllate che una regola di promemoria corrisponda alle etichette dell'evento, che **Invia promemoria** dell'evento sia attivo e che **Promemoria manutenzione** sia attivo nelle impostazioni delle notifiche dei proprietari. Una regola impostata su **Mentre è in corso** non invia nulla prima che l'evento inizi.
 :::
 
 ## Passi successivi

@@ -147,7 +147,7 @@ curl -X POST 'https://oneuptime.com/api/inventory-item/get-list?output-type=csv'
 | 固件版本 | `device.firmware.version` | 标注 | ENTITY-MIB，否则为 `sysDescr` 指明的内容 |
 | 操作系统 | `os.name` | `os.description`（或 `os.type`） | `sysDescr` 指明的内容：Cisco IOS、Junos OS、Arista EOS、Linux |
 | 操作系统版本 | `os.version` | 检测得到 | ENTITY-MIB，否则为 `sysDescr` 指明的内容 |
-| Device Type | `device.type` | 标注。否则卡片会根据其操作系统和名称进行分类（服务器、防火墙……） | 它的角色：你分配的角色，否则为拓扑图绘制它时使用的角色 |
+| 设备类型 | `device.type` | 标注。否则卡片会根据其操作系统和名称进行分类（服务器、防火墙……） | 它的角色：你分配的角色，否则为拓扑图绘制它时使用的角色 |
 | 位置 | `device.location` | 标注。否则卡片显示其云可用区 | `sysLocation`。卡片会优先显示其站点 |
 
 下文的 [主机表](#主机资产属性) 和 [网络设备表](#网络设备资产属性) 详细说明了每个值的来源。

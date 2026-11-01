@@ -82,7 +82,7 @@ Begivenheder, advarsler og værdier for entiteter kommer udefra, og en angriber 
 
 ## Vurder nye sager automatisk
 
-Åbn **Produkter → Security Events → AI → Indstillinger**, og slå **Vurder nye sager** til: så bliver hver sag, som en detektion åbner, vurderet, så snart den åbner. Kontakten gemmer, så snart du slår den om. Project Owner og Project Admin kan ændre den.
+Åbn **Produkter → Sikkerhedshændelser → AI → Indstillinger**, og slå **Vurder nye sager** til: så bliver hver sag, som en detektion åbner, vurderet, så snart den åbner. Kontakten gemmer, så snart du slår den om. Project Owner og Project Admin kan ændre den.
 
 Nye projekter starter med den slået til; et projekt, der blev oprettet før, har den slået fra, indtil nogen slår den til. En sag, der er åbnet i hånden, og sagen fra testangrebet i **Send et testangreb** bliver vurderet, når nogen klikker på **Vurder med AI**.
 
@@ -119,7 +119,7 @@ Når projektet er løbet tør for AI-kreditter eller har nået en daglig AI-græ
 ## Fejlfinding
 
 :::details En ny sag blev ikke vurderet
-Tjek, at **Aktivér AI** er slået til, og **Vurder nye sager** under **Produkter → Security Events → AI → Indstillinger**. En sag, der er åbnet i hånden, og testangrebets sag bliver kun vurderet, når nogen beder om det. Åbn sagen: når noget forhindrer en vurdering, siger kortet hvad, og hvor det kan rettes.
+Tjek, at **Aktivér AI** er slået til, og **Vurder nye sager** under **Produkter → Sikkerhedshændelser → AI → Indstillinger**. En sag, der er åbnet i hånden, og testangrebets sag bliver kun vurderet, når nogen beder om det. Åbn sagen: når noget forhindrer en vurdering, siger kortet hvad, og hvor det kan rettes.
 :::
 
 :::details Kortet siger, at projektet er løbet tør for AI-kreditter eller har nået sin daglige AI-grænse

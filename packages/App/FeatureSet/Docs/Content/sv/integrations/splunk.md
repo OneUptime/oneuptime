@@ -44,7 +44,7 @@ Vill du hellre autentisera med ett lösenord hoppar du över det här steget och
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Splunk Enterprise Security** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in token i **Authentication token**, eller lösenordet i **Lösenord**.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Splunk Enterprise Security** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in token i **Authentication token**, eller lösenordet i **Lösenord**.
 
 ### Testa den innan du sparar
 
@@ -159,7 +159,7 @@ OneUptime kan också skicka det den hittar till Splunk, via dess HTTP Event Coll
 
 ### Lägg till målet
 
-Öppna **Produkter → Security Events → Anslutningar**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Splunk under **SIEM** och klicka på **Nästa**. Fyll i **HEC-URL** och klistra in token i **HEC-token**. **Index** och **Källtyp** är valfria: lämnas de tomma går händelserna till tokenens standardindex med sourcetypen `oneuptime:security`.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar**. Klicka på **Lägg till mål** under **Skicka till ditt SIEM**, välj Splunk under **SIEM** och klicka på **Nästa**. Fyll i **HEC-URL** och klistra in token i **HEC-token**. **Index** och **Källtyp** är valfria: lämnas de tomma går händelserna till tokenens standardindex med sourcetypen `oneuptime:security`.
 
 ### Skicka en testhändelse och börja skicka
 

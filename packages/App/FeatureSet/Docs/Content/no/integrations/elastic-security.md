@@ -44,7 +44,7 @@ Varsler lagres per space. Åpne spacet der reglene dine kjører: ID-en er den de
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Elastic Security**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn nøkkelen i **API-nøkkel**.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Elastic Security**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn nøkkelen i **API-nøkkel**.
 
 ### Test den før du lagrer
 
@@ -154,7 +154,7 @@ OneUptime kan også sende det den finner til Elasticsearch, som Elastic Common S
 
 ### Legg til målet
 
-Åpne **Produkter → Security Events → Tilkoblinger**. Klikk på **Legg til mål** under **Send til SIEM-et ditt**, velg Elastic Security under **SIEM**, og klikk på **Neste**. Fyll inn **Elasticsearch-URL**, Elasticsearch-endepunktet til deploymenten og ikke Kibanas, og lim inn nøkkelen i **API-nøkkel**. **Datastrøm** er valgfri: står den tom, går dokumentene til `logs-oneuptime.security-default`, som Elasticsearch oppretter ved første skriving.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger**. Klikk på **Legg til mål** under **Send til SIEM-et ditt**, velg Elastic Security under **SIEM**, og klikk på **Neste**. Fyll inn **Elasticsearch-URL**, Elasticsearch-endepunktet til deploymenten og ikke Kibanas, og lim inn nøkkelen i **API-nøkkel**. **Datastrøm** er valgfri: står den tom, går dokumentene til `logs-oneuptime.security-default`, som Elasticsearch oppretter ved første skriving.
 
 ### Send en testhendelse og begynn å sende
 

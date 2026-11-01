@@ -1,4 +1,7 @@
 {
+  "Something went wrong": "Un problème est survenu",
+  "An unexpected error has occurred. Please reload the page to continue": "Une erreur inattendue s'est produite. Veuillez recharger la page pour continuer",
+  "Error details": "Détails de l'erreur",
   "a11y": {
     "skipToMainContent": "Passer au contenu principal",
     "loading": "Chargement...",

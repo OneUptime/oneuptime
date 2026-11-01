@@ -147,7 +147,7 @@ Hosts e dispositivos de rede são descritos pelos mesmos dados, guardados com as
 | Versão do firmware | `device.firmware.version` | Carimbada | ENTITY-MIB, senão o que `sysDescr` cita |
 | Sistema operacional | `os.name` | `os.description` (ou `os.type`) | O que `sysDescr` cita: Cisco IOS, Junos OS, Arista EOS, Linux |
 | Versão do SO | `os.version` | Detectada | ENTITY-MIB, senão o que `sysDescr` cita |
-| Device Type | `device.type` | Carimbado. Senão o cartão o classifica pelo sistema operacional e pelo nome (Servidor, Firewall, ...) | A sua função: a que você atribuiu, senão aquela com que o mapa de topologia o desenha |
+| Tipo de dispositivo | `device.type` | Carimbado. Senão o cartão o classifica pelo sistema operacional e pelo nome (Servidor, Firewall, ...) | A sua função: a que você atribuiu, senão aquela com que o mapa de topologia o desenha |
 | Local | `device.location` | Carimbada. Senão o cartão mostra a sua zona de nuvem | `sysLocation`. O cartão mostra primeiro o seu site |
 
 A [tabela de hosts](#atributos-de-ativo-dos-hosts) e a [tabela de dispositivos de rede](#atributos-de-ativo-dos-dispositivos-de-rede) abaixo dizem em detalhe de onde vem cada valor.

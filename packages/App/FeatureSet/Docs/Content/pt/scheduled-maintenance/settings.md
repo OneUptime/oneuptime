@@ -84,7 +84,7 @@ Em **Lembretes**, defina **Intervalo de lembrete (minutos)**, a frequência com 
 
 A API e o Terraform recusam uma regra que esperaria o evento começar e pararia quando ele começa: ela nunca enviaria um lembrete. Uma regra mais antiga salva assim aparece na lista com **Nunca envia lembretes**, e o formulário dela pede que você escolha quando lembrar.
 
-Os proprietários recebem cada lembrete como **Maintenance reminder**, ativado por e-mail para cada membro novo. Salvar, alterar ou excluir uma regra de lembrete volta a atribuir uma regra a cada evento que ainda não foi concluído. Para parar os lembretes de um evento, desative **Enviar lembretes** na página **Configurações** dele; a chave salva assim que você a aciona.
+Os proprietários recebem cada lembrete como **Lembrete de manutenção**, ativado por e-mail para cada membro novo. Salvar, alterar ou excluir uma regra de lembrete volta a atribuir uma regra a cada evento que ainda não foi concluído. Para parar os lembretes de um evento, desative **Enviar lembretes** na página **Configurações** dele; a chave salva assim que você a aciona.
 
 Esses lembretes são para a sua equipe. Os lembretes que os assinantes das suas páginas de status recebem antes de um evento começar são definidos no próprio evento, em **Lembretes antes do evento**.
 
@@ -132,7 +132,7 @@ Abra a regra e confira as condições: todas as condições preenchidas precisam
 :::
 
 :::details Os proprietários não receberam nenhum lembrete
-Confira se uma regra de lembrete corresponde aos rótulos do evento, se **Enviar lembretes** está ativado no evento e se **Maintenance reminder** está ativado nas configurações de notificação dos proprietários. Uma regra com **Enquanto estiver em andamento** não envia nada antes de o evento começar.
+Confira se uma regra de lembrete corresponde aos rótulos do evento, se **Enviar lembretes** está ativado no evento e se **Lembrete de manutenção** está ativado nas configurações de notificação dos proprietários. Uma regra com **Enquanto estiver em andamento** não envia nada antes de o evento começar.
 :::
 
 ## Próximos passos

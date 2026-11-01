@@ -64,7 +64,7 @@ As variáveis são lidas quando o Claude Code inicia. As métricas são enviadas
 
 ### Verifique se os dados chegam
 
-Abra **Métricas** e procure `claude_code.token.usage`, depois abra **Produtos → AI / LLM** e vá para **Uso**: seu custo aparece sob seu e-mail, marcado como **das métricas GenAI**.
+Abra **Métricas** e procure `claude_code.token.usage`, depois abra **Produtos → IA / LLM** e vá para **Uso**: seu custo aparece sob seu e-mail, marcado como **das métricas GenAI**.
 :::
 
 Para enviar métricas e eventos para lugares diferentes, defina em vez disso `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` e `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, com o caminho completo (`https://oneuptime.com/otlp/v1/metrics`, `https://oneuptime.com/otlp/v1/logs`).
@@ -137,7 +137,7 @@ export OTEL_RESOURCE_ATTRIBUTES="user.email=jdoe@example.com,team.id=platform"
 
 ## O que o OneUptime mostra
 
-Em **Produtos → AI / LLM → Uso**, `claude_code.cost.usage` alimenta as tabelas **Funcionário**, **Equipe** e **Modelo**, e `claude_code.token.usage` os totais de tokens. Duas regras decidem o que você vê:
+Em **Produtos → IA / LLM → Uso**, `claude_code.cost.usage` alimenta as tabelas **Funcionário**, **Equipe** e **Modelo**, e `claude_code.token.usage` os totais de tokens. Duas regras decidem o que você vê:
 
 - **As métricas completam os spans; nunca são somadas a eles.** Se o mesmo projeto recebe spans GenAI com custo das suas próprias aplicações, o gasto do Claude Code não aparece. Envie o Claude Code para um projeto só dele. Veja [Primeiro os spans, as métricas completam](/docs/telemetry/ai-llm-observability#primeiro-os-spans-as-métricas-completam).
 - **Uma linha vinda das métricas carrega só o custo.** As células de chamadas e tokens dela mostram `—`, e as tabelas **Provedor** e **Aplicação / Serviço** ficam vazias: as métricas não citam nenhum provedor e não pertencem a nenhum serviço do OneUptime.

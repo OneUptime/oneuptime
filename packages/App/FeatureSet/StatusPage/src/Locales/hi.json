@@ -1,4 +1,7 @@
 {
+  "Something went wrong": "कुछ गड़बड़ हो गई",
+  "An unexpected error has occurred. Please reload the page to continue": "एक अनपेक्षित त्रुटि हुई। जारी रखने के लिए पेज फिर से लोड करें",
+  "Error details": "त्रुटि विवरण",
   "a11y": {
     "skipToMainContent": "मुख्य सामग्री पर जाएं",
     "loading": "लोड हो रहा है...",

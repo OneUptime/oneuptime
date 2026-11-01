@@ -46,7 +46,7 @@ En listes felt linker til dens vilkår: Feodo Tracker er fri til al brug (CC0), 
 :::steps
 ### Gå til Threat Intel
 
-Åbn **Produkter → Security Events → Detektioner → Trusselsinformation**.
+Åbn **Produkter → Sikkerhedshændelser → Detektioner → Trusselsinformation**.
 
 ### Opret feedet
 

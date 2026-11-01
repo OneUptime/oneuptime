@@ -185,12 +185,12 @@ Fanen **Advarsler** viser de advarsler, de fleste AI-apps har brug for. Når du 
 
 | Advarsel | Hvornår den giver besked | Alvorlighed |
 | --- | --- | --- |
-| Svar går galt | Mere end 5 % af svarene på 15 minutter fejler, bliver afvist, afkortet, er tomme eller markeret | Warning |
+| Svar går galt | Mere end 5 % af svarene på 15 minutter fejler, bliver afvist, afkortet, er tomme eller markeret | Advarsel |
 | AI-kald fejler | Mere end 10 % af kaldene til modellen på 5 minutter ender med en fejl | Critical |
-| AI'en nægter at svare | Mere end 5 % af svarene på 30 minutter er afvisninger | Warning |
-| Svar bliver afkortet | 3 eller flere svar på 30 minutter stopper ved tokengrænsen | Warning |
-| Svar bliver markeret | En evaluering markerer et svar som dårligt | Warning |
-| Svar er langsomme | Mere end 10 % af svarene på 15 minutter tager mere end 30 sekunder | Warning |
+| AI'en nægter at svare | Mere end 5 % af svarene på 30 minutter er afvisninger | Advarsel |
+| Svar bliver afkortet | 3 eller flere svar på 30 minutter stopper ved tokengrænsen | Advarsel |
+| Svar bliver markeret | En evaluering markerer et svar som dårligt | Advarsel |
+| Svar er langsomme | Mere end 10 % af svarene på 15 minutter tager mere end 30 sekunder | Advarsel |
 | AI'en holder op med at svare | AI'en giver ingen svar i 30 minutter | Critical |
 
 Advarslerne på en andel af svarene venter også på mindst 3 dårlige svar, så ét dårligt svar ud af to tilkalder ingen. En Critical-advarsel får dit projekts højeste advarselsalvorlighed og en Warning-advarsel den næste: High og Low i et nyt projekt.

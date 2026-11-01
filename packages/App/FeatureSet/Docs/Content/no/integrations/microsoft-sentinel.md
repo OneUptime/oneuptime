@@ -60,7 +60,7 @@ Rollen lar appen lese hendelser (`Microsoft.SecurityInsights/incidents/read`) og
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Security Events → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Microsoft Sentinel**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn verdien av hemmeligheten i **Klienthemmelighet**.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Microsoft Sentinel**, og klikk på **Neste**. Fyll ut innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn verdien av hemmeligheten i **Klienthemmelighet**.
 
 ### Test den før du lagrer
 
@@ -174,7 +174,7 @@ Registrer et program og gi det en klienthemmelighet, som i [Registrer et program
 
 ### Legg til målet
 
-Åpne **Produkter → Security Events → Tilkoblinger**. Klikk på **Legg til mål** under **Send til SIEM-et ditt**, velg Microsoft Sentinel under **SIEM**, og klikk på **Neste**. Fyll inn **Katalog-ID (tenant)**, **Program-ID (klient)** og **Klienthemmelighet**, **Endepunkt for logginntak** fra **Overview** for datainnsamlingsendepunktet (eller regelen), og **Uforanderlig ID for datainnsamlingsregelen** fra regelens **JSON View**. **Strøm** er valgfri: står den tom, er den `Custom-OneUptimeSecurityEvents_CL`.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger**. Klikk på **Legg til mål** under **Send til SIEM-et ditt**, velg Microsoft Sentinel under **SIEM**, og klikk på **Neste**. Fyll inn **Katalog-ID (tenant)**, **Program-ID (klient)** og **Klienthemmelighet**, **Endepunkt for logginntak** fra **Overview** for datainnsamlingsendepunktet (eller regelen), og **Uforanderlig ID for datainnsamlingsregelen** fra regelens **JSON View**. **Strøm** er valgfri: står den tom, er den `Custom-OneUptimeSecurityEvents_CL`.
 
 ### Send en testhendelse og begynn å sende
 

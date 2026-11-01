@@ -60,6 +60,10 @@ describe("toSupportedLanguage", () => {
     ["zh-MO", "zh-TW"],
     ["zh-Hant", "zh-TW"],
     ["zh-Hant-HK", "zh-TW"],
+    // Norwegian Bokmål and Nynorsk, as browsers name them, read Norwegian.
+    ["nb-NO", "no"],
+    ["nn-NO", "no"],
+    ["nb", "no"],
   ])("%s is %s", (tag: string, language: string) => {
     expect(toSupportedLanguage(tag, ALL)).toBe(language);
   });
@@ -67,7 +71,6 @@ describe("toSupportedLanguage", () => {
   test.each<[string | null | undefined]>([
     ["xx"],
     ["xx-YY"],
-    ["nb-NO"],
     [""],
     [null],
     [undefined],

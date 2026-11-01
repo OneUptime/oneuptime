@@ -17,6 +17,11 @@ import {
   toRepositoryPath,
   USER_FACING_PROPS,
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
+import {
+  FormColumnDescription,
+  FormColumnDescriptionFinder,
+  FormColumnSourceReader,
+} from "../../FeatureSet/Dashboard/scripts/i18n/FormColumnDescriptions";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import os from "os";
@@ -251,6 +256,71 @@ describe("plural templates", () => {
   test("an object with more than one and other is not", () => {
     expect(
       textsOf(scan(`const a = { one: "a", other: "b", third: "c" };`)),
+    ).toEqual([]);
+  });
+
+  /*
+   * A .ts module marks its words as keys, the PluralTemplates among them.
+   * Read only as two keys, the template had no "_one" sentence, so its
+   * translation could not be written: a count of one would have read the
+   * "other" sentence ("1 Anfragen"), and the Campaigns page's counts stayed
+   * English in every language.
+   */
+  test("a template whose forms are marked as keys is one too, with its one form", () => {
+    const result: SourceScanResult = scan(`
+      export const REQUESTS_COUNT: PluralTemplate = {
+        one: translationKey("{{count}} request"),
+        other: translationKey("{{count}} requests"),
+      };
+    `);
+
+    expect(
+      result.strings.filter((entry: ExtractedString): boolean => {
+        return entry.kind === "plural";
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        text: "{{count}} requests",
+        pluralOne: "{{count}} request",
+        kind: "plural",
+      }),
+    ]);
+    expect(getEnglishEntries(result.strings)).toEqual(
+      expect.objectContaining({
+        "{{count}} requests": "{{count}} requests",
+        "{{count}} requests_one": "{{count}} request",
+      }),
+    );
+  });
+
+  test("a keys root reads a template only when both its forms are marked", () => {
+    const marked: SourceScanResult = scan(
+      `const A = { one: translationKey("{{count}} span"), other: translationKey("{{count}} spans") };`,
+      "packages/Common/Types/Telemetry/Example.ts",
+      "keys",
+    );
+    const plain: SourceScanResult = scan(
+      `const B = { one: "{{count}} trace", other: "{{count}} traces" };`,
+      "packages/Common/Types/Telemetry/Example.ts",
+      "keys",
+    );
+
+    expect(getEnglishEntries(marked.strings)).toEqual({
+      "{{count}} span": "{{count}} span",
+      "{{count}} spans": "{{count}} spans",
+      "{{count}} spans_one": "{{count}} span",
+    });
+    expect(plain.strings).toEqual([]);
+  });
+
+  test("a form marked by another call, or not a string, is no template", () => {
+    expect(
+      scan(`
+        const a = { one: translateText("{{count}} row"), other: translationKey("{{count}} rows") };
+        const b = { one: translationKey(ROW), other: translationKey("{{count}} rows") };
+      `).strings.filter((entry: ExtractedString): boolean => {
+        return entry.kind === "plural";
+      }),
     ).toEqual([]);
   });
 });
@@ -850,8 +920,10 @@ describe("a root that marks its keys", () => {
       "Where a request or message enters a service.",
       "Where a trace starts.",
       "Every operation, including database calls and internal steps.",
+      // The traces explorer's chart, titled for the span type it counts.
       "Traces over time",
       "Spans over time",
+      // What its list says when a choice leaves it empty.
       "No root spans found",
       "No entry spans found",
     ]);
@@ -1226,5 +1298,360 @@ describe("the real source roots", () => {
         expect.objectContaining({ text: "Clear Selection", kind: "call" }),
       ]),
     );
+  });
+});
+
+/*
+ * A form field with no description of its own shows its model column's
+ * (BasicModelForm), so the extractor takes those descriptions - and only
+ * those: a model's column descriptions are written for the API reference,
+ * thousands of sentences no page shows (FormColumnDescriptions, #5292).
+ */
+describe("the column descriptions a form draws", () => {
+  const ROOT: string = path.join(path.sep, "repository");
+  const MODEL_FILE: string = path.join(
+    ROOT,
+    "packages/Common/Models/DatabaseModels/Widget.ts",
+  );
+  const PAGE_FILE: string = path.join(
+    ROOT,
+    "packages/App/FeatureSet/Dashboard/src/Pages/Widgets.tsx",
+  );
+
+  const WIDGET: string = `
+    export default class Widget extends BaseModel {
+      @TableColumn({ title: "Name", description: "Any friendly name of this object" })
+      public name?: string = undefined;
+
+      @TableColumn({ title: "Pattern", description: "Regex matched against the widget name. Leave empty to match any name." })
+      public pattern?: string = undefined;
+
+      @TableColumn({ title: "Color", description: "Color in Hex (#32a852 for example)" })
+      public color?: string = undefined;
+
+      @TableColumn({ title: "Notes", description: "What the notes are for." })
+      public notes?: string = undefined;
+
+      @TableColumn({ title: "Size", description: SIZE_DESCRIPTION })
+      public size?: number = undefined;
+    }
+  `;
+
+  const IMPORTS: string = `import Widget from "Common/Models/DatabaseModels/Widget";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";`;
+
+  const memoryReader: (
+    files: Record<string, string>,
+  ) => FormColumnSourceReader = (
+    files: Record<string, string>,
+  ): FormColumnSourceReader => {
+    return {
+      read: (file: string): string | null => {
+        const text: string | undefined = files[file];
+
+        return text === undefined ? null : text;
+      },
+    };
+  };
+
+  const finder: () => FormColumnDescriptionFinder =
+    (): FormColumnDescriptionFinder => {
+      return new FormColumnDescriptionFinder(
+        ROOT,
+        memoryReader({ [MODEL_FILE]: WIDGET }),
+      );
+    };
+
+  const find: (page: string) => Array<string> = (
+    page: string,
+  ): Array<string> => {
+    return finder()
+      .find(PAGE_FILE, page)
+      .map((field: FormColumnDescription): string => {
+        return `${field.model}.${field.column}: ${field.text}`;
+      });
+  };
+
+  test("a field with no description of its own draws its column's", () => {
+    expect(
+      finder().find(
+        PAGE_FILE,
+        `${IMPORTS}
+const page = (
+  <ModelTable
+    modelType={Widget}
+    formFields={[
+      {
+        field: { pattern: true },
+        title: "Pattern",
+        fieldType: FormFieldSchemaType.Text,
+      },
+    ]}
+  />
+);`,
+      ),
+    ).toEqual([
+      {
+        text: "Regex matched against the widget name. Leave empty to match any name.",
+        file: "packages/App/FeatureSet/Dashboard/src/Pages/Widgets.tsx",
+        line: 7,
+        model: "Widget",
+        column: "pattern",
+      },
+    ]);
+  });
+
+  test("words of its own, a hidden column description, a color or a restating description draw none", () => {
+    expect(
+      find(`${IMPORTS}
+      const page = (
+        <ModelTable
+          modelType={Widget}
+          formFields={[
+            { field: { notes: true }, fieldType: FormFieldSchemaType.LongText, description: "Its own words." },
+            { field: { notes: true }, fieldType: FormFieldSchemaType.LongText, hideColumnDescription: true },
+            { field: { color: true }, fieldType: FormFieldSchemaType.Color },
+            { field: { name: true }, fieldType: FormFieldSchemaType.Text },
+            { field: { notes: true }, fieldType: FormFieldSchemaType.LongText, hideColumnDescription: false },
+          ]}
+        />
+      );`),
+    ).toEqual(["Widget.notes: What the notes are for."]);
+  });
+
+  test("a field needs a form field type and a column, and a description written out", () => {
+    expect(
+      find(`${IMPORTS}
+      const page = (
+        <ModelTable
+          modelType={Widget}
+          columns={[{ field: { notes: true }, type: FieldType.Text }]}
+          formFields={[
+            { field: { size: true }, fieldType: FormFieldSchemaType.Number },
+            { fieldType: FormFieldSchemaType.Text },
+            { field: notesField, fieldType: FormFieldSchemaType.Text },
+          ]}
+        />
+      );`),
+    ).toEqual([]);
+  });
+
+  test("its model is the nearest element's modelType, or a CardModelDetail's modelDetailProps", () => {
+    expect(
+      find(`${IMPORTS}
+      const page = (
+        <CardModelDetail
+          modelDetailProps={{ modelType: Widget, fields: [] }}
+          formFields={[{ field: { notes: true }, fieldType: FormFieldSchemaType.LongText }]}
+        />
+      );`),
+    ).toEqual(["Widget.notes: What the notes are for."]);
+  });
+
+  test("or the model a typed list of fields names, and never a type parameter", () => {
+    expect(
+      find(`${IMPORTS}
+      const fields: Fields<Widget> = [
+        { field: { pattern: true }, fieldType: FormFieldSchemaType.Text },
+      ];
+      function generic<TBaseModel>(): Fields<TBaseModel> {
+        return [{ field: { notes: true }, fieldType: FormFieldSchemaType.LongText }];
+      }`),
+    ).toEqual([
+      "Widget.pattern: Regex matched against the widget name. Leave empty to match any name.",
+    ]);
+  });
+
+  /*
+   * A rule form's match conditions on a rule model are drawn as one
+   * conditions builder (Common/UI/Components/RuleCriteria/
+   * RuleCriteriaModelForm), which names each condition by its title alone:
+   * none of those fields draws its column's description, so none is a key
+   * to translate. 179 of the 288 sentences the first column pass took were
+   * such fields' (#5512).
+   */
+  describe("a rule's match conditions draw none", () => {
+    const RULE_FILE: string = path.join(
+      ROOT,
+      "packages/Common/Models/DatabaseModels/WidgetRule.ts",
+    );
+    const ON_CALL_RULE_FILE: string = path.join(
+      ROOT,
+      "packages/Common/Models/DatabaseModels/WidgetOnCallRule.ts",
+    );
+    const ON_CALL_BASE_FILE: string = path.join(
+      ROOT,
+      "packages/Common/Models/DatabaseModels/DatabaseBaseModel/OnCallRuleBaseModel.ts",
+    );
+    const RULE_COLUMNS: string = `
+      @TableColumn({ title: "Monitors", description: "Only trigger for widgets from these monitors. Leave empty to match any monitor." })
+      public monitors?: Array<Monitor> = undefined;
+
+      @TableColumn({ title: "Note", description: "What the rule's note is for." })
+      public note?: string = undefined;
+    `;
+
+    const ruleFinder: () => FormColumnDescriptionFinder =
+      (): FormColumnDescriptionFinder => {
+        return new FormColumnDescriptionFinder(
+          ROOT,
+          memoryReader({
+            [MODEL_FILE]: WIDGET,
+            [RULE_FILE]: `import RuleBaseModel from "./DatabaseBaseModel/RuleBaseModel";
+export default class WidgetRule extends RuleBaseModel {${RULE_COLUMNS}}`,
+            [ON_CALL_RULE_FILE]: `import OnCallRuleBaseModel from "./DatabaseBaseModel/OnCallRuleBaseModel";
+export default class WidgetOnCallRule extends OnCallRuleBaseModel {${RULE_COLUMNS}}`,
+            [ON_CALL_BASE_FILE]: `import RuleBaseModel from "./RuleBaseModel";
+export default class OnCallRuleBaseModel extends RuleBaseModel {}`,
+          }),
+        );
+      };
+
+    const findIn: (model: string, fields: string) => Array<string> = (
+      model: string,
+      fields: string,
+    ): Array<string> => {
+      return ruleFinder()
+        .find(
+          PAGE_FILE,
+          `import ${model} from "Common/Models/DatabaseModels/${model}";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+const page = <ModelTable modelType={${model}} formFields={[${fields}]} />;`,
+        )
+        .map((field: FormColumnDescription): string => {
+          return `${field.model}.${field.column}: ${field.text}`;
+        });
+    };
+
+    test("a rule model's match-criteria field is drawn by the builder; its other steps' fields still draw theirs", () => {
+      expect(
+        findIn(
+          "WidgetRule",
+          `{ field: { monitors: true }, stepId: "match-criteria", fieldType: FormFieldSchemaType.MultiSelectDropdown },
+           { field: { note: true }, stepId: "details", fieldType: FormFieldSchemaType.LongText },
+           { field: { monitors: true }, fieldType: FormFieldSchemaType.MultiSelectDropdown }`,
+        ),
+      ).toEqual([
+        "WidgetRule.note: What the rule's note is for.",
+        "WidgetRule.monitors: Only trigger for widgets from these monitors. Leave empty to match any monitor.",
+      ]);
+    });
+
+    test("through a rule base of its own, and with the step named by its constant", () => {
+      expect(
+        findIn(
+          "WidgetOnCallRule",
+          `{ field: { monitors: true }, stepId: MATCH_CRITERIA_STEP_ID, fieldType: FormFieldSchemaType.MultiSelectDropdown },
+           { field: { note: true }, stepId: 'match-criteria', fieldType: FormFieldSchemaType.LongText }`,
+        ),
+      ).toEqual([]);
+    });
+
+    test("a model that is no rule draws its match step's descriptions: no builder replaces them", () => {
+      expect(
+        findIn(
+          "Widget",
+          `{ field: { notes: true }, stepId: "match-criteria", fieldType: FormFieldSchemaType.LongText }`,
+        ),
+      ).toEqual(["Widget.notes: What the notes are for."]);
+    });
+  });
+
+  test("the model is read from a models directory only, through the Common alias or a relative path", () => {
+    const field: string = `
+      const page = (
+        <ModelTable
+          modelType={Widget}
+          formFields={[{ field: { notes: true }, fieldType: FormFieldSchemaType.LongText }]}
+        />
+      );`;
+
+    expect(
+      find(
+        `import Widget from "../../../../../Common/Models/DatabaseModels/Widget";${field}`,
+      ),
+    ).toEqual(["Widget.notes: What the notes are for."]);
+    expect(find(`import Widget from "../Types/Widget";${field}`)).toEqual([]);
+    expect(
+      find(
+        `import Widget from "Common/Models/DatabaseModels/MissingWidget";${field}`,
+      ),
+    ).toEqual([]);
+  });
+
+  describe("in a scan of the source roots", () => {
+    let repository: string = "";
+
+    beforeAll(() => {
+      repository = fs.mkdtempSync(path.join(os.tmpdir(), "i18n-columns-"));
+
+      const write: (relativePath: string, content: string) => void = (
+        relativePath: string,
+        content: string,
+      ): void => {
+        const filePath: string = path.join(repository, relativePath);
+
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFileSync(filePath, content);
+      };
+
+      write("packages/Common/Models/DatabaseModels/Widget.ts", WIDGET);
+      write(
+        "ui/Pages/Widgets.tsx",
+        `${IMPORTS}
+const page = (
+  <ModelTable
+    modelType={Widget}
+    formFields={[{ field: { notes: true }, fieldType: FormFieldSchemaType.LongText }]}
+  />
+);`,
+      );
+      write(
+        "keys/Widgets.tsx",
+        `${IMPORTS}
+const page = (
+  <ModelTable
+    modelType={Widget}
+    formFields={[{ field: { pattern: true }, fieldType: FormFieldSchemaType.Text }]}
+  />
+);`,
+      );
+    });
+
+    afterAll(() => {
+      fs.rmSync(repository, { recursive: true, force: true });
+    });
+
+    test("a ui root's forms give their columns' descriptions, of the column kind; a keys root's do not", () => {
+      const result: SourceScanResult = scanSourceRoots(
+        [
+          { directory: "ui", kind: "ui" },
+          { directory: "keys", kind: "keys" },
+          {
+            directory: "packages/Common/Models/DatabaseModels",
+            kind: "models",
+          },
+        ],
+        repository,
+      );
+
+      expect(
+        result.strings
+          .filter((entry: ExtractedString): boolean => {
+            return entry.kind === "column";
+          })
+          .map((entry: ExtractedString): string => {
+            return `${entry.file}:${entry.line} ${entry.text}`;
+          }),
+      ).toEqual(["ui/Pages/Widgets.tsx:6 What the notes are for."]);
+
+      // A model gives its column titles, never its column descriptions.
+      expect(textsOf(result)).toEqual(
+        expect.arrayContaining(["Name", "Pattern", "Notes", "Size"]),
+      );
+      expect(textsOf(result)).not.toContain(
+        "Regex matched against the widget name. Leave empty to match any name.",
+      );
+    });
   });
 });

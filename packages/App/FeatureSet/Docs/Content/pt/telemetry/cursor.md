@@ -65,7 +65,7 @@ O Cursor fala OTLP sobre HTTP apenas com protobuf binário (sem gRPC, sem JSON),
 | Traces | Não |
 | Qualquer coisa de antes de você ativar o destino | Não |
 
-Então, no OneUptime, o Cursor aparece na aba **Uso** de **Produtos → AI / LLM**, a partir de `cursor.token.usage` e `cursor.cost.usage`, mas nunca em **Chamadas** ou **Conversas**, que são construídas a partir de traces. O detalhe por requisição é o evento `cursor.api.request` no explorador de **Registros**.
+Então, no OneUptime, o Cursor aparece na aba **Uso** de **Produtos → IA / LLM**, a partir de `cursor.token.usage` e `cursor.cost.usage`, mas nunca em **Chamadas** ou **Conversas**, que são construídas a partir de traces. O detalhe por requisição é o evento `cursor.api.request` no explorador de **Registros**.
 
 ### Famílias
 

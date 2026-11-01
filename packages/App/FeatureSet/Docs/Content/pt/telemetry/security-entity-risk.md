@@ -24,7 +24,7 @@ flowchart TB
     score -->|"No<br/>limite"| case["Um caso é aberto,<br/>ou o caso aberto<br/>assume o risco"]
 ```
 
-Abra **Produtos → Security Events → Risco de entidades**: cada usuário, host, endereço IP e repositório de dados com risco agora, primeiro os de maior risco, com o seu nível, quanto importa, o que o encontrou e quando. Cada um abre numa página própria. **Entidades de maior risco**, na visão geral, mostra o topo desta lista, e **Pesquisar uma entidade**, abaixo dela, procura qualquer valor em 30 dias de eventos, também um domínio ou um hash de arquivo.
+Abra **Produtos → Eventos de segurança → Risco de entidades**: cada usuário, host, endereço IP e repositório de dados com risco agora, primeiro os de maior risco, com o seu nível, quanto importa, o que o encontrou e quando. Cada um abre numa página própria. **Entidades de maior risco**, na visão geral, mostra o topo desta lista, e **Pesquisar uma entidade**, abaixo dela, procura qualquer valor em 30 dias de eventos, também um domínio ou um hash de arquivo.
 
 ## Antes de começar
 
@@ -65,7 +65,7 @@ Quando o risco de uma entidade atinge o limite, uma detecção da fonte Risco de
 
 Depois que um caso é aberto sobre o risco de uma entidade, o que estava por trás não é contado de novo: outro caso só é aberto quando fontes novas desde então voltam a somar o limite. Um caso fechado como resolvido não é reaberto pelas mesmas descobertas.
 
-Altere o limite em **Produtos → Security Events → Configurações → Pontuação de risco → Limite de risco**: um número inteiro de 10 a 10000. Médio começa na metade dele e Crítico no dobro, em todas as páginas.
+Altere o limite em **Produtos → Eventos de segurança → Configurações → Pontuação de risco → Limite de risco**: um número inteiro de 10 a 10000. Médio começa na metade dele e Crítico no dobro, em todas as páginas.
 
 ### Ativar ou desativar os casos de risco
 

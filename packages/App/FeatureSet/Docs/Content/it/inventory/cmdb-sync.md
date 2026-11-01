@@ -147,7 +147,7 @@ Host e dispositivi di rete sono descritti dagli stessi dati, memorizzati con le 
 | Versione firmware | `device.firmware.version` | Apposta | ENTITY-MIB, altrimenti ciò che nomina `sysDescr` |
 | Sistema operativo | `os.name` | `os.description` (o `os.type`) | Ciò che nomina `sysDescr`: Cisco IOS, Junos OS, Arista EOS, Linux |
 | Versione OS | `os.version` | Rilevata | ENTITY-MIB, altrimenti ciò che nomina `sysDescr` |
-| Device Type | `device.type` | Apposto. Altrimenti la scheda lo classifica in base al sistema operativo e al nome (Server, Firewall, ...) | Il suo ruolo: quello che hai assegnato, altrimenti quello con cui lo disegna la mappa della topologia |
+| Tipo di dispositivo | `device.type` | Apposto. Altrimenti la scheda lo classifica in base al sistema operativo e al nome (Server, Firewall, ...) | Il suo ruolo: quello che hai assegnato, altrimenti quello con cui lo disegna la mappa della topologia |
 | Posizione | `device.location` | Apposta. Altrimenti la scheda mostra la sua zona cloud | `sysLocation`. La scheda mostra prima il suo sito |
 
 La [tabella degli host](#attributi-di-asset-degli-host) e la [tabella dei dispositivi di rete](#attributi-di-asset-dei-dispositivi-di-rete) qui sotto dicono in dettaglio da dove viene ogni valore.

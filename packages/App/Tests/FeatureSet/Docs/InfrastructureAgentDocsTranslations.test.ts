@@ -1461,10 +1461,18 @@ describe("the helpers, on these pages' shapes", () => {
     expect(
       drawnMenuPath("ru", ["Products", "Resources", "Databases"]),
     ).toContain("Базы данных");
-    // Storage Arrays is drawn in English in the menu, whatever the flat key says.
+    /*
+     * The product from the menu's own key (navbar.items.storageArraysTitle),
+     * which says Speicher-Arrays now, as the product's own pages do.
+     */
     expect(
       drawnMenuPath("de", ["Products", "Infrastructure", "Storage Arrays"]),
-    ).toBe("**Produkte → Infrastruktur → Storage Arrays**");
+    ).toBe(
+      `**Produkte → Infrastruktur → ${navbarValue("de", "items", "storageArraysTitle")}**`,
+    );
+    expect(navbarValue("de", "items", "storageArraysTitle")).toBe(
+      "Speicher-Arrays",
+    );
     // Past the product, the flat keys: the product's own side menu.
     expect(
       drawnMenuPath("de", [
@@ -1474,7 +1482,7 @@ describe("the helpers, on these pages' shapes", () => {
         "All Storage Arrays",
       ]),
     ).toBe(
-      `**Produkte → Infrastruktur → Storage Arrays → ${drawnActionLabel("de", "All Storage Arrays")}**`,
+      `**Produkte → Infrastruktur → Speicher-Arrays → ${drawnActionLabel("de", "All Storage Arrays")}**`,
     );
     // A path that does not start at the Products menu reads the flat keys.
     expect(drawnMenuPath("ru", ["Databases", "Create Database"])).toBe(

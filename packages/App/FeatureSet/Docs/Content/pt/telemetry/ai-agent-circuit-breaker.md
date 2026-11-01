@@ -44,7 +44,7 @@ Os dois gatilhos terminam do mesmo jeito: um monitor cria um alerta, e o novo al
 O gasto é o sinal mais seguro de um agente descontrolado. Um orçamento soma o gasto de IA do dia a cada 15 minutos e o publica como duas métricas, `oneuptime.llm.budget.spend.usd` e `oneuptime.llm.budget.percent.used`, cada uma com o ID do orçamento em `oneuptime.llm.budget.id`.
 
 :::steps
-1. Abra **Produtos → AI / LLM → Orçamentos** e clique em **Criar: LLM Cost Budget**. Defina um **Orçamento diário (USD)** e escolha o serviço do agente em **Serviço (opcional)**, para que o orçamento vigie só esse agente.
+1. Abra **Produtos → IA / LLM → Orçamentos** e clique em **Criar: LLM Cost Budget**. Defina um **Orçamento diário (USD)** e escolha o serviço do agente em **Serviço (opcional)**, para que o orçamento vigie só esse agente.
 2. No menu da linha do novo orçamento, escolha **Mostrar ID** e copie o ID.
 3. Crie um [monitor de métricas](/docs/monitor/metrics-monitor) sobre `oneuptime.llm.budget.percent.used`, filtrado pelo atributo `oneuptime.llm.budget.id` com o ID que você copiou, e defina a sua **Janela de tempo** como **Últimos 30 minutos**.
 4. Em **Quando alertar**, defina a **Condição** como **Igual ou acima de** e o **Valor** como `100`, mantenha **Criar um alerta**, e dê a ele um **Título do alerta** que nomeie o agente, como `LLM budget exceeded: support-bot`. O fluxo de trabalho e o seu endpoint leem esse título.
@@ -110,7 +110,7 @@ Construa-o com estas regras:
 - Torne o disparo idempotente. Um aviso e uma ultrapassagem, ou um alerta de orçamento e um de loop juntos, podem dispará-lo mais de uma vez, e um segundo disparo não deve mudar nada.
 - Responda em um ou dois segundos e faça a limpeza em segundo plano. O fluxo de trabalho conta qualquer resposta 2xx como sucesso.
 - Exija um segredo. Quem puder chamar o endpoint pode parar os seus agentes, então verifique um token bearer, que o fluxo de trabalho envia a partir de uma variável global secreta.
-- Rearme à mão. Um disjuntor desarmado continua desarmado até alguém examinar a execução: abra a conversa do agente em **Produtos → AI / LLM → Conversas** para ler ou reproduzir o que ele fez.
+- Rearme à mão. Um disjuntor desarmado continua desarmado até alguém examinar a execução: abra a conversa do agente em **Produtos → IA / LLM → Conversas** para ler ou reproduzir o que ele fez.
 
 A requisição sai do OneUptime. No OneUptime Cloud, o seu endpoint precisa ser acessível pela internet. Uma instalação auto-hospedada recusa endereços de rede privados, a menos que um administrador os permita: veja [Acesso de rede de saída](/docs/workflows/configuration#acesso-de-rede-para-fora).
 

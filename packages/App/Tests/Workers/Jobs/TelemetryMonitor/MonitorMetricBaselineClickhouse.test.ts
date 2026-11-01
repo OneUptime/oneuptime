@@ -15,6 +15,7 @@ import RollingTime from "Common/Types/RollingTime/RollingTime";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import MetricBaselineHourly from "Common/Models/AnalyticsModels/MetricBaselineHourly";
+import MetricItemAggMV1m from "Common/Models/AnalyticsModels/MetricItemAggMV1m";
 import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
   ClickhouseClient,
@@ -23,11 +24,15 @@ import MetricBaselineService, {
   BandPoint,
   BaselineBand,
   BaselineSummary,
+  MetricBaselineQuery,
   MetricBaselineService as MetricBaselineServiceClass,
 } from "Common/Server/Services/MetricBaselineService";
+import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
+import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import MetricMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/MetricMonitorCriteria";
+import MetricHourBaseline from "Common/Server/Utils/Monitor/MetricHourBaseline";
 import {
   afterAll,
   beforeAll,
@@ -125,6 +130,8 @@ interface Sample {
   value: number;
   metric?: string;
   serviceId?: ObjectID;
+  // A histogram's datapoint: how many observations `value` is the sum of.
+  count?: number;
 }
 
 // A sample as ingest writes it: UTC text with no zone.
@@ -141,7 +148,10 @@ function rowOf(sample: Sample): JSONObject {
     primaryEntityType: "Service",
     name: sample.metric || METRIC,
     aggregationTemporality: "Delta",
-    metricPointType: "Gauge",
+    metricPointType: sample.count === undefined ? "Gauge" : "Histogram",
+    ...(sample.count === undefined
+      ? {}
+      : { count: sample.count, sum: sample.value }),
     time: OneUptimeDate.toClickhouseDateTime64(time),
     timeUnixNano: String(time.getTime() * 1000000 + rowIndex),
     attributes: {},
@@ -236,8 +246,9 @@ integration("A metric's baseline against ClickHouse", () => {
     project: ObjectID,
     input: {
       at?: Date;
-      primaryEntityId?: ObjectID;
+      primaryEntityId?: ObjectID | Array<ObjectID>;
       windowDays?: number;
+      query?: Partial<MetricBaselineQuery>;
     } = {},
   ): Promise<BaselineSummary | null> {
     const at: Date = input.at || judgedAt;
@@ -251,6 +262,16 @@ integration("A metric's baseline against ClickHouse", () => {
         ? { primaryEntityId: input.primaryEntityId }
         : {}),
       ...(input.windowDays ? { windowDays: input.windowDays } : {}),
+      ...(input.query
+        ? {
+            query: {
+              aggregationType: AggregationType.Avg,
+              isNarrowedByAttributes: false,
+              interval: AggregationInterval.Minute,
+              ...input.query,
+            },
+          }
+        : {}),
     });
   }
 
@@ -289,6 +310,7 @@ integration("A metric's baseline against ClickHouse", () => {
 
     await createTable(client, clickhouse, Metric);
     await createTable(client, clickhouse, MetricBaselineHourly);
+    await createTable(client, clickhouse, MetricItemAggMV1m);
 
     original = {
       database: MetricBaselineService.database,
@@ -319,6 +341,148 @@ integration("A metric's baseline against ClickHouse", () => {
     if (clickhouse) {
       await clickhouse.disconnect();
     }
+  });
+
+  /*
+   * The view numbers the week from toDayOfWeek(time, 1), which makes Monday 0.
+   * Nothing but a real server could show what that stores, and every check
+   * used to read the next weekday's rows.
+   */
+  describe("the rollup's hours", () => {
+    test("the view stores a Monday past the end of the week, and every other day a day behind", async () => {
+      const project: ObjectID = newProject();
+      const monday: number = weekTurn - WEEK;
+
+      await write([
+        { project, time: monday + 9 * HOUR, value: 1 },
+        { project, time: monday + DAY, value: 1 },
+        { project, time: monday + 6 * DAY + 23 * HOUR, value: 1 },
+      ]);
+
+      const result: { json: () => Promise<{ data: Array<JSONObject> }> } =
+        (await client.query({
+          query: `SELECT hourOfWeek FROM ${database}.${new MetricBaselineHourly().tableName} WHERE projectId = '${project.toString()}' ORDER BY day`,
+          format: "JSON",
+        })) as unknown as { json: () => Promise<{ data: Array<JSONObject> }> };
+
+      expect(
+        (await result.json()).data.map((row: JSONObject): number => {
+          return Number(row["hourOfWeek"]);
+        }),
+      ).toEqual([241, 0, 143]);
+    });
+
+    test("every hour the code can name is the number the view stored it under", async () => {
+      const project: ObjectID = newProject();
+      const monday: number = weekTurn - WEEK;
+      const samples: Array<Sample> = [];
+
+      for (let hour: number = 0; hour < 168; hour++) {
+        samples.push({ project, time: monday + hour * HOUR, value: 1 });
+      }
+
+      await write(samples);
+
+      const result: { json: () => Promise<{ data: Array<JSONObject> }> } =
+        (await client.query({
+          query: `SELECT hourOfWeek FROM ${database}.${new MetricBaselineHourly().tableName} WHERE projectId = '${project.toString()}' GROUP BY hourOfWeek ORDER BY hourOfWeek`,
+          format: "JSON",
+        })) as unknown as { json: () => Promise<{ data: Array<JSONObject> }> };
+
+      const stored: Array<number> = (await result.json()).data.map(
+        (row: JSONObject): number => {
+          return Number(row["hourOfWeek"]);
+        },
+      );
+
+      expect(stored).toHaveLength(168);
+
+      for (let hour: number = 0; hour < 168; hour++) {
+        expect(stored).toContain(MetricHourBaseline.toStoredHour(hour));
+      }
+    });
+
+    test.each([
+      ["Monday", 0],
+      ["Tuesday", 1],
+      ["Wednesday", 2],
+      ["Thursday", 3],
+      ["Friday", 4],
+      ["Saturday", 5],
+      ["Sunday", 6],
+    ])(
+      "a check on a %s reads that weekday",
+      async (_: string, weekday: number) => {
+        const project: ObjectID = newProject();
+        const monday: number = weekTurn - 3 * WEEK;
+        const samples: Array<Sample> = [];
+
+        for (let week: number = 0; week < 2; week++) {
+          for (let day: number = 0; day < 7; day++) {
+            samples.push(
+              ...hourOf({
+                project,
+                start: monday + week * WEEK + day * DAY + 9 * HOUR,
+                mean: 100 + 100 * day,
+                spread: 5,
+              }),
+            );
+          }
+        }
+
+        await write(samples);
+
+        const baseline: BaselineSummary = (await read(project, {
+          at: new Date(
+            monday + 2 * WEEK + weekday * DAY + 9 * HOUR + 40 * MINUTE,
+          ),
+        }))!;
+
+        expect(baseline.sampleCount).toBe(120);
+        expect(baseline.mean).toBeCloseTo(100 + 100 * weekday, 6);
+        expect(baseline.isReliable).toBe(true);
+      },
+    );
+
+    test("a chart's band reads the same weekday as a check", async () => {
+      const project: ObjectID = newProject();
+      const monday: number = weekTurn - 3 * WEEK;
+      const judged: number = monday + 2 * WEEK + 9 * HOUR;
+
+      await write([
+        ...hourOf({ project, start: monday + 9 * HOUR, mean: 100, spread: 5 }),
+        ...hourOf({
+          project,
+          start: monday + DAY + 9 * HOUR,
+          mean: 900,
+          spread: 5,
+        }),
+        ...hourOf({
+          project,
+          start: monday + WEEK + 9 * HOUR,
+          mean: 100,
+          spread: 5,
+        }),
+        ...hourOf({
+          project,
+          start: monday + WEEK + DAY + 9 * HOUR,
+          mean: 900,
+          spread: 5,
+        }),
+      ]);
+
+      const points: Array<BandPoint> =
+        await MetricBaselineService.getBandSeries({
+          projectId: project,
+          metricName: METRIC,
+          startTime: new Date(judged),
+          endTime: new Date(judged),
+          intervalMinutes: 5,
+          sigmaCount: 3,
+        });
+
+      expect(points[0]!.mean).toBeCloseTo(100, 6);
+    });
   });
 
   describe("what is judged is not what it is judged against", () => {
@@ -541,6 +705,304 @@ integration("A metric's baseline against ClickHouse", () => {
     });
   });
 
+  describe("a monitor's services", () => {
+    test("the ones it names are read, and only those", async () => {
+      const project: ObjectID = newProject();
+      const thirdId: ObjectID = new ObjectID("7b00000000000000000000b3");
+
+      for (const [serviceId, mean] of [
+        [checkoutId, 100],
+        [otherServiceId, 200],
+        [thirdId, 9000],
+      ] as Array<[ObjectID, number]>) {
+        await write([
+          ...hourOf({
+            project,
+            start: hourStart - 2 * WEEK,
+            mean,
+            spread: 5,
+            serviceId,
+          }),
+          ...hourOf({
+            project,
+            start: hourStart - WEEK,
+            mean,
+            spread: 5,
+            serviceId,
+          }),
+        ]);
+      }
+
+      const baseline: BaselineSummary = (await read(project, {
+        primaryEntityId: [checkoutId, otherServiceId],
+      }))!;
+
+      expect(baseline.sampleCount).toBe(240);
+      expect(baseline.mean).toBeCloseTo(150, 6);
+      expect(baseline.maxObserved).toBe(205);
+      expect(baseline.isReliable).toBe(true);
+    });
+  });
+
+  /*
+   * What a query's data points are on the days before it, read the way the
+   * query reads them. Three series, two samples a minute each, at 100.
+   */
+  describe("a query's own data points", () => {
+    function fleetOf(data: {
+      project: ObjectID;
+      start: number;
+      minutes?: number;
+      mean: number;
+      seriesCount?: number;
+      samplesPerMinute?: number;
+      count?: number;
+    }): Array<Sample> {
+      const samples: Array<Sample> = [];
+
+      for (let minute: number = 0; minute < (data.minutes ?? 60); minute++) {
+        for (
+          let series: number = 0;
+          series < (data.seriesCount ?? 3);
+          series++
+        ) {
+          for (
+            let sample: number = 0;
+            sample < (data.samplesPerMinute ?? 2);
+            sample++
+          ) {
+            samples.push({
+              project: data.project,
+              time: data.start + minute * MINUTE + sample * 1000,
+              value: data.mean + (minute % 2 === 0 ? 5 : -5),
+              ...(data.count !== undefined ? { count: data.count } : {}),
+            });
+          }
+        }
+      }
+
+      return samples;
+    }
+
+    const earlierWeeks: (project: ObjectID, mean: number) => Array<Sample> = (
+      project: ObjectID,
+      mean: number,
+    ): Array<Sample> => {
+      return [
+        ...fleetOf({ project, start: hourStart - 2 * WEEK, mean }),
+        ...fleetOf({ project, start: hourStart - WEEK, mean }),
+      ];
+    };
+
+    test("a Sum is read at the Sum's scale, not its samples'", async () => {
+      const project: ObjectID = newProject();
+
+      await write([
+        ...earlierWeeks(project, 100),
+        ...fleetOf({ project, start: hourStart, mean: 500, minutes: 40 }),
+      ]);
+
+      expect((await read(project))?.mean).toBeCloseTo(100, 6);
+
+      const baseline: BaselineSummary = (await read(project, {
+        query: { aggregationType: AggregationType.Sum },
+      }))!;
+
+      expect(baseline.sampleCount).toBe(120);
+      expect(baseline.mean).toBeCloseTo(600, 6);
+      // A minute's six samples all sit 5 from their mean, the same way.
+      expect(baseline.stddev).toBeCloseTo(30, 6);
+      expect(baseline.isReliable).toBe(true);
+    });
+
+    test("a Count is how many samples a minute holds", async () => {
+      const project: ObjectID = newProject();
+
+      await write([
+        ...earlierWeeks(project, 100),
+        ...fleetOf({ project, start: hourStart, mean: 100, minutes: 40 }),
+      ]);
+
+      const baseline: BaselineSummary = (await read(project, {
+        query: { aggregationType: AggregationType.Count },
+      }))!;
+
+      expect(baseline.mean).toBe(6);
+      expect(baseline.stddev).toBe(0);
+      expect(baseline.minObserved).toBe(6);
+      expect(baseline.maxObserved).toBe(6);
+    });
+
+    test("a longer data point is read at its own length", async () => {
+      const project: ObjectID = newProject();
+
+      await write(earlierWeeks(project, 100));
+
+      const baseline: BaselineSummary = (await read(project, {
+        query: {
+          aggregationType: AggregationType.Sum,
+          interval: AggregationInterval.FiveMinutes,
+        },
+      }))!;
+
+      expect(baseline.sampleCount).toBe(24);
+      expect(baseline.mean).toBeCloseTo(3000, 6);
+    });
+
+    test("the services named are the only ones read", async () => {
+      const project: ObjectID = newProject();
+
+      await write([
+        ...earlierWeeks(project, 100),
+        ...fleetOf({
+          project,
+          start: hourStart - WEEK,
+          mean: 100,
+          seriesCount: 1,
+        }).map((sample: Sample): Sample => {
+          return { ...sample, serviceId: otherServiceId };
+        }),
+      ]);
+
+      const baseline: BaselineSummary = (await read(project, {
+        primaryEntityId: [otherServiceId],
+        query: { aggregationType: AggregationType.Count },
+      }))!;
+
+      expect(baseline.sampleCount).toBe(60);
+      expect(baseline.mean).toBe(2);
+    });
+
+    test("an average of a histogram is of its observations, not its datapoints' sums", async () => {
+      const project: ObjectID = newProject();
+
+      await write([
+        ...fleetOf({
+          project,
+          start: hourStart - 2 * WEEK,
+          mean: 75,
+          count: 300,
+        }),
+        ...fleetOf({ project, start: hourStart - WEEK, mean: 75, count: 300 }),
+        ...fleetOf({
+          project,
+          start: hourStart,
+          mean: 75,
+          minutes: 40,
+          count: 300,
+        }),
+      ]);
+
+      // What every histogram used to be judged against.
+      expect((await read(project))?.mean).toBeCloseTo(75, 6);
+
+      const baseline: BaselineSummary = (await read(project, { query: {} }))!;
+
+      expect(baseline.sampleCount).toBe(120);
+      expect(baseline.mean).toBeCloseTo(0.25, 6);
+      expect(baseline.isReliable).toBe(true);
+    });
+
+    test("a Count of a histogram is how many observations a minute holds", async () => {
+      const project: ObjectID = newProject();
+
+      await write([
+        ...fleetOf({
+          project,
+          start: hourStart - 2 * WEEK,
+          mean: 75,
+          count: 300,
+        }),
+        ...fleetOf({ project, start: hourStart - WEEK, mean: 75, count: 300 }),
+        ...fleetOf({
+          project,
+          start: hourStart,
+          mean: 75,
+          minutes: 40,
+          count: 300,
+        }),
+      ]);
+
+      const baseline: BaselineSummary = (await read(project, {
+        query: { aggregationType: AggregationType.Count },
+      }))!;
+
+      expect(baseline.mean).toBe(1800);
+    });
+
+    test.each([
+      ["a percentile of a histogram", { aggregationType: AggregationType.P95 }],
+      [
+        "a histogram narrowed by an attribute",
+        { isNarrowedByAttributes: true },
+      ],
+    ])(
+      "%s has none",
+      async (_: string, query: Partial<MetricBaselineQuery>) => {
+        const project: ObjectID = newProject();
+
+        await write([
+          ...fleetOf({
+            project,
+            start: hourStart - 2 * WEEK,
+            mean: 75,
+            count: 300,
+          }),
+          ...fleetOf({
+            project,
+            start: hourStart - WEEK,
+            mean: 75,
+            count: 300,
+          }),
+          ...fleetOf({
+            project,
+            start: hourStart,
+            mean: 75,
+            minutes: 40,
+            count: 300,
+          }),
+        ]);
+
+        expect(await read(project, { query })).toBeNull();
+      },
+    );
+
+    test("a Sum narrowed by an attribute has none", async () => {
+      const project: ObjectID = newProject();
+
+      await write(earlierWeeks(project, 100));
+
+      expect(
+        await read(project, {
+          query: {
+            aggregationType: AggregationType.Sum,
+            isNarrowedByAttributes: true,
+          },
+        }),
+      ).toBeNull();
+    });
+
+    test("an hour on one day is not another hour's, across the end of the week", async () => {
+      const project: ObjectID = newProject();
+      const sundayNight: number = weekTurn - DAY + 23 * HOUR;
+
+      await write([
+        ...fleetOf({ project, start: sundayNight - 2 * WEEK, mean: 100 }),
+        ...fleetOf({ project, start: sundayNight - WEEK, mean: 100 }),
+        ...fleetOf({ project, start: sundayNight - WEEK + HOUR, mean: 900 }),
+      ]);
+
+      const baseline: BaselineSummary = (await read(project, {
+        at: new Date(sundayNight + 10 * MINUTE),
+        query: { aggregationType: AggregationType.Sum },
+      }))!;
+
+      expect(baseline.hourOfWeek).toBe(167);
+      expect(baseline.mean).toBeCloseTo(600, 6);
+      expect(baseline.isReliable).toBe(true);
+    });
+  });
+
   describe("how long a metric learns", () => {
     test("one earlier week is still learning", async () => {
       const project: ObjectID = newProject();
@@ -672,28 +1134,31 @@ integration("A metric's baseline against ClickHouse", () => {
     );
   });
 
+  /*
+   * Written by the plain session: session_timezone moves how an insert's text
+   * is read, and not the view behind it, so a session cannot write as a server
+   * in another zone does. This whole suite also passes on one: start the
+   * server with -e TZ=Asia/Tokyo.
+   */
   test("in a server of another zone the days and hours are the same", async () => {
     const project: ObjectID = newProject();
 
-    await write(
-      [
-        ...hourOf({
-          project,
-          start: hourStart - 2 * WEEK,
-          mean: 100,
-          spread: 5,
-        }),
-        ...hourOf({ project, start: hourStart - WEEK, mean: 100, spread: 5 }),
-        ...hourOf({
-          project,
-          start: hourStart,
-          mean: 1000000,
-          spread: 5,
-          minutes: 40,
-        }),
-      ],
-      zonedClient,
-    );
+    await write([
+      ...hourOf({
+        project,
+        start: hourStart - 2 * WEEK,
+        mean: 100,
+        spread: 5,
+      }),
+      ...hourOf({ project, start: hourStart - WEEK, mean: 100, spread: 5 }),
+      ...hourOf({
+        project,
+        start: hourStart,
+        mean: 1000000,
+        spread: 5,
+        minutes: 40,
+      }),
+    ]);
 
     MetricBaselineService.databaseClient = zonedClient;
 
@@ -823,6 +1288,72 @@ integration("A metric's baseline against ClickHouse", () => {
 
       expect(await judge(project, 5)).toContain(
         "which held at 0 for all 120 samples",
+      );
+    });
+
+    function judgeTotal(
+      project: ObjectID,
+      value: number,
+    ): Promise<string | null> {
+      const totals: MetricsViewConfig = {
+        queryConfigs: [
+          {
+            ...metricViewConfig.queryConfigs[0]!,
+            metricQueryData: {
+              filterData: {
+                metricName: METRIC,
+                aggegationType: AggregationType.Sum,
+              },
+            } as unknown as MetricQueryData,
+          },
+        ],
+        formulaConfigs: [],
+      };
+      const monitorStep: MonitorStep = new MonitorStep();
+
+      monitorStep.data = {
+        id: ObjectID.generate().toString(),
+        monitorCriteria: { data: undefined } as never,
+      } as unknown as MonitorStep["data"];
+      monitorStep.data!.metricMonitor = {
+        metricViewConfig: totals,
+        rollingTime: RollingTime.Past5Minutes,
+      };
+
+      return MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+        dataToProcess: {
+          projectId: project,
+          metricResult: [{ data: [{ timestamp: judgedAt, value }] }],
+          metricViewConfig: totals,
+          monitorId: ObjectID.generate(),
+        } as unknown as MetricMonitorResponse,
+        criteriaFilter: {
+          checkOn: CheckOn.MetricValue,
+          filterType: FilterType.Anomalous,
+          value: undefined,
+          metricMonitorOptions: { metricAlias: "a" },
+        } as CriteriaFilter,
+        monitorStep,
+      });
+    }
+
+    test("a Sum of its usual size does not fire, where it used to on every check", async () => {
+      const project: ObjectID = newProject();
+      const samples: Array<Sample> = [];
+
+      for (const start of [hourStart - 2 * WEEK, hourStart - WEEK, hourStart]) {
+        for (const serviceId of [checkoutId, otherServiceId]) {
+          samples.push(
+            ...hourOf({ project, start, mean: 100, spread: 5, serviceId }),
+          );
+        }
+      }
+
+      await write(samples);
+
+      expect(await judgeTotal(project, 200)).toBeNull();
+      expect(await judgeTotal(project, 500)).toContain(
+        "above the same-hour baseline",
       );
     });
   });
