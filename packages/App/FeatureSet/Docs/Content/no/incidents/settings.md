@@ -32,7 +32,7 @@ Det OneUptime AI gjør på egen hånd, settes ikke her: det har en egen seksjon,
 
 **Hendelsesstatus** og **Hendelsesalvor** gjennomgås grundig i [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities) — resten av denne siden fortsetter fra **Hendelsesmaler**. Skjemaer som lar folk utenfor teamet ditt melde hendelser, er et eget produkt: se [Skjemaer](/docs/forms/index). Verktøy som selv åpner hendelser, som [Huntress](/docs/integrations/huntress), settes opp som arbeidsflyter.
 
-Brett ut **Regler**, så får du åtte sider til: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler** og **Reminder Rules**. De gjennomgås lenger ned.
+Brett ut **Regler**, så får du åtte sider til: **Grupperingsregler**, **Vaktregler**, **Eierregler**, **Runbook-regler**, **Personvernregler**, **Etikettregler**, **SLA-regler** og **Påminnelsesregler**. De gjennomgås lenger ned.
 
 ## Hendelsesmaler
 
@@ -598,12 +598,12 @@ Grupperings-, SLA-, påminnelses- og AI-regler virker også på den nye hendelse
 - **Personvernregler** — avgjør om en samsvarende hendelse er privat.
 - **Etikettregler** — setter etiketter automatisk.
 - **SLA-regler** — følger svar- og løsningstider. Reglene evalueres fra toppen av listen og nedover; dra en regel for å endre plassen.
-- **Reminder Rules** — minner jevnlig eierne av en hendelse på den mens den fortsatt er åpen. Reglene evalueres fra toppen av listen og nedover, og den første samsvarende regelen vinner; dra en regel for å endre plassen. Regelen for en hendelse samsvares på nytt, og ventetiden til neste påminnelse starter på nytt, når alvorlighetsgraden eller etikettene endres, eller bryteren **Send påminnelser** slås om. Å lagre alvorlighetsgraden og etikettene den allerede har — hver lagring av kortet **Hendelsesdetaljer** sender dem — lar neste påminnelse bli der den var. Varsler fungerer på samme måte.
+- **Påminnelsesregler** — minner jevnlig eierne av en hendelse på den mens den fortsatt er åpen. Reglene evalueres fra toppen av listen og nedover, og den første samsvarende regelen vinner; dra en regel for å endre plassen. Regelen for en hendelse samsvares på nytt, og ventetiden til neste påminnelse starter på nytt, når alvorlighetsgraden eller etikettene endres, eller bryteren **Send påminnelser** slås om. Å lagre alvorlighetsgraden og etikettene den allerede har — hver lagring av kortet **Hendelsesdetaljer** sender dem — lar neste påminnelse bli der den var. Varsler fungerer på samme måte.
 
 > [!IMPORTANT]
 > **Betydningen av rekkefølge er ikke lik overalt.** Grupperingsregler, SLA-regler og Reminder Rules evalueres i rekkefølge, og listene deres ordnes ved å dra: en ny regel legges til på slutten. Vaktregler gjør ikke det — hver samsvarende regel utløses. Ikke gå ut fra at én modell gjelder for alle ni.
 
-Sidene **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabell. Sett opp fanen **Incident Rules** med mindre du spesifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** og **Reminder Rules** er enkle tabeller.
+Sidene **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har faner — en fane **Incident Rules** og en fane **Episode Rules**, hver med sin egen tabell. Sett opp fanen **Incident Rules** med mindre du spesifikt mener episoder. **Grupperingsregler**, **Runbook-regler**, **AI-regler**, **SLA-regler** og **Påminnelsesregler** er enkle tabeller.
 
 Eier-, etikett- og personvernregler virker bare på hendelser og episoder som opprettes etter at regelen finnes. For å bruke en av dem på hendelser som allerede finnes, bruker du **Kjør nå** på regelens rad, på dens egen side eller fra tabellens massehandlinger — se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Vakt-, runbook-, AI-, grupperings-, SLA- og påminnelsesregler kan ikke kjøres mot eksisterende hendelser.
 

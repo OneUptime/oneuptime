@@ -243,7 +243,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 **你在 OneUptime 中看到的內容。** 代理程式也會以唯讀方式讀取 OpenShift 本身的物件，並顯示在叢集的頁面中：
 
 - 叢集的 **概覽** 以 **OpenShift** 卡片開頭：它執行的版本、更新正在進行還是失敗，以及有多少叢集 Operator 健康，並附上其餘每個 Operator 回報的內容。無法使用的 Operator 會讓叢集變為 **不健康**，效能下降的 Operator 或失敗的更新會讓叢集變為 **效能下降**。
-- **網路** 下的 **Routes** 和 **服務**：每個 Route 在哪裡回應、如何終止 TLS、將流量傳送到哪些服務以及各占多少比例，以及路由器拒絕它的原因。Route 的 TLS 金鑰絕不會離開叢集：代理程式在傳送 Route 之前會將其取代。
+- **網路** 下的 **路由** 和 **服務**：每個 Route 在哪裡回應、如何終止 TLS、將流量傳送到哪些服務以及各占多少比例，以及路由器拒絕它的原因。Route 的 TLS 金鑰絕不會離開叢集：代理程式在傳送 Route 之前會將其取代。
 - **工作負載** 下的 **DeploymentConfigs** 的顯示方式與 Deployment 相同：它們的推出、Pod 的 CPU 和記憶體，以及它們執行的 ReplicationController 和 Pod 的事件。
 
 **關於 Operator 和更新的警示。** OpenShift 叢集的 **建議** 頁面提供 **Cluster Operator Unavailable**、**Cluster Operator Degraded** 和 **Cluster Update Failing**。每一項都是一個日誌監視器，監視代理程式每隔 `resourceSpecs.interval` 傳送的快照。一旦兩個快照都回報問題就會發出警示，因此 Operator 在更新期間短暫切換狀態不會觸發任何警示；當快照表明問題已結束時，警示才會解決，絕不會因為代理程式停止傳送而解決。
@@ -591,7 +591,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 啟用成本可觀測性
 
-在叢集的 **Costs** 頁面上查看每個命名空間、工作負載和 Pod 的成本，以及閒置容量和每個 request 的使用比例：
+在叢集的 **成本** 頁面上查看每個命名空間、工作負載和 Pod 的成本，以及閒置容量和每個 request 的使用比例：
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

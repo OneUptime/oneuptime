@@ -243,7 +243,7 @@ For at få dem tilbage skal du skifte til `openshift` med `--set preset=openshif
 **Det ser du i OneUptime.** Agenten læser også OpenShifts egne objekter, kun med læseadgang, og viser dem på klyngens sider:
 
 - Klyngens **Oversigt** indledes med kortet **OpenShift**: den version, den kører, om en opdatering kører eller fejler, og hvor mange af dens klyngeoperatorer der er sunde, med det, hver af de andre rapporterer. En utilgængelig operator gør klyngen **Usund**, og en forringet operator eller en fejlende opdatering gør den **Forringet**.
-- **Routes** og **Tjenester** under **Netværk**: hvor hver Route svarer, hvordan den afslutter TLS, hvilke tjenester den sender trafik til og med hvilken andel, og hvorfor en router afviste den. En Routes TLS-nøgle forlader aldrig klyngen: agenten erstatter den, før den sender Routen.
+- **Ruter** og **Tjenester** under **Netværk**: hvor hver Route svarer, hvordan den afslutter TLS, hvilke tjenester den sender trafik til og med hvilken andel, og hvorfor en router afviste den. En Routes TLS-nøgle forlader aldrig klyngen: agenten erstatter den, før den sender Routen.
 - **DeploymentConfigs** under **Arbejdsbelastninger** vises ligesom Deployments: deres udrulninger, deres pods' CPU og hukommelse og hændelserne fra de ReplicationControllers og pods, de kører.
 
 **Advarsler om operatorer og opdateringer.** Siden **Anbefalinger** for en OpenShift-klynge tilbyder **Cluster Operator Unavailable**, **Cluster Operator Degraded** og **Cluster Update Failing**. Hver af dem er en logmonitor på de snapshots, agenten sender hvert `resourceSpecs.interval`. Den giver en alarm, når to snapshots siger det, så en operator, der skifter et øjeblik under en opdatering, ikke udløser noget, og den lukker alarmen, når et snapshot siger, at problemet er overstået, aldrig fordi agenten holdt op med at sende.
@@ -591,7 +591,7 @@ Nogle grafer viser metrikker, som agenten ikke har et scrape til: **kube-proxy**
 
 ### Slå omkostningsobservability til
 
-Se på klyngens side **Costs**, hvad hvert namespace, hver workload og hver pod koster, med tomgangskapacitet og hvor meget af hver request der bruges:
+Se på klyngens side **Omkostninger**, hvad hvert namespace, hver workload og hver pod koster, med tomgangskapacitet og hvor meget af hver request der bruges:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

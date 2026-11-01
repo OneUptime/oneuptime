@@ -37,7 +37,7 @@ flowchart TB
 | ECS、Cloud Run、Container Apps、App Service 等上的容器 | **应用平台 → 所有环境** | 工作负载自身的遥测数据，按其 `cloud.platform` 区分。参见 [云环境](/docs/telemetry/cloud-environments) |
 | 提供商监控的任何 IaaS 或 PaaS 资源 | **云 → 所有资源** | 由 Collector 读取的提供商监控 API：即本页 |
 | 装有 OpenTelemetry Collector 的虚拟机 | **主机** | 主机自身的指标和日志。参见 [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector) |
-| 你的应用使用的队列和主题 | **Queues** | span，以及相同的云指标。参见 [队列](/docs/telemetry/queues) |
+| 你的应用使用的队列和主题 | **队列** | span，以及相同的云指标。参见 [队列](/docs/telemetry/queues) |
 
 一个资源可能出现在多个地方。装有 Collector 的虚拟机是一台 **主机**，而它的平台指标（虚拟机监控程序看到的 CPU 积分、磁盘和网络）又让它成为一个 **云资源**。SQS 队列既是 **Queue**，也是 **云资源**。每个视图显示的是其数据来源所知道的内容。
 

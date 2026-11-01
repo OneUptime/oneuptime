@@ -77,10 +77,10 @@ Het zijmenu van de pagina groepeert wat u met een uitzondering doet:
 | --- | --- |
 | **Overzicht** | Het bericht, de service, hoe vaak ze optrad en wanneer ze voor het eerst en het laatst gezien werd, haar verloop in de tijd, en haar laatste voorval: de release, de omgeving, de span, de trace en de gebruikerssessie. Bovenaan de uitleg van OneUptime AI over wat er gebeurde, als AI aan staat. |
 | **Stack trace** | De frames van de stack. Voor browsercode de oorspronkelijke bestanden en regels, zodra u [Source maps](/docs/telemetry/source-maps) voor de release uploadt. |
-| **Occurrences** | Elk voorval, met de tijd, het bericht en de trace waarin het optrad. |
+| **Voorvallen** | Elk voorval, met de tijd, het bericht en de trace waarin het optrad. |
 | **Context** | De attributen van het laatste voorval, de sessie-opname als die er is, en de stappen die ertoe leidden. |
 | **Logboeken** | De logboeken die rond het laatste voorval zijn geschreven. |
-| **AI Assistance** | AI-taken die de uitzondering verhelpen of testen. |
+| **AI-assistentie** | AI-taken die de uitzondering verhelpen of testen. |
 | **Instellingen** | De uitzondering oplossen of archiveren. Staat onder **Beheren**, dat eerst ingeklapt is. |
 
 ## Oplossen, heropenen en archiveren
@@ -131,7 +131,7 @@ Bovenaan het **Overzicht** van een uitzondering vraagt **Uitleggen met OneUptime
 | **Waar te kijken** | De frames van de stack trace die u eerst opent. |
 | **Volgende stappen** | Hoogstens drie stappen om haar te bevestigen of op te lossen. |
 
-De uitleg wordt bij de uitzondering bewaard, zodat de volgende die haar opent hem meteen leest, en **Opnieuw uitleggen** vraagt een nieuwe. **Een pull request met de oplossing openen** opent de pagina **AI Assistance** van de uitzondering, en **Een vervolgvraag stellen** opent Ask AI over de uitzondering.
+De uitleg wordt bij de uitzondering bewaard, zodat de volgende die haar opent hem meteen leest, en **Opnieuw uitleggen** vraagt een nieuwe. **Een pull request met de oplossing openen** opent de pagina **AI-assistentie** van de uitzondering, en **Een vervolgvraag stellen** opent Ask AI over de uitzondering.
 
 ID's, e-mail- en IP-adressen en tokens worden verwijderd uit alles wat wordt verstuurd, en van de attributen van een span worden er maar een paar verstuurd, zoals de route en de statuscode. De uitleg gebruikt de LLM-provider en de AI-tegoeden van het project en wordt niet aangeboden zolang **AI inschakelen** uit staat. Iedereen die de uitzondering mag lezen, kan er een vragen.
 
@@ -141,7 +141,7 @@ Voeg een uitzondering die OneUptime AI **Waarschijnlijk dezelfde bug** noemt en 
 
 ## Verhelpen met AI
 
-De pagina **AI Assistance** biedt drie taken. Elke taak loopt als AI-taak die een pull request opent in uw coderepository:
+De pagina **AI-assistentie** biedt drie taken. Elke taak loopt als AI-taak die een pull request opent in uw coderepository:
 
 | Taak | Wat de pull request doet |
 | --- | --- |
@@ -161,7 +161,7 @@ Elke 15 minuten doorzoekt OneUptime uw uitzonderingen op nieuwe, op uitzondering
 | **Piek in uitzonderingen** | Een uitzondering die in het afgelopen uur 10 keer of vaker is opgetreden, met 5 keer of meer haar uurtempo van de 24 uur daarvoor. | Verhelpt de uitzondering, of handelt haar beter af. |
 | **Ontbrekende stack trace** | De uitzonderingen die een service de afgelopen dag vastlegde, hebben geen stacktrace en zijn samen 20 keer of vaker opgetreden. | Laat de service bij elke uitzondering een stacktrace vastleggen. |
 
-De pull request van een nieuwe of stijgende uitzondering is de eigen AI-taak van de uitzondering, die haar pagina **AI Assistance** start, en hij wacht tot OneUptime AI de bevinding heeft onderzocht. Vindt het de schuldige code (`code-fault`), dan verhelpt de pull request die, zoals **Fix this exception with AI** doet. Vindt het een verwachte fout (`user-error` of `expected-denial`), dan handelt de pull request de fout beter af, zoals **Foutafhandeling verbeteren** doet. Elk ander oordeel opent zelf geen pull request. Met **Verwachte uitzonderingen archiveren** aan wordt een verwachte weigering in plaats daarvan gearchiveerd en krijgt die geen pull request.
+De pull request van een nieuwe of stijgende uitzondering is de eigen AI-taak van de uitzondering, die haar pagina **AI-assistentie** start, en hij wacht tot OneUptime AI de bevinding heeft onderzocht. Vindt het de schuldige code (`code-fault`), dan verhelpt de pull request die, zoals **Fix this exception with AI** doet. Vindt het een verwachte fout (`user-error` of `expected-denial`), dan handelt de pull request de fout beter af, zoals **Foutafhandeling verbeteren** doet. Elk ander oordeel opent zelf geen pull request. Met **Verwachte uitzonderingen archiveren** aan wordt een verwachte weigering in plaats daarvan gearchiveerd en krijgt die geen pull request.
 
 OneUptime AI opent er alleen zelf een voor een uitzondering die in uw eigen code is opgeworpen: een uitzondering waarvan de stacktrace een frame van uw code bevat, en niet alleen frames van bibliotheken of de runtime. Een pull request die iemand zonder samenvoegen sloot, pauzeert de automatische voor die uitzondering. Iedereen kan er nog steeds elk ervan vragen met **Oplossen met AI** op de bevinding.
 
@@ -187,7 +187,7 @@ Onder **Meer velden** kiest een regel de coderepositories, de MCP-servers en de 
 
 - **Uitzonderingen → AI → Inzichten** toont wat OneUptime vond, elke bevinding met haar bewijs, de frames van uw code in haar stacktrace inbegrepen. **View Exception Group** opent de uitzondering, en bij de ontbrekende stacktraces van een service opent **Openen in Uitzonderingen** haar niet-opgeloste uitzonderingen van de afgelopen dag.
 - **Uitzonderingen → AI → Logboeken** toont elk onderzoek en elke pull request, nieuwste eerst, met hoe elk ervoor staat en wat elk onderzoek vond.
-- De pull request zegt waarom hij werd geopend, met een link naar zijn bevinding. Die van een nieuwe of stijgende uitzondering linkt ook naar de uitzondering en staat op haar pagina **AI Assistance**. In Code noemt zijn taak de uitzondering die ze verhelpt, of de bevinding waar ze vandaan kwam.
+- De pull request zegt waarom hij werd geopend, met een link naar zijn bevinding. Die van een nieuwe of stijgende uitzondering linkt ook naar de uitzondering en staat op haar pagina **AI-assistentie**. In Code noemt zijn taak de uitzondering die ze verhelpt, of de bevinding waar ze vandaan kwam.
 
 ## Inzichten in uitzonderingen
 

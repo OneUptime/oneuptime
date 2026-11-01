@@ -28,6 +28,26 @@ const DASHBOARD_SRC: string = path.join(
 );
 const CALL: string = "BuildBreadcrumbLinksByTitles(";
 
+// The Dashboard's sixteen languages besides English.
+const LANGUAGES: ReadonlyArray<string> = [
+  "de",
+  "fr",
+  "es",
+  "it",
+  "pt",
+  "nl",
+  "da",
+  "no",
+  "sv",
+  "ru",
+  "ja",
+  "ko",
+  "zh-CN",
+  "zh-TW",
+  "hi",
+  "fa",
+];
+
 function sourceFiles(directory: string): Array<string> {
   return fs
     .readdirSync(directory, { withFileTypes: true })
@@ -101,6 +121,76 @@ describe("every breadcrumb title in the Dashboard is a translation key", () => {
       });
 
     expect(missing).toEqual([]);
+  });
+
+  /*
+   * A key is not yet a translation: forty-odd trail titles - Delete Storage
+   * Array, Site Types, Reminder Rules, Replay Users, Device Registry,
+   * Latency Matrix, Video Calls - were keys of every locale and still read
+   * in English in twelve languages (#5305's follow-up). Each title now
+   * reads in every language: translated, or listed as reading the same
+   * there (i18n/SameAsEnglish.json for every language - product names,
+   * protocols - and each locale's i18n/Progress list for its own borrowed
+   * words, as "Dashboards" is in Dutch). A title added to a trail needs
+   * its words in every language, or a reason it reads the same.
+   */
+  test("each title reads in every language: translated, or the same there on purpose", () => {
+    const i18nDirectory: string = path.join(
+      REPOSITORY_ROOT,
+      "packages",
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "i18n",
+    );
+    const everywhereTheSame: Set<string> = new Set<string>(
+      JSON.parse(
+        fs.readFileSync(path.join(i18nDirectory, "SameAsEnglish.json"), "utf8"),
+      ) as Array<string>,
+    );
+    const titles: Array<string> = Array.from(
+      new Set<string>(
+        trailTitles().map((entry: { file: string; title: string }): string => {
+          return entry.title;
+        }),
+      ),
+    ).filter((title: string): boolean => {
+      // "{{count}}"-like titles have no words to translate.
+      return /[A-Za-z]/.test(title);
+    });
+
+    expect(LANGUAGES).toHaveLength(16);
+    expect(titles.length).toBeGreaterThan(400);
+
+    for (const language of LANGUAGES) {
+      const locale: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(
+          path.join(DASHBOARD_SRC, "Locales", `${language}.json`),
+          "utf8",
+        ),
+      ) as Record<string, unknown>;
+      const progress: { sameAsEnglish?: Array<string> } = JSON.parse(
+        fs.readFileSync(
+          path.join(i18nDirectory, "Progress", `${language}.json`),
+          "utf8",
+        ),
+      ) as { sameAsEnglish?: Array<string> };
+      const theSameHere: Set<string> = new Set<string>(
+        progress.sameAsEnglish || [],
+      );
+
+      const inEnglish: Array<string> = titles.filter(
+        (title: string): boolean => {
+          return (
+            locale[title] === title &&
+            !everywhereTheSame.has(title) &&
+            !theSameHere.has(title)
+          );
+        },
+      );
+
+      expect({ language, inEnglish }).toEqual({ language, inEnglish: [] });
+    }
   });
 
   test("the titles that read in English everywhere before are among them", () => {

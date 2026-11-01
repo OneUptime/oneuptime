@@ -137,7 +137,7 @@ Agenten sender alt, hvad mgr-modulet `prometheus` eksporterer. OneUptimes Ceph-s
 | OSD | `ceph_osd_up`, `ceph_osd_in`, `ceph_osd_apply_latency_ms`, `ceph_osd_commit_latency_ms`, `ceph_osd_stat_bytes`, `ceph_osd_stat_bytes_used`, `ceph_osd_numpg`, `ceph_osd_metadata`, pr. OSD via labelet `ceph_daemon` (fx `osd.3`) |
 | Pool | `ceph_pool_stored`, `ceph_pool_max_avail`, `ceph_pool_objects`, `ceph_pool_rd`, `ceph_pool_wr`, `ceph_pool_rd_bytes`, `ceph_pool_wr_bytes`, `ceph_pool_metadata`. Dataserierne bærer kun et label `pool_id`; poolens navn står på `ceph_pool_metadata`. |
 | Placement groups | `ceph_pg_total`, `ceph_pg_active`, `ceph_pg_clean`, `ceph_pg_degraded`, `ceph_pg_undersized` (alle pr. pool, efter `pool_id`), `ceph_num_objects_degraded`, `ceph_num_objects_misplaced` |
-| Daemons | `ceph_mgr_metadata`, `ceph_mds_metadata` og `ceph_rgw_metadata`, ud over monitor- og OSD-metadataene ovenfor. Hver navngiver en daemon og bærer dens version i labelet `ceph_version`: Siden **Daemons** viser dem. |
+| Daemons | `ceph_mgr_metadata`, `ceph_mds_metadata` og `ceph_rgw_metadata`, ud over monitor- og OSD-metadataene ovenfor. Hver navngiver en daemon og bærer dens version i labelet `ceph_version`: Siden **Daemoner** viser dem. |
 
 ### Flere scrape-mål
 
@@ -150,7 +150,7 @@ Begge får ressourceattributten `ceph.cluster.name` fra den medfølgende process
 
 ## Valgfrit — Send Ceph-klyngeloggen
 
-Agenten kan følge `/var/log/ceph/ceph.log` og sende den til OneUptime, hvilket fylder klyngens side **Cluster Log**. Det er slået fra som standard, fordi agenten så skal køre på en vært, der har klyngeloggen: som standard en monitorvært.
+Agenten kan følge `/var/log/ceph/ceph.log` og sende den til OneUptime, hvilket fylder klyngens side **Klyngelog**. Det er slået fra som standard, fordi agenten så skal køre på en vært, der har klyngeloggen: som standard en monitorvært.
 
 :::steps
 ### Slå receiveren til

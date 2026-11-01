@@ -103,18 +103,18 @@ Ogni esecuzione è soggetta a budget che il server impone: al massimo **40 chiam
 
 | Dove | Clic | La pull request |
 | --- | --- | --- |
-| La pagina **AI Assistance** di un'eccezione | **Correggi con l'IA** | Corregge il bug dietro l'eccezione. |
-| La pagina **AI Assistance** di un'eccezione | **Generate Regression Test** | Aggiunge un test che riproduce l'eccezione e fallisce finché il bug non è corretto. |
-| La pagina **AI Assistance** di un'eccezione | **Migliora la gestione degli errori** | Per un errore previsto, come un input non valido: toglie i dati utente dal messaggio, convalida l'input prima e contrassegna l'errore come gestito, senza cambiare il comportamento. |
+| La pagina **Assistenza IA** di un'eccezione | **Correggi con l'IA** | Corregge il bug dietro l'eccezione. |
+| La pagina **Assistenza IA** di un'eccezione | **Generate Regression Test** | Aggiunge un test che riproduce l'eccezione e fallisce finché il bug non è corretto. |
+| La pagina **Assistenza IA** di un'eccezione | **Migliora la gestione degli errori** | Per un errore previsto, come un input non valido: toglie i dati utente dal messaggio, convalida l'input prima e contrassegna l'errore come gestito, senza cambiare il comportamento. |
 | Il passaggio **Rimedio** della scheda **OneUptime AI** di un incidente o di un avviso | **Apri la pull request di correzione** | Corregge la causa principale pubblicata dall'indagine (vedi [Correzioni di codice automatiche dalle indagini](#correzioni-di-codice-automatiche-dalle-indagini)). |
 | Una traccia che vale la pena correggere | **Velocizza con l'IA** | Corregge lo schema lento indicato dal pulsante, come una query N+1 o chiamate che potrebbero procedere in parallelo. |
 | La pagina **Registri** di un servizio | **Migliora i log** | Rende i log del servizio strutturati, con la severità giusta e collegati alle sue tracce, senza cambiare il comportamento. |
 | La pagina **Tracce** di un servizio | **Migliora il tracciamento** | Aggiunge span e attributi dove manca il tracing del servizio, senza cambiare il comportamento. |
 | Una funzione in **Profili di prestazioni** | **Correggi con l'IA** | Fa svolgere alla funzione lo stesso lavoro con meno tempo o memoria, con il suo profilo come prova. |
 
-Questi pulsanti compaiono solo dove possono avviare un'attività. Con l'IA disattivata per il progetto, non ne compare nessuno e il menu laterale di un'eccezione non ha **AI Assistance**. **Migliora i log** e **Migliora il tracciamento** compaiono appena è collegato un repository e niente impedisce all'IA di lavorarci (come il piano, i crediti IA esauriti o nessun Runner online), e **Velocizza con l'IA** solo su una traccia che vale la pena correggere (vedere [Esploratore tracce](/docs/telemetry/traces-explorer)). Il pulsante **Correggi con l'IA** di una funzione compare solo sul codice proprio dell'applicazione che occupa almeno il 5% del tempo o della memoria del profilo, o la cui quota è cresciuta di 3 punti o più rispetto alla finestra con cui è confrontata (vedete [Profilazione continua](/docs/telemetry/profiles)).
+Questi pulsanti compaiono solo dove possono avviare un'attività. Con l'IA disattivata per il progetto, non ne compare nessuno e il menu laterale di un'eccezione non ha **Assistenza IA**. **Migliora i log** e **Migliora il tracciamento** compaiono appena è collegato un repository e niente impedisce all'IA di lavorarci (come il piano, i crediti IA esauriti o nessun Runner online), e **Velocizza con l'IA** solo su una traccia che vale la pena correggere (vedere [Esploratore tracce](/docs/telemetry/traces-explorer)). Il pulsante **Correggi con l'IA** di una funzione compare solo sul codice proprio dell'applicazione che occupa almeno il 5% del tempo o della memoria del profilo, o la cui quota è cresciuta di 3 punti o più rispetto alla finestra con cui è confrontata (vedete [Profilazione continua](/docs/telemetry/profiles)).
 
-Per aprire la pagina **AI Assistance** di un'eccezione, apri l'eccezione in **Prodotti → Osservabilità → Eccezioni** e scegli **AI Assistance** nel suo menu laterale. Un'eccezione risolta o archiviata deve prima essere contrassegnata come non risolta.
+Per aprire la pagina **Assistenza IA** di un'eccezione, apri l'eccezione in **Prodotti → Osservabilità → Eccezioni** e scegli **Assistenza IA** nel suo menu laterale. Un'eccezione risolta o archiviata deve prima essere contrassegnata come non risolta.
 
 OneUptime AI avvia anche attività di correzione da solo: da un'indagine che trova una modifica al codice, da una che termina senza conclusioni perché mancava telemetria, e dagli AI Insights su eccezioni e tracce lente. Ognuna ha il suo interruttore; vedi [Correzioni di codice automatiche](/docs/ai/ai-sre#correzioni-automatiche-del-codice).
 
@@ -200,7 +200,7 @@ I comandi sono impostazioni del repository che scrive il tuo team, eseguite sul 
 
 ## Dopo l'unione di una correzione
 
-Unire una correzione non corregge nulla finché non viene eseguita. Appena una pull request di correzione viene unita, OneUptime attende un deploy registrato che la contenga (vedi [Deploy e modifiche](/docs/telemetry/change-events)) e osserva in quel deploy ciò per cui serviva la correzione. La pull request dell'attività in Code dice com'è andata, e così la pagina **AI Assistance** dell'eccezione, i registri IA dell'incidente e l'insight IA da cui è nata la correzione:
+Unire una correzione non corregge nulla finché non viene eseguita. Appena una pull request di correzione viene unita, OneUptime attende un deploy registrato che la contenga (vedi [Deploy e modifiche](/docs/telemetry/change-events)) e osserva in quel deploy ciò per cui serviva la correzione. La pull request dell'attività in Code dice com'è andata, e così la pagina **Assistenza IA** dell'eccezione, i registri IA dell'incidente e l'insight IA da cui è nata la correzione:
 
 | Una correzione di | Cosa viene osservato | Ha funzionato | Non ha funzionato |
 | --- | --- | --- | --- |
@@ -232,7 +232,7 @@ OneUptime Cloud raggiunge solo server Git su Internet, mai un indirizzo privato,
 
 ## Prima di iniziare
 
-Un'attività ha bisogno di tre cose. La casella delle richieste di Codice e la pagina **AI Assistance** dell'eccezione le controllano tutte e tre prima di offrire l'avvio, e dicono cosa manca.
+Un'attività ha bisogno di tre cose. La casella delle richieste di Codice e la pagina **Assistenza IA** dell'eccezione le controllano tutte e tre prima di offrire l'avvio, e dicono cosa manca.
 
 | Cosa | OneUptime Cloud | Self-hosted |
 | --- | --- | --- |
@@ -253,7 +253,7 @@ GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3.1
 
 Qualsiasi provider supportato funziona: vedi [Provider LLM](/docs/ai/llm-provider) per tutti i provider e ogni variabile d'ambiente.
 
-Non associ i repository ai servizi. Quando un'attività parte, OneUptime trova il repository confrontando i percorsi dei file dello stack trace dell'eccezione con i tuoi repository collegati. Se nulla corrisponde, ripiega su un repository che si chiama come il servizio, e poi sull'unico repository del progetto quando ce n'è uno solo. La pagina **AI Assistance** mostra quale repository ha trovato.
+Non associ i repository ai servizi. Quando un'attività parte, OneUptime trova il repository confrontando i percorsi dei file dello stack trace dell'eccezione con i tuoi repository collegati. Se nulla corrisponde, ripiega su un repository che si chiama come il servizio, e poi sull'unico repository del progetto quando ce n'è uno solo. La pagina **Assistenza IA** mostra quale repository ha trovato.
 
 ### Scegli il Runner del repository
 

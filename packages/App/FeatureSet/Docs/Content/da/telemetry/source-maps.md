@@ -83,7 +83,7 @@ Ved selvhostede installationer erstatter du `oneuptime.com` med din OneUptime-v�
 
 ### Kontrollér uploaden
 
-En vellykket upload returnerer en JSON-body med de gemte maps, så CI kan tjekke den. Maps står også på tjenestens side **Source Maps** i OneUptime.
+En vellykket upload returnerer en JSON-body med de gemte maps, så CI kan tjekke den. Maps står også på tjenestens side **Source maps** i OneUptime.
 :::
 
 Et typisk CI-trin uploader alle maps, som buildet har lavet:
@@ -127,7 +127,7 @@ Selvhostede installationer kan ændre disse. Alle fem er almindelige miljøvaria
 
 Åbn en vilkårlig undtagelse under **Undtagelser** i dashboardet. Frames, der er opløst via en source map, viser et mærkat **Source mapped** og det oprindelige funktionsnavn og filplacering; en udfoldet frame viser det oprindelige kodeuddrag (når map'en har `sourcesContent`) ved siden af den minificerede placering.
 
-En tjenestes uploadede maps kan gennemses og slettes under **Produkter → Tjenester → din tjeneste → Source Maps**, som viser hver maps udgivelse, bundle, størrelse og uploadtidspunkt.
+En tjenestes uploadede maps kan gennemses og slettes under **Produkter → Tjenester → din tjeneste → Source maps**, som viser hver maps udgivelse, bundle, størrelse og uploadtidspunkt.
 
 ## Opbevaring
 
@@ -142,7 +142,7 @@ Source maps gemmes i 90 dage efter upload og slettes derefter automatisk. En map
 ## Fejlfinding
 
 :::details Frames er stadig minificerede
-Undtagelsens udgivelse har ingen matchende maps. Tjek, at den `service.version`, din app sender, er præcis den `serviceVersion`, du uploadede med, at `serviceName` matcher `service.name`, og at der er uploadet en map til den bundlefil: tjenestens side **Source Maps** viser udgivelse og bundle for hver map.
+Undtagelsens udgivelse har ingen matchende maps. Tjek, at den `service.version`, din app sender, er præcis den `serviceVersion`, du uploadede med, at `serviceName` matcher `service.name`, og at der er uploadet en map til den bundlefil: tjenestens side **Source maps** viser udgivelse og bundle for hver map.
 :::
 
 :::details Uploaden afvises, fordi en map er for stor

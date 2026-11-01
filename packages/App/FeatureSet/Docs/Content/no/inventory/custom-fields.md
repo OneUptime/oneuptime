@@ -73,7 +73,7 @@ Angi verdiene på et elements side **Egendefinerte felt**. Alle elementer tar im
 
 ## Filtrer listen
 
-Hvert egendefinert felt blir et filter over listen **All Items**, og filteret tilbyr sammenligningene som passer til typen:
+Hvert egendefinert felt blir et filter over listen **Alle elementer**, og filteret tilbyr sammenligningene som passer til typen:
 
 | Felttype | Sammenligninger |
 | --- | --- |

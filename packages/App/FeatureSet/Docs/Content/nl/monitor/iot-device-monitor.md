@@ -35,7 +35,7 @@ flowchart TB
 
 - **Laat je apparaten gegevens sturen.** De [handleiding voor IoT-apparaten](/docs/telemetry/iot-devices) laat zien hoe je metrieken stuurt met een OpenTelemetry-SDK of -Collector, of via MQTT.
 - **Controleer of de vloot geregistreerd is.** Ze verschijnt onder **Producten → Infrastructuur → IoT → All Fleets**, genoemd naar de `iot.fleet.name` die de apparaten sturen.
-- **Registreer de apparaten die je verwacht**, in het **Device Registry** van de vloot, om te horen wanneer er een stil wordt: zie [Offline-detectie](#offline-detectie).
+- **Registreer de apparaten die je verwacht**, in het **Apparaatregister** van de vloot, om te horen wanneer er een stil wordt: zie [Offline-detectie](#offline-detectie).
 
 ## Een IoT-apparaat-monitor maken
 
@@ -114,7 +114,7 @@ Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn v
 | --- | --- |
 | **De gateway meldt het** | De gateway of collector stuurt `iot_device_up = 0` voor een apparaat dat hij niet meer bereikt. |
 | **MQTT Last Will** | Een apparaat dat met het MQTT-endpoint van OneUptime verbonden is, registreert een Last Will op zijn topic `status`. Als het apparaat uitvalt, stuurt de broker er `iot_device_up = 0` voor zodra de sessie wegvalt: geen polling, geen wachten op een gemist rapport. Zie [Metrieken via MQTT versturen](/docs/telemetry/iot-devices#metrics-verzenden-via-mqtt). |
-| **Het apparaat is geregistreerd** | Een apparaat in het **Device Registry** van de vloot wordt verwacht. Als het het hele venster niets stuurt, behandelt de monitor het alsof het `0` meldt, dus krijgt het een eigen incident, dat vanzelf wordt opgelost als het apparaat weer rapporteert. |
+| **Het apparaat is geregistreerd** | Een apparaat in het **Apparaatregister** van de vloot wordt verwacht. Als het het hele venster niets stuurt, behandelt de monitor het alsof het `0` meldt, dus krijgt het een eigen incident, dat vanzelf wordt opgelost als het apparaat weer rapporteert. |
 
 Een geregistreerd apparaat blijft ook als offline in de inventaris van de vloot staan, terwijl een niet-geregistreerd apparaat na 15 minuten stilte wordt verwijderd. Stiltedetectie vereist het beleid **Treat As Zero** voor ontbrekende gegevens op het criterium voor `iot_device_up`, dat Device Offline-monitoren die vanuit het template zijn gemaakt al hebben. Een Device Offline-monitor die is gemaakt voordat apparaatregistratie bestond, moet het met de hand ingesteld krijgen, of opnieuw vanuit het template worden gemaakt.
 
@@ -209,7 +209,7 @@ De query is niet gegroepeerd. Monitoren met **Custom Metric** beoordelen de vloo
 :::
 
 :::details Een apparaat viel uit maar Device Offline ging niet af
-Het apparaat stuurde geen Last Will en geen gateway meldde het, dus het werd alleen stil. Registreer het in het **Device Registry** van de vloot, en controleer of **Als geen gegevens** van het criterium voor `iot_device_up` op **Treat As Zero** staat. Zie [Offline-detectie](#offline-detectie).
+Het apparaat stuurde geen Last Will en geen gateway meldde het, dus het werd alleen stil. Registreer het in het **Apparaatregister** van de vloot, en controleer of **Als geen gegevens** van het criterium voor `iot_device_up` op **Treat As Zero** staat. Zie [Offline-detectie](#offline-detectie).
 :::
 
 :::details Device Offline gaat af voor apparaten die in orde zijn

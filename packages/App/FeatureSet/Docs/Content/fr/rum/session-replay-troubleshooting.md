@@ -441,7 +441,7 @@ Voir [Redirections vers une autre origine](/docs/telemetry/session-replay#redire
 
 ## Chaque session de la liste indique Anonymous ou Visitor
 
-L'enregistreur ne sait pas qui est votre utilisateur tant que votre page ne le lui dit pas. Appelez `OneUptimeReplay.identify(userRef, traits)` dès que vous le savez, ou mettez-le en file sur `window.OneUptimeReplayQueue` avant le chargement du script — voir [Identifier vos utilisateurs](/docs/telemetry/session-replay#identifier-vos-utilisateurs). D'ici là, la liste regroupe les sessions d'un navigateur sous _Visitor a1b2c3_, l'[id de visiteur](/docs/telemetry/session-replay#visiteurs-anonymes) aléatoire que l'enregistreur crée pour chaque navigateur, qui suit un navigateur et jamais une personne d'un appareil à l'autre ; la page **Replay Users** et le menu des autres sessions du lecteur s'en servent, la recherche `user:` non.
+L'enregistreur ne sait pas qui est votre utilisateur tant que votre page ne le lui dit pas. Appelez `OneUptimeReplay.identify(userRef, traits)` dès que vous le savez, ou mettez-le en file sur `window.OneUptimeReplayQueue` avant le chargement du script — voir [Identifier vos utilisateurs](/docs/telemetry/session-replay#identifier-vos-utilisateurs). D'ici là, la liste regroupe les sessions d'un navigateur sous _Visitor a1b2c3_, l'[id de visiteur](/docs/telemetry/session-replay#visiteurs-anonymes) aléatoire que l'enregistreur crée pour chaque navigateur, qui suit un navigateur et jamais une personne d'un appareil à l'autre ; la page **Utilisateurs des relectures** et le menu des autres sessions du lecteur s'en servent, la recherche `user:` non.
 
 Cinq choses que les lignes vous disent :
 

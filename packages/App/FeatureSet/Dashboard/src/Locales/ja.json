@@ -24647,7 +24647,7 @@
   "Data Reduction Ratio": "Data Reduction Ratio",
   "Data reduction across the whole array from its latest data: written bytes divided by the bytes they take on flash after deduplication and compression. A falling ratio usually means new data is encrypted or already compressed.": "Data reduction across the whole array from its latest data: written bytes divided by the bytes they take on flash after deduplication and compression. A falling ratio usually means new data is encrypted or already compressed.",
   "Data reduction of this object from its latest report: 3.0:1 means three bytes written take one byte of flash after deduplication and compression.": "Data reduction of this object from its latest report: 3.0:1 means three bytes written take one byte of flash after deduplication and compression.",
-  "Delete Storage Array": "Delete Storage Array",
+  "Delete Storage Array": "ストレージアレイを削除",
   "Detail": "Detail",
   "Did not match the recorded root cause": "記録された根本原因と一致しませんでした",
   "Directories": "ディレクトリ",

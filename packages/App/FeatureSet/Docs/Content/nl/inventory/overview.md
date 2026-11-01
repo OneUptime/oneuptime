@@ -57,8 +57,8 @@ Open **Producten → Bronnen → Inventaris**. Het zijmenu heeft deze pagina's. 
 | Pagina | Wat je er vindt |
 | --- | --- |
 | **Overzicht** | Hoeveel items je hebt, wat ze zijn, hoeveel er stil zijn geworden en wat het laatst is toegevoegd. |
-| **All Items** | Elk item. Zoek op naam, beschrijving of identiteitssleutel, beperk de lijst op type, bron, status of aangepast veld, en voeg handmatig een item toe. |
-| **Topology Map** | Hoe de items met elkaar verbonden zijn: services, wat ze aanroepen, en de hosts, pods en apparaten waarop ze draaien. |
+| **Alle items** | Elk item. Zoek op naam, beschrijving of identiteitssleutel, beperk de lijst op type, bron, status of aangepast veld, en voeg handmatig een item toe. |
+| **Topologiekaart** | Hoe de items met elkaar verbonden zijn: services, wat ze aanroepen, en de hosts, pods en apparaten waarop ze draaien. |
 | **Gone Quiet** | De ontdekte items die al meer dan een dag geen telemetrie hebben gestuurd. |
 | **By Source** | De items van één bron: **Discovered**, **Mirrored** of **Added by You**. |
 | **Instellingen → Aangepaste velden** | De velden die je project op elk item bijhoudt. |
@@ -79,7 +79,7 @@ De kaart toont waar elk gegeven vandaan kwam en wanneer. De bron die de meeste g
 
 De kaart van een netwerkapparaat heeft een knop **Vernieuwen** voor wie netwerkapparaten mag bewerken. Die leest het apparaat nu opnieuw: zijn probe pollt het binnen een minuut, en zijn Meraki-koppeling leest de organisatie opnieuw. De kaart zegt wanneer de nieuwe leesbeurt binnen is, of dat de probe het apparaat niet kon bereiken, en het item wordt van het apparaat gekopieerd zodra de leesbeurt binnen is.
 
-Dezelfde gegevens zijn kolommen van de lijst **All Items**, verborgen tot je ze aanzet, en ze gaan mee in de CSV-export. [Exporteren naar een CMDB](/docs/inventory/cmdb-sync#assetgegevens) noemt hun sleutels.
+Dezelfde gegevens zijn kolommen van de lijst **Alle items**, verborgen tot je ze aanzet, en ze gaan mee in de CSV-export. [Exporteren naar een CMDB](/docs/inventory/cmdb-sync#assetgegevens) noemt hun sleutels.
 
 ### Verbindingen
 
@@ -90,9 +90,9 @@ De pagina **Verbindingen** van een item toont zijn buren in beide richtingen, ge
 Voeg een item toe voor iets wat OneUptime nooit zelf zal zien, zodat een afhankelijkheid ergens echt eindigt en het ding je aangepaste velden kan dragen.
 
 :::steps
-### All Items openen
+### Alle items openen
 
-Ga naar **Producten → Bronnen → Inventaris** en dan naar **All Items**.
+Ga naar **Producten → Bronnen → Inventaris** en dan naar **Alle items**.
 
 ### Het item toevoegen
 
@@ -121,14 +121,14 @@ Archiveren haalt een item uit de lijst terwijl het zijn identiteit, zijn geschie
 | **Mirrored** | Blijft gearchiveerd. | Komt terug met de volgende kopie. Verwijder in plaats daarvan het oorspronkelijke record. |
 | **Added by you** | Blijft gearchiveerd. | Voorgoed weg. |
 
-Om items te archiveren selecteer je ze in **All Items** en archiveer je ze in één keer, of open je een item en gebruik je de kaart **Archiveren** op de pagina **Instellingen**. Gearchiveerde items staan onder **Inventaris → Geavanceerd → Gearchiveerd**, waar je ze kunt selecteren en uit het archief kunt halen.
+Om items te archiveren selecteer je ze in **Alle items** en archiveer je ze in één keer, of open je een item en gebruik je de kaart **Archiveren** op de pagina **Instellingen**. Gearchiveerde items staan onder **Inventaris → Geavanceerd → Gearchiveerd**, waar je ze kunt selecteren en uit het archief kunt halen.
 
 > [!NOTE]
 > Wanneer een gespiegeld apparaat uit zijn eigen record wordt verwijderd, verwijdert OneUptime ook het item, tenzij het item waarden van aangepaste velden draagt die jij hebt ingevoerd. Die waarden zijn de enige kopie en er is geen ongedaan maken, dus wordt het item gearchiveerd in plaats van verwijderd. Je vindt het onder **Geavanceerd → Gearchiveerd**, met alles wat je hebt getypt intact.
 
 ## Relaties en topologie
 
-OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Inventaris → Topology Map** tekent ze, en de pagina **Verbindingen** van een item toont die van het item zelf. Zie [Topologie](/docs/telemetry/topology).
+OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Inventaris → Topologiekaart** tekent ze, en de pagina **Verbindingen** van een item toont die van het item zelf. Zie [Topologie](/docs/telemetry/topology).
 
 | Relatie | Bijvoorbeeld |
 | --- | --- |

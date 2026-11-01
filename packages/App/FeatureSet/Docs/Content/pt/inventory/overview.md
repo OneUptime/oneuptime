@@ -57,8 +57,8 @@ Abra **Produtos → Recursos → Inventário**. O menu lateral tem estas página
 | Página | O que você encontra |
 | --- | --- |
 | **Visão geral** | Quantos itens você tem, o que são, quantos ficaram em silêncio e o que foi adicionado mais recentemente. |
-| **All Items** | Todos os itens. Pesquise por nome, descrição ou chave de identidade, filtre a lista por tipo, origem, status ou campo personalizado e adicione um item manualmente. |
-| **Topology Map** | Como os itens se conectam: os serviços, o que eles chamam e os hosts, pods e dispositivos em que rodam. |
+| **Todos os itens** | Todos os itens. Pesquise por nome, descrição ou chave de identidade, filtre a lista por tipo, origem, status ou campo personalizado e adicione um item manualmente. |
+| **Mapa de topologia** | Como os itens se conectam: os serviços, o que eles chamam e os hosts, pods e dispositivos em que rodam. |
 | **Gone Quiet** | Os itens descobertos que não enviam telemetria há mais de um dia. |
 | **By Source** | Os itens de uma origem: **Discovered**, **Mirrored** ou **Added by You**. |
 | **Configurações → Campos personalizados** | Os campos que o seu projeto mantém em cada item. |
@@ -79,7 +79,7 @@ O cartão mostra de onde veio cada dado e quando. A fonte que a maioria dos dado
 
 O cartão de um dispositivo de rede tem um botão **Atualizar** para quem pode editar dispositivos de rede. Ele lê o dispositivo de novo agora: a sonda o consulta em até um minuto, e a conexão do Meraki lê a organização de novo. O cartão diz quando a nova leitura chegou, ou que a sonda não conseguiu alcançar o dispositivo, e o item é copiado do dispositivo assim que a leitura chega.
 
-Os mesmos dados são colunas da lista **All Items**, ocultas até você ativá-las, e entram na sua exportação CSV. [Exportar para um CMDB](/docs/inventory/cmdb-sync#detalhes-do-ativo) lista as chaves deles.
+Os mesmos dados são colunas da lista **Todos os itens**, ocultas até você ativá-las, e entram na sua exportação CSV. [Exportar para um CMDB](/docs/inventory/cmdb-sync#detalhes-do-ativo) lista as chaves deles.
 
 ### Conexões
 
@@ -90,9 +90,9 @@ A página **Conexões** de um item lista os seus vizinhos nas duas direções, a
 Adicione um item para algo que o OneUptime nunca verá sozinho, para que uma dependência termine em algo real e essa coisa possa carregar os seus campos personalizados.
 
 :::steps
-### Abrir All Items
+### Abrir Todos os itens
 
-Vá para **Produtos → Recursos → Inventário** e depois para **All Items**.
+Vá para **Produtos → Recursos → Inventário** e depois para **Todos os itens**.
 
 ### Adicionar o item
 
@@ -106,7 +106,7 @@ Abra o novo item. A origem dele indica **Added by you**, e a página **Campos pe
 Você pode adicionar três tipos manualmente:
 
 - `external.service` (**Serviço externo**): uma API de terceiros ou uma dependência de software como serviço.
-- `external.database` (**Banco de dados externo**): um banco de dados que não é um servidor que o OneUptime consiga modelar. Um servidor de banco de dados, auto-hospedado ou gerenciado, do PostgreSQL ao Snowflake, fica em **Databases → Criar: Banco de dados** em vez disso ([Bancos de dados](/docs/telemetry/databases)): esse registro se liga aos traces, contêineres e métricas do mecanismo que citam o mesmo endereço, o que um item do inventário nunca faz, e adicionar o mesmo servidor das duas formas deixa dois registros sem ligação.
+- `external.database` (**Banco de dados externo**): um banco de dados que não é um servidor que o OneUptime consiga modelar. Um servidor de banco de dados, auto-hospedado ou gerenciado, do PostgreSQL ao Snowflake, fica em **Bancos de dados → Criar: Banco de dados** em vez disso ([Bancos de dados](/docs/telemetry/databases)): esse registro se liga aos traces, contêineres e métricas do mecanismo que citam o mesmo endereço, o que um item do inventário nunca faz, e adicionar o mesmo servidor das duas formas deixa dois registros sem ligação.
 - `appliance` (**Appliance**): hardware ou software sem agente.
 
 A restrição evita duplicatas. Um item feito à mão de um tipo que o OneUptime consegue observar, como um host, seria identificado pelo nome que você digitou, enquanto o item descoberto da mesma máquina é identificado pelos atributos que ela informa. Os dois nunca se juntariam, então o mesmo host ficaria na sua lista duas vezes, para sempre.
@@ -121,14 +121,14 @@ Arquivar tira um item da lista enquanto ele mantém a sua identidade, o seu hist
 | **Mirrored** | Continua arquivado. | Volta com a próxima cópia. Exclua o registro original em vez disso. |
 | **Added by you** | Continua arquivado. | Some para sempre. |
 
-Para arquivar itens, selecione-os em **All Items** e arquive-os de uma vez, ou abra um item e use o cartão **Arquivar** da página **Configurações** dele. Os itens arquivados ficam em **Inventário → Avançado → Arquivado**, onde você pode selecioná-los e desarquivá-los.
+Para arquivar itens, selecione-os em **Todos os itens** e arquive-os de uma vez, ou abra um item e use o cartão **Arquivar** da página **Configurações** dele. Os itens arquivados ficam em **Inventário → Avançado → Arquivado**, onde você pode selecioná-los e desarquivá-los.
 
 > [!NOTE]
 > Quando um dispositivo espelhado é removido do seu registro de origem, o OneUptime também remove o item dele, a menos que o item tenha valores de campos personalizados que você digitou. Esses valores são a única cópia e não há como desfazer, então o item é arquivado em vez de excluído. Você o encontra em **Avançado → Arquivado** com tudo o que digitou intacto.
 
 ## Relações e topologia
 
-O OneUptime liga os itens com relações direcionadas à medida que as observa. **Inventário → Topology Map** as desenha, e a página **Conexões** de um item lista as dele. Veja [Topologia](/docs/telemetry/topology).
+O OneUptime liga os itens com relações direcionadas à medida que as observa. **Inventário → Mapa de topologia** as desenha, e a página **Conexões** de um item lista as dele. Veja [Topologia](/docs/telemetry/topology).
 
 | Relação | Por exemplo |
 | --- | --- |

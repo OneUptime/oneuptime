@@ -243,7 +243,7 @@ Para recuperá-los, mude para `openshift` com `--set preset=openshift` em um upg
 **O que você vê no OneUptime.** O agente também lê os objetos do próprio OpenShift, em modo somente leitura, e os mostra nas páginas do cluster:
 
 - A **Visão geral** do cluster começa com um cartão **OpenShift**: a versão que ele executa, se uma atualização está em andamento ou falhando, e quantos de seus operadores de cluster estão íntegros, com o que cada um dos outros relata. Um operador indisponível deixa o cluster **Não íntegro**, e um operador degradado ou uma atualização com falha o deixa **Degradado**.
-- **Routes** e **Serviços**, em **Rede**: onde cada Route responde, como ela termina o TLS, para quais serviços envia tráfego e em que proporção, e por que um roteador a rejeitou. A chave TLS de uma Route nunca sai do cluster: o agente a substitui antes de enviar a Route.
+- **Rotas** e **Serviços**, em **Rede**: onde cada Route responde, como ela termina o TLS, para quais serviços envia tráfego e em que proporção, e por que um roteador a rejeitou. A chave TLS de uma Route nunca sai do cluster: o agente a substitui antes de enviar a Route.
 - **DeploymentConfigs**, em **Cargas de trabalho**, aparecem como Deployments: seus rollouts, a CPU e a memória de seus pods, e os eventos dos ReplicationControllers e pods que eles executam.
 
 **Alertas sobre operadores e atualizações.** A página **Recomendações** de um cluster OpenShift oferece **Cluster Operator Unavailable**, **Cluster Operator Degraded** e **Cluster Update Failing**. Cada um é um monitor de registros sobre os snapshots que o agente envia a cada `resourceSpecs.interval`. Ele alerta assim que dois snapshots indicam o problema, então um operador que oscila por um momento durante uma atualização não gera nada, e ele resolve o alerta quando um snapshot diz que o problema acabou, nunca porque o agente parou de enviar.
@@ -591,7 +591,7 @@ Alguns gráficos mostram métricas para as quais o agente não tem coleta: **kub
 
 ### Ative a observabilidade de custos
 
-Veja na página **Costs** do cluster quanto custa cada namespace, carga de trabalho e pod, com a capacidade ociosa e quanto de cada request é usado:
+Veja na página **Custos** do cluster quanto custa cada namespace, carga de trabalho e pod, com a capacidade ociosa e quanto de cada request é usado:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

@@ -398,7 +398,7 @@ Il vecchio indirizzo della pagina **AI Access** apre **Runbook → Agenti di run
 
 ### Abilita IA è l'unico interruttore dell'IA
 
-**Impostazioni del progetto → IA → AI Features** aveva tre interruttori. **Enable Auto-Remediation** ed **Enable AI Command Execution (for Runners)** non ci sono più: il rimedio automatico e i comandi AI sui Runner vengono eseguiti ogni volta che **Abilita IA** è attivo. Disattivare **Abilita IA** li ferma insieme a ogni altra funzionalità AI, comprese le regole di rimedio automatico che avviano un runbook senza IA. Un progetto che ha già **Abilita IA** disattivato smette quindi di eseguire quelle regole dopo l'aggiornamento; attivate **Abilita IA** per mantenerle.
+**Impostazioni del progetto → IA → Funzionalità IA** aveva tre interruttori. **Enable Auto-Remediation** ed **Enable AI Command Execution (for Runners)** non ci sono più: il rimedio automatico e i comandi AI sui Runner vengono eseguiti ogni volta che **Abilita IA** è attivo. Disattivare **Abilita IA** li ferma insieme a ogni altra funzionalità AI, comprese le regole di rimedio automatico che avviano un runbook senza IA. Un progetto che ha già **Abilita IA** disattivato smette quindi di eseguire quelle regole dopo l'aggiornamento; attivate **Abilita IA** per mantenerle.
 
 I due interruttori trattenevano alcune correzioni. Perché nulla inizi a modificare i vostri sistemi senza una persona quando spariscono, l'aggiornamento del server fa passare quelle correzioni a chiedere prima:
 
@@ -436,7 +436,7 @@ Le pagine dell'IA sono cambiate anche nei menu laterali di Incidenti e Avvisi. L
 
 ### Gli AI Logs ricevono un indice per i limiti giornalieri dell'IA
 
-I limiti giornalieri dell'IA di un progetto (**Impostazioni del progetto → IA → AI Features → Altre impostazioni**) e i limiti giornalieri di token di incidenti e avvisi sommano gli AI Logs del giorno prima di ogni chiamata all'IA. Finora questo leggeva ogni AI Log che il progetto avesse mai scritto, e un'installazione self-hosted li conserva tutti. L'aggiornamento aggiunge un indice sugli AI Logs (`LlmLog`), sul progetto e sull'ora di ogni chiamata, quindi ogni controllo legge solo quelli del giorno. Anche la pagina degli AI Logs elenca più velocemente i log di un progetto.
+I limiti giornalieri dell'IA di un progetto (**Impostazioni del progetto → IA → Funzionalità IA → Altre impostazioni**) e i limiti giornalieri di token di incidenti e avvisi sommano gli AI Logs del giorno prima di ogni chiamata all'IA. Finora questo leggeva ogni AI Log che il progetto avesse mai scritto, e un'installazione self-hosted li conserva tutti. L'aggiornamento aggiunge un indice sugli AI Logs (`LlmLog`), sul progetto e sull'ora di ogni chiamata, quindi ogni controllo legge solo quelli del giorno. Anche la pagina degli AI Logs elenca più velocemente i log di un progetto.
 
 Niente da fare: l'indice viene costruito online durante l'aggiornamento (`CREATE INDEX CONCURRENTLY`), e le chiamate all'IA continuano a funzionare mentre viene costruito. Su una tabella degli AI Logs grande questo richiede qualche minuto. La costruzione aspetta al massimo due minuti dietro una singola transazione di lunga durata, come un backup, e dura al massimo quindici. Se non riesce a terminare, l'aggiornamento si completa comunque, i limiti continuano a funzionare senza l'indice, e il log lo dice e spiega come costruirlo. Eseguite questo sul database di OneUptime, al di fuori di una transazione, in qualsiasi momento:
 

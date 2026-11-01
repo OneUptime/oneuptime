@@ -34,7 +34,7 @@ flowchart TB
 | **Visão geral** e **Métricas** | O receiver `hostmetrics`: CPU, memória, discos, sistemas de arquivos, rede, carga, paginação. |
 | **Processos** | O scraper `process` do `hostmetrics`: um conjunto de séries por processo. |
 | **Registros** | Os receivers `filelog`, `journald` e `windowseventlog`. |
-| **Systemd Units** (Linux) | O receiver `systemd`. |
+| **Unidades systemd** (Linux) | O receiver `systemd`. |
 | **Serviços** (Windows) | O receiver `windows_service`. |
 | O item de inventário | O processor `resourcedetection`, mais os [atributos que você marca](#atributos-de-inventário-ip-mac-número-de-série-fabricante-modelo-firmware). |
 | **Versão do agente** | `oneuptime.agent.version` no processor `resource`. |
@@ -555,7 +555,7 @@ O receiver executa `journalctl`, que todo host com systemd tem, e o usuário do 
 
 ### Serviços do Linux (unidades do systemd, métricas)
 
-A página **Systemd Units** do host lista cada unidade e o estado dela, a partir do [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (tipo de configuração `systemd`), o equivalente no Linux da página **Serviços** do Windows. A configuração Linux acima o ativa:
+A página **Unidades systemd** do host lista cada unidade e o estado dela, a partir do [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (tipo de configuração `systemd`), o equivalente no Linux da página **Serviços** do Windows. A configuração Linux acima o ativa:
 
 ```yaml
 receivers:
@@ -990,7 +990,7 @@ receivers:
         enabled: false
 ```
 
-Juntas, essas mudanças levam um host com 300 unidades de cerca de 6.000 pontos de dados por minuto para bem menos de 100. As unidades retiradas da lista saem da página **Systemd Units** alguns minutos depois, quando as últimas amostras delas saem da janela móvel.
+Juntas, essas mudanças levam um host com 300 unidades de cerca de 6.000 pontos de dados por minuto para bem menos de 100. As unidades retiradas da lista saem da página **Unidades systemd** alguns minutos depois, quando as últimas amostras delas saem da janela móvel.
 
 ### Descarte registros com um processor filter
 

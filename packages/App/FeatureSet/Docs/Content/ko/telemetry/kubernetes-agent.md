@@ -243,7 +243,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 **OneUptime에서 보이는 내용.** 에이전트는 OpenShift 자체 객체도 읽기 전용으로 읽어 클러스터 페이지에 보여 줍니다.
 
 - 클러스터의 **개요** 맨 앞에 **OpenShift** 카드가 표시됩니다. 실행 중인 버전, 업데이트가 진행 중인지 또는 실패하고 있는지, 클러스터 Operator 중 정상인 수와 나머지 각 Operator가 보고하는 내용을 보여 줍니다. 사용할 수 없는 Operator가 있으면 클러스터는 **비정상**이 되고, 저하된 Operator나 실패하는 업데이트가 있으면 **저하됨**이 됩니다.
-- **네트워크** 아래의 **Routes**와 **서비스**: 각 Route가 응답하는 위치, TLS 종료 방식, 트래픽을 보내는 서비스와 그 비율, 라우터가 Route를 거부한 이유를 보여 줍니다. Route의 TLS 키는 클러스터 밖으로 나가지 않습니다. 에이전트가 Route를 보내기 전에 키를 교체합니다.
+- **네트워크** 아래의 **라우트**와 **서비스**: 각 Route가 응답하는 위치, TLS 종료 방식, 트래픽을 보내는 서비스와 그 비율, 라우터가 Route를 거부한 이유를 보여 줍니다. Route의 TLS 키는 클러스터 밖으로 나가지 않습니다. 에이전트가 Route를 보내기 전에 키를 교체합니다.
 - **워크로드** 아래의 **DeploymentConfigs**는 Deployment와 같은 방식으로 표시됩니다. 롤아웃, Pod의 CPU와 메모리, 실행하는 ReplicationController와 Pod의 이벤트를 보여 줍니다.
 
 **Operator 및 업데이트 알림.** OpenShift 클러스터의 **권장 사항** 페이지에서는 **Cluster Operator Unavailable**, **Cluster Operator Degraded**, **Cluster Update Failing**을 제공합니다. 각각은 에이전트가 `resourceSpecs.interval`마다 보내는 스냅샷을 대상으로 하는 로그 모니터입니다. 스냅샷 두 개가 문제를 보고하면 알림을 보내므로, 업데이트 중 Operator 상태가 잠깐 바뀌는 것만으로는 아무 일도 일어나지 않습니다. 또한 스냅샷이 문제가 끝났다고 보고할 때 해결되며, 에이전트가 전송을 멈췄다는 이유로 해결되는 일은 없습니다.
@@ -591,7 +591,7 @@ Istio의 경우 모든 `istio-proxy` 사이드카의 Envoy 통계(포트 `15090`
 
 ### 비용 옵저버빌리티 활성화
 
-클러스터의 **Costs** 페이지에서 모든 네임스페이스, 워크로드, Pod의 비용을 유휴 용량 및 각 request의 사용 비율과 함께 확인하세요:
+클러스터의 **비용** 페이지에서 모든 네임스페이스, 워크로드, Pod의 비용을 유휴 용량 및 각 request의 사용 비율과 함께 확인하세요:
 
 ```bash
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

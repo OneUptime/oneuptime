@@ -72,7 +72,7 @@ Detaljpanelet har to faner:
 | Fane | Hva den viser |
 | --- | --- |
 | **Detaljer** | **Loggtekst**, **Spor-ID**, **Span-ID** og **Økt** når loggen har dem, og **Attributter**, som liste eller som JSON. |
-| **Context** | Loggen blant naboene sine. **Nearby (service + time)** viser de fem linjene før og etter fra samme tjeneste, og **This trace** viser opptil 100 logger fra sporet. |
+| **Kontekst** | Loggen blant naboene sine. **Nearby (service + time)** viser de fem linjene før og etter fra samme tjeneste, og **This trace** viser opptil 100 logger fra sporet. |
 
 - Klikk på spor-ID-en for å åpne hele forespørselen i [Sporutforsker](/docs/telemetry/traces-explorer).
 - Pek på et attributt og klikk på filterikonet for å søke etter den verdien, eller kopier den. Du kan kopiere alle attributtene samtidig som JSON.

@@ -441,7 +441,7 @@ Network 탭에 OTLP 요청이 없다면, 이는 이 레코더가 아니라 페�
 
 ## 목록의 모든 세션에 Anonymous 또는 Visitor가 표시됨
 
-레코더는 페이지가 알려 주지 않으면 사용자가 누구인지 모릅니다. 알게 되는 즉시 `OneUptimeReplay.identify(userRef, traits)`를 호출하거나, 스크립트가 로드되기 전에 `window.OneUptimeReplayQueue` 대기열에 넣으세요. [사용자 식별하기](/docs/telemetry/session-replay#사용자-식별하기)를 참고하세요. 그때까지 목록은 한 브라우저의 세션을 _Visitor a1b2c3_ 아래에 묶습니다. 이는 레코더가 브라우저마다 만드는 무작위 [방문자 ID](/docs/telemetry/session-replay#익명-방문자)로, 브라우저를 따라가며 기기를 넘나드는 사람을 따라가지는 않습니다. **Replay Users** 페이지와 플레이어의 다른 세션 메뉴는 이 ID로 작동하지만, `user:` 검색은 작동하지 않습니다.
+레코더는 페이지가 알려 주지 않으면 사용자가 누구인지 모릅니다. 알게 되는 즉시 `OneUptimeReplay.identify(userRef, traits)`를 호출하거나, 스크립트가 로드되기 전에 `window.OneUptimeReplayQueue` 대기열에 넣으세요. [사용자 식별하기](/docs/telemetry/session-replay#사용자-식별하기)를 참고하세요. 그때까지 목록은 한 브라우저의 세션을 _Visitor a1b2c3_ 아래에 묶습니다. 이는 레코더가 브라우저마다 만드는 무작위 [방문자 ID](/docs/telemetry/session-replay#익명-방문자)로, 브라우저를 따라가며 기기를 넘나드는 사람을 따라가지는 않습니다. **리플레이 사용자** 페이지와 플레이어의 다른 세션 메뉴는 이 ID로 작동하지만, `user:` 검색은 작동하지 않습니다.
 
 행이 알려 주는 다섯 가지:
 

@@ -277,7 +277,7 @@ Ogni altro strumento deve sapere chi sta chiamando. Un client che non invia cred
 Il server implementa la [specifica di autorizzazione MCP](https://modelcontextprotocol.io/specification/latest/basic/authorization):
 
 - **Flusso**: authorization code OAuth 2.1 con PKCE (solo `S256`). I token di accesso vengono inviati come `Authorization: Bearer`.
-- **Discovery**: metadati della risorsa protetta (RFC 9728) e metadati del server di autorizzazione (RFC 8414). L'emittente e la risorsa sono entrambi `https://<host>/mcp`.
+- **Rilevamento**: metadati della risorsa protetta (RFC 9728) e metadati del server di autorizzazione (RFC 8414). L'emittente e la risorsa sono entrambi `https://<host>/mcp`.
 - **Identità del client**: un Client ID Metadata Document (l'ID del client è un URL `https` che il server recupera), oppure la registrazione dinamica dei client (RFC 7591). Nessun client deve essere registrato da un amministratore.
 - **Ambiti**: `mcp:read` per gli strumenti `get_`, `list_` e `count_`; `mcp:write` aggiunge ogni strumento che modifica qualcosa e include `mcp:read`. Un token in sola lettura che chiama uno strumento di scrittura riceve `403` con `error="insufficient_scope"`.
 - **Durata dei token**: un token di accesso dura un'ora. Un refresh token dura 30 giorni e viene sostituito a ogni utilizzo; usare un refresh token già sostituito chiude la connessione.

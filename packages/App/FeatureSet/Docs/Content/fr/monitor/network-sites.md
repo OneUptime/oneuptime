@@ -38,7 +38,7 @@ Le statut de chaque site vient de chaque équipement de son sous-arbre, jugé se
 
 ## La hiérarchie
 
-Les sites forment une arborescence. Chaque site a un **Site Type** et un site parent facultatif. Les types de site sont la liste propre au projet, sous **Réseau → Paramètres → Site Types**, et un nouveau projet commence avec Account Type, Region, Franchisee, Market et Unit, dans cet ordre en partant du haut, plus Data Center et Other. Les types forment leur propre hiérarchie (**Parent Site Type**), qui décide quels sites peuvent être le parent d'un site. Un type marqué **Niveau unité** est le dernier niveau de votre parc, le magasin ou l'agence : ses sites contiennent des équipements, pas d'autres sites.
+Les sites forment une arborescence. Chaque site a un **Site Type** et un site parent facultatif. Les types de site sont la liste propre au projet, sous **Réseau → Paramètres → Types de site**, et un nouveau projet commence avec Account Type, Region, Franchisee, Market et Unit, dans cet ordre en partant du haut, plus Data Center et Other. Les types forment leur propre hiérarchie (**Parent Site Type**), qui décide quels sites peuvent être le parent d'un site. Un type marqué **Niveau unité** est le dernier niveau de votre parc, le magasin ou l'agence : ses sites contiennent des équipements, pas d'autres sites.
 
 Le type, le nom, la description, le parent et l'emplacement d'un site se modifient à un seul endroit : la carte **Site Settings** de la page **Paramètres** du site. L'aperçu du site les affiche avec un lien **Modifier dans les paramètres**, et la liste **Sites** ajoute des sites mais ne les modifie pas.
 

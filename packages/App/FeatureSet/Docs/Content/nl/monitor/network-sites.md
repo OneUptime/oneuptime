@@ -38,7 +38,7 @@ De status van elke locatie komt van elk apparaat in haar subboom, beoordeeld vol
 
 ## De hiërarchie
 
-Locaties vormen een boom. Elke locatie heeft een **Site Type** en optioneel een bovenliggende locatie. Locatietypen zijn de eigen lijst van het project, onder **Netwerk → Instellingen → Site Types**, en een nieuw project begint met Account Type, Region, Franchisee, Market en Unit, in die volgorde van boven af, plus Data Center en Other. Typen vormen een eigen hiërarchie (**Parent Site Type**), die bepaalt welke locaties de ouder van een locatie kunnen zijn. Een type gemarkeerd als **Is Unit Level** is het onderste niveau van je omgeving, de afzonderlijke winkel of vestiging: de locaties ervan bevatten apparaten, geen andere locaties.
+Locaties vormen een boom. Elke locatie heeft een **Site Type** en optioneel een bovenliggende locatie. Locatietypen zijn de eigen lijst van het project, onder **Netwerk → Instellingen → Locatietypen**, en een nieuw project begint met Account Type, Region, Franchisee, Market en Unit, in die volgorde van boven af, plus Data Center en Other. Typen vormen een eigen hiërarchie (**Parent Site Type**), die bepaalt welke locaties de ouder van een locatie kunnen zijn. Een type gemarkeerd als **Is Unit Level** is het onderste niveau van je omgeving, de afzonderlijke winkel of vestiging: de locaties ervan bevatten apparaten, geen andere locaties.
 
 Het type, de naam, de beschrijving, de ouder en de ligging van een locatie bewerk je op één plek: de kaart **Site Settings** op de pagina **Instellingen** van de locatie. Het overzicht van de locatie toont ze met een link **Bewerken in Instellingen**, en de lijst **Locaties** voegt locaties toe maar bewerkt ze niet.
 
@@ -63,7 +63,7 @@ Kies in de stap **Hierarchy** de **Parent Site** als de locatie onder een andere
 Kies in de stap **Monitoring Defaults** de [standaardsonde en het standaard-inloggegevensprofiel](#monitoringstandaarden) voor apparaten die aan de locatie worden toegevoegd, en klik op **Locatie toevoegen**.
 :::
 
-Op de pagina **Child Sites** van een locatie vraagt **Onderliggende locatie toevoegen** alleen het type en de naam, op één pagina met de ligging ingeklapt, en plaatst de nieuwe locatie onder die locatie.
+Op de pagina **Onderliggende locaties** van een locatie vraagt **Onderliggende locatie toevoegen** alleen het type en de naam, op één pagina met de ligging ingeklapt, en plaatst de nieuwe locatie onder die locatie.
 
 ### Locaties importeren uit een CSV-bestand
 

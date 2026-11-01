@@ -91,7 +91,7 @@ Autonoma utredningar är **påslagna som standard för nya projekt**. Det är ä
 
 :::steps
 1. **Konfigurera en LLM-leverantör.** Självhostade installationer använder sin egen nyckel (eller körs helt isolerat med en lokal Ollama): se [LLM-leverantörer](/docs/ai/llm-provider). Användare av OneUptime Cloud kan använda den förkonfigurerade globala leverantören, som faktureras som uppmätta AI-tokens, så projektet behöver AI-krediter: en projektägare eller någon med **Manage Billing** lägger till dem på **Projektinställningar → AI → AI-krediter**, där **Automatisk påfyllning** ser till att de inte tar slut.
-2. **Se till att AI är aktiverat för projektet** (det är det som standard): **Aktivera AI** på **Projektinställningar → AI → AI Features**.
+2. **Se till att AI är aktiverat för projektet** (det är det som standard): **Aktivera AI** på **Projektinställningar → AI → AI-funktioner**.
 3. **Välj per signaltyp** (båda påslagna för nya projekt):
    - Incidenter: **Incidenter → AI → Inställningar**: slå på _Utred nya incidenter_.
    - Larm: **Larm → AI → Inställningar**: slå på _Utred nya larm_.
@@ -176,7 +176,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 Ersätt `{web,api}` med de namnrymder som AI får åtgärda. Varje namnrymd i listan måste redan finnas: charten skapar en RoleBinding i var och en och skapar aldrig en namnrymd, så en som saknas får hela installationen eller uppgraderingen (collectorn inräknad) att misslyckas med `namespaces "api" not found`. Skapa den först, eller ta bort den från listan; ta bort en namnrymd från listan innan du raderar den. Utelämnar du flaggan vid en uppgradering behålls listan som är sparad i releasen, så för att gå tillbaka till hela klustret skickar du med `--set-json 'aiAgent.remediation.namespaces=[]'` (Helm 3.10+), som det andra kommandot gör, och inte `={}`, som Helm läser som ett tomt namn och som charten avvisar. `--set aiAgent.remediation.namespaces=null` återställer inte en sparad lista under `--reuse-values`: Helm behåller den sparade listan. `aiAgent.remediation.nodeOperations=false` håller åtgärder borta från noder; sätt det till `true` för att låta AI spärra, återöppna, tömma och sätta taints på noder (en drain, en taint eller en patch av en nod väntar fortfarande på en människa).
 
-Använd `automatic` eller `bypass-approval` i stället för `ask-for-approval` för mer självständighet, och `--set aiAgent.fixes=off` för att slå av åtgärder igen, vilket också tar bort skrivåtkomsten. Åtgärder kräver också två projektreglage. **Åtgärda nya incidenter automatiskt** (på **Incidenter → AI → Inställningar**) och **Åtgärda nya larm automatiskt** (på **Larm → AI → Inställningar**) börjar av: tills ett av dem är på åtgärdas inget nytt av det slaget. **Aktivera AI** (**Projektinställningar → AI → AI Features**) är på om ingen har slagit av det; det slår av all AI för projektet, oavsett vad en agents konfiguration säger.
+Använd `automatic` eller `bypass-approval` i stället för `ask-for-approval` för mer självständighet, och `--set aiAgent.fixes=off` för att slå av åtgärder igen, vilket också tar bort skrivåtkomsten. Åtgärder kräver också två projektreglage. **Åtgärda nya incidenter automatiskt** (på **Incidenter → AI → Inställningar**) och **Åtgärda nya larm automatiskt** (på **Larm → AI → Inställningar**) börjar av: tills ett av dem är på åtgärdas inget nytt av det slaget. **Aktivera AI** (**Projektinställningar → AI → AI-funktioner**) är på om ingen har slagit av det; det slår av all AI för projektet, oavsett vad en agents konfiguration säger.
 
 ### Vilka incidenter ett klusters åtgärder gäller
 
@@ -396,7 +396,7 @@ En utredning som misslyckas, löper ut eller blir inaktuell släpper ändå fram
 
 Medan åtgärden väntar säger steget **Åtgärd** det (**Väntar**), och visar vad som hände när utredningen har avslutats.
 
-Automatisk åtgärd beror på två reglage. **Åtgärda nya incidenter automatiskt** (eller larm), av tills projektet slår på det: när det är av åtgärdas ingen ny incident (eller nytt larm). Och **Aktivera AI** (**Projektinställningar → AI → AI Features**), projektets huvudreglage för AI: när det är av körs ingen AI-regel (inte ens en som startar en runbook utan AI), och inget kluster eller någon resurs åtgärdas.
+Automatisk åtgärd beror på två reglage. **Åtgärda nya incidenter automatiskt** (eller larm), av tills projektet slår på det: när det är av åtgärdas ingen ny incident (eller nytt larm). Och **Aktivera AI** (**Projektinställningar → AI → AI-funktioner**), projektets huvudreglage för AI: när det är av körs ingen AI-regel (inte ens en som startar en runbook utan AI), och inget kluster eller någon resurs åtgärdas.
 
 ## Vad den automatiska åtgärden gjorde
 
@@ -469,7 +469,7 @@ AI-loggarna (**Projektinställningar → AI → AI-loggar**) visar varje anrop m
 
 ### Projektets egna dagliga gränser
 
-Över varje gräns i tabellen kan ett projekt sätta ett tak för vad OneUptime AI förbrukar under ett dygn, oavsett vad den gör: Fråga AI, utredningar, utkast till efteranalyser, pull-förfrågningar med korrigeringar, triage av insikter, workflows, runbooks och frågor i Slack eller Microsoft Teams, allt lika. Gränserna finns på **Projektinställningar → AI → AI Features**, hopfällda under **Fler inställningar**, i dess avsnitt **Dagliga gränser**:
+Över varje gräns i tabellen kan ett projekt sätta ett tak för vad OneUptime AI förbrukar under ett dygn, oavsett vad den gör: Fråga AI, utredningar, utkast till efteranalyser, pull-förfrågningar med korrigeringar, triage av insikter, workflows, runbooks och frågor i Slack eller Microsoft Teams, allt lika. Gränserna finns på **Projektinställningar → AI → AI-funktioner**, hopfällda under **Fler inställningar**, i dess avsnitt **Dagliga gränser**:
 
 - **Daglig AI-tokengräns**: det högsta antal tokens som projektets AI får använda varje dygn, genom vilken LLM-leverantör som helst.
 - **Daglig gräns för AI-kostnad (USD)**, på OneUptime Cloud: det högsta antal AI-krediter, i hela amerikanska dollar, som projektets AI får spendera varje dygn. Bara AI som faktureras mot projektets AI-krediter räknas, så den stoppar aldrig AI som körs på projektets egen LLM-leverantör. Självhostade installationer fakturerar inte AI, så de erbjuder den inte.
@@ -480,7 +480,7 @@ När en gräns har nåtts stoppas nytt AI-arbete till midnatt UTC. Ett anrop som
 
 #### När en gräns har nåtts
 
-**Projektets ägare får ett e-postmeddelande.** Första gången en gräns stoppar OneUptime AI under ett UTC-dygn får varje projektägare ett e-postmeddelande: vilken gräns, hur mycket projektet har förbrukat av den i dag, när den återställs, och en länk till **Projektinställningar → AI → AI Features**, där de kan höja eller ta bort den. Det kommer en gång per dag för varje gräns: tokengränsen och kostnadsgränsen skickar var sitt, och inget mer skickas den dagen, oavsett hur många anrop som avvisas. Det är samma e-postmeddelande som ägarna får om fakturering, och det visas som dem i projektets e-postloggar.
+**Projektets ägare får ett e-postmeddelande.** Första gången en gräns stoppar OneUptime AI under ett UTC-dygn får varje projektägare ett e-postmeddelande: vilken gräns, hur mycket projektet har förbrukat av den i dag, när den återställs, och en länk till **Projektinställningar → AI → AI-funktioner**, där de kan höja eller ta bort den. Det kommer en gång per dag för varje gräns: tokengränsen och kostnadsgränsen skickar var sitt, och inget mer skickas den dagen, oavsett hur många anrop som avvisas. Det är samma e-postmeddelande som ägarna får om fakturering, och det visas som dem i projektets e-postloggar.
 
 **Överhoppade incidenter och larm utreds efter återställningen.** En incident eller ett larm som inte utreddes eftersom en gräns hade nåtts utreds så snart gränsen inte längre stoppar AI: efter midnatt UTC, eller så snart en ägare höjer eller tar bort gränsen. Bara så länge den fortfarande är öppen och är mindre än ett dygn gammal, och bara en gång. Inställningarna för stunden gäller, som för en ny incident eller ett nytt larm: så länge Aktivera AI eller automatisk utredning är av, det inte finns någon LLM-leverantör eller AI-kredit, eller den dagliga tokengränsen för incidenter eller larm har nåtts, fortsätter den att vänta; den lägsta allvarlighetsgraden och vilotiden kan fortfarande hoppa över den, och dess kort säger då varför. En post som löstes under tiden, eller som någon under tiden har bett OneUptime AI att utreda, utreds inte igen. Några stycken plockas upp var femte minut, de senaste först, och bara så länge projektets utredningskö inte har något annat som väntar, så att nya incidenter och larm går först; om gränsen nås igen väntar resten på nästa återställning.
 

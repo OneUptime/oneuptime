@@ -83,7 +83,7 @@ Per le installazioni autonome, sostituite `oneuptime.com` con il vostro host One
 
 ### Verificare il caricamento
 
-Un caricamento riuscito restituisce un corpo JSON che elenca le map memorizzate, su cui la CI può fare le sue verifiche. Le map compaiono anche nella pagina **Source Maps** del servizio in OneUptime.
+Un caricamento riuscito restituisce un corpo JSON che elenca le map memorizzate, su cui la CI può fare le sue verifiche. Le map compaiono anche nella pagina **Source map** del servizio in OneUptime.
 :::
 
 Un tipico passaggio di CI carica ogni map prodotta dalla build:
@@ -127,7 +127,7 @@ Le installazioni autonome possono cambiare questi valori. Tutti e cinque sono no
 
 Aprite un'eccezione qualsiasi in **Eccezioni** nella dashboard. I frame risolti tramite una source map mostrano un badge **Source mapped** e presentano il nome di funzione e la posizione del file originali; espandendo un frame si vede l'estratto di codice sorgente originale (quando la map contiene `sourcesContent`) accanto alla posizione minificata.
 
-Le map caricate per un servizio si possono esaminare ed eliminare in **Prodotti → Servizi → il vostro servizio → Source Maps**, che elenca release, bundle, dimensione e ora di caricamento di ogni map.
+Le map caricate per un servizio si possono esaminare ed eliminare in **Prodotti → Servizi → il vostro servizio → Source map**, che elenca release, bundle, dimensione e ora di caricamento di ogni map.
 
 ## Conservazione
 
@@ -142,7 +142,7 @@ Le source map vengono conservate per 90 giorni dopo il caricamento, poi eliminat
 ## Risoluzione dei problemi
 
 :::details I frame sono ancora minificati
-La release dell'eccezione non ha map corrispondenti. Verificate che il `service.version` inviato dalla vostra app sia esattamente il `serviceVersion` usato per il caricamento, che `serviceName` corrisponda a `service.name` e che sia stata caricata una map per quel file di bundle: la pagina **Source Maps** del servizio elenca release e bundle di ogni map.
+La release dell'eccezione non ha map corrispondenti. Verificate che il `service.version` inviato dalla vostra app sia esattamente il `serviceVersion` usato per il caricamento, che `serviceName` corrisponda a `service.name` e che sia stata caricata una map per quel file di bundle: la pagina **Source map** del servizio elenca release e bundle di ogni map.
 :::
 
 :::details Il caricamento viene rifiutato perché una map è troppo grande
