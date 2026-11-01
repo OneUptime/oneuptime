@@ -4748,11 +4748,6 @@ const RESOLVED_SUGGESTIONS: ReadonlyArray<string> = [
 ];
 // indigo-600: the page's primary buttons, and OneUptime AI's mark.
 const INDIGO_600: string = "rgb(79, 70, 229)";
-// The font the dashboard ships (views/index.ejs); the fixture does not load it.
-const INTER_FONT_FILE: string = path.resolve(
-  __dirname,
-  "../../Common/Server/Static/Vendor/fonts/InterVariable.woff2",
-);
 
 function conversation(page: Page): Locator {
   return page.getByTestId("investigation-conversation");
@@ -6093,28 +6088,12 @@ test.describe("one AI card: the investigation and the conversation", () => {
     }) => {
       /*
        * Whether the caption fits beside the picker depends on the glyphs'
-       * width. The fixture falls back to the system font, which is wider
-       * than the Inter the dashboard ships, so this one test loads Inter the
-       * way views/index.ejs declares it.
+       * width: measured once the Inter the dashboard ships, which the
+       * fixture serves as views/index.ejs declares it, has loaded.
        */
-      await page.route(
-        "**/dashboard/assets/fonts/InterVariable.woff2",
-        async (route: PlaywrightRoute) => {
-          await route.fulfill({ path: INTER_FONT_FILE });
-        },
-      );
       await page.setViewportSize({ width: 1280, height: 900 });
       await openConversation(page, "");
-      await page.addStyleTag({
-        content:
-          '@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dashboard/assets/fonts/InterVariable.woff2) format("woff2")} *{font-family:Inter,ui-sans-serif,system-ui,sans-serif}',
-      });
-      expect(
-        await page.evaluate(async (): Promise<number> => {
-          return (await document.fonts.load("500 12px Inter")).length;
-        }),
-        "Inter loaded",
-      ).toBeGreaterThan(0);
+      await waitForProductionFont(page);
 
       const picker: Box = await documentBox(modePicker(page));
       const caption: Box = await documentBox(modeCaption(page));
@@ -8683,8 +8662,8 @@ test.describe("declare an incident from the alert hero", () => {
  * top corner at every width.
  *
  * Production ships Inter (views/index.ejs), and the header's widths are
- * worked out for it; the fixture falls back to the system font, which is
- * wider, so these tests load Inter the way production declares it.
+ * worked out for it; the fixture serves it the way production declares it,
+ * and these tests measure once it has loaded.
  */
 
 // gap-y-2: between the pills, the title and the actions' own row.
@@ -8695,18 +8674,12 @@ const TOP_ROW_GAP_X: number = 16;
 const ACTION_HEIGHT: number = 36;
 const PX_PER_REM: number = 16;
 
-const PRODUCTION_FONT_CSS: string =
-  '@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url(/dashboard/assets/fonts/InterVariable.woff2) format("woff2")} *{font-family:Inter,ui-sans-serif,system-ui,sans-serif}';
-
-// Draws the page in production's Inter, as views/index.ejs declares it.
-async function loadProductionFont(page: Page): Promise<void> {
-  await page.route(
-    "**/dashboard/assets/fonts/InterVariable.woff2",
-    async (route: PlaywrightRoute) => {
-      await route.fulfill({ path: INTER_FONT_FILE });
-    },
-  );
-  await page.addStyleTag({ content: PRODUCTION_FONT_CSS });
+/*
+ * The page is drawn in production's Inter, which the fixture serves as
+ * views/index.ejs declares it (Fixture/server.js): measure once it has
+ * loaded, not in the fallback a swap shows first.
+ */
+async function waitForProductionFont(page: Page): Promise<void> {
   expect(
     await page.evaluate(async (): Promise<number> => {
       return (await document.fonts.load("600 14px Inter")).length;
@@ -9249,7 +9222,7 @@ test.describe("the header's top row, by its own width", () => {
       }, whole and inside the header`, async ({ page }: { page: Page }) => {
         await page.setViewportSize({ width, height: 900 });
         await openReady(page, layoutCase.eventPage, layoutCase.query);
-        await loadProductionFont(page);
+        await waitForProductionFont(page);
 
         const labels: Array<string> = [...layoutCase.labels];
         await expect(heroActions(page).getByRole("button")).toHaveText(labels);
@@ -9313,7 +9286,7 @@ test.describe("the header's top row, by its own width", () => {
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openReady(page, ALERT_PAGE, CREATED_ALERT.query);
-    await loadProductionFont(page);
+    await waitForProductionFont(page);
     await expect(hero(page)).toHaveAttribute(
       "data-actions-beside-from",
       "48rem",
@@ -9364,7 +9337,7 @@ test.describe("the header's top row, by its own width", () => {
         LONG_TITLE_ALERT_PAGE,
         `${CREATED_ALERT.query}&title=long`,
       );
-      await loadProductionFont(page);
+      await waitForProductionFont(page);
       await expect(heroTitle(page)).toHaveText(ALERT_LONG_TITLE);
       await expect(heroActions(page).getByRole("button")).toHaveText([
         ...ALL_CREATED_ALERT_ACTIONS,
@@ -9406,7 +9379,7 @@ test.describe("the header's top row, by its own width", () => {
      */
     await page.setViewportSize({ width: 390, height: 900 });
     await openReady(page, ALERT_PAGE, ACKNOWLEDGED_ALERT.query);
-    await loadProductionFont(page);
+    await waitForProductionFont(page);
     await expect(heroActions(page).getByRole("button")).toHaveText([
       ...ACKNOWLEDGED_ALERT.stateActions,
       DECLARE_INCIDENT,
@@ -9527,7 +9500,7 @@ async function openHeader(
   await expect(
     hero(page).getByTestId("event-status-facts").locator(":scope > div"),
   ).toHaveCount(kind.eventPage.facts.length + 1, { timeout: 30000 });
-  await loadProductionFont(page);
+  await waitForProductionFont(page);
 }
 
 interface HeaderColours {
@@ -9778,7 +9751,7 @@ test.describe("the header, by its own width", () => {
         INCIDENT_PAGE,
         theme === "dark" ? "theme=dark" : "",
       );
-      await loadProductionFont(page);
+      await waitForProductionFont(page);
 
       const band: Locator = hero(page).getByTestId("event-header-notice");
       await expect(band).toHaveAttribute("data-tone", "ai");
@@ -9853,7 +9826,7 @@ test.describe("the header, by its own width", () => {
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "sm=overdue");
-    await loadProductionFont(page);
+    await waitForProductionFont(page);
 
     const band: Locator = hero(page).getByTestId("event-header-notice");
     await expect(band).toHaveAttribute("data-tone", "warning");
@@ -9887,7 +9860,7 @@ test.describe("the header, by its own width", () => {
       "Mark as Ongoing",
       "Maintenance duration",
     ]);
-    await loadProductionFont(page);
+    await waitForProductionFont(page);
 
     const band: Locator = hero(page).getByTestId("event-header-notice");
     await expect(band).toHaveAttribute("data-tone", "neutral");
@@ -9964,7 +9937,7 @@ test.describe("the header, by its own width", () => {
       "Mark as Ongoing",
       "Maintenance duration",
     ]);
-    await loadProductionFont(page);
+    await waitForProductionFont(page);
 
     const notice: Locator = hero(page).getByTestId(
       "scheduled-maintenance-publishing-notice",
@@ -10188,7 +10161,7 @@ test.describe("the header, by its own width", () => {
     await openReady(page, INCIDENT_PAGE, "state=created&role=alert-member", [
       "Rolling checkout-api back to 2026.09.14-1",
     ]);
-    await loadProductionFont(page);
+    await waitForProductionFont(page);
 
     // What they pressed, in their words - not "create this Incident State Timeline".
     const reason: string =
@@ -10258,7 +10231,7 @@ test.describe("the header, by its own width", () => {
       await expect(
         hero(page).getByTestId("event-header-duration"),
       ).toBeVisible();
-      await loadProductionFont(page);
+      await waitForProductionFont(page);
 
       const duration: { label: number; value: number; height: number } =
         await factTextTops(hero(page).getByTestId("event-header-duration"));
@@ -10311,7 +10284,7 @@ test.describe("the header, by its own width", () => {
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await openReady(page, INCIDENT_PAGE, "state=ongoing&owners=many");
-      await loadProductionFont(page);
+      await waitForProductionFont(page);
 
       const owners: Locator = ownersFact(page);
       const lines: Array<{ left: number; top: number }> = await owners
@@ -17449,7 +17422,7 @@ test.describe("at a glance: who is on it", () => {
     ]) {
       await page.setViewportSize({ width: 1280, height: 900 });
       await openReady(page, INCIDENT_PAGE, query);
-      await loadProductionFont(page);
+      await waitForProductionFont(page);
 
       // How long: a fact of words, first in the same row.
       const words: { label: number; value: number; height: number } =
@@ -17770,7 +17743,7 @@ test.describe("at a glance: who is on it", () => {
           theme === "dark" ? "&theme=dark" : ""
         }`,
       );
-      await loadProductionFont(page);
+      await waitForProductionFont(page);
 
       for (const [control, list, name] of [
         [
@@ -17853,7 +17826,7 @@ test.describe("at a glance: who is on it", () => {
       );
       const add: Locator = ownersFact(page).getByTestId("event-owners-add");
       await expect(add).toBeVisible({ timeout: 30000 });
-      await loadProductionFont(page);
+      await waitForProductionFont(page);
 
       for (const control of [
         add,
