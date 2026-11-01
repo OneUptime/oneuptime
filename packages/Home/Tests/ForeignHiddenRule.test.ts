@@ -227,6 +227,18 @@ const PAGES: Array<HomePageCase> = [
       });
     },
   },
+  {
+    // A page written from scratch, without the blocks the product pages share.
+    name: "the OpenShift page (openshift.ejs)",
+    render: (): Promise<RenderedPage> => {
+      // Exactly the locals Routes.ts hands the template, plus homeUrl.
+      return renderView("openshift.ejs", {
+        enableGoogleTagManager: false,
+        seo: seoFor("/product/openshift"),
+        homeUrl: HOME_URL,
+      });
+    },
+  },
 ];
 
 describe.each(PAGES)("$name", (pageCase: HomePageCase) => {
