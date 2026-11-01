@@ -63,6 +63,16 @@ export function shortenEcsTaskArn(value: string): string {
   return trimmed.slice(slash + 1);
 }
 
+/*
+ * `arn:aws:ecs:us-east-1:123456789012:cluster/production` → "production",
+ * the name the ECS console shows a cluster by - an App Platforms app is
+ * kept apart by it (CloudAppIdentity). Anything that is not an ARN is
+ * returned untouched.
+ */
+export function shortenEcsClusterArn(value: string): string {
+  return shortenEcsTaskArn(value);
+}
+
 export type CloudInstanceAttributeGetter = (key: string) => string | null;
 
 /*

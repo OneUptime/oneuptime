@@ -128,7 +128,14 @@ const ConversationComposer: FunctionComponent<ComponentProps> = (
               trySend();
             }
           }}
-          className="block max-h-40 w-full resize-none border-0 bg-transparent px-3.5 pb-1 pt-3 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
+          /*
+           * min-h-10: one line with its padding (12 + 24 + 4px). The height
+           * above is measured as the box mounts, and on a page whose styles
+           * are still being written (the Tailwind runtime) that read gave
+           * the bare line, 24px: the placeholder sat half hidden under the
+           * row below until something was typed.
+           */
+          className="block max-h-40 min-h-10 w-full resize-none border-0 bg-transparent px-3.5 pb-1 pt-3 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
         />
         {/*
           The sentence belongs to the choice beside it. On a phone there is

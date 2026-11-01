@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39593,
-    "untranslated": 3939
+    "keys": 39842,
+    "untranslated": 3845
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -187,6 +187,7 @@
     "Enterprise Edition",
     "Episode",
     "Eritrea",
+    "Export",
     "Failover",
     "Fatal",
     "Favicon",
@@ -247,6 +248,7 @@
     "INP 540 ms",
     "Image",
     "Images",
+    "In / Out",
     "Index",
     "Info",
     "Initiator",
@@ -278,6 +280,7 @@
     "Links",
     "Live",
     "Load Balancer",
+    "Log4Shell",
     "Logo",
     "Loopback",
     "MCP",
@@ -301,6 +304,7 @@
     "Median (P50)",
     "Merge Requests",
     "Mesh / VPN",
+    "Messaging",
     "Microsoft Entra ID",
     "Min",
     "Minimum",
@@ -419,6 +423,7 @@
     "Repository",
     "Resolver",
     "Revision",
+    "Revision {{revision}}",
     "Rollback: {{command}}",
     "Rotation",
     "Router",
@@ -463,6 +468,7 @@
     "Source Map",
     "Source Maps",
     "Span",
+    "Span: {{id}}",
     "Spans",
     "Spec",
     "Sri Lanka",
@@ -511,6 +517,7 @@
     "Trace",
     "Trace Explorer",
     "Trace {{traceId}}",
+    "Trace: {{id}}",
     "Traceroute",
     "Traces",
     "Transport",
@@ -633,6 +640,7 @@
     "orders-prod",
     "out",
     "p95",
+    "p95 {{latency}}",
     "payment-.*",
     "prod, staging",
     "prod-.*",

@@ -8,10 +8,31 @@ import path from "path";
  */
 const port: string = process.env["MONITOR_OVERVIEW_FIXTURE_PORT"] || "4223";
 
+/*
+ * App Test runs this suite in halves, one per Dashboard Offline UI group:
+ * the group's matrix sets MONITOR_OVERVIEW_SHARD to "1/2" or "2/2". At 248
+ * tests it took 13.8 minutes of its group's 28 on 14.0.100's first gate run
+ * and 18.6 on the second, whose runner was about a third slower, and the
+ * group ran out of time. Its tests are independent - each opens its page
+ * in a beforeEach - so it is split by test rather than by file
+ * (fullyParallel): by file, MonitorOverview.spec.ts and CreateMonitor.spec.ts
+ * (125 of the 211 written) would weigh one half down. Each half is one worker
+ * as before. Unset, the whole suite runs, in file order, as it always has.
+ */
+const SHARD_PATTERN: RegExp = /^(\d+)\/(\d+)$/;
+const shardMatch: RegExpExecArray | null = SHARD_PATTERN.exec(
+  process.env["MONITOR_OVERVIEW_SHARD"] || "",
+);
+const shard: { current: number; total: number } | null = shardMatch
+  ? { current: Number(shardMatch[1]), total: Number(shardMatch[2]) }
+  : null;
+
 export default defineConfig({
   testDir: "./MonitorOverview",
   testMatch: "*.spec.ts",
-  fullyParallel: false,
+  shard: shard,
+  // By test when halved, as Event Overview and Model Tables are.
+  fullyParallel: shard !== null,
   workers: 1,
   timeout: 120000,
   expect: { timeout: 15000 },

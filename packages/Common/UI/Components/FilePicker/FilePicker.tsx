@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import { FILE_URL } from "../../Config";
 import API from "../../Utils/API/API";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
@@ -945,9 +946,11 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         </p>
       )}
       {props.error && (
-        <p data-testid="error-message" className="text-sm text-red-400">
-          {translator.translateText(props.error)}
-        </p>
+        <FieldError
+          message={props.error}
+          className="text-sm text-red-400"
+          announce="none"
+        />
       )}
     </div>
   );

@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import {
   DEFAULT_ROLE_LEVEL,
   ROLE_LEVEL_TITLES,
@@ -845,9 +846,7 @@ const RolePicker: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <p className="mt-2 text-sm text-red-600" role="alert">
-        {props.error}
-      </p>
+      <FieldError message={props.error} className="mt-2 text-sm text-red-600" />
     );
   };
 

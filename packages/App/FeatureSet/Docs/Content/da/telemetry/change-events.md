@@ -30,6 +30,7 @@ Disse kræver ikke, at du sender noget. OneUptime registrerer dem ud fra den tel
 | --- | --- | --- |
 | En udrulning | En tjeneste begynder at rapportere en `service.version`, som den ikke har rapporteret før i sit miljø | `service-version` |
 | En rollout | Pods i et Kubernetes-Deployment begynder at køre et ReplicaSet, de ikke har kørt før: et nyt image, en ændret miljøvariabel eller konfigurationsreference eller en genstart | `kubernetes` |
+| En app-udrulning | En app på en administreret app-platform, såsom en ECS-service eller en Cloud Run-tjeneste, begynder at køre en revision, den ikke har kørt før, eller går tilbage til en, den kørte før | `app-platform` |
 | En rettelse, som OneUptime AI kørte | En AI-agent rapporterer resultatet af en kommando, der ændrer noget, for eksempel `kubectl rollout restart` | `oneuptime-ai` |
 | En runbook | En runbook, som OneUptime kørte, fuldføres, mislykkes eller annulleres, efter at den er startet | `runbook` |
 | En cloudændring | En forbundet cloudkontos aktivitetslog registrerer en ændring: AWS CloudTrail, Azures aktivitetslog eller Google Clouds auditlog Admin Activity | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 En rollout kræver [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), som stempler hver pods telemetri med dens Deployment og ReplicaSet.
+
+En app-udrulning kræver, at appen kører på en [administreret app-platform](/docs/telemetry/cloud-environments#apps-og-udrulninger). Den registreres under appens miljø og tegnes i miljøets grafer og i appens egne, og dér registreres også en rollback til en revision, appen kørte før.
 
 En cloudændring eller en begivenhed fra udbyderen kræver en [forbundet cloudkonto](/docs/telemetry/cloud-accounts). Hver af dem knyttes til den cloudressource, den nævner, når OneUptime viser den ressource, og tegnes på ressourcens grafer. Dens type kommer fra handlingen: `deployment`, `scaling` eller `rollback`, når handlingens navn siger det, ellers `config-change`, og `provider-event` for en sundhedshændelse. Grafer, der ikke er filtreret til nogen ressource, udelader en cloudkontos aktivitetslog, så en travl konto ikke fortrænger dine udrulninger; udbyderens sundhedshændelser bliver på dem.
 

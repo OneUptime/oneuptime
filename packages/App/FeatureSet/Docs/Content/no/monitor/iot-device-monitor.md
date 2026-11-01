@@ -78,13 +78,13 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | --- | --- | --- |
 | **IoT Fleet** | Alle | Påkrevd. Begrenser hver spørring til `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avansert | Valgfritt. Én enhet, via `device.id`, som `sensor-001`. |
-| **Device Type** | Custom Metric, Avansert | Valgfritt. Enhetene som rapporterer denne `iot.device.type`, som `sensor` eller `gateway`. |
+| **Enhetstype** | Custom Metric, Avansert | Valgfritt. Enhetene som rapporterer denne `iot.device.type`, som `sensor` eller `gateway`. |
 | **IoT Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler setter sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
-Filtrene virker sammen: med en **Device ID** og en **Device Type** samsvarer en enhet av en annen type ikke med noe.
+Filtrene virker sammen: med en **Device ID** og en **Enhetstype** samsvarer en enhet av en annen type ikke med noe.
 
 ## Ferdige varslingsmaler
 

@@ -1,4 +1,16 @@
 {
+  "Company name associated with this license.": "Название компании, связанной с этой лицензией.",
+  "Annual contract value (in USD) for this license.": "Годовая стоимость контракта (в долларах США) по этой лицензии.",
+  "Expiration date of this license.": "Дата окончания срока действия этой лицензии.",
+  "Something went wrong": "Что-то пошло не так",
+  "An unexpected error has occurred. Please reload the page to continue": "Произошла непредвиденная ошибка. Перезагрузите страницу, чтобы продолжить",
+  "Error details": "Подробности ошибки",
+  "Still stuck?": "Всё ещё не получается?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Скачайте локальный файл диагностики со стеком ошибки, стеком компонентов, очищенным URL страницы, данными браузера и сборкой OneUptime. Он никогда не читает файлы cookie, сохранённые данные браузера и содержимое форм. Проверьте его, прежде чем отправлять в поддержку OneUptime.",
+  "Download support bundle": "Скачать пакет поддержки",
+  "Send it to {{email}}": "Отправьте его на {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Пакет поддержки скачан. Проверьте его, затем приложите к письму.",
+  "The support bundle could not be downloaded. Please try again.": "Не удалось скачать пакет поддержки. Попробуйте ещё раз.",
   "common": {
     "save": "Сохранить",
     "cancel": "Отмена",

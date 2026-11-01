@@ -30,6 +30,7 @@ flowchart LR
 | --- | --- | --- |
 | 배포 | 서비스가 해당 환경에서 이전에 보고한 적 없는 `service.version`을 보고하기 시작할 때 | `service-version` |
 | 롤아웃 | Kubernetes Deployment의 파드가 이전에 실행한 적 없는 ReplicaSet을 실행하기 시작할 때: 새 이미지, 바뀐 환경 변수나 구성 참조, 또는 재시작 | `kubernetes` |
+| 앱 배포 | ECS 서비스나 Cloud Run 서비스 같은 관리형 앱 플랫폼의 앱이 이전에 실행한 적 없는 리비전을 실행하기 시작하거나, 이전에 실행하던 리비전으로 돌아갈 때 | `app-platform` |
 | OneUptime AI가 실행한 수정 | AI 에이전트가 무언가를 바꾸는 명령(예: `kubectl rollout restart`)의 결과를 보고할 때 | `oneuptime-ai` |
 | Runbook | OneUptime이 실행한 Runbook이 시작된 뒤 완료되거나, 실패하거나, 취소될 때 | `runbook` |
 | 클라우드 변경 | 연결된 클라우드 계정의 활동 로그가 변경을 기록할 때: AWS CloudTrail, Azure 활동 로그 또는 Google Cloud의 Admin Activity 감사 로그 | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 롤아웃에는 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)가 필요합니다. 에이전트는 각 파드의 텔레메트리에 해당 Deployment와 ReplicaSet을 표시합니다.
+
+앱 배포에는 [관리형 앱 플랫폼](/docs/telemetry/cloud-environments#앱과-배포)에서 실행되는 앱이 필요합니다. 배포는 앱의 환경에 기록되고 환경 차트와 앱 자체의 차트에 그려지며, 그곳에서는 앱이 이전에 실행하던 리비전으로의 롤백도 기록됩니다.
 
 클라우드 변경과 공급자 이벤트에는 [연결된 클라우드 계정](/docs/telemetry/cloud-accounts)이 필요합니다. 각각은 OneUptime이 그 리소스를 나열하고 있으면 이름이 나온 클라우드 리소스에 연결되고, 그 리소스의 차트에 그려집니다. 유형은 작업에서 정해집니다. 작업 이름이 그렇게 말하면 `deployment`, `scaling` 또는 `rollback`, 그 밖에는 `config-change`, 상태 이벤트는 `provider-event`입니다. 어떤 리소스로도 필터링되지 않은 차트에는 클라우드 계정의 활동 로그가 나오지 않으므로, 바쁜 계정이 배포를 밀어내지 않습니다. 공급자의 상태 이벤트는 그대로 표시됩니다.
 

@@ -52,7 +52,7 @@ Noteer wanneer het geheim verloopt. Op die dag stopt het pollen met `Microsoft D
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Defender XDR** onder **EDR / XDR** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**.
+Open **Producten → Beveiligingsgebeurtenissen → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Microsoft Defender XDR** onder **EDR / XDR** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak de waarde van het geheim in **Clientgeheim**.
 
 ### Testen voordat je opslaat
 

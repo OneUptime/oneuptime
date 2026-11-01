@@ -32,7 +32,7 @@ flowchart TB
 ## 始める前に
 
 - **Storage Array Agent をインストールします**。HTTPS でアレイに到達できる場所に、アレイの **readonly** ロールを持つユーザーの API トークンを使ってインストールします。[Storage Array Agent のガイド](/docs/telemetry/storage-arrays) では、ユーザー、トークン、インストールを、`ONEUPTIME_URL`、`ONEUPTIME_TELEMETRY_INGESTION_KEY`、`STORAGE_ARRAY_NAME`、アレイのアドレスとトークン (`PURE_FA_ENDPOINT` と `PURE_FA_API_TOKEN`、または `PURE_FB_ENDPOINT` と `PURE_FB_API_TOKEN`) とともに説明しています。
-- **アレイが登録されていることを確認します。** 最初の読み取りから約 1 分後に、エージェントの `STORAGE_ARRAY_NAME` の名前で **製品 → インフラストラクチャ → Storage Arrays → All Storage Arrays** に表示されます。
+- **アレイが登録されていることを確認します。** 最初の読み取りから約 1 分後に、エージェントの `STORAGE_ARRAY_NAME` の名前で **製品 → インフラストラクチャ → ストレージアレイ → All Storage Arrays** に表示されます。
 
 ## ストレージアレイ モニターを作成する
 
@@ -67,7 +67,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 複数のテンプレートを一度に設定するには、**製品 → インフラストラクチャ → Storage Arrays** からアレイを開き、**推奨事項** に移動します。必要なテンプレートを選び、呼び出す相手を選ぶと、OneUptime がテンプレートごとに 1 つのモニターを作成します。
+> 複数のテンプレートを一度に設定するには、**製品 → インフラストラクチャ → ストレージアレイ** からアレイを開き、**推奨事項** に移動します。必要なテンプレートを選び、呼び出す相手を選ぶと、OneUptime がテンプレートごとに 1 つのモニターを作成します。
 
 ## モニターの設定
 

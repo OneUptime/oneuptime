@@ -120,7 +120,7 @@ Fate clic su **Crea: Alert Reminder Rule**. In **Corrispondenza**, lasciate sele
 In **Promemoria**, impostate **Intervallo del promemoria (minuti)**, ogni quanto vengono ricordati i proprietari, e **Interrompi i promemoria quando**: **Risolto**, il valore predefinito, o **Riconosciuto**. Il suo **Nome** segue entrambi, per esempio «Promemoria ogni 30 minuti fino alla risoluzione», finché non ne digitate uno vostro. Poi create la regola.
 :::
 
-I proprietari ricevono ogni promemoria come **Alert reminder**, attivo via e-mail per impostazione predefinita. La regola di un avviso viene ricalcolata quando cambiano la sua gravità o le sue etichette. Per fermare i promemoria di un avviso, disattivate **Invia promemoria** nella sua pagina **Impostazioni**; il salvataggio avviene nel momento in cui lo azionate.
+I proprietari ricevono ogni promemoria come **Promemoria avviso**, attivo via e-mail per impostazione predefinita. La regola di un avviso viene ricalcolata quando cambiano la sua gravità o le sue etichette. Per fermare i promemoria di un avviso, disattivate **Invia promemoria** nella sua pagina **Impostazioni**; il salvataggio avviene nel momento in cui lo azionate.
 
 ## Impostazioni
 

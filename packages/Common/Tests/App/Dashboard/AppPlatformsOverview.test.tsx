@@ -162,6 +162,7 @@ beforeEach(() => {
   jest.spyOn(ModelAPI, "getList").mockImplementation(((options: {
     modelType: { new (): BaseModel };
     query?: Record<string, unknown>;
+    select?: Record<string, unknown>;
     limit?: number;
   }): Promise<ListResult<BaseModel>> => {
     if (new options.modelType().tableName !== "CloudResource") {
@@ -173,7 +174,16 @@ beforeEach(() => {
       } as ListResult<BaseModel>);
     }
 
-    listQueries.push(options.query || {});
+    /*
+     * The strip reads the environments' ids alone, to count their apps
+     * (CloudFleetSummary); the page's own read is the one with their names.
+     */
+    const isStripIdRead: boolean =
+      Object.keys(options.select || {}).join(",") === "_id";
+
+    if (!isStripIdRead) {
+      listQueries.push(options.query || {});
+    }
 
     if (failLists) {
       return Promise.reject(new Error("The environments could not be read."));
@@ -219,6 +229,17 @@ async function renderOverview(): Promise<void> {
 
 function platformGroups(): Array<HTMLElement> {
   return screen.getAllByTestId("app-platforms-platform");
+}
+
+// A card on the page, by the id its Card is given.
+function cardById(id: string): HTMLElement {
+  const card: HTMLElement | null = document.getElementById(id);
+
+  if (!card) {
+    throw new Error(`No card with the id ${id}.`);
+  }
+
+  return card;
 }
 
 function environmentNames(group: HTMLElement): Array<string> {
@@ -323,14 +344,19 @@ describe("grouping the environments by platform", () => {
     expect(group.connected).toBe(2);
   });
 
-  test("a group is healthy when every environment is connected, silent when none is, partial between", () => {
-    const tone: (connected: Array<boolean>) => AppPlatformGroupTone = (
+  test("a group is healthy when every environment is connected, silent when none is, partial between, waiting before any data", () => {
+    const heardFrom: Date = new Date();
+    const tone: (
       connected: Array<boolean>,
+      lastSeenAt?: Date | null,
+    ) => AppPlatformGroupTone = (
+      connected: Array<boolean>,
+      lastSeenAt: Date | null = heardFrom,
     ): AppPlatformGroupTone => {
       return getAppPlatformGroupTone(
         groupEnvironmentsByPlatform(
           connected.map((isConnected: boolean, index: number) => {
-            return row({ name: `env-${index}`, isConnected });
+            return row({ name: `env-${index}`, isConnected, lastSeenAt });
           }),
         )[0]!,
       );
@@ -339,6 +365,21 @@ describe("grouping the environments by platform", () => {
     expect(tone([true, true])).toBe(AppPlatformGroupTone.Healthy);
     expect(tone([true, false])).toBe(AppPlatformGroupTone.Partial);
     expect(tone([false, false])).toBe(AppPlatformGroupTone.Silent);
+    /*
+     * None of them has sent anything yet: nothing broke, so the group
+     * waits, in grey, rather than reading as gone silent.
+     */
+    expect(tone([false, false], null)).toBe(AppPlatformGroupTone.Waiting);
+    expect(tone([false], null)).toBe(AppPlatformGroupTone.Waiting);
+    // One that was heard from makes the group silent: it went quiet.
+    expect(
+      getAppPlatformGroupTone(
+        groupEnvironmentsByPlatform([
+          row({ name: "never", isConnected: false, lastSeenAt: null }),
+          row({ name: "quiet", isConnected: false, lastSeenAt: heardFrom }),
+        ])[0]!,
+      ),
+    ).toBe(AppPlatformGroupTone.Silent);
   });
 
   test("an environment is connected, quiet once heard from, or waiting for its first data", () => {
@@ -516,9 +557,10 @@ describe("the Overview, with environments", () => {
     ).toHaveTextContent("All connected");
 
     expect(appService).toHaveTextContent("Azure App Service");
+    // Its only environment has sent nothing yet: it waits, in grey.
     expect(
       within(appService).getByTestId("app-platforms-platform-status"),
-    ).toHaveTextContent("Disconnected");
+    ).toHaveTextContent("Waiting for first data");
     expect(
       within(appService).getByTestId("app-platforms-environment-status"),
     ).toHaveTextContent("Waiting for its first data");
@@ -707,14 +749,25 @@ describe("the Overview, with environments", () => {
 
     await renderOverview();
 
+    /*
+     * The Platforms card says so, and so does Recent deploys, which reads
+     * the environments first; each card reads again on its own.
+     */
     await waitFor(() => {
-      expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
+      expect(
+        within(cardById("platforms")).getByTestId("refresh-button"),
+      ).toBeInTheDocument();
     });
+    expect(
+      within(cardById("recent-deploys")).getByTestId("refresh-button"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("app-platforms-platforms")).toBeNull();
 
     failLists = false;
     await act(async () => {
-      fireEvent.click(screen.getByTestId("refresh-button"));
+      fireEvent.click(
+        within(cardById("platforms")).getByTestId("refresh-button"),
+      );
     });
 
     await waitFor(() => {

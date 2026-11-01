@@ -112,6 +112,37 @@ export interface AnchoredPopupBox {
   left: number;
 }
 
+/*
+ * Where a popup's left edge goes across: at its anchor's start edge - the
+ * anchor's left on a page read left to right, its right on one read right
+ * to left, so the popup opens towards the end of the line, over what comes
+ * after its anchor - and moved in until it fits between minimumLeft and
+ * maximumRight. On a Persian page the Add owners popup started at the
+ * button's left edge and opened rightward, over the side menu.
+ */
+export const getAnchoredPopupLeft: (data: {
+  anchor: AnchoredPopupBox;
+  width: number;
+  minimumLeft: number;
+  maximumRight: number;
+  isRightToLeft: boolean;
+}) => number = (data: {
+  anchor: AnchoredPopupBox;
+  width: number;
+  minimumLeft: number;
+  maximumRight: number;
+  isRightToLeft: boolean;
+}): number => {
+  const startLeft: number = data.isRightToLeft
+    ? data.anchor.right - data.width
+    : data.anchor.left;
+
+  return Math.min(
+    Math.max(startLeft, data.minimumLeft),
+    Math.max(data.minimumLeft, data.maximumRight - data.width),
+  );
+};
+
 export interface AnchoredPopupPlacementResult
   extends AnchoredFieldPopupPosition {
   placement: AnchoredFieldPopupPlacement;
@@ -162,8 +193,8 @@ export const isAnchorOutsideBoundary: (data: {
  *   - A boundary with less than a useful height on either side (a short
  *     dialog) would leave a sliver, so the window is used instead, and so is
  *     a boundary with no size at all (one not laid out).
- *   - Across, it starts at the anchor's left edge and is moved left or
- *     narrowed until it fits.
+ *   - Across, it starts at the anchor's start edge (getAnchoredPopupLeft)
+ *     and is moved in or narrowed until it fits.
  */
 export const placeAnchoredPopupInBounds: (data: {
   anchor: AnchoredPopupBox;
@@ -175,6 +206,8 @@ export const placeAnchoredPopupInBounds: (data: {
   popupHeight: number;
   popupMaxHeight: number;
   preferredPlacement: AnchoredFieldPopupPlacement;
+  // The anchor reads right to left: the popup opens from its right edge.
+  isRightToLeft?: boolean | undefined;
 }) => AnchoredPopupPlacementResult = (data: {
   anchor: AnchoredPopupBox;
   viewportWidth: number;
@@ -184,6 +217,7 @@ export const placeAnchoredPopupInBounds: (data: {
   popupHeight: number;
   popupMaxHeight: number;
   preferredPlacement: AnchoredFieldPopupPlacement;
+  isRightToLeft?: boolean | undefined;
 }): AnchoredPopupPlacementResult => {
   const viewportBounds: AnchoredPopupBox = {
     top: POPUP_VIEWPORT_PADDING_PX,
@@ -276,10 +310,13 @@ export const placeAnchoredPopupInBounds: (data: {
     0,
     Math.min(data.popupWidth, bounds.right - bounds.left),
   );
-  const left: number = Math.min(
-    Math.max(data.anchor.left, bounds.left),
-    Math.max(bounds.left, bounds.right - width),
-  );
+  const left: number = getAnchoredPopupLeft({
+    anchor: data.anchor,
+    width: width,
+    minimumLeft: bounds.left,
+    maximumRight: bounds.right,
+    isRightToLeft: Boolean(data.isRightToLeft),
+  });
 
   return {
     placement,
@@ -626,6 +663,9 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
     }
 
     const anchorRect: DOMRect = anchorRef.current.getBoundingClientRect();
+    // The way the anchor's line reads: the popup opens from its start edge.
+    const isRightToLeft: boolean =
+      window.getComputedStyle(anchorRef.current).direction === "rtl";
 
     if (stayInsideBoundary) {
       const boundaryElement: Element | null = anchorRef.current.closest(
@@ -660,6 +700,7 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
         popupHeight: contentHeight > 0 ? contentHeight : popupMaxHeight,
         popupMaxHeight,
         preferredPlacement,
+        isRightToLeft,
       });
 
       setPopupPosition(
@@ -679,14 +720,13 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
       window.innerWidth - POPUP_VIEWPORT_PADDING_PX * 2,
     );
     const width: number = Math.min(popupWidth, availableWidth);
-    const maximumLeft: number = Math.max(
-      POPUP_VIEWPORT_PADDING_PX,
-      window.innerWidth - POPUP_VIEWPORT_PADDING_PX - width,
-    );
-    const left: number = Math.min(
-      Math.max(anchorRect.left, POPUP_VIEWPORT_PADDING_PX),
-      maximumLeft,
-    );
+    const left: number = getAnchoredPopupLeft({
+      anchor: anchorRect,
+      width: width,
+      minimumLeft: POPUP_VIEWPORT_PADDING_PX,
+      maximumRight: window.innerWidth - POPUP_VIEWPORT_PADDING_PX,
+      isRightToLeft: isRightToLeft,
+    });
     const spaceBelow: number = Math.max(
       0,
       window.innerHeight -

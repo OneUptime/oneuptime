@@ -8,10 +8,17 @@ import {
   UserFlowSessionFilter,
 } from "Common/Utils/Rum/UserFlow";
 import {
+  SESSION_REPLAY_USER_KEY_PATTERN,
+  SESSION_REPLAY_VISITOR_ID_PATTERN,
+} from "Common/Types/Rum/SessionReplay";
+import { UserFlowScopeDto } from "Common/Types/Rum/UserFlow";
+import {
   buildTimeRangeSearch,
   FILTER_URL_KEYS,
   readTimeRangeFromSearch,
 } from "../SessionReplay/SessionReplayListFilters";
+import { isLikelySessionId } from "../SessionReplay/SessionReplaySearchQuery";
+import { UserFlowScope } from "./UserFlowScope";
 
 /*
  * The User Flows page's URL state: every control on the page round-trips
@@ -19,8 +26,11 @@ import {
  * a ticket ("this is how people reach /checkout on mobile").
  *
  * The time range uses the session list's own keys and helpers, so the
- * window carries across the Sessions / Users / User Flows pages. Defaults
- * are written as absence.
+ * window carries across the Sessions / Users / User Flows pages. So does a
+ * person, as userKey= and visitor=: both are tokens that name nobody. A
+ * reference someone typed never goes in the URL; once the server has answered,
+ * the key it was stored under does (see FILTER_URL_KEYS). Defaults are written
+ * as absence.
  *
  * Plain TypeScript with no React and no Common/UI import, so node tests can
  * pin it (see the window-at-load trap for why that matters).
@@ -35,6 +45,9 @@ export const USER_FLOW_URL_KEYS: {
   hide: string;
   device: string;
   sessions: string;
+  userKey: string;
+  visitor: string;
+  sessionId: string;
 } = {
   anchor: "page",
   direction: "dir",
@@ -44,6 +57,9 @@ export const USER_FLOW_URL_KEYS: {
   hide: "hide",
   device: "device",
   sessions: "sessions",
+  userKey: FILTER_URL_KEYS.identifiedUserKey as string,
+  visitor: FILTER_URL_KEYS.visitorId as string,
+  sessionId: "sessionId",
 };
 
 /*
@@ -66,6 +82,8 @@ const TIME_RANGE_URL_KEYS: Array<string> = [
 export interface UserFlowUrlState {
   timeRange: RangeStartAndEndDateTime;
   options: UserFlowOptions;
+  /* Null reads everyone. */
+  scope: UserFlowScope | null;
 }
 
 const SESSION_FILTERS: Array<UserFlowSessionFilter> = [
@@ -84,6 +102,69 @@ function readInteger(value: string | null, fallback: number): number {
   return Number(value);
 }
 
+/*
+ * Grouping ids is how journeys become a shape. Reading one person's, it hides
+ * what they did: /orders/1042 then /orders/1043 would be one page, and the
+ * move between them would be lost. So ids are grouped for everyone and shown
+ * for one person, and the box can still be ticked either way.
+ */
+export function isGroupedByDefault(scope: UserFlowScope | null): boolean {
+  return !scope;
+}
+
+/*
+ * A pasted link is untrusted input, as it is on the session list: what cannot
+ * be an id reads as no scope, rather than a request the server refuses.
+ */
+function readScope(params: URLSearchParams): UserFlowScope | null {
+  const userKey: string = (params.get(USER_FLOW_URL_KEYS.userKey) || "").trim();
+
+  if (SESSION_REPLAY_USER_KEY_PATTERN.test(userKey)) {
+    return { kind: "user", identifiedUserKey: userKey, identifiedUserRef: "" };
+  }
+
+  const visitorId: string = (params.get(USER_FLOW_URL_KEYS.visitor) || "")
+    .trim()
+    .toLowerCase();
+
+  if (SESSION_REPLAY_VISITOR_ID_PATTERN.test(visitorId)) {
+    return { kind: "visitor", visitorId: visitorId };
+  }
+
+  const sessionId: string = (params.get(USER_FLOW_URL_KEYS.sessionId) || "")
+    .trim()
+    .toLowerCase();
+
+  if (isLikelySessionId(sessionId)) {
+    return { kind: "session", sessionId: sessionId };
+  }
+
+  return null;
+}
+
+function writeScope(
+  params: URLSearchParams,
+  scope: UserFlowScope | null,
+  applied: UserFlowScopeDto | null | undefined,
+): void {
+  if (scope?.kind === "user") {
+    const userKey: string =
+      scope.identifiedUserKey || applied?.identifiedUserKey || "";
+
+    if (userKey) {
+      params.set(USER_FLOW_URL_KEYS.userKey, userKey);
+    }
+  }
+
+  if (scope?.kind === "visitor") {
+    params.set(USER_FLOW_URL_KEYS.visitor, scope.visitorId);
+  }
+
+  if (scope?.kind === "session") {
+    params.set(USER_FLOW_URL_KEYS.sessionId, scope.sessionId);
+  }
+}
+
 export function readUserFlowStateFromSearch(search: string): UserFlowUrlState {
   const params: URLSearchParams = new URLSearchParams(search);
   const hasRange: boolean = TIME_RANGE_URL_KEYS.some((key: string): boolean => {
@@ -91,8 +172,11 @@ export function readUserFlowStateFromSearch(search: string): UserFlowUrlState {
   });
 
   const sessionFilter: string | null = params.get(USER_FLOW_URL_KEYS.sessions);
+  const scope: UserFlowScope | null = readScope(params);
+  const grouping: string | null = params.get(USER_FLOW_URL_KEYS.group);
 
   return {
+    scope: scope,
     timeRange: hasRange
       ? readTimeRangeFromSearch(search)
       : DEFAULT_USER_FLOW_TIME_RANGE,
@@ -110,7 +194,12 @@ export function readUserFlowStateFromSearch(search: string): UserFlowUrlState {
         params.get(USER_FLOW_URL_KEYS.pagesPerStep),
         DEFAULT_USER_FLOW_OPTIONS.pagesPerStep,
       ),
-      groupDynamicSegments: params.get(USER_FLOW_URL_KEYS.group) !== "0",
+      groupDynamicSegments:
+        grouping === "0"
+          ? false
+          : grouping === "1"
+            ? true
+            : isGroupedByDefault(scope),
       hiddenPages: params.getAll(USER_FLOW_URL_KEYS.hide).filter(Boolean),
       deviceType: params.get(USER_FLOW_URL_KEYS.device) || "",
       sessionFilter: SESSION_FILTERS.includes(
@@ -122,10 +211,15 @@ export function readUserFlowStateFromSearch(search: string): UserFlowUrlState {
   };
 }
 
-/* The href with this state written in and every other flow key removed. */
+/*
+ * The href with this state written in and every other flow key removed.
+ * `applied` is what the server said the read was narrowed to, which is where a
+ * typed reference's key comes from.
+ */
 export function buildUserFlowPageUrl(
   href: string,
   state: UserFlowUrlState,
+  applied?: UserFlowScopeDto | null | undefined,
 ): string {
   const url: URL = new URL(href);
   const params: URLSearchParams = url.searchParams;
@@ -179,8 +273,11 @@ export function buildUserFlowPageUrl(
     params.set(USER_FLOW_URL_KEYS.pagesPerStep, String(options.pagesPerStep));
   }
 
-  if (!options.groupDynamicSegments) {
-    params.set(USER_FLOW_URL_KEYS.group, "0");
+  if (options.groupDynamicSegments !== isGroupedByDefault(state.scope)) {
+    params.set(
+      USER_FLOW_URL_KEYS.group,
+      options.groupDynamicSegments ? "1" : "0",
+    );
   }
 
   for (const page of options.hiddenPages) {
@@ -195,7 +292,30 @@ export function buildUserFlowPageUrl(
     params.set(USER_FLOW_URL_KEYS.sessions, options.sessionFilter);
   }
 
+  writeScope(params, state.scope, applied);
+
   return url.toString();
+}
+
+/*
+ * The query string that opens this page on one person or one session, over
+ * this window: what the Users page and the session list link with. The page
+ * knows its own default window, and the session list's would be misread here.
+ */
+export function buildUserFlowScopeSearch(
+  scope: UserFlowScope,
+  timeRange: RangeStartAndEndDateTime,
+): string {
+  return new URL(
+    buildUserFlowPageUrl("https://relative.invalid/", {
+      timeRange: timeRange,
+      scope: scope,
+      options: {
+        ...DEFAULT_USER_FLOW_OPTIONS,
+        groupDynamicSegments: isGroupedByDefault(scope),
+      },
+    }),
+  ).search;
 }
 
 /*

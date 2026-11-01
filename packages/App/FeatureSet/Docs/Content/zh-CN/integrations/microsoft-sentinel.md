@@ -60,7 +60,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Microsoft Sentinel**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密码的值粘贴到 **客户端密钥** 中。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Microsoft Sentinel**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，并把密码的值粘贴到 **客户端密钥** 中。
 
 ### 保存之前先测试
 
@@ -174,7 +174,7 @@ OneUptime 也可以通过 Azure Monitor 的 Logs Ingestion API 把它发现的�
 
 ### 添加目标
 
-打开 **产品 → Security Events → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Microsoft Sentinel，然后点击 **下一步**。填写 **目录（租户）ID**、**应用程序（客户端）ID** 和 **客户端密钥**，从数据收集终结点（或规则）的 **Overview** 中取得的 **日志引入终结点**，以及从规则的 **JSON View** 中取得的 **数据收集规则不可变 ID**。**流** 是可选的：留空时为 `Custom-OneUptimeSecurityEvents_CL`。
+打开 **产品 → 安全事件 → 连接**。在 **发送到你的 SIEM** 下点击 **添加目标**，在 **SIEM** 下选择 Microsoft Sentinel，然后点击 **下一步**。填写 **目录（租户）ID**、**应用程序（客户端）ID** 和 **客户端密钥**，从数据收集终结点（或规则）的 **Overview** 中取得的 **日志引入终结点**，以及从规则的 **JSON View** 中取得的 **数据收集规则不可变 ID**。**流** 是可选的：留空时为 `Custom-OneUptimeSecurityEvents_CL`。
 
 ### 发送测试事件并开始发送
 

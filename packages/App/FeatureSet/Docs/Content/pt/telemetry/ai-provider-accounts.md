@@ -34,7 +34,7 @@ O uso de uma conta é o que foi cobrado dela, um dia de cada vez. Ele não tem c
 :::steps
 ### Abra Conectar
 
-Abra **Produtos → AI / LLM → Conectar**. Em **Suas contas de provedores de IA**, clique no bloco do provedor.
+Abra **Produtos → IA / LLM → Conectar**. Em **Suas contas de provedores de IA**, clique no bloco do provedor.
 
 ### Cole a credencial
 

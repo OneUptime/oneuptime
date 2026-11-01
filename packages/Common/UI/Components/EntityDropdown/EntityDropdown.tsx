@@ -1,4 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import FieldError from "../Forms/Fields/FieldError";
 import Label from "../../../Models/DatabaseModels/Label";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
@@ -2366,11 +2367,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
         </div>
       )}
 
-      {props.error && (
-        <p id={errorId} className="mt-1 text-sm text-red-400" role="alert">
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError id={errorId} message={props.error} />}
     </div>
   );
 };

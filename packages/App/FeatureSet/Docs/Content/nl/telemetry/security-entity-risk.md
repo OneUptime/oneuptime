@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Bij de<br/>drempel"| case["Er wordt een zaak<br/>geopend, of de open<br/>zaak neemt het over"]
 ```
 
-Open **Producten → Security Events → Entiteitrisico**: elke gebruiker, host, elk IP-adres en elke gegevensopslag met nu een risico, de riskantste eerst, met het niveau, hoe zwaar het weegt, wat het vond en wanneer. Elk opent op een eigen pagina. **Riskantste entiteiten** op het overzicht toont de top van deze lijst, en **Een entiteit opzoeken**, eronder, zoekt elke waarde op in 30 dagen aan gebeurtenissen, ook een domein of een bestandshash.
+Open **Producten → Beveiligingsgebeurtenissen → Entiteitrisico**: elke gebruiker, host, elk IP-adres en elke gegevensopslag met nu een risico, de riskantste eerst, met het niveau, hoe zwaar het weegt, wat het vond en wanneer. Elk opent op een eigen pagina. **Riskantste entiteiten** op het overzicht toont de top van deze lijst, en **Een entiteit opzoeken**, eronder, zoekt elke waarde op in 30 dagen aan gebeurtenissen, ook een domein of een bestandshash.
 
 ## Voordat u begint
 
@@ -65,7 +65,7 @@ Haalt het risico van een entiteit de drempel, dan wordt er een detectie met de b
 
 Zodra er een zaak over het risico van een entiteit is geopend, wordt wat erachter zat niet opnieuw geteld: een volgende zaak wordt pas geopend als bronnen die sindsdien nieuw zijn, de drempel opnieuw halen. Een zaak die als afgehandeld is gesloten, wordt door dezelfde bevindingen niet heropend.
 
-Wijzig de drempel onder **Producten → Security Events → Instellingen → Risicoscoring → Risicodrempel**: een geheel getal van 10 tot 10000. Gemiddeld begint bij de helft en Kritiek bij het dubbele, op elke pagina.
+Wijzig de drempel onder **Producten → Beveiligingsgebeurtenissen → Instellingen → Risicoscoring → Risicodrempel**: een geheel getal van 10 tot 10000. Gemiddeld begint bij de helft en Kritiek bij het dubbele, op elke pagina.
 
 ### Risicozaken aan- of uitzetten
 

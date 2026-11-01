@@ -78,13 +78,13 @@ flowchart TB
 | --- | --- | --- |
 | **IoT Fleet** | 全部 | 必填。把每個查詢限定到 `resource.iot.fleet.name`。 |
 | **Device ID** | Custom Metric、進階 | 選填。一個裝置，依其 `device.id`，例如 `sensor-001`。 |
-| **Device Type** | Custom Metric、進階 | 選填。回報該 `iot.device.type` 的裝置，例如 `sensor` 或 `gateway`。 |
+| **裝置類型** | Custom Metric、進階 | 選填。回報該 `iot.device.type` 的裝置，例如 `sensor` 或 `gateway`。 |
 | **IoT Metric** | Custom Metric | [目錄](#收集的指標) 中的一個指標。 |
 | **彙總** | Custom Metric | 如何合併樣本：**平均**、**最大值**、**最小值**、**總和** 或 **計數**。從該指標的常用彙總開始。 |
 | **時間範圍** | 全部 | 查詢讀取的滾動視窗，從 **Past 1 Minute** 到 **Past 365 Days**。新監測器從 **Past 1 Minute** 開始；範本會設定自己的值。 |
 | **選擇指標** | 進階 | 查詢建構器：**指標**、**Aggregate by**、**Filter by attributes**、**分組依據**，以及用於合併查詢的 **新增指標** 和 **新增公式**。 |
 
-篩選器會同時生效：同時設定了 **Device ID** 和 **Device Type** 時，其他類型的裝置什麼也比對不到。
+篩選器會同時生效：同時設定了 **Device ID** 和 **裝置類型** 時，其他類型的裝置什麼也比對不到。
 
 ## 預建警示範本
 

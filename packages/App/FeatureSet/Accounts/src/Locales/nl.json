@@ -1,4 +1,13 @@
 {
+  "Something went wrong": "Er is iets misgegaan",
+  "An unexpected error has occurred. Please reload the page to continue": "Er is een onverwachte fout opgetreden. Laad de pagina opnieuw om verder te gaan",
+  "Error details": "Foutdetails",
+  "Still stuck?": "Kom je er nog steeds niet uit?",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Download een lokaal diagnosebestand met de foutstack, de componentstack, de opgeschoonde pagina-URL, browsergegevens en de OneUptime-build. Het leest nooit cookies, opgeslagen browsergegevens of formulierinhoud. Bekijk het voordat je het met OneUptime Support deelt.",
+  "Download support bundle": "Ondersteuningsbundel downloaden",
+  "Send it to {{email}}": "Stuur het naar {{email}}",
+  "Support bundle downloaded. Review it, then attach it to your email.": "Ondersteuningsbundel gedownload. Bekijk hem en voeg hem toe aan je e-mail.",
+  "The support bundle could not be downloaded. Please try again.": "De ondersteuningsbundel kon niet worden gedownload. Probeer het opnieuw.",
   "common": {
     "save": "Opslaan",
     "cancel": "Annuleren",

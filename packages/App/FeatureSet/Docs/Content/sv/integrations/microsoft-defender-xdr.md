@@ -52,7 +52,7 @@ Anteckna när hemligheten upphör att gälla. Den dagen stoppas avsökningen med
 
 ### Lägg till anslutningen i OneUptime
 
-Öppna **Produkter → Security Events → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Microsoft Defender XDR** under **EDR / XDR** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemlighetens värde i **Klienthemlighet**.
+Öppna **Produkter → Säkerhetshändelser → Anslutningar** (`/dashboard/{projectId}/security-events/connections`), klicka på **Lägg till anslutning**, välj **Microsoft Defender XDR** under **EDR / XDR** och klicka på **Nästa**. Fyll i inställningarna i tabellen nedan, klicka på **Nästa** och klistra in hemlighetens värde i **Klienthemlighet**.
 
 ### Testa den innan du sparar
 

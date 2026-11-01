@@ -44,9 +44,13 @@ phone; the same pages light, as before; the sign-in, single sign-on and sign-up 
 in German and Persian; that the footer sits on the dark page's own ground with its
 language picker centred under its links on a phone, a state icon's halo is a faint
 ring of its own colour and the backup codes' one action is as wide as the card's
-content; and an installation's only logo on a light plate on a
-dark page. Screenshots of every page in both themes are saved under
-`output/playwright/accounts-theme-ui`.
+content; an installation's only logo on a light plate on a dark page; and that a
+session ending keeps what the browser keeps for itself. The fixture runs the real
+`User.logout()` and the real client's answer to the 401 of a lapsed session
+(`window.__accountsThemeSession`): the theme, the language and the cookie answer stay
+and the person's keys go, the sign-in page opens in them, and another open tab hears
+each key go and never that the theme did. Screenshots of every page in both themes
+are saved under `output/playwright/accounts-theme-ui`.
 
 `FormOnCustomDomain.spec.ts` opens a form on its owner's own domain - the page the
 App renders at a form domain's root, which the fixture serves at `/?formdomain=1` -

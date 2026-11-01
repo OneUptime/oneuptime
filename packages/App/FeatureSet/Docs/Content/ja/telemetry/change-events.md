@@ -30,6 +30,7 @@ flowchart LR
 | --- | --- | --- |
 | デプロイ | サービスが、その環境でこれまで報告していなかった `service.version` の報告を始めたとき | `service-version` |
 | ロールアウト | Kubernetes の Deployment の Pod が、これまで実行していなかった ReplicaSet の実行を始めたとき。新しいイメージ、環境変数や設定の参照の変更、または再起動によるものです | `kubernetes` |
+| アプリのデプロイ | ECS サービスや Cloud Run サービスなど、マネージドなアプリプラットフォーム上のアプリが、これまで実行していなかったリビジョンの実行を始めたとき、または以前に実行していたリビジョンに戻ったとき | `app-platform` |
 | OneUptime AI が実行した修正 | AI エージェントが、何かを変更するコマンド(`kubectl rollout restart` など)の結果を報告したとき | `oneuptime-ai` |
 | Runbook | OneUptime が実行した Runbook が、開始後に完了、失敗、またはキャンセルされたとき | `runbook` |
 | クラウドの変更 | 接続したクラウド アカウントのアクティビティ ログが変更を記録したとき: AWS CloudTrail、Azure のアクティビティ ログ、または Google Cloud の Admin Activity 監査ログ | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 ロールアウトには [Kubernetes エージェント](/docs/telemetry/kubernetes-agent) が必要です。エージェントは、各 Pod のテレメトリにその Deployment と ReplicaSet を付けます。
+
+アプリのデプロイには、[マネージドなアプリプラットフォーム](/docs/telemetry/cloud-environments#アプリとデプロイ) 上で動くアプリが必要です。デプロイはアプリの環境に記録され、環境のグラフとアプリ自身のグラフに描かれます。そこでは、アプリが以前に実行していたリビジョンへのロールバックも記録されます。
 
 クラウドの変更とプロバイダーのイベントには、[接続したクラウド アカウント](/docs/telemetry/cloud-accounts) が必要です。どちらも、OneUptime がそのリソースを一覧にしていれば、名前が挙がったクラウド リソースに結び付けられ、そのリソースのグラフに描かれます。種類は操作から決まります。操作の名前がそう示していれば `deployment`、`scaling`、`rollback`、それ以外は `config-change`、ヘルス イベントは `provider-event` です。どのリソースにも絞り込まれていないグラフにはクラウド アカウントのアクティビティ ログは表示されないため、忙しいアカウントでデプロイが埋もれることはありません。プロバイダーのヘルス イベントは表示されたままです。
 

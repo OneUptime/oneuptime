@@ -42,7 +42,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Okta System Log**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **API token** 中。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Okta System Log**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **API token** 中。
 
 ### 保存之前先测试
 

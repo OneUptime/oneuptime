@@ -140,6 +140,7 @@ import CloudResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Page
 import ServerlessFunctionOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Overview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import TimeRange from "../../../Types/Time/TimeRange";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
 import {
   chartWindows,
   customRangeLabel,
@@ -311,6 +312,17 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+// The list reads of one model, in the order the page made them.
+function listCallsOf(modelName: string): Array<Record<string, unknown>> {
+  return getListMock.mock.calls
+    .map((args: Array<unknown>): Record<string, unknown> => {
+      return args[0] as Record<string, unknown>;
+    })
+    .filter((request: Record<string, unknown>): boolean => {
+      return (request["modelType"] as { name: string }).name === modelName;
+    });
+}
+
 function tileOf(title: string): HTMLElement {
   // The first "About <title>" is the tile's; a chart card may share it.
   return screen
@@ -379,7 +391,8 @@ describe("Cloud environment overview: one zoom for both charts", () => {
   test("a drag on Memory refetches both charts and the span tiles for the window", async () => {
     await renderCloud();
     expect(tileOf("Requests")).toHaveTextContent("600");
-    const instanceLoads: number = getListMock.mock.calls.length;
+    const instanceLoads: number = listCallsOf("CloudResourceInstance").length;
+    expect(instanceLoads).toBeGreaterThan(0);
 
     await dragAcross(zoomCharts()[1]!, at("11:20"), at("11:30"));
 
@@ -389,7 +402,22 @@ describe("Cloud environment overview: one zoom for both charts", () => {
     expect(chartWindows()).toEqual(same(windowOf(at("11:20"), at("11:30")), 2));
     expect(tileOf("Requests")).toHaveTextContent("110");
     // CPU, Memory and Instances are the live instance list: not refetched.
-    expect(getListMock.mock.calls.length).toBe(instanceLoads);
+    expect(listCallsOf("CloudResourceInstance")).toHaveLength(instanceLoads);
+    // The deploys marked on both charts are the window's.
+    const deployReads: Array<Record<string, unknown>> =
+      listCallsOf("CloudAppRevision");
+    const lastDeployRead: Record<string, unknown> =
+      deployReads[deployReads.length - 1]!;
+    const deployWindow: InBetween<Date> = (
+      lastDeployRead["query"] as Record<string, unknown>
+    )["firstSeenAt"] as InBetween<Date>;
+    expect(deployWindow).toBeInstanceOf(InBetween);
+    expect(new Date(deployWindow.startValue as Date).toISOString()).toBe(
+      at("11:20").toISOString(),
+    );
+    expect(new Date(deployWindow.endValue as Date).toISOString()).toBe(
+      at("11:30").toISOString(),
+    );
 
     expect(pickerLabel()).toBe(customRangeLabel(at("11:20"), at("11:30")));
     expect(resetZoomButtons()).toHaveLength(1);

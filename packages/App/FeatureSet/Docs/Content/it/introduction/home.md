@@ -76,7 +76,7 @@ flowchart TB
     done -->|"No"| shown["L'elenco, con i<br/>passaggi mancanti"]
 ```
 
-L'elenco sparisce quando tutti e quattro i passaggi sono completati. Per nasconderlo prima, fai clic su **Chiudi**. La chiusura vale per questo browser e per questo progetto; tutto ciò che i passaggi aprono resta nel menu **Prodotti**.
+L'elenco sparisce quando tutti e quattro i passaggi sono completati. Per nasconderlo prima, fai clic su **Nascondi**. La scelta di nasconderlo vale per questo browser e per questo progetto; tutto ciò che i passaggi aprono resta nel menu **Prodotti**.
 
 ### Richiede attenzione
 

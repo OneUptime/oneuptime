@@ -30,6 +30,7 @@ Pour ceux-là, vous n'avez rien à envoyer. OneUptime les enregistre à partir d
 | --- | --- | --- |
 | Un déploiement | Un service commence à signaler une `service.version` qu'il n'avait encore jamais signalée dans son environnement | `service-version` |
 | Un rollout | Les pods d'un Deployment Kubernetes commencent à exécuter un ReplicaSet qu'ils n'avaient encore jamais exécuté : une nouvelle image, une variable d'environnement ou une référence de configuration modifiée, ou un redémarrage | `kubernetes` |
+| Un déploiement d'application | Une application sur une plateforme d'applications managée, comme un service ECS ou un service Cloud Run, commence à exécuter une révision qu'elle n'avait encore jamais exécutée, ou revient à une révision qu'elle exécutait auparavant | `app-platform` |
 | Un correctif exécuté par OneUptime AI | Un agent IA signale le résultat d'une commande qui modifie quelque chose, comme `kubectl rollout restart` | `oneuptime-ai` |
 | Un runbook | Un runbook exécuté par OneUptime se termine, échoue ou est annulé après avoir démarré | `runbook` |
 | Un changement cloud | Le journal d'activité d'un compte cloud connecté enregistre un changement : AWS CloudTrail, le journal d'activité Azure ou le journal d'audit Admin Activity de Google Cloud | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Un rollout nécessite l'[agent Kubernetes](/docs/telemetry/kubernetes-agent), qui marque la télémétrie de chaque pod avec son Deployment et son ReplicaSet.
+
+Un déploiement d'application nécessite une application qui tourne sur une [plateforme d'applications managée](/docs/telemetry/cloud-environments#applications-et-déploiements). Il est enregistré sous l'environnement de l'application et tracé sur les graphiques de l'environnement et sur ceux de l'application, et un retour arrière vers une révision que l'application exécutait auparavant y est aussi enregistré.
 
 Un changement cloud ou un événement du fournisseur nécessite un [compte cloud connecté](/docs/telemetry/cloud-accounts). Chacun est lié à la ressource cloud qu'il nomme, quand OneUptime liste cette ressource, et dessiné sur les graphiques de la ressource. Son type vient de l'opération : `deployment`, `scaling` ou `rollback` quand le nom de l'opération le dit, `config-change` sinon, et `provider-event` pour un événement de santé. Les graphiques filtrés sur aucune ressource laissent de côté le journal d'activité d'un compte cloud, pour qu'un compte chargé n'éclipse pas vos déploiements ; les événements de santé du fournisseur y restent.
 

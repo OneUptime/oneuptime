@@ -34,7 +34,7 @@ Et hull er en alvorlighetsgrad uten regel, på fanen for hendelser, hendelsesepi
 
 ## Siden Beredskap
 
-Åpne **Vakttjeneste → Beredskap**. Kortet **On-call readiness** viser alle som en vaktretningslinje i prosjektet kan nå, med dem som trenger noe først. Alle i prosjektet kan åpne den.
+Åpne **Vakttjeneste → Beredskap**. Kortet **Vaktberedskap** viser alle som en vaktretningslinje i prosjektet kan nå, med dem som trenger noe først. Alle i prosjektet kan åpne den.
 
 Over listen teller flisene **Mottakere**, **Klar**, **Må settes opp** og **Utilgjengelig**. Klikk på **Klar**, **Må settes opp** eller **Utilgjengelig** for å vise bare de mottakerne, og klikk igjen for å vise alle.
 
@@ -43,10 +43,10 @@ Over listen teller flisene **Mottakere**, **Klar**, **Må settes opp** og **Util
 | **Mottaker** | Personen, med e-postadressen. |
 | **Status** | **Klar**, **Utilgjengelig** eller hvor mange hull personen har. |
 | **Kanaler** | Ett segment per kanal: fylt for en verifisert metode, hult for en som ikke er verifisert ennå. |
-| **Coverage** | Hvor mange alvorlighetsgrader som har en regel, på hver fane, av alle. |
-| **Reached via** | Hvordan retningslinjene når personen: hvert team som tilkaller personen gjennom en eskaleringsregel, med navnet sitt, eller **Direct**, **Tidsplan** eller **Overstyring**. |
+| **Dekning** | Hvor mange alvorlighetsgrader som har en regel, på hver fane, av alle. |
+| **Nås via** | Hvordan retningslinjene når personen: hvert team som tilkaller personen gjennom en eskaleringsregel, med navnet sitt, eller **Direkte**, **Tidsplan** eller **Overstyring**. |
 
-**Coverage** i en rad viser varselmetodene til personen, hvorfor personen har statusen sin, og et rutenett over hver alvorlighetsgrad med eller uten regel. Trakten filtrerer listen etter **Mottaker**, **Status**, **Team** eller **Reached via**. Svaret kan være et minutt gammelt: **Oppdater** fastsetter det på nytt.
+**Dekning** i en rad viser varselmetodene til personen, hvorfor personen har statusen sin, og et rutenett over hver alvorlighetsgrad med eller uten regel. Trakten filtrerer listen etter **Mottaker**, **Status**, **Team** eller **Nås via**. Svaret kan være et minutt gammelt: **Oppdater** fastsetter det på nytt.
 
 ## Minn folk på å gjøre ferdig oppsettet
 

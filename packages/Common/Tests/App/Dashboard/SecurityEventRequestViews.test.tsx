@@ -512,6 +512,33 @@ describe("Campaigns", () => {
     expect(getAttackCampaignsMock).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * An address is a value, read as written: in an isolate of its own
+   * direction, so an IPv6 address keeps its order on a Persian page, and
+   * free to wrap inside its column on a phone rather than run under the
+   * row's links.
+   */
+  test("an attacker's address reads as written and wraps inside its column", async () => {
+    const ipv6: string = "2001:db8:85a3::8a2e:370:7334";
+    getAttackCampaignsMock.mockResolvedValue(
+      result({
+        campaigns: [{ ...result().campaigns[0]!, sourceIp: ipv6 }],
+      }) as never,
+    );
+
+    render(inRouter(<SecurityAttackCampaigns />));
+
+    const address: HTMLElement = await screen.findByTestId(
+      "security-attack-campaign-address",
+    );
+
+    expect(address.tagName).toBe("BDI");
+    expect(address).toHaveAttribute("dir", "ltr");
+    expect(address).toHaveTextContent(ipv6);
+    expect(address.className).toContain("[overflow-wrap:anywhere]");
+    expect(address.className).toContain("min-w-0");
+  });
+
   test("an empty window says so, and what would fill it", async () => {
     getAttackCampaignsMock.mockResolvedValue(
       result({ campaigns: [] }) as never,

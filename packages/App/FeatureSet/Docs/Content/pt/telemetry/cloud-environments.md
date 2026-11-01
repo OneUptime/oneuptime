@@ -2,7 +2,7 @@
 
 Um **Ambiente de nuvem** é o lugar onde seus contêineres rodam em uma plataforma de nuvem gerenciada: a conta e a região de um cluster ECS, o projeto e a região do Cloud Run, a assinatura e a região do Container Apps. O OneUptime o cria na primeira vez que sua telemetria chega com os atributos de recurso certos, e agrupa cada carga de trabalho que roda ali. Não há nada para registrar à mão.
 
-Os ambientes são listados em Plataformas de aplicativos, um produto próprio: **Plataformas de aplicativos → Visão geral** os agrupa por plataforma e mostra primeiro os que pararam de enviar dados, e **Plataformas de aplicativos → Todos os ambientes** lista todos eles. Os recursos das suas contas de nuvem, como máquinas virtuais, buckets e bancos de dados gerenciados, ficam em Nuvem: veja [Recursos de nuvem](/docs/telemetry/cloud-resources).
+Os ambientes são listados em Plataformas de aplicativos, um produto próprio: **Plataformas de aplicativos → Visão geral** os agrupa por plataforma e mostra primeiro os que pararam de enviar dados, **Plataformas de aplicativos → Todos os apps** lista cada app que eles executam, e **Plataformas de aplicativos → Todos os ambientes** lista todos eles. Os recursos das suas contas de nuvem, como máquinas virtuais, buckets e bancos de dados gerenciados, ficam em Nuvem: veja [Recursos de nuvem](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tarefas no Fargate ou no EC2, com a CPU e a memória de cada tarefa.
@@ -31,6 +31,7 @@ flowchart TB
 - **Um detector de recursos diz onde a carga de trabalho roda.** Um detector de recursos do OpenTelemetry, no SDK ou em um coletor, lê os metadados da plataforma e coloca `cloud.platform`, `cloud.account.id` e `cloud.region` em tudo o que a carga de trabalho envia. Onde não existe detector, você os define.
 - **O ambiente agrupa tudo.** Toda carga de trabalho com a mesma plataforma, a mesma conta e a mesma região cai em um único ambiente. Os serviços mantêm suas próprias linhas em **Serviços**.
 - **Cada tarefa em execução é uma instância.** A aba **Instâncias** do ambiente lista suas tarefas, instâncias ou réplicas em execução, com CPU e memória ao vivo quando a plataforma consegue fornecê-las.
+- **Cada serviço é um app.** Um serviço do ECS, um serviço do Cloud Run ou um Container App é um app do seu ambiente, e o OneUptime guarda as revisões que ele executa: veja [Apps e implantações](#apps-e-implantações).
 
 ## Antes de começar
 
@@ -94,6 +95,32 @@ A identidade própria da plataforma vem primeiro de propósito. Um coletor sidec
 ### Adicionar um ambiente
 
 A ingestão cria os ambientes para você, então não há nada para digitar. Abra **Plataformas de aplicativos → Todos os ambientes** e clique em **Adicionar ambiente de nuvem**: escolha onde sua aplicação roda, e o guia mostra as configurações do OpenTelemetry dessa plataforma, com a URL do seu OneUptime e a chave de ingestão já preenchidas. A última etapa dele, **Aguardar a conexão**, avisa quando os primeiros dados do ambiente chegaram e traz um link para ele. Para mostrar outro nome, escolha **Editar detalhes** no cartão **Detalhes do ambiente** da página **Configurações** do ambiente e digite um **Nome de exibição**.
+
+## Apps e implantações
+
+Cada serviço que um ambiente executa é um app dele, com o nome que o console da plataforma dá a ele. **Plataformas de aplicativos → Todos os apps** lista cada app com a revisão que ele executa e as suas requisições, a sua taxa de erro e a sua latência p95 da última hora, e a aba **Apps** de um ambiente lista os dele.
+
+| Plataforma | App | Separado por | Revisão |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`, senão `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`, senão `service.version` ou `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`, senão `container.image.tag` |
+| Google Cloud Run | `faas.name`, senão `service.name` | — | `faas.version`, senão `service.version` |
+| Google App Engine | `faas.name`, senão `service.name` | — | `faas.version`, senão `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`, senão `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`, senão `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+O primeiro atributo que a telemetria traz dá nome ao app, então um app numa plataforma sem detector de recursos continua sendo um, pelo seu `service.name`. O `unknown_service` que um SDK reporta quando nenhum `service.name` é definido não dá nome a nenhum app.
+
+- **Uma revisão que o app nunca executou é uma implantação.** O OneUptime registra qual revisão ela substituiu, e quando. A primeira revisão que o OneUptime vê é onde começa o histórico do app, não uma implantação.
+- **Voltar é um rollback.** Quando a revisão que um app executa não reporta nada por 15 minutos enquanto uma que ele executou antes continua rodando, o OneUptime registra um rollback para essa.
+- **Ambos são mudanças.** Cada um é uma linha tracejada nos gráficos do app e do ambiente, uma linha no **Feed** do ambiente e um [evento de mudança](/docs/telemetry/change-events) que a OneUptime AI lê quando investiga um incidente no ambiente. **Implantações recentes** em **Plataformas de aplicativos → Visão geral** lista as mais novas.
+- **No máximo 12 revisões novas de um app são registradas em uma hora.** Caso contrário, uma `service.version` que muda a cada build seria uma implantação por minuto.
+
+A página de um app tem uma **Visão geral** com as suas requisições, erros, latência, instâncias e as revisões em execução agora, uma aba **Revisões** com os números de cada revisão, e as abas **Instâncias**, **Registros** e **Traços** filtradas para o app. **Configurar alertas** abre os monitores recomendados do serviço do app, em **Serviços**.
+
+Um app que não envia nada por 30 dias é removido com as suas revisões, assim como uma revisão que nenhuma instância reporta por 30 dias, a menos que o app ainda a execute. Num OneUptime auto-hospedado, `CLOUD_APP_RETENTION_DAYS` define esses 30.
 
 ## O que não é um ambiente de nuvem
 
@@ -182,12 +209,13 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 A **Visão geral** de um ambiente mostra:
 
-- **Requisições**, **Taxa de erro** e **Latência p95**, a partir dos seus traços, com gráficos de requisições, erros e memória no intervalo de tempo que você escolher.
+- **Requisições**, **Taxa de erro** e **Latência p95**, a partir dos spans onde as requisições entram nos seus serviços, com gráficos de requisições, erros e memória no intervalo de tempo que você escolher e uma linha tracejada a cada implantação.
 - **CPU** e **Memória** das instâncias ativas, e uma lista **Principais instâncias por CPU**. Vêm de métricas `container.cpu.utilization` e `container.memory.usage` que trazem a identidade da instância; no ECS, de `ecs.task.cpu.utilized` e `ecs.task.memory.utilized` do receptor `awsecscontainermetrics`.
 - **Instâncias**: quantas reportaram nos últimos 15 minutos. A aba **Instâncias** tem uma linha para cada uma.
+- **Apps**: os apps que o ambiente executa, primeiro os que precisam de atenção, com as suas requisições e erros da última hora.
 - As abas **Registros**, **Traços** e **Métricas**, filtradas para o ambiente.
 
-Um ambiente cuja telemetria para por 15 minutos mostra **Desconectado**, e o próximo span, log ou métrica o traz de volta para **Conectado**. O tempo em que o próprio OneUptime esteve fora do ar ou se atualizando não conta para os 15 minutos.
+Um ambiente que ainda não enviou nada mostra **Aguardando**. Um cuja telemetria para por 15 minutos mostra **Desconectado**, e o próximo span, log ou métrica o traz de volta para **Conectado**. O tempo em que o próprio OneUptime esteve fora do ar ou se atualizando não conta para os 15 minutos.
 
 ### Rótulos e proprietários
 

@@ -2,7 +2,7 @@
 
 A **Cloud Environment** is the place your containers run on a managed cloud platform: an ECS cluster's account and region, a Cloud Run project and region, a Container Apps subscription and region. OneUptime creates one the first time your telemetry arrives with the right resource attributes, and rolls up every workload that runs there. There is nothing to register by hand.
 
-Environments are listed in App Platforms, a product of their own: **App Platforms → Overview** groups them by platform and puts the ones that went quiet first, and **App Platforms → All Environments** lists every one. The resources in your cloud accounts, such as virtual machines, buckets and managed databases, are in Cloud: see [Cloud Resources](/docs/telemetry/cloud-resources).
+Environments are listed in App Platforms, a product of their own: **App Platforms → Overview** groups them by platform and puts the ones that went quiet first, **App Platforms → All Apps** lists every app they run, and **App Platforms → All Environments** lists every one. The resources in your cloud accounts, such as virtual machines, buckets and managed databases, are in Cloud: see [Cloud Resources](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tasks on Fargate or EC2, with per-task CPU and memory.
@@ -31,6 +31,7 @@ flowchart TB
 - **A resource detector says where the workload runs.** An OpenTelemetry resource detector, in the SDK or in a collector, reads the platform's metadata and sets `cloud.platform`, `cloud.account.id` and `cloud.region` on everything the workload sends. Where no detector exists, you set them yourself.
 - **The environment is the roll-up.** Every workload with the same platform, account and region lands in one environment. The services keep their own rows under **Services**.
 - **Each running task is an instance.** The environment's **Instances** tab lists its running tasks, instances or replicas, with live CPU and memory where the platform can supply them.
+- **Each service is an app.** An ECS service, a Cloud Run service or a Container App is an app of its environment, and OneUptime keeps the revisions it runs: see [Apps and deploys](#apps-and-deploys).
 
 ## Before you begin
 
@@ -94,6 +95,32 @@ The platform's own identity comes first on purpose. A sidecar collector and the 
 ### Add an environment
 
 Ingest creates environments for you, so there is nothing to type in. Open **App Platforms → All Environments** and click **Add Cloud Environment**: pick where your app runs, and the guide shows that platform's OpenTelemetry settings, with your OneUptime URL and ingestion key filled in. Its last step, **Wait for it to connect**, says when the environment's first data has arrived and links to it. To show another name, choose **Edit Details** on the **Environment Details** card of the environment's **Settings** page and type a **Display Name**.
+
+## Apps and deploys
+
+Each service an environment runs is an app of it, named the way the platform's console names it. **App Platforms → All Apps** lists every app with the revision it runs and its requests, error rate and p95 latency over the last hour, and an environment's **Apps** tab lists its own.
+
+| Platform | App | Kept apart by | Revision |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`, else `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`, else `service.version` or `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`, else `container.image.tag` |
+| Google Cloud Run | `faas.name`, else `service.name` | — | `faas.version`, else `service.version` |
+| Google App Engine | `faas.name`, else `service.name` | — | `faas.version`, else `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`, else `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`, else `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+The first attribute the telemetry carries names the app, so an app on a platform with no resource detector is still one, by its `service.name`. The `unknown_service` an SDK reports when no `service.name` is set names no app.
+
+- **A revision the app never ran is a deploy.** OneUptime records which revision it replaced, and when. The first revision OneUptime sees is where the app's history starts, not a deploy.
+- **Going back is a rollback.** When the revision an app runs reports nothing for 15 minutes while one it ran before keeps running, OneUptime records a rollback to that one.
+- **Both are changes.** Each is a dashed line on the app's and the environment's charts, a line in the environment's **Feed**, and a [change event](/docs/telemetry/change-events) that OneUptime AI reads when it investigates an incident on the environment. **Recent deploys** on **App Platforms → Overview** lists the newest.
+- **At most 12 new revisions of an app are recorded in an hour.** A `service.version` that changes with every build would otherwise be a deploy a minute.
+
+An app's page has an **Overview** with its requests, errors, latency, instances and the revisions running now, a **Revisions** tab with each revision's numbers, and **Instances**, **Logs** and **Traces** tabs filtered to the app. **Set up alerts** opens the recommended monitors of the app's service under **Services**.
+
+An app that sends nothing for 30 days is removed with its revisions, and so is a revision no instance reports for 30 days, unless the app still runs it. On a self-hosted OneUptime, `CLOUD_APP_RETENTION_DAYS` sets the 30.
 
 ## What is not a cloud environment
 
@@ -182,12 +209,13 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 An environment's **Overview** shows:
 
-- **Requests**, **Error rate** and **p95 latency**, from your traces, with charts of requests, errors and memory over the time range you pick.
+- **Requests**, **Error rate** and **p95 latency**, from the spans where requests enter your services, with charts of requests, errors and memory over the time range you pick and a dashed line at each deploy.
 - **CPU** and **Memory** across the live instances, and a **Top instances by CPU** list. They come from `container.cpu.utilization` and `container.memory.usage` metrics that carry the instance identity; on ECS, from the `awsecscontainermetrics` receiver's `ecs.task.cpu.utilized` and `ecs.task.memory.utilized`.
 - **Instances**: how many reported in the last 15 minutes. The **Instances** tab has one row each.
+- **Apps**: the apps the environment runs, the ones that need a look first, with their requests and errors over the last hour.
 - **Logs**, **Traces** and **Metrics** tabs, filtered to the environment.
 
-An environment whose telemetry stops for 15 minutes shows **Disconnected**, and the next span, log or metric brings it back to **Connected**. Time when OneUptime itself was down or catching up does not count toward the 15 minutes.
+An environment that has sent nothing yet shows **Waiting**. One whose telemetry stops for 15 minutes shows **Disconnected**, and the next span, log or metric brings it back to **Connected**. Time when OneUptime itself was down or catching up does not count toward the 15 minutes.
 
 ### Labels and owners
 

@@ -44,7 +44,7 @@ Per autenticarti invece con una password, salta questo passo e tieni a portata d
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Splunk Enterprise Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il token in **Authentication token**, oppure la password in **Password**.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Splunk Enterprise Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il token in **Authentication token**, oppure la password in **Password**.
 
 ### Provarla prima di salvare
 
@@ -159,7 +159,7 @@ In Splunk Web, apri **Settings → Data inputs → HTTP Event Collector** e fai 
 
 ### Aggiungere la destinazione
 
-Apri **Prodotti → Security Events → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Splunk in **SIEM** e fai clic su **Avanti**. Inserisci l'**URL HEC** e incolla il token in **Token HEC**. **Indice** e **Tipo di origine** sono facoltativi: se restano vuoti, gli eventi vanno nell'indice predefinito del token con il sourcetype `oneuptime:security`.
+Apri **Prodotti → Eventi di sicurezza → Connessioni**. In **Invia al tuo SIEM**, fai clic su **Aggiungi destinazione**, scegli Splunk in **SIEM** e fai clic su **Avanti**. Inserisci l'**URL HEC** e incolla il token in **Token HEC**. **Indice** e **Tipo di origine** sono facoltativi: se restano vuoti, gli eventi vanno nell'indice predefinito del token con il sourcetype `oneuptime:security`.
 
 ### Inviare un evento di prova e iniziare a inviare
 

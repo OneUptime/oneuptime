@@ -78,13 +78,13 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | --- | --- | --- |
 | **IoT Fleet** | Todas | Obrigatório. Restringe cada consulta a `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avançado | Opcional. Um dispositivo, pelo seu `device.id`, como `sensor-001`. |
-| **Device Type** | Custom Metric, Avançado | Opcional. Os dispositivos que informam este `iot.device.type`, como `sensor` ou `gateway`. |
+| **Tipo de dispositivo** | Custom Metric, Avançado | Opcional. Os dispositivos que informam este `iot.device.type`, como `sensor` ou `gateway`. |
 | **IoT Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). |
 | **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação usual da métrica. |
 | **Intervalo de tempo** | Todas | A janela móvel que a consulta lê, de **Past 1 Minute** a **Past 365 Days**. Um monitor novo começa em **Past 1 Minute**; os modelos definem a sua. |
 | **Selecionar Métricas** | Avançado | O construtor de consultas: **Métrica**, **Aggregate by**, **Filter by attributes**, **Agrupar por**, além de **Adicionar métrica** e **Adicionar fórmula** para combinar consultas. |
 
-Os filtros atuam juntos: com um **Device ID** e um **Device Type**, um dispositivo de outro tipo não corresponde a nada.
+Os filtros atuam juntos: com um **Device ID** e um **Tipo de dispositivo**, um dispositivo de outro tipo não corresponde a nada.
 
 ## Modelos de alerta prontos
 

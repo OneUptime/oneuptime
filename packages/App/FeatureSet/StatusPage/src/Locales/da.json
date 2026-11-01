@@ -1,4 +1,7 @@
 {
+  "Something went wrong": "Noget gik galt",
+  "An unexpected error has occurred. Please reload the page to continue": "Der opstod en uventet fejl. Genindlæs siden for at fortsætte",
+  "Error details": "Fejldetaljer",
   "a11y": {
     "skipToMainContent": "Spring til hovedindhold",
     "loading": "Indlæser...",

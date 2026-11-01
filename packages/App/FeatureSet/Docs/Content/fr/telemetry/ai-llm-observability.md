@@ -185,12 +185,12 @@ L'onglet **Alertes** liste les alertes que veulent la plupart des applications d
 
 | Alerte | Quand elle vous prévient | Gravité |
 | --- | --- | --- |
-| Les réponses tournent mal | Plus de 5 % des réponses en 15 minutes sont en échec, refusées, tronquées, vides ou signalées | Warning |
+| Les réponses tournent mal | Plus de 5 % des réponses en 15 minutes sont en échec, refusées, tronquées, vides ou signalées | Avertissement |
 | Les appels d'IA échouent | Plus de 10 % des appels au modèle en 5 minutes se terminent par une erreur | Critical |
-| L'IA refuse de répondre | Plus de 5 % des réponses en 30 minutes sont des refus | Warning |
-| Les réponses sont tronquées | 3 réponses ou plus en 30 minutes s'arrêtent à la limite de jetons | Warning |
-| Les réponses sont signalées | Une évaluation juge une réponse mauvaise | Warning |
-| Les réponses sont lentes | Plus de 10 % des réponses en 15 minutes prennent plus de 30 secondes | Warning |
+| L'IA refuse de répondre | Plus de 5 % des réponses en 30 minutes sont des refus | Avertissement |
+| Les réponses sont tronquées | 3 réponses ou plus en 30 minutes s'arrêtent à la limite de jetons | Avertissement |
+| Les réponses sont signalées | Une évaluation juge une réponse mauvaise | Avertissement |
+| Les réponses sont lentes | Plus de 10 % des réponses en 15 minutes prennent plus de 30 secondes | Avertissement |
 | L'IA cesse de répondre | L'IA ne donne aucune réponse pendant 30 minutes | Critical |
 
 Les alertes sur une part des réponses attendent aussi au moins 3 mauvaises réponses, si bien qu'une mauvaise réponse sur deux n'alerte personne. Une alerte Critical prend la gravité d'alerte la plus élevée de votre projet et une alerte Warning la suivante : High et Low dans un nouveau projet.

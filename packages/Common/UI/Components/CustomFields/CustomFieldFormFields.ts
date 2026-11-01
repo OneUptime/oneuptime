@@ -24,7 +24,10 @@ import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import { getCustomFieldValuesNotOffered } from "../../../Types/CustomField/CustomFieldOptionEdit";
 import { customFieldValueToText } from "../../../Types/CustomField/CustomFieldValueFormat";
 import { JSONObject } from "../../../Types/JSON";
-import { translateTemplate } from "../../Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translationKey,
+} from "../../Utils/TranslateTemplate";
 
 /*
  * The inputs for a record's custom field values, built from the project's
@@ -191,14 +194,17 @@ export const getCustomFieldDropdownOptions: GetCustomFieldDropdownOptionsFunctio
  * What a file field's picker says it takes, in place of its list of 25
  * types. The English texts are their keys in the locale files.
  */
-export const CUSTOM_FIELD_FILE_HINT: string =
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.";
+export const CUSTOM_FIELD_FILE_HINT: string = translationKey(
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.",
+);
 
 // What a File field's picker offers to do.
-export const CUSTOM_FIELD_FILE_PLACEHOLDER: string = "Upload a file";
+export const CUSTOM_FIELD_FILE_PLACEHOLDER: string =
+  translationKey("Upload a file");
 
-export const CUSTOM_FIELD_FILES_HINT: string =
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.";
+export const CUSTOM_FIELD_FILES_HINT: string = translationKey(
+  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+);
 
 export type SetCustomFieldFilePickerFunction = (data: {
   field: Field<JSONObject>;

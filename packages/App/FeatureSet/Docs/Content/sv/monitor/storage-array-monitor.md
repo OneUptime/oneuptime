@@ -32,7 +32,7 @@ flowchart TB
 ## Innan du börjar
 
 - **Installera Storage Array Agent** någonstans där den når arrayen över HTTPS, med API-token för en användare som har arrayens roll **readonly**. [Guiden för Storage Array Agent](/docs/telemetry/storage-arrays) går igenom användaren, token och installationen, med `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME` och arrayens adress och token (`PURE_FA_ENDPOINT` och `PURE_FA_API_TOKEN`, eller `PURE_FB_ENDPOINT` och `PURE_FB_API_TOKEN`).
-- **Kontrollera att arrayen är registrerad.** Den visas under **Produkter → Infrastruktur → Storage Arrays → All Storage Arrays**, med namnet från agentens `STORAGE_ARRAY_NAME`, ungefär en minut efter den första avläsningen.
+- **Kontrollera att arrayen är registrerad.** Den visas under **Produkter → Infrastruktur → Lagringsarrayer → All Storage Arrays**, med namnet från agentens `STORAGE_ARRAY_NAME`, ungefär en minut efter den första avläsningen.
 
 ## Skapa en lagringsarray-monitor
 
@@ -67,7 +67,7 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 :::
 
 > [!TIP]
-> För att sätta upp flera mallar på en gång öppnar du arrayen från **Produkter → Infrastruktur → Storage Arrays** och går till **Rekommendationer**. Välj de mallar du vill ha, välj vem som ska larmas, och OneUptime skapar en monitor per mall.
+> För att sätta upp flera mallar på en gång öppnar du arrayen från **Produkter → Infrastruktur → Lagringsarrayer** och går till **Rekommendationer**. Välj de mallar du vill ha, välj vem som ska larmas, och OneUptime skapar en monitor per mall.
 
 ## Monitorinställningar
 

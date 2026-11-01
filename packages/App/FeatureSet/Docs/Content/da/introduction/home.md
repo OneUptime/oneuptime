@@ -76,7 +76,7 @@ flowchart TB
     done -->|"Nej"| shown["Tjeklisten med de<br/>resterende trin"]
 ```
 
-Tjeklisten forsvinder, når alle fire trin er gennemført. Klik på **Luk** for at skjule den før. Det huskes i denne browser for dette projekt; alt, hvad trinene åbner, ligger stadig i menuen **Produkter**.
+Tjeklisten forsvinder, når alle fire trin er gennemført. Klik på **Skjul** for at skjule den før. Det huskes i denne browser for dette projekt; alt, hvad trinene åbner, ligger stadig i menuen **Produkter**.
 
 ### Kræver opmærksomhed
 

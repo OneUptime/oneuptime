@@ -1,4 +1,8 @@
+import IsolatedText from "../IsolatedText/IsolatedText";
+import { getLineDirection } from "../../Utils/LineDirection";
+import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -16,6 +20,8 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateValue, translateString } = useTranslateValue();
+  // The page's language: the way its lines read.
+  const translator: Translator = useTranslator();
   const translatedMessage: string | ReactElement | undefined =
     typeof props.message === "string"
       ? (translateValue(props.message) as string | ReactElement | undefined) ??
@@ -23,7 +29,18 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
       : props.message;
   return (
     <div className="text-center my-10 text-gray-500 text-sm">
-      {translatedMessage}
+      {/*
+       * Read the way it is written: a failed read's answer from the server
+       * is in English, and keeps its full stop at its end on a Persian page,
+       * in an isolate of its own. Words in the page's own way are drawn as
+       * they always were.
+       */}
+      {typeof translatedMessage === "string" &&
+      getLineDirection(translatedMessage, translator.language) ? (
+        <IsolatedText text={translatedMessage} />
+      ) : (
+        translatedMessage
+      )}
       {props.action ? (
         <div className="mt-4 flex justify-center" data-testid="empty-action">
           {props.action}

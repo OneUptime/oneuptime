@@ -120,7 +120,7 @@ Klik op **Alert Reminder Rule aanmaken**. Laat bij **Overeenkomst** de keuze **A
 Stel bij **Herinneringen** het **Herinneringsinterval (minuten)** in, hoe vaak eigenaren worden herinnerd, en **Herinneringen stoppen wanneer**: **Opgelost**, de standaard, of **Bevestigd**. De **Naam** volgt beide, zoals "Elke 30 minuten herinneren tot opgelost", totdat je zelf een naam typt. Maak daarna de regel aan.
 :::
 
-Eigenaren krijgen elke herinnering als **Alert reminder**, dat standaard per e-mail aan staat. De regel van een waarschuwing wordt opnieuw gematcht wanneer haar ernst of labels veranderen. Om de herinneringen voor één waarschuwing te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat wordt opgeslagen zodra je de schakelaar omzet.
+Eigenaren krijgen elke herinnering als **Waarschuwingsherinnering**, dat standaard per e-mail aan staat. De regel van een waarschuwing wordt opnieuw gematcht wanneer haar ernst of labels veranderen. Om de herinneringen voor één waarschuwing te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat wordt opgeslagen zodra je de schakelaar omzet.
 
 ## Instellingen
 

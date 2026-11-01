@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### 관리자 동의 부여하기
 
-**프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 로 이동해 **관리자 동의 부여** 를 클릭합니다. Microsoft 365 관리자가 로그인해 조직에 대해 OneUptime 앱을 허용합니다. 그러면 카드에 **Admin Consent Completed** 가 표시됩니다. 워크스페이스가 연결되기 전까지는 인시던트, 경고, 예정된 유지 관리, 모니터, 온콜 메뉴의 **워크스페이스** 섹션에 **Slack 또는 Teams 연결** 가 있으며, 이것도 여기로 연결됩니다.
+**프로젝트 설정** > **워크스페이스** > **Microsoft Teams** 로 이동해 **관리자 동의 부여** 를 클릭합니다. Microsoft 365 관리자가 로그인해 조직에 대해 OneUptime 앱을 허용합니다. 그러면 카드에 **Admin Consent Completed** 가 표시됩니다. 워크스페이스가 연결되기 전까지는 인시던트, 경고, 예정된 유지 관리, 모니터, 온콜 메뉴의 **워크스페이스** 섹션에 **Slack 또는 Teams 연결** 이 있으며, 이것도 여기로 연결됩니다.
 
 ### 본인의 계정 연결하기
 
@@ -141,7 +141,7 @@ OneUptime Cloud 에서 알림 규칙과 요약은 **Growth** 플랜 이상에서
 
 :::steps
 1. 자신의 Microsoft Teams 계정을 연결합니다 ( [Microsoft Teams 연결하기](#microsoft-teams-연결하기) 참조).
-2. **사용자 설정** > **알림 방법** 로 이동해 **Workspace Apps** 탭을 열고 **Add Microsoft Teams Account** 를 클릭합니다.
+2. **사용자 설정** > **알림 방법** 으로 이동해 **Workspace Apps** 탭을 열고 **Add Microsoft Teams Account** 를 클릭합니다.
 3. 해당 행에서 **Send Test Message** 를 클릭합니다. Microsoft Teams 채팅으로 메시지가 도착합니다.
 :::
 

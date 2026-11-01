@@ -185,12 +185,12 @@ Fanen **Varsler** viser varslene de fleste AI-apper trenger. Når du velger ett,
 
 | Varsel | Når det gir beskjed | Alvorlighetsgrad |
 | --- | --- | --- |
-| Svar går galt | Mer enn 5 % av svarene på 15 minutter feiler, blir avvist, kuttet, er tomme eller merket | Warning |
+| Svar går galt | Mer enn 5 % av svarene på 15 minutter feiler, blir avvist, kuttet, er tomme eller merket | Advarsel |
 | AI-kall feiler | Mer enn 10 % av kallene til modellen på 5 minutter ender med en feil | Critical |
-| AI-en nekter å svare | Mer enn 5 % av svarene på 30 minutter er avvisninger | Warning |
-| Svar blir kuttet | 3 eller flere svar på 30 minutter stopper ved tokengrensen | Warning |
-| Svar blir merket | En evaluering merker et svar som dårlig | Warning |
-| Svar er trege | Mer enn 10 % av svarene på 15 minutter tar mer enn 30 sekunder | Warning |
+| AI-en nekter å svare | Mer enn 5 % av svarene på 30 minutter er avvisninger | Advarsel |
+| Svar blir kuttet | 3 eller flere svar på 30 minutter stopper ved tokengrensen | Advarsel |
+| Svar blir merket | En evaluering merker et svar som dårlig | Advarsel |
+| Svar er trege | Mer enn 10 % av svarene på 15 minutter tar mer enn 30 sekunder | Advarsel |
 | AI-en slutter å svare | AI-en gir ingen svar på 30 minutter | Critical |
 
 Varslene på en andel av svarene venter også på minst 3 dårlige svar, så ett dårlig svar av to tilkaller ingen. Et Critical-varsel får prosjektets høyeste varselalvorlighetsgrad og et Warning-varsel den neste: High og Low i et nytt prosjekt.

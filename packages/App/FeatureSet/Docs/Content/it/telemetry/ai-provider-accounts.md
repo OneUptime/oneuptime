@@ -34,7 +34,7 @@ L'utilizzo di un account è ciò che gli è stato addebitato, un giorno alla vol
 :::steps
 ### Apri Collega
 
-Apri **Prodotti → AI / LLM → Collega**. In **I tuoi account dei provider di IA**, fai clic sul riquadro del provider.
+Apri **Prodotti → IA / LLM → Collega**. In **I tuoi account dei provider di IA**, fai clic sul riquadro del provider.
 
 ### Incolla la credenziale
 

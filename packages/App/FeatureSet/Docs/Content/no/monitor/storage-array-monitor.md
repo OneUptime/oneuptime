@@ -32,7 +32,7 @@ flowchart TB
 ## Før du begynner
 
 - **Installer Storage Array Agent** et sted der den kan nå arrayet over HTTPS, med API-tokenet til en bruker som har arrayets rolle **readonly**. [Veiledningen for Storage Array Agent](/docs/telemetry/storage-arrays) dekker brukeren, tokenet og installasjonen, gjennom `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME` og arrayets adresse og token (`PURE_FA_ENDPOINT` og `PURE_FA_API_TOKEN`, eller `PURE_FB_ENDPOINT` og `PURE_FB_API_TOKEN`).
-- **Sjekk at arrayet er registrert.** Det vises under **Produkter → Infrastruktur → Storage Arrays → All Storage Arrays**, oppkalt etter agentens `STORAGE_ARRAY_NAME`, rundt et minutt etter den første avlesningen.
+- **Sjekk at arrayet er registrert.** Det vises under **Produkter → Infrastruktur → Lagringsarrayer → All Storage Arrays**, oppkalt etter agentens `STORAGE_ARRAY_NAME`, rundt et minutt etter den første avlesningen.
 
 ## Opprett en lagringsarray-monitor
 
@@ -67,7 +67,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 :::
 
 > [!TIP]
-> For å sette opp flere maler på én gang åpner du arrayet fra **Produkter → Infrastruktur → Storage Arrays** og går til **Anbefalinger**. Velg malene du vil ha, velg hvem som skal tilkalles, og OneUptime oppretter én monitor per mal.
+> For å sette opp flere maler på én gang åpner du arrayet fra **Produkter → Infrastruktur → Lagringsarrayer** og går til **Anbefalinger**. Velg malene du vil ha, velg hvem som skal tilkalles, og OneUptime oppretter én monitor per mal.
 
 ## Monitorinnstillinger
 
