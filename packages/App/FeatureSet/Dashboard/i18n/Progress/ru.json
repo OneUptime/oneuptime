@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39842,
-    "untranslated": 12753
+    "untranslated": 12749
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -30,9 +30,11 @@
     "INP 540 ms",
     "JavaScript API",
     "LXC 201 · pve3",
+    "Log4Shell",
     "MCP",
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
+    "Markdown",
     "Null",
     "OK",
     "OSD",
@@ -42,6 +44,7 @@
     "PVC",
     "Passthrough",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Push",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Runner",
@@ -70,6 +73,7 @@
     "main",
     "message",
     "name",
+    "p95",
     "p95 {{latency}}",
     "prod, staging",
     "prod-.*",
