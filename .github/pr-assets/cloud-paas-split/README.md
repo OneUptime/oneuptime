@@ -16,6 +16,10 @@ no backend. Every image is at 1x.
     saves them as it runs: the Overview at 1280 and 390 pixels (and 390 dark),
     in Persian, an environment's Overview, and Owner Rules with a rule made
     before the split and its pill's tooltip.
+- `after-products-menu.png` is the Products menu on an App Platforms page,
+  from this branch's Navigation Search fixture: the new Cloud section (Cloud,
+  App Platforms, Serverless) after Infrastructure, open, with App Platforms
+  lit. On master, Cloud and Serverless were two of Infrastructure's 13.
 - The website images render Home's EJS views as Routes.ts does (ts-node,
   `ejs.renderFile`) and serve Home's static files and Common's vendor folder
   to the browser; Google Fonts load from the network:
