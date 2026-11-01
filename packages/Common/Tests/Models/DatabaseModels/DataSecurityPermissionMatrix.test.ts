@@ -9,6 +9,7 @@ import DataSecurityScan from "../../../Models/DatabaseModels/DataSecurityScan";
 import DataSecuritySetting from "../../../Models/DatabaseModels/DataSecuritySetting";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../Models/DatabaseModels/DataStoreAccess";
+import DataSecurityIdentity from "../../../Models/DatabaseModels/DataSecurityIdentity";
 import DataStoreFeed from "../../../Models/DatabaseModels/DataStoreFeed";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
 import DataStoreLabelRule from "../../../Models/DatabaseModels/DataStoreLabelRule";
@@ -101,6 +102,16 @@ const MATRIX: ReadonlyArray<[string, ModelClass, Grants]> = [
       read: [...READERS, Permission.ReadDataStoreAccess],
       update: NOBODY,
       delete: [...ADMINS, Permission.DeleteDataStoreAccess],
+    },
+  ],
+  [
+    "DataSecurityIdentity",
+    DataSecurityIdentity,
+    {
+      create: NOBODY,
+      read: [...READERS, Permission.ReadDataSecurityIdentity],
+      update: NOBODY,
+      delete: NOBODY,
     },
   ],
   [
@@ -239,6 +250,7 @@ const MATRIX: ReadonlyArray<[string, ModelClass, Grants]> = [
 const WRITTEN_BY_ONEUPTIME: ReadonlyArray<ModelClass> = [
   DataStoreFinding,
   DataStoreAccess,
+  DataSecurityIdentity,
   DataSecurityFlow,
   DataSecurityIssue,
   DataSecurityIssueFeed,
@@ -302,7 +314,7 @@ describe("Data Security's permission matrix", () => {
   );
 
   test("the matrix covers every Data Security model, each once", () => {
-    expect(new Set(MODELS).size).toBe(16);
+    expect(new Set(MODELS).size).toBe(17);
     expect(
       MATRIX.map((row: [string, ModelClass, Grants]): string => {
         return new row[1]().tableName!;
@@ -408,10 +420,23 @@ describe("Data Security's permission matrix", () => {
     );
   });
 
-  test("an access entry, a flow and a scan are read only, column by column", () => {
-    for (const Model of [DataStoreAccess, DataSecurityFlow, DataSecurityScan]) {
+  test("an access entry, an identity, a flow and a scan are read only, column by column", () => {
+    for (const Model of [
+      DataStoreAccess,
+      DataSecurityIdentity,
+      DataSecurityFlow,
+      DataSecurityScan,
+    ]) {
       expect(editableColumns(new Model())).toEqual([]);
     }
+  });
+
+  test("an identity is OneUptime's alone: nobody makes, edits or deletes one", () => {
+    const identity: BaseModel = new DataSecurityIdentity();
+
+    expect(grantsOf(identity).create).toEqual([]);
+    expect(grantsOf(identity).update).toEqual([]);
+    expect(grantsOf(identity).delete).toEqual([]);
   });
 
   test("a store's connection string is written, never read back, and kept encrypted; the scans' working state is read by nobody", () => {

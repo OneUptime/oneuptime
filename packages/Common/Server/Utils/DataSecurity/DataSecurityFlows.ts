@@ -11,6 +11,9 @@ import InventoryItemRelationshipService from "../../Services/InventoryItemRelati
 import InventoryItemService from "../../Services/InventoryItemService";
 import SpanService from "../../Services/SpanService";
 import { estimateOverlap } from "./Fingerprint";
+import DataSecurityTracedAccess, {
+  TracedUse,
+} from "./DataSecurityTracedAccess";
 import logger from "../Logger";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import {
@@ -53,7 +56,10 @@ import { ResponseJSON } from "@clickhouse/client";
  *    runs from production to non-production when environments differ, and
  *    from the older store to the newer otherwise.
  *
- * Flows not seen again for FLOW_RETENTION_IN_DAYS days are dropped.
+ * Flows not seen again for FLOW_RETENTION_IN_DAYS days are dropped. Each
+ * Uses flow also makes its service one of the store's access entries, seen
+ * in traces (DataSecurityTracedAccess) - after a read of the service map
+ * that worked.
  */
 
 export const FLOW_RETENTION_IN_DAYS: number = 30;
@@ -78,6 +84,8 @@ interface FlowDraft {
   isConfirmed: boolean;
   overlapPercent: number;
   callCount: number;
+  // When the service map last saw the call, for a Uses flow.
+  seenAt?: Date | undefined;
 }
 
 export default class DataSecurityFlows {
@@ -99,10 +107,14 @@ export default class DataSecurityFlows {
       add(draft);
     }
 
+    let serviceMapRead: boolean = false;
+
     try {
       for (const draft of await this.serviceMapFlows(projectId, stores)) {
         add(draft);
       }
+
+      serviceMapRead = true;
     } catch (error) {
       logger.error(
         `DataSecurity: could not read the service map of project ${projectId.toString()}:`,
@@ -122,6 +134,46 @@ export default class DataSecurityFlows {
     }
 
     await this.write(projectId, [...drafts.values()]);
+
+    // The services seen using each store, as who can reach it.
+    if (serviceMapRead) {
+      try {
+        await DataSecurityTracedAccess.sync({
+          projectId,
+          uses: this.tracedUses([...drafts.values()]),
+          now: OneUptimeDate.getCurrentDate(),
+        });
+      } catch (error) {
+        logger.error(
+          `DataSecurity: could not record the services using the stores of project ${projectId.toString()}:`,
+        );
+        logger.error(error);
+      }
+    }
+  }
+
+  // The Uses flows, as the services they show calling each store.
+  public static tracedUses(drafts: Array<FlowDraft>): Array<TracedUse> {
+    const uses: Array<TracedUse> = [];
+
+    for (const draft of drafts) {
+      if (
+        draft.kind !== this.USES ||
+        !draft.sourceDataStoreId ||
+        !(draft.destination || draft.serviceId)
+      ) {
+        continue;
+      }
+
+      uses.push({
+        dataStoreId: draft.sourceDataStoreId,
+        serviceId: draft.serviceId,
+        serviceName: draft.destination || "",
+        seenAt: draft.seenAt || OneUptimeDate.getCurrentDate(),
+      });
+    }
+
+    return uses;
   }
 
   private static sensitivityOf(store: DataStore | undefined): DataSensitivity {
@@ -226,7 +278,12 @@ export default class DataSecurityFlows {
     const edges: Array<InventoryItemRelationship> =
       await InventoryItemRelationshipService.findBy({
         query: { projectId },
-        select: { fromEntityKey: true, toEntityKey: true, callCount: true },
+        select: {
+          fromEntityKey: true,
+          toEntityKey: true,
+          callCount: true,
+          lastSeenAt: true,
+        },
         skip: 0,
         limit: 5000,
         props: { isRoot: true },
@@ -328,6 +385,7 @@ export default class DataSecurityFlows {
           isConfirmed: false,
           overlapPercent: 0,
           callCount: edge.callCount || 0,
+          seenAt: edge.lastSeenAt || undefined,
         });
       } else if (to.entityType === EntityType.RemoteService && address) {
         drafts.push({

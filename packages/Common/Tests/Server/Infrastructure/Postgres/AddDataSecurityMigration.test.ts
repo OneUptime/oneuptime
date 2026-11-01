@@ -1,5 +1,6 @@
 import { AddDataSecurity1808500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808500000000-AddDataSecurity";
 import { AddSecurityHunts1808450000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808450000000-AddSecurityHunts";
+import { AddDataSecurityIdentities1808760000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808760000000-AddDataSecurityIdentities";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSecurityCheckSetting from "../../../../Models/DatabaseModels/DataSecurityCheckSetting";
@@ -97,6 +98,24 @@ const JOIN_TABLES: ReadonlyArray<[string, string, string, string]> = [
   ["DataStoreLabelRuleMatchLabel", "dataStoreLabelRuleId", "labelId", "Label"],
   ["DataStoreLabelRuleAddLabel", "dataStoreLabelRuleId", "labelId", "Label"],
 ];
+
+/*
+ * Columns of these models that later migrations add, each with the one
+ * that adds it: what this migration made stays as it shipped.
+ */
+const ADDED_LATER: ReadonlyArray<[string, string, MigrationClass]> = [
+  ["DataStoreAccess", "isUnused", AddDataSecurityIdentities1808760000000],
+];
+
+function addedLater(table: string): Array<string> {
+  return ADDED_LATER.filter(
+    (entry: [string, string, MigrationClass]): boolean => {
+      return entry[0] === table;
+    },
+  ).map((entry: [string, string, MigrationClass]): string => {
+    return entry[1];
+  });
+}
 
 const NEW_TABLES: ReadonlyArray<string> = [
   ...MODEL_TABLES.map((entry: [string, ModelClass]): string => {
@@ -239,6 +258,31 @@ describe("the Data Security migration", () => {
     ).toBeUndefined();
   });
 
+  test("each column a later migration adds is that migration's, registered after this one", async () => {
+    const registered: Array<MigrationClass> =
+      SchemaMigrations as Array<MigrationClass>;
+
+    for (const [table, column, Later] of ADDED_LATER) {
+      const steps: Array<string> = [];
+
+      await new Later().up({
+        isTransactionActive: true,
+        query: async (sql: string): Promise<void> => {
+          steps.push(sql);
+        },
+      } as unknown as QueryRunner);
+
+      expect(
+        steps.some((step: string): boolean => {
+          return step.startsWith(`ALTER TABLE "${table}" ADD "${column}" `);
+        }),
+      ).toBe(true);
+      expect(registered.indexOf(Later)).toBeGreaterThan(
+        registered.indexOf(AddDataSecurity1808500000000),
+      );
+    }
+  });
+
   test("creates the sixteen model tables and the six join tables, each once", async () => {
     expect(named(await record("up"), CREATE_TABLE)).toEqual(NEW_TABLES);
   });
@@ -247,8 +291,13 @@ describe("the Data Security migration", () => {
     "creates %s with every column its model stores, and the base model's own",
     async (table: string, Model: ModelClass) => {
       const statement: string = createStatement(await record("up"), table);
+      const later: Array<string> = addedLater(table);
 
-      expect(columnsCreated(statement)).toEqual(storedColumns(new Model()));
+      expect(columnsCreated(statement)).toEqual(
+        storedColumns(new Model()).filter((column: string): boolean => {
+          return !later.includes(column);
+        }),
+      );
       expect(statement).toContain(
         `"_id" uuid NOT NULL DEFAULT uuid_generate_v4()`,
       );
