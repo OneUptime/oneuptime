@@ -39876,5 +39876,15 @@
   "The latest memory use of this DaemonSet's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes.": "この DaemonSet の Pod の最新のメモリ使用量の合計です。合計量と、各 Pod のノードの割り当て可能なメモリ（ノードが Pod に割り当てられるメモリ）に対する割合の合計を表示し、後者は 100% を超えることがあります。過去 15 分間に報告した Pod を数えます。",
   "The latest memory use of this StatefulSet's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes.": "この StatefulSet の Pod の最新のメモリ使用量の合計です。合計量と、各 Pod のノードの割り当て可能なメモリ（ノードが Pod に割り当てられるメモリ）に対する割合の合計を表示し、後者は 100% を超えることがあります。過去 15 分間に報告した Pod を数えます。",
   "The latest memory use of this deployment's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes.": "この Deployment の Pod の最新のメモリ使用量の合計です。合計量と、各 Pod のノードの割り当て可能なメモリ（ノードが Pod に割り当てられるメモリ）に対する割合の合計を表示し、後者は 100% を超えることがあります。過去 15 分間に報告した Pod を数えます。",
-  "The latest memory use of this job's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes (so N/A soon after the job ends).": "このジョブの Pod の最新のメモリ使用量の合計です。合計量と、各 Pod のノードの割り当て可能なメモリ（ノードが Pod に割り当てられるメモリ）に対する割合の合計を表示し、後者は 100% を超えることがあります。過去 15 分間に報告した Pod を数えます（そのため、ジョブの終了後まもなく N/A になります）。"
+  "The latest memory use of this job's pods added up: the total amount, and the sum of each pod's share of its node's allocatable memory (what the node can hand out to pods), which can pass 100%. Counts pods that reported in the last 15 minutes (so N/A soon after the job ends).": "このジョブの Pod の最新のメモリ使用量の合計です。合計量と、各 Pod のノードの割り当て可能なメモリ（ノードが Pod に割り当てられるメモリ）に対する割合の合計を表示し、後者は 100% を超えることがあります。過去 15 分間に報告した Pod を数えます（そのため、ジョブの終了後まもなく N/A になります）。",
+  "Run of {{owner}} in namespace {{namespace}}": "Namespace {{namespace}} の {{owner}} の実行",
+  "What Kubernetes reports about this CronJob.": "この CronJobについて Kubernetes が報告している内容です。",
+  "What Kubernetes reports about this DaemonSet.": "この DaemonSetについて Kubernetes が報告している内容です。",
+  "What Kubernetes reports about this Deployment.": "この Deploymentについて Kubernetes が報告している内容です。",
+  "What Kubernetes reports about this Job.": "この Jobについて Kubernetes が報告している内容です。",
+  "What Kubernetes reports about this StatefulSet.": "この StatefulSetについて Kubernetes が報告している内容です。",
+  "What Kubernetes reports about this node.": "このノードについて Kubernetes が報告している内容です。",
+  "What Kubernetes reports about this pod.": "この Podについて Kubernetes が報告している内容です。",
+  "{{count}} Nodes Not Ready": "準備未完了のノード {{count}} 個",
+  "{{count}} Nodes Not Ready_one": "準備未完了のノード {{count}} 個"
 }

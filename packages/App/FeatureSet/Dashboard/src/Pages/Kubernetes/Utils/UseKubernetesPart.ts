@@ -55,6 +55,8 @@ export interface KubernetesPartState {
   read: KubernetesPartRead | null;
   isLoading: boolean;
   error: string;
+  // Reads it again: what a failed read's Refresh does.
+  refresh?: (() => void) | undefined;
 }
 
 export default function useKubernetesPart(data: {
@@ -70,6 +72,8 @@ export default function useKubernetesPart(data: {
     isLoading: true,
     error: "",
   });
+  // Bumped by refresh(): the read runs again.
+  const [attempt, setAttempt] = useState<number>(0);
 
   useEffect(() => {
     let ignore: boolean = false;
@@ -111,7 +115,15 @@ export default function useKubernetesPart(data: {
     data.name,
     data.namespace || "",
     data.refreshToken,
+    attempt,
   ]);
 
-  return state;
+  return {
+    ...state,
+    refresh: (): void => {
+      setAttempt((previous: number): number => {
+        return previous + 1;
+      });
+    },
+  };
 }

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39593,
-    "untranslated": 7471
+    "keys": 39848,
+    "untranslated": 7505
   },
   "sameAsEnglish": [
     " incidents",
@@ -512,6 +512,8 @@
     "{{count}} minutes",
     "{{count}} option",
     "{{count}} options",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} rotation",
     "{{count}} rotations",
     "{{count}} source",

@@ -241,9 +241,23 @@ export function getKubernetesPartAttentionItems(data: {
     return rank(a) - rank(b);
   });
 
+  /*
+   * A namespaced part's pods and runs are all in its namespace, which its
+   * hero names: under each of their names it only repeated "shop". A
+   * node's page keeps it - its pods come from every namespace.
+   */
+  const ownNamespace: string = part.namespaceKey || "";
+
   return findings.map(
     (finding: KubernetesAttentionFinding): ResourceAttentionItem => {
-      return toKubernetesAttentionItem(finding, data.routeFor);
+      const item: ResourceAttentionItem = toKubernetesAttentionItem(
+        finding,
+        data.routeFor,
+      );
+      if (ownNamespace && finding.namespace === ownNamespace) {
+        delete item.detail;
+      }
+      return item;
     },
   );
 }
@@ -471,6 +485,8 @@ export interface KubernetesPartCopy {
   openDescription: string;
   alertsTitle: string;
   alertsDescription: string;
+  // The Details card under them: what Kubernetes itself reports.
+  detailsDescription: string;
 }
 
 export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
@@ -486,6 +502,9 @@ export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
     alertsDescription: translationKey(
       "The cluster's alerts that watch every pod, this one included: each is one monitor that fires for any pod that crosses it.",
     ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this pod.",
+    ),
   },
   Deployment: {
     attentionDescription: translationKey(
@@ -498,6 +517,9 @@ export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
     alertsTitle: translationKey("Deployment alerts"),
     alertsDescription: translationKey(
       "The cluster's alerts that watch every Deployment and its pods, this one included: each is one monitor that fires for any that crosses it.",
+    ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this Deployment.",
     ),
   },
   StatefulSet: {
@@ -512,6 +534,9 @@ export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
     alertsDescription: translationKey(
       "The cluster's alerts that watch every StatefulSet and its pods, this one included: each is one monitor that fires for any that crosses it.",
     ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this StatefulSet.",
+    ),
   },
   DaemonSet: {
     attentionDescription: translationKey(
@@ -524,6 +549,9 @@ export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
     alertsTitle: translationKey("DaemonSet alerts"),
     alertsDescription: translationKey(
       "The cluster's alerts that watch every DaemonSet and its pods, this one included: each is one monitor that fires for any that crosses it.",
+    ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this DaemonSet.",
     ),
   },
   Job: {
@@ -538,6 +566,9 @@ export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
     alertsDescription: translationKey(
       "The cluster's alerts that watch every Job and its pods, this one included: each is one monitor that fires for any that crosses it.",
     ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this Job.",
+    ),
   },
   CronJob: {
     attentionDescription: translationKey(
@@ -550,6 +581,9 @@ export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
     alertsTitle: translationKey("CronJob alerts"),
     alertsDescription: translationKey(
       "The cluster's alerts that watch every Job and its pods, this CronJob's runs included: each is one monitor that fires for any that crosses it.",
+    ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this CronJob.",
     ),
   },
   Node: {
@@ -564,8 +598,27 @@ export const KUBERNETES_PART_COPY: Record<string, KubernetesPartCopy> = {
     alertsDescription: translationKey(
       "The cluster's alerts that watch every node, this one included: each is one monitor that fires for any node that crosses it.",
     ),
+    detailsDescription: translationKey(
+      "What Kubernetes reports about this node.",
+    ),
   },
 };
+
+/*
+ * The Details card a part's Overview ends with (ResourceOverviewTab's
+ * detailsCard): one card of what Kubernetes reports about it, each name
+ * over its value, under the hero that already says what it is and how it
+ * is doing - not a card per value.
+ */
+export function getKubernetesPartDetailsCard(kind: string): {
+  testId: string;
+  description: string;
+} {
+  return {
+    testId: `kubernetes-${kind.toLowerCase()}-details`,
+    description: KUBERNETES_PART_COPY[kind]?.detailsDescription || "",
+  };
+}
 
 /*
  * The cluster's recommended alerts that watch parts of each kind, in the

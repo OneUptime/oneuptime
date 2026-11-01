@@ -84,7 +84,12 @@ const KubernetesPartPods: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   if (props.error && !props.read) {
-    return <ErrorMessage message={props.error} />;
+    return (
+      <ErrorMessage
+        message={props.error}
+        onRefreshClick={props.onRefreshClick}
+      />
+    );
   }
 
   const rows: Array<KubernetesPartRow> = props.read?.pods || [];

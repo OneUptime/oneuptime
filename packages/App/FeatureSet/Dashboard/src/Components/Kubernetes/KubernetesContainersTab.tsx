@@ -188,6 +188,12 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
     Object.keys(props.container.resources.requests).length > 0 ||
     Object.keys(props.container.resources.limits).length > 0;
 
+  // Its state as its badge colours it: red when it cannot run.
+  const isCritical: boolean = Boolean(
+    props.status &&
+      getContainerStateBadge(props.status).type === StatusBadgeType.Danger,
+  );
+
   return (
     <Card
       title={translator.translateTemplate(
@@ -249,13 +255,19 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
          * Why it is not running, and how its last run ended - the first
          * thing kubectl describe is opened for: the kubelet's own words
          * about a wait, and an OOM kill or an exit code with when it
-         * happened.
+         * happened. Red beside a red state (CrashLoopBackOff, an error),
+         * as its badge above is; amber otherwise.
          */}
         {props.status &&
         (props.status.message || props.status.lastTerminationReason) ? (
           <div
             data-testid="kubernetes-container-diagnosis"
-            className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            data-tone={isCritical ? "danger" : "warning"}
+            className={`space-y-1 rounded-lg border px-4 py-3 text-sm ${
+              isCritical
+                ? "border-red-200 bg-red-50 text-red-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
           >
             {props.status.message ? (
               <p className="[overflow-wrap:anywhere]">
@@ -294,7 +306,9 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
                 Number.isFinite(
                   new Date(props.status.lastTerminatedAt).getTime(),
                 ) ? (
-                  <span className="text-amber-800">
+                  <span
+                    className={isCritical ? "text-red-800" : "text-amber-800"}
+                  >
                     {" · "}
                     {translator.translateTemplate("Ended {{time}}", {
                       time: OneUptimeDate.fromNow(

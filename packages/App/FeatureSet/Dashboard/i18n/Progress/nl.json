@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39593,
-    "untranslated": 13075
+    "keys": 39848,
+    "untranslated": 13110
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -321,6 +321,8 @@
     "{{count}} appliances",
     "{{count}} cluster",
     "{{count}} clusters",
+    "{{count}} container",
+    "{{count}} containers",
     "{{count}} dashboard",
     "{{count}} dashboards",
     "{{count}} datacenter",
@@ -334,8 +336,12 @@
     "{{count}} host",
     "{{count}} hosts",
     "{{count}} incident",
+    "{{count}} node",
+    "{{count}} nodes",
     "{{count}} open incident",
     "{{count}} open pull requests",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} product",
     "{{count}} repository",
     "{{count}} sample",

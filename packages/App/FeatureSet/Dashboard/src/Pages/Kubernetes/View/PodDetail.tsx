@@ -60,6 +60,7 @@ import {
   getKubernetesNamespaceParam,
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterPodDetail: FunctionComponent<
   PageComponentProps
@@ -316,10 +317,12 @@ const KubernetesClusterPodDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Build overview summary fields from pod object
+  /*
+   * What Kubernetes reports about the pod, in one Details card under the
+   * hero: the hero already names its cluster, its status and where it runs.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Pod Name", value: podName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "Pod Name", value: podName, copyText: podName },
   ];
 
   if (podObject) {
@@ -351,22 +354,14 @@ const KubernetesClusterPodDetail: FunctionComponent<
           "default"
         ),
       },
+      /*
+       * The pod's phase as Kubernetes reports it, plain: a crash-looping
+       * pod's phase is Running, and a green Running under the hero's red
+       * CrashLoopBackOff read as two answers. Its health is the hero's.
+       */
       {
-        title: "Status",
-        value: (
-          <StatusBadge
-            text={podObject.status.phase || "Unknown"}
-            type={
-              podObject.status.phase === "Running"
-                ? StatusBadgeType.Success
-                : podObject.status.phase === "Succeeded"
-                  ? StatusBadgeType.Info
-                  : podObject.status.phase === "Failed"
-                    ? StatusBadgeType.Danger
-                    : StatusBadgeType.Warning
-            }
-          />
-        ),
+        title: "Phase",
+        value: podObject.status.phase || "Unknown",
       },
       {
         title: "QoS Class",
@@ -436,6 +431,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
             kind="Pod"
             read={partState.read}
             error={partState.error}
+            onRetry={partState.refresh}
             routes={routes}
           />
           <KubernetesOverviewTab
@@ -449,6 +445,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
             namespace={podObject?.metadata.namespace}
             modelId={modelId}
             isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("Pod")}
           />
         </>
       ),
@@ -562,6 +559,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
         read={partState.read}
         clusterName={cluster.name || clusterIdentifier}
         routes={routes}
+        namespace={namespaceParam}
       />
       {/*
        * The Database this pod is a member of, if any — by the workloads

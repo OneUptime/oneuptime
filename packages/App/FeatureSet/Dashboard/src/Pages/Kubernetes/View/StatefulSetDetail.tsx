@@ -60,6 +60,7 @@ import {
   getKubernetesNamespaceParam,
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterStatefulSetDetail: FunctionComponent<
   PageComponentProps
@@ -257,10 +258,12 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Build overview summary fields from statefulset object
+  /*
+   * What Kubernetes reports about it, in one Details card under the hero,
+   * which already names its cluster and says how it is doing.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Name", value: statefulSetName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "Name", value: statefulSetName, copyText: statefulSetName },
   ];
 
   if (objectData) {
@@ -333,6 +336,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
             kind="StatefulSet"
             read={partState.read}
             error={partState.error}
+            onRetry={partState.refresh}
             routes={routes}
           />
           <KubernetesOverviewTab
@@ -340,6 +344,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
             labels={objectData?.metadata.labels || {}}
             annotations={objectData?.metadata.annotations || {}}
             isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("StatefulSet")}
           />
         </>
       ),
@@ -396,6 +401,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
         read={partState.read}
         clusterName={cluster.name || clusterIdentifier}
         routes={routes}
+        namespace={namespaceParam}
       />
       {/*
        * The Database discovered on this StatefulSet, if any — by its name,

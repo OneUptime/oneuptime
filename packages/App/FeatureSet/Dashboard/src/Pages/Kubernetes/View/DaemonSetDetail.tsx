@@ -58,6 +58,7 @@ import {
   getKubernetesNamespaceParam,
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterDaemonSetDetail: FunctionComponent<
   PageComponentProps
@@ -255,10 +256,12 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Build overview summary fields from daemonset object
+  /*
+   * What Kubernetes reports about it, in one Details card under the hero,
+   * which already names its cluster and says how it is doing.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Name", value: daemonSetName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "Name", value: daemonSetName, copyText: daemonSetName },
   ];
 
   if (objectData) {
@@ -347,6 +350,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
             kind="DaemonSet"
             read={partState.read}
             error={partState.error}
+            onRetry={partState.refresh}
             routes={routes}
           />
           <KubernetesOverviewTab
@@ -354,6 +358,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
             labels={objectData?.metadata.labels || {}}
             annotations={objectData?.metadata.annotations || {}}
             isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("DaemonSet")}
           />
         </>
       ),
@@ -410,6 +415,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
         read={partState.read}
         clusterName={cluster.name || clusterIdentifier}
         routes={routes}
+        namespace={namespaceParam}
       />
       <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>

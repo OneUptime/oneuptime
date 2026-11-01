@@ -58,6 +58,7 @@ import {
   getKubernetesNamespaceParam,
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterCronJobDetail: FunctionComponent<
   PageComponentProps
@@ -255,10 +256,12 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Build overview summary fields from cronjob object
+  /*
+   * What Kubernetes reports about it, in one Details card under the hero,
+   * which already names its cluster and says how it is doing.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "CronJob Name", value: cronJobName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "CronJob Name", value: cronJobName, copyText: cronJobName },
   ];
 
   if (cronJobObject) {
@@ -339,6 +342,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
             kind="CronJob"
             read={partState.read}
             error={partState.error}
+            onRetry={partState.refresh}
             routes={routes}
           />
           <KubernetesOverviewTab
@@ -346,6 +350,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
             labels={cronJobObject?.metadata.labels || {}}
             annotations={cronJobObject?.metadata.annotations || {}}
             isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("CronJob")}
           />
         </>
       ),
@@ -398,6 +403,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
         read={partState.read}
         clusterName={cluster.name || clusterIdentifier}
         routes={routes}
+        namespace={namespaceParam}
       />
       <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>

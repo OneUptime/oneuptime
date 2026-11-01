@@ -56,6 +56,7 @@ import {
   KubernetesPartRoutes,
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -256,33 +257,15 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Determine node status from conditions
-  const getNodeStatus: () => { label: string; isReady: boolean } = (): {
-    label: string;
-    isReady: boolean;
-  } => {
-    if (!nodeObject) {
-      return { label: "Unknown", isReady: false };
-    }
-    const readyCondition: KubernetesCondition | undefined =
-      nodeObject.status.conditions.find((c: KubernetesCondition) => {
-        return c.type === "Ready";
-      });
-    if (readyCondition && readyCondition.status === "True") {
-      return { label: "Ready", isReady: true };
-    }
-    return { label: "NotReady", isReady: false };
-  };
-
-  // Build overview summary fields from node object
+  /*
+   * What Kubernetes reports about it, in one Details card under the hero,
+   * which already names its cluster and says how it is doing.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Node Name", value: nodeName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "Node Name", value: nodeName, copyText: nodeName },
   ];
 
   if (nodeObject) {
-    const nodeStatus: { label: string; isReady: boolean } = getNodeStatus();
-
     // Extract node roles from labels
     const roles: Array<string> = Object.keys(nodeObject.metadata.labels)
       .filter((key: string) => {
@@ -314,20 +297,12 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         return c.type;
       });
 
-    summaryFields.push({
-      title: "Status",
-      value: (
-        <StatusBadge
-          text={nodeStatus.label}
-          type={
-            nodeStatus.isReady
-              ? StatusBadgeType.Success
-              : StatusBadgeType.Danger
-          }
-        />
-      ),
-    });
-
+    /*
+     * No Status field: the hero says it by the cluster's rules ("Ready",
+     * "Unreachable", "Disk pressure", "Scheduling disabled"), and a red
+     * NotReady here beside its Unreachable read as a second answer. The
+     * Conditions below hold Kubernetes' own Ready condition.
+     */
     if (roles.length > 0) {
       summaryFields.push({
         title: "Roles",
@@ -354,9 +329,13 @@ const KubernetesClusterNodeDetail: FunctionComponent<
         title: "Pressure",
         value: (
           <div className="flex gap-1 flex-wrap">
+            {/*
+             * Amber, as the hero and Needs attention colour a node under
+             * pressure: it needs a look, it is not down.
+             */}
             {pressureConditions.map((p: string) => {
               return (
-                <StatusBadge key={p} text={p} type={StatusBadgeType.Danger} />
+                <StatusBadge key={p} text={p} type={StatusBadgeType.Warning} />
               );
             })}
           </div>
@@ -422,6 +401,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
             kind="Node"
             read={partState.read}
             error={partState.error}
+            onRetry={partState.refresh}
             routes={routes}
           />
           <KubernetesOverviewTab
@@ -430,6 +410,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
             annotations={nodeObject?.metadata.annotations || {}}
             conditions={nodeObject?.status.conditions}
             isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("Node")}
           />
         </>
       ),

@@ -152,7 +152,12 @@ import {
 import { getKubernetesPartRoute } from "../Utils/KubernetesPartRoutes";
 import { getKubernetesClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translateText,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 interface ResourceLink {
   title: string;
@@ -2042,11 +2047,17 @@ const KubernetesClusterOverview: FunctionComponent<
       });
     }
 
+    /*
+     * A chip whose words depend on its count says them in the count's form
+     * (plural): "1 Node Not Ready", never "1 Nodes Not Ready". Its label
+     * still names its (i).
+     */
     const podStatusChips: Array<{
       label: string;
       value: number;
       colorClass: string;
       description: string;
+      plural?: PluralTemplate | undefined;
     }> = [];
     if (podHealthSummary.running > 0) {
       podStatusChips.push({
@@ -2078,6 +2089,10 @@ const KubernetesClusterOverview: FunctionComponent<
         value: nodeHealthSummary.notReady,
         colorClass: "bg-red-50 text-red-700 ring-red-200",
         description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.nodesNotReady,
+        plural: {
+          one: "{{count}} Node Not Ready",
+          other: "{{count}} Nodes Not Ready",
+        },
       });
     }
 
@@ -2205,19 +2220,44 @@ const KubernetesClusterOverview: FunctionComponent<
                       value: number;
                       colorClass: string;
                       description: string;
+                      plural?: PluralTemplate | undefined;
                     },
                     idx: number,
                   ): ReactElement => {
+                    // In the reader's digits, as the chips above.
+                    const count: ReactElement = (
+                      <span className="font-semibold">
+                        {translator.formatNumber(chip.value)}
+                      </span>
+                    );
                     return (
                       <span
                         key={`pod-${idx}`}
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${chip.colorClass}`}
                       >
-                        {/* In the reader's digits, as the chips above. */}
-                        <span className="font-semibold">
-                          {translator.formatNumber(chip.value)}
-                        </span>
-                        {translator.translateText(chip.label)}
+                        {chip.plural ? (
+                          /*
+                           * Spaced as the other chips are, the count where
+                           * the reader's language puts it. Each piece is a
+                           * box of its own, so the gap spaces them; the
+                           * words keep their spaces for a screen reader.
+                           */
+                          <span className="inline-flex items-center gap-1.5">
+                            <TranslatedSentence
+                              template={chip.plural}
+                              count={chip.value}
+                              slots={{ count: count }}
+                              renderText={(text: string): ReactElement => {
+                                return <span>{text}</span>;
+                              }}
+                            />
+                          </span>
+                        ) : (
+                          <>
+                            {count}
+                            {translator.translateText(chip.label)}
+                          </>
+                        )}
                         <InfoTooltip
                           label={chip.label}
                           text={chip.description}
@@ -2287,10 +2327,19 @@ const KubernetesClusterOverview: FunctionComponent<
         />
       )}
 
+      {/*
+       * A failed read says so in the card's own frame, with Refresh - not
+       * a bare sentence under the hero, and never an all-clear.
+       */}
       {attentionError && (
-        <div className="mb-6" data-testid="kubernetes-needs-attention-error">
-          <ErrorMessage message={attentionError} />
-        </div>
+        <NeedsAttentionCard
+          testId="kubernetes-needs-attention"
+          items={[]}
+          error={attentionError}
+          onRetry={() => {
+            void loadAttention(modelId);
+          }}
+        />
       )}
 
       {/* Golden metrics — at-a-glance cluster health */}

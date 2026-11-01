@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { kubernetesObjectKey } from "Common/Types/Kubernetes/KubernetesHealth";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import NeedsAttentionCard from "../../ResourcePart/NeedsAttentionCard";
 import ResourcePartAlertsCard from "../../ResourcePart/ResourcePartAlertsCard";
 import ResourcePartOpenEventsCard from "../../ResourcePart/ResourcePartOpenEventsCard";
@@ -38,6 +37,8 @@ export interface ComponentProps {
   // The object's own read; null while it loads.
   read: KubernetesPartRead | null;
   error: string;
+  // Reads the object again, from a failed read's Refresh.
+  onRetry?: (() => void) | undefined;
   routes: KubernetesPartRoutes;
   refreshToken?: number | undefined;
 }
@@ -71,15 +72,22 @@ const KubernetesPartOverview: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid={`${testId}-overview`}>
+      {/*
+       * A failed read says so where what needs attention would be, in that
+       * card's frame, with Refresh: no list it could not read, and no
+       * all-clear.
+       */}
       {props.error ? (
-        <div className="mb-6" data-testid={`${testId}-part-error`}>
-          <ErrorMessage message={props.error} />
+        <div data-testid={`${testId}-part-error`}>
+          <NeedsAttentionCard
+            testId={`${testId}-attention`}
+            items={[]}
+            description={copy?.attentionDescription}
+            error={props.error}
+            onRetry={props.onRetry}
+          />
         </div>
-      ) : (
-        <></>
-      )}
-
-      {read && copy ? (
+      ) : read && copy ? (
         <NeedsAttentionCard
           testId={`${testId}-attention`}
           items={items}

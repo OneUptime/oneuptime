@@ -40,6 +40,7 @@ let KUBERNETES_PART_ALERT_TEMPLATE_IDS: FactsModule["KUBERNETES_PART_ALERT_TEMPL
 let KUBERNETES_PART_COPY: FactsModule["KUBERNETES_PART_COPY"];
 let assessKubernetesPart: FactsModule["assessKubernetesPart"];
 let getKubernetesPartAttentionItems: FactsModule["getKubernetesPartAttentionItems"];
+let getKubernetesPartDetailsCard: FactsModule["getKubernetesPartDetailsCard"];
 let getKubernetesPodFacts: FactsModule["getKubernetesPodFacts"];
 let isKubernetesIssueAbout: FactsModule["isKubernetesIssueAbout"];
 let parseKubernetesPartRead: FactsModule["parseKubernetesPartRead"];
@@ -99,6 +100,7 @@ beforeAll(async () => {
     KUBERNETES_PART_COPY,
     assessKubernetesPart,
     getKubernetesPartAttentionItems,
+    getKubernetesPartDetailsCard,
     getKubernetesPodFacts,
     isKubernetesIssueAbout,
     parseKubernetesPartRead,
@@ -447,6 +449,54 @@ describe("what needs attention on a workload's page", () => {
       }),
     ).toEqual([]);
     expect(assessKubernetesPart({ part: null, jobs: [] })).toBeNull();
+  });
+
+  test("its pods are in its namespace, which its hero names: no namespace line under each", () => {
+    const items: Array<ResourceAttentionItem> = getKubernetesPartAttentionItems(
+      { read: read, routeFor: routeFor },
+    );
+
+    expect(
+      items.map((item: ResourceAttentionItem): string | undefined => {
+        return item.detail;
+      }),
+    ).toEqual([undefined, undefined]);
+    // Their pages still open in it.
+    expect(routeOf(items[0]!)).toContain(
+      `${KUBERNETES_NAMESPACE_QUERY_PARAM}=shop`,
+    );
+  });
+
+  test("a node's pods come from every namespace: each keeps its own line", () => {
+    const node: KubernetesPartRow = {
+      kind: "Node",
+      namespaceKey: "",
+      name: "node-b",
+      spec: {} as unknown as JSONObject,
+      status: {
+        conditions: [{ type: "Ready", status: "True" }],
+      } as unknown as JSONObject,
+      isReady: true,
+      lastSeenAt: SEEN,
+    };
+
+    const items: Array<ResourceAttentionItem> = getKubernetesPartAttentionItems(
+      {
+        read: {
+          part: node,
+          pods: [read.pods[1]!],
+          jobs: [],
+          isPodsTruncated: false,
+        },
+        routeFor: routeFor,
+      },
+    );
+
+    expect(
+      items.map((item: ResourceAttentionItem): [string, string | undefined] => {
+        return [item.name, item.detail];
+      }),
+    ).toEqual([["checkout-7d9f8b6c5-b2", "shop"]]);
   });
 });
 
@@ -869,6 +919,26 @@ describe("the words of a part's page", () => {
     ]) {
       expect(KUBERNETES_PART_COPY[kind]).toBeDefined();
       expect(KUBERNETES_CURRENT_PART_LABELS[kind]).toMatch(/^This /);
+    }
+  });
+
+  test("each kind's Details card says what reports its facts, in its own words", () => {
+    const cases: Array<[string, string]> = [
+      ["Pod", "What Kubernetes reports about this pod."],
+      ["Deployment", "What Kubernetes reports about this Deployment."],
+      ["StatefulSet", "What Kubernetes reports about this StatefulSet."],
+      ["DaemonSet", "What Kubernetes reports about this DaemonSet."],
+      ["Job", "What Kubernetes reports about this Job."],
+      ["CronJob", "What Kubernetes reports about this CronJob."],
+      ["Node", "What Kubernetes reports about this node."],
+    ];
+
+    for (const [kind, description] of cases) {
+      expect(getKubernetesPartDetailsCard(kind)).toEqual({
+        testId: `kubernetes-${kind.toLowerCase()}-details`,
+        description: description,
+      });
+      expect(KUBERNETES_PART_COPY[kind]?.detailsDescription).toBe(description);
     }
   });
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39593,
-    "untranslated": 13025
+    "keys": 39848,
+    "untranslated": 13059
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -257,6 +257,7 @@
     "{{count}} alarm",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} container",
     "{{count}} dashboard",
     "{{count}} dashboards",
     "{{count}} datacenter",
@@ -265,7 +266,10 @@
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
     "{{count}} match",
+    "{{count}} node",
     "{{count}} person",
+    "{{count}} pod",
+    "{{count}} pods",
     "{{count}} rotation",
     "{{count}} sample",
     "{{count}} samples",

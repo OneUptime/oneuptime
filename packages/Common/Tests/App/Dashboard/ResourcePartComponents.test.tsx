@@ -221,6 +221,58 @@ describe("the Needs attention card", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  test("a list it could not read is said in the card's own frame, with Refresh - never an all-clear", () => {
+    const retries: Array<number> = [];
+
+    render(
+      <NeedsAttentionCard
+        testId="attention"
+        items={[]}
+        description="What about this node is broken or needs a look."
+        error="Something went wrong on the server. Please try again."
+        onRetry={() => {
+          retries.push(1);
+        }}
+      />,
+    );
+
+    const frame: HTMLElement = screen.getByTestId("attention-error");
+    // The reader is told what could not be read: the card's own title.
+    expect(
+      within(frame).getByRole("heading", { name: "Needs attention" }),
+    ).toBeInTheDocument();
+    expect(frame).toHaveTextContent(
+      "What about this node is broken or needs a look.",
+    );
+    expect(frame).toHaveTextContent(
+      "Something went wrong on the server. Please try again.",
+    );
+    // No rows, no counts: nothing it could not read.
+    expect(screen.queryByTestId("attention")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("attention-summary")).not.toBeInTheDocument();
+
+    fireEvent.click(within(frame).getByRole("button", { name: "Refresh?" }));
+    expect(retries).toEqual([1]);
+  });
+
+  test("its error wins over a list it read before, and without a way to read again offers no Refresh", () => {
+    render(
+      <NeedsAttentionCard
+        testId="attention"
+        items={[item("pve3", ResourceAttentionSeverity.Critical)]}
+        error="The cluster could not be read."
+      />,
+    );
+
+    expect(screen.getByTestId("attention-error")).toHaveTextContent(
+      "The cluster could not be read.",
+    );
+    expect(screen.queryByTestId("attention-item")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Refresh?" }),
+    ).not.toBeInTheDocument();
+  });
+
   test("each row: its part, a step from its page; its kind; why, in its own words", () => {
     render(
       <NeedsAttentionCard
@@ -857,6 +909,13 @@ describe("which of a part's alerts are on", () => {
       "href",
       "/recommendations?select=Proxmox:pve-node-high-cpu",
     );
+    /*
+     * The template's name is the catalog's English, read in its own
+     * direction: on a right-to-left page its summary's full stop stays at
+     * its end.
+     */
+    expect(screen.getByText("High Node CPU Usage").tagName).toBe("BDI");
+    expect(screen.getByText("High Node CPU Usage fires.").tagName).toBe("BDI");
   });
 
   test("every alert on: no button", async () => {

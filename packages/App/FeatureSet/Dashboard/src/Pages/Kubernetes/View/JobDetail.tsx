@@ -58,6 +58,7 @@ import {
   getKubernetesNamespaceParam,
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterJobDetail: FunctionComponent<
   PageComponentProps
@@ -254,10 +255,12 @@ const KubernetesClusterJobDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Build overview summary fields from job object
+  /*
+   * What Kubernetes reports about it, in one Details card under the hero,
+   * which already names its cluster and says how it is doing.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Job Name", value: jobName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "Job Name", value: jobName, copyText: jobName },
   ];
 
   if (jobObject) {
@@ -363,6 +366,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
             kind="Job"
             read={partState.read}
             error={partState.error}
+            onRetry={partState.refresh}
             routes={routes}
           />
           <KubernetesOverviewTab
@@ -371,6 +375,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
             annotations={jobObject?.metadata.annotations || {}}
             conditions={jobObject?.status.conditions}
             isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("Job")}
           />
         </>
       ),
@@ -422,6 +427,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
         read={partState.read}
         clusterName={cluster.name || clusterIdentifier}
         routes={routes}
+        namespace={namespaceParam}
       />
       <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>

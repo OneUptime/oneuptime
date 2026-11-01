@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Navigation from "Common/UI/Utils/Navigation";
+import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -15,6 +15,9 @@ import { getKubernetesPartRoute } from "../../Pages/Kubernetes/Utils/KubernetesP
  * its DeploymentConfig (`<deploymentconfig>-<version>`): OneUptime has no
  * page of their own. A namespaced object opens in its namespace
  * (KubernetesPartRoutes), so a same-named one elsewhere never opens instead.
+ *
+ * A real link (Link): reached with Tab, announced as a link, opened in a
+ * new tab with a middle click - a clickable <span> was none of those.
  */
 
 export interface ComponentProps {
@@ -65,14 +68,12 @@ const KubernetesResourceLink: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <span
-      onClick={() => {
-        Navigation.navigate(route);
-      }}
-      className={`text-indigo-600 hover:text-indigo-800 cursor-pointer font-medium ${props.className || ""}`}
+    <Link
+      to={route}
+      className={`rounded-sm text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${props.className || ""}`}
     >
       {props.resourceName}
-    </span>
+    </Link>
   );
 };
 

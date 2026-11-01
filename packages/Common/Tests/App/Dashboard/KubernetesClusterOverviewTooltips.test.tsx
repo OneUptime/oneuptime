@@ -73,16 +73,27 @@ jest.mock("../../../UI/Utils/Project", () => {
 let mockSummary: Record<string, unknown> = {};
 // What needs attention, which the page reads over API.post too.
 let mockAttention: Record<string, unknown> = {};
+// Set, what needs attention cannot be read, with this reason.
+let mockAttentionError: string = "";
+// Each time the page asked what needs attention.
+const mockAttentionReads: Array<number> = [];
 
 jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
       post: (request: { url?: unknown }) => {
+        const isAttention: boolean = String(request?.url || "").includes(
+          "needs-attention",
+        );
+        if (isAttention) {
+          mockAttentionReads.push(1);
+          if (mockAttentionError) {
+            return Promise.reject(new Error(mockAttentionError));
+          }
+        }
         return Promise.resolve({
-          data: String(request?.url || "").includes("needs-attention")
-            ? mockAttention
-            : mockSummary,
+          data: isAttention ? mockAttention : mockSummary,
         });
       },
       getFriendlyMessage: (error: unknown) => {
@@ -415,6 +426,8 @@ beforeEach(() => {
   mockNavigations.length = 0;
   mockSummary = BUSY_SUMMARY;
   mockAttention = BUSY_ATTENTION;
+  mockAttentionError = "";
+  mockAttentionReads.length = 0;
 });
 
 afterEach(() => {
@@ -690,6 +703,64 @@ describe("the cluster overview page", () => {
       card.textContent!.indexOf("node-c"),
     );
     expect(screen.queryByText("1 node: Disk Pressure")).not.toBeInTheDocument();
+  });
+
+  test("one node not ready reads as one, many as many: never '1 Nodes Not Ready'", async () => {
+    await renderOverview();
+
+    const one: HTMLElement | null = screen
+      .getByRole("button", { name: "About Nodes Not Ready" })
+      .closest("span.rounded-full");
+    expect(one).toHaveTextContent("1 Node Not Ready");
+    // The count stands out as the other chips' counts do.
+    expect(one!.querySelector(".font-semibold")).toHaveTextContent(/^1$/);
+
+    cleanup();
+    mockSummary = {
+      ...BUSY_SUMMARY,
+      nodeReadyCounts: { ready: 1, notReady: 2 },
+    };
+    await renderOverview();
+
+    expect(
+      screen
+        .getByRole("button", { name: "About Nodes Not Ready" })
+        .closest("span.rounded-full"),
+    ).toHaveTextContent("2 Nodes Not Ready");
+  });
+
+  test("when what needs attention cannot be read, its card says so with Refresh, which asks again", async () => {
+    mockAttentionError = "The cluster could not be read.";
+
+    await renderOverview();
+
+    const frame: HTMLElement = await screen.findByTestId(
+      "kubernetes-needs-attention-error",
+    );
+    // Named by its card's title, so the reader knows what failed.
+    expect(frame).toHaveTextContent("Needs attention");
+    expect(frame).toHaveTextContent("The cluster could not be read.");
+    // No list, and no health pill it could not work out.
+    expect(
+      screen.queryByTestId("kubernetes-needs-attention"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("kubernetes-cluster-health"),
+    ).not.toBeInTheDocument();
+
+    const reads: number = mockAttentionReads.length;
+    mockAttentionError = "";
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Refresh?" }));
+    });
+
+    expect(mockAttentionReads.length).toBe(reads + 1);
+    expect(
+      await screen.findByTestId("kubernetes-needs-attention"),
+    ).toHaveTextContent("CrashLoopBackOff");
+    expect(
+      screen.queryByTestId("kubernetes-needs-attention-error"),
+    ).not.toBeInTheDocument();
   });
 
   test("a cluster with nothing to look at draws no Needs attention card", async () => {

@@ -5,6 +5,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import {
@@ -924,23 +925,22 @@ const DETAIL_CASES: Array<DetailCase> = [
       ["Memory (Capacity / Allocatable)", "nodeMemoryCapacity"],
       ["Pods (Capacity)", "nodePodCapacity"],
     ],
-    plain: ["Node Name", "Cluster", "Status", "Internal IP", "Created"],
+    plain: ["Node Name", "Internal IP", "Created"],
   },
   {
     page: "PodDetail",
     explained: [["Restarts", "podRestarts"]],
-    plain: ["Pod Name", "Cluster", "Namespace", "Status", "Node", "Created"],
+    plain: ["Pod Name", "Namespace", "Phase", "Node", "Created"],
   },
   {
     page: "DeploymentDetail",
     explained: [
-      ["Rollout Status", "deploymentRolloutStatus"],
       ["Desired Replicas", "deploymentDesiredReplicas"],
       ["Ready Replicas", "deploymentReadyReplicas"],
       ["Available", "deploymentAvailableReplicas"],
       ["Unavailable", "deploymentUnavailableReplicas"],
     ],
-    plain: ["Name", "Cluster", "Namespace", "Strategy", "Created"],
+    plain: ["Name", "Namespace", "Strategy", "Created"],
   },
   {
     page: "StatefulSetDetail",
@@ -948,7 +948,7 @@ const DETAIL_CASES: Array<DetailCase> = [
       ["Replicas", "statefulSetReplicas"],
       ["Ready Replicas", "statefulSetReadyReplicas"],
     ],
-    plain: ["Name", "Cluster", "Namespace", "Service Name", "Created"],
+    plain: ["Name", "Namespace", "Service Name", "Created"],
   },
   {
     page: "DaemonSetDetail",
@@ -958,7 +958,7 @@ const DETAIL_CASES: Array<DetailCase> = [
       ["Number Ready", "daemonSetNumberReady"],
       ["Number Available", "daemonSetNumberAvailable"],
     ],
-    plain: ["Name", "Cluster", "Namespace", "Update Strategy", "Created"],
+    plain: ["Name", "Namespace", "Update Strategy", "Created"],
   },
   {
     page: "JobDetail",
@@ -970,7 +970,7 @@ const DETAIL_CASES: Array<DetailCase> = [
       ["Succeeded", "jobSucceeded"],
       ["Failed", "jobFailed"],
     ],
-    plain: ["Job Name", "Cluster", "Namespace", "Start Time", "Created"],
+    plain: ["Job Name", "Namespace", "Start Time", "Created"],
   },
   {
     page: "CronJobDetail",
@@ -981,7 +981,6 @@ const DETAIL_CASES: Array<DetailCase> = [
     ],
     plain: [
       "CronJob Name",
-      "Cluster",
       "Namespace",
       "Schedule",
       "Concurrency Policy",
@@ -1167,6 +1166,64 @@ describe("Kubernetes detail pages: each metric-like summary field is explained",
     expect(await tooltipFor("Requests")).toBe(D["containerRequests"]);
     expect(await tooltipFor("Limits")).toBe(D["containerLimits"]);
     expect(await tooltipFor("Restarts")).toBe(D["containerRestarts"]);
+  });
+
+  /*
+   * The pages with a hero above their tabs (KubernetesPartHero) draw what
+   * Kubernetes reports as one Details card - each name over its value, not
+   * a card per value - and say nothing there the hero already says
+   * otherwise: no cluster, no second status (a node's NotReady beside its
+   * Unreachable, a Deployment's "In Progress" for a finished rollout one
+   * replica short), a pod's phase plain rather than a green Running under
+   * a red CrashLoopBackOff.
+   */
+  test.each([
+    ["NodeDetail", "kubernetes-node-details", ["Cluster", "Status"]],
+    ["PodDetail", "kubernetes-pod-details", ["Cluster", "Status"]],
+    [
+      "DeploymentDetail",
+      "kubernetes-deployment-details",
+      ["Cluster", "Rollout Status"],
+    ],
+    ["StatefulSetDetail", "kubernetes-statefulset-details", ["Cluster"]],
+    ["DaemonSetDetail", "kubernetes-daemonset-details", ["Cluster"]],
+    ["JobDetail", "kubernetes-job-details", ["Cluster"]],
+    ["CronJobDetail", "kubernetes-cronjob-details", ["Cluster"]],
+  ])(
+    "%s draws its facts as one Details card, without what its hero says",
+    async (page: string, testId: string, leftOut: Array<string>) => {
+      await renderPage(page);
+
+      const card: HTMLElement = screen.getByTestId(testId);
+      expect(card).toHaveTextContent("Details");
+      expect(card).toHaveTextContent("What Kubernetes reports about this");
+      // Its first fact, the name, with a copy button beside it.
+      expect(
+        card.querySelector(`[data-testid="${testId}-copy"]`),
+      ).not.toBeNull();
+      for (const label of leftOut) {
+        expect(within(card).queryByText(label, { exact: true })).toBeNull();
+      }
+    },
+  );
+
+  test("a pod's phase is written plain: its health is the hero's", async () => {
+    await renderPage("PodDetail");
+
+    const phase: HTMLElement = screen.getByTestId(
+      "kubernetes-pod-details-phase",
+    );
+    expect(phase).toHaveTextContent("PhaseRunning");
+    // Not a coloured badge that could read as a second verdict.
+    expect(phase.querySelector("[class*='bg-green']")).toBeNull();
+    expect(phase.querySelector("[class*='emerald']")).toBeNull();
+  });
+
+  test("pages without a hero keep a card per fact", async () => {
+    await renderPage("PVCDetail");
+
+    expect(screen.queryByTestId("kubernetes-pvc-details")).toBeNull();
+    expect(screen.getByText("PVC Name")).toBeInTheDocument();
   });
 
   test("NamespaceDetail and ContainerDetail have no metric fields to explain", async () => {

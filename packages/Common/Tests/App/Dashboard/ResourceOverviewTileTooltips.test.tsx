@@ -820,6 +820,135 @@ describe("ResourceOverviewTab summary fields", () => {
   });
 });
 
+/*
+ * A page whose part has a hero above its tabs (a Kubernetes pod's,
+ * Deployment's or node's) draws its summary fields as one Details card:
+ * each name over its value, as every detail card in the product is - not a
+ * card per value, ten cards stacked one under the other on a phone.
+ */
+describe("ResourceOverviewTab as one Details card", () => {
+  const DETAILS_CARD: { testId: string; description: string } = {
+    testId: "part-details",
+    description: "What Kubernetes reports about this pod.",
+  };
+
+  test("one card: each name over its value, an (i) where the value needs words, a copy button where it is pasted elsewhere", () => {
+    render(
+      <ResourceOverviewTab
+        summaryFields={[
+          {
+            title: "Pod Name",
+            value: "checkout-7d9f8b6c5-g5h6i",
+            copyText: "checkout-7d9f8b6c5-g5h6i",
+          },
+          { title: "Phase", value: "Running" },
+          {
+            title: "Restarts",
+            value: <span data-testid="restarts">14</span>,
+            description: "Container restarts since the pod was created.",
+          },
+          { title: "Pod IP", value: "10.0.1.21" },
+        ]}
+        labels={{ app: "checkout" }}
+        annotations={{}}
+        isLoading={false}
+        detailsCard={DETAILS_CARD}
+      />,
+    );
+
+    const card: HTMLElement = screen.getByTestId("part-details");
+    expect(
+      within(card).getByRole("heading", { name: "Details" }),
+    ).toBeInTheDocument();
+    expect(card).toHaveTextContent("What Kubernetes reports about this pod.");
+
+    // Every field is a row of the one card, keyed by its name.
+    expect(within(card).getByTestId("part-details-pod-name")).toHaveTextContent(
+      "Pod Namecheckout-7d9f8b6c5-g5h6i",
+    );
+    expect(within(card).getByTestId("part-details-phase")).toHaveTextContent(
+      "PhaseRunning",
+    );
+    expect(within(card).getByTestId("part-details-pod-ip")).toHaveTextContent(
+      "Pod IP10.0.1.21",
+    );
+    expect(
+      within(within(card).getByTestId("part-details-restarts")).getByTestId(
+        "restarts",
+      ),
+    ).toHaveTextContent("14");
+
+    // The (i) beside the one that needs words, the copy button beside the name.
+    expect(
+      within(card).getByRole("button", { name: "About Restarts" }),
+    ).toBeInTheDocument();
+    expect(within(card).getAllByTestId("part-details-copy")).toHaveLength(1);
+    expect(
+      within(within(card).getByTestId("part-details-pod-name")).getByTestId(
+        "part-details-copy",
+      ),
+    ).toBeInTheDocument();
+
+    // The labels follow, as a card of their own.
+    expect(
+      screen.getByText("Key-value labels attached to this resource."),
+    ).toBeInTheDocument();
+    expect(card).not.toHaveTextContent("Key-value labels");
+  });
+
+  test("what owns it is a row of the card, each owner drawn as the page links it", () => {
+    render(
+      <ResourceOverviewTab
+        summaryFields={[
+          { title: "Pod Name", value: "checkout-7d9f8b6c5-g5h6i" },
+        ]}
+        labels={{}}
+        annotations={{}}
+        ownerReferences={[{ kind: "ReplicaSet", name: "checkout-7d9f8b6c5" }]}
+        renderOwnerReference={(ref: { kind: string; name: string }) => {
+          return <a href={`/deployments/${ref.name}`}>{ref.name}</a>;
+        }}
+        isLoading={false}
+        detailsCard={DETAILS_CARD}
+      />,
+    );
+
+    const owners: HTMLElement = screen.getByTestId(
+      "part-details-owner-references",
+    );
+    expect(owners).toHaveTextContent("Owner References");
+    expect(owners).toHaveTextContent("ReplicaSet checkout-7d9f8b6c5");
+    expect(
+      within(owners).getByRole("link", { name: "checkout-7d9f8b6c5" }),
+    ).toHaveAttribute("href", "/deployments/checkout-7d9f8b6c5");
+    // No second card for them.
+    expect(
+      screen.queryByText("Resources that own this object."),
+    ).not.toBeInTheDocument();
+  });
+
+  test("without it, each field is a card of its own and the owners a card, as on every other product's page", () => {
+    render(
+      <ResourceOverviewTab
+        summaryFields={[
+          { title: "Pod Name", value: "checkout-7d9f8b6c5-g5h6i" },
+          { title: "Phase", value: "Running" },
+        ]}
+        labels={{}}
+        annotations={{}}
+        ownerReferences={[{ kind: "ReplicaSet", name: "checkout-7d9f8b6c5" }]}
+        isLoading={false}
+      />,
+    );
+
+    expect(screen.queryByText("Details")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Resources that own this object."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Phase")).toBeInTheDocument();
+  });
+});
+
 /* ------------------------------------------------------------------ */
 /* ResourceTable / KubernetesResourceTable header tooltips             */
 /* ------------------------------------------------------------------ */

@@ -28,6 +28,7 @@ export function getKubernetesPodsTab(data: {
         isLoading={data.part.isLoading}
         error={data.part.error}
         routes={data.routes}
+        onRefreshClick={data.part.refresh}
       />
     ),
   };

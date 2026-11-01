@@ -60,6 +60,7 @@ import {
   getKubernetesNamespaceParam,
   getKubernetesPartRoutes,
 } from "../Utils/KubernetesPartRoutes";
+import { getKubernetesPartDetailsCard } from "../Utils/KubernetesPartFacts";
 
 const KubernetesClusterDeploymentDetail: FunctionComponent<
   PageComponentProps
@@ -257,10 +258,14 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     yAxisValueFormatter: KubernetesResourceUtils.formatBytesForChart,
   };
 
-  // Build overview summary fields from deployment object
+  /*
+   * What Kubernetes reports about the Deployment, in one Details card under
+   * the hero. Its rollout reads in the hero, by the cluster's rules
+   * ("Rolling out", "2 of 3 available"): a Rollout Status here said "In
+   * Progress" for a finished rollout one crash-looping replica short.
+   */
   const summaryFields: Array<SummaryField> = [
-    { title: "Name", value: deploymentName },
-    { title: "Cluster", value: clusterIdentifier },
+    { title: "Name", value: deploymentName, copyText: deploymentName },
   ];
 
   if (objectData) {
@@ -268,7 +273,6 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     const ready: number = objectData.status.readyReplicas ?? 0;
     const available: number = objectData.status.availableReplicas ?? 0;
     const unavailable: number = objectData.status.unavailableReplicas ?? 0;
-    const isFullyRolledOut: boolean = ready === desired && unavailable === 0;
 
     summaryFields.push(
       {
@@ -281,39 +285,6 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
           />
         ) : (
           "default"
-        ),
-      },
-      {
-        title: "Rollout Status",
-        description:
-          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentRolloutStatus,
-        value: (
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <StatusBadge
-                text={isFullyRolledOut ? "Complete" : "In Progress"}
-                type={
-                  isFullyRolledOut
-                    ? StatusBadgeType.Success
-                    : StatusBadgeType.Warning
-                }
-              />
-              <span className="text-sm text-gray-600">
-                {translator.translateTemplate("{{ready}}/{{total}} ready", {
-                  ready: ready,
-                  total: desired,
-                })}
-              </span>
-            </div>
-            <div className="w-32 bg-gray-100 rounded-full h-2">
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${isFullyRolledOut ? "bg-emerald-500" : "bg-amber-500"}`}
-                style={{
-                  width: `${desired > 0 ? (ready / desired) * 100 : 0}%`,
-                }}
-              />
-            </div>
-          </div>
         ),
       },
       {
@@ -377,6 +348,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
             kind="Deployment"
             read={partState.read}
             error={partState.error}
+            onRetry={partState.refresh}
             routes={routes}
           />
           <KubernetesOverviewTab
@@ -385,6 +357,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
             annotations={objectData?.metadata.annotations || {}}
             conditions={objectData?.status.conditions}
             isLoading={isLoadingObject}
+            detailsCard={getKubernetesPartDetailsCard("Deployment")}
           />
         </>
       ),
@@ -441,6 +414,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         read={partState.read}
         clusterName={cluster.name || clusterIdentifier}
         routes={routes}
+        namespace={namespaceParam}
       />
       {/*
        * The Database discovered on this Deployment, if any — by its name, or

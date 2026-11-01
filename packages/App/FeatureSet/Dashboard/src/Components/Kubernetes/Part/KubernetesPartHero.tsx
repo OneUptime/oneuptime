@@ -2,6 +2,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   KubernetesHealthAssessment,
+  KubernetesObjectRef,
+  getKubernetesJobCronJob,
   getKubernetesPodWorkload,
 } from "Common/Types/Kubernetes/KubernetesHealth";
 import Link from "Common/UI/Components/Link/Link";
@@ -40,6 +42,11 @@ export interface ComponentProps {
   kind: string;
   // The name the page's address carries, until the object is read.
   name: string;
+  /*
+   * The namespace the page's address carries: where the object sits says
+   * so while it loads, and when its read fails.
+   */
+  namespace?: string | undefined;
   read: KubernetesPartRead | null;
   clusterName: string;
   routes: KubernetesPartRoutes;
@@ -82,7 +89,7 @@ const KubernetesPartHero: FunctionComponent<ComponentProps> = (
   const row: KubernetesPartRow | null = props.read?.part || null;
   const spec: Json = asObject(row?.spec);
   const status: Json = asObject(row?.status);
-  const namespace: string = row?.namespaceKey || "";
+  const namespace: string = row?.namespaceKey || props.namespace || "";
 
   const assessment: KubernetesHealthAssessment | null = props.read
     ? assessKubernetesPart(props.read)
@@ -284,8 +291,31 @@ const KubernetesPartHero: FunctionComponent<ComponentProps> = (
       });
     }
   } else {
+    /*
+     * A CronJob's run says whose run it is, one step from the CronJob's
+     * page, as a pod says its workload: "Run of CronJob nightly-report in
+     * namespace shop".
+     */
+    const cronJob: KubernetesObjectRef | null =
+      props.kind === "Job" && row ? getKubernetesJobCronJob(row) : null;
+
     if (namespace) {
-      location = (
+      location = cronJob ? (
+        <TranslatedSentence
+          template="Run of {{owner}} in namespace {{namespace}}"
+          slots={{
+            owner: linkTo(
+              props.routes.getPartRoute({
+                kind: "CronJob",
+                name: cronJob.name,
+                namespace: cronJob.namespace,
+              }),
+              `CronJob ${cronJob.name}`,
+            ),
+            namespace: namespaceLink,
+          }}
+        />
+      ) : (
         <TranslatedSentence
           template="In namespace {{namespace}} of cluster {{cluster}}"
           slots={{ namespace: namespaceLink, cluster: clusterLink }}
