@@ -175,7 +175,59 @@ export interface MessageCardFact {
   value: string;
 }
 
+// The full-width colon Chinese writes after a label ("严重程度：").
+export const FULL_WIDTH_COLON: string = "\u{FF1A}";
+
+/*
+ * A label as a card compares it with another: in lower case, without the
+ * colon after it or the spaces around it, so "Description:", French
+ * "Description :" and "description" are one label, and Chinese "描述："
+ * is "描述". Read from the end once.
+ */
+export const toLabelKey: (label: string) => string = (
+  label: string,
+): string => {
+  let end: number = label.length;
+
+  while (end > 0) {
+    const character: string = label.charAt(end - 1);
+
+    if (
+      character === ":" ||
+      character === FULL_WIDTH_COLON ||
+      WHITESPACE_PATTERN.test(character)
+    ) {
+      end--;
+      continue;
+    }
+
+    break;
+  }
+
+  return label.slice(0, end).trim().toLowerCase();
+};
+
 export type FindFactFunction = (line: string) => MessageCardFact | null;
+
+/*
+ * Where a label that starts at `from` ends: at its first ":**", or "：**" -
+ * the full-width colon Chinese puts after a label ("**严重程度：** 高") -
+ * whichever comes first. Both are three characters long. -1 when neither
+ * follows.
+ */
+const findLabelEnd: (segment: string, from: number) => number = (
+  segment: string,
+  from: number,
+): number => {
+  const colon: number = segment.indexOf(":**", from);
+  const fullWidthColon: number = segment.indexOf(`${FULL_WIDTH_COLON}**`, from);
+
+  if (colon === -1) {
+    return fullWidthColon;
+  }
+
+  return fullWidthColon === -1 ? colon : Math.min(colon, fullWidthColon);
+};
 
 /*
  * A fact, "**Label:** value", as /\*\*(.*?):\*\*\s*(.*)/ read it - which
@@ -184,7 +236,8 @@ export type FindFactFunction = (line: string) => MessageCardFact | null;
  * from the first "**" to the first ":**" after it with no line terminator
  * between ("." takes none), and the value is the rest of that line once the
  * whitespace after the ":**" - line terminators too, as "\s" takes them -
- * is passed.
+ * is passed. A label may end in a full-width colon too ("**状态：** 已解决"):
+ * a status page's subscriber who reads Chinese is written to that way.
  */
 export const findFact: FindFactFunction = (
   line: string,
@@ -203,7 +256,7 @@ export const findFact: FindFactFunction = (
 
     const segment: string = line.slice(segmentStart, segmentEnd);
     const open: number = segment.indexOf("**");
-    const close: number = open === -1 ? -1 : segment.indexOf(":**", open + 2);
+    const close: number = open === -1 ? -1 : findLabelEnd(segment, open + 2);
 
     if (close !== -1) {
       let valueStart: number = segmentStart + close + 3;

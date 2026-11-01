@@ -11,7 +11,7 @@ import {
   createTranslator,
   Translator,
 } from "../../../../UI/Utils/TranslateTemplate";
-import { toGsm7Message } from "../../../../Utils/Sms/Gsm7Text";
+import { writeDefaultSubscriberSms } from "../../../../Utils/Sms/SubscriberSms";
 import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 
 /*
@@ -78,8 +78,8 @@ describe("the text messages", () => {
 
   /*
    * A link goes out exactly as written only when it starts a word
-   * (toGsm7Message): in every language, the details and unsubscribe links
-   * of a message survive the GSM-7 writer whole.
+   * (Utils/Sms/Gsm7Text): in every language, the details and unsubscribe
+   * links of a message survive the text message writer whole.
    */
   test.each([...READER_LANGUAGE_CODES])(
     "%s: the links of a text message go out exactly as written",
@@ -88,8 +88,8 @@ describe("the text messages", () => {
 
       expect(sms).toContain(DETAILS_URL);
       expect(sms).toContain(UNSUBSCRIBE_URL);
-      // The writer changed nothing more: it is already in its characters.
-      expect(toGsm7Message(sms).trim()).toBe(sms);
+      // The writer changes nothing more: it is already in its characters.
+      expect(writeDefaultSubscriberSms(sms)).toBe(sms);
     },
   );
 
@@ -115,6 +115,28 @@ describe("the text messages", () => {
     ).toBe(
       `You have selected to manage your subscription for the status page: Acme Status. You can manage your subscription here: ${STATUS_PAGE_URL}`,
     );
+  });
+
+  test("no space after a Chinese or Japanese full stop, which leaves its own room", () => {
+    const chinese: string = SubscriberMessageText.smsWithLinks(
+      getServerTranslator("zh-CN"),
+      {
+        sentences: [
+          "\u{4E8B}\u{4EF6}\u{66F4}\u{65B0}\u{3002}",
+          "\u{53D1}\u{5E03}\u{3002}",
+        ],
+        detailsUrl: DETAILS_URL,
+        unsubscribeUrl: UNSUBSCRIBE_URL,
+      },
+    );
+
+    expect(
+      chinese.startsWith(
+        "\u{4E8B}\u{4EF6}\u{66F4}\u{65B0}\u{3002}\u{53D1}\u{5E03}\u{3002}\u{8BE6}\u{60C5}",
+      ),
+    ).toBe(true);
+    // A link still has a space before it, and after it.
+    expect(chinese).toContain(` ${DETAILS_URL} `);
   });
 
   test("empty sentences are left out of a text message", () => {
@@ -214,7 +236,7 @@ describe("the Slack and Microsoft Teams messages", () => {
         unsubscribeUrl: UNSUBSCRIBE_URL,
       }),
     ).toBe(
-      mdText`🚨 ## Incident - ${"Checkout is down"}
+      mdText`## 🚨 Incident - ${"Checkout is down"}
 
 `.toString() +
         mdText`

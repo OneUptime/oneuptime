@@ -21,8 +21,10 @@ import MailService, {
 } from "../../FeatureSet/Notification/Services/MailService";
 import {
   EMAIL_LANGUAGE_VARIABLE_NAMES,
+  getEmailHtmlValue,
   getEmailLanguageFromRoot,
   getEmailLanguageVariables,
+  getEmailValueDirection,
   registerEmailLanguageHelpers,
 } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import "../../FeatureSet/Notification/Utils/Handlebars";
@@ -484,7 +486,10 @@ describe("MailService.render", () => {
     const dot: string = startTagOf(rendered.body, 'class="st-ColorDot"');
 
     expect(attributeOf(dot, "style")).toContain("margin: 0 0 0 8px;");
-    expect(visibleText(rendered.body)).toContain("حادثه جدید: Zorbex checkout");
+    // The title is isolated, so it reads its own way in the Persian heading.
+    expect(visibleText(rendered.body)).toContain(
+      "حادثه جدید: \u{2068}Zorbex checkout\u{2069}",
+    );
   });
 
   test("an English email keeps its colour dot where it always was", async () => {
@@ -515,6 +520,128 @@ describe("MailService.render", () => {
 
     expect(attributeOf(html, "lang")).toBe("de");
     expect(attributeOf(html, "dir")).toBeUndefined();
+  });
+});
+
+/*
+ * A Persian email is laid out from the right, and its values are what the
+ * team wrote - most often English. Each value says which way it reads, by
+ * most of its letters: a value of a line in its line (an isolate, which
+ * keeps the card's right edge), a value of paragraphs as a block of its
+ * own. An English title's full stop or bracket stays at its end.
+ */
+describe("values in an email read from the right", () => {
+  const PERSIAN_TITLE: string =
+    "\u{067E}\u{0631}\u{062F}\u{0627}\u{062E}\u{062A} \u{06A9}\u{0627}\u{0631} \u{0646}\u{0645}\u{06CC}\u{200C}\u{06A9}\u{0646}\u{062F}";
+
+  test("an English title is an isolate that reads from the left", async () => {
+    const rendered: RenderedEmail = await MailService.render(
+      email(EmailTemplateType.SubscriberIncidentCreated, "fa", {
+        ...SUBSCRIBER_VARIABLES,
+        incidentTitle: "Zorbex checkout (EU).",
+      }),
+    );
+
+    expect(rendered.body).toContain(
+      '<span dir="ltr">Zorbex checkout (EU).</span>',
+    );
+  });
+
+  test("a Persian title reads from the right", async () => {
+    const rendered: RenderedEmail = await MailService.render(
+      email(EmailTemplateType.SubscriberIncidentCreated, "fa", {
+        ...SUBSCRIBER_VARIABLES,
+        incidentTitle: PERSIAN_TITLE,
+      }),
+    );
+
+    expect(rendered.body).toContain(`<span dir="rtl">${PERSIAN_TITLE}</span>`);
+  });
+
+  test("a description of paragraphs is a block laid out its own way", async () => {
+    const rendered: RenderedEmail = await MailService.render(
+      email(EmailTemplateType.SubscriberIncidentCreated, "fa"),
+    );
+
+    expect(rendered.body).toContain(
+      '<div dir="ltr"><p>Zorbex description</p></div>',
+    );
+  });
+
+  test("resources, a line of names, stay in their line", async () => {
+    const rendered: RenderedEmail = await MailService.render(
+      email(EmailTemplateType.SubscriberIncidentCreated, "fa", {
+        ...SUBSCRIBER_VARIABLES,
+        resourcesAffected: "Zorbex API<br/>Zorbex Web",
+      }),
+    );
+
+    expect(rendered.body).toContain(
+      '<span dir="ltr">Zorbex API<br/>Zorbex Web</span>',
+    );
+  });
+
+  test("a coloured state's name says its direction on the name itself", async () => {
+    const rendered: RenderedEmail = await MailService.render(
+      email(EmailTemplateType.SubscriberIncidentStateChanged, "fa", {
+        ...SUBSCRIBER_VARIABLES,
+        incidentState: "Zorbex state",
+        incidentStateColor: "#16a34a",
+        incidentStateTextColor: "#15803d",
+      }),
+    );
+
+    expect(
+      attributeOf(startTagOf(rendered.body, 'class="st-ColorText"'), "dir"),
+    ).toBe("ltr");
+  });
+
+  test("the footer reads 'Powered by OneUptime', then its copyright", async () => {
+    const persian: RenderedEmail = await MailService.render(
+      email(EmailTemplateType.SubscriberIncidentCreated, "fa"),
+    );
+    const english: RenderedEmail = await MailService.render(
+      email(EmailTemplateType.SubscriberIncidentCreated, undefined),
+    );
+
+    expect(persian.body).toContain('<span dir="ltr">&copy; ');
+    expect(english.body).not.toContain('<span dir="ltr">&copy; ');
+  });
+
+  test("an email read from the left gives no value a direction", async () => {
+    for (const language of [undefined, "de", "ja"]) {
+      const rendered: RenderedEmail = await MailService.render(
+        email(EmailTemplateType.SubscriberIncidentCreated, language),
+      );
+
+      expect([language, rendered.body.includes(' dir="ltr"')]).toEqual([
+        language,
+        false,
+      ]);
+    }
+  });
+
+  test("a value's direction is its letters', the email's when it has none", () => {
+    expect(getEmailValueDirection("Checkout API (EU).")).toBe("ltr");
+    expect(getEmailValueDirection(PERSIAN_TITLE)).toBe("rtl");
+    // Most of its letters: a Persian sentence that starts with "API".
+    expect(getEmailValueDirection(`API ${PERSIAN_TITLE}`)).toBe("rtl");
+    expect(getEmailValueDirection("<p>Checkout <b>API</b></p>")).toBe("ltr");
+    expect(getEmailValueDirection("2026-11-08 02:00")).toBe("rtl");
+    expect(getEmailValueDirection(undefined)).toBe("rtl");
+  });
+
+  test("trusted HTML: a block when it holds blocks, else an isolate", () => {
+    expect(getEmailHtmlValue("<ul><li>One</li></ul>")).toBe(
+      '<div dir="ltr"><ul><li>One</li></ul></div>',
+    );
+    expect(getEmailHtmlValue("One<br/>Two")).toBe(
+      '<span dir="ltr">One<br/>Two</span>',
+    );
+    expect(getEmailHtmlValue("<b>One</b>")).toBe(
+      '<span dir="ltr"><b>One</b></span>',
+    );
+    expect(getEmailHtmlValue("")).toBe("");
   });
 });
 

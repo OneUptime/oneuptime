@@ -331,9 +331,12 @@ som innehåll i `PUT /api/status-page-announcement/<announcement-id>` (eller `in
 
 Varje prenumerant får allt på sitt eget språk: e-postmeddelandet eller sms:et som bekräftar prenumerationen, välkomsten och länken för att hantera den, och varje avisering om en incident, en incidentepisod, en schemalagd underhållshändelse eller ett meddelande, via e-post, sms, Slack och Microsoft Teams.
 
-En besökare som byter statussidan till ett annat språk i dess sidfot och sedan prenumererar eller uppdaterar sin prenumeration får allt på det språket. Alla andra får det på sidans standardspråk, som ställs in under [Fler inställningar](/docs/status-pages/branding-and-domains#fler-inställningar) på dess sida Varumärke: en besökare som läste sidan på det språket, en prenumerant som ditt team lägger till i instrumentpanelen, med API:t eller med ett arbetsflöde, och alla som prenumererade innan OneUptime sparade en prenumerants språk. Ändra standardspråket så får de det nya från nästa utskick. Via API:t är en prenumerants `language` en språkkod som `de` eller `zh-TW`, eller tom för sidans standardspråk; alla andra värden avvisas.
+- **En besökare som byter statussidan till ett annat språk** i dess sidfot och sedan prenumererar eller uppdaterar sin prenumeration får allt på det språket.
+- **Alla andra** får det på sidans standardspråk, som ställs in under [Fler inställningar](/docs/status-pages/branding-and-domains#fler-inställningar) på dess sida Varumärke: en besökare som läste sidan på det språket, en prenumerant som ditt team lägger till i instrumentpanelen, med API:t eller med ett arbetsflöde, och alla som prenumererade innan OneUptime sparade en prenumerants språk. Ändra standardspråket så får de det nya från nästa utskick.
 
-OneUptimes egna ord står på det språket: ämnesrader, rubriker, etiketter och knappar, raden för att avsluta prenumerationen, datum och namnen på de incidenttillstånd, allvarlighetsgrader och underhållstillstånd som varje nytt projekt börjar med, till exempel Resolved, Major Incident eller Ongoing. Det ditt team skriver står som det skrevs: titlar, beskrivningar, anteckningar och efteranalyser, era egna namn på tillstånd, allvarlighetsgrader och resurser, statussidans namn, anpassade fält och egna mallar, vars värden står som de är sparade. Ett e-postmeddelande på persiska läses från höger till vänster. En webhooks nyttolast är data och förblir som den är, och e-postrapporten är skriven på engelska.
+OneUptimes egna ord står på det språket: ämnesrader, rubriker, etiketter och knappar, raden för att avsluta prenumerationen, datum och namnen på de incidenttillstånd, allvarlighetsgrader och underhållstillstånd som varje nytt projekt börjar med, till exempel Resolved, Major Incident eller Ongoing. Det ditt team skriver står som det skrevs: titlar, beskrivningar, anteckningar och efteranalyser, era egna namn på tillstånd, allvarlighetsgrader och resurser, statussidans namn, anpassade fält och egna mallar, vars värden står som de är sparade. Ett e-postmeddelande på persiska läses från höger till vänster, och en engelsk rubrik eller anteckning i det läses fortfarande från vänster till höger. En webhooks nyttolast är data och förblir som den är, och e-postrapporten är skriven på engelska.
+
+Via API:t är en prenumerants `language` en språkkod som `de` eller `zh-TW`, eller tom för sidans standardspråk; alla andra värden avvisas.
 
 ## Kontrollera vad som skickades
 
@@ -454,7 +457,7 @@ Fyra avsnitt till, under **Fler inställningar** längst ned i **Prenumerantinst
 
 Anpassad SMTP är värt att sätta upp tidigt om du har e-postprenumeranter: e-post som kommer från din egen domän filtreras bort betydligt mer sällan och får betydligt oftare förtroende av kunden som läser den klockan 2 på natten.
 
-Standard-sms:en skrivs med de tecken som ett sms bär billigast: typografiska citattecken, tankstreck och liknande skickas som sina enkla motsvarigheter och en emoji utelämnas, så att ett enda tecken i en rubrik aldrig får ett sms att kosta två eller tre delar. Länkar skickas exakt som de är skrivna. En egen sms-mall skickas som du skrev den, med värdena den sätter in.
+Standard-sms:en skrivs med de tecken som ett sms bär billigast: typografiska citattecken, tankstreck och liknande skickas som sina enkla motsvarigheter och en emoji utelämnas, så att ett enda tecken i en rubrik aldrig får ett sms att kosta två eller tre delar. Ett sms i en annan skrift, till exempel kinesiska eller persiska, behåller sin interpunktion som den är skriven, eftersom det kostar lika mycket i båda fallen. Länkar skickas exakt som de är skrivna. En egen sms-mall skickas som du skrev den, med värdena den sätter in.
 
 ## Meddelanden
 

@@ -331,9 +331,12 @@ som brødtekst til `PUT /api/status-page-announcement/<announcement-id>` (eller 
 
 Hver abonnent får sine beskeder på sit eget sprog: den e-mail eller sms, der bekræfter abonnementet, velkomsten og linket til at administrere det, og hver notifikation om en hændelse, en hændelsesepisode, en planlagt vedligeholdelsesbegivenhed eller en meddelelse, via e-mail, sms, Slack og Microsoft Teams.
 
-En besøgende, der skifter statussiden til et andet sprog i dens sidefod og derefter abonnerer eller opdaterer sit abonnement, får sine beskeder på det sprog. Alle andre får dem på sidens standardsprog, der indstilles under [Yderligere indstillinger](/docs/status-pages/branding-and-domains#yderligere-indstillinger) på dens side Branding: en besøgende, der læste siden på det sprog, en abonnent, som dit team tilføjer på dashboardet, med API'et eller via et workflow, og alle, der abonnerede, før OneUptime gemte en abonnents sprog. Skift standardsproget, og de får det nye fra næste besked. Via API'et er en abonnents `language` en sprogkode som `de` eller `zh-TW`, eller tom for sidens standardsprog; enhver anden værdi afvises.
+- **En besøgende, der skifter statussiden til et andet sprog** i dens sidefod og derefter abonnerer eller opdaterer sit abonnement, får sine beskeder på det sprog.
+- **Alle andre** får dem på sidens standardsprog, der indstilles under [Yderligere indstillinger](/docs/status-pages/branding-and-domains#yderligere-indstillinger) på dens side Branding: en besøgende, der læste siden på det sprog, en abonnent, som dit team tilføjer på dashboardet, med API'et eller via et workflow, og alle, der abonnerede, før OneUptime gemte en abonnents sprog. Skift standardsproget, og de får det nye fra næste besked.
 
-OneUptimes egne ord står på det sprog: emnelinjer, overskrifter, etiketter og knapper, linjen til at afmelde, datoer og navnene på de hændelsestilstande, alvorsgrader og vedligeholdelsestilstande, som hvert nyt projekt starter med, såsom Resolved, Major Incident eller Ongoing. Det, dit team skriver, står, som det blev skrevet: titler, beskrivelser, noter og postmortems, jeres egne navne på tilstande, alvorsgrader og ressourcer, statussidens navn, brugerdefinerede felter og egne skabeloner, hvis værdier står, som de er gemt. En e-mail på persisk læses fra højre mod venstre. En webhooks payload er data og forbliver, som den er, og e-mailrapporten er skrevet på engelsk.
+OneUptimes egne ord står på det sprog: emnelinjer, overskrifter, etiketter og knapper, linjen til at afmelde, datoer og navnene på de hændelsestilstande, alvorsgrader og vedligeholdelsestilstande, som hvert nyt projekt starter med, såsom Resolved, Major Incident eller Ongoing. Det, dit team skriver, står, som det blev skrevet: titler, beskrivelser, noter og postmortems, jeres egne navne på tilstande, alvorsgrader og ressourcer, statussidens navn, brugerdefinerede felter og egne skabeloner, hvis værdier står, som de er gemt. En e-mail på persisk læses fra højre mod venstre, og en engelsk titel eller note i den læses stadig fra venstre mod højre. En webhooks payload er data og forbliver, som den er, og e-mailrapporten er skrevet på engelsk.
+
+Via API'et er en abonnents `language` en sprogkode som `de` eller `zh-TW`, eller tom for sidens standardsprog; enhver anden værdi afvises.
 
 ## Tjek, hvad der blev sendt
 
@@ -454,7 +457,7 @@ Fire afsnit mere, under **Yderligere indstillinger** nederst på **Abonnementsin
 
 Brugerdefineret SMTP er værd at sætte op tidligt, hvis du har e-mailabonnenter: post, der kommer fra dit eget domæne, er langt mindre tilbøjelig til at blive filtreret fra og langt mere tilbøjelig til at blive troet på af den kunde, der læser den klokken 2 om natten.
 
-Standard-sms'erne skrives med de tegn, en sms bærer billigst: typografiske anførselstegn, tankestreger og lignende sendes som deres enkle modstykke, og en emoji udelades, så ét tegn i en titel aldrig får en sms til at koste to eller tre dele. Links sendes præcis, som de er skrevet. En brugerdefineret sms-skabelon sendes, som du skrev den, med de værdier, den indsætter.
+Standard-sms'erne skrives med de tegn, en sms bærer billigst: typografiske anførselstegn, tankestreger og lignende sendes som deres enkle modstykke, og en emoji udelades, så ét tegn i en titel aldrig får en sms til at koste to eller tre dele. En sms i en anden skrift, for eksempel kinesisk eller persisk, beholder sin tegnsætning, som den er skrevet, for den koster det samme uanset hvad. Links sendes præcis, som de er skrevet. En brugerdefineret sms-skabelon sendes, som du skrev den, med de værdier, den indsætter.
 
 ## Meddelelser
 

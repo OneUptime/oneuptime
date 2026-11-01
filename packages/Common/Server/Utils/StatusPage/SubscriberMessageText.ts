@@ -40,6 +40,9 @@ import { translateStateName } from "../../../Types/StatusPage/DefaultStatusNames
  * (Tests/Server/Utils/StatusPage/SubscriberMessageText.test.ts).
  */
 
+// The full stop Chinese and Japanese end a sentence with.
+const IDEOGRAPHIC_FULL_STOP: string = "\u{3002}";
+
 /*
  * THE TEXT MESSAGES' SHARED PIECES.
  */
@@ -192,7 +195,10 @@ export default class SubscriberMessageText {
 
   /*
    * A notification's text message: its own sentences, then the details and
-   * unsubscribe links ("... Details: <link>. Unsub: <link>").
+   * unsubscribe links ("... Details: <link>. Unsub: <link>"). A space goes
+   * between two sentences, but for one that ends in an ideographic full
+   * stop, "。", which leaves its own room: Chinese and Japanese put none
+   * after it.
    */
   public static smsWithLinks(
     translator: Translator,
@@ -213,7 +219,15 @@ export default class SubscriberMessageText {
         .filter((sentence: string): boolean => {
           return sentence.trim().length > 0;
         })
-        .join(" "),
+        .reduce((text: string, sentence: string): string => {
+          if (!text) {
+            return sentence;
+          }
+
+          return text.endsWith(IDEOGRAPHIC_FULL_STOP)
+            ? `${text}${sentence}`
+            : `${text} ${sentence}`;
+        }, ""),
     );
   }
 
@@ -305,7 +319,7 @@ export default class SubscriberMessageText {
     },
   ): string {
     let message: string =
-      mdText`🚨 ## ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: data.title || " - " })}
+      mdText`## 🚨 ${translator.translateTemplate(SubscriberChatText.incidentHeading, { title: data.title || " - " })}
 
 `.toString();
 

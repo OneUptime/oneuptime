@@ -1691,7 +1691,7 @@ describe("IncidentStateTimeline default messages", () => {
       dashboardDefault(StatusPageSubscriberNotificationMethod.SMS),
     );
 
-    const richDefault: string = `🚨 ## Incident - ${INCIDENT_TITLE}
+    const richDefault: string = `## 🚨 Incident - ${INCIDENT_TITLE}
 
 
 **Resources Affected:** Checkout API
@@ -2454,7 +2454,7 @@ describe("IncidentStateTimeline escapes plain values in email", () => {
       );
       // The title and the state are plain text in the chat defaults too.
       expect(sentSlack()[0]).toContain(
-        `## Incident - ${HOSTILE_TITLE_MARKDOWN}`,
+        `## 🚨 Incident - ${HOSTILE_TITLE_MARKDOWN}`,
       );
       expect(sentSlack()[0]).toContain(`**Status:** ${HOSTILE_STATE_MARKDOWN}`);
       for (const message of [...sentSms(), ...sentSlack(), ...sentTeams()]) {
@@ -2620,7 +2620,7 @@ describe("IncidentStateTimeline with incident custom fields", () => {
   test("the default Slack and Teams messages list them under the state", async () => {
     await runJob();
 
-    const expected: string = `🚨 ## Incident - ${INCIDENT_TITLE}
+    const expected: string = `## 🚨 Incident - ${INCIDENT_TITLE}
 
 
 **Resources Affected:** Checkout API
@@ -2907,7 +2907,7 @@ describe("IncidentStateTimeline, in the subscriber's language", () => {
     await runJob();
 
     expect(sentMail()[0]!["subject"]).toBe(
-      `[インシデント Monitoring the fix] ${INCIDENT_TITLE}`,
+      `[インシデント: Monitoring the fix] ${INCIDENT_TITLE}`,
     );
     expect(sentSms()[0]).toContain("Monitoring the fix");
     expect(sentSms()[0]).toContain("インシデント");

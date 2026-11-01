@@ -6,8 +6,10 @@ import {
   MessageCardLink,
   findFact,
   findMessageCardLinks,
+  toLabelKey,
   withLinksAsText,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageCardText";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * THE LINKS AND FACTS OF AN INCOMING WEBHOOK'S MESSAGE CARD.
@@ -146,6 +148,33 @@ describe("findMessageCardLinks", () => {
   });
 });
 
+describe("toLabelKey", () => {
+  test.each([
+    ["Description:", "description"],
+    ["Description :", "description"],
+    ["Beschreibung:", "beschreibung"],
+    ["\u{63CF}\u{8FF0}\u{FF1A}", "\u{63CF}\u{8FF0}"],
+    ["  Note  ", "note"],
+    ["Note::", "note"],
+    [":", ""],
+  ])("%s is the label %s", (label: string, key: string) => {
+    expect(toLabelKey(label)).toBe(key);
+  });
+
+  test("400,000 characters of colons and spaces take well under two seconds", () => {
+    const label: string = `a${": \u{FF1A}".repeat(133334)}`;
+    const read: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return toLabelKey(label);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(read.result).toBe("a");
+    expect(read.inMs).toBeLessThan(2000);
+  });
+});
+
 describe("findFact", () => {
   test("reads a label and a value", () => {
     expect(findFact("**Severity:** High")).toEqual({
@@ -157,6 +186,24 @@ describe("findFact", () => {
       value: "Down **Not:** a fact",
     });
     expect(findFact("no fact here")).toBeNull();
+  });
+
+  test("reads a label that ends in a full-width colon, as Chinese writes one", () => {
+    expect(
+      findFact("**\u{4E25}\u{91CD}\u{7A0B}\u{5EA6}\u{FF1A}** \u{9AD8}"),
+    ).toEqual({
+      name: "\u{4E25}\u{91CD}\u{7A0B}\u{5EA6}",
+      value: "\u{9AD8}",
+    });
+    // Whichever colon comes first ends the label.
+    expect(findFact("**A\u{FF1A}** b **C:** d")).toEqual({
+      name: "A",
+      value: "b **C:** d",
+    });
+    expect(findFact("**A:** b **C\u{FF1A}** d")).toEqual({
+      name: "A",
+      value: "b **C\u{FF1A}** d",
+    });
   });
 
   test("reads what the old expression read, for 20000 lines", () => {

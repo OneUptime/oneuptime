@@ -4,7 +4,10 @@ import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import { READER_LANGUAGE_CODES } from "Common/Types/ReaderLanguage";
 import { DEFAULT_STATUS_NAMES } from "Common/Types/StatusPage/DefaultStatusNames";
-import { getEmailLanguageVariables } from "../../../FeatureSet/Notification/Utils/EmailLanguage";
+import {
+  getEmailHtmlValue,
+  getEmailLanguageVariables,
+} from "../../../FeatureSet/Notification/Utils/EmailLanguage";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -64,7 +67,10 @@ describe("Subscribers & Announcements: the language subscribers are written in",
 
   test("a visitor who read the page in another language keeps it; everyone else follows the page's default, as it changes", () => {
     expect(SECTION).toContain(
-      "A visitor who switches the status page to another language in its footer, then subscribes or updates their subscription, is written to in that language.",
+      "- **A visitor who switches the status page to another language** in its footer, then subscribes or updates their subscription, is written to in that language.",
+    );
+    expect(SECTION).toContain(
+      "- **Everyone else** is written to in the page's default language, set under [More settings](/docs/status-pages/branding-and-domains#more-settings) on its Branding page:",
     );
     expect(
       SubscriberLanguage.getLanguageToStore({
@@ -138,8 +144,14 @@ describe("Subscribers & Announcements: the language subscribers are written in",
   });
 
   test("an email in Persian reads right to left; a webhook's payload and the report do not change", () => {
-    expect(SECTION).toContain("An email in Persian reads right to left.");
+    expect(SECTION).toContain(
+      "An email in Persian reads right to left, and an English title or note in it still reads left to right.",
+    );
     expect(getEmailLanguageVariables("fa")["emailDirection"]).toBe("rtl");
+    // A value says which way it reads (Utils/EmailLanguage.ts).
+    expect(getEmailHtmlValue("<p>Rolled back v2.4.1.</p>")).toBe(
+      '<div dir="ltr"><p>Rolled back v2.4.1.</p></div>',
+    );
     expect(getEmailLanguageVariables("de")["emailDirection"]).toBeUndefined();
 
     expect(SECTION).toContain(
@@ -170,7 +182,7 @@ describe("the section in every docs language", () => {
     expect(headingLine).toBeGreaterThan(0);
     expect(
       englishLines.slice(headingLine).indexOf("## Checking what was sent"),
-    ).toBe(8);
+    ).toBe(11);
   });
 
   test.each(
@@ -185,22 +197,25 @@ describe("the section in every docs language", () => {
       expect(lines[headingLine]!.startsWith("## ")).toBe(true);
       expect(lines[headingLine]).not.toBe(HEADING);
 
-      const paragraphs: string = [2, 4, 6]
-        .map((offset: number): string => {
-          return lines[headingLine + offset]!;
-        })
-        .join("\n");
+      // Who gets which language: two items, each led in bold.
+      for (const offset of [4, 5]) {
+        expect(lines[headingLine + offset]!.startsWith("- **")).toBe(true);
+      }
 
-      expect(paragraphs.match(/`[^`]+`/g)).toEqual([
+      // The page's default language, linked to its own heading.
+      expect(lines[headingLine + 5]).toContain(
+        "](/docs/status-pages/branding-and-domains#",
+      );
+      expect(lines[headingLine + 5]).not.toContain("#more-settings)");
+      expect(lines[headingLine + 7]).toContain("Resolved");
+
+      // The API, last, a paragraph of its own.
+      expect(lines[headingLine + 9]!.match(/`[^`]+`/g)).toEqual([
         "`language`",
         "`de`",
         "`zh-TW`",
       ]);
-      expect(paragraphs).toContain(
-        "](/docs/status-pages/branding-and-domains#",
-      );
-      expect(paragraphs).not.toContain("#more-settings)");
-      expect(paragraphs).toContain("Resolved");
+      expect(lines[headingLine + 11]!.startsWith("## ")).toBe(true);
     },
   );
 });

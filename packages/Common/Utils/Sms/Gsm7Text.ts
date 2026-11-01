@@ -1,4 +1,4 @@
-import { getGsm7Length } from "./SmsSegments";
+import { getGsm7Length, isGsm7Text } from "./SmsSegments";
 
 /*
  * TEXT WRITTEN IN THE CHARACTERS AN SMS CARRIES CHEAPLY.
@@ -543,26 +543,27 @@ const collapseSpaces: (text: string) => string = (text: string): string => {
 };
 
 /*
- * A whole message in GSM-7's characters (toGsm7Text), but for its links,
- * which go out exactly as written: a link is an address, and a look-alike
- * would lead somewhere else. Line breaks are kept; spaces are single, and
- * none is left where a character was left out.
+ * A message's words written with `writeWord` - but for its links, which go
+ * out exactly as written: a link is an address, and a look-alike would lead
+ * somewhere else. Line breaks are kept; spaces are single, and none is left
+ * where a character was left out.
  */
-export const toGsm7Message: (text: string) => string = (
+const writeMessage: (
   text: string,
-): string => {
+  writeWord: (word: string) => string,
+) => string = (text: string, writeWord: (word: string) => string): string => {
   let written: string = "";
   let word: string = "";
 
   const flushWord: () => void = (): void => {
-    written += isLinkWord(word) ? word : toGsm7Text(word);
+    written += isLinkWord(word) ? word : writeWord(word);
     word = "";
   };
 
   for (const character of text) {
     if (WHITESPACE.test(character)) {
       flushWord();
-      written += toGsm7Text(character);
+      written += writeWord(character);
       continue;
     }
 
@@ -572,4 +573,134 @@ export const toGsm7Message: (text: string) => string = (
   flushWord();
 
   return collapseSpaces(written);
+};
+
+// A whole message in GSM-7's characters (toGsm7Text), but for its links.
+export const toGsm7Message: (text: string) => string = (
+  text: string,
+): string => {
+  return writeMessage(text, toGsm7Text);
+};
+
+/*
+ * A TEXT THAT GOES OUT IN UCS-2 WHATEVER ITS PUNCTUATION.
+ *
+ * A text with letters of another script - Chinese, Japanese, Persian,
+ * Russian - is UCS-2 however it is punctuated, and there a full-width
+ * colon costs what ":" does: one place each. Written with GSM-7's
+ * look-alikes it costs no less and reads worse - "事件：Acme" came out as
+ * "事件:Acme", "失败（欧洲）" as "失败(欧洲)". So such a text keeps every
+ * character as written but for what says nothing, left out as toGsm7Text
+ * leaves it out: an emoji (a sign with a look-alike - © ® ™ ↔ - is text
+ * and stays), invisible formatting (a joiner between two letters of a
+ * script it shapes stays, and so do the marks that keep a value's own
+ * direction in a sentence read from the right - see BIDI_MARKS), control
+ * and private-use characters, and a mark with nothing before it to carry
+ * it. A space of any kind, and a tab, is a space.
+ */
+/*
+ * The invisible marks that say which way a run of text reads: the
+ * isolates a Persian sentence puts around an English title (U+2066 to
+ * U+2069, Common/Server/Utils/ServerTranslation), the left-to-right,
+ * right-to-left and Arabic letter marks. Without them "(Critical)" at the
+ * end of an English title in a Persian text lost its closing bracket to
+ * the other end.
+ */
+const BIDI_MARKS: ReadonlySet<number> = new Set<number>([
+  0x200e, 0x200f, 0x061c, 0x2066, 0x2067, 0x2068, 0x2069,
+]);
+
+export const toUcs2Text: (text: string) => string = (text: string): string => {
+  const characters: Array<string> = Array.from(text.normalize("NFC"));
+  let written: string = "";
+
+  for (let index: number = 0; index < characters.length; index++) {
+    const character: string = characters[index]!;
+    const codePoint: number = codePointOf(character);
+
+    if (character === "\n" || character === "\r") {
+      written += character;
+      continue;
+    }
+
+    if (character === "\t" || SPACE_CHARACTER.test(character)) {
+      written += SPACE;
+      continue;
+    }
+
+    if (
+      codePoint === ZERO_WIDTH_JOINER ||
+      codePoint === ZERO_WIDTH_NON_JOINER
+    ) {
+      // Kept only between two letters of a script that is kept as written.
+      if (
+        isKeptScriptLetter(characters[index - 1]) &&
+        isKeptScriptLetter(characters[index + 1])
+      ) {
+        written += character;
+      }
+
+      continue;
+    }
+
+    if (BIDI_MARKS.has(codePoint)) {
+      written += character;
+      continue;
+    }
+
+    if (
+      (isEmojiPart(character) && !GSM_7_LOOK_ALIKES.has(character)) ||
+      FORMAT_CHARACTER.test(character) ||
+      CONTROL_CHARACTER.test(character) ||
+      UNREADABLE_CHARACTER.test(character)
+    ) {
+      continue;
+    }
+
+    if (MARK.test(character) && written.length === 0) {
+      continue;
+    }
+
+    written += character;
+  }
+
+  return written;
+};
+
+// A whole message as toUcs2Text writes it, but for its links.
+export const toUcs2Message: (text: string) => string = (
+  text: string,
+): string => {
+  return writeMessage(text, toUcs2Text);
+};
+
+/*
+ * Whether a message's words are all GSM-7's characters, its links aside:
+ * a link goes out exactly as written, whatever it holds, so it does not
+ * decide how the words around it are written.
+ */
+export const isGsm7OutsideLinks: (text: string) => boolean = (
+  text: string,
+): boolean => {
+  let word: string = "";
+
+  const isGsm7Word: () => boolean = (): boolean => {
+    const gsm7: boolean = isLinkWord(word) || isGsm7Text(word);
+    word = "";
+    return gsm7;
+  };
+
+  for (const character of text) {
+    if (WHITESPACE.test(character)) {
+      if (!isGsm7Word() || !isGsm7Text(character)) {
+        return false;
+      }
+
+      continue;
+    }
+
+    word += character;
+  }
+
+  return isGsm7Word();
 };

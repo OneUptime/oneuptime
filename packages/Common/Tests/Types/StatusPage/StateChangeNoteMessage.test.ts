@@ -209,7 +209,7 @@ describe("StateChangeNoteMessage in the reader's language", () => {
         eventTitle: "Database upgrade",
         translator: getServerTranslator("ja"),
       }),
-    ).toBe("[予定されたメンテナンス 完了] Database upgrade");
+    ).toBe("[予定されたメンテナンス: 完了] Database upgrade");
   });
 
   test("the text message's first sentence", () => {

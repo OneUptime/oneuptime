@@ -6,11 +6,14 @@ import {
 } from "../../../Types/DateLanguage";
 import { READER_LANGUAGE_CODES } from "../../../Types/ReaderLanguage";
 import {
+  FIRST_STRONG_ISOLATE,
+  getEveryWordingOf,
   getServerTranslator,
+  POP_DIRECTIONAL_ISOLATE,
   SERVER_LOCALES,
   writeInLanguage,
 } from "../../../Server/Utils/ServerTranslation";
-import { Translator } from "../../../UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * TEXT THE SERVER WRITES, IN ITS READER'S LANGUAGE.
@@ -90,6 +93,112 @@ describe("getServerTranslator", () => {
   test("is built once per language", () => {
     expect(getServerTranslator("ja")).toBe(getServerTranslator("ja"));
     expect(getServerTranslator("ja-JP")).toBe(getServerTranslator("ja"));
+  });
+});
+
+/*
+ * A Persian sentence holds the team's own words - titles and names, most
+ * often English. Each goes in isolated (Unicode's FIRST STRONG ISOLATE ...
+ * POP DIRECTIONAL ISOLATE, what <bdi> is on a page), so its bracket or full
+ * stop stays at its end and two values never run together.
+ */
+describe("a value in a sentence read from the right", () => {
+  const PERSIAN: Translator = getServerTranslator("fa");
+
+  const isolated: (text: string) => string = (text: string): string => {
+    return `${FIRST_STRONG_ISOLATE}${text}${POP_DIRECTIONAL_ISOLATE}`;
+  };
+
+  test("the isolates are U+2068 and U+2069", () => {
+    expect(FIRST_STRONG_ISOLATE).toBe("\u{2068}");
+    expect(POP_DIRECTIONAL_ISOLATE).toBe("\u{2069}");
+  });
+
+  test("is isolated in a sentence Persian words", () => {
+    expect(
+      PERSIAN.translateTemplate("[Incident] {{title}}", {
+        title: "Payments (EU)",
+      }),
+    ).toBe(
+      `[\u{062D}\u{0627}\u{062F}\u{062B}\u{0647}] ${isolated("Payments (EU)")}`,
+    );
+  });
+
+  test("so is a value composed in the reader's language - a state's name", () => {
+    const subject: string = PERSIAN.translateTemplate(
+      "[Incident {{state}}] {{title}}",
+      {
+        state: composedValue((translator: Translator): string => {
+          return translator.translateText("Resolved") || "";
+        }),
+        title: "Checkout",
+      },
+    );
+
+    expect(subject).toContain(isolated(PERSIAN.translateText("Resolved")!));
+    expect(subject.endsWith(isolated("Checkout"))).toBe(true);
+  });
+
+  test("a link and a number go in as they are", () => {
+    const text: string = PERSIAN.translateTemplate(
+      "Details: {{detailsUrl}}. Unsub: {{unsubscribeUrl}}",
+      {
+        detailsUrl: "https://status.acme.example/incidents/42",
+        unsubscribeUrl: "HTTPS://status.acme.example/u/1",
+      },
+    );
+
+    expect(text).not.toContain(FIRST_STRONG_ISOLATE);
+    expect(text).toContain(" https://status.acme.example/incidents/42 ");
+    expect(
+      PERSIAN.translatePlural(
+        { one: "{{count}} resource", other: "{{count}} resources" },
+        3,
+        { name: 5 },
+      ),
+    ).not.toContain(FIRST_STRONG_ISOLATE);
+  });
+
+  test("a sentence Persian has not worded is the English it always was", () => {
+    expect(
+      PERSIAN.translateTemplate("A sentence no locale has: {{value}}", {
+        value: "Checkout",
+      }),
+    ).toBe("A sentence no locale has: Checkout");
+  });
+
+  test("a language read from the left isolates nothing", () => {
+    for (const language of ["en", "de", "ja", "zh-CN"]) {
+      expect(
+        getServerTranslator(language).translateTemplate(
+          "[Incident] {{title}}",
+          { title: "Payments (EU)" },
+        ),
+      ).not.toContain(FIRST_STRONG_ISOLATE);
+    }
+  });
+});
+
+describe("getEveryWordingOf", () => {
+  test("the English, then every language's own wording, each once", () => {
+    const wordings: Array<string> = getEveryWordingOf("Note:");
+
+    expect(wordings[0]).toBe("Note:");
+    expect(wordings).toContain("Notiz:");
+    expect(wordings).toContain("\u{5907}\u{6CE8}\u{FF1A}");
+    expect(new Set(wordings).size).toBe(wordings.length);
+    // Danish writes "Note:" as English does: once.
+    expect(
+      wordings.filter((wording: string): boolean => {
+        return wording === "Note:";
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a text no locale has is its English alone", () => {
+    expect(getEveryWordingOf("A sentence no locale has")).toEqual([
+      "A sentence no locale has",
+    ]);
   });
 });
 

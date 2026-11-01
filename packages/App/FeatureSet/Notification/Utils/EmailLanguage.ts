@@ -6,9 +6,11 @@ import {
 } from "Common/Types/ReaderLanguage";
 import {
   getReadingDirection,
+  getTextReadingDirectionByMostLetters,
   ReadingDirection,
   RIGHT_TO_LEFT,
 } from "Common/Types/ReadingDirection";
+import { removeHtmlMarkup, replaceHtmlMarkup } from "Common/Types/HtmlMarkup";
 import { getServerTranslator } from "Common/Server/Utils/ServerTranslation";
 import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -47,6 +49,10 @@ import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
  *   align="{{emailStart}}"                    "left", or "right" in an email
  *   align="{{emailEnd}}"                      read from the right ("right" /
  *                                             "left"): a table's own sides
+ *   {{{emailValueDirAttribute value}}}        in an email read from the
+ *   {{{emailHtmlValue html}}}                 right: what the team wrote,
+ *                                             laid out its own way (see
+ *                                             VALUES BELOW)
  *
  * Production registers them on the Handlebars instance MailService renders
  * with (Utils/Handlebars.ts). A test, harness or preview that renders the
@@ -157,6 +163,122 @@ const asText: (value: unknown) => string = (value: unknown): string => {
   return value === null || value === undefined ? "" : String(value);
 };
 
+/*
+ * VALUES IN AN EMAIL READ FROM THE RIGHT.
+ *
+ * A Persian subscriber's email is laid out from the right, and its values
+ * are what the team wrote - a title, a resource's name, a note - most
+ * often in English. Laid out with the email, an English value's full stop
+ * or closing bracket jumps to its other end (".Payments fail in the EU").
+ * So there each value says which way it reads: the way most of its
+ * letters do (getTextReadingDirectionByMostLetters), as the product's
+ * pages read what someone wrote, or the email's way when it has no
+ * letters.
+ *
+ *   - A value of a line or two - a title, a state, resources, a date - is
+ *     an isolate in its line (an element with dir, what <bdi> is on a
+ *     page): it reads its own way and keeps the card's right edge.
+ *   - A value of paragraphs, lists, tables or code - a description, a
+ *     note - is a block laid out its own way, as a note is on a page read
+ *     from the right: an English one starts on the left.
+ *
+ * In an email read from the left nothing changes: these are used only in
+ * {{#if @root.isEmailRightToLeft}}.
+ */
+
+// The elements that make a value a block of its own (see above).
+const BLOCK_ELEMENT_NAMES: ReadonlyArray<string> = [
+  "address",
+  "blockquote",
+  "div",
+  "dl",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "hr",
+  "li",
+  "ol",
+  "p",
+  "pre",
+  "table",
+  "ul",
+];
+
+// An element's name in its start tag: "<p class=x>" is "p", "</p>" none.
+const getStartTagName: (markup: string) => string = (
+  markup: string,
+): string => {
+  let end: number = 1;
+
+  while (end < markup.length) {
+    const code: number = markup.charCodeAt(end);
+    const isNameCharacter: boolean =
+      (code >= 0x30 && code <= 0x39) ||
+      (code >= 0x41 && code <= 0x5a) ||
+      (code >= 0x61 && code <= 0x7a);
+
+    if (!isNameCharacter) {
+      break;
+    }
+
+    end++;
+  }
+
+  return markup.slice(1, end).toLowerCase();
+};
+
+// Whether trusted HTML holds a paragraph, a list, a table or another block.
+const hasBlockElement: (html: string) => boolean = (html: string): boolean => {
+  let found: boolean = false;
+
+  replaceHtmlMarkup(html, (markup: string): string => {
+    found = found || BLOCK_ELEMENT_NAMES.includes(getStartTagName(markup));
+    return "";
+  });
+
+  return found;
+};
+
+/*
+ * Which way a value reads: by most of its letters (its markup left out),
+ * else the way the email reads.
+ */
+export const getEmailValueDirection: (value: unknown) => ReadingDirection = (
+  value: unknown,
+): ReadingDirection => {
+  const text: string = asText(value);
+
+  return (
+    getTextReadingDirectionByMostLetters(
+      text.includes("<") ? removeHtmlMarkup(text) : text,
+    ) || RIGHT_TO_LEFT
+  );
+};
+
+/*
+ * Trusted HTML - a value the template places with {{{ }}} - laid out the
+ * way it reads (see above): a block of its own when it holds blocks, an
+ * isolate in its line when it does not.
+ */
+export const getEmailHtmlValue: (html: unknown) => string = (
+  html: unknown,
+): string => {
+  const value: string = asText(html);
+
+  if (!value) {
+    return value;
+  }
+
+  const direction: ReadingDirection = getEmailValueDirection(value);
+
+  return hasBlockElement(value)
+    ? `<div dir="${direction}">${value}</div>`
+    : `<span dir="${direction}">${value}</span>`;
+};
+
 export const registerEmailLanguageHelpers: (
   handlebars: HandlebarsEngine,
 ) => void = (handlebars: HandlebarsEngine): void => {
@@ -220,4 +342,22 @@ export const registerEmailLanguageHelpers: (
   handlebars.registerHelper("emailEnd", (options: unknown): string => {
     return isRightToLeftEmail(options) ? "left" : "right";
   });
+
+  // ' dir="ltr"' / ' dir="rtl"': the way a value reads (see VALUES above).
+  handlebars.registerHelper(
+    "emailValueDirAttribute",
+    (value: unknown): Handlebars.SafeString => {
+      return new handlebars.SafeString(
+        ` dir="${getEmailValueDirection(value)}"`,
+      );
+    },
+  );
+
+  // Trusted HTML, laid out the way it reads (see VALUES above).
+  handlebars.registerHelper(
+    "emailHtmlValue",
+    (html: unknown): Handlebars.SafeString => {
+      return new handlebars.SafeString(getEmailHtmlValue(html));
+    },
+  );
 };
