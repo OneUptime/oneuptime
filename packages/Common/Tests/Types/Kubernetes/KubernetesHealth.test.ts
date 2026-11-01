@@ -661,7 +661,8 @@ describe("a pod", () => {
     );
     expect(assessment.severity).toBe(KubernetesHealthSeverity.Warning);
     expect(words(assessment.status)).toBe("Evicted");
-    expect(assessment.tone).toBe("danger");
+    // Coloured as Needs attention colours it: something to look at.
+    expect(assessment.tone).toBe("warning");
     expect(reasonWords(assessment)).toEqual(["Evicted"]);
     expect(assessment.message).toBe("The node was low on resource: memory.");
   });
@@ -676,6 +677,7 @@ describe("a pod", () => {
     );
     expect(assessment.severity).toBeNull();
     expect(words(assessment.status)).toBe("Evicted");
+    expect(assessment.tone).toBe("neutral");
   });
 
   test("failed recently names the container's reason", () => {
@@ -774,7 +776,7 @@ describe("a node", () => {
     );
   });
 
-  test("whose Ready is Unknown stopped reporting: crashed, off or cut off", () => {
+  test("whose Ready is Unknown is unreachable: crashed, off or cut off", () => {
     const assessment: KubernetesHealthAssessment = assessKubernetesNode(
       node({
         isReady: false,
@@ -787,8 +789,10 @@ describe("a node", () => {
       }),
     );
     expect(assessment.severity).toBe(KubernetesHealthSeverity.Critical);
-    expect(words(assessment.status)).toBe("Stopped reporting");
-    expect(reasonWords(assessment)).toEqual(["Stopped reporting"]);
+    // Kubernetes' own word, from the taint it puts on such a node.
+    expect(words(assessment.status)).toBe("Unreachable");
+    expect(reasonWords(assessment)).toEqual(["Unreachable"]);
+    expect(assessment.message).toBe("Kubelet stopped posting node status.");
   });
 
   test("reads not ready from its conditions when the column is empty", () => {
@@ -911,6 +915,19 @@ describe("a Deployment", () => {
     );
     expect(assessment.severity).toBe(KubernetesHealthSeverity.Warning);
     expect(reasonWords(assessment)).toEqual(["1 of 3 available"]);
+  });
+
+  test("every replica available while the new ones replace the old is rolling out, not just Available", () => {
+    const assessment: KubernetesHealthAssessment = assessKubernetesDeployment(
+      deployment(3, 3, {
+        progressing: condition("Progressing", "True", {
+          reason: "ReplicaSetUpdated",
+        }),
+      }),
+    );
+    expect(assessment.severity).toBeNull();
+    expect(words(assessment.status)).toBe("Rolling out");
+    expect(assessment.tone).toBe("neutral");
   });
 
   test("short of replicas while it rolls out is rolling out", () => {
@@ -1173,6 +1190,8 @@ describe("a Job and a CronJob", () => {
     );
     expect(assessment.severity).toBe(KubernetesHealthSeverity.Warning);
     expect(words(assessment.status)).toBe("Failed");
+    // Amber on its page, as its row in Needs attention.
+    expect(assessment.tone).toBe("warning");
     expect(reasonWords(assessment)).toEqual(["Failed", "BackoffLimitExceeded"]);
     expect(assessment.message).toBe(
       "Job has reached the specified backoff limit",
@@ -1221,6 +1240,7 @@ describe("a Job and a CronJob", () => {
       ]);
     expect(assessment.severity).toBe(KubernetesHealthSeverity.Warning);
     expect(words(assessment.status)).toBe("Last run failed");
+    expect(assessment.tone).toBe("warning");
     expect(reasonWords(assessment)).toEqual([
       "Last run failed",
       "BackoffLimitExceeded",

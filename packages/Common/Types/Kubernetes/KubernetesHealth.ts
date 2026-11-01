@@ -141,7 +141,8 @@ const STATUS_EVICTED: string = translationKey("Evicted");
 const STATUS_UNKNOWN: string = translationKey("Unknown");
 const STATUS_NOT_READY: string = translationKey("Not ready");
 const STATUS_READY: string = translationKey("Ready");
-const STATUS_STOPPED_REPORTING: string = translationKey("Stopped reporting");
+// Kubernetes' own word for it: the node.kubernetes.io/unreachable taint.
+const STATUS_UNREACHABLE: string = translationKey("Unreachable");
 const STATUS_SCHEDULING_DISABLED: string = translationKey(
   "Scheduling disabled",
 );
@@ -164,7 +165,7 @@ const STATUS_NO_DATA: string = translationKey("No data yet");
 const STATUS_NO_NODES: string = translationKey("No nodes to run on");
 
 const REASON_NOT_READY: string = translationKey("Not ready");
-const REASON_STOPPED_REPORTING: string = translationKey("Stopped reporting");
+const REASON_UNREACHABLE: string = translationKey("Unreachable");
 const REASON_NETWORK_UNAVAILABLE: string = translationKey(
   "Network unavailable",
 );
@@ -650,13 +651,15 @@ export function assessKubernetesPod(
     if (!evicted && failedContainer) {
       reasons.push(asWritten(failedContainer.reason));
     }
+    const severity: KubernetesHealthSeverity | null =
+      isRecent && workload?.kind !== "Job"
+        ? KubernetesHealthSeverity.Warning
+        : null;
     return {
-      severity:
-        isRecent && workload?.kind !== "Job"
-          ? KubernetesHealthSeverity.Warning
-          : null,
+      severity: severity,
       status: word,
-      tone: "danger",
+      // As Needs attention colours it: to look at, or history.
+      tone: severity ? "warning" : "neutral",
       reasons: reasons,
       message: podMessage || failedContainer?.message || undefined,
     };
@@ -797,22 +800,20 @@ export function assessKubernetesNode(
   if (notReady) {
     /*
      * Unknown is a node that stopped talking to the API server: crashed,
-     * powered off or cut off. False is a kubelet that says it is unwell.
+     * powered off or cut off, which Kubernetes taints unreachable. False is
+     * a kubelet that says it is unwell. Not "stopped reporting": the agent
+     * still reports the node, which its page says beside it.
      */
-    const stoppedReporting: boolean = ready?.status === "Unknown";
+    const isUnreachable: boolean = ready?.status === "Unknown";
     const reasons: Array<KubernetesHealthText> = [
-      stoppedReporting
-        ? text(REASON_STOPPED_REPORTING)
-        : text(REASON_NOT_READY),
+      isUnreachable ? text(REASON_UNREACHABLE) : text(REASON_NOT_READY),
     ];
     if (network?.status === "True") {
       reasons.push(text(REASON_NETWORK_UNAVAILABLE));
     }
     return {
       severity: KubernetesHealthSeverity.Critical,
-      status: stoppedReporting
-        ? text(STATUS_STOPPED_REPORTING)
-        : text(STATUS_NOT_READY),
+      status: isUnreachable ? text(STATUS_UNREACHABLE) : text(STATUS_NOT_READY),
       tone: "danger",
       reasons: reasons,
       message: ready?.message || undefined,
@@ -965,18 +966,27 @@ export function assessKubernetesDeployment(
   }
 
   const isPaused: boolean = readBoolean(spec, "paused");
+  /*
+   * A new ReplicaSet is being rolled out until Kubernetes reports
+   * NewReplicaSetAvailable; its deadline turns a stuck one critical.
+   */
+  const isRollingOut: boolean =
+    progressing?.status === "True" &&
+    progressing.reason === "ReplicaSetUpdated";
+
+  /*
+   * Every replica available, the new ones still replacing the old: it is
+   * rolling out, which "Available" would hide.
+   */
+  if (isRollingOut && available >= desired) {
+    return healthy(text(STATUS_ROLLING_OUT), "neutral");
+  }
 
   return assessReplicaShortfall({
     have: available,
     want: desired,
     clock: clock,
-    /*
-     * A new ReplicaSet is being rolled out until Kubernetes reports
-     * NewReplicaSetAvailable; its deadline turns a stuck one critical.
-     */
-    isRollingOut:
-      progressing?.status === "True" &&
-      progressing.reason === "ReplicaSetUpdated",
+    isRollingOut: isRollingOut,
     shortfall: text(REASON_AVAILABLE_OF, {
       available: String(available),
       desired: String(desired),
@@ -1086,7 +1096,7 @@ export function assessKubernetesJob(
     return {
       severity: KubernetesHealthSeverity.Warning,
       status: text(STATUS_FAILED),
-      tone: "danger",
+      tone: "warning",
       reasons: reasons,
       message: failed.message || undefined,
     };
@@ -1759,7 +1769,8 @@ export function assessKubernetesCronJobWithRuns(
   return {
     severity: run.severity,
     status: text(STATUS_LAST_RUN_FAILED),
-    tone: "danger",
+    tone:
+      run.severity === KubernetesHealthSeverity.Critical ? "danger" : "warning",
     reasons: [
       text(REASON_LAST_RUN_FAILED),
       ...run.reasons.filter((reason: KubernetesHealthText): boolean => {
