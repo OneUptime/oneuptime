@@ -29,9 +29,16 @@ import {
   KubernetesServiceObject,
 } from "Common/Types/Kubernetes/KubernetesObjectParser";
 import {
+  OpenShiftClusterOperatorObject,
+  OpenShiftClusterVersionObject,
   OpenShiftDeploymentConfigObject,
+  OpenShiftResourceType,
   OpenShiftRouteObject,
 } from "Common/Types/Kubernetes/OpenShiftObjectParser";
+import {
+  OpenShiftClusterHealth,
+  getOpenShiftClusterHealth,
+} from "./KubernetesOpenShiftHealth";
 import { kindFromResourceType } from "Common/Types/Kubernetes/KubernetesInventoryExtractor";
 import {
   KubernetesEventsPage,
@@ -84,7 +91,9 @@ export type KubernetesObjectType =
   | KubernetesVPAObject
   | KubernetesServiceObject
   | OpenShiftRouteObject
-  | OpenShiftDeploymentConfigObject;
+  | OpenShiftDeploymentConfigObject
+  | OpenShiftClusterOperatorObject
+  | OpenShiftClusterVersionObject;
 
 export interface FetchK8sObjectOptions {
   clusterIdentifier: string;
@@ -424,6 +433,37 @@ export async function fetchK8sObjectsBatch(options: {
   } catch {
     return new Map();
   }
+}
+
+/*
+ * An OpenShift cluster's health: its ClusterOperators and its ClusterVersion,
+ * of which a cluster has one. Null when it reports no operators.
+ */
+export async function fetchOpenShiftClusterHealth(
+  clusterIdentifier: string,
+): Promise<OpenShiftClusterHealth | null> {
+  const [operators, clusterVersions]: [
+    Map<string, KubernetesObjectType>,
+    Map<string, KubernetesObjectType>,
+  ] = await Promise.all([
+    fetchK8sObjectsBatch({
+      clusterIdentifier,
+      resourceType: OpenShiftResourceType.ClusterOperators,
+    }),
+    fetchK8sObjectsBatch({
+      clusterIdentifier,
+      resourceType: OpenShiftResourceType.ClusterVersions,
+    }),
+  ]);
+
+  return getOpenShiftClusterHealth({
+    operators: Array.from(
+      operators.values(),
+    ) as Array<OpenShiftClusterOperatorObject>,
+    clusterVersion: Array.from(clusterVersions.values())[0] as
+      | OpenShiftClusterVersionObject
+      | undefined,
+  });
 }
 
 // --- events + logs (still on ClickHouse) ---------------------------

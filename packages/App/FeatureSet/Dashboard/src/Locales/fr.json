@@ -39178,5 +39178,17 @@
   "Route Events": "Route Events",
   "Service Events": "Service Events",
   "Stable addresses in front of pods": "Stable addresses in front of pods",
-  "TLS": "TLS"
+  "TLS": "TLS",
+  "Moving to {{version}}": "Moving to {{version}}",
+  "No update running": "No update running",
+  "OpenShift": "OpenShift",
+  "Operators": "Operators",
+  "Progressing": "Progressing",
+  "Show all {{count}} operators": "Show all {{count}} operators",
+  "Show only those to review": "Show only those to review",
+  "The version this cluster runs, and what its cluster operators report.": "The version this cluster runs, and what its cluster operators report.",
+  "Worked out from the latest inventory, not the selected range: Unhealthy if a pod failed, a node is not ready or an operator is unavailable; Degraded if a pod is pending, a node is under pressure, an operator is degraded or an update fails; otherwise Healthy.": "Worked out from the latest inventory, not the selected range: Unhealthy if a pod failed, a node is not ready or an operator is unavailable; Degraded if a pod is pending, a node is under pressure, an operator is degraded or an update fails; otherwise Healthy.",
+  "{{count}} updates available": "{{count}} updates available",
+  "{{count}} updates available_one": "{{count}} update available",
+  "{{healthy}} of {{total}} healthy": "{{healthy}} of {{total}} healthy"
 }
