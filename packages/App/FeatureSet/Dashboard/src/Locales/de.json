@@ -38938,7 +38938,6 @@
   "Alerts when the number of resolved exceptions that came back in {{window}} is {{comparison}} {{count}}.": "Alarmiert, wenn die Zahl behobener Ausnahmen, die in {{window}} zurückkamen, {{comparison}} {{count}} ist.",
   "An exception nobody has seen before happens for the first time.": "Eine Ausnahme, die noch niemand gesehen hat, tritt zum ersten Mal auf.",
   "An exception you resolved happens again, so the fix did not hold.": "Eine Ausnahme, die Sie behoben haben, tritt wieder auf: Die Korrektur hat nicht gehalten.",
-  "Exceptions rise well above the usual, such as three times the day before.": "Ausnahmen steigen weit über das Übliche, etwa auf das Dreifache des Vortags.",
   "Exceptions spike": "Ausnahmen steigen sprunghaft",
   "Exceptions that came back": "Zurückgekommene Ausnahmen",
   "New exceptions": "Neue Ausnahmen",
@@ -39265,5 +39264,15 @@
   "Cluster update": "Cluster-Update",
   "Compact rows": "Kompakte Zeilen",
   "Sort by": "Sortieren nach",
-  "Sorted by {{column}}": "Sortiert nach {{column}}"
+  "Sorted by {{column}}": "Sortiert nach {{column}}",
+  "Alerts when matching exceptions in {{window}} are unusually few for this hour of the week.": "Alarmiert, wenn in {{window}} ungewöhnlich wenige passende Ausnahmen für diese Stunde der Woche auftreten.",
+  "Alerts when matching exceptions in {{window}} are unusually many for this hour of the week.": "Alarmiert, wenn in {{window}} ungewöhnlich viele passende Ausnahmen für diese Stunde der Woche auftreten.",
+  "Alerts when matching exceptions in {{window}} are unusually many or few for this hour of the week.": "Alarmiert, wenn in {{window}} ungewöhnlich viele oder wenige passende Ausnahmen für diese Stunde der Woche auftreten.",
+  "Compared with the same hours of the weeks before. A new service waits until it has two weeks of history.": "Verglichen mit denselben Stunden der Wochen davor. Ein neuer Dienst wartet, bis er zwei Wochen Verlauf hat.",
+  "Exceptions rise well above what is normal for this hour of the week.": "Ausnahmen steigen weit über das, was für diese Stunde der Woche normal ist.",
+  "How far from the usual count a window must be. Leave empty to use the sensitivity.": "Wie weit ein Zeitfenster vom üblichen Wert abweichen muss. Leer lassen, um die Empfindlichkeit zu verwenden.",
+  "How much history to learn from. It can only learn from the exceptions OneUptime keeps.": "Aus wie viel Verlauf gelernt wird. Gelernt werden kann nur aus den Ausnahmen, die OneUptime aufbewahrt.",
+  "Minimum exceptions": "Mindestzahl an Ausnahmen",
+  "Standard deviations": "Standardabweichungen",
+  "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.": "Die wenigsten Ausnahmen in einem Zeitfenster, die einen Alarm auslösen können, damit ein ruhiger Dienst nicht schon bei seinen ersten alarmiert."
 }

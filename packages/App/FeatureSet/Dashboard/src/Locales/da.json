@@ -38938,7 +38938,6 @@
   "Alerts when the number of resolved exceptions that came back in {{window}} is {{comparison}} {{count}}.": "Advarer, når antallet af løste undtagelser, der kom tilbage i {{window}}, er {{comparison}} {{count}}.",
   "An exception nobody has seen before happens for the first time.": "En undtagelse, som ingen har set før, sker for første gang.",
   "An exception you resolved happens again, so the fix did not hold.": "En undtagelse, du har løst, sker igen: rettelsen holdt ikke.",
-  "Exceptions rise well above the usual, such as three times the day before.": "Undtagelser stiger langt over det sædvanlige, fx til det tredobbelte af dagen før.",
   "Exceptions spike": "Undtagelser topper",
   "Exceptions that came back": "Undtagelser, der kom tilbage",
   "New exceptions": "Nye undtagelser",
@@ -39265,5 +39264,15 @@
   "Cluster update": "Klyngeopdatering",
   "Compact rows": "Kompakte rækker",
   "Sort by": "Sortér efter",
-  "Sorted by {{column}}": "Sorteret efter {{column}}"
+  "Sorted by {{column}}": "Sorteret efter {{column}}",
+  "Alerts when matching exceptions in {{window}} are unusually few for this hour of the week.": "Advarer, når der i {{window}} er usædvanligt få matchende undtagelser for denne time på ugen.",
+  "Alerts when matching exceptions in {{window}} are unusually many for this hour of the week.": "Advarer, når der i {{window}} er usædvanligt mange matchende undtagelser for denne time på ugen.",
+  "Alerts when matching exceptions in {{window}} are unusually many or few for this hour of the week.": "Advarer, når der i {{window}} er usædvanligt mange eller få matchende undtagelser for denne time på ugen.",
+  "Compared with the same hours of the weeks before. A new service waits until it has two weeks of history.": "Sammenlignet med de samme timer i ugerne før. En ny tjeneste venter, til den har to ugers historik.",
+  "Exceptions rise well above what is normal for this hour of the week.": "Undtagelser stiger langt over det normale for denne time på ugen.",
+  "How far from the usual count a window must be. Leave empty to use the sensitivity.": "Hvor langt et vindue skal være fra det sædvanlige antal. Lad feltet stå tomt for at bruge følsomheden.",
+  "How much history to learn from. It can only learn from the exceptions OneUptime keeps.": "Hvor meget historik der læres af. Der kan kun læres af de undtagelser, OneUptime gemmer.",
+  "Minimum exceptions": "Mindste antal undtagelser",
+  "Standard deviations": "Standardafvigelser",
+  "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.": "Det mindste antal undtagelser i et vindue, der kan advare, så en stille tjeneste ikke advarer ved sine første få."
 }

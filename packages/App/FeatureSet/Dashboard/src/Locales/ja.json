@@ -38938,7 +38938,6 @@
   "Alerts when the number of resolved exceptions that came back in {{window}} is {{comparison}} {{count}}.": "{{window}}の間に再発した解決済みの例外の件数が{{count}}{{comparison}}ときにアラートします。",
   "An exception nobody has seen before happens for the first time.": "誰も見たことのない例外が初めて発生します。",
   "An exception you resolved happens again, so the fix did not hold.": "解決済みの例外が再び発生し、修正が効いていなかったことを示します。",
-  "Exceptions rise well above the usual, such as three times the day before.": "例外が通常を大きく上回ります（前日の 3 倍など）。",
   "Exceptions spike": "例外の急増",
   "Exceptions that came back": "再発した例外",
   "New exceptions": "新しい例外",
@@ -39265,5 +39264,15 @@
   "Cluster update": "クラスターの更新",
   "Compact rows": "コンパクトな行",
   "Sort by": "並べ替えの基準",
-  "Sorted by {{column}}": "{{column}}で並べ替え"
+  "Sorted by {{column}}": "{{column}}で並べ替え",
+  "Alerts when matching exceptions in {{window}} are unusually few for this hour of the week.": "{{window}}の間に一致した例外が、週のこの時間帯としては異常に少ないときにアラートします。",
+  "Alerts when matching exceptions in {{window}} are unusually many for this hour of the week.": "{{window}}の間に一致した例外が、週のこの時間帯としては異常に多いときにアラートします。",
+  "Alerts when matching exceptions in {{window}} are unusually many or few for this hour of the week.": "{{window}}の間に一致した例外が、週のこの時間帯としては異常に多いか少ないときにアラートします。",
+  "Compared with the same hours of the weeks before. A new service waits until it has two weeks of history.": "前の週の同じ時間帯と比較します。新しいサービスは 2 週間分の履歴がたまるまで待ちます。",
+  "Exceptions rise well above what is normal for this hour of the week.": "例外が、週のこの時間帯の通常の水準を大きく上回ります。",
+  "How far from the usual count a window must be. Leave empty to use the sensitivity.": "時間枠が通常の件数からどれだけ離れる必要があるかです。感度を使う場合は空のままにします。",
+  "How much history to learn from. It can only learn from the exceptions OneUptime keeps.": "学習に使う履歴の量です。学習できるのは OneUptime が保持している例外だけです。",
+  "Minimum exceptions": "最小例外数",
+  "Standard deviations": "標準偏差",
+  "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.": "時間枠内でアラートの対象になる最小の例外数です。静かなサービスが最初の数件でアラートしないようにします。"
 }

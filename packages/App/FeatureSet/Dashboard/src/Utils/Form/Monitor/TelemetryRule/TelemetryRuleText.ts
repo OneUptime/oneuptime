@@ -438,7 +438,7 @@ export const TelemetryRuleCopy: {
   metricTitle: translationKey("Metric"),
   aggregationTitle: translationKey("Measured as"),
   sensitivityTitle: translationKey("Sensitivity"),
-  baselineWindowTitle: translationKey("Baseline window"),
+  baselineWindowTitle: translationKey("Baseline Window"),
   baselineWindowDescription: translationKey(
     "How much history to learn from. It can only learn from the exceptions OneUptime keeps.",
   ),

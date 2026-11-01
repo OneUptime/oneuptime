@@ -173,8 +173,7 @@ interface CountCriteriaArgs {
     | CheckOn.SpanCount
     | CheckOn.ExceptionCount
     | CheckOn.NewExceptionCount
-    | CheckOn.RegressedExceptionCount
-    | CheckOn.ExceptionCountIncreasePercent;
+    | CheckOn.RegressedExceptionCount;
   unhealthyFilterType: FilterType;
   healthyFilterType: FilterType;
   threshold: number;

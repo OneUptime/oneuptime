@@ -38938,7 +38938,6 @@
   "Alerts when the number of resolved exceptions that came back in {{window}} is {{comparison}} {{count}}.": "當 {{window}} 內再次出現的已解決例外數{{comparison}} {{count}} 時發出警示。",
   "An exception nobody has seen before happens for the first time.": "一個從未有人見過的例外首次出現。",
   "An exception you resolved happens again, so the fix did not hold.": "你已解決的例外再次出現：修正沒有生效。",
-  "Exceptions rise well above the usual, such as three times the day before.": "例外數大幅高於平常，例如達到前一天的三倍。",
   "Exceptions spike": "例外激增",
   "Exceptions that came back": "再次出現的例外",
   "New exceptions": "新例外",
@@ -39265,5 +39264,15 @@
   "Cluster update": "叢集更新",
   "Compact rows": "緊湊列",
   "Sort by": "排序依據",
-  "Sorted by {{column}}": "依{{column}}排序"
+  "Sorted by {{column}}": "依{{column}}排序",
+  "Alerts when matching exceptions in {{window}} are unusually few for this hour of the week.": "當 {{window}} 內相符的例外相較每週同一時段異常偏少時發出警示。",
+  "Alerts when matching exceptions in {{window}} are unusually many for this hour of the week.": "當 {{window}} 內相符的例外相較每週同一時段異常偏多時發出警示。",
+  "Alerts when matching exceptions in {{window}} are unusually many or few for this hour of the week.": "當 {{window}} 內相符的例外相較每週同一時段異常偏多或偏少時發出警示。",
+  "Compared with the same hours of the weeks before. A new service waits until it has two weeks of history.": "與之前各週的相同時段比較。新的服務會等到有兩週的歷史資料後再判斷。",
+  "Exceptions rise well above what is normal for this hour of the week.": "例外數大幅高於每週這個時段的正常水準。",
+  "How far from the usual count a window must be. Leave empty to use the sensitivity.": "時間範圍需要偏離平常數量的程度。留空則使用敏感度。",
+  "How much history to learn from. It can only learn from the exceptions OneUptime keeps.": "用於學習的歷史資料量。只能從 OneUptime 保留的例外中學習。",
+  "Minimum exceptions": "最少例外數",
+  "Standard deviations": "標準差",
+  "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.": "時間範圍內可觸發警示的最少例外數，讓平靜的服務不會因最初幾個例外而發出警示。"
 }

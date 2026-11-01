@@ -38938,7 +38938,6 @@
   "Alerts when the number of resolved exceptions that came back in {{window}} is {{comparison}} {{count}}.": "जब {{window}} में फिर से आए सुलझाए गए अपवादों की संख्या {{count}} {{comparison}} हो, तब अलर्ट करता है।",
   "An exception nobody has seen before happens for the first time.": "ऐसा अपवाद जो पहले किसी ने नहीं देखा, पहली बार होता है।",
   "An exception you resolved happens again, so the fix did not hold.": "आपका सुलझाया हुआ अपवाद फिर से होता है: सुधार टिका नहीं।",
-  "Exceptions rise well above the usual, such as three times the day before.": "अपवाद सामान्य से बहुत ज़्यादा बढ़ जाते हैं, जैसे पिछले दिन के तीन गुना।",
   "Exceptions spike": "अपवादों में उछाल",
   "Exceptions that came back": "फिर से आए अपवाद",
   "New exceptions": "नए अपवाद",
@@ -39265,5 +39264,15 @@
   "Cluster update": "क्लस्टर अपडेट",
   "Compact rows": "संक्षिप्त पंक्तियाँ",
   "Sort by": "इसके अनुसार क्रमबद्ध करें",
-  "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध"
+  "Sorted by {{column}}": "{{column}} के अनुसार क्रमबद्ध",
+  "Alerts when matching exceptions in {{window}} are unusually few for this hour of the week.": "जब {{window}} में मेल खाने वाले अपवाद सप्ताह के इस घंटे के हिसाब से असामान्य रूप से कम हों, तब अलर्ट करता है।",
+  "Alerts when matching exceptions in {{window}} are unusually many for this hour of the week.": "जब {{window}} में मेल खाने वाले अपवाद सप्ताह के इस घंटे के हिसाब से असामान्य रूप से अधिक हों, तब अलर्ट करता है।",
+  "Alerts when matching exceptions in {{window}} are unusually many or few for this hour of the week.": "जब {{window}} में मेल खाने वाले अपवाद सप्ताह के इस घंटे के हिसाब से असामान्य रूप से अधिक या कम हों, तब अलर्ट करता है।",
+  "Compared with the same hours of the weeks before. A new service waits until it has two weeks of history.": "पिछले सप्ताहों के उन्हीं घंटों से तुलना की जाती है। नई सेवा दो सप्ताह का इतिहास होने तक इंतज़ार करती है।",
+  "Exceptions rise well above what is normal for this hour of the week.": "अपवाद सप्ताह के इस घंटे के सामान्य स्तर से बहुत ऊपर चले जाते हैं।",
+  "How far from the usual count a window must be. Leave empty to use the sensitivity.": "किसी अवधि को सामान्य संख्या से कितना दूर होना चाहिए। संवेदनशीलता का उपयोग करने के लिए खाली छोड़ें।",
+  "How much history to learn from. It can only learn from the exceptions OneUptime keeps.": "सीखने के लिए कितना इतिहास लिया जाए। केवल उन्हीं अपवादों से सीखा जा सकता है जिन्हें OneUptime रखता है।",
+  "Minimum exceptions": "न्यूनतम अपवाद",
+  "Standard deviations": "मानक विचलन",
+  "The fewest exceptions in a window that can alert, so a quiet service does not alert on its first few.": "किसी अवधि में अपवादों की वह सबसे कम संख्या जो अलर्ट कर सकती है, ताकि शांत सेवा अपने शुरुआती कुछ अपवादों पर अलर्ट न करे।"
 }
