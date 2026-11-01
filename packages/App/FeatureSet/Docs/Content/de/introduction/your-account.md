@@ -129,7 +129,7 @@ Sie können zu beliebig vielen Projekten gehören. Die Projektauswahl oben links
 
 ## Sprache und Design
 
-Beides wird in Ihrem Browser gespeichert, nicht in Ihrem Konto; stellen Sie es also in einem anderen Browser oder auf einem anderen Gerät erneut ein.
+Beides wird in Ihrem Browser gespeichert, nicht in Ihrem Konto; stellen Sie es also in einem anderen Browser oder auf einem anderen Gerät erneut ein. Beides bleibt beim Abmelden erhalten, sodass die nächste Person an einem gemeinsam genutzten Computer mit Ihren Einstellungen beginnt.
 
 - **Sprache**: Das Dashboard startet in der Sprache Ihres Browsers. Um sie zu ändern, nutzen Sie das Sprachmenü unten auf jeder Seite. Diese Dokumentation hat oben ein eigenes Sprachmenü.
 - **Design**: Wählen Sie im Benutzermenü **Hell**, **Dunkel** oder **System**. **System** ist hell oder dunkel, je nachdem, wie Ihr Gerät eingestellt ist, und wechselt mit ihm; jeder Browser startet damit. Die Anmeldeseiten verwenden dasselbe Design.
