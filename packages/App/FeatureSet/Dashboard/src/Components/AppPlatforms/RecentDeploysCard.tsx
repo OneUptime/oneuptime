@@ -5,9 +5,14 @@ import React, {
   useState,
 } from "react";
 import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import Route from "Common/Types/API/Route";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   getCloudProviderForPlatform,
   getManagedCloudPlatformLabel,
@@ -46,6 +51,66 @@ export const NO_RECENT_DEPLOYS: string = translationKey(
 // How many deploys the card lists.
 export const RECENT_DEPLOYS_SHOWN: number = 6;
 
+/*
+ * The newest deploys of the apps of the project's unarchived environments:
+ * an archived environment's apps are hidden as All Apps hides them.
+ * Exported for tests.
+ */
+export async function fetchRecentDeploys(): Promise<Array<CloudAppRevision>> {
+  const environments: ListResult<CloudResource> =
+    await ModelAPI.getList<CloudResource>({
+      modelType: CloudResource,
+      query: {
+        isArchived: false,
+        cloudResourceKind: CloudResourceKind.Environment,
+      },
+      select: { _id: true },
+      sort: {},
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    });
+
+  const environmentIds: Array<ObjectID> = environments.data
+    .map((environment: CloudResource): string => {
+      return environment._id?.toString() || "";
+    })
+    .filter(Boolean)
+    .map((id: string): ObjectID => {
+      return new ObjectID(id);
+    });
+
+  if (environmentIds.length === 0) {
+    return [];
+  }
+
+  const result: ListResult<CloudAppRevision> =
+    await ModelAPI.getList<CloudAppRevision>({
+      modelType: CloudAppRevision,
+      // A deploy names the revision it replaced; an app's first does not.
+      query: {
+        cloudResourceId: new Includes(environmentIds),
+        previousRevision: new NotNull(),
+      },
+      select: {
+        revision: true,
+        previousRevision: true,
+        firstSeenAt: true,
+        cloudResourceId: true,
+        cloudAppId: true,
+        cloudApp: {
+          name: true,
+          groupName: true,
+          cloudPlatform: true,
+        },
+      },
+      sort: { firstSeenAt: SortOrder.Descending },
+      skip: 0,
+      limit: RECENT_DEPLOYS_SHOWN,
+    });
+
+  return result.data;
+}
+
 export interface ComponentProps {
   // Bump to read again.
   refreshToken?: number | undefined;
@@ -64,29 +129,10 @@ const RecentDeploysCard: FunctionComponent<ComponentProps> = (
     let ignore: boolean = false;
     setError("");
 
-    ModelAPI.getList<CloudAppRevision>({
-      modelType: CloudAppRevision,
-      // A deploy names the revision it replaced; an app's first does not.
-      query: { previousRevision: new NotNull() },
-      select: {
-        revision: true,
-        previousRevision: true,
-        firstSeenAt: true,
-        cloudResourceId: true,
-        cloudAppId: true,
-        cloudApp: {
-          name: true,
-          groupName: true,
-          cloudPlatform: true,
-        },
-      },
-      sort: { firstSeenAt: SortOrder.Descending },
-      skip: 0,
-      limit: RECENT_DEPLOYS_SHOWN,
-    })
-      .then((result: { data: Array<CloudAppRevision> }): void => {
+    fetchRecentDeploys()
+      .then((recent: Array<CloudAppRevision>): void => {
         if (!ignore) {
-          setDeploys(result.data);
+          setDeploys(recent);
         }
       })
       .catch((err: Error): void => {

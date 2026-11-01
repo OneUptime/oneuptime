@@ -65,6 +65,8 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
  */
 const params = new URLSearchParams(window.location.search);
 const EMPTY = params.get("state") === "empty";
+// Every environment connected: the strip breaks them down by provider.
+const ALL_CONNECTED = params.get("state") === "connected";
 const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
@@ -224,6 +226,13 @@ const ENVIRONMENTS = EMPTY
         lastSeenAt: null,
       }),
     ];
+
+if (ALL_CONNECTED) {
+  for (const row of ENVIRONMENTS) {
+    row.otelCollectorStatus = "connected";
+    row.lastSeenAt = new Date(LOADED_AT - MINUTE);
+  }
+}
 
 const RESOURCE = {
   _id: uuid("72000000", 1),

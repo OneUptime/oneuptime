@@ -12,9 +12,11 @@ import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
  * Google Cloud Run, Azure Container Apps and App Service - are App
  * Platforms'. Both are rows of one table, told apart by their kind.
  *
- * Read the way a person reads them: the Overview's fleet strip and its
- * environments grouped by platform; an environment's page and every tab of
- * it, under App Platforms' trail and side menu; All Environments, Archived
+ * Read the way a person reads them: the Overview's fleet strip, its recent
+ * deploys and its environments grouped by platform; All Apps, an
+ * environment's Apps and one app's page - its revisions and deploys, its
+ * instances, logs and traces; an environment's page and every tab of it,
+ * under App Platforms' trail and side menu; All Environments, Archived
  * and the rules, which list environments and never a cloud resource, and
  * show a rule made before the split with a pill that says why; the old Cloud
  * addresses of an environment, which open it here, and the App Platforms
@@ -32,6 +34,21 @@ const CLOUD: string = `${DASHBOARD}/cloud`;
 const CHECKOUT_ID: string = "71000000-0000-4000-8000-000000000001";
 const CHECKOUT: string = `${APP_PLATFORMS}/${CHECKOUT_ID}`;
 const CHECKOUT_NAME: string = "checkout · us-east-1 · 4109-2277-8841";
+
+// checkout's app, its page, and the service its telemetry is under.
+const CHECKOUT_APP_ID: string = "75000000-0000-4000-8000-000000000001";
+const CHECKOUT_APP: string = `${CHECKOUT}/apps/${CHECKOUT_APP_ID}`;
+const CHECKOUT_SERVICE_ID: string = "77000000-0000-4000-8000-000000000001";
+
+// The six apps, as All Apps sorts them (by name).
+const APP_NAMES: Array<string> = [
+  "api",
+  "billing-api",
+  "checkout-api",
+  "inventory",
+  "reports",
+  "worker",
+];
 
 // A resource of a connected cloud account: Cloud's, never listed here.
 const RESOURCE_ID: string = "72000000-0000-4000-8000-000000000001";
@@ -76,8 +93,15 @@ interface ListRequest {
   query: Record<string, unknown>;
 }
 
+interface AnalyticsRequest {
+  groupBy: Array<string>;
+  filters: Record<string, string>;
+  entryOnly: boolean;
+}
+
 interface Recorded {
   listRequests: Array<ListRequest>;
+  analyticsRequests: Array<AnalyticsRequest>;
   countRequests: Array<ListRequest>;
   itemRequests: Array<{ modelName: string; id: string }>;
   apiRequests: Array<{ method: string; url: string }>;
@@ -358,7 +382,10 @@ test.describe("the Overview", () => {
     await expect(litEntry(page)).toHaveAttribute("href", APP_PLATFORMS);
     await expect(litEntry(page)).toHaveText("Overview");
 
-    // The strip: six environments on three clouds, four reporting, three tasks.
+    /*
+     * The strip: six apps, two of them quiet; six environments, two of them
+     * disconnected; two deploys in the last day; seven live tasks.
+     */
     await expect(fleetTiles(page)).toHaveCount(4);
     const values: Array<string> = await fleetTiles(page).evaluateAll(
       (tiles: Array<Element>): Array<string> => {
@@ -367,10 +394,28 @@ test.describe("the Overview", () => {
         });
       },
     );
-    expect(values).toEqual(["6", "4", "2", "3"]);
+    expect(values).toEqual(["6", "6", "2", "7"]);
     await expect(
-      page.getByTestId("cloud-fleet-summary-tile-sublabel").first(),
-    ).toHaveText("2 AWS · 2 Azure · 2 Google Cloud");
+      page.getByTestId("cloud-fleet-summary-tile-sublabel"),
+    ).toHaveText([
+      "2 not reporting",
+      "2 environments disconnected",
+      "in the last 24 hours",
+      "seen in the last 15 min",
+    ]);
+
+    /*
+     * Recent deploys: every deploy, the newest first, from what to what -
+     * not the first revision an app reported, which is no deploy.
+     */
+    const deploys: Locator = page.getByTestId("recent-deploy");
+    await expect(deploys).toHaveCount(3);
+    await expect(deploys.nth(2)).toContainText("41 → 42");
+    await expect(deploys.nth(0)).toContainText("checkout-api");
+    await expect(deploys.nth(0)).toContainText("42 → 43");
+    await expect(deploys.nth(0)).toContainText("AWS ECS · production");
+    await expect(deploys.nth(1)).toContainText("api");
+    await expect(deploys.nth(1)).toContainText("00041-abc → 00042-xyz");
 
     // Four in a row, the breakdown whole: wrapped, never cut.
     const tileTops: Set<number> = new Set(
@@ -653,9 +698,10 @@ test.describe("the Overview", () => {
   }: {
     page: Page;
   }) => {
+    // With every environment connected, the line says which clouds they are on.
     for (const size of [LAPTOP, TABLET, PHONE]) {
       await page.setViewportSize(size);
-      await open(page, APP_PLATFORMS);
+      await open(page, `${APP_PLATFORMS}?state=connected`);
 
       const parts: Locator = page.getByTestId(
         "cloud-fleet-summary-tile-sublabel-part",
@@ -734,17 +780,43 @@ test.describe("an environment's pages", () => {
     await expect(page.getByText("checkout/3a2b3c4d5e6f7")).toBeVisible();
 
     // The telemetry it reads is scoped to its platform, account and region.
-    const metricReads: Array<ListRequest> = (
+    const instanceReads: Array<ListRequest> = (
       await recorded(page)
     ).listRequests.filter((request: ListRequest): boolean => {
       return request.modelName === "CloudResourceInstance";
     });
-    expect(metricReads).toEqual([
+    expect(
+      instanceReads.filter((request: ListRequest): boolean => {
+        return request.query["cloudResourceId"] !== undefined;
+      }),
+    ).toEqual([
       {
         modelName: "CloudResourceInstance",
         query: { cloudResourceId: CHECKOUT_ID },
       },
     ]);
+
+    /*
+     * Its apps, the quiet one first, each with what it runs; their live
+     * tasks read by app, and their deploys marked on both charts.
+     */
+    const apps: Locator = page.getByTestId("environment-app");
+    await expect(apps).toHaveCount(2);
+    await expect(apps.nth(0)).toContainText("inventory");
+    await expect(apps.nth(0)).toContainText("Last seen 2 hours ago");
+    await expect(apps.nth(1)).toContainText("checkout-api");
+    await expect(apps.nth(1)).toContainText("Revision 43 · 3 instances");
+    await expect(apps.nth(1)).toContainText("1.5% errors");
+    await expect(apps.nth(1).getByRole("link")).toHaveAttribute(
+      "href",
+      CHECKOUT_APP,
+    );
+    expect(
+      instanceReads.filter((request: ListRequest): boolean => {
+        return request.query["cloudAppId"] !== undefined;
+      }),
+    ).toHaveLength(1);
+    await expect(page.getByTestId("chart-annotation-marker")).toHaveCount(2);
 
     await screenshot(page, "app-platforms-environment-overview-1280");
 
@@ -897,6 +969,376 @@ test.describe("an environment's pages", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Apps and their deploys
+ * ---------------------------------------------------------------------------
+ */
+test.describe("apps and their deploys", () => {
+  test("All Apps lists every app with its state, its revision and its last hour, the quiet ones said so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${APP_PLATFORMS}/apps`);
+
+    expect(await trailOf(page)).toEqual(["Project", "App Platforms", "Apps"]);
+    await expect(litEntry(page)).toHaveText("All Apps");
+
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(APP_NAMES.length);
+    for (const [index, name] of APP_NAMES.entries()) {
+      await expect(rows.nth(index)).toContainText(name);
+    }
+    await expect(page.locator("table thead th")).toHaveText([
+      "App",
+      "Status",
+      "Revision",
+      "Last hour",
+      "Actions",
+    ]);
+
+    // checkout-api: where it runs, three live tasks, revision 43, its hour.
+    const checkout: Locator = rows.filter({ hasText: "checkout-api" });
+    await expect(checkout).toContainText(
+      "AWS ECS · us-east-1 · cluster production",
+    );
+    await expect(checkout).toContainText("Running");
+    await expect(checkout).toContainText("3 instances");
+    await expect(checkout).toContainText("43");
+    await expect(checkout).toContainText("Deployed 25 minutes ago");
+    await expect(checkout).toContainText("1.5% errors");
+    await expect(checkout).toContainText("1.3k requests · p95 122 ms");
+    // A Cloud Run revision without its service's name; a quiet app says when.
+    await expect(rows.filter({ hasText: "api" }).first()).toContainText(
+      "00042-xyz",
+    );
+    await expect(rows.filter({ hasText: "inventory" })).toContainText(
+      "Not reporting",
+    );
+    await expect(rows.filter({ hasText: "inventory" })).toContainText(
+      "Last seen 2 hours ago",
+    );
+
+    /*
+     * Only the unarchived environments' apps, and their numbers in one
+     * grouped read of entry spans for each environment and naming.
+     */
+    const reads: Recorded = await recorded(page);
+    const appReads: Array<ListRequest> = reads.listRequests.filter(
+      (request: ListRequest): boolean => {
+        return request.modelName === "CloudApp";
+      },
+    );
+    expect(appReads).toHaveLength(1);
+    expect(
+      (appReads[0]!.query["cloudResourceId"] as { includes: Array<string> })
+        .includes,
+    ).toHaveLength(6);
+    expect(reads.analyticsRequests).toHaveLength(5);
+    for (const request of reads.analyticsRequests) {
+      expect(request.entryOnly).toBe(true);
+      expect(request.filters["resource.cloud.platform"]).toBeTruthy();
+    }
+    await screenshot(page, "app-platforms-apps-1280");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-apps-390");
+  });
+
+  test("an app's row opens its page, under its environment, with Apps lit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${APP_PLATFORMS}/apps`);
+
+    await page.getByRole("link", { name: "checkout-api", exact: true }).click();
+
+    await expect(page).toHaveURL(CHECKOUT_APP);
+    await expect(page.getByTestId("cloud-app-name")).toHaveText("checkout-api");
+    await sideMenuAtRest(page);
+    expect(await trailOf(page)).toEqual([
+      "Project",
+      "App Platforms",
+      CHECKOUT_NAME,
+      "Apps",
+      "View App",
+    ]);
+    // The environment's Apps holds the app's page: lit, and said so.
+    await expect(desktopMenu(page).locator("[aria-current='true']")).toHaveText(
+      "Apps",
+    );
+  });
+
+  test("an app's page says who it is, where it runs, what it runs now and how it is doing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, CHECKOUT_APP);
+
+    const header: Locator = page.getByTestId("cloud-app-header");
+    await expect(page.getByTestId("cloud-app-header-state")).toHaveText(
+      "Running",
+    );
+    await expect(header).toContainText("3 instances");
+    await expect(
+      header.getByRole("link", {
+        name: "AWS ECS / Fargate · us-east-1 · cluster production",
+      }),
+    ).toHaveAttribute("href", CHECKOUT);
+    await expect(page.getByTestId("cloud-app-header-revision")).toHaveText(
+      "Revision 43 · Deployed 25 minutes ago · Replaced 42",
+    );
+    // Alerts that work out of the box: its service's recommended monitors.
+    await expect(
+      header.getByRole("link", { name: "Set up alerts" }),
+    ).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/service/${CHECKOUT_SERVICE_ID}/recommendations`,
+    );
+    await expect(
+      header.getByRole("link", { name: "checkout-api" }),
+    ).toHaveAttribute("href", `${DASHBOARD}/service/${CHECKOUT_SERVICE_ID}`);
+
+    await expect(page.getByRole("tab")).toHaveText([
+      "Overview",
+      "Revisions3",
+      "Instances",
+      "Logs",
+      "Traces",
+    ]);
+
+    // Its numbers, its live tasks, and the revisions they run right now.
+    const tiles: Locator = page.getByTestId("cloud-app-tiles");
+    await expect(tiles).toContainText("1.3k");
+    await expect(tiles).toContainText("122 ms");
+    await expect(tiles).toContainText("36.0%");
+    await expect(tiles).toContainText("1.5 GiB");
+    await expect(page.getByTestId("cloud-app-running-revision")).toHaveText([
+      "432 instances",
+      "421 instance",
+    ]);
+    // The deploy 25 minutes ago, marked on both charts.
+    await expect(page.getByTestId("chart-annotation-marker")).toHaveCount(2);
+    await expect(page.getByTestId("cloud-app-details")).toContainText(
+      "aws.ecs.task.family",
+    );
+    await screenshot(page, "app-platforms-app-overview-1280");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-app-overview-390");
+  });
+
+  test("Revisions lists every revision newest first: the one it runs, the one still draining, the one retired", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CHECKOUT_APP}?tab=Revisions`);
+
+    await expect(page.getByRole("tab", { name: /Revisions/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText("43");
+    await expect(rows.nth(0)).toContainText("Replaced 42");
+    await expect(rows.nth(0)).toContainText("Current");
+    await expect(rows.nth(0)).toContainText("2 instances");
+    await expect(rows.nth(0)).toContainText("820");
+    await expect(rows.nth(0)).toContainText("2.2%");
+    await expect(rows.nth(0)).toContainText("131 ms");
+    await expect(rows.nth(1)).toContainText("Running");
+    await expect(rows.nth(1)).toContainText("1 instance");
+    await expect(rows.nth(1)).toContainText("0.2%");
+    await expect(rows.nth(2)).toContainText("First revision seen");
+    await expect(rows.nth(2)).toContainText("Retired");
+
+    // One read for every revision's numbers, grouped by the app's revision.
+    const reads: Array<AnalyticsRequest> = (await recorded(page))
+      .analyticsRequests;
+    expect(reads).toEqual([
+      {
+        groupBy: ["resource.aws.ecs.task.revision"],
+        filters: {
+          "resource.cloud.platform": "aws_ecs",
+          "resource.cloud.account.id": "4109-2277-8841",
+          "resource.cloud.region": "us-east-1",
+          "resource.aws.ecs.cluster.arn":
+            "arn:aws:ecs:us-east-1:4109-2277-8841:cluster/production",
+          "resource.aws.ecs.task.family": "checkout-api",
+        },
+        entryOnly: true,
+      },
+    ]);
+    await screenshot(page, "app-platforms-app-revisions-1280");
+
+    await page.setViewportSize(PHONE);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-app-revisions-390");
+  });
+
+  test("its Instances, Logs and Traces are the app's own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CHECKOUT_APP}?tab=Instances`);
+
+    // Its three tasks, each with the revision it runs; no App column.
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(3);
+    await expect(page.locator("table thead th")).toHaveText([
+      "Instance",
+      "Revision",
+      "Status",
+      "CPU",
+      "Memory",
+      "Last Seen",
+    ]);
+    await expect(rows.nth(2)).toContainText("checkout/3a2b3c4d5e6f7");
+    await expect(rows.nth(2)).toContainText("42");
+    const instanceReads: Array<ListRequest> = (
+      await recorded(page)
+    ).listRequests.filter((request: ListRequest): boolean => {
+      return (
+        request.modelName === "CloudResourceInstance" &&
+        request.query["cloudResourceId"] !== undefined
+      );
+    });
+    expect(instanceReads).toEqual([
+      {
+        modelName: "CloudResourceInstance",
+        query: { cloudResourceId: CHECKOUT_ID, cloudAppId: CHECKOUT_APP_ID },
+      },
+    ]);
+
+    // Logs and traces carry the environment's attributes and the app's own.
+    for (const tab of ["Logs", "Traces"]) {
+      await open(page, `${CHECKOUT_APP}?tab=${tab}`);
+      const panel: Locator = page.getByRole("tabpanel");
+      await expect(panel).toContainText("Platform:");
+      await expect(panel).toContainText("us-east-1");
+      await expect(panel).toContainText("Cluster:");
+      await expect(panel).toContainText("production");
+      await expect(panel).toContainText("App:");
+      await expect(panel).toContainText("checkout-api");
+    }
+    await screenshot(page, "app-platforms-app-traces-1280");
+  });
+
+  test("an environment's Apps lists its own apps, and stays in its menu", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${CHECKOUT}/apps`);
+
+    expect(await trailOf(page)).toEqual([
+      "Project",
+      "App Platforms",
+      CHECKOUT_NAME,
+      "Apps",
+    ]);
+    await expect(litEntry(page)).toHaveText("Apps");
+    const rows: Locator = page.locator("table tbody tr");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.nth(0)).toContainText("checkout-api");
+    await expect(rows.nth(1)).toContainText("inventory");
+    // The menu groups what runs here: its apps and its instances.
+    await expect(
+      desktopMenu(page).getByRole("link", { name: "Instances" }),
+    ).toHaveAttribute("href", `${CHECKOUT}/instances`);
+    await screenshot(page, "app-platforms-environment-apps-1280");
+  });
+
+  test("a recent deploy opens its app's Revisions", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, APP_PLATFORMS);
+
+    await page
+      .getByTestId("recent-deploy")
+      .first()
+      .getByRole("link", { name: "checkout-api" })
+      .click();
+
+    await expect(page).toHaveURL(`${CHECKOUT_APP}?tab=Revisions`);
+    await expect(page.getByRole("tab", { name: /Revisions/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(page.locator("table tbody tr")).toHaveCount(3);
+  });
+
+  test("dark: All Apps and an app's page are drawn on dark surfaces", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [address, name] of [
+      [`${APP_PLATFORMS}/apps`, "app-platforms-apps-1280-dark"],
+      [CHECKOUT_APP, "app-platforms-app-overview-1280-dark"],
+    ] as Array<[string, string]>) {
+      await page.setViewportSize(LAPTOP);
+      await open(
+        page,
+        `${address}${address.includes("?") ? "&" : "?"}theme=dark`,
+      );
+      await expect(page.locator("html")).toHaveClass(/dark/);
+      expect(await lightnessOf(page.locator("body"))).toBeLessThan(0.3);
+      const surface: Locator = address.includes("/apps/")
+        ? page.getByTestId("cloud-app-header")
+        : page.locator("table").first();
+      expect(await lightnessOf(surface)).toBeLessThan(0.3);
+      await screenshot(page, name);
+    }
+  });
+
+  test("German: All Apps and an app's page in the Dashboard's German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await open(page, `${APP_PLATFORMS}/apps?lang=de`);
+
+    await expect(litEntry(page)).toHaveText(GERMAN["All Apps"]!);
+    const checkout: Locator = page
+      .locator("table tbody tr")
+      .filter({ hasText: "checkout-api" });
+    await expect(checkout).toContainText(GERMAN["Running"]!);
+    await expect(
+      page.locator("table tbody tr").filter({ hasText: "inventory" }),
+    ).toContainText(GERMAN["Not reporting"]!);
+    await screenshot(page, "app-platforms-apps-1280-de");
+
+    await open(page, `${CHECKOUT_APP}?lang=de`);
+    await expect(page.getByRole("tab").first()).toHaveText(GERMAN["Overview"]!);
+    await expect(
+      page.getByRole("tab", { name: new RegExp(GERMAN["Revisions"]!) }),
+    ).toBeVisible();
+    await expect(page.getByTestId("cloud-app-header")).toContainText(
+      GERMAN["Set up alerts"]!,
+    );
+    await screenshot(page, "app-platforms-app-overview-1280-de");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * The lists
  * ---------------------------------------------------------------------------
  */
@@ -953,6 +1395,25 @@ test.describe("All Environments and Archived", () => {
     await expect(
       page.getByText("Showing 1-6 of 6 cloud environments"),
     ).toBeVisible();
+
+    /*
+     * A row says where it runs once - its name holds the account and the
+     * region, and no second line repeats them - and Last Seen stays in view
+     * at a laptop's width, the labels and owners folded under the name.
+     */
+    const checkoutRow: Locator = page
+      .locator("table tbody tr")
+      .filter({ hasText: CHECKOUT_NAME });
+    expect(
+      ((await checkoutRow.textContent()) || "").split("4109-2277-8841").length,
+    ).toBe(2);
+    const lastSeen: Box = await boxOf(
+      page.locator("table thead th").filter({ hasText: "Last Seen" }),
+    );
+    expect(lastSeen.x + lastSeen.width).toBeLessThanOrEqual(LAPTOP.width);
+    await expect(
+      page.locator("table tbody tr").filter({ hasText: "web · eastus" }),
+    ).toContainText("Waiting");
     expect(await trailOf(page)).toEqual([
       "Project",
       "App Platforms",
@@ -1231,13 +1692,24 @@ test.describe("in the reader's language", () => {
       }),
     ).toBeVisible();
 
-    // The strip's words are the locale's, each title saying its language.
+    /*
+     * The strip's words are the locale's, each title saying its language -
+     * but Apps, which reads the same in German.
+     */
     const titles: Locator = fleetTiles(page).locator("span[lang='de']");
-    await expect(titles).toHaveCount(4);
+    await expect(titles).toHaveCount(3);
     await expect(titles.first()).toHaveText(GERMAN["Environments"]!);
     await expect(
-      page.getByTestId("cloud-fleet-summary-tile-sublabel").nth(1),
-    ).toHaveText("67 % der Umgebungen");
+      page.getByTestId("cloud-fleet-summary-tile-sublabel"),
+    ).toHaveText([
+      "2 melden nicht",
+      "2 Umgebungen getrennt",
+      "in den letzten 24 Stunden",
+      "in den letzten 15 Min. gesehen",
+    ]);
+    await expect(
+      page.getByRole("heading", { name: GERMAN["Recent deploys"]! }),
+    ).toBeVisible();
     await expect(
       page
         .getByTestId("app-platforms-environment")
@@ -1262,7 +1734,7 @@ test.describe("in the reader's language", () => {
     page: Page;
   }) => {
     await page.setViewportSize(LAPTOP);
-    await open(page, `${APP_PLATFORMS}?lang=fa`);
+    await open(page, `${APP_PLATFORMS}?lang=fa&state=connected`);
 
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
     await expect(pageHeading(page)).toHaveText(PERSIAN["App Platforms"]!);
@@ -1284,7 +1756,7 @@ test.describe("in the reader's language", () => {
      * the count of its environments after it.
      */
     const breakdown: Array<number> = await wordLefts(
-      page.getByTestId("cloud-fleet-summary-tile-sublabel").first(),
+      page.getByTestId("cloud-fleet-summary-tile-sublabel").nth(1),
       /*
        * The first 2 - a Persian two, as every number on the page is
        * written - is AWS's count: drawn before it, not after it.
@@ -1337,7 +1809,7 @@ test.describe("in the reader's language", () => {
         });
       },
     );
-    expect(values).toEqual(["\u06f6", "\u06f4", "\u06f2", "\u06f3"]);
+    expect(values).toEqual(["\u06f6", "\u06f6", "\u06f2", "\u06f7"]);
     const ecs: Locator = platformGroups(page).first();
     await expect(ecs.locator("bdi")).toHaveText("AWS");
     const provider: Box = await boxOf(ecs.locator("bdi"));
@@ -1354,5 +1826,17 @@ test.describe("in the reader's language", () => {
     );
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-environment-overview-390-fa");
+
+    // An app's page, right to left: its name, its state, nothing sideways.
+    await open(page, `${CHECKOUT_APP}?lang=fa`);
+    await expect(page.getByTestId("cloud-app-name")).toHaveText("checkout-api");
+    await expect(page.getByTestId("cloud-app-header-state")).toHaveText(
+      PERSIAN["Running"]!,
+    );
+    await expect(
+      page.getByRole("tab", { name: PERSIAN["Revisions"]! }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "app-platforms-app-overview-390-fa");
   });
 });
