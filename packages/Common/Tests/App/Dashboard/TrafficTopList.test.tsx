@@ -164,3 +164,72 @@ describe("a traffic top list in a row of cards", () => {
     }
   });
 });
+
+describe("a list on a line of its own", () => {
+  const LIST: { title: string; description: string; help: string } = {
+    title: "Who talks to whom",
+    description: "What each network reached.",
+    help: "What the numbers are.",
+  };
+
+  function renderList(
+    overrides: Partial<React.ComponentProps<typeof TrafficTopList>> = {},
+  ): HTMLElement {
+    render(
+      <TrafficTopList
+        {...LIST}
+        rows={rows(2, "Network")}
+        totalOctets={3_000_000_000}
+        emptyMessage="Nothing here."
+        dataTestId="list"
+        {...overrides}
+      />,
+    );
+
+    return screen.getByTestId("list");
+  }
+
+  function cardOf(list: HTMLElement): HTMLElement {
+    return list.closest("[data-testid='card']") as HTMLElement;
+  }
+
+  test("in a row of lists it fills its row, as it always has", () => {
+    expect(cardOf(renderList()).className).toContain("h-full");
+  });
+
+  test("off a row it is as tall as its rows: h-full would make it the page's height", () => {
+    expect(cardOf(renderList({ fillHeight: false })).className).not.toContain(
+      "h-full",
+    );
+  });
+
+  test("a footer comes under the rows", () => {
+    const list: HTMLElement = renderList({
+      footer: <p data-testid="foot">The way to the rest.</p>,
+    });
+
+    const lastRow: Array<HTMLElement> = within(list).getAllByTestId("list-row");
+
+    expect(
+      lastRow[lastRow.length - 1]!.compareDocumentPosition(
+        screen.getByTestId("foot"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a footer stays when there are no rows: the way to the rest is what an empty list needs most", () => {
+    renderList({
+      rows: [],
+      footer: <p data-testid="foot">The way to the rest.</p>,
+    });
+
+    expect(screen.getByTestId("list-empty")).toHaveTextContent("Nothing here.");
+    expect(screen.getByTestId("foot")).toBeInTheDocument();
+  });
+
+  test("no footer draws no rule under the rows", () => {
+    const list: HTMLElement = renderList();
+
+    expect(list.querySelector(".border-t")).toBeNull();
+  });
+});

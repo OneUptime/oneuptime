@@ -434,7 +434,7 @@ test("an organization's traffic: the numbers, the chart, the lists and how the c
     "outlook.office365.com",
   );
   await expect(page.getByTestId("meraki-conversations-note")).toContainText(
-    "reports totals, not conversations",
+    "Meraki reports what each network reached",
   );
   await expect(page.getByTestId("meraki-connection-line")).toContainText(
     "Acme Networks",
@@ -528,6 +528,230 @@ test("a click on a network narrows the page to it; its chip widens it again", as
   await chip.getByRole("button").click();
   await expect(chip).toHaveCount(0);
   await expect(rowsOf(page, "meraki-top-networks")).toHaveCount(4);
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The uplinks, side by side (issue #5377)
+ * ---------------------------------------------------------------------------
+ */
+
+test("the page's uplinks side by side: what each carried, and how each line held up", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki");
+
+  const rows: Locator = page.getByTestId("meraki-uplink-row");
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(0)).toContainText("wan1");
+  await expect(rows.nth(0)).toContainText("91%");
+  await expect(rows.nth(0).getByTestId("meraki-uplink-row-latency")).toHaveText(
+    "22\u00a0ms",
+  );
+  await expect(rows.nth(1).getByTestId("meraki-uplink-row-loss")).toHaveText(
+    "0.6%",
+  );
+  // A standby line that carried nothing, and is still measured.
+  await expect(rows.nth(2)).toContainText("cellular");
+  await expect(rows.nth(2).getByTestId("meraki-uplink-row-latency")).toHaveText(
+    "71\u00a0ms",
+  );
+  await expect(page.getByTestId("meraki-uplink-chart")).toBeVisible();
+
+  expect(await scrollsSideways(page)).toBe(false);
+  await screenshot(
+    page,
+    testInfo,
+    "uplinks",
+    page.getByTestId("meraki-uplink-comparison"),
+  );
+
+  await page.getByTestId("meraki-uplink-chart-latency").click();
+  await expect(page.getByTestId("meraki-uplink-chart-latency")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(
+    page.getByTestId("meraki-uplink-chart").locator("text"),
+  ).toContainText([/ms/]);
+  await screenshot(
+    page,
+    testInfo,
+    "uplinks-latency",
+    page.getByTestId("meraki-uplink-comparison"),
+  );
+});
+
+test("a click on an uplink narrows the whole page to it, and the others stay to compare it with", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki");
+
+  const total: string =
+    (await page.getByTestId("traffic-tile-total-value").textContent()) || "";
+  const rows: Locator = page.getByTestId("meraki-uplink-row");
+
+  await rows.nth(1).click();
+
+  await expect(page).toHaveURL(/mup=wan2/);
+  await expect(page.getByTestId("meraki-filter-uplink")).toContainText(
+    "Uplink wan2",
+  );
+  await expect(page.getByTestId("traffic-tile-total-value")).not.toHaveText(
+    total,
+  );
+  // Not a false 0: Meraki counts flows per network.
+  await expect(page.getByTestId("traffic-tile-flows-value")).toHaveText(
+    "\u2014",
+  );
+  await expect(page.getByTestId("meraki-narrowed-note")).toBeVisible();
+  await expect(rows).toHaveCount(3);
+  await expect(rows.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(rows.nth(0)).toHaveAttribute("aria-pressed", "false");
+
+  const state: FixtureState = await fixture(page);
+  expect(state.usageRequests[state.usageRequests.length - 1]!.filters).toEqual({
+    interfaceName: "wan2",
+  });
+  await screenshot(page, testInfo, "one-uplink");
+
+  // A link opens on the same uplink.
+  await page.reload();
+  await expect(page.getByTestId("meraki-filter-uplink")).toBeVisible({
+    timeout: 60000,
+  });
+
+  await rows.nth(1).click();
+  await expect(page.getByTestId("meraki-filter-uplink")).toHaveCount(0);
+  await expect(page.getByTestId("traffic-tile-total-value")).toHaveText(total);
+});
+
+test("the bug this fixes: wan1 of a branch's appliance, without its wan2", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki");
+
+  await rowsOf(page, "meraki-top-networks").nth(1).click();
+
+  // Its two WANs: the standby line carried nothing, so only the card lists it.
+  const uplinks: Locator = rowsOf(page, "meraki-top-uplinks");
+  await expect(uplinks).toHaveCount(2);
+  await uplinks.first().click();
+
+  await expect(page.getByTestId("meraki-filter-appliance")).toContainText(
+    "LDS MX68",
+  );
+  await expect(page.getByTestId("meraki-filter-uplink")).toContainText("wan1");
+  await expect(uplinks).toHaveCount(1);
+  await expect(uplinks.first()).toHaveAttribute("aria-pressed", "true");
+
+  const state: FixtureState = await fixture(page);
+  expect(state.usageRequests[state.usageRequests.length - 1]!.filters).toEqual({
+    controllerNetworkId: "L_646829496481105434",
+    deviceSerial: "Q2PN-LDS0-0012",
+    interfaceName: "wan1",
+  });
+  await screenshot(page, testInfo, "one-uplink-of-one-appliance");
+
+  // A click on the row it is narrowed to widens it, back to the branch.
+  await uplinks.first().click();
+  await expect(page.getByTestId("meraki-filter-uplink")).toHaveCount(0);
+  await expect(page.getByTestId("meraki-filter-appliance")).toHaveCount(0);
+  await expect(page.getByTestId("meraki-filter-network")).toBeVisible();
+  await expect(uplinks).toHaveCount(2);
+});
+
+test("the bug this fixes: the line stops where the reads did, and the average agrees with it", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "state=meraki");
+
+  await expect(page.getByTestId("meraki-read-up-to")).toContainText(
+    "Read up to 5 minutes ago.",
+  );
+
+  const chart: Locator = page.getByTestId("traffic-over-time-chart");
+  await expect(chart.locator("path.recharts-curve").first()).toBeVisible();
+
+  // The drawn line ends well before the axis does.
+  const gap: number = await chart.evaluate((element: Element): number => {
+    const surface: DOMRect = element
+      .querySelector("svg.recharts-surface")!
+      .getBoundingClientRect();
+    const right: number = Math.max(
+      ...Array.from(element.querySelectorAll("path.recharts-curve")).map(
+        (line: Element): number => {
+          return line.getBoundingClientRect().right;
+        },
+      ),
+    );
+
+    return surface.right - right;
+  });
+
+  expect(gap).toBeGreaterThan(20);
+});
+
+test("who talks to whom: what each network reached, how, and how much - and what Meraki cannot say", async ({
+  page,
+}: {
+  page: Page;
+}, testInfo: TestInfo) => {
+  await open(page, "state=meraki");
+
+  const rows: Locator = rowsOf(page, "meraki-conversations");
+  await expect(rows).toHaveCount(10);
+  await expect(rows.first().getByTestId("meraki-conversation-from")).toHaveText(
+    "Head Office",
+  );
+  await expect(rows.first().getByTestId("meraki-conversation-to")).toHaveText(
+    "outlook.office365.com",
+  );
+  await expect(rows.first()).toContainText(
+    "TCP port 443 · Microsoft 365 · Up to 180 clients",
+  );
+  await expect(rows.first()).toContainText(" flows");
+  await expect(page.getByTestId("meraki-set-up-netflow")).toBeVisible();
+
+  // The card is as tall as its rows: outside a grid, not as tall as the page.
+  const card: Locator = page
+    .getByTestId("meraki-conversations")
+    .locator("xpath=ancestor::*[@data-testid='card'][1]");
+  const height: number = await card.evaluate((element: Element): number => {
+    return element.getBoundingClientRect().height;
+  });
+  const rowsHeight: number = await page
+    .getByTestId("meraki-conversations")
+    .evaluate((element: Element): number => {
+      return element.scrollHeight;
+    });
+
+  expect(height).toBeLessThan(rowsHeight + 200);
+  expect(await scrollsSideways(page)).toBe(false);
+  await screenshot(page, testInfo, "who-talks-to-whom", card);
+});
+
+test("the applications and destinations say their protocol and port", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, "state=meraki");
+
+  await expect(rowsOf(page, "meraki-top-applications").nth(1)).toContainText(
+    "UDP port 3478",
+  );
+  await expect(rowsOf(page, "meraki-top-destinations").nth(1)).toContainText(
+    "Microsoft Teams · UDP port 3478",
+  );
 });
 
 test("a page with flow records too opens on them, and the switch moves between the two", async ({
@@ -850,17 +1074,20 @@ test("in German", async ({ page }: { page: Page }, testInfo: TestInfo) => {
 
   const note: string | undefined =
     GERMAN[
-      "The Meraki dashboard API reports totals, not conversations: it never says who talked to whom. Turn on NetFlow on the MX appliances to see conversations as well."
+      "Meraki reports what each network reached, never which client talked to it. Turn on NetFlow on the MX appliances to see every conversation, address to address, with its packets."
     ];
   expect(note).toBeTruthy();
   await expect(page.getByTestId("meraki-conversations-note")).toContainText(
     note!,
   );
   await expect(
-    page.getByText(
-      "The Meraki dashboard API reports totals, not conversations",
-    ),
+    page.getByText("Meraki reports what each network reached"),
   ).toHaveCount(0);
+  // The uplinks' card reads in German too: its heading and its rows' words.
+  const uplinks: string | undefined = GERMAN["WAN uplinks"];
+  expect(uplinks).toBeTruthy();
+  expect(uplinks).not.toBe("WAN uplinks");
+  await expect(page.getByText(uplinks!, { exact: true })).toBeVisible();
   // When it read is German too: vor 2 Minuten, not 2 minutes ago.
   await expect(page.getByTestId("meraki-connection-line")).toContainText(
     "vor 2 Minuten",
@@ -921,7 +1148,7 @@ test("a page with flow records too: Who talks to whom offers the page's own conv
 
   const note: Locator = page.getByTestId("meraki-conversations-note");
   await expect(note).toContainText(
-    "The Meraki dashboard API reports totals, not conversations. This page's flow records have them.",
+    "Meraki reports what each network reached, never which client talked to it. This page's flow records have every conversation, address to address, with its packets.",
   );
   await expect(page.getByTestId("meraki-set-up-netflow")).toHaveCount(0);
 
@@ -930,7 +1157,7 @@ test("a page with flow records too: Who talks to whom offers the page's own conv
   await expect(page).toHaveURL(/source=flows/);
 });
 
-test("a device's page: its MX's uplinks, applications and clients - nothing to narrow, nothing said twice", async ({
+test("a device's page: its MX's uplinks, applications and clients - nothing said twice, and one uplink a click away", async ({
   page,
 }: {
   page: Page;
@@ -949,7 +1176,17 @@ test("a device's page: its MX's uplinks, applications and clients - nothing to n
   // The page is the appliance's: no row names it, or its network.
   await expect(uplinks.first()).not.toContainText("HQ MX250");
   await expect(uplinks.first()).not.toContainText("Head Office");
-  await expect(uplinks.first().getByRole("button")).toHaveCount(0);
+  await uplinks.nth(1).click();
+  await expect(page.getByTestId("meraki-filter-uplink")).toContainText("wan2");
+  await expect(uplinks).toHaveCount(1);
+  // The page is the appliance's: the name alone narrows it.
+  const narrowed: FixtureState["usageRequests"] = (await fixture(page))
+    .usageRequests;
+  expect(narrowed[narrowed.length - 1]!.filters).toEqual({
+    interfaceName: "wan2",
+  });
+  await page.getByTestId("meraki-filter-uplink").getByRole("button").click();
+  await expect(uplinks).toHaveCount(2);
   await expect(page.getByTestId("meraki-connection-line")).toContainText(
     "Acme Networks",
   );
