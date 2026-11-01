@@ -97,6 +97,20 @@ export function getKubernetesClusterProvider(data: {
 }
 
 /*
+ * Whether a cluster's stored Provider says it is OpenShift, for what is true
+ * of the platform whichever cloud it runs on. Every way to it writes the same
+ * label, and the comparison ignores case, as the distribution's does.
+ */
+export function isOpenShiftClusterProvider(
+  provider: string | null | undefined,
+): boolean {
+  return (
+    (provider || "").trim().toLowerCase() ===
+    OPENSHIFT_KUBERNETES_PROVIDER.toLowerCase()
+  );
+}
+
+/*
  * What a cluster's Provider shows for the stored value: nothing when no
  * telemetry has named the platform yet (the column's default is "unknown").
  */
