@@ -1454,6 +1454,218 @@ describe("VMware on every product surface", () => {
   });
 });
 
+describe("openshift.ejs", () => {
+  /*
+   * What the page may claim is held by OpenShiftPage.test.ts. These hold it to
+   * being a page of this site: it renders, its head comes from its SEO entry,
+   * and every section it is built around is there.
+   */
+  let html: string = "";
+  const seo: PageSEOData = PageSEOConfig["/product/openshift"]!;
+
+  beforeAll(async () => {
+    // Exactly the locals Routes.ts hands the template, plus homeUrl.
+    html = await render("openshift.ejs", {
+      enableGoogleTagManager: false,
+      seo: seoFor("/product/openshift"),
+      homeUrl: HOME_URL,
+    });
+  });
+
+  test("renders a complete page", () => {
+    expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain("</html>");
+    expect(html).toContain('<main id="main-content">');
+    expect(html.length).toBeGreaterThan(10000);
+  });
+
+  test("the head is written from the SEO entry", () => {
+    expect(html).toContain(`<title>${escapeForHtml(seo.title)}</title>`);
+    expect(html).toContain(`content="${escapeForHtml(seo.description)}"`);
+    expect(html).toContain(
+      '<link rel="canonical" href="https://oneuptime.com/product/openshift"',
+    );
+  });
+
+  test("has one h1, and renders the sections the page is built around", () => {
+    expect(html.split("<h1").length - 1).toBe(1);
+
+    for (const heading of [
+      "Monitor OpenShift beside EKS, AKS and GKE",
+      "One helm install, no oc adm policy step",
+      "Two security context constraints, each for its own pods",
+      "OpenShift's own health, on the cluster's overview",
+      "Metrics, logs, traces and OpenShift's own objects",
+      "Monitor OpenShift with the Kubernetes product",
+    ]) {
+      expect(html).toContain(heading);
+    }
+  });
+
+  test("renders every card and row from its list", () => {
+    for (const card of [
+      "Node collector",
+      "eBPF and profiler",
+      "Every other pod",
+      "Metrics, logs and traces",
+      "Labelled OpenShift",
+      "Routes and DeploymentConfigs",
+      "Alert templates",
+      "OpenShift&#39;s built-in Alertmanager",
+      "Red Hat build of OpenTelemetry",
+    ]) {
+      expect(html).toContain(`>${card}</h3>`);
+    }
+
+    for (const row of ["ocp-prod", "eks-web", "aks-data", "gke-apps"]) {
+      expect(html).toContain(`>${row}</span>`);
+    }
+
+    for (const row of ["console", "dns", "etcd", "ingress", "network"]) {
+      expect(html).toContain(`>${row}</span>`);
+    }
+  });
+
+  test("every product link in the page body is a real canonical page", () => {
+    const productLinks: Array<string> = catalogueLinksIn(pageBodyOf(html));
+
+    expect(productLinks).toEqual(["/product/kubernetes"]);
+    expect(PageSEOConfig["/product/kubernetes"]?.canonicalPath).toBe(
+      "/product/kubernetes",
+    );
+  });
+
+  test("names its hero for itself, and draws it without a cursor glow", () => {
+    expect(html).toContain('id="openshift-hero-section"');
+    expect(html).not.toContain("vmware-hero-section");
+    expect(html).not.toContain("kubernetes-hero-section");
+    expect(html).not.toContain("grid-glow");
+  });
+
+  test("gives each section's title to the section, for screen readers", () => {
+    for (const section of ["install", "security", "health", "product", "cta"]) {
+      expect(html).toContain(`aria-labelledby="openshift-${section}-title"`);
+      expect(html).toContain(`id="openshift-${section}-title"`);
+    }
+  });
+});
+
+describe("OpenShift is not a product of its own", () => {
+  /*
+   * VMware is on every product surface because it is a product. The Kubernetes
+   * product monitors OpenShift, so none of those lists carries it. The ways in
+   * are the footer's Solutions, the Kubernetes page, and the nav's search,
+   * which answers the word with the Kubernetes product.
+   */
+  function footerList(footer: string, title: string): string {
+    const start: number = footer.indexOf(`>${title}</h3>`);
+    const end: number = footer.indexOf("</ul>", start);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+
+    return footer.slice(start, end);
+  }
+
+  test("the navigation lists no OpenShift product", async () => {
+    const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
+
+    expect(nav).not.toContain('href="/product/openshift"');
+    expect(nav).not.toContain(">OpenShift<");
+  });
+
+  test("searching the navigation for OpenShift finds the Kubernetes product", async () => {
+    const nav: string = await render("nav.ejs", { homeUrl: HOME_URL });
+    const searchTerms: Array<string> = nav
+      .split('data-search="')
+      .slice(1)
+      .map((rest: string): string => {
+        return rest.slice(0, rest.indexOf('"'));
+      });
+    const answering: Array<string> = searchTerms.filter(
+      (terms: string): boolean => {
+        return terms.includes("openshift");
+      },
+    );
+
+    expect(searchTerms.length).toBeGreaterThan(20);
+    expect(answering).toEqual([
+      "kubernetes cluster pod observability k8s openshift",
+    ]);
+    expect(nav).toContain(
+      'hover:bg-indigo-50/40" data-search="kubernetes cluster pod observability k8s openshift"',
+    );
+  });
+
+  test("the footer lists it once, under Solutions and not under Infrastructure", async () => {
+    const footer: string = await render("footer.ejs", {
+      footerCards: false,
+      cta: false,
+      homeUrl: HOME_URL,
+    });
+
+    expect(footer.split('href="/product/openshift"').length - 1).toBe(1);
+    expect(footerList(footer, "Solutions")).toContain(
+      'href="/product/openshift"',
+    );
+    expect(footerList(footer, "Infrastructure")).not.toContain("OpenShift");
+    expect(footerList(footer, "Infrastructure")).toContain(
+      'href="/product/kubernetes"',
+    );
+  });
+
+  test.each([
+    "features-table.ejs",
+    "Partials/product-showcase.ejs",
+    "Partials/hero-cards/product-grid.ejs",
+    "Partials/home-products.ejs",
+  ])("%s does not list it", async (templateFileName: string) => {
+    const partial: string = await render(templateFileName, {
+      homeUrl: HOME_URL,
+    });
+
+    expect(partial).toContain('href="/product/kubernetes"');
+    expect(partial).not.toMatch(/openshift/i);
+  });
+
+  test("the topology page leaves it to Kubernetes", async () => {
+    const body: string = pageBodyOf(
+      await render("topology.ejs", {
+        enableGoogleTagManager: false,
+        seo: seoFor("/product/topology"),
+        homeUrl: HOME_URL,
+      }),
+    );
+
+    expect(body).toContain('href="/product/kubernetes"');
+    expect(body).not.toContain('href="/product/openshift"');
+  });
+
+  test("it has no hero card, icon or share image of its own", () => {
+    for (const partial of [
+      path.join("Partials", "hero-cards", "openshift.ejs"),
+      path.join("Partials", "icons", "openshift.ejs"),
+    ]) {
+      expect(fs.existsSync(path.join(VIEWS_ROOT, partial))).toBe(false);
+    }
+
+    expect(PageSEOConfig["/product/openshift"]!.ogImage).toBeUndefined();
+  });
+
+  test("the Kubernetes page leads to it, once", async () => {
+    const kubernetes: string = await render("kubernetes.ejs", {
+      enableGoogleTagManager: false,
+      seo: seoFor("/product/kubernetes"),
+      homeUrl: HOME_URL,
+    });
+    const body: string = pageBodyOf(kubernetes);
+
+    expect(body.split('href="/product/openshift"').length - 1).toBe(1);
+    expect(body).toContain("Running OpenShift, ROSA, ARO or OKD?");
+    expect(body).toContain("See OpenShift monitoring");
+  });
+});
+
 /*
  * The repository root, for the checks that hold the Databases page to the
  * product it describes: the agent it installs, the docs it links to and the

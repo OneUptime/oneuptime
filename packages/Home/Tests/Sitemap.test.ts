@@ -47,6 +47,7 @@ describe("Sitemap isRedirectPath", () => {
       "/product/monitoring",
       "/product/proxmox",
       "/product/vmware",
+      "/product/openshift",
       "/product/databases",
       "/product/queues",
       "/product/incident-management",
@@ -568,6 +569,42 @@ describe("the Resellers page in the sitemap", () => {
     expect(entry).toContain("<priority>0.6</priority>");
     expect(entry).toContain("<changefreq>monthly</changefreq>");
     expect(isRedirectPath("/resellers")).toBe(false);
+  });
+});
+
+describe("the OpenShift page in the sitemap", () => {
+  /*
+   * A solution, not a product, whatever its address reads like: it is
+   * configured as the solutions are, a step below the products it leads to.
+   */
+  test("is configured once, as a weekly page of priority 0.8", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource.split('"/product/openshift"').length - 1).toBe(1);
+    expect(sitemapSource).toContain(
+      '"/product/openshift": { priority: 0.8, changefreq: "weekly" }',
+    );
+  });
+
+  test("is listed once, from the route Routes.ts registers", async () => {
+    const mod: SitemapModule = loadSitemap({
+      posts: [],
+      routes: REGISTERED_GET_PATHS,
+    });
+    const entries: Array<string> = elementsOf(
+      await mod.generatePagesSitemapXml(),
+      "url",
+    ).filter((entry: string): boolean => {
+      return locOf(entry) === `${HOME_URL}/product/openshift`;
+    });
+
+    expect(REGISTERED_GET_PATHS).toContain("/product/openshift");
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toContain("<priority>0.8</priority>");
+    expect(entries[0]).toContain("<changefreq>weekly</changefreq>");
   });
 });
 
