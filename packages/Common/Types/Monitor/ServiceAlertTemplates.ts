@@ -4,7 +4,14 @@ import MonitorStep from "./MonitorStep";
 import MonitorCriteria from "./MonitorCriteria";
 import MonitorCriteriaInstance from "./MonitorCriteriaInstance";
 import FilterCondition from "../Filter/FilterCondition";
-import { CheckOn, EvaluateOverTimeType, FilterType } from "./CriteriaFilter";
+import {
+  AnomalyDetectionSensitivity,
+  CheckOn,
+  CriteriaFilterUtil,
+  EvaluateOverTimeType,
+  FilterType,
+  MetricAnomalyDetectionOptions,
+} from "./CriteriaFilter";
 import MonitorType from "./MonitorType";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -171,6 +178,7 @@ interface CountCriteriaArgs {
   unhealthyFilterType: FilterType;
   healthyFilterType: FilterType;
   threshold: number;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
   unhealthyName: string;
   unhealthyDescription: string;
   incidentTitle: string;
@@ -197,6 +205,10 @@ interface MetricCriteriaArgs {
  * monitor with no healthy criteria never comes back online: it opens an
  * incident, auto-resolves it (the incidents carry `autoResolveIncident`), and
  * then sits in its offline status forever with nothing to move it back.
+ *
+ * An anomaly condition has no mirror to write, and needs none: the first
+ * criteria that matches decides, so its pair matches every count, and so
+ * catches exactly the windows the anomaly did not.
  */
 function buildCriteriaPair(data: {
   args: ServiceAlertTemplateArgs;
@@ -206,6 +218,7 @@ function buildCriteriaPair(data: {
   threshold: number;
   metricAlias?: string | undefined;
   thresholdUnit?: string | undefined;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
   unhealthyName: string;
   unhealthyDescription: string;
   incidentTitle: string;
@@ -236,7 +249,9 @@ function buildCriteriaPair(data: {
       {
         checkOn: data.checkOn,
         filterType: data.unhealthyFilterType,
-        value: data.threshold,
+        value: CriteriaFilterUtil.isAnomalyFilterType(data.unhealthyFilterType)
+          ? undefined
+          : data.threshold,
         /*
          * A copy per filter, not the shared object. `MetricMonitorCriteria`
          * writes its `AnyValue` default straight back through this reference
@@ -245,9 +260,11 @@ function buildCriteriaPair(data: {
          * changes the healthy criteria as a side effect of touching the
          * unhealthy one.
          */
-        metricMonitorOptions: metricMonitorOptions
-          ? { ...metricMonitorOptions }
-          : undefined,
+        metricMonitorOptions: data.anomalyDetection
+          ? { anomalyDetection: { ...data.anomalyDetection } }
+          : metricMonitorOptions
+            ? { ...metricMonitorOptions }
+            : undefined,
       },
     ],
     incidents: [
@@ -318,6 +335,7 @@ function buildCountCriteria(data: CountCriteriaArgs): MonitorCriteria {
     unhealthyFilterType: data.unhealthyFilterType,
     healthyFilterType: data.healthyFilterType,
     threshold: data.threshold,
+    anomalyDetection: data.anomalyDetection,
     unhealthyName: data.unhealthyName,
     unhealthyDescription: data.unhealthyDescription,
     incidentTitle: data.incidentTitle,
@@ -830,11 +848,13 @@ const buildExceptionTemplate: (data: {
   name: string;
   description: string;
   checkOn:
+    | CheckOn.ExceptionCount
     | CheckOn.NewExceptionCount
-    | CheckOn.RegressedExceptionCount
-    | CheckOn.ExceptionCountIncreasePercent;
+    | CheckOn.RegressedExceptionCount;
   windowInSeconds: number;
+  // A number to pass, or an anomaly condition judged against the baseline.
   threshold: number;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
   unhealthyName: string;
   unhealthyDescription: string;
   incidentTitle: (monitorName: string) => string;
@@ -844,11 +864,13 @@ const buildExceptionTemplate: (data: {
   name: string;
   description: string;
   checkOn:
+    | CheckOn.ExceptionCount
     | CheckOn.NewExceptionCount
-    | CheckOn.RegressedExceptionCount
-    | CheckOn.ExceptionCountIncreasePercent;
+    | CheckOn.RegressedExceptionCount;
   windowInSeconds: number;
+  // A number to pass, or an anomaly condition judged against the baseline.
   threshold: number;
+  anomalyDetection?: MetricAnomalyDetectionOptions | undefined;
   unhealthyName: string;
   unhealthyDescription: string;
   incidentTitle: (monitorName: string) => string;
@@ -885,9 +907,14 @@ const buildExceptionTemplate: (data: {
         buildCountCriteria({
           args: args,
           checkOn: data.checkOn,
-          unhealthyFilterType: FilterType.GreaterThan,
-          healthyFilterType: FilterType.LessThanOrEqualTo,
+          unhealthyFilterType: data.anomalyDetection
+            ? FilterType.AnomalouslyHigh
+            : FilterType.GreaterThan,
+          healthyFilterType: data.anomalyDetection
+            ? FilterType.GreaterThanOrEqualTo
+            : FilterType.LessThanOrEqualTo,
           threshold: data.threshold,
+          anomalyDetection: data.anomalyDetection,
           unhealthyName: data.unhealthyName,
           unhealthyDescription: data.unhealthyDescription,
           incidentTitle: data.incidentTitle(args.monitorName),
@@ -942,13 +969,14 @@ const exceptionSpikeTemplate: ServiceAlertTemplate = buildExceptionTemplate({
   id: "service-exception-spike",
   name: "Exception Spike",
   description:
-    "Alert when the service's exceptions rise to three times the usual for the day before, over fifteen minutes.",
-  checkOn: CheckOn.ExceptionCountIncreasePercent,
+    "Alert when the service's exceptions rise well above what is normal for this hour of the week, over fifteen minutes.",
+  checkOn: CheckOn.ExceptionCount,
   windowInSeconds: 900,
-  threshold: 200,
+  threshold: 0,
+  anomalyDetection: { sensitivity: AnomalyDetectionSensitivity.Medium },
   unhealthyName: "Exceptions spiked",
   unhealthyDescription:
-    "Triggers when the exceptions of fifteen minutes are more than 200% above the usual fifteen minutes of the day before.",
+    "Triggers when the exceptions of fifteen minutes are unusually high for this hour of the week, compared with the weeks before.",
   incidentTitle: (monitorName: string): string => {
     return `[Service] Exception spike - ${monitorName}`;
   },

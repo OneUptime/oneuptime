@@ -1,6 +1,6 @@
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
-import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TelemetryAlertRuleUtil, {
   TelemetryAlertRule,
@@ -244,6 +244,36 @@ const getRecipeTitles: (data: {
       monitorName: data.monitorName,
     });
   });
+};
+
+/*
+ * The fields of an Exceptions rule that change with what it alerts on. Only
+ * the count has a baseline, so a rule on anything else cannot stay "unusually
+ * high": it takes a number, the one its pick starts on. The rise over the
+ * usual has no pick any more, so it starts on the 200% it always did.
+ */
+export const getMeasureChange: (data: {
+  rule: Pick<TelemetryAlertRule, "filterType">;
+  measure: CheckOn;
+}) => Partial<TelemetryAlertRule> = (data: {
+  rule: Pick<TelemetryAlertRule, "filterType">;
+  measure: CheckOn;
+}): Partial<TelemetryAlertRule> => {
+  const measure: CheckOn | undefined =
+    data.measure === CheckOn.ExceptionCount ? undefined : data.measure;
+
+  if (
+    !TelemetryAlertRuleUtil.isAnomaly(data.rule.filterType) ||
+    TelemetryAlertRuleUtil.supportsAnomaly(MonitorType.Exceptions, measure)
+  ) {
+    return { measure };
+  }
+
+  return {
+    measure,
+    filterType: FilterType.GreaterThan,
+    threshold: measure === CheckOn.ExceptionCountIncreasePercent ? 200 : 0,
+  };
 };
 
 /*
