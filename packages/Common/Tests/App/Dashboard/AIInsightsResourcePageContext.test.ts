@@ -106,9 +106,13 @@ const RESOURCES: Array<ResourceCase> = [
     modelType: ServerlessFunction,
     chip: "This serverless function",
   },
+  /*
+   * A cloud environment's pages are App Platforms'; a cloud resource's are
+   * Cloud's, read below ("a cloud resource's pages in Cloud").
+   */
   {
     type: AIResourceType.CloudResource,
-    path: "cloud",
+    path: "app-platforms",
     modelType: CloudResource,
     chip: "This cloud environment",
   },
@@ -449,7 +453,7 @@ const CHILDREN: Array<ChildCase> = [
   },
   {
     type: AIResourceType.CloudResource,
-    path: "cloud",
+    path: "app-platforms",
     collection: "instances",
     kind: AIResourceSubresourceKind.Instance,
   },
@@ -779,6 +783,78 @@ describe("AI Insights infrastructure titles and links", () => {
       ).toBeUndefined();
     },
   );
+});
+
+/*
+ * CloudResource is one table two products show: its environments are App
+ * Platforms' (the cases above), the resources in a cloud account Cloud's.
+ * On Cloud's pages the chat names a cloud resource, not an environment.
+ */
+describe("a cloud resource's pages in Cloud", () => {
+  test.each(["", "/", "/metrics", "/feed", "/changes", "/settings"])(
+    "cloud/<id>%s is that cloud resource",
+    (suffix: string) => {
+      expect(navigateTo(`cloud/${ENTITY_ID}${suffix}`)).toMatchObject({
+        type: AIChatPageContextType.Resource,
+        resourceType: AIResourceType.CloudResource,
+        entityId: ENTITY_ID,
+        noun: "cloud resource",
+        chipLabel: "This cloud resource",
+        isEntity: true,
+      });
+      expect(PageContextUtil.detectPageContext()?.subresource).toBeUndefined();
+    },
+  );
+
+  test("a resource has no instances of its own: nothing is read as one", () => {
+    expect(navigateTo(`cloud/${ENTITY_ID}/instances`)).toMatchObject({
+      type: AIChatPageContextType.Resource,
+      entityId: ENTITY_ID,
+      chipLabel: "This cloud resource",
+    });
+    expect(PageContextUtil.detectPageContext()?.subresource).toBeUndefined();
+  });
+
+  test.each(["cloud", "cloud/resources", "cloud/archived"])(
+    "%s is the cloud resources list",
+    (path: string) => {
+      expect(navigateTo(path)).toMatchObject({
+        type: AIChatPageContextType.ResourcesList,
+        resourceType: AIResourceType.CloudResource,
+        isEntity: false,
+      });
+    },
+  );
+
+  test("its questions name a cloud resource, and an environment's an environment", () => {
+    const questionsAt: (path: string) => string = (path: string): string => {
+      return PageContextUtil.getSuggestions(requireContext(path))
+        .map((suggestion: SuggestedQuestion): string => {
+          return suggestion.question;
+        })
+        .join(" ");
+    };
+
+    const resource: string = questionsAt(`cloud/${ENTITY_ID}`);
+    expect(resource).toContain("this cloud resource");
+    expect(resource).not.toContain("environment");
+
+    const environment: string = questionsAt(`app-platforms/${ENTITY_ID}`);
+    expect(environment).toContain("this cloud environment");
+    expect(environment).not.toContain("cloud resource");
+  });
+
+  test("citations still link to the environment's page in App Platforms", () => {
+    jest
+      .spyOn(ProjectUtil, "getCurrentProjectId")
+      .mockReturnValue(new ObjectID(PROJECT_ID));
+    expect(
+      ResourcePageContextUtil.getRoute(
+        AIResourceType.CloudResource,
+        ENTITY_ID,
+      )?.toString(),
+    ).toBe(`/dashboard/${PROJECT_ID}/app-platforms/${ENTITY_ID}`);
+  });
 });
 
 describe("AI Insights infrastructure suggestions and payload", () => {

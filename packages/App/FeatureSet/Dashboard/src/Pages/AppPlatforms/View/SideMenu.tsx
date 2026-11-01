@@ -77,26 +77,28 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  const routeTo: (page: PageMap) => Route = (page: PageMap): Route => {
-    return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
-      modelId: props.modelId,
-    });
-  };
-
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
         <SideMenuItem
           link={{
             title: "Overview",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Info}
         />
         <SideMenuItem
           link={{
             title: "Documentation",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION
+              ] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Book}
         />
@@ -106,35 +108,52 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Metrics",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.ChartBar}
         />
         <SideMenuItem
           link={{
             title: "Logs",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Terminal}
         />
         <SideMenuItem
           link={{
             title: "Traces",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_TRACES] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Workflow}
         />
         <SideMenuItem
           link={{
             title: "Instances",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INSTANCES
+              ] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Cube}
         />
         <SideMenuItem
           link={{
             title: "Feed",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_FEED),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_FEED] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.List}
         />
@@ -148,7 +167,12 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
         <CountModelSideMenuItem<Incident>
           link={{
             title: "Incidents",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_INCIDENTS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Alert}
           badgeType={BadgeType.DANGER}
@@ -166,7 +190,10 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
         <CountModelSideMenuItem<Alert>
           link={{
             title: "Alerts",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.ExclaimationCircle}
           badgeType={BadgeType.DANGER}
@@ -187,7 +214,12 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Settings",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Settings}
         />
@@ -204,14 +236,20 @@ const AppPlatformEnvironmentViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Owners",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Team}
         />
         <SideMenuItem
           link={{
             title: "Delete Environment",
-            to: routeTo(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DELETE] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Trash}
           className="danger-on-hover"

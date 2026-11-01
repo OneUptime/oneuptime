@@ -469,7 +469,7 @@ describe("Cloud environment pages label every chip through the helper", () => {
   );
 
   test("Logs memoises the display keys on the same columns as its filter", () => {
-    const code: string = readCode("Pages/Cloud/View/Logs.tsx");
+    const code: string = readCode("Pages/AppPlatforms/View/Logs.tsx");
 
     expect(code).toContain(
       compact(

@@ -71,6 +71,7 @@ import StorageArrayFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
 import HostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Feed";
 import CloudResourceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Feed";
+import AppPlatformEnvironmentFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Feed";
 import CloudAccountFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Feed";
 import DatabaseServerFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Feed";
 import ServiceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Feed";
@@ -231,6 +232,11 @@ interface FeedPageSpec {
   eventTypeColumn: string;
   enumObject: Record<string, string>;
   getKind?: GetResourceFeedKindFunction | undefined;
+  /*
+   * The product whose feed the page shows, when another page shows the same
+   * one (ResourceFeedSurface's feedProduct). Defaults to `product`.
+   */
+  feedProduct?: string | undefined;
 }
 
 const FEED_PAGES: Array<FeedPageSpec> = [
@@ -334,6 +340,22 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     eventTypeColumn: "cloudResourceFeedEventType",
     enumObject: CloudResourceFeedEventType,
   },
+  /*
+   * One CloudResourceFeed, shown in two products: a cloud environment's in
+   * App Platforms, a cloud resource's in Cloud. The two agree about the
+   * reader's sort order, as they did when both were Cloud's.
+   */
+  {
+    product: "App Platforms",
+    feedProduct: "Cloud",
+    file: "Pages/AppPlatforms/View/Feed.tsx",
+    Page: AppPlatformEnvironmentFeedPage,
+    route: RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_FEED] as Route,
+    modelType: CloudResourceFeed,
+    resourceIdColumn: "cloudResourceId",
+    eventTypeColumn: "cloudResourceFeedEventType",
+    enumObject: CloudResourceFeedEventType,
+  },
   {
     product: "Cloud accounts",
     file: "Pages/Cloud/Accounts/View/Feed.tsx",
@@ -403,7 +425,7 @@ type ToSurface = (spec: FeedPageSpec) => ResourceFeedSurface;
 const toSurface: ToSurface = (spec: FeedPageSpec): ResourceFeedSurface => {
   return {
     product: `${spec.product} feed page`,
-    feedProduct: spec.product,
+    feedProduct: spec.feedProduct || spec.product,
     file: spec.file,
     component: spec.Page,
     modelType: spec.modelType,
@@ -1165,6 +1187,20 @@ describe("Resource feed pages - the ⋯ menu's sort and filter on the real pages
     expect(getWrittenKey(EMBEDDED_SLO_FEED)).toBeDefined();
     expect(getWrittenKey(EMBEDDED_SLO_FEED)).toBe(
       getWrittenKey(SLO_FEED_PAGE_SURFACE),
+    );
+
+    // And for the one feed model two products show: App Platforms and Cloud.
+    const feedPageSurface: (product: string) => ResourceFeedSurface = (
+      product: string,
+    ): ResourceFeedSurface => {
+      return SURFACES.find((surface: ResourceFeedSurface): boolean => {
+        return surface.product === `${product} feed page`;
+      })!;
+    };
+
+    expect(getWrittenKey(feedPageSurface("App Platforms"))).toBeDefined();
+    expect(getWrittenKey(feedPageSurface("App Platforms"))).toBe(
+      getWrittenKey(feedPageSurface("Cloud")),
     );
   });
 });

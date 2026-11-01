@@ -186,9 +186,9 @@ jest.mock(
 
 import CephLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Logs";
 import CephMetrics from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Metrics";
-import CloudLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Logs";
-import CloudMetrics from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Metrics";
-import CloudTraces from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Traces";
+import AppPlatformsLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Logs";
+import AppPlatformsMetrics from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Metrics";
+import AppPlatformsTraces from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Traces";
 import DockerLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Logs";
 import DockerTraces from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/Traces";
 import DockerSwarmLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Logs";
@@ -282,8 +282,8 @@ const LOGS_TABS: Record<string, LogsTabCase> = {
     notFoundMessage: "Cluster not found.",
     remainingCardTitles: [],
   },
-  Cloud: {
-    Page: CloudLogs,
+  "App Platforms": {
+    Page: AppPlatformsLogs,
     item: CLOUD_ENVIRONMENT,
     removedCardTitle: "Cloud Environment Logs",
     viewerId: `cloud-resource-logs-${MODEL_ID_STRING}`,
@@ -594,14 +594,14 @@ describe("NetworkDevice Logs keeps its setup guide below the bare viewer", () =>
   });
 });
 
-describe("Cloud Logs for an environment without a platform", () => {
+describe("App Platforms Logs for an environment without a platform", () => {
   test("shows the connect banner alone: no viewer, no card", async () => {
     getItemMock.mockResolvedValue({
       resourceIdentifier: "unscoped-environment",
       name: "Unscoped",
     });
 
-    const { container } = render(<CloudLogs {...PAGE_PROPS} />);
+    const { container } = render(<AppPlatformsLogs {...PAGE_PROPS} />);
     const banner: HTMLElement = await screen.findByTestId(
       "cloud-connect-banner",
     );
@@ -621,9 +621,21 @@ const SIGNAL_TAB_TABLE: Array<
 > = [
   ["Ceph", "Logs", CephLogs, "logs-viewer", CLUSTER],
   ["Ceph", "Metrics", CephMetrics, "metrics-viewer", CLUSTER],
-  ["Cloud", "Logs", CloudLogs, "logs-viewer", CLOUD_ENVIRONMENT],
-  ["Cloud", "Traces", CloudTraces, "traces-viewer", CLOUD_ENVIRONMENT],
-  ["Cloud", "Metrics", CloudMetrics, "metrics-viewer", CLOUD_ENVIRONMENT],
+  ["App Platforms", "Logs", AppPlatformsLogs, "logs-viewer", CLOUD_ENVIRONMENT],
+  [
+    "App Platforms",
+    "Traces",
+    AppPlatformsTraces,
+    "traces-viewer",
+    CLOUD_ENVIRONMENT,
+  ],
+  [
+    "App Platforms",
+    "Metrics",
+    AppPlatformsMetrics,
+    "metrics-viewer",
+    CLOUD_ENVIRONMENT,
+  ],
   ["Docker", "Logs", DockerLogs, "logs-viewer", IDENTIFIED_HOST],
   ["Docker", "Traces", DockerTraces, "traces-viewer", IDENTIFIED_HOST],
   ["DockerSwarm", "Logs", DockerSwarmLogs, "logs-viewer", CLUSTER],

@@ -2848,7 +2848,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "cloud environments",
               "ecs",
               "fargate",
-              "app runner",
               "elastic beanstalk",
               "cloud run",
               "app engine",

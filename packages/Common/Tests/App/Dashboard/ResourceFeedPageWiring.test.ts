@@ -119,6 +119,14 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     pagesDirectory: "Cloud/Accounts",
     routesFile: "CloudResourceRoutes.tsx",
   },
+  // A cloud environment's feed moved with it from Cloud to App Platforms.
+  {
+    product: "App Platforms",
+    pageMapKey: "APP_PLATFORMS_ENVIRONMENT_VIEW_FEED",
+    urlPrefix: "app-platforms",
+    pagesDirectory: "AppPlatforms",
+    routesFile: "AppPlatformsRoutes.tsx",
+  },
   {
     product: "Databases",
     pageMapKey: "DATABASE_SERVER_VIEW_FEED",
@@ -150,7 +158,7 @@ function read(...segments: Array<string>): string {
 
 describe("Resource feed pages", () => {
   test("every product that grew a feed is covered here", () => {
-    expect(FEED_PAGES.length).toBe(14);
+    expect(FEED_PAGES.length).toBe(15);
   });
 
   test.each(FEED_PAGES)(

@@ -77,26 +77,26 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
     });
   }, []);
 
-  const routeTo: (page: PageMap) => Route = (page: PageMap): Route => {
-    return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
-      modelId: props.modelId,
-    });
-  };
-
   return (
     <SideMenu>
       <SideMenuSection title="Basic">
         <SideMenuItem
           link={{
             title: "Overview",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Info}
         />
         <SideMenuItem
           link={{
             title: "Documentation",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Book}
         />
@@ -106,14 +106,20 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Metrics",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_METRICS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_METRICS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.ChartBar}
         />
         <SideMenuItem
           link={{
             title: "Feed",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_FEED),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_FEED] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.List}
         />
@@ -128,7 +134,10 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         <CountModelSideMenuItem<Incident>
           link={{
             title: "Incidents",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Alert}
           badgeType={BadgeType.DANGER}
@@ -146,7 +155,10 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         <CountModelSideMenuItem<Alert>
           link={{
             title: "Alerts",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_ALERTS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_ALERTS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.ExclaimationCircle}
           badgeType={BadgeType.DANGER}
@@ -164,7 +176,10 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Changes",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_CHANGES),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_CHANGES] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Activity}
         />
@@ -174,7 +189,10 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Settings",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_SETTINGS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Settings}
         />
@@ -191,14 +209,20 @@ const CloudResourceViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuItem
           link={{
             title: "Owners",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_OWNERS),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_OWNERS] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Team}
         />
         <SideMenuItem
           link={{
             title: "Delete Resource",
-            to: routeTo(PageMap.CLOUD_RESOURCE_VIEW_DELETE),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DELETE] as Route,
+              { modelId: props.modelId },
+            ),
           }}
           icon={IconProp.Trash}
           className="danger-on-hover"

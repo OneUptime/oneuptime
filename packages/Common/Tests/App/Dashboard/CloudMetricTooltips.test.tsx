@@ -268,13 +268,13 @@ jest.mock(
 
 import CloudResourceOverview, {
   TopInstancesByCpuTitle,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Overview";
 import CloudFleetSummary from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudFleetSummary";
 import {
   CloudFleetSummaryTile,
   summarizeCloudFleet,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudFleetSummary";
-import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudResourceTelemetryScope";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudFleetSummary";
+import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
 import {
   CLOUD_FLEET_METRIC_DESCRIPTIONS,
   CLOUD_INSTANCE_METRIC_DESCRIPTIONS,

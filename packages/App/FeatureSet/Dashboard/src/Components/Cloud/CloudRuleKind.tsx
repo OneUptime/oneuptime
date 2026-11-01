@@ -22,11 +22,16 @@ import React, { ReactElement } from "react";
 
 export type CloudRule = CloudResourceOwnerRule | CloudResourceLabelRule;
 
-// The rules one product's page lists: its own, and those made for both.
-export function getCloudRuleListQuery(kind: CloudResourceKind): {
-  cloudResourceKind: EqualToOrNull<string>;
-} {
-  return { cloudResourceKind: new EqualToOrNull<string>(kind) };
+/*
+ * The kind one product's rules page lists its rules by - its own, and those
+ * made for both - as the page's query reads it: query={{ cloudResourceKind:
+ * cloudResourceKind }} (ResourceDetailsOnePlaceGuard's SPLIT_MODELS holds
+ * each page to reading by the column).
+ */
+export function getCloudRuleListKind(
+  kind: CloudResourceKind,
+): EqualToOrNull<string> {
+  return new EqualToOrNull<string>(kind);
 }
 
 // A rule a product's page creates is that product's.
@@ -51,9 +56,7 @@ export const BOTH_PRODUCTS_RULE_TOOLTIP: string = translationKey(
   "Made before Cloud and App Platforms were split, this rule applies to the cloud resources in Cloud and to the environments in App Platforms.",
 );
 
-export function getAlsoAppliesInText(
-  kind: CloudResourceKind,
-): string {
+export function getAlsoAppliesInText(kind: CloudResourceKind): string {
   return kind === CloudResourceKind.Resource
     ? ALSO_IN_APP_PLATFORMS
     : ALSO_IN_CLOUD;

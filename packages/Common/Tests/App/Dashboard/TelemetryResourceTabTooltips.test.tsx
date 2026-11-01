@@ -122,7 +122,7 @@ jest.mock(
   },
 );
 
-import CloudResourceInstances from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Instances";
+import CloudResourceInstances from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Instances";
 import ServiceProfiles from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Profiles";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {

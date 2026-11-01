@@ -545,7 +545,7 @@ const ADDED_BY_GUIDE: Array<AddedByGuide> = [
   },
   {
     label: "Cloud environments",
-    page: "Pages/Cloud/CloudResources.tsx",
+    page: "Pages/AppPlatforms/Environments.tsx",
     config: "Components/Cloud/CloudEnvironmentOnboarding.tsx",
     constant: "CLOUD_ENVIRONMENT_ONBOARDING",
     modelType: CloudResource,
@@ -637,7 +637,7 @@ describe("the cloud environments the guide waits for", () => {
   });
 
   test("the summary above the list counts again when the Add dialog connects one", () => {
-    expect(code("Pages/Cloud/CloudResources.tsx")).toContain(
+    expect(code("Pages/AppPlatforms/Environments.tsx")).toContain(
       "<CloudFleetSummary refreshToken={(firstRecordWatch.count || 0) + connectedCount} />",
     );
   });

@@ -640,7 +640,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * The apps a managed app or container platform runs for you, found in
      * their own OpenTelemetry. It was Cloud's "All Environments" until the
      * two became products of their own: the platforms' names are its
-     * keywords, so a search for the one you deploy to finds it.
+     * keywords, so a search for the one you deploy to finds it. Not "app
+     * runner": "runner" must find only Runbooks, where Runners are set up
+     * (RunnerProductSearch).
      */
     {
       title: t("navbar.items.appPlatformsTitle", "App Platforms"),
@@ -651,7 +653,6 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
         "ecs",
         "aws ecs",
         "fargate",
-        "app runner",
         "elastic beanstalk",
         "beanstalk",
         "cloud run",

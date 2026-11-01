@@ -129,7 +129,7 @@ jest.mock("../../../UI/Components/Charts/Line/LineChart", () => {
   return { __esModule: true, default: harness.StandInLineChart };
 });
 
-import CloudResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview";
+import CloudResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Overview";
 import ServerlessFunctionOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Serverless/View/Overview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import TimeRange from "../../../Types/Time/TimeRange";

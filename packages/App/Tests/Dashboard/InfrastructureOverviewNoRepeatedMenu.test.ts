@@ -102,7 +102,7 @@ const OVERVIEWS: Array<OverviewCase> = [
   },
   {
     name: "Cloud environment",
-    overview: "Pages/Cloud/View/Overview.tsx",
+    overview: "Pages/AppPlatforms/View/Overview.tsx",
     sideMenu: "Pages/Cloud/View/SideMenu.tsx",
     formerLinks: [
       "CLOUD_RESOURCE_VIEW_TRACES",

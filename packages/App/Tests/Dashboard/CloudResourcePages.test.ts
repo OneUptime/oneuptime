@@ -62,8 +62,9 @@ function between(source: string, from: string, to: string): string {
   return end >= 0 ? source.slice(start, end) : source.slice(start);
 }
 
-const LIST_PAGE: string = "Pages/Cloud/CloudResources.tsx";
-const SCOPE_UTIL: string = "Pages/Cloud/Utils/CloudResourceTelemetryScope.ts";
+const LIST_PAGE: string = "Pages/AppPlatforms/Environments.tsx";
+const SCOPE_UTIL: string =
+  "Pages/AppPlatforms/Utils/CloudResourceTelemetryScope.ts";
 const SCOPE_IMPORT: string = 'from "../Utils/CloudResourceTelemetryScope"';
 const BANNER_TAG: string = "<CloudResourceConnectBanner";
 
@@ -208,7 +209,7 @@ describe("Cloud Environment telemetry scope", () => {
 });
 
 describe("Cloud Environment overview", () => {
-  const code: string = readCode("Pages/Cloud/View/Overview.tsx");
+  const code: string = readCode("Pages/AppPlatforms/View/Overview.tsx");
 
   test("scopes span and metric fetches through the helper", () => {
     expect(code).toContain(SCOPE_IMPORT);
@@ -290,7 +291,7 @@ describe("Cloud Environment overview", () => {
 });
 
 describe("Cloud Environment instances", () => {
-  const code: string = readCode("Pages/Cloud/View/Instances.tsx");
+  const code: string = readCode("Pages/AppPlatforms/View/Instances.tsx");
 
   test("formats CPU and memory instead of printing raw numbers", () => {
     expect(code).toContain(
@@ -472,7 +473,7 @@ describe("Cloud Environment copy", () => {
      * The Logs tab renders its viewer bare, like the Traces and Metrics tabs,
      * so its empty state is the copy left to say "environment".
      */
-    expect(readCode("Pages/Cloud/View/Logs.tsx")).toContain(
+    expect(readCode("Pages/AppPlatforms/View/Logs.tsx")).toContain(
       'noLogsMessage="Logs appear here when they carry this environment\'s cloud.platform, cloud.account.id and cloud.region resource attributes."',
     );
     expect(readCode("Pages/Cloud/SideMenu.tsx")).toContain(

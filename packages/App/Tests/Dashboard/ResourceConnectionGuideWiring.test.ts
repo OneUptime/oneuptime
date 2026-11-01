@@ -310,7 +310,7 @@ const SHARED_OVERVIEW_PAGES: Array<[string, SharedOverviewPageCase]> = [
   [
     "Cloud environment",
     {
-      file: "Pages/Cloud/View/Overview.tsx",
+      file: "Pages/AppPlatforms/View/Overview.tsx",
       resourceVariable: "r",
       identifierColumn: "cloudPlatform",
       builder: "getCloudResourceConnectionGuide",
@@ -520,7 +520,7 @@ describe.each(SHARED_OVERVIEW_PAGES)(
 );
 
 describe("the Cloud environment overview", () => {
-  const source: ts.SourceFile = parse("Pages/Cloud/View/Overview.tsx");
+  const source: ts.SourceFile = parse("Pages/AppPlatforms/View/Overview.tsx");
   const overview: JsxElementLike = collectJsxElements(
     source,
     "ResourceOverview",

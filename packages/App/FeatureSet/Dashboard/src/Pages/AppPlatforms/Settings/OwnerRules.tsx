@@ -14,14 +14,20 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
+import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import {
   CloudRuleName,
-  getCloudRuleListQuery,
+  getCloudRuleListKind,
   withCloudRuleKind,
 } from "../../../Components/Cloud/CloudRuleKind";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
+
+// App Platforms' rules, and those made for both products before they split.
+const cloudResourceKind: EqualToOrNull<string> = getCloudRuleListKind(
+  CloudResourceKind.Environment,
+);
 
 /*
  * App Platforms > Settings > Owner Rules: the rules for environments. A
@@ -61,7 +67,7 @@ const AppPlatformsOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
        * resources of its accounts. A rule from before the two products
        * split is for both, and says so (CloudRuleKind).
        */
-      query={getCloudRuleListQuery(CloudResourceKind.Environment)}
+      query={{ cloudResourceKind: cloudResourceKind }}
       onBeforeCreate={withCloudRuleKind<CloudResourceOwnerRule>(
         CloudResourceKind.Environment,
       )}
@@ -83,10 +89,7 @@ const AppPlatformsOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
           type: FieldType.Element,
           getElement: (item: CloudResourceOwnerRule): ReactElement => {
             return (
-              <CloudRuleName
-                rule={item}
-                kind={CloudResourceKind.Environment}
-              />
+              <CloudRuleName rule={item} kind={CloudResourceKind.Environment} />
             );
           },
         },

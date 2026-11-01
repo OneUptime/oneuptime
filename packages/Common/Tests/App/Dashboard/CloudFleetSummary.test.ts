@@ -4,7 +4,7 @@ import {
   CloudFleetSummaryTile,
   describeProviderBreakdown,
   summarizeCloudFleet,
-} from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudFleetSummary";
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudFleetSummary";
 import { CLOUD_FLEET_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/CloudMetricDescriptions";
 
 /*
