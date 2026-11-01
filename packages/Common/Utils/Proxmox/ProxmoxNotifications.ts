@@ -173,14 +173,19 @@ export function encodeProxmoxBase64(text: string): string {
   return out;
 }
 
-// One `name=<name>,value=<base64>` property string, as the API takes them.
-function propertyString(name: string, value: string): string {
-  return `name=${name},value=${encodeProxmoxBase64(value)}`;
-}
-
 // Single quotes for a shell, with any single quote in the value kept.
 function shellQuote(value: string): string {
   return `'${value.split("'").join("'\\''")}'`;
+}
+
+/*
+ * One `name=<name>,value=<base64>` property string, as the API takes a
+ * header or a secret, written so the shell does the base64: the value stays
+ * readable in the command - a key to check, a cluster's name to correct, a
+ * placeholder to replace - and the API gets exactly what it wants.
+ */
+function shellPropertyString(name: string, value: string): string {
+  return `"name=${name},value=$(printf %s ${shellQuote(value)} | base64 -w0)"`;
 }
 
 // The OTLP logs endpoint of a OneUptime, without a trailing slash.
@@ -196,9 +201,9 @@ export function getProxmoxNotificationLogsUrl(oneUptimeUrl: string): string {
  * The two commands that send a cluster's notifications to OneUptime, run as
  * root on any node (the configuration is the cluster's, in /etc/pve): the
  * webhook target, then a matcher with no rules - which Proxmox VE reads as
- * "every notification" - that sends to it. Every value travels base64, so
- * no shell or property-string character in a cluster's name or a URL can
- * change the command.
+ * "every notification" - that sends to it. Every value is single-quoted for
+ * the shell and travels base64 to the API, so no shell or property-string
+ * character in a cluster's name, a key or a URL can change the command.
  */
 export function buildProxmoxNotificationSetupCommands(data: {
   oneUptimeUrl: string;
@@ -212,12 +217,14 @@ export function buildProxmoxNotificationSetupCommands(data: {
   ];
 
   for (const header of PROXMOX_NOTIFICATION_WEBHOOK_HEADERS) {
-    lines.push(`  --header ${propertyString(header.name, header.value)} \\`);
+    lines.push(
+      `  --header ${shellPropertyString(header.name, header.value)} \\`,
+    );
   }
 
   lines.push(
-    `  --secret ${propertyString("token", data.ingestionKey)} \\`,
-    `  --secret ${propertyString("cluster", data.clusterName)} \\`,
+    `  --secret ${shellPropertyString("token", data.ingestionKey)} \\`,
+    `  --secret ${shellPropertyString("cluster", data.clusterName)} \\`,
     `  --body ${encodeProxmoxBase64(PROXMOX_NOTIFICATION_WEBHOOK_BODY)} \\`,
     `  --comment ${shellQuote("Sends this cluster's notifications to OneUptime")}`,
     `pvesh create /cluster/notifications/matchers --name ${target} --target ${target} \\`,

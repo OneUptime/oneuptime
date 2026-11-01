@@ -233,22 +233,48 @@ describe("ProxmoxNotifications - the webhook body template", () => {
 describe("ProxmoxNotifications - the setup commands", () => {
   const KEY: string = "5a000000-0000-4000-8000-000000000001";
 
-  function base64Values(commands: string, option: string): Array<string> {
-    return commands
-      .split("\n")
-      .map((line: string): string => {
-        return line.trim();
+  /*
+   * What a shell on a node runs: pvesh stands in as a function printing
+   * each argument on a line, so the real quoting and the real base64 of
+   * the command decide what Proxmox VE's API would receive.
+   */
+  function runInShell(commands: string): Array<Array<string>> {
+    const shell: SpawnSyncReturns<string> = spawnSync(
+      "bash",
+      [
+        "-c",
+        `set -e\npvesh() { printf '%s\\n' "$@"; printf '%s\\n' '--end--'; }\n${commands}`,
+      ],
+      { encoding: "utf8" },
+    );
+    expect(shell.stderr).toBe("");
+    expect(shell.status).toBe(0);
+    return shell.stdout
+      .split("--end--\n")
+      .filter((chunk: string): boolean => {
+        return chunk.length > 0;
       })
-      .filter((line: string): boolean => {
-        return line.startsWith(`--${option} `);
-      })
-      .map((line: string): string => {
-        return line.substring(`--${option} `.length).replace(" \\", "").trim();
+      .map((chunk: string): Array<string> => {
+        return chunk.split("\n").filter((argument: string): boolean => {
+          return argument.length > 0;
+        });
       });
+  }
+
+  function valuesOf(argv: Array<string>, option: string): Array<string> {
+    const values: Array<string> = [];
+    argv.forEach((argument: string, index: number) => {
+      if (argument === option) {
+        values.push(argv[index + 1] as string);
+      }
+    });
+    return values;
   }
 
   function decodeProperty(property: string): { name: string; value: string } {
     const [namePart, valuePart] = property.split(",");
+    expect(namePart?.startsWith("name=")).toBe(true);
+    expect(valuePart?.startsWith("value=")).toBe(true);
     return {
       name: (namePart as string).substring("name=".length),
       value: Buffer.from(
@@ -259,50 +285,75 @@ describe("ProxmoxNotifications - the setup commands", () => {
   }
 
   test("create the webhook target, then a matcher that sends every notification to it", () => {
-    const commands: string = buildProxmoxNotificationSetupCommands({
-      oneUptimeUrl: "https://oneuptime.com",
-      clusterName: "pve-prod",
-      ingestionKey: KEY,
-    });
-    const lines: Array<string> = commands.split("\n");
-
-    expect(lines[0]).toBe(
-      `pvesh create /cluster/notifications/endpoints/webhook --name ${PROXMOX_NOTIFICATION_TARGET_NAME} \\`,
-    );
-    expect(commands).toContain(
-      "--method post --url 'https://oneuptime.com/otlp/v1/logs' \\",
-    );
-    expect(
-      lines.some((line: string): boolean => {
-        return line.startsWith(
-          `pvesh create /cluster/notifications/matchers --name ${PROXMOX_NOTIFICATION_TARGET_NAME} --target ${PROXMOX_NOTIFICATION_TARGET_NAME}`,
-        );
+    const [target, matcher] = runInShell(
+      buildProxmoxNotificationSetupCommands({
+        oneUptimeUrl: "https://oneuptime.com",
+        clusterName: "pve-prod",
+        ingestionKey: KEY,
       }),
-    ).toBe(true);
-    // A matcher with no match rules: Proxmox VE sends it everything.
-    expect(commands).not.toContain("--match-");
+    ) as [Array<string>, Array<string>];
 
-    expect(base64Values(commands, "header").map(decodeProperty)).toEqual([
+    expect(target.slice(0, 4)).toEqual([
+      "create",
+      "/cluster/notifications/endpoints/webhook",
+      "--name",
+      PROXMOX_NOTIFICATION_TARGET_NAME,
+    ]);
+    expect(valuesOf(target, "--method")).toEqual(["post"]);
+    expect(valuesOf(target, "--url")).toEqual([
+      "https://oneuptime.com/otlp/v1/logs",
+    ]);
+    expect(valuesOf(target, "--header").map(decodeProperty)).toEqual([
       { name: "Content-Type", value: "application/json" },
       { name: "x-oneuptime-token", value: "{{ secrets.token }}" },
     ]);
-    expect(base64Values(commands, "secret").map(decodeProperty)).toEqual([
+    expect(valuesOf(target, "--secret").map(decodeProperty)).toEqual([
       { name: "token", value: KEY },
       { name: "cluster", value: "pve-prod" },
     ]);
-    const [body] = base64Values(commands, "body");
-    expect(Buffer.from(body as string, "base64").toString("utf8")).toBe(
-      PROXMOX_NOTIFICATION_WEBHOOK_BODY,
-    );
+    expect(
+      Buffer.from(valuesOf(target, "--body")[0] as string, "base64").toString(
+        "utf8",
+      ),
+    ).toBe(PROXMOX_NOTIFICATION_WEBHOOK_BODY);
+
+    // A matcher with no match rules: Proxmox VE sends it everything.
+    expect(matcher).toEqual([
+      "create",
+      "/cluster/notifications/matchers",
+      "--name",
+      PROXMOX_NOTIFICATION_TARGET_NAME,
+      "--target",
+      PROXMOX_NOTIFICATION_TARGET_NAME,
+      "--comment",
+      "Every notification, to OneUptime",
+    ]);
   });
 
-  test("the key never appears in the clear, only base64 in the target's secret", () => {
+  test("the key and the cluster's name stay readable in the command, never in the body", () => {
     const commands: string = buildProxmoxNotificationSetupCommands({
       oneUptimeUrl: "https://oneuptime.com",
       clusterName: "pve-prod",
       ingestionKey: KEY,
     });
-    expect(commands).not.toContain(KEY);
+    expect(commands).toContain(`printf %s '${KEY}' | base64 -w0`);
+    expect(commands).toContain("printf %s 'pve-prod' | base64 -w0");
+    expect(PROXMOX_NOTIFICATION_WEBHOOK_BODY).not.toContain(KEY);
+    expect(PROXMOX_NOTIFICATION_WEBHOOK_BODY).not.toContain("pve-prod");
+  });
+
+  test("with no key yet, the placeholder is what the secret holds, for the reader to replace", () => {
+    const [target] = runInShell(
+      buildProxmoxNotificationSetupCommands({
+        oneUptimeUrl: "https://oneuptime.com",
+        clusterName: "my-proxmox-cluster",
+        ingestionKey: "<YOUR_API_KEY>",
+      }),
+    ) as [Array<string>];
+    expect(valuesOf(target, "--secret").map(decodeProperty)[0]).toEqual({
+      name: "token",
+      value: "<YOUR_API_KEY>",
+    });
   });
 
   test.each([
@@ -314,70 +365,29 @@ describe("ProxmoxNotifications - the setup commands", () => {
     expect(getProxmoxNotificationLogsUrl(url)).toBe(expected);
   });
 
-  test("a cluster name or URL with shell characters never changes the command a shell runs", () => {
-    const clusterName: string = `it's "prod" $(rm -rf /) \`id\` ; echo hi`;
+  test("a cluster name, key or URL with shell characters never changes the command a shell runs", () => {
+    const clusterName: string = `it's "prod" $(echo injected) \`echo injected\` ; echo hi`;
+    const key: string = `k'ey" $(id)`;
     const url: string = "https://oneuptime.acme.com/a'b";
-    const commands: string = buildProxmoxNotificationSetupCommands({
-      oneUptimeUrl: url,
-      clusterName: clusterName,
-      ingestionKey: KEY,
-    });
-
-    // pvesh stands in as a function printing each argument on a line.
-    const shell: SpawnSyncReturns<string> = spawnSync(
-      "bash",
-      [
-        "-c",
-        `pvesh() { printf '%s\\n' "$@"; printf '%s\\n' '--end--'; }\n${commands}`,
-      ],
-      { encoding: "utf8" },
+    const invocations: Array<Array<string>> = runInShell(
+      buildProxmoxNotificationSetupCommands({
+        oneUptimeUrl: url,
+        clusterName: clusterName,
+        ingestionKey: key,
+      }),
     );
-    expect(shell.status).toBe(0);
-    const invocations: Array<Array<string>> = shell.stdout
-      .split("--end--\n")
-      .filter((chunk: string): boolean => {
-        return chunk.length > 0;
-      })
-      .map((chunk: string): Array<string> => {
-        return chunk.split("\n").filter((argument: string): boolean => {
-          return argument.length > 0;
-        });
-      });
 
     expect(invocations).toHaveLength(2);
     const target: Array<string> = invocations[0] as Array<string>;
-    expect(target.slice(0, 4)).toEqual([
-      "create",
-      "/cluster/notifications/endpoints/webhook",
-      "--name",
-      PROXMOX_NOTIFICATION_TARGET_NAME,
-    ]);
-    expect(target[target.indexOf("--url") + 1]).toBe(
+    expect(valuesOf(target, "--url")).toEqual([
       "https://oneuptime.acme.com/a'b/otlp/v1/logs",
-    );
-    const clusterSecret: string | undefined = target.find(
-      (argument: string): boolean => {
-        return argument.startsWith("name=cluster,value=");
-      },
-    );
-    expect(
-      Buffer.from(
-        (clusterSecret as string).substring("name=cluster,value=".length),
-        "base64",
-      ).toString("utf8"),
-    ).toBe(clusterName);
-    expect(target[target.indexOf("--comment") + 1]).toBe(
+    ]);
+    expect(valuesOf(target, "--secret").map(decodeProperty)).toEqual([
+      { name: "token", value: key },
+      { name: "cluster", value: clusterName },
+    ]);
+    expect(valuesOf(target, "--comment")).toEqual([
       "Sends this cluster's notifications to OneUptime",
-    );
-    expect(invocations[1]).toEqual([
-      "create",
-      "/cluster/notifications/matchers",
-      "--name",
-      PROXMOX_NOTIFICATION_TARGET_NAME,
-      "--target",
-      PROXMOX_NOTIFICATION_TARGET_NAME,
-      "--comment",
-      "Every notification, to OneUptime",
     ]);
   });
 
