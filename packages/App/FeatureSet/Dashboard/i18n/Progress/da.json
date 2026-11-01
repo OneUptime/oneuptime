@@ -21,6 +21,7 @@
     "Appliance",
     "Appliance {{appliance}}",
     "Apps",
+    "Backups",
     "Branding",
     "Browser",
     "Browser · OpenTelemetry Web SDK",
@@ -66,6 +67,7 @@
     "Gateway",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "Hardware",
     "Hello world",
     "Hunt",
@@ -178,12 +180,14 @@
     "Uplinks",
     "Uploads",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "Version {{number}}",
     "Web",
     "Web, iOS, Android, React Native",
@@ -253,6 +257,7 @@
     "{{count}} spans",
     "{{count}} team",
     "{{count}} teams",
+    "{{size}} disk",
     "{{tokens}} tokens"
   ]
 }

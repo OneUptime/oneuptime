@@ -50,6 +50,7 @@
     "Gateway",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "Hello world",
     "Hunt",
     "Hunts",
@@ -139,12 +140,14 @@
     "Tunnel",
     "UTC",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Version {{number}}",
     "Webhook",
@@ -201,6 +204,8 @@
     "{{count}} samples",
     "{{count}} team",
     "{{minutes}} min",
+    "{{percent}} full",
+    "{{size}} disk",
     "{{tokens}} tokens"
   ]
 }

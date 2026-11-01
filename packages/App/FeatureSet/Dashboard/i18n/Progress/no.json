@@ -52,6 +52,7 @@
     "Gemini for Google Workspace",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "Hunt",
     "Hunts",
     "ICMP (ping)",
@@ -129,12 +130,14 @@
     "Type",
     "UTC",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Web",
     "Web, iOS, Android, React Native",
@@ -188,6 +191,8 @@
     "{{count}} samples",
     "{{count}} team",
     "{{minutes}} min",
+    "{{percent}} full",
+    "{{size}} disk",
     "{{tokens}} tokens"
   ]
 }

@@ -60,6 +60,7 @@
     "Google Calendar",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "Hardware",
     "Hello world",
     "Hong Kong (+852)",
@@ -149,12 +150,14 @@
     "UTC",
     "Up · In",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Volume",
     "Web",
@@ -212,6 +215,7 @@
     "{{count}} span",
     "{{count}} team",
     "{{count}} trigger",
-    "{{minutes}} min"
+    "{{minutes}} min",
+    "{{size}} in {{duration}}"
   ]
 }

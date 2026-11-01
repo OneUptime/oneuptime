@@ -85,6 +85,7 @@
     "Gateway",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "HTML, CSS & JavaScript",
     "Hardware",
     "Headers (JSON)",
@@ -223,12 +224,14 @@
     "Uplinks",
     "Uploads",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Volume",
     "Volumes",
@@ -333,6 +336,7 @@
     "{{delta}} pp",
     "{{field}} is {{value}}",
     "{{minutes}} min",
+    "{{size}} in {{duration}}",
     "{{tokens}} tokens"
   ]
 }

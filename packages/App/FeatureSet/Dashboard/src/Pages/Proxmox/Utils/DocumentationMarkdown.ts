@@ -18,6 +18,7 @@ import {
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
   PROXMOX_NOTIFICATION_TARGET_NAME,
   buildProxmoxNotificationRemoveCommands,
@@ -647,8 +648,9 @@ function getAgentVerifyStep(context: AgentGuideContext): SetupGuideStep {
  * to learn that a backup failed: neither pve-exporter nor the native push
  * says so. Optional, and the same for both ways of connecting.
  */
-export const PROXMOX_NOTIFICATIONS_STEP_TITLE: string =
-  "Send Proxmox VE's notifications";
+export const PROXMOX_NOTIFICATIONS_STEP_TITLE: string = translationKey(
+  "Send Proxmox VE's notifications",
+);
 
 /*
  * Where an unknown cluster's name comes from: the name the agent was given,
