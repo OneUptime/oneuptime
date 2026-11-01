@@ -700,7 +700,7 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
     await discover(TASK);
 
     expect(recordChange).toHaveBeenCalledTimes(1);
-    const [changeCall] = recordChange.mock.calls[0]! as [
+    const [changeCall] = recordChange.mock.calls[0]! as unknown as [
       {
         projectId: ObjectID;
         subject: Record<string, unknown>;
