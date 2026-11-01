@@ -219,7 +219,11 @@ export const IMPACT_EVIDENCE: Record<SecurityCaseExposureEvidenceKind, string> =
   };
 
 export const IMPACT_EXPOSURE_HEADING: string = translationKey("Exposure");
-export const IMPACT_AT_RISK_HEADING: string = translationKey("At risk");
+/*
+ * The records a case names, under the fold: "Records at risk", not "At
+ * risk", since the card's Data at risk sits right above the fold.
+ */
+export const IMPACT_AT_RISK_HEADING: string = translationKey("Records at risk");
 export const IMPACT_TALKED_TO_HEADING: string = translationKey("Network peers");
 
 export const IMPACT_OWNERS: string = translationKey("Owners");
@@ -258,7 +262,7 @@ export const IMPACT_FLOW_RECEIVED: string = translationKey(
 );
 
 export const IMPACT_SHOW_DETAILS: string = translationKey(
-  "Show what is at risk",
+  "Show the records at risk",
 );
 export const IMPACT_HIDE_DETAILS: string = translationKey("Hide details");
 
@@ -281,6 +285,39 @@ export const IMPACT_SOURCE_NAMES: Record<SecurityCaseImpactSource, string> = {
   [SecurityCaseImpactSource.Changes]: translationKey("changes"),
   [SecurityCaseImpactSource.NetworkFlows]: translationKey("network flows"),
   [SecurityCaseImpactSource.Events]: translationKey("security events"),
+  [SecurityCaseImpactSource.DataStores]: translationKey("data stores"),
+};
+
+/*
+ * The data a case puts at risk (SecurityCaseDataAtRisk): the stores it
+ * names and the ones its identities reach, the most sensitive first.
+ */
+export const IMPACT_DATA_HEADING: string = translationKey("Data at risk");
+export const IMPACT_DATA_STORES: PluralTemplate = {
+  one: "{{count}} store with sensitive data",
+  other: "{{count}} stores with sensitive data",
+};
+export const IMPACT_DATA_NAMED: string = translationKey("Named by the case");
+export const IMPACT_DATA_THROUGH: string = translationKey(
+  "Reachable through {{names}}",
+);
+export const IMPACT_DATA_RECORDS: string = translationKey(
+  "About {{count}} records",
+);
+export const IMPACT_DATA_WHO: PluralTemplate = {
+  one: "{{count}} identity can reach it",
+  other: "{{count}} identities can reach it",
+};
+export const IMPACT_DATA_OUTSIDE: PluralTemplate = {
+  one: "{{count}} of them outside your accounts",
+  other: "{{count}} of them outside your accounts",
+};
+export const IMPACT_DATA_MORE: string = translationKey(
+  "More stores are at risk than are listed: see each identity's page for all of them.",
+);
+export const IMPACT_DATA_IDENTITY: PluralTemplate = {
+  one: "{{name}} can reach {{count}} store",
+  other: "{{name}} can reach {{count}} stores",
 };
 
 export const IMPACT_UNREADABLE: string = translationKey(
@@ -312,6 +349,9 @@ export const SECURITY_CASE_CONTEXT_TEST_IDS: {
   impactFlows: string;
   impactEmpty: string;
   impactNotes: string;
+  impactData: string;
+  impactDataStore: string;
+  impactDataIdentity: string;
   error: string;
 } = {
   story: "security-case-story",
@@ -333,5 +373,8 @@ export const SECURITY_CASE_CONTEXT_TEST_IDS: {
   impactFlows: "security-case-impact-flows",
   impactEmpty: "security-case-impact-empty",
   impactNotes: "security-case-impact-notes",
+  impactData: "security-case-impact-data",
+  impactDataStore: "security-case-impact-data-store",
+  impactDataIdentity: "security-case-impact-data-identity",
   error: "security-case-context-error",
 };

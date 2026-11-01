@@ -6,8 +6,8 @@ Ela responde a quatro perguntas:
 
 :::cards
 - [Onde estão os nossos dados sensíveis?](/docs/data-security/data-types): 143 tipos de dados, de números de cartão e documentos nacionais de identidade a chaves de API, encontrados em buckets, tabelas e telemetria.
-- [Eles estão expostos?](/docs/data-security/checks-and-issues): 32 verificações de cada repositório: acesso público, criptografia, backups, logs, segredos e cópias.
-- [Quem pode acessá-los, e para onde eles vão?](/docs/data-security/flows-access-residency): Quem pode ler cada repositório, quais serviços o usam e quais provedores de IA e hosts os dados dele alcançam.
+- [Eles estão expostos?](/docs/data-security/checks-and-issues): 33 verificações de cada repositório: acesso público, criptografia, backups, logs, segredos e cópias.
+- [Quem pode acessá-los, e para onde eles vão?](/docs/data-security/flows-access-residency): Cada identidade que pode acessar cada repositório, a mais arriscada primeiro, quais serviços o usam e quais provedores de IA e hosts os dados dele alcançam.
 - [Eles atendem às nossas regras?](/docs/data-security/compliance): Regras de residência, e nove estruturas de conformidade pontuadas a partir do que as varreduras encontraram.
 :::
 
@@ -35,10 +35,11 @@ flowchart TB
 
 - **A sua telemetria é um repositório de dados.** Os logs, traces, exceções, replays de sessão e conversas de IA de cada serviço são verificados como um bucket, a cada hora. Um endereço de e-mail em uma linha de log é uma descoberta, e **Limpar** passa a mascará-lo na ingestão daí em diante. Veja [Dados sensíveis na telemetria](/docs/data-security/telemetry).
 - **Os fluxos vêm do tráfego real.** O mapa de serviços diz qual serviço usa qual banco de dados, as chamadas de IA nomeiam o provedor que alcançam, e as cópias de dados de produção são encontradas comparando impressões digitais. Veja [Fluxos de dados, acesso e residência](/docs/data-security/flows-access-residency).
+- **O acesso é lido dos dois lados.** A Segurança de dados lê quem as próprias configurações de cada repositório deixam entrar e, na AWS, o que cada função e cada usuário pode alcançar pelas suas políticas do IAM, e quando cada um foi usado pela última vez. **Acesso** classifica cada identidade pelo dano que ela poderia causar, e o acesso a dados sensíveis sem uso há 90 dias é um problema. Veja [Quem pode acessar um repositório](/docs/data-security/flows-access-residency#quem-pode-acessar-um-repositório).
 - **As evidências são sempre mascaradas.** Uma descoberta guarda contagens e no máximo três amostras mascaradas, como `j***@e******.com`, mascaradas dentro do scanner antes que qualquer coisa saia dele. Desative as amostras e ela guarda apenas contagens.
 - **O scanner é de código aberto.** O padrão, a soma de verificação, as palavras de contexto e os valores de teste de cada tipo de dados estão no código-fonte do OneUptime, então você pode ler exatamente o que gera uma descoberta. O mesmo código roda nos workers do OneUptime, em uma sonda e na caixa **Testar**.
-- **Ela funciona com o resto do OneUptime.** Um problema Crítico abre um caso de segurança sobre o repositório, para que o [Security Operations](/docs/telemetry/security-cases) o trate como qualquer outra ameaça. Ela pode gerar um alerta que aciona quem estiver de plantão, e envia e-mail aos proprietários do repositório. Veja [Integrações da Segurança de dados](/docs/data-security/integrations).
-- **O OneUptime AI ajuda a corrigir.** **Explicar com IA** diz ao proprietário de um repositório o que está errado e como corrigir isso na própria nuvem, e **Corrigir com IA** abre um pull request no seu código de infraestrutura.
+- **Ela funciona com o resto do OneUptime.** Um problema Crítico abre um caso de segurança sobre o repositório, para que o [Security Operations](/docs/telemetry/security-cases) o trate como qualquer outra ameaça, e qualquer caso de segurança mostra os dados sensíveis que os usuários e funções dele podem alcançar. Ela pode gerar um alerta que aciona quem estiver de plantão, e envia e-mail aos proprietários do repositório. Veja [Integrações da Segurança de dados](/docs/data-security/integrations).
+- **O OneUptime AI ajuda a corrigir.** **Explicar com IA** diz ao proprietário de um repositório o que está errado e como corrigir isso na própria nuvem, **Corrigir com IA** abre um pull request no seu código de infraestrutura, e o OneUptime AI sugere o que um campo que nenhum detector conseguiu classificar contém, para uma pessoa confirmar.
 
 ## Antes de começar
 
@@ -75,7 +76,7 @@ Cada repositório recebe as verificações que se aplicam ao seu tipo. Um reposi
 
 Um repositório é arquivado, com o seu histórico, assim que a origem dele deixa de listá-lo, e os problemas abertos dele são resolvidos: **Repositórios arquivados**, no fim do menu da Segurança de dados, o guarda. Ele volta sozinho se a origem voltar a listá-lo, e um problema cuja verificação ainda falha abre de novo.
 
-A **Linha do tempo** de um repositório diz o que aconteceu com ele, e quem fez: quando foi encontrado ou adicionado, cada mudança nas suas configurações e nos seus proprietários, quando foi arquivado ou voltou, e cada exposição fechada a partir de um problema ou de um playbook.
+A **Linha do tempo** de um repositório diz o que aconteceu com ele, e quem fez: quando foi encontrado ou adicionado, cada mudança nas suas configurações e nos seus proprietários, quando foi arquivado ou voltou, e cada mudança feita pela conexão de nuvem dele, a partir de um problema ou de um playbook.
 
 ## Com que frequência ela é executada
 

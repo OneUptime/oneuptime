@@ -52,7 +52,7 @@ Em qualquer outro lugar, o OneUptime recusa uma chave de navegador, como por gRP
 :::steps
 ### Abrir as chaves de ingestão
 
-Acesse **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. **Telemetria e APM** começa recolhido no menu lateral: clique nele para abri-lo. A lista mostra de cada chave as colunas **Nome**, **Tipo**, **Last Used** e **Descrição**.
+Acesse **Configurações do projeto → Telemetria e APM → Chaves de ingestão**. **Telemetria e APM** começa recolhido no menu lateral: clique nele para abri-lo. A lista mostra de cada chave as colunas **Nome**, **Tipo**, **Último uso** e **Descrição**.
 
 ### Dar um nome à chave e escolher o tipo
 

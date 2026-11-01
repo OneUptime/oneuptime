@@ -114,7 +114,7 @@ Die Kriterien eines Traces-Monitors haben einen **Filtertyp**: **Span Count**, d
 | **Anomalously Low** | unter diesem Bereich liegt |
 | **Anomalous** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
-Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit derselben Stunde der Woche über dieses Fenster. Die Baseline umfasst nur die Dienste und Span-Status des Monitors: Seine Span-Namen- und Attributfilter gehören nicht dazu. Solange diese Stunde der Woche nicht genug Verlauf hat, lernt das Kriterium noch und löst nicht aus.
+Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. OneUptime rechnet die Anzahl in eine Rate pro Minute um und vergleicht sie mit Fenstern gleicher Länge um dieselbe Zeit in früheren Wochen, so weit das **Baseline-Fenster** zurückreicht; was gerade geschieht, ist nie Teil dieses Vergleichs. Die Baseline umfasst nur die Dienste und Span-Status des Monitors: Seine Span-Namen- und Attributfilter gehören nicht dazu. Minuten ohne Spans zählen mit, sodass ein oft stiller Dienst nicht als ungewöhnlich niedrig gilt, nur weil er still ist. Als ungewöhnlich hoch gilt ein Fenster nur im Vergleich mit den Fenstern, die Spans enthielten, und nur mit mindestens 20, 10 oder 5 Spans bei der Empfindlichkeit Niedrig, Mittel oder Hoch, sodass weder der übliche Schub eines Jobs noch die ersten paar Spans eines stillen Dienstes auslösen. Solange die Dienste des Monitors keine zwei Wochen Verlauf haben, lernt das Kriterium noch und löst nicht aus.
 
 Ein in „Monitor erstellen“ angelegter Traces-Monitor beginnt mit der Regel dessen, was Sie unter **Worüber soll dieser Monitor Sie informieren?** gewählt haben:
 
@@ -166,7 +166,7 @@ Das Erfassen einer Ausnahme ändert den Status eines Spans nicht. Filtern Sie na
 :::
 
 :::details Ein Anomaliekriterium löst nie aus
-Es lernt noch: Die Stunde der Woche, mit der es vergleicht, hat innerhalb des **Baseline-Fenster** noch nicht genug Verlauf.
+Es lernt noch: Die Dienste des Monitors haben innerhalb des **Baseline-Fenster** noch keine zwei Wochen Verlauf.
 :::
 
 ## Nächste Schritte

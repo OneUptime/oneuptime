@@ -8,7 +8,7 @@
 - [事件](#事件): 為應由事件流程處理的資料外洩宣告事件。
 - [擁有者](#擁有者): 每個資料儲存區由誰擁有（手動設定或由規則設定），以及他們收到的電子郵件。
 - [OneUptime AI](#oneuptime-ai): 說明問題、開啟修正它的提取要求，或向「詢問 AI」詢問你的資料。
-- [消除暴露](#消除暴露): 從問題或劇本封鎖公開存取或停止共用。
+- [消除暴露](#消除暴露): 從問題或劇本封鎖公開存取或停止共用，並從問題開啟缺少的保護。
 :::
 
 ## 運作方式
@@ -43,6 +43,8 @@ flowchart TB
 - 它依資料儲存區分組：同一資料儲存區上的第二個嚴重問題會加入關於它的未結案例，而不會另外開啟一個。
 
 之後，案例會像其他案例一樣被處理：被指派、加上備註、關閉，並由專案的劇本回應。資料儲存區的偵測會像任何實體的偵測一樣，計入它在 [實體風險](/docs/telemetry/security-entity-risk) 上的風險。請參閱 [安全案例與劇本](/docs/telemetry/security-cases)。
+
+任何安全案例，無論由什麼開啟，都會在其 **影響** 中顯示面臨風險的資料：案例涉及的含敏感資料的資料儲存區，以及其使用者和角色可以存取的每個資料儲存區，最敏感的排在前面，並註明各自存放的內容、大約多少筆記錄、暴露程度，以及有多少個身分可以存取它。案例提到的已擔任角色工作階段會以其角色計算，電子郵件地址則以其所屬的雲端使用者計算。讀取使用檢視者自己的權限，因此無法讀取資料安全的角色會看到這一部分被省略。
 
 ## 警示與待命
 
@@ -106,12 +108,15 @@ flowchart TB
 
 ## 消除暴露
 
-有兩種變更可以消除雲端資料儲存區的暴露，兩者都透過已開啟 **資料安全回應** 的資料儲存區雲端連線進行（請參閱 [設定資料安全](/docs/data-security/setup#讓資料安全關閉暴露)）：
+有兩種變更可以消除雲端資料儲存區的暴露，兩者都透過已開啟 **資料安全回應** 的資料儲存區雲端連線進行（請參閱 [設定資料安全](/docs/data-security/setup#讓資料安全關閉暴露)），另有六種變更會開啟保護資料儲存區的設定，只能從其問題中執行：
 
 - **封鎖公開存取**，適用於 S3 儲存貯體、Azure 儲存體帳戶或 Cloud Storage 儲存貯體。
 - **撤銷共用**，適用於 RDS 快照，或 RDS 資料庫、Aurora 叢集或 DocumentDB 叢集的共用手動快照。
+- **開啟版本控制**、**開啟虛刪除**、**關閉物件 ACL**、**開啟統一存取**、**要求安全傳輸** 和 **開啟時間點復原**，適用於 [在此修正](/docs/data-security/checks-and-issues#在此修正) 列出的資料儲存區。
 
 人員可以在它所修正的未解決問題上，用 **在此修正** 執行其中一種（請參閱 [資料安全檢查與問題](/docs/data-security/checks-and-issues#在此修正)）。安全營運的劇本會把它們作為 **遏制** 類別的步驟執行，即 **封鎖資料儲存區的公開存取** 和 **撤銷資料儲存區共用**：作用於案例涉及的每個資料儲存區，最多 10 個，每個步驟一開始都開啟 **需要核准**。標記為 **刻意公開** 的資料儲存區永遠不會被封鎖。無論哪種方式，資料儲存區的動態都會說明做了什麼，並且會立即重新檢查該資料儲存區，因此變更生效後問題就會解決。
+
+劇本範本 **封堵資料外洩** 會回應資料安全開啟的案例：它會以電子郵件通知資料儲存區的擁有者，在有人核准每個步驟後封鎖公開存取並撤銷共用，並把回應檢查清單作為工作新增到案例中——暴露期間誰讀取了資料、這是否屬於必須通報的外洩、需要輪替哪些祕密，以及關閉案例時要寫些什麼。可以在專案劇本中透過 **從範本建立** 新增它。
 
 ## API、Terraform 和 MCP
 
@@ -119,7 +124,7 @@ flowchart TB
 
 | 記錄 | API 路徑 |
 | --- | --- |
-| 資料儲存區、其時間軸、其發現以及誰可以存取它們 | `/data-store`、`/data-store-feed`、`/data-store-finding`、`/data-store-access` |
+| 資料儲存區、其時間軸、其發現、誰可以存取它們，以及每個可以存取的身分 | `/data-store`、`/data-store-feed`、`/data-store-finding`、`/data-store-access`、`/data-security-identity` |
 | 問題、其時間軸和資料流 | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-flow` |
 | 掃描 | `/data-security-scan` |
 | 自訂資料類型、檢查設定和資料落地規則 | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-residency-rule` |
@@ -139,11 +144,11 @@ flowchart TB
 | `/data-security-issue/<id>/explain` | 問題上的 **用 AI 說明** |
 | `/data-security-issue/<id>/fix-with-ai` | 問題上的 **用 AI 修正** |
 | `/data-store/<id>/response-actions` | 資料儲存區目前可以執行哪些回應動作，以及不能執行的原因 |
-| `/data-store/<id>/respond` | 對資料儲存區執行 **封鎖公開存取** 或 **撤銷共用**，並附上執行它的問題 |
+| `/data-store/<id>/respond` | 對資料儲存區執行一項回應動作，例如 **封鎖公開存取** 或 **開啟版本控制**，並附上執行它的問題 |
 
 [Terraform 提供者](/docs/terraform/index) 為你建立的每種記錄（你自己新增的資料儲存區、自訂資料類型、檢查設定、資料落地規則、擁有者規則和標籤規則）都提供一個以該記錄命名的資源，例如 `oneuptime_residency_rule`。
 
-[MCP 伺服器](/docs/ai/mcp-server) 為這些記錄提供建立、取得、列出、更新、刪除和計數工具：Data Store、Data Store Finding、Data Store Access Entry、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Residency Rule 和 Data Security Setting。如此一來，AI 助理就能以你的權限詢問哪些資料儲存區保存卡號，或某個儲存貯體上有哪些未解決的問題。
+[MCP 伺服器](/docs/ai/mcp-server) 為這些記錄提供建立、取得、列出、更新、刪除和計數工具：Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Residency Rule 和 Data Security Setting。如此一來，AI 助理就能以你的權限詢問哪些資料儲存區保存卡號，或某個儲存貯體上有哪些未解決的問題。
 
 ## 後續步驟
 

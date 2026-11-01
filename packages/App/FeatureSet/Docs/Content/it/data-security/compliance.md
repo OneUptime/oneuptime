@@ -62,7 +62,7 @@ Contano solo i problemi aperti. Un problema il cui rischio è accettato, o che n
 | Art. 25 | Protezione dei dati fin dalla progettazione e per impostazione predefinita | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 28 | Responsabili del trattamento | `sensitive-data-to-ai` |
 | Art. 30 | Registri delle attività di trattamento | Soddisfatto da Sicurezza dei dati stessa |
-| Art. 32 | Sicurezza del trattamento | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| Art. 32 | Sicurezza del trattamento | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | Artt. 44-49 | Trasferimenti verso paesi terzi | `residency-violation` |
 
 ### CCPA
@@ -76,6 +76,7 @@ Contano solo i problemi aperti. Un problema il cui rischio è accettato, o che n
 
 | Requisito | Cosa chiede | Controlli |
 | --- | --- | --- |
+| 164.308(a)(4) | Gestione dell'accesso alle informazioni | `unused-access` |
 | 164.308(a)(7) | Piano di emergenza | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | 164.312(a)(1) | Controllo degli accessi | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 164.312(a)(2)(iv) | Cifratura e decifratura | `not-encrypted-at-rest`, `no-customer-managed-key` |
@@ -91,6 +92,7 @@ Contano solo i problemi aperti. Un problema il cui rischio è accettato, o che n
 | 3.5.1 | I numeri di carta sono illeggibili ovunque siano conservati | `not-encrypted-at-rest`, `no-customer-managed-key`, `card-numbers-readable` |
 | 4.2.1 | Una crittografia robusta protegge i dati delle carte in transito | `encryption-in-transit-not-enforced`, `weak-tls` |
 | 7.2 | L'accesso è definito e assegnato in base alla necessità | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 7.2.4 | Gli account e i loro accessi vengono riesaminati | `unused-access` |
 | 8.3.2 | I fattori di autenticazione sono illeggibili quando sono conservati | `plaintext-passwords` |
 | 10.2 | I log di audit registrano l'accesso ai dati delle carte | `access-not-logged` |
 
@@ -100,6 +102,7 @@ Contano solo i problemi aperti. Un problema il cui rischio è accettato, o che n
 | --- | --- | --- |
 | A1.2 | Backup e ripristino | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | CC6.1 | Sicurezza degli accessi logici | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| CC6.2 | L'accesso viene rimosso quando non serve più | `unused-access` |
 | CC6.7 | Trasmissione delle informazioni | `encryption-in-transit-not-enforced`, `weak-tls` |
 | CC7.2 | Monitoraggio dei componenti di sistema | `access-not-logged` |
 
@@ -110,6 +113,7 @@ Contano solo i problemi aperti. Un problema il cui rischio è accettato, o che n
 | A.5.9 | Inventario delle informazioni e degli altri beni associati | `no-owner` |
 | A.5.12 | Classificazione delle informazioni | Soddisfatto da Sicurezza dei dati stessa |
 | A.5.15 | Controllo degli accessi | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| A.5.18 | Diritti di accesso | `unused-access` |
 | A.5.34 | Privacy e protezione delle PII | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.11 | Mascheramento dei dati | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.12 | Prevenzione della fuga di dati | `secrets-stored`, `secrets-in-telemetry` |
@@ -122,7 +126,7 @@ Contano solo i problemi aperti. Un problema il cui rischio è accettato, o che n
 | Requisito | Cosa chiede | Controlli |
 | --- | --- | --- |
 | ID.AM-07 | Gli inventari di dati e metadati vengono mantenuti | `no-owner` |
-| PR.AA-05 | I permessi di accesso vengono gestiti | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| PR.AA-05 | I permessi di accesso vengono gestiti | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
 | PR.DS-01 | I dati a riposo sono protetti | `not-encrypted-at-rest`, `no-customer-managed-key`, `secrets-stored`, `secrets-in-telemetry` |
 | PR.DS-02 | I dati in transito sono protetti | `encryption-in-transit-not-enforced`, `weak-tls` |
 | PR.DS-11 | I backup dei dati vengono conservati e testati | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |

@@ -6,8 +6,8 @@ Responde a cuatro preguntas:
 
 :::cards
 - [¿Dónde están nuestros datos sensibles?](/docs/data-security/data-types): 143 tipos de datos, desde números de tarjeta y documentos nacionales de identidad hasta claves de API, encontrados en buckets, tablas y telemetría.
-- [¿Están expuestos?](/docs/data-security/checks-and-issues): 32 comprobaciones de cada almacén: acceso público, cifrado, copias de seguridad, registro de actividad, secretos y copias.
-- [¿Quién puede acceder a ellos y adónde van?](/docs/data-security/flows-access-residency): Quién puede leer cada almacén, qué servicios lo usan y a qué proveedores de IA y hosts llegan sus datos.
+- [¿Están expuestos?](/docs/data-security/checks-and-issues): 33 comprobaciones de cada almacén: acceso público, cifrado, copias de seguridad, registro de actividad, secretos y copias.
+- [¿Quién puede acceder a ellos y adónde van?](/docs/data-security/flows-access-residency): Cada identidad que puede acceder a cada almacén, la más arriesgada primero, qué servicios lo usan y a qué proveedores de IA y hosts llegan sus datos.
 - [¿Cumplen nuestras normas?](/docs/data-security/compliance): Reglas de residencia y nueve marcos de cumplimiento puntuados a partir de lo que encontraron los escaneos.
 :::
 
@@ -35,10 +35,11 @@ flowchart TB
 
 - **Tu telemetría es un almacén de datos.** Los registros, trazas, excepciones, reproducciones de sesiones y conversaciones de IA de cada servicio se comprueban como un bucket, cada hora. Una dirección de correo electrónico en una línea de registro es un hallazgo, y **Depurar** la enmascara en la ingesta a partir de entonces. Consulta [Datos sensibles en la telemetría](/docs/data-security/telemetry).
 - **Los flujos salen del tráfico real.** El mapa de servicios dice qué servicio usa qué base de datos, las llamadas de IA nombran el proveedor al que llegan, y las copias de datos de producción se encuentran comparando huellas. Consulta [Flujos de datos, acceso y residencia](/docs/data-security/flows-access-residency).
+- **El acceso se lee desde los dos lados.** Seguridad de datos lee a quién dejan entrar los propios ajustes de cada almacén y, en AWS, a qué puede llegar cada rol y cada usuario mediante sus políticas de IAM, y cuándo se usó cada uno por última vez. **Acceso** ordena cada identidad por el daño que podría causar, y el acceso a datos sensibles sin usar en 90 días es un problema. Consulta [Quién puede acceder a un almacén](/docs/data-security/flows-access-residency#quién-puede-acceder-a-un-almacén).
 - **La evidencia siempre se enmascara.** Un hallazgo guarda recuentos y como máximo tres muestras enmascaradas, como `j***@e******.com`, enmascaradas dentro del escáner antes de que nada salga de él. Desactiva las muestras y solo guarda recuentos.
 - **El escáner es de código abierto.** El patrón, la suma de comprobación, las palabras de contexto y los valores de prueba de cada tipo de datos están en el código fuente de OneUptime, así que puedes leer exactamente qué produce un hallazgo. El mismo código se ejecuta en los workers de OneUptime, en una sonda y en el cuadro **Probarlo**.
-- **Funciona con el resto de OneUptime.** Un problema crítico abre un caso de seguridad sobre el almacén, para que [Operaciones de seguridad](/docs/telemetry/security-cases) lo gestione como cualquier otra amenaza. Puede generar una alerta que avise a quien esté de guardia, y envía un correo a los propietarios del almacén. Consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations).
-- **OneUptime AI ayuda a corregirlo.** **Explicar con IA** le dice al propietario de un almacén qué falla y cómo corregirlo en su nube, y **Corregir con IA** abre una pull request en tu código de infraestructura.
+- **Funciona con el resto de OneUptime.** Un problema crítico abre un caso de seguridad sobre el almacén, para que [Operaciones de seguridad](/docs/telemetry/security-cases) lo gestione como cualquier otra amenaza, y cualquier caso de seguridad muestra los datos sensibles a los que pueden llegar sus usuarios y roles. Puede generar una alerta que avise a quien esté de guardia, y envía un correo a los propietarios del almacén. Consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations).
+- **OneUptime AI ayuda a corregirlo.** **Explicar con IA** le dice al propietario de un almacén qué falla y cómo corregirlo en su nube, **Corregir con IA** abre una pull request en tu código de infraestructura, y OneUptime AI sugiere qué contiene un campo que ningún detector pudo ubicar, para que una persona lo confirme.
 
 ## Antes de empezar
 
@@ -75,7 +76,7 @@ Cada almacén recibe las comprobaciones que se aplican a su tipo. Un almacén cu
 
 Un almacén se archiva, con su historial, cuando su fuente deja de incluirlo, y sus problemas abiertos se resuelven: **Almacenes archivados**, al final del menú de Seguridad de datos, lo conserva. Vuelve por sí solo si su fuente lo vuelve a incluir, y un problema cuya comprobación sigue fallando se vuelve a abrir.
 
-La **Cronología** de un almacén dice qué le ha pasado y quién lo hizo: cuándo se encontró o se añadió, cada cambio en sus ajustes y propietarios, cuándo se archivó o volvió, y cada exposición cerrada desde un problema o un playbook.
+La **Cronología** de un almacén dice qué le ha pasado y quién lo hizo: cuándo se encontró o se añadió, cada cambio en sus ajustes y propietarios, cuándo se archivó o volvió, y cada cambio hecho a través de su conexión a la nube, desde un problema o un playbook.
 
 ## Con qué frecuencia se ejecuta
 

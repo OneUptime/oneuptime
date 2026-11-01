@@ -52,7 +52,7 @@ Overal elders weigert OneUptime een browsersleutel, zoals via gRPC en MQTT, voor
 :::steps
 ### Ingestiesleutels openen
 
-Ga naar **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. **Telemetrie & APM** staat in het zijmenu eerst ingeklapt: klik erop om het te openen. De lijst toont per sleutel de kolommen **Naam**, **Type**, **Last Used** en **Beschrijving**.
+Ga naar **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**. **Telemetrie & APM** staat in het zijmenu eerst ingeklapt: klik erop om het te openen. De lijst toont per sleutel de kolommen **Naam**, **Type**, **Laatst gebruikt** en **Beschrijving**.
 
 ### De sleutel een naam en een type geven
 

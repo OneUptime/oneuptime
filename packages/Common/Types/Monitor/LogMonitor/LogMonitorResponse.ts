@@ -13,6 +13,12 @@ export default interface LogMonitorResponse {
   logCount: number;
   logQuery: Query<Log>;
   monitorId: ObjectID;
+  /*
+   * Where the window judged ended: now, or where a late ingest queue held
+   * the check back to. What an anomaly condition reads the earlier weeks
+   * from. Not set on a grouped monitor, whose anomaly conditions never match.
+   */
+  evaluatedUntil?: Date | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   /*
    * Set only when the monitor step groups by attributes

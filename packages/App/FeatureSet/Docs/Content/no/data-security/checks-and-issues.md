@@ -1,13 +1,13 @@
 # Kontroller og problemer i Datasikkerhet
 
-Datasikkerhet kjører 32 kontroller på hvert datalager, i ni grupper. En kontroll leser det som er kjent om ett datalager – hvordan det er konfigurert, hva som er funnet i det, hvem som kan nå det, hvor det befinner seg – og består, feiler eller kan ikke avgjøre. En kontroll som feiler, åpner ett problem på datalageret, og problemet lukkes av seg selv når kontrollen består. Denne siden viser hver kontroll, hvordan alvorlighetsgraden og risikoscoren til et problem beregnes, og hva som skjer med et problem gjennom livsløpet.
+Datasikkerhet kjører 33 kontroller på hvert datalager, i ni grupper. En kontroll leser det som er kjent om ett datalager – hvordan det er konfigurert, hva som er funnet i det, hvem som kan nå det, hvor det befinner seg – og består, feiler eller kan ikke avgjøre. En kontroll som feiler, åpner ett problem på datalageret, og problemet lukkes av seg selv når kontrollen består. Denne siden viser hver kontroll, hvordan alvorlighetsgraden og risikoscoren til et problem beregnes, og hva som skjer med et problem gjennom livsløpet.
 
 :::cards
 - [Hvordan en kontroll avgjør](#hvordan-en-kontroll-avgjør): Bestått, feilet eller kan ikke avgjøre, og hvor alvorlig en feil er.
-- [Hver kontroll](#hver-kontroll): Alle 32, med hva hver av dem kontrollerer og hvordan det fikses.
+- [Hver kontroll](#hver-kontroll): Alle 33, med hva hver av dem kontrollerer og hvordan det fikses.
 - [Risikoscore](#risikoscore): Hvordan problemer ordnes innenfor en alvorlighetsgrad.
 - [Hva som skjer med et problem](#hva-som-skjer-med-et-problem): Åpent, løst, godtatt, ikke et problem.
-- [Fiks det herfra](#fiks-det-herfra): Blokker en offentlig bucket, eller stopp deling av et øyeblikksbilde, med ett klikk.
+- [Fiks det herfra](#fiks-det-herfra): Lukk en eksponering, eller slå på en manglende beskyttelse, med ett klikk.
 :::
 
 ## Hvordan en kontroll avgjør
@@ -75,6 +75,7 @@ Alvorlighetsgraden er oppgitt for data som er Begrenset, Konfidensiell, Intern o
 | Alle med kontonøkkelen kan lese alt (`shared-key-access`) | Azure Storage Account | Lagringskontoen tillater tilgang med delt nøkkel, som omgår Microsoft Entra ID og ikke etterlater noe revisjonsspor per person. | Middels / Lav / — / — | Flytt applikasjonene til Microsoft Entra ID, og slå deretter av tilgang med lagringskontonøkkel. |
 | Objekter kan ha sine egne tilgangsregler (`object-acls-enabled`) | AWS S3 Bucket, Google Cloud Storage Bucket | Objekt-ACL-er er på, så ett objekt kan gjøres offentlig mens bucketen ser privat ut. | Lav / Lav / — / — | I S3 setter du Object Ownership til Bucket owner enforced. I Cloud Storage slår du på uniform bucket-level access. |
 | Mer enn 25 identiteter kan lese begrensede data (`many-readers`) | Alle datalagre unntatt telemetri | Flere identiteter enn de fleste team klarer å gå gjennom, har lesetilgang til datalageret. | Middels / — / — / — | Åpne siden **Hvem kan nå det** for datalageret, og fjern tilgang som er ubrukt eller bredere enn nødvendig. |
+| Identiteter som ikke er brukt på 90 dager, kan fortsatt nå det (`unused-access`) | Alle datalagre unntatt telemetri | Roller og brukere som ikke er brukt på 90 dager, har fortsatt tilgang til datalagerets sensitive data. | Middels / Lav / — / — | Åpne siden **Hvem kan nå det** for datalageret, der de er merket **Ikke brukt på 90 dager**, og fjern tilgangen hver av dem ikke lenger trenger. |
 
 ### Datahygiene
 
@@ -160,14 +161,20 @@ Et problem som åpnes igjen, beholder historikken sin. Godtatte risikoer vurdere
 
 ## Fiks det herfra
 
-Et åpent problem om en offentlig bucket eller et delt øyeblikksbilde kan fikses fra siden til problemet. Over stegene i konsollen tilbyr **Fiks det herfra** endringen som fikser det:
+Et åpent problem som én endring i innstillingene til et datalager fikser – en offentlig bucket, et delt øyeblikksbilde, en bucket der slettede filer ikke kan gjenopprettes – kan fikses fra siden til problemet. Over stegene i konsollen tilbyr **Fiks det herfra** endringen som fikser det:
 
 | Problemet | Datalageret | Knappen | Hva den endrer |
 | --- | --- | --- | --- |
 | `public-read`, `public-write` eller `public-access-not-blocked` | En S3-bucket, en Azure-lagringskonto eller en Cloud Storage-bucket | **Blokker offentlig tilgang** | Slår på de fire Block Public Access-innstillingene for bucketen, slår av anonym blob-tilgang for lagringskontoen, eller håndhever forhindring av offentlig tilgang for bucketen |
 | `snapshot-public` eller `snapshot-shared-externally` | Et RDS-øyeblikksbilde, en RDS-database, eller en Aurora- eller DocumentDB-klynge | **Tilbakekall deling** | Slutter å dele øyeblikksbildet, eller hvert delte manuelle øyeblikksbilde av databasen, med alle og med kontoer utenfor dem du har koblet til |
+| `deleted-data-not-recoverable` | En S3-bucket eller en Cloud Storage-bucket | **Slå på versjonskontroll** | Beholder den forrige versjonen av hvert objekt som overskrives eller slettes, til en livssyklusregel fjerner den |
+| `deleted-data-not-recoverable` | En Azure-lagringskonto | **Slå på myk sletting** | Beholder slettede blober og containere i 14 dager, slik at de kan gjenopprettes |
+| `object-acls-enabled` | En S3-bucket | **Slå av objekt-ACL-er** | Setter Object Ownership til Bucket owner enforced, slik at bucketens policy alene avgjør hvem som leser den |
+| `object-acls-enabled` | En Cloud Storage-bucket | **Slå på enhetlig tilgang** | Slår på enhetlig tilgang på bucketnivå, slik at bucketens IAM-policy alene avgjør hvem som leser den |
+| `encryption-in-transit-not-enforced` eller `weak-tls` | En Azure-lagringskonto | **Krev sikker overføring** | Slår på sikker overføring og setter laveste TLS-versjon til 1.2, slik at kontoen bare tar imot HTTPS med TLS 1.2 eller nyere |
+| `no-point-in-time-recovery` | En DynamoDB-tabell | **Slå på gjenoppretting til et tidspunkt** | Lar tabellen gjenopprettes til ethvert sekund de siste 35 dagene |
 
-Den spør først, og sier hva som endres og hva som slutter å virke. Den endrer hvordan datalageret deles, aldri dataene, og endrer ingenting som allerede er lukket. Et datalager merket **Offentlig med vilje** blir aldri blokkert.
+Den spør først, og sier hva som endres, hva som slutter å virke og hva det koster. Den endrer innstillingene til datalageret, aldri dataene, og endrer ingenting som allerede er slik det skal være. Et datalager merket **Offentlig med vilje** blir aldri blokkert.
 
 Den handler gjennom skytilkoblingen til datalageret, så tilkoblingen må ha **Datasikkerhetsrespons** slått på og oppsettkommandoen kjørt på nytt (se [Sett opp Datasikkerhet](/docs/data-security/setup#la-datasikkerhet-lukke-en-eksponering)). Inntil da sier panelet hva du må slå på. Datalageret kontrolleres på nytt rett etterpå, og problemet løses av seg selv når kontrollen består. Problemets **Tidslinje** og datalagerets **Tidslinje** viser hva som ble gjort, og hvem som gjorde det.
 

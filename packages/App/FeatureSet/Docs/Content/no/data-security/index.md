@@ -6,8 +6,8 @@ Den svarer på fire spørsmål:
 
 :::cards
 - [Hvor er de sensitive dataene våre?](/docs/data-security/data-types): 143 datatyper, fra kortnumre og nasjonale ID-er til API-nøkler, funnet i bucketer, tabeller og telemetri.
-- [Er de eksponert?](/docs/data-security/checks-and-issues): 32 kontroller av hvert datalager: offentlig tilgang, kryptering, sikkerhetskopier, logging, hemmeligheter og kopier.
-- [Hvem kan nå dem, og hvor havner de?](/docs/data-security/flows-access-residency): Hvem som kan lese hvert datalager, hvilke tjenester som bruker det, og hvilke AI-leverandører og verter dataene når.
+- [Er de eksponert?](/docs/data-security/checks-and-issues): 33 kontroller av hvert datalager: offentlig tilgang, kryptering, sikkerhetskopier, logging, hemmeligheter og kopier.
+- [Hvem kan nå dem, og hvor havner de?](/docs/data-security/flows-access-residency): Hver identitet som kan nå hvert datalager, den mest risikable først, hvilke tjenester som bruker det, og hvilke AI-leverandører og verter dataene når.
 - [Oppfyller de reglene våre?](/docs/data-security/compliance): Residensregler, og ni rammeverk vurdert ut fra det skanningene fant.
 :::
 
@@ -35,10 +35,11 @@ flowchart TB
 
 - **Telemetrien din er et datalager.** Loggene, trasene, unntakene, øktavspillingene og AI-samtalene til hver tjeneste kontrolleres som en bucket, hver time. En e-postadresse i en logglinje er et funn, og **Rens** maskerer den ved inntak fra da av. Se [Sensitive data i telemetri](/docs/data-security/telemetry).
 - **Dataflyt kommer fra ekte trafikk.** Tjenestekartet viser hvilken tjeneste som bruker hvilken database, AI-kall navngir leverandøren de når, og kopier av produksjonsdata finnes ved å sammenligne fingeravtrykk. Se [Dataflyt, tilgang og residens](/docs/data-security/flows-access-residency).
+- **Tilgang leses fra begge sider.** Datasikkerhet leser hvem hvert datalagers egne innstillinger slipper inn, og på AWS hva hver rolle og hver bruker kan nå gjennom IAM-policyene sine, og når hver sist ble brukt. **Tilgang** rangerer hver identitet etter skaden den kunne gjøre, og tilgang til sensitive data som ikke er brukt på 90 dager, er et problem. Se [Hvem som kan nå et datalager](/docs/data-security/flows-access-residency#hvem-som-kan-nå-et-datalager).
 - **Bevis maskeres, alltid.** Et funn beholder tellinger og høyst tre maskerte prøver, som `j***@e******.com`, maskert inne i skanneren før noe forlater den. Slår du av prøver, beholder det bare tellinger.
 - **Skanneren er åpen kildekode.** Mønsteret, kontrollsummen, kontekstordene og testverdiene til hver datatype ligger i OneUptimes kildekode, så du kan lese nøyaktig hva som gir et funn. Den samme koden kjører på OneUptimes workers, på en sonde og i boksen **Test det**.
-- **Den fungerer sammen med resten av OneUptime.** Et kritisk problem åpner en sikkerhetssak på datalageret, så [Security Operations](/docs/telemetry/security-cases) behandler det som enhver annen trussel. Det kan opprette et varsel som tilkaller den som har vakt, og det sender e-post til eierne av datalageret. Se [Integrasjoner for Datasikkerhet](/docs/data-security/integrations).
-- **OneUptime AI hjelper deg å fikse det.** **Forklar med AI** forteller eieren av et datalager hva som er galt og hvordan det fikses i skyen deres, og **Fiks med AI** åpner en pull request i infrastrukturkoden din.
+- **Den fungerer sammen med resten av OneUptime.** Et kritisk problem åpner en sikkerhetssak på datalageret, så [Security Operations](/docs/telemetry/security-cases) behandler det som enhver annen trussel, og enhver sikkerhetssak viser de sensitive dataene som brukerne og rollene dens kan nå. Det kan opprette et varsel som tilkaller den som har vakt, og det sender e-post til eierne av datalageret. Se [Integrasjoner for Datasikkerhet](/docs/data-security/integrations).
+- **OneUptime AI hjelper deg å fikse det.** **Forklar med AI** forteller eieren av et datalager hva som er galt og hvordan det fikses i skyen deres, **Fiks med AI** åpner en pull request i infrastrukturkoden din, og OneUptime AI foreslår hva et felt som ingen detektor kunne plassere, inneholder, slik at et menneske kan bekrefte det.
 
 ## Før du begynner
 
@@ -75,7 +76,7 @@ Hvert datalager får kontrollene som gjelder for typen. Et datalager der innhold
 
 Et datalager arkiveres, med historikken sin, når kilden ikke lenger viser det, og de åpne problemene på det blir løst: **Arkiverte datalagre**, nederst i menyen til Datasikkerhet, tar vare på det. Det kommer tilbake av seg selv hvis kilden viser det igjen, og et problem der kontrollen fortsatt feiler, åpnes igjen.
 
-Et datalagers **Tidslinje** viser hva som har skjedd med det, og hvem som gjorde det: når det ble funnet eller lagt til, hver endring i innstillingene og eierne, når det ble arkivert eller kom tilbake, og hver eksponering som er lukket fra et problem eller en playbook.
+Et datalagers **Tidslinje** viser hva som har skjedd med det, og hvem som gjorde det: når det ble funnet eller lagt til, hver endring i innstillingene og eierne, når det ble arkivert eller kom tilbake, og hver endring gjort gjennom skytilkoblingen, fra et problem eller en playbook.
 
 ## Hvor ofte den kjører
 
