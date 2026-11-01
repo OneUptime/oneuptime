@@ -10,6 +10,24 @@ import useTranslateValue from "../../Utils/Translation";
 
 export type CollapsibleSectionVariant = "default" | "card" | "bordered";
 
+/*
+ * The frames of the framed variants, and the same frames for a section
+ * that is flush on a phone (isFlushOnPhones): rules above and below it
+ * there, no sides, no corners and no shadow, and from sm up the frame
+ * above, class for class.
+ */
+export const COLLAPSIBLE_SECTION_CARD_FRAME_CLASS_NAME: string =
+  "bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden";
+
+export const COLLAPSIBLE_SECTION_CARD_FLUSH_ON_PHONES_FRAME_CLASS_NAME: string =
+  "bg-white border-y border-gray-200 overflow-hidden sm:border sm:rounded-lg sm:shadow-sm";
+
+export const COLLAPSIBLE_SECTION_BORDERED_FRAME_CLASS_NAME: string =
+  "border border-gray-200 rounded-lg overflow-hidden";
+
+export const COLLAPSIBLE_SECTION_BORDERED_FLUSH_ON_PHONES_FRAME_CLASS_NAME: string =
+  "border-y border-gray-200 overflow-hidden sm:border sm:rounded-lg";
+
 export interface ComponentProps {
   title: string;
   // Under the title while the section is open.
@@ -29,6 +47,15 @@ export interface ComponentProps {
   headerClassName?: string | undefined;
   variant?: CollapsibleSectionVariant | undefined;
   defaultCollapsed?: boolean | undefined;
+  /*
+   * A framed section (card, bordered) with no frame of its own on a phone,
+   * only rules above and below: for a section that reaches out to the sides
+   * of the box it is in there (negative margins in className), so its
+   * header's band and its body are as wide as that box - a monitor
+   * criteria's Filters, Actions and Settings, inside the criteria's box.
+   * From sm up it is framed as ever.
+   */
+  isFlushOnPhones?: boolean | undefined;
 }
 
 const CollapsibleSection: FunctionComponent<ComponentProps> = (
@@ -69,9 +96,17 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
 
     switch (variant) {
       case "card":
-        return `bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden ${baseClassName}`;
+        return `${
+          props.isFlushOnPhones
+            ? COLLAPSIBLE_SECTION_CARD_FLUSH_ON_PHONES_FRAME_CLASS_NAME
+            : COLLAPSIBLE_SECTION_CARD_FRAME_CLASS_NAME
+        } ${baseClassName}`;
       case "bordered":
-        return `border border-gray-200 rounded-lg overflow-hidden ${baseClassName}`;
+        return `${
+          props.isFlushOnPhones
+            ? COLLAPSIBLE_SECTION_BORDERED_FLUSH_ON_PHONES_FRAME_CLASS_NAME
+            : COLLAPSIBLE_SECTION_BORDERED_FRAME_CLASS_NAME
+        } ${baseClassName}`;
       default:
         return baseClassName;
     }
@@ -79,8 +114,9 @@ const CollapsibleSection: FunctionComponent<ComponentProps> = (
 
   /*
    * A framed section's sides are 12px on a phone and 16px from sm up: it
-   * sits in other boxes there (a monitor criteria's Filters and Actions are
-   * three cards deep), and each one's padding came off its fields' width.
+   * sits in other boxes there, and each one's padding came off its fields'
+   * width. Flush on a phone (isFlushOnPhones), its words start 12px in from
+   * the sides of the box it reaches out to - where that box's own start.
    */
   const getHeaderClassName: () => string = (): string => {
     const baseHeaderClassName: string = props.headerClassName || "";

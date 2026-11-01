@@ -121,7 +121,7 @@ const StatusPageLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Status Page Labels (optional)",
+          placeholder: "Select Status Page Labels",
         },
         {
           field: { statusPageNamePattern: true },

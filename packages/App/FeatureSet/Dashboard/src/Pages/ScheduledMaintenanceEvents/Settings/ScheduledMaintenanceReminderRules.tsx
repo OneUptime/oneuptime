@@ -188,7 +188,7 @@ const ScheduledMaintenanceReminderRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Labels (optional)",
+            placeholder: "Select Labels",
             description:
               "Only apply this rule to scheduled maintenance events with these labels. Leave empty to match events with any labels.",
           },

@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import Route from "Common/Types/API/Route";
@@ -374,7 +375,12 @@ const CallSummaryOfCall: FunctionComponent<{
               type="button"
               data-testid="call-summary-read-again"
               disabled={isRereading}
-              className="rounded-md text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`rounded-md text-sm font-medium text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                {
+                  isBusy: isRereading,
+                  hoverClassName: "hover:text-indigo-700 hover:underline",
+                },
+              )}`}
               onClick={() => {
                 void readAgain();
               }}

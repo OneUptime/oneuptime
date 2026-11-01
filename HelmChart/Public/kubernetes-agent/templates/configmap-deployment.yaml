@@ -97,13 +97,15 @@ data:
 
       # OpenShift's own objects, on the openshift preset, pulled with the
       # other resource specs: the cluster's operators and version, Routes and
-      # DeploymentConfigs. Pulled, never watched, as inventory keeps an object
-      # only while its snapshots arrive. A receiver of their own, with
-      # error_mode: ignore, so a cluster that does not serve one of them
-      # skips it instead of stopping the events and every other spec
+      # DeploymentConfigs, and the Services those Routes send traffic to.
+      # Pulled, never watched, as inventory keeps an object only while its
+      # snapshots arrive. A receiver of their own, with error_mode: ignore,
+      # so a cluster that does not serve one of them skips it instead of
+      # stopping the events and every other spec
       # (kubernetes-agent.openshiftObjectsEnabled). Each names its group:
       # another API may serve the same name (OpenShift Serverless's
-      # routes.serving.knative.dev).
+      # routes.serving.knative.dev and services.serving.knative.dev). A
+      # Service names none: the receiver takes no group as the core one.
       k8sobjects/openshift:
         error_mode: ignore
         objects:
@@ -123,6 +125,9 @@ data:
             mode: pull
             interval: {{ .Values.resourceSpecs.interval }}
             group: apps.openshift.io
+          - name: services
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
       {{- end }}
 
       {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
@@ -423,6 +428,9 @@ data:
             - tag_name: k8s.pod.label.app.kubernetes.io/name
               key: app.kubernetes.io/name
               from: pod
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            {{- include "kubernetes-agent.deploymentConfigPodLabel" . | nindent 12 }}
+            {{- end }}
         pod_association:
           - sources:
               - from: resource_attribute

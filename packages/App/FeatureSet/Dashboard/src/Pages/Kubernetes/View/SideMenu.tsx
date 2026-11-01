@@ -47,6 +47,9 @@ export interface ResourceCounts {
   pvs?: number | undefined;
   hpas?: number | undefined;
   vpas?: number | undefined;
+  deploymentConfigs?: number | undefined;
+  routes?: number | undefined;
+  services?: number | undefined;
 }
 
 export interface ComponentProps {
@@ -347,6 +350,32 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           icon={IconProp.Layers}
           badge={counts.deployments}
         />
+        {/*
+         * OpenShift's own workload: only on a cluster that has some, so no
+         * other cluster's menu grows by a row it can never use.
+         */}
+        {counts.deploymentConfigs ? (
+          <SideMenuItem
+            link={{
+              title: "DeploymentConfigs",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS
+                ] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            activeRoute={getDetailPageActiveRoute({
+              detailPage:
+                PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
+              modelId: props.modelId,
+            })}
+            icon={IconProp.Layers}
+            badge={counts.deploymentConfigs}
+          />
+        ) : (
+          <></>
+        )}
         <SideMenuItem
           link={{
             title: "StatefulSets",
@@ -423,6 +452,47 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           badge={counts.containers}
         />
       </SideMenuSection>
+
+      {/*
+       * How traffic reaches the cluster, on a cluster whose agent reports
+       * it: today the openshift preset's Routes and their Services.
+       */}
+      {counts.routes || counts.services ? (
+        <SideMenuSection title="Networking">
+          <SideMenuItem
+            link={{
+              title: "Routes",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            activeRoute={getDetailPageActiveRoute({
+              detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
+              modelId: props.modelId,
+            })}
+            icon={IconProp.Globe}
+            badge={counts.routes}
+          />
+          <SideMenuItem
+            link={{
+              title: "Services",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            activeRoute={getDetailPageActiveRoute({
+              detailPage: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
+              modelId: props.modelId,
+            })}
+            icon={IconProp.Link}
+            badge={counts.services}
+          />
+        </SideMenuSection>
+      ) : (
+        <></>
+      )}
 
       <SideMenuSection title="Infrastructure">
         <SideMenuItem

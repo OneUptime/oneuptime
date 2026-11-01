@@ -26,7 +26,12 @@ import {
   KubernetesPVObject,
   KubernetesHPAObject,
   KubernetesVPAObject,
+  KubernetesServiceObject,
 } from "Common/Types/Kubernetes/KubernetesObjectParser";
+import {
+  OpenShiftDeploymentConfigObject,
+  OpenShiftRouteObject,
+} from "Common/Types/Kubernetes/OpenShiftObjectParser";
 import { kindFromResourceType } from "Common/Types/Kubernetes/KubernetesInventoryExtractor";
 import {
   KubernetesEventsPage,
@@ -76,7 +81,10 @@ export type KubernetesObjectType =
   | KubernetesPVCObject
   | KubernetesPVObject
   | KubernetesHPAObject
-  | KubernetesVPAObject;
+  | KubernetesVPAObject
+  | KubernetesServiceObject
+  | OpenShiftRouteObject
+  | OpenShiftDeploymentConfigObject;
 
 export interface FetchK8sObjectOptions {
   clusterIdentifier: string;

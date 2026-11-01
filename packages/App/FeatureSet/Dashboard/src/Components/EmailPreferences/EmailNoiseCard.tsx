@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -94,7 +95,13 @@ const EmailNoiseCard: FunctionComponent<ComponentProps> = (
           type="button"
           onClick={apply}
           disabled={isBusy || props.disabled}
-          className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60"
+          className={`mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${getHandDrawnButtonStateClassName(
+            {
+              isLocked: props.disabled,
+              isBusy: isBusy,
+              hoverClassName: "hover:bg-indigo-700",
+            },
+          )}`}
         >
           {translateString(
             isBusy ? "Saving email preferences…" : "Reduce routine emails",

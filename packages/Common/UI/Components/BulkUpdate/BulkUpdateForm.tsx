@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "../Button/ButtonStates";
 import { GetReactElementFunction } from "../../Types/FunctionTypes";
 import { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
@@ -1278,11 +1279,14 @@ const BulkUpdateForm: <T extends GenericObject>(
                     }
                     props.onSelectAllClick();
                   }}
-                  className={`inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 select-none ${
-                    props.isSelectingAllItems
-                      ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700"
-                  }`}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-150 select-none ${getHandDrawnLookClassName(
+                    {
+                      className:
+                        "cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700",
+                      // Busy, with its spinner, while it reads every page.
+                      isBusy: props.isSelectingAllItems,
+                    },
+                  )}`}
                 >
                   <Icon
                     icon={

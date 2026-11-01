@@ -121,7 +121,7 @@ const DockerSwarmClusterLabelRulesPage: FunctionComponent<
             valueField: "_id",
           },
           required: false,
-          placeholder: "Select Docker Swarm Cluster Labels (optional)",
+          placeholder: "Select Docker Swarm Cluster Labels",
         },
         {
           field: { dockerSwarmClusterNamePattern: true },

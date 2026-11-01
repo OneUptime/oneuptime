@@ -191,6 +191,11 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 jest.mock("../../../UI/Components/Modal/Modal", () => {
   return {
+    // Its widths (ModalWidth), as the page sizes the Change Plan dialog.
+    ...(jest.requireActual("../../../UI/Components/Modal/Modal") as Record<
+      string,
+      unknown
+    >),
     __esModule: true,
     default: (props: {
       children: ReactNode;

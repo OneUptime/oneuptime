@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import PageComponentProps from "../PageComponentProps";
 import ServiceMapGraph from "../../Components/Topology/ServiceMapGraph";
 import InfrastructureExplorer from "../../Components/Topology/InfrastructureExplorer";
@@ -419,7 +420,12 @@ const TopologyPage: FunctionComponent<
                   : undefined
               }
               disabled={isActiveTabLoading}
-              className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-40"
+              className={`rounded-lg border border-gray-200 bg-white p-2 text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                {
+                  isBusy: isActiveTabLoading,
+                  hoverClassName: "hover:bg-gray-50",
+                },
+              )}`}
               onClick={topology.reload}
             >
               <Icon icon={IconProp.Refresh} className="h-4 w-4" />

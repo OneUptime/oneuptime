@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -1110,7 +1111,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             disabled={!data.canGoBack}
-            className={`${BUTTON} text-gray-600 disabled:opacity-40`}
+            className={`${BUTTON} text-gray-600 ${getHandDrawnButtonStateClassName(
+              { isLocked: !data.canGoBack },
+            )}`}
             onClick={data.onBack}
           >
             {t("Previous")}
@@ -1118,7 +1121,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             disabled={!data.canGoForward}
-            className={`${BUTTON} text-gray-600 disabled:opacity-40`}
+            className={`${BUTTON} text-gray-600 ${getHandDrawnButtonStateClassName(
+              { isLocked: !data.canGoForward },
+            )}`}
             onClick={data.onForward}
           >
             {t("Next")}

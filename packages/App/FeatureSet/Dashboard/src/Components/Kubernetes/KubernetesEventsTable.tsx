@@ -121,12 +121,16 @@ const OBJECT_PAGES: Record<string, PageMap> = {
   PersistentVolume: PageMap.KUBERNETES_CLUSTER_VIEW_PV_DETAIL,
   HorizontalPodAutoscaler: PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL,
   VerticalPodAutoscaler: PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL,
+  DeploymentConfig: PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
+  Route: PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
+  Service: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
 };
 
 /*
  * The page of an Event's object, or null for a Kind OneUptime has no page
- * for (a Service, an Ingress, ...). A ReplicaSet opens its Deployment: a
- * ReplicaSet is `<deployment>-<hash>`.
+ * for (an Ingress, ...). A ReplicaSet opens its Deployment: a ReplicaSet is
+ * `<deployment>-<hash>`. A ReplicationController opens its DeploymentConfig
+ * in the same way: a rollout's is `<deploymentconfig>-<version>`.
  */
 export function getKubernetesObjectRoute(data: {
   clusterId: ObjectID;
@@ -136,14 +140,14 @@ export function getKubernetesObjectRoute(data: {
   let kind: string = data.kind;
   let name: string = data.name;
 
-  if (kind === "ReplicaSet") {
+  if (kind === "ReplicaSet" || kind === "ReplicationController") {
     const lastDash: number = name.lastIndexOf("-");
 
     if (lastDash <= 0) {
       return null;
     }
 
-    kind = "Deployment";
+    kind = kind === "ReplicaSet" ? "Deployment" : "DeploymentConfig";
     name = name.slice(0, lastDash);
   }
 

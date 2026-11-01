@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import SecurityCaseApi from "../SecurityCase/SecurityCaseApi";
 import {
   DETECTION_RULE_AI_DRAFT_DESCRIPTION_MAX_LENGTH,
@@ -154,7 +155,12 @@ const DetectionRuleAiDraft: FunctionComponent<ComponentProps> = (
             setError("");
           }}
           data-testid="detection-rule-ai-draft-cancel"
-          className="-my-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`-my-1 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+            {
+              isLocked: isDrafting,
+              hoverClassName: "hover:bg-gray-100 hover:text-gray-600",
+            },
+          )}`}
         >
           <Icon icon={IconProp.Close} className="h-4 w-4" />
         </button>

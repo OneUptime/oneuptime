@@ -258,6 +258,21 @@ pipeline runs it right after the resource processor.
 Usage: {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
 */}}
 {{/*
+The label that says which DeploymentConfig a pod belongs to, for the
+k8sattributes processors on the openshift preset. A DeploymentConfig's pods
+are owned by the ReplicationController of its rollout, which k8sattributes
+does not resolve to a workload as it does a Deployment's, so nothing else on
+their telemetry names it. OpenShift sets this label on every one of them, and
+the DeploymentConfig's Metrics tab filters on it.
+Usage: {{- include "kubernetes-agent.deploymentConfigPodLabel" . | nindent 12 }}
+*/}}
+{{- define "kubernetes-agent.deploymentConfigPodLabel" -}}
+- tag_name: k8s.pod.label.deploymentconfig
+  key: deploymentconfig
+  from: pod
+{{- end -}}
+
+{{/*
 Whether the cluster collector pulls OpenShift's own objects - Routes,
 DeploymentConfigs, ClusterOperators and the ClusterVersion - on the openshift
 preset, with the other resource specs (resourceSpecs.enabled), for the

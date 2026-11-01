@@ -189,7 +189,7 @@ const IncidentReminderRulesPage: FunctionComponent<
               },
             },
             required: false,
-            placeholder: "Select Severities (optional)",
+            placeholder: "Select Severities",
             description:
               "Only apply this rule to incidents with these severities. Leave empty to match incidents of any severity.",
           },
@@ -206,7 +206,7 @@ const IncidentReminderRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Labels (optional)",
+            placeholder: "Select Labels",
             description:
               "Only apply this rule to incidents with these labels. Leave empty to match incidents with any labels.",
           },

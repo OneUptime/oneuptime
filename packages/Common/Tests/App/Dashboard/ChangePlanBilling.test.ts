@@ -1,9 +1,14 @@
 import { describe, expect, it } from "@jest/globals";
 import {
+  CHANGE_PLAN_SAME_PLAN_ERROR,
   ChangePlanBillingCopy,
+  getChangePlanError,
   getRunningTrialEnd,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Billing/ChangePlanBilling";
+import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "../../../Types/Date";
+import fs from "fs";
+import path from "path";
 
 /*
  * What the Change Plan picker may say about a trial (Dashboard
@@ -66,6 +71,112 @@ describe("getRunningTrialEnd", () => {
 
   it("returns null for a date it cannot read", () => {
     expect(getRunningTrialEnd("not a date")).toBeNull();
+  });
+});
+
+/*
+ * Save Changes with the plan the project is on still picked (UI review of
+ * #5482): the form says so under the plans, rather than running a plan
+ * change that changes nothing.
+ */
+describe("getChangePlanError", () => {
+  const PLANS: Array<SubscriptionPlan> = [
+    new SubscriptionPlan(
+      "price_free_month",
+      "price_free_year",
+      "Free",
+      0,
+      0,
+      1,
+      0,
+    ),
+    new SubscriptionPlan(
+      "price_growth_month",
+      "price_growth_year",
+      "Growth",
+      22,
+      20,
+      2,
+      14,
+    ),
+  ];
+
+  function errorFor(
+    pickedPlanId: string | null,
+    currentPlanId: string | null,
+  ): string | null {
+    return getChangePlanError({ plans: PLANS, pickedPlanId, currentPlanId });
+  }
+
+  it("says the project is already on the plan picked", () => {
+    expect(errorFor("price_growth_year", "price_growth_year")).toBe(
+      "The project is already on this plan. Pick another plan to change to.",
+    );
+    expect(CHANGE_PLAN_SAME_PLAN_ERROR).toBe(
+      "The project is already on this plan. Pick another plan to change to.",
+    );
+  });
+
+  it("lets another plan, or the other period of a paid one, be saved", () => {
+    expect(errorFor("price_free_month", "price_growth_year")).toBeNull();
+    expect(errorFor("price_growth_month", "price_growth_year")).toBeNull();
+  });
+
+  it("counts Free at either period as the plan the project is on", () => {
+    expect(errorFor("price_free_year", "price_free_month")).toBe(
+      CHANGE_PLAN_SAME_PLAN_ERROR,
+    );
+  });
+
+  it("asks nothing of a project whose plan is not read yet, or of no pick", () => {
+    expect(errorFor("price_growth_year", null)).toBeNull();
+    // Nothing picked is the form's own required check.
+    expect(errorFor(null, "price_growth_year")).toBeNull();
+  });
+
+  it("is in all 16 Dashboard languages", () => {
+    const localesDirectory: string = path.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Locales",
+    );
+
+    const files: Array<string> = fs
+      .readdirSync(localesDirectory)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json");
+      });
+
+    expect(files).toHaveLength(17);
+
+    for (const file of files) {
+      const locale: Record<string, unknown> = JSON.parse(
+        fs.readFileSync(path.join(localesDirectory, file), "utf8"),
+      ) as Record<string, unknown>;
+      const translated: unknown = locale[CHANGE_PLAN_SAME_PLAN_ERROR];
+
+      expect({ file, isText: typeof translated }).toEqual({
+        file,
+        isText: "string",
+      });
+
+      if (file !== "en.json") {
+        expect({
+          file,
+          untranslated: translated === CHANGE_PLAN_SAME_PLAN_ERROR,
+        }).toEqual({
+          file,
+          untranslated: false,
+        });
+      }
+    }
   });
 });
 
