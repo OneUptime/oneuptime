@@ -24,6 +24,7 @@ import Search from "Common/Types/BaseDatabase/Search";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { withSentenceDigits } from "../ResourcePart/SentenceDigits";
 
 /*
  * Product-neutral client-side view-model for infrastructure resource
@@ -194,7 +195,7 @@ export function getResourceStatusLabel(
     return resource.status;
   }
   return text.values
-    ? translator.translateTemplate(text.text, text.values)
+    ? translator.translateTemplate(text.text, withSentenceDigits(text.values))
     : translator.translateText(text.text) || text.text;
 }
 

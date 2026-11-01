@@ -21,8 +21,8 @@ import { KubernetesPartRoutes } from "../../../Pages/Kubernetes/Utils/Kubernetes
 
 /*
  * A Kubernetes object's Overview tab: what about it and the pods it runs
- * is broken or needs a look (its own row first, then each pod, a step from
- * that pod's page), what is open on it, whether the cluster's alerts watch
+ * is broken or needs a look (the most urgent first, its own row first
+ * among equals, each pod a step from that pod's page), what is open on it, whether the cluster's alerts watch
  * it with one step to turn on the rest, and then its details - labels,
  * annotations, conditions - as the page showed them before (children).
  * The Proxmox node page's story, for a pod, a workload or a node.

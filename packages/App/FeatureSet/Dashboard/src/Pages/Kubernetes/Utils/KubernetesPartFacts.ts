@@ -223,7 +223,25 @@ export function getKubernetesPartAttentionItems(data: {
       return !ownFinding || finding.key !== ownFinding.key;
     });
 
-  return [...(ownFinding ? [ownFinding] : []), ...others].map(
+  /*
+   * The most urgent first, as the card says - its own row first among
+   * equals, as on a Proxmox node's page: a Deployment one replica short
+   * (to look at) lists the pod crash-looping in it (critical) above
+   * itself. The sort is stable, so the others keep the rules' order.
+   */
+  const rank: (finding: KubernetesAttentionFinding) => number = (
+    finding: KubernetesAttentionFinding,
+  ): number => {
+    return finding.severity === KubernetesHealthSeverity.Critical ? 0 : 1;
+  };
+  const findings: Array<KubernetesAttentionFinding> = [
+    ...(ownFinding ? [ownFinding] : []),
+    ...others,
+  ].sort((a: KubernetesAttentionFinding, b: KubernetesAttentionFinding) => {
+    return rank(a) - rank(b);
+  });
+
+  return findings.map(
     (finding: KubernetesAttentionFinding): ResourceAttentionItem => {
       return toKubernetesAttentionItem(finding, data.routeFor);
     },

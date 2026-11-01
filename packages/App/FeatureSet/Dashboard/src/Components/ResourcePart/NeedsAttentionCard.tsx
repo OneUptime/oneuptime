@@ -14,6 +14,7 @@ import {
   countResourceAttention,
 } from "./ResourceAttention";
 import ResourcePartRow from "./ResourcePartRow";
+import { withSentenceDigits } from "./SentenceDigits";
 
 /*
  * "What needs me?" first on a resource's Overview, and on a part's own
@@ -90,15 +91,19 @@ const NeedsAttentionCard: FunctionComponent<ComponentProps> = (
   const reasonText: (reason: ResourceAttentionText) => string = (
     reason: ResourceAttentionText,
   ): string => {
+    // Its numbers in the sentence's digits ("۲ از ۳ در دسترس").
     if (reason.plural) {
       return translator.translatePlural(
         { one: reason.plural.one, other: reason.text },
         reason.plural.count,
-        reason.values,
+        withSentenceDigits(reason.values),
       );
     }
     return reason.values
-      ? translator.translateTemplate(reason.text, reason.values)
+      ? translator.translateTemplate(
+          reason.text,
+          withSentenceDigits(reason.values),
+        )
       : tx(reason.text);
   };
 

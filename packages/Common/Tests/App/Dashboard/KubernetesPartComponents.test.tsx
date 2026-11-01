@@ -36,8 +36,8 @@ import {
 /*
  * A Kubernetes object's own page, above and in its tabs: the hero (what it
  * is, its state in Kubernetes' own words, where it sits, its facts), its
- * Overview's Needs attention (its own row, then each pod that needs a
- * look) and its Pods tab (attention first, each a step from the pod's page,
+ * Overview's Needs attention (the most urgent first, its own row first
+ * among equals) and its Pods tab (attention first, each a step from the pod's page,
  * in its namespace) - rendered for real, in English and in another
  * language, with only the cards that read the server stood in.
  */
@@ -368,13 +368,46 @@ describe("a workload's hero", () => {
       />,
     );
 
-    // Persian words, the numbers in the reader's digits where the count is.
+    // Persian words, and every number in Persian digits, the counts too.
     expect(
       screen.getByTestId("kubernetes-deployment-hero-status"),
-    ).toHaveTextContent("2 از 3 در دسترس");
+    ).toHaveTextContent("۲ از ۳ در دسترس");
     expect(
       screen.getByTestId("kubernetes-deployment-hero-chips"),
-    ).toHaveTextContent("رونوشت");
+    ).toHaveTextContent("۳ رونوشت");
+  });
+
+  test("a sentence the reader's language has no words for yet keeps English digits", async () => {
+    // Persian with this one sentence left in English: English throughout.
+    const persian: Record<string, string> = readLocale("fa");
+    i18next.addResourceBundle(
+      "fa",
+      "translation",
+      {
+        ...persian,
+        "{{available}} of {{desired}} available":
+          "{{available}} of {{desired}} available",
+      },
+      true,
+      true,
+    );
+    await setLanguage("fa");
+
+    render(
+      <KubernetesPartHero
+        kind="Deployment"
+        name="checkout"
+        read={DEPLOYMENT_READ}
+        clusterName="production"
+        routes={ROUTES}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("kubernetes-deployment-hero-status"),
+    ).toHaveTextContent("2 of 3 available");
+
+    i18next.addResourceBundle("fa", "translation", persian, true, true);
   });
 
   test("before the read arrives, the address's name and nothing it cannot know", () => {
@@ -398,7 +431,7 @@ describe("a workload's hero", () => {
 });
 
 describe("a workload's Overview", () => {
-  test("Needs attention: the workload itself first, as This Deployment, then the pod that crash-loops, a step from its page", () => {
+  test("Needs attention: the pod that crash-loops first, a step from its page, then the workload itself, as This Deployment", () => {
     render(
       <KubernetesPartOverview
         clusterId={CLUSTER_ID}
@@ -414,18 +447,20 @@ describe("a workload's Overview", () => {
       "kubernetes-deployment-attention-item",
     );
     expect(items).toHaveLength(2);
-    expect(items[0]).toHaveAttribute("data-current", "true");
-    expect(items[0]).toHaveTextContent("This Deployment");
-    expect(items[0]).toHaveTextContent("2 of 3 available");
-    // The page the reader is on is no link.
-    expect(items[0]!.querySelector("a")).toBeNull();
-
-    expect(items[1]).toHaveTextContent("checkout-7d9f8b6c5-b2");
-    expect(items[1]).toHaveTextContent("CrashLoopBackOff");
-    expect(items[1]).toHaveAttribute("data-severity", "critical");
-    expect(hrefOf(items[1]!)).toContain(
+    // The most urgent first: the crash loop, above one replica short.
+    expect(items[0]).toHaveTextContent("checkout-7d9f8b6c5-b2");
+    expect(items[0]).toHaveTextContent("CrashLoopBackOff");
+    expect(items[0]).toHaveAttribute("data-severity", "critical");
+    expect(hrefOf(items[0]!)).toContain(
       "/pods/checkout-7d9f8b6c5-b2?namespace=shop",
     );
+
+    expect(items[1]).toHaveAttribute("data-current", "true");
+    expect(items[1]).toHaveAttribute("data-severity", "warning");
+    expect(items[1]).toHaveTextContent("This Deployment");
+    expect(items[1]).toHaveTextContent("2 of 3 available");
+    // The page the reader is on is no link.
+    expect(items[1]!.querySelector("a")).toBeNull();
 
     // The alerts that watch Deployments, the one written for them first.
     const alerts: Record<string, unknown> | undefined = mockAlertCards[0];

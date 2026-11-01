@@ -6,6 +6,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
+import { withSentenceDigits } from "./SentenceDigits";
 import {
   ResourcePartAccent,
   ResourcePartBadge,
@@ -153,7 +154,10 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
                     aria-hidden="true"
                   />
                   {status.values
-                    ? translator.translateTemplate(status.label, status.values)
+                    ? translator.translateTemplate(
+                        status.label,
+                        withSentenceDigits(status.values),
+                      )
                     : tx(status.label)}
                   {status.description ? (
                     <span className="sr-only">{` ${tx(status.description)}`}</span>
@@ -176,7 +180,7 @@ const ResourcePartHero: FunctionComponent<ComponentProps> = (
                       {badge.values
                         ? translator.translateTemplate(
                             badge.label,
-                            badge.values,
+                            withSentenceDigits(badge.values),
                           )
                         : tx(badge.label)}
                     </span>

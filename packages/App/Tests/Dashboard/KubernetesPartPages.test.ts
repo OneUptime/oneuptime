@@ -49,6 +49,7 @@ let KUBERNETES_NAMESPACE_QUERY_PARAM: RoutesModule["KUBERNETES_NAMESPACE_QUERY_P
 let KUBERNETES_PART_PAGES: RoutesModule["KUBERNETES_PART_PAGES"];
 let getKubernetesPartRoute: RoutesModule["getKubernetesPartRoute"];
 let kubernetesHealthTextInEnglish: UtilsModule["kubernetesHealthTextInEnglish"];
+let ResourceUtils: UtilsModule["default"];
 
 /*
  * Common/UI/Config reads `window` the moment it loads, and the routes pull
@@ -113,7 +114,7 @@ beforeAll(async () => {
   } = await import(
     "../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesPartRoutes"
   ));
-  ({ kubernetesHealthTextInEnglish } = await import(
+  ({ kubernetesHealthTextInEnglish, default: ResourceUtils } = await import(
     "../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesResourceUtils"
   ));
 });
@@ -350,7 +351,7 @@ describe("what needs attention on a workload's page", () => {
     isPodsTruncated: false,
   };
 
-  test("its own row first, then each pod that needs a look, a step from its own page", () => {
+  test("the most urgent first: the crash-looping pod above its Deployment one replica short, a step from its own page", () => {
     const items: Array<ResourceAttentionItem> = getKubernetesPartAttentionItems(
       { read: read, routeFor: routeFor },
     );
@@ -360,26 +361,26 @@ describe("what needs attention on a workload's page", () => {
         return [item.kind, item.name, item.severity];
       }),
     ).toEqual([
-      ["Deployment", "checkout", ResourceAttentionSeverity.Warning],
       ["Pod", "checkout-7d9f8b6c5-b2", ResourceAttentionSeverity.Critical],
+      ["Deployment", "checkout", ResourceAttentionSeverity.Warning],
     ]);
 
-    // The Deployment's shortfall, in the product's words.
-    expect(items[0]!.reasons).toEqual([
-      {
-        text: "{{available}} of {{desired}} available",
-        values: { available: "2", desired: "3" },
-      },
-    ]);
     // The pod's reason as Kubernetes wrote it, drawn as written.
-    expect(items[1]!.reasons).toEqual([
+    expect(items[0]!.reasons).toEqual([
       {
         text: KUBERNETES_REASON_AS_WRITTEN,
         values: { reason: "CrashLoopBackOff" },
       },
     ]);
-    expect(routeOf(items[1]!)).toContain("/pods/checkout-7d9f8b6c5-b2");
-    expect(routeOf(items[1]!)).toContain(
+    // The Deployment's shortfall, in the product's words.
+    expect(items[1]!.reasons).toEqual([
+      {
+        text: "{{available}} of {{desired}} available",
+        values: { available: "2", desired: "3" },
+      },
+    ]);
+    expect(routeOf(items[0]!)).toContain("/pods/checkout-7d9f8b6c5-b2");
+    expect(routeOf(items[0]!)).toContain(
       `${KUBERNETES_NAMESPACE_QUERY_PARAM}=shop`,
     );
     // Kinds read as kubectl writes them, in every language.
@@ -388,6 +389,24 @@ describe("what needs attention on a workload's page", () => {
         return item.kindAsWritten === true;
       }),
     ).toBe(true);
+  });
+
+  test("its own row first among equals: a Deployment with none available above its crash-looping pod", () => {
+    const down: KubernetesPartRead = {
+      ...read,
+      part: deployment({ replicas: 3, available: 0 }),
+    };
+
+    expect(
+      getKubernetesPartAttentionItems({ read: down, routeFor: routeFor }).map(
+        (item: ResourceAttentionItem): [string, string] => {
+          return [item.kind, item.severity];
+        },
+      ),
+    ).toEqual([
+      ["Deployment", ResourceAttentionSeverity.Critical],
+      ["Pod", ResourceAttentionSeverity.Critical],
+    ]);
   });
 
   test("the hero's pill is the part's own verdict, with the card's words", () => {
@@ -473,9 +492,13 @@ describe("what needs attention on a CronJob's page", () => {
       return item.name;
     });
 
-    expect(names[0]).toBe("nightly");
+    /*
+     * The most urgent first: the newest run's crash-looping pod, then the
+     * CronJob itself, then that run - the CronJob first among equals.
+     */
+    expect(names).toEqual(["nightly-29002-new", "nightly", "nightly-29002"]);
     // Why the run failed, as the Job's condition says it.
-    expect(items[0]!.reasons).toEqual([
+    expect(items[1]!.reasons).toEqual([
       { text: "Last run failed" },
       {
         text: KUBERNETES_REASON_AS_WRITTEN,
@@ -731,6 +754,78 @@ describe("the Overview's Needs attention, as the server answers it", () => {
     expect(item.detail).toBe("shop");
     expect(routeOf(item)).toContain("/pvcs/data-0");
     expect(routeOf(item)).toContain(`${KUBERNETES_NAMESPACE_QUERY_PARAM}=shop`);
+  });
+});
+
+describe("a list's CPU and memory", () => {
+  type ListRow = Parameters<
+    UtilsModule["default"]["applyAggregateMetrics"]
+  >[0]["resources"][number];
+
+  function listRow(name: string, namespace: string): ListRow {
+    return {
+      name: name,
+      namespace: namespace,
+      cpuUtilization: null,
+      memoryUsageBytes: null,
+      memoryLimitBytes: null,
+      status: "",
+      age: "",
+      additionalAttributes: {},
+    };
+  }
+
+  test("a workload reads its own namespace's pods, never a same-named one's", () => {
+    const shop: ListRow = listRow("checkout", "shop");
+    const payments: ListRow = listRow("checkout", "payments");
+
+    ResourceUtils.applyAggregateMetrics({
+      resources: [shop, payments],
+      aggregates: new Map([
+        [
+          "shop/checkout",
+          { cpuPercent: 41, memoryBytes: 900, memoryPercent: 6 },
+        ],
+        [
+          "payments/checkout",
+          { cpuPercent: 12, memoryBytes: 300, memoryPercent: 2 },
+        ],
+      ]),
+    });
+
+    expect([shop.cpuUtilization, shop.memoryUsageBytes]).toEqual([41, 900]);
+    expect([payments.cpuUtilization, payments.memoryUsageBytes]).toEqual([
+      12, 300,
+    ]);
+  });
+
+  test("a namespace's row reads its name, and an older server's bare names still apply", () => {
+    const namespace: ListRow = listRow("payments", "");
+    const workload: ListRow = listRow("cart", "shop");
+
+    ResourceUtils.applyAggregateMetrics({
+      resources: [namespace, workload],
+      aggregates: new Map([
+        ["payments", { cpuPercent: 7, memoryBytes: 70, memoryPercent: 1 }],
+        ["cart", { cpuPercent: 3, memoryBytes: 30, memoryPercent: 1 }],
+      ]),
+    });
+
+    expect(namespace.cpuUtilization).toBe(7);
+    expect(workload.cpuUtilization).toBe(3);
+  });
+
+  test("a workload with no reading keeps none", () => {
+    const quiet: ListRow = listRow("web", "shop");
+
+    ResourceUtils.applyAggregateMetrics({
+      resources: [quiet],
+      aggregates: new Map([
+        ["payments/web", { cpuPercent: 9, memoryBytes: 90, memoryPercent: 1 }],
+      ]),
+    });
+
+    expect(quiet.cpuUtilization).toBeNull();
   });
 });
 

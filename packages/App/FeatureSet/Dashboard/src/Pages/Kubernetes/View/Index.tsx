@@ -2213,7 +2213,10 @@ const KubernetesClusterOverview: FunctionComponent<
                         key={`pod-${idx}`}
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${chip.colorClass}`}
                       >
-                        <span className="font-semibold">{chip.value}</span>
+                        {/* In the reader's digits, as the chips above. */}
+                        <span className="font-semibold">
+                          {translator.formatNumber(chip.value)}
+                        </span>
                         {translator.translateText(chip.label)}
                         <InfoTooltip
                           label={chip.label}
