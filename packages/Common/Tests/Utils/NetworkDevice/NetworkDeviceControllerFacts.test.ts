@@ -14,6 +14,7 @@ import {
 import {
   InventoryAssetDetails,
   InventoryAssetField,
+  NetworkDeviceUnknownReason,
   getNetworkDeviceInventoryAssetDetails,
 } from "../../../Utils/Inventory/InventoryAssetDetails";
 import {
@@ -179,14 +180,89 @@ describe("a device only Meraki describes takes every detail Meraki gives", () =>
     });
   });
 
-  test("Inventory's Asset Details card lists them, unknown only where Meraki says nothing", () => {
+  test("Inventory's Asset Details card lists them, with nothing left unknown", () => {
     const card: InventoryAssetDetails =
       getNetworkDeviceInventoryAssetDetails(pingedAccessPoint());
 
-    expect(card.unknownFields).toEqual([
-      InventoryAssetField.OperatingSystem,
-      InventoryAssetField.OsVersion,
-    ]);
+    expect(card.unknownFields).toEqual([]);
+  });
+
+  /*
+   * Issue #5384: Meraki publishes one firmware per product line and names
+   * the release in what it lists, so the model and the firmware say what a
+   * device of the line runs.
+   */
+  test("the operating system its model runs, and the release in its firmware, from the dashboard", () => {
+    const details: NetworkDeviceFactDetails =
+      getNetworkDeviceFactDetails(pingedAccessPoint());
+
+    expect(details.facts.operatingSystem.value).toBe("Meraki MR firmware");
+    expect(details.facts.operatingSystem.source?.kind).toBe(
+      AssetFactSourceKind.Controller,
+    );
+    expect(details.facts.osVersion.value).toBe("29.7");
+    expect(details.facts.osVersion.source?.kind).toBe(
+      AssetFactSourceKind.Controller,
+    );
+  });
+
+  test("a model of no line it knows names no operating system, and leaves the card saying so", () => {
+    const card: InventoryAssetDetails = getNetworkDeviceInventoryAssetDetails(
+      pingedAccessPoint({}, { model: "MT12" }),
+    );
+
+    expect(card.unknownFields).toEqual([InventoryAssetField.OperatingSystem]);
+  });
+});
+
+describe("why what is left is unknown (issue #5384)", () => {
+  const WALKED_AT: string = "2026-10-28T09:58:00.000Z";
+
+  function reasonOf(device: NetworkDeviceAssetSource): string | undefined {
+    return getNetworkDeviceInventoryAssetDetails(device).unknownReason;
+  }
+
+  test("a device its Meraki dashboard describes was asked too", () => {
+    expect(reasonOf(pingedAccessPoint())).toBe(
+      NetworkDeviceUnknownReason.NotOnController,
+    );
+  });
+
+  test("a Meraki device with no dashboard behind it: polled or not, only the dashboard holds them", () => {
+    expect(
+      reasonOf({
+        sysDescr: "Meraki MX85",
+        sysObjectId: "1.3.6.1.4.1.29671.2.500",
+        lastSnmpSeenAt: WALKED_AT,
+      }),
+    ).toBe(NetworkDeviceUnknownReason.OnControllerOnly);
+    expect(reasonOf({ sysDescr: "Meraki MR42 Cloud Managed AP" })).toBe(
+      NetworkDeviceUnknownReason.OnControllerOnly,
+    );
+    expect(reasonOf({ sysObjectId: "1.3.6.1.4.1.29671.2.45" })).toBe(
+      NetworkDeviceUnknownReason.OnControllerOnly,
+    );
+  });
+
+  test("a device that answered its poll reports no more", () => {
+    expect(
+      reasonOf({
+        sysDescr: "Some switch",
+        sysObjectId: "1.3.6.1.4.1.99999.1",
+        lastSnmpSeenAt: WALKED_AT,
+      }),
+    ).toBe(NetworkDeviceUnknownReason.NotReportedOverSnmp);
+  });
+
+  test("a device no poll has read may hold more: it has only not been asked", () => {
+    expect(reasonOf({ hostname: "10.0.0.1" })).toBe(
+      NetworkDeviceUnknownReason.NotReadOverSnmp,
+    );
+    expect(
+      reasonOf({
+        sysDescr: "Cisco IOS Software, C2960 Software, Version 15.0(2)SE11",
+      }),
+    ).toBe(NetworkDeviceUnknownReason.NotReadOverSnmp);
   });
 });
 

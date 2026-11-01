@@ -140,8 +140,8 @@ Hosts and network devices are described by the same facts, stored under the same
 | --- | --- | --- | --- |
 | Hostname | `host.name` | The host's name. It is the host's identity, so it is in `identifyingAttributes` | The device's own name: its SNMP `sysName`, else the NetBIOS or DNS name discovery found. Never its IP address |
 | IP address | `host.ip` | Every address the collector reports | The address OneUptime polls, when it is an IP address, else the address its probe resolved that DNS name to |
-| MAC address | `host.mac` | Detected | Typed on the device, or learned from a walked router's ARP table |
-| Serial number | `host.serial_number` | Stamped | ENTITY-MIB |
+| MAC address | `host.mac` | Detected | Typed on the device, learned from a walked router's ARP table, or read from its own ports |
+| Serial number | `host.serial_number` | Stamped | ENTITY-MIB, else the vendor's own MIB |
 | Manufacturer | `device.manufacturer` | Stamped | ENTITY-MIB, else what `sysDescr` or `sysObjectID` names |
 | Model | `device.model.name` | Stamped | ENTITY-MIB, else what `sysDescr` names |
 | Firmware version | `device.firmware.version` | Stamped | ENTITY-MIB, else what `sysDescr` names |
@@ -191,22 +191,22 @@ A network device (`entityType: network.device`) is mirrored from its Network Dev
 | Hostname | `host.name` | The device's own name: its SNMP `sysName`, else the NetBIOS or reverse-DNS name discovery found. Left out when only its IP address names it |
 | IP address | `host.ip` | The address OneUptime polls, when it is an IP address. For a device polled at a DNS name, the address its probe last resolved that name to |
 | DNS name | `net.device.dns_name` | The reverse-DNS name found at discovery, or the DNS name OneUptime polls |
-| MAC address | `host.mac` | Typed on the device, or learned from a walked router's ARP table |
+| MAC address | `host.mac` | Typed on the device, or learned from a walked router's ARP table. Otherwise the MAC of its first Ethernet port, as its SNMP walk reads it |
 | Make | `device.manufacturer` | ENTITY-MIB `entPhysicalMfgName`, else the maker `sysDescr` names, else the vendor of the `sysObjectID` |
 | Model | `device.model.name` | ENTITY-MIB `entPhysicalModelName`, else the model `sysDescr` names |
-| Serial number | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum` |
-| Firmware version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, else the firmware `sysDescr` names on Ubiquiti, HPE and Aruba devices |
-| Operating system | `os.name` | The operating system `sysDescr` names |
-| Software or OS version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, else the release `sysDescr` names |
+| Serial number | `host.serial_number` | ENTITY-MIB `entPhysicalSerialNum`, else the vendor's own MIB on FortiGate, Juniper, MikroTik and Sophos devices |
+| Firmware version | `device.firmware.version` | ENTITY-MIB `entPhysicalFirmwareRev`, else the vendor's own MIB on FortiGate, MikroTik and Sophos devices, else the firmware `sysDescr` names on Ubiquiti, HPE and Aruba devices |
+| Operating system | `os.name` | The operating system `sysDescr` names, or the one the platform always runs: FortiOS on a FortiGate, Meraki's MX firmware on an MX |
+| Software or OS version | `os.version` | ENTITY-MIB `entPhysicalSoftwareRev`, else the vendor's own MIB, else the release `sysDescr` names |
 | System description | `os.description` | `sysDescr` |
 | Device type | `device.type` | The role you assigned the device, else the role the topology map classifies it as, by your project's name for it |
 | Location | `device.location` | `sysLocation`, unless it is an agent's default such as Net-SNMP's "Sitting on the Dock of the Bay" |
 | Site | `oneuptime.site.name` | The Network Site the device is assigned to |
 | Polled address | `net.device.hostname` | The address OneUptime polls: an IP address or a DNS name. Kept for syncs written before `host.name` and `host.ip` existed |
 
-The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, operating system and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table. A device that does not implement ENTITY-MIB has no serial number or firmware to report. Its `sysDescr` still names the model and operating system for many platforms: a Cisco Meraki MX reports `Meraki MX85`, which fills in the make and model. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.
+The ENTITY-MIB rows fill in after the device's first SNMP walk. A device that is not walked, because it is monitored by ping alone or not yet polled, still gets its name, make, operating system and location from what the last discovery scan of its address read over SNMP, and its MAC address from a walked router's ARP table. A device that does not implement ENTITY-MIB has no serial number or firmware to report, unless its vendor keeps them in a MIB of its own that OneUptime reads: FortiGate, Juniper, MikroTik and Sophos. Its `sysDescr` still names the model and operating system for many platforms: a Cisco Meraki MX reports `Meraki MX85`, which fills in the make, the model and the operating system. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.
 
-A Meraki device takes what its own poll leaves empty from the Meraki dashboard, when a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization: its serial number, model, firmware and make, its MAC address, its name, its management address, the street address it is filed under and its type. A device is one of the organization's devices when its serial number or MAC address is the Meraki device's, or when OneUptime polls it at the Meraki device's management address and it has the same name. A value saved on the device, and what its own poll reads, come first.
+A Meraki device takes what its own poll leaves empty from the Meraki dashboard, when a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization: its serial number, model, firmware and make, its MAC address, its name, its management address, the street address it is filed under and its type. Its model and firmware also give its operating system and OS version. A device is one of the organization's devices when its serial number or MAC address is the Meraki device's, or when OneUptime polls it at the Meraki device's management address and it has the same name. Meraki lists no such address for an MX, and the MAC it lists is on none of the MX's ports, so an MX is matched by its name and a port MAC just above that MAC. A value saved on the device, and what its own poll reads, come first. The one exception is the MAC address: Meraki's, the one on the box's label, comes before one read from the device's own port.
 
 A value saved on the device, typed or set through the API, is never replaced by what discovery reads. Of a value the device's own walk read and one a scan read, the newer is used. A scan's reading is used only when the scan found the same machine at the address: when the system name, `sysObjectID` or NetBIOS name it read contradicts the device's, nothing it read there is used. The item's **Asset Details** card says where each value came from and when.
 

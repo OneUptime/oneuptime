@@ -41,6 +41,10 @@ again now: one line at the top of the card says who reads it again - with a stil
 button above being the one thing that turns - then that it was read again just now, that its probe
 could not reach it, that nobody has read it in three minutes, or why the server refused.
 
+One line below the details says why the rest are unknown (issue #5384): a device that answered its
+poll reports no more, a Meraki device no connection describes reports them only to its dashboard,
+with a link to connecting it, and a device nothing has read keeps the line that says so.
+
 ## Scenarios
 
 Picked with query parameters:
@@ -64,6 +68,10 @@ Picked with query parameters:
 - `scenario=meraki`: a Meraki access point its probe pings, which a Meraki connection describes:
   its serial number, model and firmware come from the Meraki dashboard, read four minutes ago,
   and both cards offer **Refresh**.
+- `scenario=mx`: the Meraki MX of issue #5384, walked three minutes ago: its MAC from its own port,
+  its operating system from its model, and no Meraki connection for the rest.
+- `scenario=quiet`: a switch whose walk reads its system group and nothing more.
+- `firmware=none`: the `meraki` scenario's dashboard lists no firmware.
 - `probe=none`: the `meraki` scenario's access point has no probe, so only its Meraki connection
   reads it again.
 - `refresh=read|unreachable|late|refused`: what a refresh finds. The fixture answers
