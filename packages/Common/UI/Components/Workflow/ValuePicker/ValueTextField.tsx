@@ -1,3 +1,4 @@
+import FieldError from "../../Forms/Fields/FieldError";
 /*
  * A text setting that can use values from earlier steps: the chip editor in
  * a box that looks like any other text field, with a { } button at its end.
@@ -280,14 +281,10 @@ const ValueTextField: FunctionComponent<ValueTextFieldProps> = (
       </div>
 
       {props.error && (
-        <p
+        <FieldError
           id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          role="alert"
-        >
-          {translator.translateText(props.error)}
-        </p>
+          message={props.error}
+        />
       )}
 
       {isPopoverOpen && (

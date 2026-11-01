@@ -17,6 +17,29 @@ import { useLayoutEffect } from "react";
 let openDialogCount: number = 0;
 let bodyOverflowBeforeLock: string = "";
 let bodyPaddingRightBeforeLock: string = "";
+let bodyPaddingLeftBeforeLock: string = "";
+
+/*
+ * Which side of the window the page's scrollbar is on. The right, almost
+ * everywhere; the left where the browser puts it there - Firefox whose own
+ * language reads right to left (Persian, Arabic, Hebrew) does, on every
+ * page whatever the page's language. The page's box then starts after the
+ * scrollbar, at the scrollbar's width from the window's left edge.
+ */
+export type ScrollbarSideFunction = (scrollbarWidth: number) => "left" | "right";
+
+export const getPageScrollbarSide: ScrollbarSideFunction = (
+  scrollbarWidth: number,
+): "left" | "right" => {
+  if (scrollbarWidth <= 0 || typeof document === "undefined") {
+    return "right";
+  }
+
+  return document.documentElement.getBoundingClientRect().left >=
+    scrollbarWidth - 0.5
+    ? "left"
+    : "right";
+};
 
 export type PageScrollLockFunction = () => void;
 
@@ -29,16 +52,23 @@ export const lockPageScroll: PageScrollLockFunction = (): void => {
 
   bodyOverflowBeforeLock = document.body.style.overflow;
   bodyPaddingRightBeforeLock = document.body.style.paddingRight;
+  bodyPaddingLeftBeforeLock = document.body.style.paddingLeft;
 
   /*
    * Hiding the scrollbar reclaims its width, so the page underneath would
-   * jump sideways by exactly that much. Pad it back to hold everything still.
+   * jump sideways by exactly that much. Pad it back to hold everything still,
+   * on the side the scrollbar was on (getPageScrollbarSide): padded on the
+   * right, a page whose scrollbar is on the left moved left by its width.
    */
   const scrollbarWidth: number =
     window.innerWidth - document.documentElement.clientWidth;
 
   if (scrollbarWidth > 0) {
-    document.body.style.paddingRight = `${scrollbarWidth}px`;
+    if (getPageScrollbarSide(scrollbarWidth) === "left") {
+      document.body.style.paddingLeft = `${scrollbarWidth}px`;
+    } else {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
   }
 
   document.body.style.overflow = "hidden";
@@ -85,6 +115,7 @@ export const unlockPageScroll: PageScrollLockFunction = (): void => {
 
   restoreBodyStyle("overflow", bodyOverflowBeforeLock);
   restoreBodyStyle("padding-right", bodyPaddingRightBeforeLock);
+  restoreBodyStyle("padding-left", bodyPaddingLeftBeforeLock);
 };
 
 /*
@@ -139,4 +170,5 @@ export const resetPageScrollLockForTesting: PageScrollLockFunction =
     openDialogCount = 0;
     bodyOverflowBeforeLock = "";
     bodyPaddingRightBeforeLock = "";
+    bodyPaddingLeftBeforeLock = "";
   };

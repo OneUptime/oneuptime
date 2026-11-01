@@ -1,3 +1,4 @@
+import IsolatedText from "../IsolatedText/IsolatedText";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -23,7 +24,15 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
       : props.message;
   return (
     <div className="text-center my-10 text-gray-500 text-sm">
-      {translatedMessage}
+      {/*
+       * Read the way it is written: a failed read's answer from the server
+       * is in English, and keeps its full stop at its end on a Persian page.
+       */}
+      {typeof translatedMessage === "string" && translatedMessage ? (
+        <IsolatedText text={translatedMessage} />
+      ) : (
+        translatedMessage
+      )}
       {props.action ? (
         <div className="mt-4 flex justify-center" data-testid="empty-action">
           {props.action}

@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import OneUptimeDate from "Common/Types/Date";
 import DayOfWeek from "Common/Types/Day/DayOfWeek";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -628,9 +629,10 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
         )}
 
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
+        <FieldError
+          message={props.error}
+          announce="none"
+        />
       )}
     </div>
   );

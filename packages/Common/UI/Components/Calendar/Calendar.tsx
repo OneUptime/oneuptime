@@ -205,7 +205,15 @@ export const formatEventTimeRangeStart: (
   });
 };
 
+/*
+ * A day's number as a calendar writes it, in every language: "1", "۱" -
+ * never react-big-calendar's own "01", whose leading zero no wall or phone
+ * calendar writes ("۰۱" on a Persian page). In the month's grid, and beside
+ * the day's name above a week's columns.
+ */
 const CALENDAR_FORMATS: Formats = {
+  dateFormat: "D",
+  dayFormat: "D ddd",
   eventTimeRangeStartFormat: formatEventTimeRangeStart,
 };
 
@@ -219,7 +227,7 @@ const ENGLISH_LANGUAGE: string = "en";
  * the browser's (Intl), always on the Gregorian calendar the grid is laid
  * out in (Persian would otherwise name the month of its own calendar above
  * a Gregorian grid), and in the language's own figures, as every other date
- * on the page is (Common/Types/DateLanguage): "اکتبر ۲۰۲۶" over "۰۱", "۰۲".
+ * on the page is (Common/Types/DateLanguage): "اکتبر ۲۰۲۶" over "۱", "۲".
  */
 export const getCalendarFormats: (language: string | undefined) => Formats = (
   language: string | undefined,
@@ -273,10 +281,10 @@ export const getCalendarFormats: (language: string | undefined) => Formats = (
   });
 
   return {
-    // The day numbers in the month's grid: "01", "۰۱".
-    dateFormat: formatter({ day: "2-digit" }),
+    // The day numbers in the month's grid, as English's: "1", "۱".
+    dateFormat: formatter({ day: "numeric" }),
     weekdayFormat: formatter({ weekday: "short" }),
-    dayFormat: formatter({ weekday: "short", day: "2-digit" }),
+    dayFormat: formatter({ weekday: "short", day: "numeric" }),
     dayHeaderFormat: formatter({
       weekday: "long",
       month: "long",

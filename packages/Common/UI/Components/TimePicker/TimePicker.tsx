@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -494,14 +495,11 @@ const TimePicker: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && (
-        <p
+        <FieldError
           id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          aria-live="polite"
-        >
-          {props.error}
-        </p>
+          message={props.error}
+          announce="polite"
+        />
       )}
     </>
   );

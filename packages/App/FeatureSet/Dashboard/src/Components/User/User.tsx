@@ -10,6 +10,11 @@ import ObjectID from "Common/Types/ObjectID";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { useIsTableCell } from "Common/UI/Components/Table/TableCellContext";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 
 export interface ComponentProps {
   user?: User | JSONObject | undefined | null;
@@ -90,6 +95,31 @@ const AVATAR_WRAPPER_CLASS_NAME: string = "shrink-0";
  * FullValueTitle). Elsewhere a name keeps its lines as it always has.
  */
 export const TABLE_CELL_USER_NAME_CLASS_NAME: string = "truncate";
+
+/*
+ * The class of a line that reads the way its name or address does (dir),
+ * on a page that reads the other way: lined up as the page's lines are
+ * (LineDirection), so an English name on a Persian page starts beside the
+ * picture and, cut short, loses its end - "José Ignacio Negro de l..." -
+ * not its start.
+ */
+type LineClassNameFunction = (
+  className: string | undefined,
+  direction: ReadingDirection | undefined,
+) => string | undefined;
+
+const withLineAlignment: LineClassNameFunction = (
+  className: string | undefined,
+  direction: ReadingDirection | undefined,
+): string | undefined => {
+  if (!direction) {
+    return className;
+  }
+
+  return [className, LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME]
+    .filter(Boolean)
+    .join(" ");
+};
 
 const readableValue: ReadableValueFunction = (
   value: JSONValue | undefined,
@@ -201,6 +231,20 @@ const UserElement: FunctionComponent<ComponentProps> = (
       !isNotNotified && !props.hideEmail && name && email && name !== email,
     );
 
+    /*
+     * Each line reads the way what it holds is written, where the page
+     * reads the other way (LineDirection): a name or an address in Latin
+     * letters on a Persian page is cut short at its own end.
+     */
+    const nameLineDirection: ReadingDirection | undefined = getLineDirection(
+      [props.prefix, name || email].filter(Boolean).join(" "),
+      translator.language,
+    );
+    const emailLineDirection: ReadingDirection | undefined = getLineDirection(
+      email,
+      translator.language,
+    );
+
     return (
       <div
         className="flex"
@@ -225,9 +269,11 @@ const UserElement: FunctionComponent<ComponentProps> = (
         <div className="mt-1 mr-1 ml-3 min-w-0">
           <div
             data-testid="user-name-line"
-            className={
-              isTableCell ? TABLE_CELL_USER_NAME_CLASS_NAME : undefined
-            }
+            className={withLineAlignment(
+              isTableCell ? TABLE_CELL_USER_NAME_CLASS_NAME : undefined,
+              nameLineDirection,
+            )}
+            dir={nameLineDirection}
           >
             <span
               className={props.prefixClassName ? props.prefixClassName : ""}
@@ -241,11 +287,13 @@ const UserElement: FunctionComponent<ComponentProps> = (
           {showEmail && (
             <div
               data-testid="user-email"
-              className={
+              className={withLineAlignment(
                 props.emailClassName
                   ? props.emailClassName
-                  : "truncate text-xs text-gray-500"
-              }
+                  : "truncate text-xs text-gray-500",
+                emailLineDirection,
+              )}
+              dir={emailLineDirection}
             >
               {email}
             </div>

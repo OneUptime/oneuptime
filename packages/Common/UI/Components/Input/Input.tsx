@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 // Tailwind
 import { Logger } from "../../Utils/Logger";
 import joinAriaIds from "../../Utils/AriaIds";
@@ -434,14 +435,10 @@ const Input: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && (
-        <p
+        <FieldError
           id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          role="alert"
-        >
-          {translateString(props.error)}
-        </p>
+          message={props.error}
+        />
       )}
     </>
   );

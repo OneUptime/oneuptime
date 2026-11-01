@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import joinAriaIds from "../../Utils/AriaIds";
@@ -295,14 +296,10 @@ const TextArea: FunctionComponent<ComponentProps> = (
         )}
       </div>
       {props.error && (
-        <p
+        <FieldError
           id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          role="alert"
-        >
-          {props.error}
-        </p>
+          message={props.error}
+        />
       )}
     </>
   );

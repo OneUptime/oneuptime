@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
 import joinAriaIds from "../../Utils/AriaIds";
 import Text from "../../../Types/Text";
@@ -131,14 +132,10 @@ const Radio: FunctionComponent<ComponentProps> = (
       })}
 
       {props.error && (
-        <p
+        <FieldError
           id={errorId}
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-          role="alert"
-        >
-          {props.error}
-        </p>
+          message={props.error}
+        />
       )}
     </div>
   );

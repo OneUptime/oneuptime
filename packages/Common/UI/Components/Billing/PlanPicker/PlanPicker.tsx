@@ -1,3 +1,4 @@
+import FieldError from "../../Forms/Fields/FieldError";
 import SubscriptionPlan from "../../../../Types/Billing/SubscriptionPlan";
 import { PRICING_PAGE_URL } from "../../../../Types/Billing/PayAsYouGoPricing";
 import {
@@ -439,14 +440,10 @@ const PlanPicker: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && (
-        <p
+        <FieldError
           id={errorId}
-          role="alert"
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-        >
-          {props.error}
-        </p>
+          message={props.error}
+        />
       )}
 
       {terms && (

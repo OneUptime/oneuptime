@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import EventInterval from "../../../Types/Events/EventInterval";
 import Recurring from "../../../Types/Events/Recurring";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -94,9 +95,10 @@ const RecurringArrayFieldElement: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
+        <FieldError
+          message={props.error}
+          announce="none"
+        />
       )}
     </div>
   );

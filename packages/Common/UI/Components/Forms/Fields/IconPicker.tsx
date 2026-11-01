@@ -1,3 +1,4 @@
+import FieldError from "./FieldError";
 import useAnchoredFieldPopup, {
   AnchoredFieldPopup,
 } from "../../../Types/UseAnchoredFieldPopup";
@@ -238,14 +239,10 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           )
         : null}
       {props.error && (
-        <p
+        <FieldError
           id={errorId}
-          role="alert"
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-        >
-          {props.error}
-        </p>
+          message={props.error}
+        />
       )}
     </div>
   );

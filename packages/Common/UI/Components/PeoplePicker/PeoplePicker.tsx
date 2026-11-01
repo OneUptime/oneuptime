@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import IconProp from "../../../Types/Icon/IconProp";
 import useAnchoredFieldPopup, {
   AnchoredFieldPopup,
@@ -389,14 +390,10 @@ const PeoplePicker: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && (
-        <p
+        <FieldError
           id={errorId}
-          role="alert"
-          data-testid="error-message"
-          className="mt-1 text-sm text-red-400"
-        >
-          {props.error}
-        </p>
+          message={props.error}
+        />
       )}
 
       <PeopleSearchPopup

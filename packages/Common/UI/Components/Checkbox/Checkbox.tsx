@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import React, { FunctionComponent, ReactElement } from "react";
 import useTranslateValue from "../../Utils/Translation";
 
@@ -108,9 +109,10 @@ const CheckboxElement: FunctionComponent<CategoryProps> = (
         </div>
       </div>
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
+        <FieldError
+          message={props.error}
+          announce="none"
+        />
       )}
     </div>
   );

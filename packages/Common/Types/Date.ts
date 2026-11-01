@@ -768,7 +768,10 @@ export default class OneUptimeDate {
           return text;
         }
 
-        return `${text} ${this.getZoneAbbrByTimezone(timezone, date)}`.trim();
+        return `${text} ${this.getZoneInLocale(
+          this.getZoneAbbrByTimezone(timezone, date),
+          locale,
+        )}`.trim();
       },
     );
   }
@@ -2152,7 +2155,10 @@ export default class OneUptimeDate {
           return text;
         }
 
-        return `${text} ${this.getCurrentTimezoneString()}`.trim();
+        return `${text} ${this.getZoneInLocale(
+          this.getCurrentTimezoneString(),
+          locale,
+        )}`.trim();
       },
     );
   }
@@ -2589,7 +2595,10 @@ export default class OneUptimeDate {
               return text;
             }
 
-            return `${text} ${this.getZoneAbbrByTimezone(timezone, instant)}`;
+            return `${text} ${this.getZoneInLocale(
+              this.getZoneAbbrByTimezone(timezone, instant),
+              locale,
+            )}`;
           },
         ),
       );
@@ -2694,7 +2703,9 @@ export default class OneUptimeDate {
           },
         });
 
-        return text ? `${text} ${zoneAbbr}`.trim() : null;
+        return text
+          ? `${text} ${this.getZoneInLocale(zoneAbbr, locale)}`.trim()
+          : null;
       },
     );
   }
@@ -2704,6 +2715,17 @@ export default class OneUptimeDate {
       days = 1;
     }
     return 24 * 60 * 60 * days;
+  }
+
+  /*
+   * A zone's name after a date written in `locale`, in the digits the date
+   * is in: "۲۶ اکتبر ۲۰۲۶، ۱۸:۳۷ GMT+۰۳۳۰" on a Persian page, where the
+   * offset stood in Latin digits beside a date in Persian ones. A name of
+   * letters only ("BST", "EDT") and every language that writes Latin digits
+   * keep it as it is.
+   */
+  private static getZoneInLocale(zone: string, locale: string): string {
+    return writeDigitsInLocale(zone, locale);
   }
 
   public static getCurrentTimezoneString(): string {

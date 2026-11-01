@@ -1,4 +1,5 @@
 import Icon from "../Icon/Icon";
+import { getListSeparator } from "../../Utils/ListSeparator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -101,7 +102,14 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const summaryId: string = `navbar-category-summary-${useId()}`;
   const count: number = props.itemTitles.length;
-  const names: string = props.itemTitles.join(", ");
+  /*
+   * In the commas of the script the names are written in (ListSeparator):
+   * "حوادث، هشدارها، مانیتورها" on a Persian page, where a Latin comma
+   * stood between Persian names.
+   */
+  const names: string = props.itemTitles.join(
+    getListSeparator(props.itemTitles),
+  );
   const isColumns: boolean =
     props.layout === NavBarCategoryToggleLayout.Columns;
   const isActive: boolean = Boolean(props.isActive);

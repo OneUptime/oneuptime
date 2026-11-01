@@ -1,3 +1,4 @@
+import FieldError from "../Forms/Fields/FieldError";
 import DropdownUtil from "../../Utils/Dropdown";
 import Dropdown, { DropdownValue } from "../Dropdown/Dropdown";
 import Input, { InputType } from "../Input/Input";
@@ -101,9 +102,10 @@ const RecurringFieldElement: FunctionComponent<ComponentProps> = (
       </div>
 
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
-          {props.error}
-        </p>
+        <FieldError
+          message={props.error}
+          announce="none"
+        />
       )}
     </div>
   );

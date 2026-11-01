@@ -1,4 +1,5 @@
 import Icon from "../Icon/Icon";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
@@ -38,6 +39,25 @@ export interface ComponentProps {
   size?: AlertSize | undefined;
   icon?: IconProp | undefined;
 }
+
+/*
+ * A message's words, read the way they are written (IsolatedText): an
+ * answer from the server is in English - "Promo code is invalid." - and on a
+ * Persian page, laid out right to left, its full stop came first. A message
+ * the page draws as an element of its own (links, bold names) is drawn as
+ * it is.
+ */
+const readAsWritten: (
+  message: string | ReactElement | undefined,
+) => string | ReactElement | undefined = (
+  message: string | ReactElement | undefined,
+): string | ReactElement | undefined => {
+  return typeof message === "string" && message ? (
+    <IsolatedText text={message} />
+  ) : (
+    message
+  );
+};
 
 const Alert: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -162,9 +182,11 @@ const Alert: FunctionComponent<ComponentProps> = (
           >
             <div className="min-w-0 space-y-1">
               {translatedStrongTitle && (
-                <div className="font-semibold">{translatedStrongTitle}</div>
+                <div className="font-semibold">
+                  {readAsWritten(translatedStrongTitle)}
+                </div>
               )}
-              {translatedTitle && <div>{translatedTitle}</div>}
+              {translatedTitle && <div>{readAsWritten(translatedTitle)}</div>}
             </div>
             {translatedTextOnRight && (
               /*
@@ -180,7 +202,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                 className="min-w-0 font-medium sm:ml-auto sm:max-w-[50%] sm:shrink-0 sm:text-right"
                 data-testid="alert-text-on-right"
               >
-                {translatedTextOnRight}
+                {readAsWritten(translatedTextOnRight)}
               </div>
             )}
           </div>

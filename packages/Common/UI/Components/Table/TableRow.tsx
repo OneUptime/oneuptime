@@ -51,6 +51,13 @@ import { getColumnsFoldedInto } from "./FoldedColumns";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "../../Utils/LineDirection";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
 import React, { ReactElement, useState } from "react";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
@@ -64,6 +71,21 @@ import LongTextViewer from "../LongText/LongTextViewer";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import InfoTooltip from "../Tooltip/InfoTooltip";
 import DragHandle from "./DragHandle";
+
+/*
+ * The column types a cell draws as something of their own - a date, an
+ * amount, a share, a colour, a long text, a tick - rather than as its value's
+ * text on one line (TableRow's getColumnContent).
+ */
+const COLUMN_TYPES_NOT_DRAWN_AS_TEXT: ReadonlyArray<FieldType> = [
+  FieldType.Date,
+  FieldType.DateTime,
+  FieldType.USDCents,
+  FieldType.Percent,
+  FieldType.Color,
+  FieldType.LongText,
+  FieldType.Boolean,
+];
 
 export interface ComponentProps<T extends GenericObject> {
   item: T;
@@ -182,6 +204,9 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
    * translated.
    */
   const { translateString } = useTranslateValue();
+
+  // The page's language, which decides which way its lines read.
+  const translator: Translator = useTranslator();
 
   /*
    * Whether the window is a phone's, read as the row is first drawn (never
@@ -349,10 +374,7 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           <TableEmptyValue screenReaderText="No" />
         );
       default: {
-        const text: string | undefined = getNestedValue(
-          props.item,
-          String(column.key),
-        )?.toString();
+        const text: string | undefined = getPlainCellText(column);
 
         /*
          * Read the way it is written: an English description in a Persian
@@ -361,6 +383,28 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         return text ? <IsolatedText text={text} /> : getNoValue();
       }
     }
+  };
+
+  /*
+   * The text a column draws as it is, on its one line: any column without
+   * an element of its own that is not a date, an amount, a share, a colour,
+   * a long text or a tick (getColumnContent's default). Undefined for those,
+   * and for an empty value.
+   */
+  const getPlainCellText: (column: Column<T>) => string | undefined = (
+    column: Column<T>,
+  ): string | undefined => {
+    if (
+      !column.key ||
+      column.getElement ||
+      COLUMN_TYPES_NOT_DRAWN_AS_TEXT.includes(column.type)
+    ) {
+      return undefined;
+    }
+
+    return (
+      getNestedValue(props.item, String(column.key))?.toString() || undefined
+    );
   };
 
   /*
@@ -373,6 +417,35 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
       return !(column.hideOnMobile && isPhoneView);
     },
   );
+
+  /*
+   * The way a cell's line reads when it is not the page's way: a plain
+   * value in the other script - an English summary on a Persian page - is
+   * cut short at its own end, not at its start (LineDirection). A cell
+   * with columns folded under it keeps the page's way: its folded lines
+   * are the page's words.
+   */
+  const getCellLineDirection: (
+    column: Column<T>,
+  ) => ReadingDirection | undefined = (
+    column: Column<T>,
+  ): ReadingDirection | undefined => {
+    const text: string | undefined = getPlainCellText(column);
+
+    if (!text) {
+      return undefined;
+    }
+
+    const foldedHere: Columns<T> = getColumnsFoldedInto<T>({
+      column: column,
+      drawnColumns: renderedColumns,
+      foldedColumns: foldedColumns,
+    });
+
+    return foldedHere.length > 0
+      ? undefined
+      : getLineDirection(text, translator.language);
+  };
 
   /*
    * What keeps a cell (or a card's field) its column's: the column's id,
@@ -762,6 +835,15 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                   isPrimaryColumn: i === 0,
                 });
 
+              /*
+               * A plain value that reads the other way from the page: its
+               * line reads its own way, so it is cut short at its own end,
+               * and still starts where the column's other values do.
+               */
+              const lineDirection: ReadingDirection | undefined = isActions
+                ? undefined
+                : getCellLineDirection(column);
+
               return (
                 <td
                   key={getCellKey(column, i)}
@@ -787,7 +869,12 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
                     columnContent !== null &&
                     columnContent !== undefined && (
                       <div
-                        className={contentWrapperClassName}
+                        className={
+                          lineDirection
+                            ? `${contentWrapperClassName} ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`
+                            : contentWrapperClassName
+                        }
+                        dir={lineDirection}
                         /*
                          * The row's name, which may use the room of a table
                          * that fits (useTableScrollState's
