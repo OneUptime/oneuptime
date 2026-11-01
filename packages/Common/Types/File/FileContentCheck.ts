@@ -383,6 +383,18 @@ export type IsFileContentOfTypeFunction = (data: {
   size: number;
 }) => boolean;
 
+/*
+ * A type's own rule. The rules are an object's keys, and a type is the
+ * uploader's word, so a name every object has - "constructor", "toString",
+ * "__proto__" - would otherwise be a rule: Object, which returns the head
+ * itself, would pass any file declared as "constructor".
+ */
+function ruleOf(fileType: string): ContentRuleFunction | undefined {
+  return Object.prototype.hasOwnProperty.call(CONTENT_RULES, fileType)
+    ? CONTENT_RULES[fileType]
+    : undefined;
+}
+
 /**
  * Whether a file holds what its type says, judged by its first bytes. An
  * empty file holds nothing of any type, and a type with no rule is refused.
@@ -393,7 +405,7 @@ export const isFileContentOfType: IsFileContentOfTypeFunction = (data: {
   size: number;
 }): boolean => {
   const fileType: string = (data.fileType || "").trim().toLowerCase();
-  const rule: ContentRuleFunction | undefined = CONTENT_RULES[fileType];
+  const rule: ContentRuleFunction | undefined = ruleOf(fileType);
 
   if (!rule || data.size <= 0 || data.head.length === 0) {
     return false;
@@ -415,6 +427,6 @@ export const hasFileContentRule: HasFileContentRuleFunction = (
 ): boolean => {
   return (
     typeof fileType === "string" &&
-    Boolean(CONTENT_RULES[fileType.trim().toLowerCase()])
+    Boolean(ruleOf(fileType.trim().toLowerCase()))
   );
 };

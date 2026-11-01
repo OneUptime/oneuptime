@@ -672,6 +672,8 @@ jobs:
           # for a chart's plot: about 20 seconds locally) and Dashboard Table
           # Thresholds by 1 (a table's title keeps its line beside its search,
           # at 1280 and 390: about 9 seconds): about 20.
+          # Meraki Traffic (3.0 minutes) from group 8 on 2026-11-01, when 14.0.100's
+          # first gate run took this group 20.3 and group 8 27.5: about 23.5.
           - group: 7
             suites: >-
               test-profiles-ui
@@ -679,6 +681,7 @@ jobs:
               test-custom-roles-ui
               test-public-dashboard-theme-ui
               test-dashboard-table-thresholds-ui
+              test-meraki-traffic-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -784,6 +787,10 @@ jobs:
           # and 768 beside the side menu and on a phone, editing on a phone,
           # and a drag at 1024 that moves one row: about 40 seconds locally
           # with its bundle): about 20.5.
+          # 14.0.100's first gate run (2026-11-01) took this group 27.5 of its
+          # 28 minutes (Cloud Connect 7.4, Time Range 5.0): Security Events
+          # Empty States (3.7) moved to group 14 and Meraki Traffic (3.0) to
+          # group 7. About 21.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -793,9 +800,7 @@ jobs:
               test-resource-onboarding-ui
               test-vmware-host-page-ui
               test-public-addresses-ui
-              test-meraki-traffic-ui
               test-docker-swarm-pages-ui
-              test-security-events-empty-states-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -980,12 +985,13 @@ jobs:
           # Timeline (2.2 minutes there) and Runbook Triggers (1.7) joined it
           # from group 5 the same day: about 19 at that pace, and about 24 at
           # the pace of the run where Security Operations' long spec took 17.3.
+          # 14.0.100's first gate run (2026-11-01) took this group 25.7 minutes,
+          # Security Operations 19.9 of them: Status Timeline (2.3) and Runbook
+          # Triggers (1.8) moved to group 15. About 21.5.
           - group: 11
             suites: >-
               test-security-operations-ui
               test-ai-context-ui
-              test-status-timeline-ui
-              test-runbook-triggers-ui
           # Added on 2026-10-26, when group 9 ran past its run step's 28
           # minutes on 14.0.93's gate run with every suite passing: Code had
           # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
@@ -1092,6 +1098,9 @@ jobs:
           # a guest and a storage, Turn on N alerts into Recommendations, the
           # Guests list, at 1280 and 390 pixels, dark, German and Persian)
           # joined them on 2026-11-01: about 19.5.
+          # Security Events Empty States (3.7 minutes) from group 8 on
+          # 2026-11-01, when 14.0.100's first gate run took this group 19.1 and
+          # group 8 27.5: about 23.
           - group: 14
             suites: >-
               test-value-picker-ui
@@ -1104,13 +1113,15 @@ jobs:
               test-network-traffic-names-ui
               test-custom-field-files-ui
               test-proxmox-pages-ui
+              test-security-events-empty-states-ui
           # A group of its own since 2026-11-01, as no group had the room: the
           # second half of Model Tables (88 tests, 6.9 minutes locally) and
           # Metrics AI (3.0 on 14.0.100's first gate run) from group 4, whose
           # step hit its 28 minutes there. Groups 1, 2, 3, 5 and 12 took 19.6
           # to 23.2 minutes on that run: about 12. OpenShift Pages and Topology
           # (about 2.8 each) from group 9, whose step hit its 28 on that run
-          # too: about 17.5.
+          # too: about 17.5. Status Timeline (2.3) and Runbook Triggers (1.8)
+          # from group 11, which took 25.7: about 21.5.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1118,6 +1129,8 @@ jobs:
               test-metrics-ai-ui
               test-openshift-pages-ui
               test-topology-ui
+              test-status-timeline-ui
+              test-runbook-triggers-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
