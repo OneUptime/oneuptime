@@ -1,4 +1,4 @@
-import { translationKey, Translator } from "../../UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "../Translator";
 
 /*
  * THE NAMES ONEUPTIME GIVES EVERY NEW PROJECT'S STATES, SEVERITIES AND
