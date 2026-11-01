@@ -9,6 +9,7 @@ import OneUptimeDate from "../../../Types/Date";
 import {
   NetworkDeviceDiscoveredField,
   NetworkDeviceDiscoveredValue,
+  NetworkDeviceDiscoveryReader,
   NetworkDeviceDiscoveryReaderType,
   buildDiscoveredValue,
   getDiscoveredTime,
@@ -47,6 +48,11 @@ import logger from "../Logger";
  * table says, so both are shown. Never the column: a typed MAC is still never
  * touched. Planned by DeviceMacLearningUtil.planMacObservations, which
  * records a reading that has not changed at most once an hour.
+ *
+ * A network controller's client list binds addresses to MACs too
+ * (NetworkControllerTopology), and goes through here by the same refusals. Its
+ * readings name the connection that read them instead of a router, so a MAC
+ * from Meraki is never shown as an ARP table's.
  */
 
 // Same chunking NetworkDeviceService.getDevicesByHostnames uses.
@@ -69,6 +75,8 @@ export default class NetworkDeviceMacLearningUtil {
     observingDeviceName?: string | undefined;
     observingSiteId: ObjectID | undefined;
     ipBindings: Array<MacLearningIpBinding>;
+    // Who a reading is credited to, when that is not the device above.
+    reader?: NetworkDeviceDiscoveryReader | undefined;
   }): Promise<MacLearningResult> {
     const addresses: Array<string> = Array.from(
       new Set<string>(
@@ -193,6 +201,7 @@ export default class NetworkDeviceMacLearningUtil {
       observingSiteId: data.observingSiteId,
       ipBindings: data.ipBindings,
       candidates: candidates,
+      reader: data.reader,
     });
 
     return {
@@ -214,6 +223,7 @@ export default class NetworkDeviceMacLearningUtil {
     observingSiteId: ObjectID | undefined;
     ipBindings: Array<MacLearningIpBinding>;
     candidates: Array<MacObservationCandidateDevice>;
+    reader?: NetworkDeviceDiscoveryReader | undefined;
   }): Promise<number> {
     try {
       const now: Date = OneUptimeDate.getCurrentDate();
@@ -232,7 +242,7 @@ export default class NetworkDeviceMacLearningUtil {
           buildDiscoveredValue({
             field: NetworkDeviceDiscoveredField.MacAddress,
             value: observation.macAddress,
-            readBy: {
+            readBy: data.reader || {
               type: NetworkDeviceDiscoveryReaderType.NetworkDevice,
               id: data.observingDeviceId.toString(),
               name: data.observingDeviceName,

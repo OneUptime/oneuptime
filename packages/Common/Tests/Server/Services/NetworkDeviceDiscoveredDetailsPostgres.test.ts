@@ -781,4 +781,73 @@ describePostgres("a device's discovered details merged on Postgres", () => {
       }),
     ).toBe(0);
   });
+
+  test("a deleted connection's links go with its reading, and nobody else's do", async () => {
+    const reader: JSONObject = {
+      type: "networkController",
+      id: CONNECTION_ID.toString(),
+      name: "Stores",
+    };
+    const links: JSONObject = {
+      provider: "meraki",
+      readBy: reader,
+      readAt: "2026-11-01T06:00:00.000Z",
+      links: [{ port: "Port 49", peerName: "core", protocols: ["lldp"] }],
+    };
+    const theirLinks: JSONObject = {
+      ...links,
+      readBy: { ...reader, id: ObjectID.generate().toString() },
+    };
+
+    const ours: ObjectID = await insertDevice({
+      discoveredDetails: { controllerLinks: links },
+    });
+    const theirs: ObjectID = await insertDevice({
+      discoveredDetails: { controllerLinks: theirLinks },
+    });
+
+    await NetworkDeviceService.forgetControllerReadings({
+      projectId: PROJECT_ID,
+      connectionId: CONNECTION_ID,
+    });
+
+    expect(await detailsOf(ours)).toEqual({});
+    expect(await detailsOf(theirs)).toEqual({ controllerLinks: theirLinks });
+  });
+
+  test("a device known only by the links this connection read is still a candidate, with its site", async () => {
+    const reader: JSONObject = {
+      type: "networkController",
+      id: CONNECTION_ID.toString(),
+    };
+    const device: ObjectID = await insertDevice({
+      discoveredDetails: {
+        controllerLinks: {
+          provider: "meraki",
+          readBy: reader,
+          readAt: "2026-11-01T06:00:00.000Z",
+          links: [{ peerName: "core", protocols: [] }],
+        },
+      },
+    });
+
+    type Candidates = Awaited<
+      ReturnType<typeof NetworkDeviceService.findControllerMatchCandidates>
+    >;
+
+    const candidates: Candidates =
+      await NetworkDeviceService.findControllerMatchCandidates({
+        projectId: PROJECT_ID,
+        connectionId: CONNECTION_ID,
+        lookup: { serials: [], macs: [], addresses: [], names: [] },
+        limit: 10,
+      });
+
+    expect(
+      candidates.map((candidate: Candidates[number]): string => {
+        return candidate.id;
+      }),
+    ).toEqual([device.toString()]);
+    expect(candidates[0]?.siteId).toBeNull();
+  });
 });

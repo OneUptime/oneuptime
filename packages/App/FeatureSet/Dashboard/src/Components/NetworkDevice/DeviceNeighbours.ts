@@ -1,5 +1,7 @@
 import LldpNeighbor from "Common/Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
+import { NetworkDeviceControllerLink } from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import { parseMerakiAdvertisedName } from "Common/Utils/Monitor/NeighborIdentityUtil";
 
 /*
  * The devices a switch, router or firewall says it is cabled to: the LLDP
@@ -10,7 +12,9 @@ import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
  * switch port a device that speaks neither protocol is plugged into, learned
  * from the switches' forwarding tables. On a core switch with five
  * neighbours drawn on the map, it said "No switch at this site has reported
- * this device yet". Now a device that reports neighbours lists them.
+ * this device yet". Now a device that reports neighbours lists them, and so
+ * does a device its network controller reports neighbours for: a Meraki MX a
+ * probe only pings has no walk to say what it is cabled to, and Meraki knows.
  *
  * Plain logic, free of React and of the API, so App/Tests can read it.
  */
@@ -18,6 +22,7 @@ import CdpNeighbor from "Common/Types/Monitor/SnmpMonitor/CdpNeighbor";
 export enum NeighbourProtocol {
   Lldp = "LLDP",
   Cdp = "CDP",
+  Controller = "Controller",
 }
 
 export interface DeviceNeighbour {
@@ -29,6 +34,10 @@ export interface DeviceNeighbour {
   remotePort?: string | undefined;
   // This device's port: its ifIndex, named from its interfaces when known.
   localInterfaceIndex?: number | undefined;
+  // This device's port by name, when a controller reported it.
+  localPortName?: string | undefined;
+  // The device here it is, when a controller already said so.
+  deviceId?: string | undefined;
   protocol: NeighbourProtocol;
 }
 
@@ -67,6 +76,13 @@ function readRemotePort(value: unknown, name: string): string | undefined {
   return port;
 }
 
+// A Meraki box advertises its model in front of its name: only the name reads.
+function readAdvertisedName(value: unknown): string {
+  const name: string = readText(value);
+
+  return parseMerakiAdvertisedName(name)?.name || name;
+}
+
 function readIndex(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value)
     ? value
@@ -76,20 +92,23 @@ function readIndex(value: unknown): number | undefined {
 function keyOf(neighbour: DeviceNeighbour): string {
   return `${neighbour.name.toLowerCase()}|${
     neighbour.localInterfaceIndex === undefined
-      ? ""
+      ? neighbour.localPortName || ""
       : String(neighbour.localInterfaceIndex)
   }`;
 }
 
 /**
- * The device's neighbours, LLDP first and then CDP, each cable once (a Cisco
- * neighbour speaking both is one neighbour), in the order of this device's
- * ports. A row with neither a name nor a chassis id says nothing and is left
- * out.
+ * The device's neighbours, LLDP first, then CDP, then what its controller
+ * reports, each cable once (a Cisco neighbour speaking both is one neighbour,
+ * and what a walk reported is not repeated from a controller, which knows the
+ * same cable by a port name instead of an index), in the order of this
+ * device's ports. A row with neither a name nor a chassis id says nothing and
+ * is left out.
  */
 export function getDeviceNeighbours(data: {
   lldpNeighbors?: Array<LldpNeighbor> | null | undefined;
   cdpNeighbors?: Array<CdpNeighbor> | null | undefined;
+  controllerLinks?: Array<NetworkDeviceControllerLink> | null | undefined;
 }): Array<DeviceNeighbour> {
   const neighbours: Array<DeviceNeighbour> = [];
   const seen: Set<string> = new Set<string>();
@@ -110,7 +129,7 @@ export function getDeviceNeighbours(data: {
   for (const row of Array.isArray(data.lldpNeighbors)
     ? data.lldpNeighbors
     : []) {
-    const sysName: string = readText(row?.remoteSysName);
+    const sysName: string = readAdvertisedName(row?.remoteSysName);
     const chassisId: string = readText(row?.remoteChassisId);
     const name: string = sysName || chassisId;
 
@@ -128,7 +147,7 @@ export function getDeviceNeighbours(data: {
   }
 
   for (const row of Array.isArray(data.cdpNeighbors) ? data.cdpNeighbors : []) {
-    const name: string = readText(row?.remoteDeviceId);
+    const name: string = readAdvertisedName(row?.remoteDeviceId);
 
     if (!name) {
       continue;
@@ -140,6 +159,32 @@ export function getDeviceNeighbours(data: {
       remotePort: readRemotePort(row?.remotePortId, name),
       localInterfaceIndex: readIndex(row?.localInterfaceIndex),
       protocol: NeighbourProtocol.Cdp,
+    });
+  }
+
+  const walkedNames: Set<string> = new Set<string>(
+    neighbours.map((neighbour: DeviceNeighbour): string => {
+      return neighbour.name.toLowerCase();
+    }),
+  );
+
+  for (const link of Array.isArray(data.controllerLinks)
+    ? data.controllerLinks
+    : []) {
+    const peerName: string = readAdvertisedName(link?.peerName);
+    const name: string = peerName || readText(link?.peerMac);
+
+    if (!name || walkedNames.has(name.toLowerCase())) {
+      continue;
+    }
+
+    add({
+      name: name,
+      hasAdvertisedName: Boolean(peerName),
+      remotePort: readRemotePort(link.peerPort, name),
+      localPortName: readText(link.port) || undefined,
+      deviceId: link.peerDeviceId,
+      protocol: NeighbourProtocol.Controller,
     });
   }
 

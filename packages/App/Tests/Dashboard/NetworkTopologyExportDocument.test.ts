@@ -1385,6 +1385,32 @@ describe("the tables list every device and every connection", () => {
     ]);
   });
 
+  test("a link Meraki reported says so, and a client on a port is no forwarding table (#5379)", () => {
+    const merakiDocument: NetworkTopologyExportDocument = build({
+      topology: {
+        nodes: STORE_NODES,
+        edges: [
+          link("sw2", "ep1", {
+            fromPort: "Port 7",
+            protocols: ["fdb"],
+            reportedBy: "meraki",
+          }),
+          link("r1", "sw1", {
+            fromPort: "Port 49",
+            protocols: ["lldp"],
+            reportedBy: "meraki",
+          }),
+        ],
+      },
+    });
+
+    const text: string = JSON.stringify(merakiDocument.pages);
+
+    expect(text).toContain("LLDP, Meraki");
+    expect(text).toContain("Meraki");
+    expect(text).not.toContain("Forwarding table");
+  });
+
   test("connections are ordered by the devices at their ends", () => {
     const rows: Array<Array<string>> = rowsOf("connections");
     const pairs: Array<string> = rows.map((row: Array<string>): string => {

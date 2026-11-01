@@ -103,6 +103,26 @@ export interface NetworkTopologyNodeDiagnostics {
    * that a device was renamed, which no amount of "no links found" conveys.
    */
   unmatchedNeighborIdentifiers: Array<string>;
+  /*
+   * What placing a device that reports no neighbours depends on, so the
+   * drawer can name the piece that is missing rather than list them all.
+   * Absent on older payloads.
+   */
+  placement?: NetworkTopologyNodePlacementDiagnostics | undefined;
+}
+
+export interface NetworkTopologyNodePlacementDiagnostics {
+  // A MAC is declared or learned: any forwarding table can name the device.
+  hasMacAddress: boolean;
+  /*
+   * Its hostname is an IPv4 literal: a client list or an ARP table can name
+   * it by address. A DNS name gives neither anything to match.
+   */
+  hasAddressKey: boolean;
+  // Devices at its site that walk their ARP and forwarding tables.
+  siteEndpointCollectorCount: number;
+  // Devices at its site a network controller (Meraki) describes.
+  siteControllerDeviceCount: number;
 }
 
 export interface NetworkTopologyNode {
@@ -185,6 +205,11 @@ export interface NetworkTopologyNode {
   ipAddress?: string | undefined;
   classification?: string | undefined;
   vlanId?: number | undefined;
+  /*
+   * What a network controller calls this node, when it differs from `name`:
+   * the name of a Meraki client. Best-effort, like the fields above.
+   */
+  hostname?: string | undefined;
   // Why this device has no links. Managed device nodes only.
   diagnostics?: NetworkTopologyNodeDiagnostics | undefined;
 }
@@ -250,6 +275,17 @@ export interface NetworkTopologyEdge {
    * and fall back to `fromNodeId` on a payload that predates it.
    */
   learnedByNodeId?: string | undefined;
+  /*
+   * The network controller that reported this link or attachment, as a
+   * NetworkControllerProvider ("meraki"), when one did.
+   *
+   * Beside `protocols` rather than in it: what Meraki reports IS an LLDP or
+   * CDP neighbour, or a client on a port, so `protocols` still says what kind
+   * of link this is - which is what the layouts read - and this says who told
+   * us. An "fdb" edge with this set came from the controller's client list,
+   * not from any forwarding table OneUptime walked.
+   */
+  reportedBy?: string | undefined;
 }
 
 export default interface NetworkTopology {

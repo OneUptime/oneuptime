@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39103,
-    "untranslated": 1137
+    "keys": 39179,
+    "untranslated": 1141
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -67,6 +67,7 @@
     "DES",
     "DNS:",
     "DNSSEC",
+    "DeploymentConfigs",
     "Docker CLI",
     "Docker Compose",
     "Docker {{version}}",
@@ -77,6 +78,7 @@
     "Down · In",
     "EKS Fargate",
     "ERR",
+    "Edge",
     "Enter",
     "Enterprise Edition",
     "Envoy Proxy",
@@ -138,6 +140,7 @@
     "OpenAI",
     "OpenInference",
     "OpenLLMetry",
+    "OpenShift",
     "OpenTelemetry Collector",
     "OpenTelemetry SDK",
     "OpenTofu",
@@ -146,6 +149,7 @@
     "PVC",
     "PVE ID",
     "PVE {{version}}",
+    "Passthrough",
     "Ping",
     "Pod",
     "Pod IP",
@@ -157,6 +161,8 @@
     "PostgreSQL db.prod.internal:5432",
     "RTT",
     "RX",
+    "Re-encrypt",
+    "Red Hat OpenShift",
     "Runbook",
     "Runbook ID",
     "Runbook: {{name}}",
@@ -177,6 +183,7 @@
     "Shift + Enter",
     "Stripe Payments API",
     "Swarm ID",
+    "TLS",
     "TTL",
     "TX",
     "Telegram: ",

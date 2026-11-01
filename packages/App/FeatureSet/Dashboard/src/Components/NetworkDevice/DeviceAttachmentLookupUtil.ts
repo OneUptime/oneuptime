@@ -5,7 +5,9 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import DeviceReachabilityUtil from "Common/Utils/NetworkDevice/DeviceReachabilityUtil";
-import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
+import EndpointAttachmentUtil, {
+  normalizeMac,
+} from "Common/Utils/Monitor/EndpointAttachmentUtil";
 import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -48,6 +50,8 @@ export interface DeviceAttachment {
   interfaceIndex?: number | undefined;
   vlanId?: number | undefined;
   lastSeenAt?: Date | undefined;
+  // The controller that reported it, when no walked table did.
+  reportedBy?: string | undefined;
 }
 
 /** The three device columns the match keys come from, plus its own id. */
@@ -78,6 +82,7 @@ export interface AttachmentEndpointRow {
   attachedInterfaceIndex?: number | undefined;
   vlanId?: number | undefined;
   lastSeenAt?: Date | undefined;
+  attachmentSource?: string | undefined;
 }
 
 export interface DeviceAttachmentLookupResult {
@@ -169,7 +174,13 @@ function isFreshSighting(row: AttachmentEndpointRow, now: Date): boolean {
     return false;
   }
   const ageMs: number = now.getTime() - new Date(row.lastSeenAt).getTime();
-  return ageMs <= ADDRESS_MATCH_FRESH_WINDOW_MS;
+  return (
+    ageMs <=
+    EndpointAttachmentUtil.getSightingWindowMs(
+      row.attachmentSource,
+      ADDRESS_MATCH_FRESH_WINDOW_MS,
+    )
+  );
 }
 
 function isFresherSighting(
@@ -205,6 +216,7 @@ function toAttachment(candidate: AttachmentCandidate): DeviceAttachment {
     interfaceIndex: row.attachedInterfaceIndex,
     vlanId: row.vlanId,
     lastSeenAt: row.lastSeenAt ? new Date(row.lastSeenAt) : undefined,
+    reportedBy: row.attachmentSource,
   };
 }
 
@@ -389,6 +401,7 @@ function toEndpointRow(endpoint: NetworkEndpoint): AttachmentEndpointRow {
     attachedInterfaceIndex: endpoint.attachedInterfaceIndex,
     vlanId: endpoint.vlanId,
     lastSeenAt: endpoint.lastSeenAt,
+    attachmentSource: endpoint.attachmentSource,
   };
 }
 
@@ -424,6 +437,7 @@ async function listEndpointsBy(
         attachedInterfaceIndex: true,
         vlanId: true,
         lastSeenAt: true,
+        attachmentSource: true,
       },
       sort: {},
     });
@@ -450,10 +464,12 @@ export async function getDeviceAttachment(
       /*
        * What the device itself reports it is cabled to, read in the same
        * request: the card lists these neighbours for a device that speaks
-       * LLDP or CDP (DeviceNeighbours).
+       * LLDP or CDP (DeviceNeighbours), and the links Meraki reports for it,
+       * which sit in its discovered details.
        */
       lldpNeighbors: true,
       cdpNeighbors: true,
+      discoveredDetails: true,
     },
   });
 

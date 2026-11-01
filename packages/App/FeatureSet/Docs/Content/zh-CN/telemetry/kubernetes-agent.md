@@ -240,6 +240,14 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 
 要恢复这些内容，请以 cluster-admin 身份在升级时用 `--set preset=openshift` 切换到 `openshift`。
 
+**你在 OneUptime 中看到的内容。** 代理还会以只读方式读取 OpenShift 自身的对象，并显示在集群的页面中：
+
+- 集群的 **概览** 以 **OpenShift** 卡片开头：它运行的版本、更新正在进行还是失败，以及有多少集群 Operator 健康，并附上其余每个 Operator 报告的内容。不可用的 Operator 会让集群变为 **不健康**，性能下降的 Operator 或失败的更新会让集群变为 **性能下降**。
+- **网络** 下的 **Routes** 和 **服务**：每个 Route 在哪里响应、如何终止 TLS、把流量发送到哪些服务以及各占多少比例，以及路由器拒绝它的原因。Route 的 TLS 密钥绝不会离开集群：代理在发送 Route 之前会替换它。
+- **工作负载** 下的 **DeploymentConfigs** 的显示方式与 Deployment 相同：它们的发布、Pod 的 CPU 和内存，以及它们运行的 ReplicationController 和 Pod 的事件。
+
+**关于 Operator 和更新的警报。** OpenShift 集群的 **建议** 页面提供 **Cluster Operator Unavailable**、**Cluster Operator Degraded** 和 **Cluster Update Failing**。每一项都是一个日志监视器，监视代理每隔 `resourceSpecs.interval` 发送的快照。一旦两个快照都报告问题就会发出警报，因此 Operator 在更新期间短暂切换状态不会触发任何警报；当快照表明问题已结束时，警报才会解决，绝不会因为代理停止发送而解决。
+
 **OpenShift 自带的警报。** OpenShift 自带 Prometheus 和 Alertmanager，并为其 Operator、etcd 和节点提供警报。要为每条警报在 OneUptime 中创建一个事件，请在 Web 控制台的 **Administration → Cluster Settings → Configuration → Alertmanager** 下为 OneUptime 添加一个 Webhook 接收器，具体请参阅 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。
 
 **来自你代码的追踪。** eBPF 插桩无需修改代码即可追踪 HTTP、gRPC 和 SQL。要从 OpenTelemetry SDK 或 Red Hat build of OpenTelemetry 发送追踪，请将它们的 OTLP 导出器指向 OneUptime，具体请参阅 [OpenTelemetry](/docs/telemetry/open-telemetry)。
@@ -254,6 +262,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 集群指标 | 节点状况、可分配资源、Pod 数量 |
 | Kubernetes 事件 | 来自每个命名空间、每种对象的每个事件（Warning 和 Normal）：请参阅 [Kubernetes 事件](#kubernetes-事件) |
 | Pod 日志 | 每个容器的 stdout 和 stderr（标准集群上通过 `hostPath`，Autopilot 和 Fargate 上通过 Kubernetes API） |
+| OpenShift 对象（OpenShift 预设） | ClusterOperator、ClusterVersion、Route、DeploymentConfig 和 Service：请参阅 [OpenShift](#openshift) |
 | 应用追踪（eBPF，默认开启） | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis Span，无需 SDK 或修改代码 |
 | HTTP RED 指标（eBPF） | 每个服务的 `http.server.request.duration`，以及请求和响应的正文大小 |
 | 服务图（eBPF） | 调用方到被调用方的请求速率、延迟和错误边，用于绘制服务地图 |
