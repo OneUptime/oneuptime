@@ -48,7 +48,7 @@ La connessione accede con la chiave di un account di servizio e la [delega a liv
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Security Events → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Google Workspace** in **Identità** e fai clic su **Avanti**. Inserisci l'**Administrator email**, fai clic su **Avanti** e incolla il contenuto del file della chiave in **JSON dell'account di servizio**. Nel passaggio **Interrogazione**, attiva **Attività di Drive** per leggere anche Drive.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Google Workspace** in **Identità** e fai clic su **Avanti**. Inserisci l'**Administrator email**, fai clic su **Avanti** e incolla il contenuto del file della chiave in **JSON dell'account di servizio**. Nel passaggio **Interrogazione**, attiva **Attività di Drive** per leggere anche Drive.
 
 ### Provarla prima di salvare
 

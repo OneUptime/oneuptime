@@ -49,7 +49,7 @@ A URL base que o Falcon mostrou diz em qual nuvem o seu CID está. A página **A
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **CrowdStrike Falcon** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o segredo em **Segredo do cliente**.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **CrowdStrike Falcon** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o segredo em **Segredo do cliente**.
 
 ### Testar antes de salvar
 

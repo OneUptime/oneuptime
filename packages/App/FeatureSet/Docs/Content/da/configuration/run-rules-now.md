@@ -28,7 +28,7 @@ For at køre en regel skal du have tilladelse til at redigere reglen **og** til 
 > [!IMPORTANT]
 > En tilladelse, der er begrænset til bestemte etiketter eller til ressourcer, du ejer, er ikke nok: en kørsel kan ændre alle ressourcer i projektet. Teams' bloklister gælder som alle andre steder, og en blokering begrænset til nogle etiketter tæller også: en kørsel ville ændre de ressourcer, der har de etiketter, så en blokering med etiketter på redigering af de ressourcer, en regel ændrer, afviser kørslen.
 
-Et netværks regler kræver det samme, når du kører dem på de enheder, du allerede har. **Kør nu** for en regel for webstedstildeling eller enhedsetiketter kræver tilladelse til at redigere reglen og **Edit Network Device**. **Dry Run** og **Run Rule** for en regel for automatisk import kræver tilladelse til at redigere reglen, **Create Network Device** og, når reglen har en monitorskabelon, **Create Monitor**. Hver af dem skal omfatte hele projektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importér-automatisk-med-auto-importregler).
+Et netværks regler kræver det samme, når du kører dem på de enheder, du allerede har. **Kør nu** for en regel for webstedstildeling eller enhedsetiketter kræver tilladelse til at redigere reglen og **Edit Network Device**. **Dry Run** og **Kør regel** for en regel for automatisk import kræver tilladelse til at redigere reglen, **Create Network Device** og, når reglen har en monitorskabelon, **Create Monitor**. Hver af dem skal omfatte hele projektet. Se [Automatisk import med regler for automatisk import](/docs/monitor/network-device-monitor#importér-automatisk-med-auto-importregler).
 
 ## Kør én regel
 
@@ -43,11 +43,11 @@ Et netværks regler kræver det samme, når du kører dem på de enheder, du all
 
 ### Vælg, om nye ejere skal underrettes
 
-For en ejerregel vælger du, om du vil **Notify the owners this run adds**. Det er slået fra som standard og virker kun, når reglen selv har **Underret ejere** slået til. En ejer underrettes én gang for hver ressource, vedkommende tilføjes til.
+For en ejerregel vælger du, om du vil **Giv besked til de ejere, denne kørsel tilføjer**. Det er slået fra som standard og virker kun, når reglen selv har **Underret ejere** slået til. En ejer underrettes én gang for hver ressource, vedkommende tilføjes til.
 
 ### Start reglen
 
-Vælg **Run Rule**, og hold dialogboksen åben. I et stort projekt viser dialogboksen, hvor langt kørslen er nået.
+Vælg **Kør regel**, og hold dialogboksen åben. I et stort projekt viser dialogboksen, hvor langt kørslen er nået.
 
 ### Læs rapporten
 

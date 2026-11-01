@@ -23,7 +23,7 @@ flowchart TB
     group --> tabs
 ```
 
-Apri **Prodotti → AI / LLM**, sotto **Osservabilità**. Il prodotto ha sette schede:
+Apri **Prodotti → IA / LLM**, sotto **Osservabilità**. Il prodotto ha sette schede:
 
 | Scheda | Cosa mostra |
 | --- | --- |
@@ -39,7 +39,7 @@ Nel visualizzatore di tracce, lo span di ogni chiamata di IA ha anche una scheda
 
 ## Tre vie d'ingresso
 
-Tutte e tre sono in **Prodotti → AI / LLM → Collega**. Usane una, due o tutte: tutto arriva nelle stesse **Conversazioni**, **Utilizzo**, **Avvisi** e **Budget**.
+Tutte e tre sono in **Prodotti → IA / LLM → Collega**. Usane una, due o tutte: tutto arriva nelle stesse **Conversazioni**, **Utilizzo**, **Avvisi** e **Budget**.
 
 | Via d'ingresso | Cosa ottieni | Come |
 | --- | --- | --- |
@@ -185,12 +185,12 @@ La scheda **Avvisi** elenca gli avvisi che servono alla maggior parte delle app 
 
 | Avviso | Quando ti avvisa | Gravità |
 | --- | --- | --- |
-| Le risposte vanno male | Più del 5% delle risposte in 15 minuti fallisce, viene rifiutato, troncato, è vuoto o segnalato | Warning |
+| Le risposte vanno male | Più del 5% delle risposte in 15 minuti fallisce, viene rifiutato, troncato, è vuoto o segnalato | Avviso |
 | Le chiamate all'IA falliscono | Più del 10% delle chiamate al modello in 5 minuti termina con un errore | Critical |
-| L'IA rifiuta di rispondere | Più del 5% delle risposte in 30 minuti sono rifiuti | Warning |
-| Le risposte vengono troncate | 3 o più risposte in 30 minuti si fermano al limite di token | Warning |
-| Le risposte vengono segnalate | Una valutazione segna una risposta come sbagliata | Warning |
-| Le risposte sono lente | Più del 10% delle risposte in 15 minuti impiega più di 30 secondi | Warning |
+| L'IA rifiuta di rispondere | Più del 5% delle risposte in 30 minuti sono rifiuti | Avviso |
+| Le risposte vengono troncate | 3 o più risposte in 30 minuti si fermano al limite di token | Avviso |
+| Le risposte vengono segnalate | Una valutazione segna una risposta come sbagliata | Avviso |
+| Le risposte sono lente | Più del 10% delle risposte in 15 minuti impiega più di 30 secondi | Avviso |
 | L'IA smette di rispondere | L'IA non dà alcuna risposta per 30 minuti | Critical |
 
 Gli avvisi su una quota di risposte aspettano anche almeno 3 risposte sbagliate, così una risposta sbagliata su due non chiama nessuno. Un avviso Critical prende la gravità di avviso più alta del tuo progetto e un avviso Warning quella successiva: High e Low in un progetto nuovo.

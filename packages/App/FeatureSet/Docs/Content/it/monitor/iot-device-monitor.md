@@ -78,13 +78,13 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | --- | --- | --- |
 | **IoT Fleet** | Tutte | Obbligatorio. Limita ogni query a `resource.iot.fleet.name`. |
 | **Device ID** | Custom Metric, Avanzato | Facoltativo. Un dispositivo, tramite il suo `device.id`, come `sensor-001`. |
-| **Device Type** | Custom Metric, Avanzato | Facoltativo. I dispositivi che segnalano questo `iot.device.type`, come `sensor` o `gateway`. |
+| **Tipo di dispositivo** | Custom Metric, Avanzato | Facoltativo. I dispositivi che segnalano questo `iot.device.type`, come `sensor` o `gateway`. |
 | **IoT Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |
 | **Intervallo di tempo** | Tutte | La finestra mobile che la query legge, da **Past 1 Minute** a **Past 365 Days**. Un nuovo monitor parte da **Past 1 Minute**; i modelli impostano la propria. |
 | **Seleziona metriche** | Avanzato | Il generatore di query: **Metrica**, **Aggregate by**, **Filter by attributes**, **Raggruppa per**, più **Aggiungi metrica** e **Aggiungi formula** per combinare le query. |
 
-I filtri agiscono insieme: con un **Device ID** e un **Device Type**, un dispositivo di un altro tipo non corrisponde a nulla.
+I filtri agiscono insieme: con un **Device ID** e un **Tipo di dispositivo**, un dispositivo di un altro tipo non corrisponde a nulla.
 
 ## Modelli di avviso predefiniti
 
@@ -152,7 +152,7 @@ Un criterio confronta una delle query o formule del monitor con una soglia. I cr
 | **Finestra di riferimento** | Solo condizioni di anomalia. 14 giorni (il predefinito), 28, 60 o 90 giorni di storico. |
 | **Se nessun dato** | In **Altri campi**. Cosa succede quando una serie non ha campioni nella finestra: **Ignore** (il predefinito) la salta, **Treat As Zero** la legge come `0`, e **Trigger** fa corrispondere il criterio. |
 
-Le condizioni di anomalia confrontano ogni valore con la stessa ora della settimana nel riferimento. Restano in uno stato «Learning», e non generano nulla, finché la finestra di riferimento non contiene abbastanza storico.
+Le condizioni di anomalia confrontano ogni valore con la stessa ora della settimana nel riferimento. Restano in uno stato «Learning», e non generano nulla, finché la finestra di riferimento non contiene abbastanza storico. Una somma, un conteggio o una query su un istogramma resta per sempre in quello stato: questo monitor filtra le sue query per attributi e la baseline non ne contiene.
 
 ### Criteri predefiniti
 

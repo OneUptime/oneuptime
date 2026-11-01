@@ -34,7 +34,7 @@ En lucka är en allvarlighetsgrad utan regel, på fliken för incidenter, incide
 
 ## Sidan Beredskap
 
-Öppna **Jourtjänst → Beredskap**. Kortet **On-call readiness** listar alla som någon jourpolicy i projektet kan nå, med de som behöver något först. Alla i projektet kan öppna den.
+Öppna **Jourtjänst → Beredskap**. Kortet **Jourberedskap** listar alla som någon jourpolicy i projektet kan nå, med de som behöver något först. Alla i projektet kan öppna den.
 
 Ovanför listan räknar rutorna **Mottagare**, **Klar**, **Behöver konfigureras** och **Onåbar**. Klicka på **Klar**, **Behöver konfigureras** eller **Onåbar** för att bara lista de mottagarna, och klicka igen för att lista alla.
 
@@ -43,10 +43,10 @@ Ovanför listan räknar rutorna **Mottagare**, **Klar**, **Behöver konfigureras
 | **Mottagare** | Personen, med e-postadress. |
 | **Status** | **Klar**, **Onåbar**, eller hur många luckor personen har. |
 | **Kanaler** | Ett segment per kanal: ifyllt för en verifierad metod, ihåligt för en som inte är verifierad än. |
-| **Coverage** | Hur många allvarlighetsgrader som har en regel, på varje flik, av alla. |
-| **Reached via** | Hur policyerna når personen: varje team som larmar personen via en eskaleringsregel, med sitt namn, eller **Direct**, **Schema** eller **Åsidosättning**. |
+| **Täckning** | Hur många allvarlighetsgrader som har en regel, på varje flik, av alla. |
+| **Nås via** | Hur policyerna når personen: varje team som larmar personen via en eskaleringsregel, med sitt namn, eller **Direkt**, **Schema** eller **Åsidosättning**. |
 
-**Coverage** på en rad visar personens aviseringsmetoder, varför hen har sin status och ett rutnät över varje allvarlighetsgrad med eller utan regel. Tratten filtrerar listan efter **Mottagare**, **Status**, **Team** eller **Reached via**. Svaret kan vara en minut gammalt: **Uppdatera** avgör det på nytt.
+**Täckning** på en rad visar personens aviseringsmetoder, varför hen har sin status och ett rutnät över varje allvarlighetsgrad med eller utan regel. Tratten filtrerar listan efter **Mottagare**, **Status**, **Team** eller **Nås via**. Svaret kan vara en minut gammalt: **Uppdatera** avgör det på nytt.
 
 ## Påminn personer om att slutföra inställningarna
 

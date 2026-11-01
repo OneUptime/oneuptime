@@ -44,7 +44,7 @@ I due inneschi finiscono allo stesso modo: un monitor crea un avviso, e il nuovo
 La spesa è il segnale più sicuro di un agente fuori controllo. Un budget somma ogni 15 minuti la spesa IA del giorno e la pubblica come due metriche, `oneuptime.llm.budget.spend.usd` e `oneuptime.llm.budget.percent.used`, ciascuna con l'ID del budget in `oneuptime.llm.budget.id`.
 
 :::steps
-1. Apri **Prodotti → AI / LLM → Budget** e fai clic su **Crea: LLM Cost Budget**. Imposta un **Budget giornaliero (USD)** e scegli il servizio dell'agente in **Servizio (facoltativo)**, così il budget sorveglia solo quell'agente.
+1. Apri **Prodotti → IA / LLM → Budget** e fai clic su **Crea: LLM Cost Budget**. Imposta un **Budget giornaliero (USD)** e scegli il servizio dell'agente in **Servizio (facoltativo)**, così il budget sorveglia solo quell'agente.
 2. Nel menu della riga del nuovo budget, scegli **Mostra ID** e copia l'ID.
 3. Crea un [monitor di metriche](/docs/monitor/metrics-monitor) su `oneuptime.llm.budget.percent.used`, filtrato per l'attributo `oneuptime.llm.budget.id` con l'ID che hai copiato, e imposta la sua **Finestra temporale** su **Ultimi 30 minuti**.
 4. In **Quando avvisare**, imposta la **Condizione** su **Pari o superiore a** e il **Valore** su `100`, lascia **Crea un avviso**, e dagli un **Titolo dell'avviso** che nomini l'agente, come `LLM budget exceeded: support-bot`. Il flusso di lavoro e il tuo endpoint leggono entrambi quel titolo.
@@ -110,7 +110,7 @@ Costruiscilo secondo queste regole:
 - Rendi lo scatto idempotente. Un preavviso e un superamento, o un avviso di budget e uno di ciclo insieme, possono farlo scattare più di una volta, e un secondo scatto non deve cambiare nulla.
 - Rispondi entro un secondo o due e fai la pulizia in background. Il flusso di lavoro considera un successo qualsiasi risposta 2xx.
 - Richiedi un segreto. Chiunque possa chiamare l'endpoint può fermare i tuoi agenti, quindi verifica un token bearer, che il flusso di lavoro invia da una variabile globale segreta.
-- Riarma a mano. Un circuit breaker scattato resta scattato finché qualcuno non ha esaminato l'esecuzione: apri la conversazione dell'agente in **Prodotti → AI / LLM → Conversazioni** per leggere o riprodurre quello che ha fatto.
+- Riarma a mano. Un circuit breaker scattato resta scattato finché qualcuno non ha esaminato l'esecuzione: apri la conversazione dell'agente in **Prodotti → IA / LLM → Conversazioni** per leggere o riprodurre quello che ha fatto.
 
 La richiesta parte da OneUptime. Su OneUptime Cloud, il tuo endpoint deve essere raggiungibile da internet. Un'installazione self-hosted rifiuta gli indirizzi di rete privati a meno che un amministratore non li consenta: vedi [Accesso di rete in uscita](/docs/workflows/configuration#accesso-alla-rete-in-uscita).
 

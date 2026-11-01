@@ -44,9 +44,9 @@ Au-dessus de la liste, les tuiles comptent **Intervenants**, **Prêt**, **À con
 | **Statut** | **Prêt**, **Injoignable**, ou le nombre de lacunes de la personne. |
 | **Canaux** | Un segment par canal : plein pour une méthode vérifiée, creux pour une méthode pas encore vérifiée. |
 | **Couverture** | Combien de gravités ont une règle, sur chaque onglet, sur le total. |
-| **Reached via** | Comment les politiques la joignent : chaque équipe qui l'alerte par une règle d'escalade, par son nom, ou **Direct**, **Planification** ou **Remplacement**. |
+| **Joint via** | Comment les politiques la joignent : chaque équipe qui l'alerte par une règle d'escalade, par son nom, ou **Direct**, **Planification** ou **Remplacement**. |
 
-**Couverture** sur une ligne montre les méthodes de notification de la personne, pourquoi elle a son statut, et une grille de chaque gravité avec ou sans règle. L'entonnoir filtre la liste par **Intervenant**, **Statut**, **Équipe** ou **Reached via**. La réponse peut dater d'une minute : **Actualiser** la recalcule.
+**Couverture** sur une ligne montre les méthodes de notification de la personne, pourquoi elle a son statut, et une grille de chaque gravité avec ou sans règle. L'entonnoir filtre la liste par **Intervenant**, **Statut**, **Équipe** ou **Joint via**. La réponse peut dater d'une minute : **Actualiser** la recalcule.
 
 ## Rappeler aux gens de terminer leur configuration
 

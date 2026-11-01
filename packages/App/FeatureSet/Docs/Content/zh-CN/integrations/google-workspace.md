@@ -48,7 +48,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → Security Events → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，在 **身份** 下选择 **Google Workspace**，然后点击 **下一步**。填写 **Administrator email**，点击 **下一步**，并把密钥文件的内容粘贴到 **服务账户 JSON** 中。在 **轮询** 步骤中开启 **云端硬盘活动**，即可同时读取云端硬盘。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，在 **身份** 下选择 **Google Workspace**，然后点击 **下一步**。填写 **Administrator email**，点击 **下一步**，并把密钥文件的内容粘贴到 **服务账户 JSON** 中。在 **轮询** 步骤中开启 **云端硬盘活动**，即可同时读取云端硬盘。
 
 ### 保存之前先测试
 

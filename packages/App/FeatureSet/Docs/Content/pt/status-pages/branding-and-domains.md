@@ -63,7 +63,7 @@ O seu CSS e o seu HTML personalizados valem nos dois temas; [HTML, CSS e JavaScr
 ### Título, descrição e favicon
 
 - **Título e descrição**: o nome da página na aba do navegador e nos e-mails aos assinantes, e a descrição que os mecanismos de pesquisa mostram. **Editar** abre **Título da página** (texto de exemplo `e.g., Acme Status`) e **Descrição da página**. Mecanismos de pesquisa e prévias de links mostram esses textos, então escreva-os para um cliente, não para a sua equipe.
-- **Favicon**: **Edit Favicon** abre o envio **Favicon**: o pequeno ícone na aba do navegador.
+- **Favicon**: **Editar favicon** abre o envio **Favicon**: o pequeno ícone na aba do navegador.
 
 ### Links do cabeçalho
 

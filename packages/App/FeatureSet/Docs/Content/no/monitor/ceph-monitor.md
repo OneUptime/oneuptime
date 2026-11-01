@@ -233,7 +233,7 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | **Grunnlinjevindu** | Bare for anomalibetingelser. 14 dager (standard), 28, 60 eller 90 dager historikk. |
 | **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har målinger: **Ignore** (standard), **Treat As Zero** eller **Utløser**. |
 
-Anomalibetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i tilstanden "Learning" og varsler ikke før grunnlinjevinduet har nok historikk.
+Anomalibetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i tilstanden "Learning" og varsler ikke før grunnlinjevinduet har nok historikk. En sum, en telling eller en spørring på et histogram blir værende i den tilstanden for alltid: denne monitoren filtrerer spørringene sine etter attributter, og grunnlinjen inneholder ingen.
 
 Hvert kriterium sier også hva som skal skje når det treffer: endre monitorstatusen, opprette et varsel eller erklære en hendelse. Kriteriene sjekkes ovenfra og ned, og det første som treffer, avgjør.
 

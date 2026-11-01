@@ -48,7 +48,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### OneUptime에서 연결 추가
 
-**제품 → Security Events → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **아이덴티티** 아래의 **Google Workspace**를 고르고 **다음**을 클릭합니다. **Administrator email**을 입력하고 **다음**을 클릭한 뒤, 키 파일의 내용을 **서비스 계정 JSON**에 붙여 넣습니다. **폴링** 단계에서 **드라이브 활동**을 켜면 드라이브도 읽습니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 다음, **아이덴티티** 아래의 **Google Workspace**를 고르고 **다음**을 클릭합니다. **Administrator email**을 입력하고 **다음**을 클릭한 뒤, 키 파일의 내용을 **서비스 계정 JSON**에 붙여 넣습니다. **폴링** 단계에서 **드라이브 활동**을 켜면 드라이브도 읽습니다.
 
 ### 저장하기 전에 테스트
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39593,
-    "untranslated": 1137
+    "keys": 39842,
+    "untranslated": 1150
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -121,6 +121,7 @@
     "Kubernetes Service",
     "LXC 201 · pve3",
     "Largest Contentful Paint",
+    "Log4Shell",
     "MCP",
     "MD5",
     "MITRE ATT&CK",

@@ -117,7 +117,7 @@ Entro un paio di minuti, la scheda **OneUptime AI** dell'incidente mostra la **C
 
 ### Usala o scartala
 
-**Usa come causa principale** apre il suggerimento, citazioni comprese, nell'editor della causa principale. Modifica ciò che serve e salva: diventa la causa principale dell'incidente come tua modifica, registrata nel suo feed. **Chiudi** mette da parte il suggerimento, e **Annulla** lo riporta.
+**Usa come causa principale** apre il suggerimento, citazioni comprese, nell'editor della causa principale. Modifica ciò che serve e salva: diventa la causa principale dell'incidente come tua modifica, registrata nel suo feed. **Nascondi** mette da parte il suggerimento, e **Annulla** lo riporta.
 :::
 
 OneUptime AI suggerisce una causa solo quando la chiamata ne nomina una, con le righe che lo dicono, e cita quelle righe così come sono nella trascrizione. Quando la chiamata non ha chiarito la causa, la scheda dice **Durante la chiamata non si è detto abbastanza per suggerire una causa principale** invece di tirare a indovinare.

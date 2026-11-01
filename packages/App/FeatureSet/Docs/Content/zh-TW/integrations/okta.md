@@ -42,7 +42,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 
 ### 在 OneUptime 中新增連線
 
-開啟 **產品 → Security Events → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **Okta System Log**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把權杖貼上到 **API token** 中。
+開啟 **產品 → 安全事件 → 連線**（`/dashboard/{projectId}/security-events/connections`），點選 **新增連線**，選擇 **Okta System Log**，然後點選 **下一步**。填寫下表中的設定，點選 **下一步**，然後把權杖貼上到 **API token** 中。
 
 ### 儲存之前先測試
 

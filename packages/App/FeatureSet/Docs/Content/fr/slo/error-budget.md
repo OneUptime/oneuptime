@@ -131,7 +131,7 @@ Avec le seuil par défaut de 20 %, un SLO à risque redevient sain à 25 % de bu
 Quand un SLO passe **À risque** ou **Budget épuisé**, OneUptime notifie ses propriétaires :
 
 - Les propriétaires sont les utilisateurs et les membres des équipes de la page **Propriétaires** du SLO qui sont encore membres du projet. Un SLO sans propriétaires notifie à la place les propriétaires du projet.
-- Chaque propriétaire reçoit un e-mail par défaut, et la notification sur chaque autre canal qu'il active pour **SLO status changed** dans **Paramètres utilisateur** → **Paramètres de notification** → **Surveillance**.
+- Chaque propriétaire reçoit un e-mail par défaut, et la notification sur chaque autre canal qu'il active pour **Statut du SLO modifié** dans **Paramètres utilisateur** → **Paramètres de notification** → **Surveillance**.
 - L'objet de l'e-mail nomme le statut et le SLO, par exemple `[SLO At Risk] API Availability`.
 
 Pour qu'un SLO proche d'une limite ne notifie pas encore et encore, ses propriétaires sont notifiés au plus une fois par heure. Un passage à **Budget épuisé** est toujours envoyé, même dans cette heure.

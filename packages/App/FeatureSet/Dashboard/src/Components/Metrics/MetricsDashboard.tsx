@@ -73,6 +73,7 @@ import {
   translatableTerm,
   TranslatableTerm,
   Translator,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -180,7 +181,7 @@ const categorizeMetric: (name: string) => string = (name: string): string => {
     lower.includes("runtime") ||
     lower.includes("gc")
   ) {
-    return "System";
+    return translationKey("System");
   }
   if (
     lower.includes("http") ||
@@ -190,7 +191,7 @@ const categorizeMetric: (name: string) => string = (name: string): string => {
     lower.includes("duration") ||
     lower.includes("rpc")
   ) {
-    return "Request";
+    return translationKey("Request");
   }
   if (
     lower.includes("db") ||
@@ -199,7 +200,7 @@ const categorizeMetric: (name: string) => string = (name: string): string => {
     lower.includes("connection") ||
     lower.includes("pool")
   ) {
-    return "Database";
+    return translationKey("Database");
   }
   if (
     lower.includes("queue") ||
@@ -209,9 +210,9 @@ const categorizeMetric: (name: string) => string = (name: string): string => {
     lower.includes("publish") ||
     lower.includes("consume")
   ) {
-    return "Messaging";
+    return translationKey("Messaging");
   }
-  return "Custom";
+  return translationKey("Custom");
 };
 
 const MetricsDashboard: FunctionComponent = (): ReactElement => {
@@ -989,7 +990,13 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                   key={cat.name}
                   className={cat.barColor}
                   style={{ width: `${Math.max(pct, 1)}%` }}
-                  title={`${cat.name}: ${cat.count}`}
+                  title={translator.translateTemplate(
+                    "{{category}}: {{count}}",
+                    {
+                      category: translatableTerm(cat.name),
+                      count: translator.formatNumber(cat.count),
+                    },
+                  )}
                 />
               );
             })}
@@ -1007,7 +1014,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                 >
                   <span className={`h-2 w-2 rounded-full ${cat.barColor}`} />
                   <span className={`text-xs font-medium ${cat.color}`}>
-                    {cat.name}
+                    {translator.translateText(cat.name)}
                   </span>
                   <span className={`text-xs ${cat.color} opacity-70`}>
                     {cat.count} · {pct}%

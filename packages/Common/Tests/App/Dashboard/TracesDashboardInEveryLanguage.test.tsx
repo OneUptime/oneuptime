@@ -113,6 +113,7 @@ import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import Service from "../../../Models/DatabaseModels/Service";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import {
   translatableTerm,
   TemplateValues,
@@ -570,8 +571,12 @@ describe.each(LANGUAGES)("the Insights tab in %s", (language: string) => {
       word(language, "Stop scoping by this saved view"),
     );
 
-    // The sentence around the view's own name, wherever the language puts it.
-    expect(textOf(stop.parentElement)).toBe(
+    /*
+     * The sentence around the view's own name, wherever the language puts it.
+     * A right-to-left page sets the name apart in an isolate (#5510), which
+     * the reading-direction suites hold; this one reads what it says.
+     */
+    expect(withoutIsolateMarks(textOf(stop.parentElement))).toBe(
       sentence(language, "Scoped by saved view {{name}}", {
         name: "Checkout errors",
       }),

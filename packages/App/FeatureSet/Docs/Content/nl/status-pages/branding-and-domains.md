@@ -63,7 +63,7 @@ Uw aangepaste CSS en HTML gelden in beide thema's; [Aangepaste HTML, CSS en Java
 ### Titel, beschrijving en favicon
 
 - **Titel en beschrijving**: de naam van de pagina in het browsertabblad en in e-mails aan abonnees, en de beschrijving die zoekmachines tonen. **Bewerken** opent **Paginatitel** (plaatshouder `e.g., Acme Status`) en **Paginabeschrijving**. Zoekmachines en linkvoorbeelden tonen deze teksten, dus schrijf ze voor een klant, niet voor uw team.
-- **Favicon**: **Edit Favicon** opent de upload **Favicon**: het kleine pictogram in het browsertabblad.
+- **Favicon**: **Favicon bewerken** opent de upload **Favicon**: het kleine pictogram in het browsertabblad.
 
 ### Koptekstlinks
 

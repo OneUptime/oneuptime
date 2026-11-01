@@ -5946,6 +5946,58 @@ test.describe("one AI card: the investigation and the conversation", () => {
       expect(caption!.height).toBeLessThanOrEqual(22);
     });
 
+    /*
+     * The box sizes itself to its text as it mounts, and on a page whose
+     * styles are still being written (the Tailwind runtime) that read came
+     * before the box's padding: 24px, the bare line, so its first line - the
+     * placeholder - sat half under the row below until something was typed.
+     * A floor of one padded line keeps it whole from the start.
+     */
+    test("shows its whole first line as the page opens, before anything is typed", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openConversation(page, "");
+
+      const box: Locator = composerBox(page);
+      await expect(box).toHaveValue("");
+
+      // Nothing of its first line is scrolled out of the box.
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            const area: HTMLTextAreaElement = element as HTMLTextAreaElement;
+            return area.scrollHeight - area.clientHeight;
+          });
+        })
+        .toBeLessThanOrEqual(0);
+
+      // One line of 24px with its 12px and 4px padding.
+      const height: number = await box.evaluate((element: Element): number => {
+        return element.getBoundingClientRect().height;
+      });
+      expect(height).toBeGreaterThanOrEqual(40);
+
+      // And it still grows with the text, then shrinks back when cleared.
+      await box.fill("One\nTwo\nThree");
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            return element.getBoundingClientRect().height;
+          });
+        })
+        .toBeGreaterThan(height);
+      await box.fill("");
+      await expect
+        .poll(async (): Promise<number> => {
+          return box.evaluate((element: Element): number => {
+            return element.getBoundingClientRect().height;
+          });
+        })
+        .toBe(height);
+    });
+
     test("does not take focus when the page loads, and shows an indigo focus when used", async ({
       page,
     }: {

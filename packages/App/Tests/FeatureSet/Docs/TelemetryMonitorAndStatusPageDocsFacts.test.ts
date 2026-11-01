@@ -46,6 +46,7 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
 import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import LogMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/LogMonitorCriteria";
 import { METRIC_BASELINE_MINIMUM_WEEKS } from "Common/Server/Utils/Monitor/MetricHourBaseline";
+import { HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS } from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import MetricWindowCoverage, {
   MetricEvaluationWindow,
 } from "Common/Server/Utils/Monitor/Criteria/MetricWindowCoverage";
@@ -1442,6 +1443,25 @@ describe("criteria", () => {
     );
     expect(METRICS).toContain(
       "It is still learning: the hour of the week it compares against does not have two weeks of history yet.",
+    );
+    // What each query is compared with: MetricHourBaseline.getSource.
+    expect(METRICS).toContain(
+      "A monitor that names services is compared with those services alone.",
+    );
+    expect(METRICS).toContain(
+      `**A Sum or a Count, and any query on a histogram,** is compared with the query's own data points. Those are kept as long as your metrics are, so the comparison reaches back no further than that: ${HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS} days unless you changed it.`,
+    );
+    expect(METRICS).toContain(
+      "If it is a Sum, a Count or a query on a histogram, there is nothing to compare it with and it stays learning. So does a percentile of a histogram.",
+    );
+    expect(METRICS).toContain(
+      "A Sum, a Count or a query on a histogram that is filtered or grouped by an attribute stays learning for good, and so does a percentile of a histogram",
+    );
+    expect(METRICS).toContain(
+      "A Sum or a Count only counts as low on a complete data point with another complete one after it",
+    );
+    expect(readPage("en", "monitor/host-monitor")).toContain(
+      "A Sum, a Count or a query on a histogram stays in that state for good: this monitor filters its queries by attributes",
     );
     expect(readPage("en", "monitor/kubernetes-monitor")).toContain(
       'Anomaly conditions stay in a "Learning" state and produce no alerts until that hour of the week has two weeks of history.',

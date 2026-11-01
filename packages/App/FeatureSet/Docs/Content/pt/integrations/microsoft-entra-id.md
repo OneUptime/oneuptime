@@ -53,7 +53,7 @@ Vá em **Certificates & secrets → Client secrets → New client secret**, esco
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Microsoft Entra ID** em **Identidade** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o valor do segredo em **Segredo do cliente**. Na etapa **Consulta periódica**, ative **Log de auditoria do Microsoft 365** para lê-lo também.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Microsoft Entra ID** em **Identidade** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o valor do segredo em **Segredo do cliente**. Na etapa **Consulta periódica**, ative **Log de auditoria do Microsoft 365** para lê-lo também.
 
 ### Testar antes de salvar
 

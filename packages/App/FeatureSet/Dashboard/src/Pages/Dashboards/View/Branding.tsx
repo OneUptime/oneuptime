@@ -174,6 +174,8 @@ const DashboardBranding: FunctionComponent<
               faviconFile: true,
             },
             title: "Favicon",
+            // Its column's help ("Dashboard Favicon") only names it again.
+            hideColumnDescription: true,
             fieldType: FormFieldSchemaType.ImageFile,
             required: false,
             placeholder: "Upload Favicon.",

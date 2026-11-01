@@ -63,7 +63,7 @@ Den egendefinerte CSS-en og HTML-en din gjelder i begge temaene; [Egendefinert H
 ### Tittel, beskrivelse og favicon
 
 - **Tittel og beskrivelse**: sidens navn i nettleserfanen og i e-poster til abonnenter, og beskrivelsen søkemotorer viser. **Rediger** åpner **Sidetittel** (plassholder `e.g., Acme Status`) og **Sidebeskrivelse**. Søkemotorer og forhåndsvisninger av lenker viser dem, så skriv dem for en kunde, ikke for teamet ditt.
-- **Favicon**: **Edit Favicon** åpner opplastingen **Favicon**: det lille ikonet i nettleserfanen.
+- **Favicon**: **Rediger favikon** åpner opplastingen **Favicon**: det lille ikonet i nettleserfanen.
 
 ### Topptekstlenker
 

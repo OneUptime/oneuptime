@@ -26,7 +26,7 @@ flowchart TB
     monitors --> act
 ```
 
-Öppna **Produkter → Security Events**, under **Observerbarhet**. Dess meny har ett avsnitt för varje del av säkerheten, och en egen sida för varje sak i den:
+Öppna **Produkter → Säkerhetshändelser**, under **Observerbarhet**. Dess meny har ett avsnitt för varje del av säkerheten, och en egen sida för varje sak i den:
 
 | Sida | Avsnitt | Vad den används till |
 | --- | --- | --- |
@@ -38,7 +38,7 @@ flowchart TB
 | **Alla ärenden** | Säkerhetsärenden | Varje ärende, öppet eller stängt |
 | **Händelser** | Händelser | Sök och filtrera alla händelser, och öppna en för att se alla dess fält |
 | **Hunts** | Händelser | Sökningar sparade från Händelser, öppnade igen med ett klick eller körda enligt ett schema som aviserar personer när de hittar något |
-| **Campaigns** | Händelser | Varje adress som skickade attackförfrågningar, och om någon av dess förfrågningar kom igenom |
+| **Kampanjer** | Händelser | Varje adress som skickade attackförfrågningar, och om någon av dess förfrågningar kom igenom |
 | **Entitetsrisk** | Händelser | Varje användare, värd och adress, poängsatt efter vad som hittats om den den här veckan, de mest riskfyllda först |
 | **Korrelera** | Händelser | En graf över händelserna som delar en värd, en användare eller en IP-adress |
 | **Detektionsregler** | Detections | Sigma-regler som körs enligt ett schema och öppnar ärenden |
@@ -111,7 +111,7 @@ Slutpunkten svarar `200` när händelserna har lagts i kö. En händelse som ski
 
 ### Hitta dem under Händelser
 
-Öppna **Produkter → Security Events → Händelser**. Händelserna visas inom några sekunder, med allvarlighetsgrad, klass, användare, värd och IP-adresser ifyllda.
+Öppna **Produkter → Säkerhetshändelser → Händelser**. Händelserna visas inom några sekunder, med allvarlighetsgrad, klass, användare, värd och IP-adresser ifyllda.
 :::
 
 ### Format
@@ -262,11 +262,11 @@ Sidopanelen räknar fönstrets händelser efter **Källa**, **Allvarlighetsgrad*
 
 ### Vad som hände sedan
 
-En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Reached App**, **Errored** eller **Reached Database**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
+En händelse läst från en loggrad som skrevs inuti en spårad förfrågan följs in i den förfrågan. Dess panel visar hur långt förfrågan kom (**Avvisad**, **Nådde appen**, **Fel** eller **Nådde databasen**), vem som skickade den, och länkar till dess spårning, dess undantag, dess sessionsuppspelning och själva loggraden. En loggrad, en spårning och ett undantag som är del av en attack säger det också på sina egna sidor.
 
 ### Campaigns
 
-**Campaigns** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
+**Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
 
 ### Korrelera
 
@@ -327,7 +327,7 @@ flowchart TB
 ### Skapa en regel
 
 :::steps
-1. Öppna **Produkter → Security Events → Detektioner → Detektionsregler** och klicka på **Skapa Detektionsregel**.
+1. Öppna **Produkter → Säkerhetshändelser → Detektioner → Detektionsregler** och klicka på **Skapa Detektionsregel**.
 2. Klistra in regelns YAML i **Sigma-regel (YAML)** under **Sigma-regel**. Den tolkas när du sparar, så ett fel visas i formuläret.
 3. **Namn** fylls i från regelns `title`: skriv över det för att kalla regeln något annat. En ny regel körs; **Aktiverad** finns i dess redigeringsformulär.
 4. Låt **Öppna ett ärende vid matchning** vara påslaget under **Vid träff** för att samla regelns träffar i ärenden, efter värdet som regeln grupperar efter.
@@ -492,7 +492,7 @@ Fynd är vanliga händelser: sök efter dem under **Händelser** och pivotera p�
 
 ### Undantag
 
-Ett undantag är något en regel hoppar över eftersom du väntar dig det, som en sårbarhetsskanner, ett nattligt säkerhetskopieringsjobb eller ett planerat penetrationstest. Det tystar regeln för just den saken utan att stänga av den, och regelns andra träffar utlöses fortfarande. Alla undantag listas under **Produkter → Security Events → Detektioner → Regelundantag**: lägg till ett där med **Lägg till Regelundantag**, med **Lägg till undantag** i en regels rad, eller med **Lägg till undantag** i en detektions rad i ett ärende, som börjar med detektionens regel och det den utlöstes för.
+Ett undantag är något en regel hoppar över eftersom du väntar dig det, som en sårbarhetsskanner, ett nattligt säkerhetskopieringsjobb eller ett planerat penetrationstest. Det tystar regeln för just den saken utan att stänga av den, och regelns andra träffar utlöses fortfarande. Alla undantag listas under **Produkter → Säkerhetshändelser → Detektioner → Regelundantag**: lägg till ett där med **Lägg till Regelundantag**, med **Lägg till undantag** i en regels rad, eller med **Lägg till undantag** i en detektions rad i ett ärende, som börjar med detektionens regel och det den utlöstes för.
 
 | Det regeln hoppar över | Vad det träffar |
 | --- | --- |
@@ -508,7 +508,7 @@ Ett undantag är något en regel hoppar över eftersom du väntar dig det, som e
 
 ### Bevakningslistor
 
-En bevakningslista är en lista som ditt team underhåller en gång och som varje regel kan läsa, som VIP-användare, kritiska värdar, kända skadliga filhashar eller adresserna som administratörer får logga in från. Alla listor finns under **Produkter → Security Events → Detektioner → Bevakningslistor**: Skapa en där med **Skapa Bevakningslista**, som frågar efter dess namn och vad den innehåller, eller lägg till en vanlig från **Börja med en vanlig lista**. En listas sida visar dess värden, och **Använd den i en regel** ger ett urval som läser listan, att kopiera in i en regel.
+En bevakningslista är en lista som ditt team underhåller en gång och som varje regel kan läsa, som VIP-användare, kritiska värdar, kända skadliga filhashar eller adresserna som administratörer får logga in från. Alla listor finns under **Produkter → Säkerhetshändelser → Detektioner → Bevakningslistor**: Skapa en där med **Skapa Bevakningslista**, som frågar efter dess namn och vad den innehåller, eller lägg till en vanlig från **Börja med en vanlig lista**. En listas sida visar dess värden, och **Använd den i en regel** ger ett urval som läser listan, att kopiera in i en regel.
 
 En regel läser en lista med `expand` och listans namn mellan två `%`-tecken. Den här regeln utlöses när en administratör loggar in från en adress som inte finns på den tillåtna listan:
 
