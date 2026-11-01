@@ -242,9 +242,60 @@ const hasBlockElement: (html: string) => boolean = (html: string): boolean => {
   return found;
 };
 
+// The longest character reference counted as one: "&#x200F;", "&quot;".
+const MAX_REFERENCE_LENGTH: number = 10;
+
+const isReferenceCharacter: (code: number) => boolean = (
+  code: number,
+): boolean => {
+  return (
+    code === 0x23 ||
+    (code >= 0x30 && code <= 0x39) ||
+    (code >= 0x41 && code <= 0x5a) ||
+    (code >= 0x61 && code <= 0x7a)
+  );
+};
+
 /*
- * Which way a value reads: by most of its letters (its markup left out),
- * else the way the email reads.
+ * The text with its character references ("&quot;", "&#39;") left out: the
+ * letters of their names are no letters of the text, and in a Persian note
+ * with quotes in it they would count as English. Each "&" looks no further
+ * than MAX_REFERENCE_LENGTH characters.
+ */
+const withoutCharacterReferences: (text: string) => string = (
+  text: string,
+): string => {
+  let written: string = "";
+  let index: number = 0;
+
+  while (index < text.length) {
+    if (text.charAt(index) === "&") {
+      let end: number = index + 1;
+
+      while (
+        end < text.length &&
+        end - index <= MAX_REFERENCE_LENGTH &&
+        isReferenceCharacter(text.charCodeAt(end))
+      ) {
+        end++;
+      }
+
+      if (end > index + 1 && text.charAt(end) === ";") {
+        index = end + 1;
+        continue;
+      }
+    }
+
+    written += text.charAt(index);
+    index++;
+  }
+
+  return written;
+};
+
+/*
+ * Which way a value reads: by most of its letters (its markup and character
+ * references left out), else the way the email reads.
  */
 export const getEmailValueDirection: (value: unknown) => ReadingDirection = (
   value: unknown,
@@ -253,7 +304,9 @@ export const getEmailValueDirection: (value: unknown) => ReadingDirection = (
 
   return (
     getTextReadingDirectionByMostLetters(
-      text.includes("<") ? removeHtmlMarkup(text) : text,
+      text.includes("<") || text.includes("&")
+        ? withoutCharacterReferences(removeHtmlMarkup(text))
+        : text,
     ) || RIGHT_TO_LEFT
   );
 };

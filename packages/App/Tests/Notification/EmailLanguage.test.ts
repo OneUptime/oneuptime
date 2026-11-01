@@ -629,6 +629,17 @@ describe("values in an email read from the right", () => {
     expect(getEmailValueDirection("<p>Checkout <b>API</b></p>")).toBe("ltr");
     expect(getEmailValueDirection("2026-11-08 02:00")).toBe("rtl");
     expect(getEmailValueDirection(undefined)).toBe("rtl");
+    /*
+     * A character reference's name is no English: a Persian note with quotes
+     * (20 Persian letters, 7 English ones, and 21 more in its references).
+     */
+    expect(
+      getEmailValueDirection(
+        `<p>\u{0633}\u{0631}\u{0648}\u{06CC}\u{0633} \u{067E}\u{0631}\u{062F}\u{0627}\u{062E}\u{062A} &quot;API&quot; &quot;EU&quot; &amp; &#x27;DB&#x27; \u{0627}\u{0632} \u{06A9}\u{0627}\u{0631} \u{0627}\u{0641}\u{062A}\u{0627}\u{062F}</p>`,
+      ),
+    ).toBe("rtl");
+    // A lone "&" is text, and the letters after it count.
+    expect(getEmailValueDirection("R&D team & ops")).toBe("ltr");
   });
 
   test("trusted HTML: a block when it holds blocks, else an isolate", () => {
