@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #
 # Run the Kubernetes agent's restart processors -- the cluster collector's
-# metrics/restarts-increase pipeline exactly as the chart renders it -- in the
-# collector image the chart ships, feed it what the k8s_cluster receiver sends
-# for four containers over seven samples, and check what comes out.
+# metrics/restarts-increase pipeline exactly as the chart renders it, and the
+# metrics pipeline it hands the increases to -- in the collector image the
+# chart ships, feed them what the k8s_cluster receiver sends for seven
+# containers over seven samples, and check what comes out.
 #
 # Why this exists: OneUptime's CrashLoopBackOff Detection template used to
 # count k8s.container.restarts' growth between two samples of the same
@@ -19,6 +20,14 @@
 # send. A wrong statement is not a crash: it is a crash loop that never
 # alerts.
 #
+# The receiver puts no workload name on a container, so the pipeline hands
+# the increases to the metrics pipeline (the forward/restarts-increase
+# connector), whose k8sattributes gives them the names it gives the count.
+# k8sattributes needs a cluster to ask, so the helper puts a stand-in in its
+# place that adds each pod's names by its UID, as k8sattributes finds them;
+# everything else runs as rendered. The OTLP receiver feeds both pipelines,
+# as k8s_cluster does.
+#
 # Twice: on the collector the chart pins, and on 0.96.0 (rendered for that
 # tag), which `helm upgrade --reuse-values` keeps and where the gauge is made
 # a sum in datapoint context. Both must send the same increases:
@@ -29,9 +38,14 @@
 #   - nothing for a count that went down in the same pod (a node reboot),
 #     then the next restart from it;
 #   - 0 for a quiet container with a long history;
+#   - the restarts of a DaemonSet's pod, a CronJob's Job's, and a pod of no
+#     workload at all;
 # with container.id off, the pod and container names kept, the cluster name
-# stamped, and nothing else - not the count itself, not readiness, not the
-# pod phase - out of this pipeline.
+# stamped, each pod's workload names on, the same attributes on every
+# increase of a container whatever its container.id, and exactly the count's
+# but container.id. The count, the readiness and the pod phase come out once
+# each per sample, as the receiver sent them: nothing else leaves the
+# restarts pipeline.
 # Utils/KubernetesAgentRestartsIncreaseBehaviour.js builds the config and the
 # payloads and checks the export; KubernetesAgentRestartsIncrease.test.js
 # holds them to the arithmetic.

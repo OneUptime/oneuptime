@@ -1,5 +1,6 @@
 import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
 import DashboardDomainService from "../../../Server/Services/DashboardDomainService";
+import FormDomainService from "../../../Server/Services/FormDomainService";
 import CertificateReissueUtil from "../../../Utils/CertificateReissue";
 import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -166,6 +167,7 @@ const setUpHarness: SetUpHarnessFunction = (data: {
 const services: Array<[string, unknown]> = [
   ["StatusPageDomainService", StatusPageDomainService],
   ["DashboardDomainService", DashboardDomainService],
+  ["FormDomainService", FormDomainService],
 ];
 
 describe.each(services)("%s.reissueCert", (_name: string, service: unknown) => {

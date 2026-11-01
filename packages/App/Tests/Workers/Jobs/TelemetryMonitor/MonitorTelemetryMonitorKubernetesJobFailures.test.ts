@@ -941,4 +941,31 @@ describe("Kubernetes Job Failures: what the alert says", () => {
     );
     expect(judged.rootCause).toContain("k8s.job.failed_pods.increase");
   });
+
+  test("lists the Job and names it in the analysis at the failures it judged, not at its worst minute", async () => {
+    /*
+     * Three failures in three minutes: each minute's sum is 1, the
+     * window's 3. The Affected Resources row and the analysis used to show
+     * the worst minute, 1, under a criteria line that said 3.
+     */
+    const judged: Judged = await judgeWithRootCause({
+      jobs: [
+        failing({
+          job: "nightly-export",
+          failureTimesMs: BETWEEN_MINUTES.slice(0, 3),
+        }),
+      ],
+    });
+    const rootCause: string = judged.rootCause || "";
+    const affected: string = rootCause.substring(
+      rootCause.indexOf("**Affected Resources**"),
+      rootCause.indexOf("**Root Cause Analysis**"),
+    );
+
+    expect(affected).toMatch(/^1\. .*`nightly-export`.* — \*\*3\*\*$/m);
+    expect(affected).not.toContain("**1**");
+    expect(rootCause).toContain(
+      "Job `nightly-export` has **3** failed pod(s).",
+    );
+  });
 });

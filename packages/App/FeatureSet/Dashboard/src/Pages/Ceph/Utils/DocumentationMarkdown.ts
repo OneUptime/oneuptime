@@ -9,6 +9,13 @@ import {
   resolveSetupGuideOption,
   shellQuote,
 } from "../../../Components/SetupGuide/SetupGuide";
+import {
+  INSTALL_SCRIPT_READ_FIRST_NOTE,
+  getAgentFileDownloadCommand,
+  getInstallScriptDownloadCommand,
+  getTroubleshootScriptDownloadCommand,
+} from "../../../Components/SetupGuide/AgentInstallCommands";
+import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
 
 /*
  * The in-app install guide for the OneUptime Ceph agent (agents/CephAgent):
@@ -48,11 +55,13 @@ export function resolveCephInstallMethod(
   );
 }
 
-// Where the agent's files are published, and where install.sh puts them.
-export const CEPH_AGENT_RAW_URL: string =
-  "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/CephAgent";
-export const CEPH_AGENT_SOURCE_URL: string =
-  "https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent";
+/*
+ * Where every OneUptime serves the agent's install script and files, for
+ * its own release (Common/Types/InstallScripts): /install/ceph-agent on the
+ * reader's OneUptime. And where install.sh puts them.
+ */
+export const CEPH_AGENT_INSTALL_NAME: InstallScriptName =
+  InstallScriptName.CephAgent;
 export const CEPH_AGENT_INSTALL_DIR: string = "/opt/oneuptime-ceph-agent";
 
 // The containers docker-compose.yml runs (their container_name).
@@ -222,7 +231,7 @@ export function getCephInstallScriptCommand(data: {
   }
 
   return [
-    `curl -sSL ${CEPH_AGENT_RAW_URL}/install.sh -o install.sh`,
+    getInstallScriptDownloadCommand(data.oneuptimeUrl, CEPH_AGENT_INSTALL_NAME),
     [...environment, "bash install.sh"].join(" "),
   ].join("\n");
 }
@@ -263,18 +272,26 @@ function inAgentFolder(
  * agent" topic and the dialog beside an outdated agent version
  * (Components/AgentVersion) both show these.
  */
-export function getCephAgentUpgradeCommand(): string {
+export function getCephAgentUpgradeCommand(oneuptimeUrl: string): string {
   return getCephInstallScriptCommand({
-    oneuptimeUrl: SETUP_GUIDE_URL_PLACEHOLDER,
+    oneuptimeUrl: oneuptimeUrl,
     apiKey: SETUP_GUIDE_API_KEY_PLACEHOLDER,
     hasApiKey: false,
   });
 }
 
-export function getCephAgentDownloadCommand(): string {
+export function getCephAgentDownloadCommand(oneuptimeUrl: string): string {
   return [
-    `curl -fsSLO ${CEPH_AGENT_RAW_URL}/docker-compose.yml`,
-    `curl -fsSLO ${CEPH_AGENT_RAW_URL}/otel-collector-config.yaml`,
+    getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      CEPH_AGENT_INSTALL_NAME,
+      "docker-compose.yml",
+    ),
+    getAgentFileDownloadCommand(
+      oneuptimeUrl,
+      CEPH_AGENT_INSTALL_NAME,
+      "otel-collector-config.yaml",
+    ),
   ].join("\n");
 }
 
@@ -331,20 +348,21 @@ function getInstallScriptStep(context: GuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the install script and run it on the machine that will host the agent.",
-    markdown: `${codeBlock(
+    // The command, then right under it that the script can be read first.
+    markdown: codeBlock(
       "bash",
       getCephInstallScriptCommand({
         oneuptimeUrl: context.oneuptimeUrl,
         apiKey: context.apiKey,
         hasApiKey: context.hasApiKey,
       }),
-    )}
-
-${
-  prefilled
-    ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
-    : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
-}
+    ),
+    note: INSTALL_SCRIPT_READ_FIRST_NOTE,
+    details: `${
+      prefilled
+        ? "The command already carries your OneUptime URL and ingestion key. The script asks for the rest:"
+        : "The script asks for your OneUptime URL and ingestion key, both shown in step 1 (pick a key there to have them filled in here), and then for:"
+    }
 
 - ${clusterNamePrompt}
 - **Mgr endpoints** — every mgr from the previous step as comma-separated \`host:port\`, e.g. \`ceph-mon-1:9283,ceph-mon-2:9283,ceph-mon-3:9283\`. The script adds the square brackets.
@@ -364,12 +382,12 @@ function getDockerComposeStep(context: GuideContext): SetupGuideStep {
     title: "Install the agent",
     description:
       "Download the agent's files, write its settings to a .env file and start it with Docker Compose.",
-    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from the [CephAgent directory](${CEPH_AGENT_SOURCE_URL}) into a new folder:
+    markdown: `Download \`docker-compose.yml\` and \`otel-collector-config.yaml\` from this OneUptime into a new folder:
 
 ${codeBlock(
   "bash",
   `mkdir oneuptime-ceph-agent && cd oneuptime-ceph-agent
-${getCephAgentDownloadCommand()}`,
+${getCephAgentDownloadCommand(context.oneuptimeUrl)}`,
 )}
 
 Create a \`.env\` file next to them:
@@ -572,12 +590,12 @@ function getUpgradeTopic(context: GuideContext): SetupGuideTopic {
     context.method === "install-script"
       ? `**Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Run the install script again. It reuses every value in your existing \`.env\` (nothing is asked again), downloads the latest \`docker-compose.yml\` and \`otel-collector-config.yaml\` — a file you edited is kept next to the new one as \`<file>.bak.<timestamp>\` — pulls the images and recreates the agent with them. The AI agent's \`ceph/\` folder stays as it is:
 
-${codeBlock("bash", getCephAgentUpgradeCommand())}`
+${codeBlock("bash", getCephAgentUpgradeCommand(context.oneuptimeUrl))}`
       : `Run these in the agent's folder, the one with \`docker-compose.yml\`.
 
 **Upgrade** — the collector image is pinned in \`docker-compose.yml\` and its config is a file beside it, so pulling alone does not move the agent forward. Download both files again; your \`.env\` stays, and a change you made to either file has to be made again:
 
-${codeBlock("bash", getCephAgentDownloadCommand())}
+${codeBlock("bash", getCephAgentDownloadCommand(context.oneuptimeUrl))}
 
 Then pull the images and recreate the agent, so the collector reads its new config:
 
@@ -630,7 +648,7 @@ function getTroubleshootingTopics(
 
 ${codeBlock(
   "bash",
-  `curl -sSL ${CEPH_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
+  `${getTroubleshootScriptDownloadCommand(context.oneuptimeUrl, CEPH_AGENT_INSTALL_NAME)}
 ${runScript}`,
 )}
 

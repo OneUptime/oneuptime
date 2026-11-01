@@ -75,6 +75,13 @@ import {
 import TelemetryExceptionActivityService, {
   TelemetryExceptionActivityEntry,
 } from "./TelemetryExceptionActivityService";
+import CacheGenerations from "../Infrastructure/CacheGenerations";
+import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import {
+  MAX_MERGED_FINGERPRINTS_PER_EXCEPTION,
+  toExceptionGroupFingerprints,
+} from "../../Types/Telemetry/ExceptionGroupFingerprints";
 
 /*
  * Hard cap on the fingerprint NOT IN list handed to the ClickHouse count
@@ -167,7 +174,77 @@ export interface MergedFingerprintSurvivor {
   survivorFingerprint: string;
 }
 
+/*
+ * An exception, as a read of its occurrences names it: its id, and its own
+ * fingerprint (getGroupFingerprints).
+ */
+export interface ExceptionOfGroup {
+  id: ObjectID | string;
+  fingerprint: string;
+}
+
+/*
+ * What one read of the exceptions merged into some found
+ * (readMergedFingerprints): the fingerprints merged into each, by its id in
+ * lower case, and whether the read held all of them - false when it reached
+ * MAX_MERGED_FINGERPRINTS_READ, and the least recently seen were left out.
+ */
+export interface MergedFingerprintsRead {
+  bySurvivor: Map<string, Array<string>>;
+  isComplete: boolean;
+}
+
+// The most rows one read of the exceptions merged into some takes, in all.
+export const MAX_MERGED_FINGERPRINTS_READ: number = LIMIT_MAX;
+
+/*
+ * How long a process keeps an exception's group fingerprints, at most. A
+ * merge or an unmerge starts a new generation of its project's
+ * (forgetGroupFingerprints): in this process at once, and in every other
+ * process within CacheGenerations.SHARED_READ_TTL_MS, through Redis. While
+ * Redis cannot be reached, this is how long another process may still read
+ * by a group from before the change.
+ */
+export const GROUP_FINGERPRINTS_TTL_MS: number = 60 * 1000;
+
+// The most exceptions' group fingerprints a process keeps.
+export const MAX_KEPT_GROUP_FINGERPRINTS: number = 10_000;
+
+// The Redis namespace of the generations, and how long one is kept there.
+export const GROUP_FINGERPRINTS_GENERATION_NAMESPACE: string =
+  "telemetry-exception-group-fingerprints-generation";
+const GROUP_FINGERPRINTS_GENERATION_TTL_SECONDS: number = 24 * 60 * 60;
+
+/*
+ * The most exceptions one fingerprint is looked up as
+ * (getGroupFingerprintsOfFingerprint): a fingerprint hashes its service in,
+ * so one is all there is but for rows from before it did.
+ */
+const MAX_EXCEPTIONS_OF_ONE_FINGERPRINT: number = 20;
+
 export class Service extends ProjectReferencesService<Model> {
+  /*
+   * The fingerprints merged into each exception, by project, generation
+   * and exception (getGroupFingerprints). An exception nothing was merged
+   * into is kept too, with none: most are, and asking again costs a read.
+   */
+  private groupFingerprints: InMemoryTTLCache<Array<string>> =
+    new InMemoryTTLCache<Array<string>>(MAX_KEPT_GROUP_FINGERPRINTS);
+
+  /*
+   * Each project's generation of the group fingerprints kept: the shared
+   * one, from Redis, and this process's own (CacheGenerations). A merge or
+   * an unmerge starts a new one (forgetGroupFingerprints), so nothing read
+   * before it is served again - here at once, and in every other process
+   * within a second.
+   */
+  private generations: CacheGenerations = new CacheGenerations({
+    namespace: GROUP_FINGERPRINTS_GENERATION_NAMESPACE,
+    ttlSeconds: GROUP_FINGERPRINTS_GENERATION_TTL_SECONDS,
+    maxKeys: MAX_KEPT_GROUP_FINGERPRINTS,
+    description: "exception group fingerprints",
+  });
+
   public constructor() {
     super(Model);
   }
@@ -481,6 +558,331 @@ export class Service extends ProjectReferencesService<Model> {
         }),
       ),
     );
+  }
+
+  /*
+   * THE FINGERPRINTS AN EXCEPTION'S OCCURRENCES CARRY.
+   *
+   * The other way round from getMergedFingerprintSurvivors: from an
+   * exception to its occurrences. The occurrences of an exception merged
+   * into another keep their own fingerprint (TelemetryExceptionMerge), and
+   * count on the one they were merged into, so whatever reads an
+   * exception's occurrences - the fix verifier, the code agent's
+   * find_production_exceptions, the AI explanation, the spike detector, a
+   * production review, the session replays and security events on its page
+   * - reads them by its group: its own fingerprint, then those of the
+   * exceptions merged into it, the most recently seen first, at most
+   * MAX_MERGED_FINGERPRINTS_PER_EXCEPTION of them. An exception nothing was
+   * merged into is its own fingerprint alone, and is read exactly as before
+   * any merge (getOccurrenceFingerprintQuery).
+   *
+   * By each exception's id in lower case; an exception with no valid id or
+   * fingerprint is left out. What was merged into which is read as root -
+   * this is what the data means: who may read the occurrences is up to the
+   * read they are read with, and merged exceptions are of their survivor's
+   * service. One read for every exception not kept already, kept
+   * GROUP_FINGERPRINTS_TTL_MS under its project's generation, which a merge
+   * or an unmerge moves on (forgetGroupFingerprints). If the read fails,
+   * each exception is its own fingerprint alone, as before any merge, and
+   * nothing is kept.
+   */
+  @CaptureSpan()
+  public async getGroupFingerprints(data: {
+    projectId: ObjectID;
+    exceptions: Array<ExceptionOfGroup>;
+  }): Promise<Map<string, Array<string>>> {
+    const groups: Map<string, Array<string>> = new Map();
+    // Each exception once, with its own fingerprint.
+    const ownFingerprints: Map<string, string> = new Map();
+
+    for (const exception of data.exceptions) {
+      const id: string = Service.normalizeExceptionId(exception.id);
+
+      if (
+        !ObjectID.isValidUUID(id) ||
+        typeof exception.fingerprint !== "string" ||
+        exception.fingerprint.length === 0 ||
+        ownFingerprints.has(id)
+      ) {
+        continue;
+      }
+
+      ownFingerprints.set(id, exception.fingerprint);
+    }
+
+    if (ownFingerprints.size === 0) {
+      return groups;
+    }
+
+    const projectKey: string = Service.normalizeExceptionId(data.projectId);
+
+    // The project's generation as it stands before the read: never throws.
+    const generation: string = await this.generations.get(projectKey);
+    const keyOf: (id: string) => string = (id: string): string => {
+      return `${projectKey}|${generation}|${id}`;
+    };
+
+    const mergedById: Map<string, Array<string>> = new Map();
+    const missing: Array<string> = [];
+
+    for (const id of ownFingerprints.keys()) {
+      const kept: Array<string> | undefined = this.groupFingerprints.get(
+        keyOf(id),
+      );
+
+      if (kept) {
+        mergedById.set(id, kept);
+      } else {
+        missing.push(id);
+      }
+    }
+
+    if (missing.length > 0) {
+      try {
+        const read: MergedFingerprintsRead = await this.readMergedFingerprints({
+          projectId: data.projectId,
+          survivorIds: missing,
+        });
+
+        for (const id of missing) {
+          const merged: Array<string> = read.bySurvivor.get(id) || [];
+
+          mergedById.set(id, merged);
+
+          // A read that left some out is used, and not kept.
+          if (read.isComplete) {
+            this.groupFingerprints.set(
+              keyOf(id),
+              merged,
+              GROUP_FINGERPRINTS_TTL_MS,
+            );
+          }
+        }
+      } catch (err) {
+        // Each exception's own fingerprint: its occurrences, as before any merge.
+        logger.error(
+          `Could not read the exceptions merged into ${missing.length} exception(s); their occurrences are read by their own fingerprints: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    for (const [id, fingerprint] of ownFingerprints) {
+      groups.set(
+        id,
+        toExceptionGroupFingerprints(fingerprint, mergedById.get(id) || []),
+      );
+    }
+
+    return groups;
+  }
+
+  // One exception's group fingerprints (getGroupFingerprints).
+  public async getGroupFingerprintsOf(data: {
+    projectId: ObjectID;
+    exception: ExceptionOfGroup;
+  }): Promise<Array<string>> {
+    const groups: Map<string, Array<string>> = await this.getGroupFingerprints({
+      projectId: data.projectId,
+      exceptions: [data.exception],
+    });
+
+    return (
+      groups.get(Service.normalizeExceptionId(data.exception.id)) ||
+      toExceptionGroupFingerprints(data.exception.fingerprint, [])
+    );
+  }
+
+  /*
+   * THE GROUP FINGERPRINTS OF THE EXCEPTION THIS FINGERPRINT IS THE OWN OF.
+   *
+   * A read that names an exception by its fingerprint alone - the session
+   * replays an exception's page asks for - reads its occurrences by its
+   * group too (getGroupFingerprints). The exceptions are those that carry
+   * the fingerprint as their own and are not merged, in `primaryEntityId`
+   * when it is given; read as root, as the groups are. A merged exception's
+   * fingerprint is answered with itself alone - its own page shows its own
+   * occurrences - and so is one no exception carries, or one the read fails
+   * for.
+   */
+  @CaptureSpan()
+  public async getGroupFingerprintsOfFingerprint(data: {
+    projectId: ObjectID;
+    fingerprint: string;
+    primaryEntityId?: ObjectID | undefined;
+  }): Promise<Array<string>> {
+    if (!data.fingerprint) {
+      return [];
+    }
+
+    // Longer than the column holds: no exception's own.
+    if (data.fingerprint.length > ColumnLength.ShortText) {
+      return [data.fingerprint];
+    }
+
+    let ids: Array<string> = [];
+
+    try {
+      const rows: Array<{ id: string }> =
+        await this.getRepository().manager.query(
+          `SELECT "_id"::text AS "id" FROM "TelemetryException" WHERE "projectId" = $1 AND "fingerprint" = $2 AND "mergedIntoTelemetryExceptionId" IS NULL AND "deletedAt" IS NULL${
+            data.primaryEntityId ? ` AND "primaryEntityId" = $4` : ""
+          } ORDER BY "_id" LIMIT $3`,
+          [
+            data.projectId.toString(),
+            data.fingerprint,
+            MAX_EXCEPTIONS_OF_ONE_FINGERPRINT,
+            ...(data.primaryEntityId ? [data.primaryEntityId.toString()] : []),
+          ],
+        );
+
+      ids = (rows || []).map((row: { id: string }): string => {
+        return String(row.id || "");
+      });
+    } catch (err) {
+      logger.error(
+        `Could not read the exception of a fingerprint; its occurrences are read by it alone: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return [data.fingerprint];
+    }
+
+    const groups: Map<string, Array<string>> = await this.getGroupFingerprints({
+      projectId: data.projectId,
+      exceptions: ids.map((id: string): ExceptionOfGroup => {
+        return { id, fingerprint: data.fingerprint };
+      }),
+    });
+
+    const fingerprints: Array<string> = [data.fingerprint];
+
+    for (const group of groups.values()) {
+      for (const fingerprint of group) {
+        if (!fingerprints.includes(fingerprint)) {
+          fingerprints.push(fingerprint);
+        }
+      }
+    }
+
+    return fingerprints;
+  }
+
+  /*
+   * WHAT WAS MERGED INTO THESE EXCEPTIONS, IN ONE READ.
+   *
+   * The fingerprints of the exceptions merged into each of `survivorIds`,
+   * by the survivor's id in lower case, the most recently seen first: at
+   * most MAX_MERGED_FINGERPRINTS_PER_EXCEPTION of each, kept apart by a
+   * window over each survivor's own, and MAX_MERGED_FINGERPRINTS_READ in
+   * all, the least recently seen left out past it (isComplete says whether
+   * any was). One read of the index on the merge column, as root: callers
+   * hold the survivors already, read with whatever scope they needed. Ids
+   * that are not ids are not asked about. Throws when the read fails.
+   */
+  @CaptureSpan()
+  public async readMergedFingerprints(data: {
+    projectId: ObjectID;
+    survivorIds: Array<string>;
+  }): Promise<MergedFingerprintsRead> {
+    const bySurvivor: Map<string, Array<string>> = new Map();
+    const ids: Array<string> = Array.from(
+      new Set(
+        data.survivorIds
+          .map((id: string): string => {
+            return Service.normalizeExceptionId(id);
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    );
+
+    if (ids.length === 0) {
+      return { bySurvivor, isComplete: true };
+    }
+
+    const rows: Array<{ survivorId: string; fingerprint: string }> =
+      await this.getRepository().manager.query(
+        `SELECT "survivorId", "fingerprint" FROM (SELECT "mergedIntoTelemetryExceptionId"::text AS "survivorId", "fingerprint", "lastSeenAt", ROW_NUMBER() OVER (PARTITION BY "mergedIntoTelemetryExceptionId" ORDER BY "lastSeenAt" DESC NULLS LAST, "fingerprint" ASC) AS "rank" FROM "TelemetryException" WHERE "projectId" = $1 AND "mergedIntoTelemetryExceptionId" = ANY($2::uuid[]) AND "deletedAt" IS NULL) AS "merged" WHERE "rank" <= $3 ORDER BY "lastSeenAt" DESC NULLS LAST, "fingerprint" ASC LIMIT $4`,
+        [
+          data.projectId.toString(),
+          ids,
+          MAX_MERGED_FINGERPRINTS_PER_EXCEPTION,
+          MAX_MERGED_FINGERPRINTS_READ,
+        ],
+      );
+
+    const all: Array<{ survivorId: string; fingerprint: string }> = rows || [];
+    const asked: Set<string> = new Set<string>(ids);
+
+    for (const row of all) {
+      const survivorId: string = Service.normalizeExceptionId(
+        String(row.survivorId || ""),
+      );
+      const fingerprint: string =
+        typeof row.fingerprint === "string" ? row.fingerprint : "";
+
+      if (!asked.has(survivorId) || !fingerprint) {
+        continue;
+      }
+
+      const merged: Array<string> = bySurvivor.get(survivorId) || [];
+
+      if (
+        merged.length < MAX_MERGED_FINGERPRINTS_PER_EXCEPTION &&
+        !merged.includes(fingerprint)
+      ) {
+        merged.push(fingerprint);
+        bySurvivor.set(survivorId, merged);
+      }
+    }
+
+    const isComplete: boolean = all.length < MAX_MERGED_FINGERPRINTS_READ;
+
+    if (!isComplete) {
+      logger.warn(
+        `The exceptions merged into ${ids.length} exception(s) of project ${data.projectId.toString()} are more than ${MAX_MERGED_FINGERPRINTS_READ}; the least recently seen are left out of their occurrence reads.`,
+      );
+    }
+
+    return { bySurvivor, isComplete };
+  }
+
+  /*
+   * After a merge or an unmerge in these projects (TelemetryExceptionMerge):
+   * no group fingerprints kept of their exceptions before it are served
+   * again - here at once, and in every other process through Redis. Never
+   * throws (CacheGenerations).
+   */
+  @CaptureSpan()
+  public async forgetGroupFingerprints(
+    projectIds: Array<ObjectID | string | null | undefined>,
+  ): Promise<void> {
+    const keys: Array<string> = projectIds
+      .map((projectId: ObjectID | string | null | undefined): string => {
+        return projectId ? Service.normalizeExceptionId(projectId) : "";
+      })
+      .filter((key: string): boolean => {
+        return Boolean(key);
+      });
+
+    if (keys.length === 0) {
+      return;
+    }
+
+    await this.generations.bump(keys);
+  }
+
+  // Drops every group fingerprint this process keeps. For tests.
+  public clearGroupFingerprints(): void {
+    this.groupFingerprints.clear();
+    this.generations.clear();
+  }
+
+  private static normalizeExceptionId(id: ObjectID | string): string {
+    return id.toString().trim().toLowerCase();
   }
 
   // The fingerprints a query names: one, or an Includes of them.

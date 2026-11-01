@@ -23,7 +23,11 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  composedValue,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useResizableColumns, {
   ResizableColumns,
@@ -69,6 +73,7 @@ import {
   getPodLogWindow,
   getTracePodLogScopeLabel,
 } from "../../../Utils/TracePodLogs";
+import { formatNameList } from "../../AiAccess/AiAccessModes";
 import ExceptionInstanceTable from "../../Exceptions/ExceptionInstanceTable";
 import ExceptionSegmentedControl from "../../Exceptions/ExceptionSegmentedControl";
 import { InventoryEntityKeyDisplaySource } from "../../Inventory/InventoryTelemetryScope";
@@ -103,6 +108,13 @@ const METRICS_FOR_TRACE_LIMIT: number = 500;
 // Metric links widen the trace's window so near-instant traces still chart.
 export const TRACE_METRIC_WINDOW_PADDING_MINUTES: number = 5;
 const MAX_SAMPLED_METRIC_VALUES: number = 5;
+
+// The line above the trace's flame graph, by the number of its samples.
+const TRACE_PROFILE_SCOPE: PluralTemplate = {
+  one: "Flame graph built from the {{count}} profile sample linked to the spans of this trace.",
+  other:
+    "Flame graph built from the {{count}} profile samples linked to the spans of this trace.",
+};
 
 /*
  * Whether to offer the Metrics tab. Metrics are read with their own
@@ -671,10 +683,12 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
       <div className="flex flex-col gap-3 border-b border-gray-200 px-5 pt-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="pb-3 sm:pb-3">
           <h2 className="text-base font-semibold text-gray-900">
-            Related signals
+            {translator.translateText("Related signals")}
           </h2>
           <p className="text-xs text-gray-500">
-            Logs, exceptions, metrics and profiles recorded during this trace.
+            {translator.translateText(
+              "Logs, exceptions, metrics and profiles recorded during this trace.",
+            )}
           </p>
           {props.traceWindow && props.rootServiceId ? (
             <TraceProfilerLink
@@ -689,7 +703,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
         <div
           className="-mb-px flex gap-1 overflow-x-auto"
           role="tablist"
-          aria-label="Related signals"
+          aria-label={translator.translateText("Related signals")}
         >
           {tabs.map(
             (tab: {
@@ -714,7 +728,7 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                       : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800"
                   }`}
                 >
-                  <span>{tab.label}</span>
+                  <span>{translator.translateText(tab.label)}</span>
                   {tab.count !== null && (
                     <span
                       className={`rounded-full px-1.5 text-xs tabular-nums ${
@@ -827,9 +841,30 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
               <div className="space-y-3">
                 {metricLinkDroppedHints.length > 0 && (
                   <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                    Metric links open the explorer over this trace&apos;s time
-                    window (±{TRACE_METRIC_WINDOW_PADDING_MINUTES} min). Not
-                    carried over: {metricLinkDroppedHints.join(", ")}.
+                    {translator.translateTemplate(
+                      "Metric links open the explorer over this trace's time window (±{{minutes}} min). Not carried over: {{fields}}.",
+                      {
+                        minutes: translator.formatNumber(
+                          TRACE_METRIC_WINDOW_PADDING_MINUTES,
+                        ),
+                        // What is left behind, in the sentence's language.
+                        fields: composedValue(
+                          (sentence: Translator): string => {
+                            return formatNameList(
+                              metricLinkDroppedHints.map(
+                                (hint: string): string => {
+                                  return sentence.translateTerm(hint, {
+                                    inSentence: true,
+                                  });
+                                },
+                              ),
+                              "and",
+                              sentence,
+                            );
+                          },
+                        ),
+                      },
+                    )}
                   </div>
                 )}
                 <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -845,55 +880,58 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                           className="px-3 py-2 text-left font-medium text-gray-500"
                           resize={metricColumns.getResize(
                             "metric",
-                            "Metric",
+                            translator.translateText("Metric") || "Metric",
                             ColumnWidthKind.Name,
                           )}
                         >
-                          <span>{"Metric"}</span>
+                          <span>{translator.translateText("Metric")}</span>
                         </ResizableHeaderCell>
                         <ResizableHeaderCell
                           scope="col"
                           className="px-3 py-2 text-left font-medium text-gray-500"
                           resize={metricColumns.getResize(
                             "sampledValues",
-                            "Sampled values",
+                            translator.translateText("Sampled values") ||
+                              "Sampled values",
                             ColumnWidthKind.Text,
                           )}
                         >
-                          <span>{"Sampled values"}</span>
+                          <span>
+                            {translator.translateText("Sampled values")}
+                          </span>
                         </ResizableHeaderCell>
                         <ResizableHeaderCell
                           scope="col"
                           className="px-3 py-2 text-right font-medium text-gray-500"
                           resize={metricColumns.getResize(
                             "min",
-                            "Min",
+                            translator.translateText("Min") || "Min",
                             ColumnWidthKind.Whole,
                           )}
                         >
-                          <span>{"Min"}</span>
+                          <span>{translator.translateText("Min")}</span>
                         </ResizableHeaderCell>
                         <ResizableHeaderCell
                           scope="col"
                           className="px-3 py-2 text-right font-medium text-gray-500"
                           resize={metricColumns.getResize(
                             "max",
-                            "Max",
+                            translator.translateText("Max") || "Max",
                             ColumnWidthKind.Whole,
                           )}
                         >
-                          <span>{"Max"}</span>
+                          <span>{translator.translateText("Max")}</span>
                         </ResizableHeaderCell>
                         <ResizableHeaderCell
                           scope="col"
                           className="px-3 py-2 text-right font-medium text-gray-500"
                           resize={metricColumns.getResize(
                             "spans",
-                            "Spans",
+                            translator.translateText("Spans") || "Spans",
                             ColumnWidthKind.Whole,
                           )}
                         >
-                          <span>{"Spans"}</span>
+                          <span>{translator.translateText("Spans")}</span>
                         </ResizableHeaderCell>
                       </tr>
                     </thead>
@@ -917,7 +955,10 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                                     to={explorerUrl}
                                     openInNewTab={true}
                                     className="text-indigo-600 hover:text-indigo-700 hover:underline"
-                                    title={`Open ${series.name} in the metric explorer over this trace's window`}
+                                    title={translator.translateTemplate(
+                                      "Open {{metric}} in the metric explorer over this trace's window",
+                                      { metric: series.name },
+                                    )}
                                   >
                                     {series.name}
                                   </Link>
@@ -930,7 +971,14 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
                                 {series.points.length >
                                   MAX_SAMPLED_METRIC_VALUES && (
                                   <span className="ml-1 text-gray-400">
-                                    (of {series.points.length})
+                                    {translator.translateTemplate(
+                                      "(of {{count}})",
+                                      {
+                                        count: translator.formatNumber(
+                                          series.points.length,
+                                        ),
+                                      },
+                                    )}
                                   </span>
                                 )}
                               </td>
@@ -958,9 +1006,10 @@ const TraceSignals: FunctionComponent<ComponentProps> = (
         {activeSignalTab === "profile" && isActiveTabOffered && (
           <div data-testid="trace-profile">
             <p className="mb-3 text-xs text-gray-500">
-              Flame graph built from the {profileSampleCount.toLocaleString()}{" "}
-              profile sample{profileSampleCount === 1 ? "" : "s"} linked to the
-              spans of this trace.
+              {translator.translatePlural(
+                TRACE_PROFILE_SCOPE,
+                profileSampleCount,
+              )}
             </p>
             <TraceScopedFlamegraph traceId={traceId} />
           </div>

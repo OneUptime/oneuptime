@@ -998,9 +998,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 まず診断スクリプトを実行してください。Pod の状態を確認し、取り込みキーをデコードして検証し、クラスターが OneUptime に到達できるかを確認し、OneUptime がキーを受け付けるかを問い合わせたうえで、最も可能性の高い原因を示す判定を 1 つ出力します:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+各 OneUptime は自分のリリースのこのスクリプトを配布します。セルフホストの OneUptime では、`https://oneuptime.com` の代わりに自分の URL を使ってください。実行する前にスクリプトを読むには、そのアドレスをブラウザーで開きます。
 
 このスクリプトはクラスターの状態を読み取り、いくつかのプローブを実行するだけで、何も変更しません。送信方向の通信を最も正確にテストするには、先に `--set debug.enabled=true` でインストールしてください。エージェントの Pod に小さなネットワークツールのサイドカーが追加され、スクリプトが Collector 自身の外向きの経路をテストします。
 

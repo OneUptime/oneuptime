@@ -52,6 +52,8 @@ const VIEWS_ROOT: string = path.join(HOME, "Views");
 const HOME_URL: string = "https://oneuptime.com";
 const DOCS: string = path.join(HOME, "..", "App", "FeatureSet", "Docs");
 const DOCS_CONTENT: string = path.join(DOCS, "Content", "en");
+// The installers the docs serve at /docs/static/scripts, which a command downloads.
+const DOCS_INSTALLERS: string = path.join(DOCS, "Static", "scripts");
 
 // The docs' nav, its languages and the files they serve, read as text.
 const NAV_PAGE_URL: RegExp = /url:\s*"\/docs\/([^"/]+\/[^"/]+)"/g;
@@ -144,6 +146,28 @@ const docsPageOf: (page: string) => DocsPage | null = (
   };
 };
 
+/*
+ * One of the docs' installers (/docs/static/scripts/<agent>/install.sh), which
+ * the website may name where it sends a reader to it: the infrastructure
+ * agent's short address redirects there (Utils/Config.ts). No page, but a
+ * file every OneUptime serves, so it leads somewhere when the docs have it.
+ */
+const isDocsInstaller: (address: DocsAddress) => boolean = (
+  address: DocsAddress,
+): boolean => {
+  const [endpoint, folder, ...rest] = address.names;
+
+  return (
+    endpoint === "static" &&
+    folder === "scripts" &&
+    rest.length > 0 &&
+    !rest.includes("..") &&
+    address.anchor === null &&
+    fs.existsSync(path.join(DOCS_INSTALLERS, ...rest)) &&
+    fs.statSync(path.join(DOCS_INSTALLERS, ...rest)).isFile()
+  );
+};
+
 // Where a docs address leads, or why it leads nowhere.
 const problemOf: (address: DocsAddress) => string | null = (
   address: DocsAddress,
@@ -184,7 +208,7 @@ const problemOf: (address: DocsAddress) => string | null = (
         : null;
     }
     default:
-      return "not a page of the docs";
+      return isDocsInstaller(address) ? null : "not a page of the docs";
   }
 };
 
@@ -596,6 +620,10 @@ describe("every docs address the website writes", () => {
       ['"/docs/cli/index#no-such-heading"', "heading the page does not have"],
       ['"/docs/robots.txt"', "do not serve"],
       ['"/docs/static/css/style.css"', "not a page"],
+      // An installer the docs serve, which a command downloads; not one they lack.
+      ['"/docs/static/scripts/infrastructure-agent/install.sh"', null],
+      ['"/docs/static/scripts/no-such-agent/install.sh"', "not a page"],
+      ['"/docs/static/scripts/../css/style.css"', "not a page"],
       // A page's title has no anchor: the docs show it above the page.
       [
         `"/docs/cli/index#${slugifyMarkdownHeading(docsPageOf("cli/index")!.title)}"`,

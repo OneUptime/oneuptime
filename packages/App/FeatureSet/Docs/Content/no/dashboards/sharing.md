@@ -146,7 +146,7 @@ Den som bare kan lese domenet, for eksempel en Viewer eller en Settings Viewer, 
 
 Det samme gjelder API-nøkler. En nøkkel som bare kan lese dashborddomener, kan ikke kalle `verify-cname`, `order-ssl` eller `reissue-ssl` på `/dashboard-domain`. Gi den **Read Dashboard Domain** og **Edit Dashboard Domain** hvis den trenger det.
 
-Et domene hører til ett dashbord i prosjektet om gangen. Du kan knytte mer enn ett egendefinert domene til ett enkelt dashbord hvis du serverer det samme innholdet til flere målgrupper: et kundevendt dashbord med din egen merkevare, et partnerdashbord med begges merkevare eller en offentlig helseside med sin egen URL.
+Et domene hører til ett dashbord i prosjektet om gangen. Du kan knytte mer enn ett egendefinert domene til ett enkelt dashbord hvis du serverer det samme innholdet til flere målgrupper: et kundevendt dashbord med din egen merkevare, et partnerdashbord med begges merkevare eller en offentlig helseside med sin egen URL. Et navn som en statusside eller et skjema allerede bruker, i hvilket som helst prosjekt, avvises: ett domene viser én statusside, ett dashbord eller ett skjema.
 
 ## Merkevare
 

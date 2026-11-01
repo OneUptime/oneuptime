@@ -998,9 +998,11 @@ Telemetribruk telles per dag, så sjekk trenden under **Prosjektinnstillinger �
 Start med diagnoseskriptet. Det sjekker podenes helse, dekoder og validerer inntaksnøkkelen, sjekker at klyngen kan nå OneUptime og spør OneUptime om den godtar nøkkelen din, og skriver deretter ut én dom som navngir den mest sannsynlige årsaken:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Hver OneUptime leverer dette skriptet fra sin egen utgivelse: På en selvdriftet OneUptime bruker du URL-en din i stedet for `https://oneuptime.com`. Åpne adressen til skriptet i en nettleser for å lese det før du kjører det.
 
 Det leser bare klyngens tilstand og kjører et par prober; det endrer ingenting. For den mest nøyaktige testen av utgående trafikk, installer først med `--set debug.enabled=true`: dette legger til en liten sidevogn med nettverksverktøy i agentens poder, så skriptet tester collectorens egen vei ut.
 

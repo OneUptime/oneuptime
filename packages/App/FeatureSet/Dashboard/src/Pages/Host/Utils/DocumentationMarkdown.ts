@@ -10,6 +10,7 @@ import {
 import { getKubernetesSetupGuide } from "../../Kubernetes/Utils/DocumentationMarkdown";
 import { HOST_COLLECTOR_VERSION } from "../../../Components/AgentVersion/AgentKind";
 import { HOST_COLLECTOR_FILESYSTEM_EXCLUSION } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
+import { getHostAiAgentInstallCommand } from "../../../Components/ResourceAiAgent/ResourceAiAgentInstall";
 
 /*
  * How the OpenTelemetry Collector gets onto the host. Every method runs the
@@ -1026,8 +1027,13 @@ ${tabs.join("\n")}`,
 
 export const HOST_AI_AGENT_TOPIC_TITLE: string = "Add the OneUptime AI agent";
 
-export const HOST_AI_AGENT_INSTALL_COMMAND: string = `curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/HostAIAgent/install.sh -o install.sh
-sudo bash install.sh`;
+/*
+ * The Host AI agent's installer, from the reader's own OneUptime, which
+ * serves it for its own release (Common/Types/InstallScripts): the command
+ * the host's AI agent page shows too. The script asks for anything its
+ * environment does not hold, the URL among them.
+ */
+export { getHostAiAgentInstallCommand };
 
 /*
  * The Host AI agent (agents/HostAIAgent): a host has no OneUptime container
@@ -1036,7 +1042,10 @@ sudo bash install.sh`;
  * commands there. Linux only: it enters the host's namespaces from a
  * privileged container.
  */
-function getAiAgentTopic(method: HostCollectorMethod): SetupGuideTopic {
+function getAiAgentTopic(
+  method: HostCollectorMethod,
+  oneuptimeUrl: string,
+): SetupGuideTopic {
   return {
     title: HOST_AI_AGENT_TOPIC_TITLE,
     summary:
@@ -1045,9 +1054,9 @@ function getAiAgentTopic(method: HostCollectorMethod): SetupGuideTopic {
       method === "docker" ? ", so add it on Linux hosts only" : ""
     }; it needs Docker (the system engine, not rootless Docker) with the Compose plugin:
 
-${codeBlock("bash", HOST_AI_AGENT_INSTALL_COMMAND)}
+${codeBlock("bash", getHostAiAgentInstallCommand(oneuptimeUrl))}
 
-It asks for your OneUptime URL, the ingestion key and the host's name — leave the name empty to use the hostname, which is what this collector reports. Once it connects, it shows as Connected on the host's **AI → AI agent** page and at the bottom of its **Overview**. What it may run, and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts).`,
+The first line downloads the script as \`install.sh\`, so you can read it before you run it. It asks for your OneUptime URL, the ingestion key and the host's name — leave the name empty to use the hostname, which is what this collector reports. Once it connects, it shows as Connected on the host's **AI → AI agent** page and at the bottom of its **Overview**. What it may run, and how fixes work: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#hosts).`,
   };
 }
 
@@ -1075,6 +1084,7 @@ ${codeBlock(getHostCollectorCommandLanguage(method), getHostCollectorUpgradeComm
 
 function getAdvancedTopics(
   method: HostCollectorMethod,
+  oneuptimeUrl: string,
 ): Array<SetupGuideTopic> {
   const topics: Array<SetupGuideTopic> = [];
 
@@ -1088,7 +1098,7 @@ function getAdvancedTopics(
 
   // The Host AI agent runs on Linux only.
   if (isNativeLinux(method) || method === "docker") {
-    topics.push(getAiAgentTopic(method));
+    topics.push(getAiAgentTopic(method, oneuptimeUrl));
   }
 
   // The hardware values belong to one machine, stamped into its own config.
@@ -1235,7 +1245,7 @@ export function getHostSetupGuide(
       getInstallStep(collectorOptions),
       getVerifyStep(method),
     ],
-    advanced: getAdvancedTopics(method),
+    advanced: getAdvancedTopics(method, options.oneuptimeUrl),
     troubleshooting: getTroubleshootingTopics({
       oneuptimeUrl: options.oneuptimeUrl,
       method: method,

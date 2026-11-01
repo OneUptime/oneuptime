@@ -47,23 +47,25 @@ flowchart TB
 :::steps
 ### عامل را نصب و اجرا کنید
 
+هر OneUptime اسکریپت نصب و فایل‌های عامل را از انتشار خودش ارائه می‌کند: دستورهای زیر آن‌ها را از `https://oneuptime.com` دانلود می‌کنند، پس در یک OneUptime خودمیزبان این نشانی را با نشانی خودتان جایگزین کنید. اسکریپت نصب اول با نام `install.sh` ذخیره می‌شود تا بتوانید پیش از اجرا آن را بخوانید.
+
 :::tabs
 @tab install.sh
 اسکریپت نصب را دانلود کنید و روی یک گره مدیر اجرا کنید:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 اسکریپت نشانی OneUptime شما، کلید دریافت داده و نامی برای خوشه را می‌پرسد. در `/opt/oneuptime-docker-swarm-agent` نصب می‌کند، یک فایل `.env` می‌نویسد که فقط مالکش می‌تواند بخواند، با نام میزبان گره به‌عنوان `DOCKER_SWARM_NODE_NAME`، و هر سه کانتینر را راه می‌اندازد. برای کنار گذاشتن عامل هوش مصنوعی، `--no-ai-agent` را بیفزایید.
 @tab Docker Compose
-`docker-compose.yml`، `otel-collector-config.yaml` و `inventory-snapshot.sh` را از [پوشه DockerSwarmAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) در یک پوشه تازه روی یک گره مدیر دانلود کنید:
+`docker-compose.yml`، `otel-collector-config.yaml` و `inventory-snapshot.sh` را از OneUptime خودتان در یک پوشه تازه روی یک گره مدیر دانلود کنید:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ processors:
 برای اینکه عامل همراه گره شروع شود و اگر از کار افتاد دوباره راه‌اندازی شود، واحد systemd آن را نصب کنید. این واحد فرض می‌کند عامل در `/opt/oneuptime-docker-swarm-agent` است، جایی که اسکریپت نصب آن را می‌گذارد:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 اسکریپت نصب را دوباره روی گره مدیر اجرا کنید و به پرسش‌هایش با همان نشانی، کلید و نام خوشه پاسخ دهید. تازه‌ترین فایل‌ها را دانلود می‌کند، ایمیج‌ها را می‌کشد و عامل را دوباره راه‌اندازی می‌کند:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ docker compose down
 ## رفع اشکال
 
 :::details نخست اسکریپت تشخیصی را اجرا کنید
-عامل با یک اسکریپت، [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh)، عرضه می‌شود که کل زنجیره را بررسی می‌کند: کانتینرها، اینکه پیمایشگر موجودی روی یک گره مدیر است (`docker node ls`)، فایل عکس فوری، نام خوشه‌ای که روی همه‌چیز مُهر زده می‌شود، شکل توکن، متریک‌های خود کالکتور، و اینکه آیا OneUptime کلید دریافت داده را می‌پذیرد. این بررسی آخر از همه مهم‌تر است. OneUptime کلید بد را با `401` رد می‌کند (`422` برای کلید غیرفعال یا کلید مرورگر)، و کالکتور آن را به ازای هر دسته فقط به‌صورت یک خط `Exporting failed` در لاگ می‌نویسد، که آسان از چشم می‌افتد. اسکریپت `GET <url>/otlp/v1/validate` را می‌پرسد تا یک `200` (معتبر) یا `401` (نامعتبر) مستقیم بگیرد. آن را روی گره مدیر اجرا کنید:
+عامل با یک اسکریپت، [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh)، عرضه می‌شود که کل زنجیره را بررسی می‌کند: کانتینرها، اینکه پیمایشگر موجودی روی یک گره مدیر است (`docker node ls`)، فایل عکس فوری، نام خوشه‌ای که روی همه‌چیز مُهر زده می‌شود، شکل توکن، متریک‌های خود کالکتور، و اینکه آیا OneUptime کلید دریافت داده را می‌پذیرد. این بررسی آخر از همه مهم‌تر است. OneUptime کلید بد را با `401` رد می‌کند (`422` برای کلید غیرفعال یا کلید مرورگر)، و کالکتور آن را به ازای هر دسته فقط به‌صورت یک خط `Exporting failed` در لاگ می‌نویسد، که آسان از چشم می‌افتد. اسکریپت `GET <url>/otlp/v1/validate` را می‌پرسد تا یک `200` (معتبر) یا `401` (نامعتبر) مستقیم بگیرد. آن را روی گره مدیر اجرا کنید:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

@@ -47,23 +47,25 @@ flowchart TB
 :::steps
 ### Установите и запустите агент
 
+Каждый OneUptime раздаёт скрипт установки и файлы агента своего релиза: команды ниже скачивают их с `https://oneuptime.com`, поэтому на самостоятельно размещённом OneUptime замените этот адрес на свой URL. Скрипт установки сначала сохраняется в файл `install.sh`, чтобы вы могли прочитать его перед запуском.
+
 :::tabs
 @tab install.sh
 Скачайте скрипт установки и запустите его на узле-менеджере:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 Скрипт спрашивает URL вашего OneUptime, ключ приёма и имя кластера. Он устанавливает агента в `/opt/oneuptime-docker-swarm-agent`, записывает файл `.env`, который может читать только его владелец, с именем хоста узла в `DOCKER_SWARM_NODE_NAME`, и запускает все три контейнера. Добавьте `--no-ai-agent`, чтобы не ставить ИИ-агента.
 @tab Docker Compose
-Скачайте `docker-compose.yml`, `otel-collector-config.yaml` и `inventory-snapshot.sh` из [каталога DockerSwarmAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) в новую папку на узле-менеджере:
+Скачайте `docker-compose.yml`, `otel-collector-config.yaml` и `inventory-snapshot.sh` с вашего OneUptime в новую папку на узле-менеджере:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ processors:
 Чтобы агент запускался вместе с узлом и перезапускался при сбое, установите его юнит systemd. Он предполагает, что агент находится в `/opt/oneuptime-docker-swarm-agent`, куда его помещает скрипт установки:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 Снова запустите скрипт установки на узле-менеджере и ответьте на его вопросы тем же URL, ключом и именем кластера. Он скачивает последние файлы, скачивает образы и перезапускает агента:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ docker compose down
 ## Устранение неполадок
 
 :::details Сначала запустите диагностический скрипт
-Агент поставляется со скриптом [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh), который проверяет всю цепочку: контейнеры, то, что опросчик инвентаря работает на менеджере (`docker node ls`), файл снимка, имя кластера, проставленное на всё, формат токена, собственные метрики коллектора и то, принимает ли OneUptime ключ приёма. Последняя проверка важнее всего. OneUptime отклоняет неверный ключ с `401` (`422` для отключённого ключа или ключа браузера), а коллектор пишет это одной строкой `Exporting failed` на пакет, которую легко пропустить. Скрипт запрашивает `GET <url>/otlp/v1/validate`, чтобы получить прямой ответ `200` (действителен) или `401` (недействителен). Запустите его на узле-менеджере:
+Агент поставляется со скриптом [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh), который проверяет всю цепочку: контейнеры, то, что опросчик инвентаря работает на менеджере (`docker node ls`), файл снимка, имя кластера, проставленное на всё, формат токена, собственные метрики коллектора и то, принимает ли OneUptime ключ приёма. Последняя проверка важнее всего. OneUptime отклоняет неверный ключ с `401` (`422` для отключённого ключа или ключа браузера), а коллектор пишет это одной строкой `Exporting failed` на пакет, которую легко пропустить. Скрипт запрашивает `GET <url>/otlp/v1/validate`, чтобы получить прямой ответ `200` (действителен) или `401` (недействителен). Запустите его на узле-менеджере:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

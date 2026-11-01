@@ -1010,7 +1010,7 @@ describe("scanning a source tree", () => {
 });
 
 describe("the real source roots", () => {
-  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, and what each of the traces explorer's span types is", () => {
+  test("cover the Dashboard, the shared UI, the data models, the vCenter collection errors, the security case and playbook catalogs, the AI and cloud connections' catalogs, the shared monitor helpers, the monitor type cards, the cron schedule words and its common schedules, the placeholders of a playbook's message, what is wrong with a detection rule exception, what is wrong with a watchlist or one of its values, what is wrong with a hunt or why its run could not be made, what each of the traces explorer's span types is, and what a dashboard template's chart says while it draws its fallback query", () => {
     expect(
       SOURCE_ROOTS.map((root: { directory: string; kind: string }) => {
         return `${root.kind} ${root.directory}`;
@@ -1047,6 +1047,8 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/SecurityEvent/SecurityHunt.ts",
       // What each span type is - its marked sentences, not its choices' names.
       "keys packages/Common/Types/Telemetry/TraceSpanType.ts",
+      // Why a template's chart draws its fallback query, and where the fix is.
+      "keys packages/Common/Types/Dashboard/DashboardTemplateFallbackHints.ts",
     ]);
   });
 

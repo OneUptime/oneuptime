@@ -168,6 +168,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Read Form",
     "Read Form Submission",
     "Delete Form Submission",
+    // A form's custom domains' own permissions.
+    "Create Form Domain",
+    "Edit Form Domain",
+    "Delete Form Domain",
+    "Read Form Domain",
     // The group the generated Permission Reference heads them with.
     "Form",
     // Workflow components, which the workflow builder names in English.

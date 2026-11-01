@@ -1,7 +1,9 @@
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Route from "Common/Types/API/Route";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import Query from "Common/Types/BaseDatabase/Query";
+import { toExceptionGroupFingerprints } from "Common/Types/Telemetry/ExceptionGroupFingerprints";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -30,7 +32,8 @@ import { getSecurityEventsTimeRangeLinkParams } from "./SecurityEventsTimeRange"
  *   - the trace a log line or a span is in - every event of that request;
  *   - the log line itself, when it was written outside any request;
  *   - a session - every event of the session;
- *   - an exception group - the events whose request threw it.
+ *   - an exception group - the events whose request threw it, or threw an
+ *     exception merged into it.
  *
  * Each read is the reader's own: one who may not read security events gets
  * a refusal, and the callout says nothing at all (SecurityEventsInSignal).
@@ -42,7 +45,19 @@ export interface SecurityEventsInSignalScope {
   logId?: string | undefined;
   sessionId?: string | undefined;
   exceptionFingerprint?: string | undefined;
+  /*
+   * The fingerprints of the exceptions merged into the exception
+   * (TelemetryExceptionService.getGroupFingerprints): their occurrences
+   * count on it, so a request that threw one of them threw it.
+   */
+  mergedExceptionFingerprints?: Array<string> | undefined;
 }
+
+/*
+ * The most of an exception's fingerprints a callout asks for, its own
+ * first: they ride in its link into Security Events, one filter each.
+ */
+export const SECURITY_EVENTS_IN_SIGNAL_MAX_EXCEPTION_FINGERPRINTS: number = 20;
 
 export enum SecurityEventsInSignalKind {
   Request = "request",
@@ -109,28 +124,52 @@ export function getSecurityEventsInSignalWindow(data: {
   );
 }
 
-// The filter a scope is, as a facet key and value of the events list.
-export function getSecurityEventsInSignalFilter(
+/*
+ * The filter a scope is, as a facet key and the values any of which an
+ * event may carry: one, but for an exception others were merged into - its
+ * own fingerprint, then theirs, at most
+ * SECURITY_EVENTS_IN_SIGNAL_MAX_EXCEPTION_FINGERPRINTS.
+ */
+export function getSecurityEventsInSignalFilterValues(
   scope: SecurityEventsInSignalScope,
-): [string, string] | null {
+): [string, Array<string>] | null {
   switch (getSecurityEventsInSignalKind(scope)) {
     case SecurityEventsInSignalKind.Request:
-      return ["traceId", scope.traceId!.trim()];
+      return ["traceId", [scope.traceId!.trim()]];
     case SecurityEventsInSignalKind.LogLine:
       return [
         `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_LOG_ID_ATTRIBUTE}`,
-        scope.logId!.trim(),
+        [scope.logId!.trim()],
       ];
     case SecurityEventsInSignalKind.Session:
-      return ["sessionId", scope.sessionId!.trim()];
+      return ["sessionId", [scope.sessionId!.trim()]];
     case SecurityEventsInSignalKind.Exception:
       return [
         `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${SECURITY_REQUEST_ATTRIBUTES.exceptionFingerprint}`,
-        scope.exceptionFingerprint!.trim(),
+        toExceptionGroupFingerprints(
+          scope.exceptionFingerprint!.trim(),
+          (scope.mergedExceptionFingerprints || []).map(
+            (fingerprint: unknown): unknown => {
+              return typeof fingerprint === "string"
+                ? fingerprint.trim()
+                : fingerprint;
+            },
+          ),
+        ).slice(0, SECURITY_EVENTS_IN_SIGNAL_MAX_EXCEPTION_FINGERPRINTS),
       ];
     default:
       return null;
   }
+}
+
+// The filter a scope is, as a facet key and its first value.
+export function getSecurityEventsInSignalFilter(
+  scope: SecurityEventsInSignalScope,
+): [string, string] | null {
+  const filter: [string, Array<string>] | null =
+    getSecurityEventsInSignalFilterValues(scope);
+
+  return filter ? [filter[0], filter[1][0]!] : null;
 }
 
 export function buildSecurityEventsInSignalQuery(data: {
@@ -138,9 +177,8 @@ export function buildSecurityEventsInSignalQuery(data: {
   window: InBetween<Date>;
   projectId: ObjectID | null;
 }): Query<SecurityEvent> | null {
-  const filter: [string, string] | null = getSecurityEventsInSignalFilter(
-    data.scope,
-  );
+  const filter: [string, Array<string>] | null =
+    getSecurityEventsInSignalFilterValues(data.scope);
 
   if (!filter) {
     return null;
@@ -151,13 +189,16 @@ export function buildSecurityEventsInSignalQuery(data: {
     time: data.window,
   };
 
+  // One value as the plain equality it always was; more, any of them.
+  const value: string | Includes =
+    filter[1].length === 1 ? filter[1][0]! : new Includes(filter[1]);
+
   if (filter[0].startsWith(SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX)) {
     query["attributes"] = {
-      [filter[0].slice(SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX.length)]:
-        filter[1],
+      [filter[0].slice(SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX.length)]: value,
     };
   } else {
-    query[filter[0]] = filter[1];
+    query[filter[0]] = value;
   }
 
   return query as Query<SecurityEvent>;
@@ -168,16 +209,20 @@ export function buildSecurityEventsInSignalRoute(data: {
   scope: SecurityEventsInSignalScope;
   window: InBetween<Date>;
 }): Route | null {
-  const filter: [string, string] | null = getSecurityEventsInSignalFilter(
-    data.scope,
-  );
+  const filter: [string, Array<string>] | null =
+    getSecurityEventsInSignalFilterValues(data.scope);
 
   if (!filter) {
     return null;
   }
 
   const params: Dictionary<string> = {
-    ...buildSecurityEventFacetLinkParams([filter]),
+    // A chip for each value: the list reads chips of one key as any of them.
+    ...buildSecurityEventFacetLinkParams(
+      filter[1].map((value: string): [string, string] => {
+        return [filter[0], value];
+      }),
+    ),
     ...getSecurityEventsTimeRangeLinkParams(
       new Date(data.window.startValue),
       new Date(data.window.endValue),

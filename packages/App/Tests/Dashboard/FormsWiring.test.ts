@@ -19,8 +19,9 @@ import path from "path";
  *   - Incident Forms is gone: no Forms item in the Incidents menu, no old
  *     page keys, files or breadcrumbs - and the old URLs forward to the same
  *     form in Forms, outside the Incidents layout;
- *   - a form's menu walks the order a form is set up in, and Duplicate Form
- *     and Delete Form are in Advanced.
+ *   - a form's menu walks the order a form is set up in - its own domain
+ *     right after its link - and Duplicate Form and Delete Form are in
+ *     Advanced.
  *
  * The behaviour behind these is covered by jsdom tests in Common
  * (FormsPages, FormShareLinkCard, FormBuilderState, FormOnSubmit,
@@ -346,6 +347,7 @@ describe("the menus", () => {
       "Templates",
       "OnSubmit",
       "Share",
+      "CustomDomains",
       "Submissions",
       "Advanced",
       "DuplicateForm",
@@ -364,6 +366,7 @@ describe("the menus", () => {
       "FORM_VIEW_TEMPLATES",
       "FORM_VIEW_ON_SUBMIT",
       "FORM_VIEW_SHARE",
+      "FORM_VIEW_CUSTOM_DOMAINS",
       "FORM_VIEW_SUBMISSIONS",
       "FORM_VIEW_DUPLICATE",
       "FORM_VIEW_DELETE",

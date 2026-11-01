@@ -34,6 +34,7 @@ import IncidentLabelRuleService from "./IncidentLabelRuleService";
 import IncidentGroupingRuleService from "./IncidentGroupingRuleService";
 import FormService from "./FormService";
 import FormSubmissionService from "./FormSubmissionService";
+import FormDomainService from "./FormDomainService";
 import IncidentTemplateService from "./IncidentTemplateService";
 import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService";
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
@@ -610,6 +611,7 @@ const services: Array<BaseService> = [
   IncidentTemplateOwnerUserService,
   FormService,
   FormSubmissionService,
+  FormDomainService,
   IncidentInternalNoteService,
   IncidentOwnerTeamService,
   IncidentOwnerRuleService,

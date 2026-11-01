@@ -54,6 +54,11 @@ import { IOT_SNAPSHOT_METRIC_NAMES } from "Common/Server/Utils/Telemetry/IoTSnap
 import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
 import ColumnLength from "Common/Types/Database/ColumnLength";
 import {
+  INSTALL_SCRIPTS,
+  InstallScriptEntry,
+  getInstallFileUrl,
+} from "Common/Types/InstallScripts/InstallScripts";
+import {
   CPU_HEADROOM_RATIO,
   MEMORY_HEADROOM_RATIO,
   MIN_OBSERVED_HOURS,
@@ -113,6 +118,9 @@ import path from "path";
  */
 
 const REPO_ROOT: string = path.resolve(__dirname, "../../../../..");
+
+// The docs show OneUptime Cloud's address; a self-hosted reader puts theirs.
+const DOCS_ONEUPTIME_URL: string = "https://oneuptime.com";
 const CHART_DIR: string = path.join(
   REPO_ROOT,
   "HelmChart",
@@ -1536,6 +1544,25 @@ const SYSTEMD_UNITS: Array<SystemdUnit> = [
   },
 ];
 
+/*
+ * Where OneUptime Cloud serves an agent's unit: every OneUptime serves the
+ * files of agents/<agent> at /install/<agent> (Common/Types/InstallScripts).
+ */
+function servedUnitUrl(entry: SystemdUnit): string {
+  const served: InstallScriptEntry | undefined = INSTALL_SCRIPTS.find(
+    (script: InstallScriptEntry): boolean => {
+      return script.sourceDirectory === `agents/${entry.agent}`;
+    },
+  );
+  const file: string = `systemd/${entry.unit}.service`;
+
+  expect({ agent: entry.agent, lists: served?.files.includes(file) }).toEqual({
+    agent: entry.agent,
+    lists: true,
+  });
+  return getInstallFileUrl(DOCS_ONEUPTIME_URL, served!.name, file);
+}
+
 // The agents' own READMEs, which GitHub shows beside the files.
 const AGENT_READMES: Array<string> = fs
   .readdirSync(path.join(REPO_ROOT, "agents"))
@@ -1564,7 +1591,7 @@ describe("the systemd units the agent pages install", () => {
 
       expect(codesOf(entry.page)).toContain(
         [
-          `sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${entry.agent}/systemd/${entry.unit}.service -o /etc/systemd/system/${entry.unit}.service`,
+          `sudo curl -fsSL ${servedUnitUrl(entry)} -o /etc/systemd/system/${entry.unit}.service`,
           "sudo systemctl daemon-reload",
           `sudo systemctl enable --now ${entry.unit}`,
         ].join("\n"),
@@ -1590,7 +1617,7 @@ describe("the systemd units the agent pages install", () => {
 
       if (installsUnit) {
         expect(readme).toContain(
-          `sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${entry.agent}/systemd/${entry.unit}.service -o /etc/systemd/system/${entry.unit}.service`,
+          `sudo curl -fsSL ${servedUnitUrl(entry)} -o /etc/systemd/system/${entry.unit}.service`,
         );
       }
     },
@@ -1737,7 +1764,7 @@ describe("the Docker Swarm agent page, against the agent and its setup guide", (
 
   it("downloads the files the setup guide downloads, in its order", () => {
     expect(codesOf(DOCKER_SWARM_PAGE)).toContain(
-      getDockerSwarmAgentDownloadCommand(),
+      getDockerSwarmAgentDownloadCommand(DOCS_ONEUPTIME_URL),
     );
   });
 
@@ -1869,9 +1896,12 @@ describe("the Docker Swarm agent page, against the agent and its setup guide", (
     ]) {
       expect(install).toContain(`${kept}="$(env_file_value ${kept})"`);
     }
-    // Asked again on every run: the URL, the key and the cluster name.
+    /*
+     * Asked again on every run: the URL (Enter takes ONEUPTIME_URL, or
+     * OneUptime Cloud), the key and the cluster name.
+     */
     expect(install).toContain(
-      'printf "OneUptime URL [https://oneuptime.com]: "',
+      'ONEUPTIME_URL_DEFAULT="${ONEUPTIME_URL:-https://oneuptime.com}"\nprintf "OneUptime URL [%s]: " "${ONEUPTIME_URL_DEFAULT}"\nread -r ONEUPTIME_URL\n',
     );
     expect(install).not.toContain("env_file_value ONEUPTIME_AI_ALLOW_WRITES");
     expect(install).toContain("--no-ai-agent) INSTALL_AI_AGENT=false ;;");

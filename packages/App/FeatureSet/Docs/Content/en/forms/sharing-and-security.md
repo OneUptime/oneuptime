@@ -1,10 +1,11 @@
 # Sharing & Security
 
-A form is open to anyone who has its link, and each submission can page your on-call team or put a maintenance window on your calendar. This page covers the form's **Share** page — the link, turning the form off, the message after submitting and the IP allowlist — and every other check a request passes on the way.
+A form is open to anyone who has its link, and each submission can page your on-call team or put a maintenance window on your calendar. This page covers the form's **Share** page — the link, turning the form off, the message after submitting and the IP allowlist — and every other check a request passes on the way. It also covers serving the form on your own domain.
 
 :::cards
 - [Sharing the link](#sharing-the-link): Copy it, open it, and reset it when it spreads too far.
 - [A link for each template](#a-link-for-each-template): One bookmark per case, one form behind them all.
+- [Custom domains](#custom-domains): Serve the form on your own domain, with a free certificate.
 - [What protects a form](#what-protects-a-form): Every check a request passes, in order.
 - [Troubleshooting](#troubleshooting): What each message on the form's page means, and what to do.
 :::
@@ -14,17 +15,17 @@ A form is open to anyone who has its link, and each submission can page your on-
 | Card | What it holds |
 | --- | --- |
 | **Status** | **Accepting Submissions** — whether the form's link works. |
-| **Share Link** | The link, with **Copy Link**, **Open Form** and **Reset Link**. |
+| **Share Link** | Every address the form answers at, each with **Copy link**, and **Reset Link**. |
 | **After Submitting** | The **Thank-You Message** people see once they submit, under the number of what the form created. |
 | **More settings** | The **IP Allowlist**, folded until you open it. |
 
 ## Sharing the link
 
-The **Share Link** card shows the form's link, such as `https://oneuptime.com/accounts/form/<share-key>`:
+The **Share Link** card lists every address the form answers at: its [custom domains](#custom-domains) first, then its link on OneUptime, such as `https://oneuptime.com/accounts/form/<share-key>`:
 
-- **Copy Link** copies it.
-- **Open Form** opens the form in a new tab, the way people see it.
-- **Reset Link** gives the form a new link, after you confirm. The old link stops working at once and shows the not-available message, so everybody you shared it with needs the new one. Use it when a link has spread further than it should.
+- Each address opens the form in a new tab, the way people see it, and **Copy link** beside it copies it.
+- A custom domain that is not live yet is marked **Not live yet**, with why. With no custom domain, a line under the link offers **Add a custom domain**.
+- **Reset Link** gives the form a new link, after you confirm. The old link stops working at once and shows the not-available message, so everybody you shared it with needs the new one. Use it when a link has spread further than it should. The form's custom domains name no key, and keep working.
 
 Anyone with the link can open the form and submit it, without a OneUptime account and without signing in. Being signed in changes nothing: OneUptime knows who submitted only from the name and email typed into the form. So treat the link like a phone number for your on-call team. Share it where the people who should use it will find it — an intranet page, a support runbook, a pinned chat message — and not on a public website, unless you want submissions from anyone.
 
@@ -34,19 +35,71 @@ Links to the old incident forms, `/accounts/incident-form/<share-key>`, open the
 
 ### A link for each template
 
-Each of the form's [templates](/docs/forms/building#templates) has a link of its own: the form's link with `?template=` and the template's id, such as `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copy Link** on the form's **Templates** page copies it. It opens the form with that template filled in, so a team can bookmark one link per case while you keep a single form. When the submitter picks another template, the address in their browser follows, so the link they copy is the form as they see it.
+Each of the form's [templates](/docs/forms/building#templates) has a link of its own: the form's link with `?template=` and the template's id, such as `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Copy Link** on the form's **Templates** page copies it. It opens the form with that template filled in, so a team can bookmark one link per case while you keep a single form. When the submitter picks another template, the address in their browser follows, so the link they copy is the form as they see it. On a [custom domain](#custom-domains), a template's link is the domain with the same `?template=`, such as `https://report.acme.com/?template=<template-id>`, and **Reset Link** leaves it working.
 
 A template's link is the form's link: it works while the form is **Accepting Submissions**, and **Reset Link** retires it with the rest. A link naming a template you deleted opens the form as if it named none — with the default template, if there is one.
 
 ### Turning a form off
 
-To stop taking submissions without deleting the form, turn **Accepting Submissions** off. The link then shows "This form is not available. It may have been turned off, or the link may be out of date.", and the **Share Link** card reminds you that the form is turned off. Turn it back on and the same link works again.
+To stop taking submissions without deleting the form, turn **Accepting Submissions** off. The link then shows "This form is not available. It may have been turned off, or the link may be out of date.", and the **Share Link** card reminds you that the form is turned off. Turn it back on and the same link works again. The form's custom domains show the same message while it is off.
 
 ### The thank-you message
 
 After a submission, the page says "Thank you — your response was submitted." and gives the number of what was created, then your **Thank-You Message**, in Markdown. Use it to say what happens next, and where to go when something is urgent. Without one, the page shows only the standard message.
 
 An image in the form's description or thank-you message is shown to everyone who opens the link while the form is **Accepting Submissions**. Turn the form off, or take the image out, and the image is private again, unless something else everyone sees still has it in it.
+
+## Custom domains
+
+Out of the box, a form is served at its link, on OneUptime's own address. To serve it on a domain of your own, such as `report.acme.com`, open the form's **Custom Domains** page, right after **Share** in its side menu. It works like a [status page's custom domains](/docs/status-pages/branding-and-domains#custom-domains).
+
+Putting the form on your own domain takes three steps, and only the first two are yours:
+
+1. **Add the domain**: a subdomain and one of your verified domains.
+2. **Add its CNAME record** at your DNS provider. The **DNS Setup** dialog opens with the record as soon as you add the domain.
+3. **The free SSL certificate is issued automatically** once the record is found. There is no button to press.
+
+Once the domain is live, the **Share Link** card lists it above the form's link. Both open the same form.
+
+### Adding the domain
+
+Click **Create Form Domain**. The dialog is one page:
+
+- **Subdomain**: the label only, placeholder `report (leave blank for root)`. Enter just `report`, not the whole hostname. Leave it blank or enter `@` to use the root domain.
+- **Domain**: one of the domains verified under **Project Settings** > **Advanced** > **Domains**, where you prove you own a domain with a TXT record. The **Add a domain** link beside the field opens that page in a new tab.
+- **More fields**: folded. Open it only to use a certificate of your own: switch on **Upload Custom Certificate**, and paste the **Certificate** and its **Certificate Private Key**.
+
+Click **Create Form Domain** again to add it. The dialog closes and the new domain's **DNS Setup** opens. A domain's name and its form are fixed once it is added, so **Edit** changes only its certificate: to change either, add the new domain and delete the old one.
+
+One domain shows one status page, dashboard or form, so a name that any of them already has, in any project, is refused: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
+
+### DNS Setup and Check now
+
+The **DNS Setup** dialog shows the record to add at your DNS provider, each field with a copy button: **Type** `CNAME`, **Name** the full domain you added, and **Value** your installation's CNAME record. For a root domain, many DNS providers do not allow a CNAME record: use your provider's ALIAS, ANAME or CNAME flattening record with the same value instead.
+
+OneUptime checks every unverified domain every 15 minutes, and when it finds the record it orders the domain's free Let's Encrypt certificate in the same check. To check right away, click **Check now**. Until a domain is live, its row has a **DNS Setup** action that opens the same dialog, where **Check now** also orders again a certificate that failed or expired, at most once per domain every 15 minutes. Renewal is automatic, well before the certificate expires.
+
+The **Status** column says where each domain is on its way to HTTPS, in the same eight states as a status page's domains: see [Reading the domain Status column](/docs/status-pages/branding-and-domains#reading-the-domain-status-column). When an order failed, the reason is on the line below: usually a CAA record on your domain that does not allow `letsencrypt.org` or, on a self-hosted install, a server that Let's Encrypt cannot reach on port 80.
+
+Once a free certificate has been ordered for a domain, its row shows **Reissue SSL**, which asks Let's Encrypt for a brand new certificate before the automatic renewal, once every 24 hours per domain. The form stays online on the current certificate meanwhile. A certificate you uploaded is yours to renew: edit the domain and paste the new one.
+
+### What the domain shows
+
+A domain shows its form at its root, such as `https://report.acme.com`, and nothing else of OneUptime's: no sign-in page, and no other form. Every other address on the domain opens the form at its root, keeping its query, so a template's link works there too. The page is the form's own: its logo or none, never OneUptime's, its name as the tab's title, in the light theme, and without OneUptime's analytics. The captcha, files and the thank-you message work there as on the link, and every check in [What protects a form](#what-protects-a-form) applies, with the domain as the form's own page.
+
+- **Reset Link** changes only the form's link on OneUptime: its domains name no key, so they keep working.
+- Turning **Accepting Submissions** off closes the form on its domains too, with the not-available message.
+- Deleting the form deletes its domains, and **Duplicate Form** copies none of them. A deleted domain stops showing the form at once.
+
+### On a self-hosted installation
+
+Forms use the status page CNAME record: `STATUS_PAGE_CNAME_RECORD` in `config.env`, or `statusPage.cnameRecord` in the Helm chart. To give form domains a target of their own, set `FORM_CNAME_RECORD`: in `config.env` for Docker Compose, or with the chart-wide `extraEnv` in the Helm chart. Without either, the **Custom Domains** page says custom domains are not enabled instead of showing a record, and OneUptime verifies no form domains and orders no certificates for them.
+
+The server must answer on port 80, where Let's Encrypt checks each domain. An installation without a Let's Encrypt account key, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` in the Helm chart), orders no certificates: a form's domain is live as soon as its record is verified, served with your own proxy's HTTPS or a certificate you upload. With captcha on, a site key that lists the hostnames it works on must list the form's domains too.
+
+### Who can manage domains
+
+Project owners and admins, and anyone with **Edit Form**, can add a form's domains, check them, reissue their certificates and delete them. So can the permissions for a form's domains alone, such as **Edit Form Domain**: the [Forms Overview](/docs/forms/index#permissions) lists them. Everyone who can read a form sees its domains, their **Status** and the record in **DNS Setup**; for them **Check now** and **Reissue SSL** are locked, and say which permission they need. An API key works the same way on `/form-domain`: `verify-cname`, `order-ssl` and `reissue-ssl` need **Edit Form Domain** or **Edit Form**.
 
 ## What protects a form
 
@@ -145,6 +198,10 @@ When your OneUptime instance has hCaptcha turned on, the form shows a captcha, a
 - The form was deleted.
 - On OneUptime Cloud, the project is below the **Growth** plan, or its subscription is unpaid.
 - The link was cut short when it was copied.
+:::
+
+:::details The form's domain does not show the form
+Open the form's **Custom Domains** page and read the domain's **Status** column: until its record is verified and its certificate is in place, a browser shows a certificate warning, or nothing at all. A domain that is no longer on the page, because it was deleted or its form was, shows a not-found page, and one whose parent domain is no longer verified shows the not-available message. On a self-hosted installation, check that the record points at your OneUptime server, and that the server answers on ports 80 and 443.
 :::
 
 :::details The form can only be opened from an allowed network

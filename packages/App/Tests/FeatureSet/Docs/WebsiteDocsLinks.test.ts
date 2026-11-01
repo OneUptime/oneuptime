@@ -138,6 +138,38 @@ jest.mock("../../../FeatureSet/Docs/Utils/Placeholders", () => {
 
 const REPOSITORY: string = path.resolve(__dirname, "../../../../..");
 const HOME: string = path.join(REPOSITORY, "packages", "Home");
+// The installers the docs serve at /docs/static/scripts, which a command downloads.
+const DOCS_INSTALLERS: string = path.join(
+  REPOSITORY,
+  "packages",
+  "App",
+  "FeatureSet",
+  "Docs",
+  "Static",
+  "scripts",
+);
+
+/*
+ * One of the docs' installers (/docs/static/scripts/<agent>/install.sh): no
+ * page, but a file the website may name where it sends a reader to it - the
+ * infrastructure agent's short address redirects there (Home's
+ * Utils/Config.ts). It must be a file the docs have.
+ */
+const isDocsInstaller: (address: DocsAddress) => boolean = (
+  address: DocsAddress,
+): boolean => {
+  const [endpoint, folder, ...rest] = address.names;
+
+  return (
+    endpoint === "static" &&
+    folder === "scripts" &&
+    rest.length > 0 &&
+    !rest.includes("..") &&
+    address.anchor === null &&
+    fs.existsSync(path.join(DOCS_INSTALLERS, ...rest)) &&
+    fs.statSync(path.join(DOCS_INSTALLERS, ...rest)).isFile()
+  );
+};
 
 // What the website is written in. Stylesheets are left out: a selector such as a[href^="/docs/api"] is no link.
 const WEBSITE_FILE: RegExp = /\.(?:ts|ejs|js|json|html|md|txt)$/;
@@ -391,7 +423,7 @@ describe("the website's links into the docs", () => {
         const firstName: string = (link.target.name || "").split("/")[0]!;
         return (
           link.target.kind === "category" ||
-          link.target.kind === "other" ||
+          (link.target.kind === "other" && !isDocsInstaller(link.address)) ||
           (link.target.kind === "page" && DOCS_ENDPOINTS.includes(firstName))
         );
       })

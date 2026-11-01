@@ -35,6 +35,7 @@ import {
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import { settle } from "./HostTooltipHarness";
+import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 
 /*
  * The "how do I connect this?" card on the infrastructure overviews -
@@ -414,7 +415,12 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       heroName: "prod-swarm",
       noun: "cluster",
       identifier: "prod-swarm",
-      guide: getDockerSwarmClusterConnectionGuide,
+      guide: (identifier: string): ResourceConnectionGuide => {
+        return getDockerSwarmClusterConnectionGuide(
+          identifier,
+          getConfiguredOneUptimeUrl(),
+        );
+      },
       setupCode: "DOCKER_SWARM_CLUSTER_NAME=prod-swarm",
       identifierMention:
         'When it asks for the cluster name, enter "prod-swarm"',

@@ -28,6 +28,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { agentFilesCurlStub } = require("./Utils/AgentFilesCurlStub");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = path.join(REPO_ROOT, "agents", "StorageArrayAgent");
@@ -64,8 +65,9 @@ function readIfExists(file) {
  * `docker` records every call with the directory it ran in, fails
  * `compose up` when $STUB_DIR/up.fail exists, and otherwise keeps the native
  * config as `compose up` found it in $STUB_DIR/config-at-up.yaml. `curl`
- * serves the agent's files from this checkout, or from $SERVE_DIR when set
- * (a newer upstream).
+ * serves the agent's files the way the OneUptime at ONEUPTIME_URL does, at
+ * <ONEUPTIME_URL>/install/storage-array-agent/<file>, from this checkout or
+ * from $SERVE_DIR when set (a newer release): Utils/AgentFilesCurlStub.
  */
 function installStubs(dir) {
   const bin = path.join(dir, "bin");
@@ -85,20 +87,11 @@ exit 0
   );
   writeExecutable(
     path.join(bin, "curl"),
-    `#!/usr/bin/env bash
-url=""; out=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -o) out="$2"; shift 2 ;;
-    -*) shift ;;
-    *) url="$1"; shift ;;
-  esac
-done
-rel="\${url#https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/StorageArrayAgent/}"
-served="\${SERVE_DIR:-${AGENT_DIR}}"
-[ -f "$served/$rel" ] || exit 22
-cp "$served/$rel" "$out"
-`,
+    agentFilesCurlStub({
+      installName: "storage-array-agent",
+      agentDirectory: "StorageArrayAgent",
+      servedDir: AGENT_DIR,
+    }),
   );
   return bin;
 }
@@ -198,6 +191,76 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     });
 
     expect(run.status).toBe(0);
+    for (const file of [
+      "docker-compose.yml",
+      "otel-collector-config.yaml",
+      "otel-collector-config.flasharray-exporter.yaml",
+      "otel-collector-config.flashblade.yaml",
+    ]) {
+      expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
+        fs.readFileSync(path.join(AGENT_DIR, file), "utf8"),
+      );
+    }
+  });
+
+  test("downloads every file from the OneUptime it reports to, and points the diagnostic there", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      env: {
+        ONEUPTIME_URL: "https://oneuptime.example.com/",
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: INGESTION_KEY,
+        STORAGE_ARRAY_COLLECTOR_CONFIG: "otel-collector-config.yaml",
+        STORAGE_ARRAY_NAME: "fa-prod-01",
+        PURE_FA_ENDPOINT: "fa-prod-01.example.com",
+        PURE_FA_API_TOKEN: FA_TOKEN,
+        STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
+      },
+    });
+    const served = "https://oneuptime.example.com/install/storage-array-agent";
+    const requested = fs
+      .readFileSync(path.join(dir, "curl.log"), "utf8")
+      .split("\n")
+      .filter((line) => {
+        return line.includes(" -w ");
+      })
+      .map((line) => {
+        return line.split(" ").pop();
+      });
+
+    expect(run.status).toBe(0);
+    expect(requested).toEqual([
+      `${served}/docker-compose.yml`,
+      `${served}/otel-collector-config.yaml`,
+      `${served}/otel-collector-config.flasharray-exporter.yaml`,
+      `${served}/otel-collector-config.flashblade.yaml`,
+    ]);
+    expect(run.output).toContain(
+      `If nothing shows up: curl -fsSL ${served}/troubleshoot.sh | bash -s -- -d ${run.installDir}`,
+    );
+    expect(run.output).not.toContain("raw.githubusercontent.com");
+  });
+
+  test("an older OneUptime's own page (HTTP 200, HTML) is never saved as a config: the files come from GitHub", () => {
+    const dir = scratch();
+    installStubs(dir);
+    fs.writeFileSync(
+      path.join(dir, "oneuptime.answer"),
+      "200 text/html; charset=utf-8",
+    );
+    const run = install(dir, {
+      env: {
+        ONEUPTIME_URL: "https://oneuptime.example.com",
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: INGESTION_KEY,
+        STORAGE_ARRAY_COLLECTOR_CONFIG: "otel-collector-config.yaml",
+        STORAGE_ARRAY_NAME: "fa-prod-01",
+        PURE_FA_ENDPOINT: "fa-prod-01.example.com",
+        PURE_FA_API_TOKEN: FA_TOKEN,
+        STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
+      },
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain("Downloading them from GitHub instead.");
     for (const file of [
       "docker-compose.yml",
       "otel-collector-config.yaml",

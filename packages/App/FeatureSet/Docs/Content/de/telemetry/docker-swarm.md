@@ -47,23 +47,25 @@ Führen Sie ihn auf einem Manager-Knoten aus. Der Collector meldet die Container
 :::steps
 ### Den Agent installieren und starten
 
+Jede OneUptime-Instanz stellt das Installationsskript und die Dateien des Agents für ihr eigenes Release bereit: Die Befehle unten laden sie von `https://oneuptime.com` herunter; ersetzen Sie diese Adresse bei einer selbst gehosteten Instanz durch Ihre URL. Das Installationsskript wird zuerst als `install.sh` gespeichert, sodass Sie es lesen können, bevor Sie es ausführen.
+
 :::tabs
 @tab install.sh
 Laden Sie das Installationsskript herunter und führen Sie es auf einem Manager-Knoten aus:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 Das Skript fragt nach Ihrer OneUptime-URL, dem Ingestion-Schlüssel und einem Namen für den Cluster. Es installiert nach `/opt/oneuptime-docker-swarm-agent`, schreibt eine `.env`-Datei, die nur ihr Eigentümer lesen kann, mit dem Hostnamen des Knotens als `DOCKER_SWARM_NODE_NAME`, und startet alle drei Container. Fügen Sie `--no-ai-agent` hinzu, um den KI-Agent wegzulassen.
 @tab Docker Compose
-Laden Sie `docker-compose.yml`, `otel-collector-config.yaml` und `inventory-snapshot.sh` aus dem [Verzeichnis DockerSwarmAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) in einen neuen Ordner auf einem Manager-Knoten herunter:
+Laden Sie `docker-compose.yml`, `otel-collector-config.yaml` und `inventory-snapshot.sh` von Ihrem OneUptime in einen neuen Ordner auf einem Manager-Knoten herunter:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ Der Collector liest seine Konfiguration nur beim Start: Führen Sie `docker comp
 Um den Agent mit dem Knoten zu starten und bei einem Fehler neu zu starten, installieren Sie seine systemd-Unit. Sie geht davon aus, dass der Agent in `/opt/oneuptime-docker-swarm-agent` liegt, wo das Installationsskript ihn ablegt:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ Der Agent meldet die Version seiner Dateien: das Collector-Release, das sie ausf
 Führen Sie das Installationsskript erneut auf dem Manager-Knoten aus und beantworten Sie seine Fragen mit derselben URL, demselben Schlüssel und demselben Clusternamen. Es lädt die neuesten Dateien herunter, zieht die Images und startet den Agent neu:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ Was er ausführen darf, wie Korrekturen funktionieren und wie Sie Fehler beheben
 ## Fehlerbehebung
 
 :::details Zuerst das Diagnoseskript ausführen
-Der Agent bringt ein Skript mit, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh), das die ganze Kette prüft: die Container, ob der Inventar-Poller auf einem Manager läuft (`docker node ls`), die Snapshot-Datei, den an alles gehängten Clusternamen, die Form des Tokens, die eigenen Metriken des Collectors und ob OneUptime den Ingestion-Schlüssel akzeptiert. Diese letzte Prüfung zählt am meisten. OneUptime lehnt einen falschen Schlüssel mit `401` ab (`422` für einen deaktivierten Schlüssel oder einen Browser-Schlüssel), und der Collector protokolliert das als eine Zeile `Exporting failed` pro Batch, die leicht zu übersehen ist. Das Skript fragt `GET <url>/otlp/v1/validate` ab, um direkt `200` (gültig) oder `401` (ungültig) zu erhalten. Führen Sie es auf dem Manager-Knoten aus:
+Der Agent bringt ein Skript mit, [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh), das die ganze Kette prüft: die Container, ob der Inventar-Poller auf einem Manager läuft (`docker node ls`), die Snapshot-Datei, den an alles gehängten Clusternamen, die Form des Tokens, die eigenen Metriken des Collectors und ob OneUptime den Ingestion-Schlüssel akzeptiert. Diese letzte Prüfung zählt am meisten. OneUptime lehnt einen falschen Schlüssel mit `401` ab (`422` für einen deaktivierten Schlüssel oder einen Browser-Schlüssel), und der Collector protokolliert das als eine Zeile `Exporting failed` pro Batch, die leicht zu übersehen ist. Das Skript fragt `GET <url>/otlp/v1/validate` ab, um direkt `200` (gültig) oder `401` (ungültig) zu erhalten. Führen Sie es auf dem Manager-Knoten aus:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

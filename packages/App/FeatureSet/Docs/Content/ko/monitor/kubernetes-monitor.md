@@ -69,6 +69,8 @@ flowchart TB
 | 노드 | 클러스터 노드 | **노드 이름** |
 | Pod | Pod | **네임스페이스**, **Pod 이름** |
 
+컨테이너와 Pod의 메트릭에는 그 Pod가 속한 워크로드의 이름이 붙습니다(Deployment의 Pod에는 Deployment의 이름과 그 ReplicaSet의 이름이 붙습니다). 그래서 범위를 워크로드로 하면 그 워크로드의 컨테이너와 Pod를 감시합니다. Job의 실패 Pod처럼 워크로드 자체의 메트릭에는 그 워크로드 자신의 이름만 붙으므로, 그 워크로드의 종류로 범위를 지정하세요.
+
 ### 시간 범위
 
 **시간 범위** 는 모니터를 평가할 때마다 메트릭 쿼리가 다루는 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 짧은 기간(1~15분)은 알림에 알맞고, 긴 기간은 잡음이 많은 메트릭을 부드럽게 합니다.
@@ -91,7 +93,7 @@ flowchart TB
 | 컨트롤 플레인 | etcd Has Leader, API Server In-Flight Requests, Scheduler Pending Pods |
 
 > [!NOTE]
-> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 알림을 받으세요. **Container Restarts**는 컨테이너의 누적 재시작 수이고, **Container Restarts (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다. **Job Failed Pods**는 Job의 누적 실패 Pod 수이고, **Job Failed Pods (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 Job의 이전 샘플 이후 실패한 Pod 수입니다. 그래서 창 안의 합계가 그 창의 실패 수입니다.
+> **Pod CPU Usage** 와 **Node CPU Usage** 의 단위는 퍼센트가 아니라 코어입니다. `0.18`은 코어의 0.18입니다. **Pod Phase (Code)** 메트릭은 코드(1 Pending, 2 Running, 3 Succeeded, 4 Failed, 5 Unknown)이므로 최대 또는 최소로 집계하고, 합계는 쓰지 마세요. 컨트롤 플레인 메트릭은 에이전트의 컨트롤 플레인 수집이 켜져 있을 때만 들어옵니다. **Node Ready Condition**은 Ready일 때 1, NotReady일 때 0, Unknown일 때 -1이며, 다운된 노드는 Unknown을 보고합니다. 1 미만일 때 알림을 받으세요. **Container Restarts**는 컨테이너의 누적 재시작 수이고, **Container Restarts (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 컨테이너의 이전 샘플 이후 재시작 수입니다. 그래서 창 안의 합계가 그 창의 재시작 수입니다. **Container Restarts**가 가진 것을 그대로 가지며, 컨테이너가 속한 Pod의 워크로드 이름도 포함하지만 재시작할 때마다 바뀌는 컨테이너 ID는 포함하지 않습니다. **Job Failed Pods**는 Job의 누적 실패 Pod 수이고, **Job Failed Pods (Increase)** 는 에이전트가 샘플마다 보내는 값으로 그 Job의 이전 샘플 이후 실패한 Pod 수입니다. 그래서 창 안의 합계가 그 창의 실패 수입니다. **Job Failed Pods**와 마찬가지로 Job의 이름과 네임스페이스를 가집니다.
 
 ## 모니터링 기준
 
@@ -190,11 +192,11 @@ flowchart TB
 :::
 
 :::details 재시작에 CrashLoopBackOff Detection이 발생하지 않음
-이 템플릿은 컨테이너가 15분 안에 재시작하고 그중 절반 미만 동안만 준비되었을 때 발생하므로, 한 번 재시작하고 곧바로 돌아온 컨테이너는 알림을 보내지 않습니다. 이 템플릿은 `k8s.container.restarts.increase`를 읽는데, 이전 에이전트는 이를 보내지 않습니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.container.restarts`가 같은 분의 두 샘플 사이에서 얼마나 늘었는지를 읽으므로, 두 분에 걸친 샘플 사이의 재시작을 놓칩니다. 삭제하고 템플릿으로 다시 만드세요. `filters.metrics.include`에 에이전트가 보내는 메트릭을 나열했다면 `k8s.container.restarts.increase`를 추가하세요.
+이 템플릿은 컨테이너가 15분 안에 재시작하고 그중 절반 미만 동안만 준비되었을 때 발생하므로, 한 번 재시작하고 곧바로 돌아온 컨테이너는 알림을 보내지 않습니다. 이 템플릿은 `k8s.container.restarts.increase`를 읽는데, 이전 에이전트는 이를 보내지 않습니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.container.restarts`가 같은 분의 두 샘플 사이에서 얼마나 늘었는지를 읽으므로, 두 분에 걸친 샘플 사이의 재시작을 놓칩니다. 삭제하고 템플릿으로 다시 만드세요. `filters.metrics.include`에 에이전트가 보내는 메트릭을 나열했다면 `k8s.container.restarts.increase`를 추가하세요. 워크로드로 범위를 지정한 모니터에는 `k8s.container.restarts.increase`의 워크로드 이름도 필요한데, 이전 에이전트는 이를 붙이지 않고 보냅니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드).
 :::
 
 :::details 실패한 Job에 Job Failures가 발생하지 않음
-이 템플릿은 Job의 Pod가 15분 안에 실패하면 발생하고, 마지막 실패 15분 뒤에 해제됩니다. 이 템플릿은 `k8s.job.failed_pods.increase`를 읽는데, 이전 에이전트는 이를 보내지 않습니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.job.failed_pods`가 같은 분의 두 샘플 사이에서 얼마나 늘었는지를 읽으므로, 두 분에 걸친 샘플 사이의 실패를 놓칩니다. 삭제하고 템플릿으로 다시 만드세요. 에이전트가 Job을 처음 샘플링하기 전의 실패는 그 Job을 세기 시작하는 값이 되므로, 유일한 Pod가 처음 30초 안에 실패한 Job은 놓칩니다. `filters.metrics.include`에 에이전트가 보내는 메트릭을 나열했다면 `k8s.job.failed_pods.increase`를 추가하세요.
+이 템플릿은 Job의 Pod가 15분 안에 실패하면 발생하고, 마지막 실패 15분 뒤에 해제됩니다. 이 템플릿은 `k8s.job.failed_pods.increase`를 읽는데, 이전 에이전트는 이를 보내지 않습니다. [에이전트를 업그레이드하세요](/docs/monitor/kubernetes-agent#업그레이드). 그 전에 템플릿으로 만든 모니터는 `k8s.job.failed_pods`가 같은 분의 두 샘플 사이에서 얼마나 늘었는지를 읽으므로, 두 분에 걸친 샘플 사이의 실패를 놓칩니다. 삭제하고 템플릿으로 다시 만드세요. 에이전트가 Job을 처음 샘플링하기 전의 실패는 그 Job을 세기 시작하는 값이 되므로, 유일한 Pod가 처음 30초 안에 실패한 Job은 놓칩니다. `filters.metrics.include`에 에이전트가 보내는 메트릭을 나열했다면 `k8s.job.failed_pods.increase`를 추가하세요. 워크로드로 범위를 지정한 모니터는 Job 자체를 지정해야 합니다. Job의 실패 Pod에는 Job의 이름과 네임스페이스가 붙고, 그 Job을 만든 CronJob의 이름은 붙지 않습니다.
 :::
 
 ## 다음 단계

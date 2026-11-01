@@ -53,6 +53,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     __esModule: true,
     StatusPageCNameRecord: mockCNameRecord,
     DashboardCNameRecord: mockCNameRecord,
+    FormCNameRecord: mockCNameRecord,
   };
 });
 
@@ -84,10 +85,12 @@ jest.mock("../../../Server/Utils/Logger", () => {
 
 import StatusPageDomainAPI from "../../../Server/API/StatusPageDomainAPI";
 import DashboardDomainAPI from "../../../Server/API/DashboardDomainAPI";
+import FormDomainAPI from "../../../Server/API/FormDomainAPI";
 import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
 import DashboardDomainService from "../../../Server/Services/DashboardDomainService";
+import FormDomainService from "../../../Server/Services/FormDomainService";
 import Response from "../../../Server/Utils/Response";
 import CertificateOrder, {
   CertificateOrderOutcome,
@@ -99,9 +102,12 @@ import {
 } from "../../../Server/Utils/Express";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
+import FormDomain from "../../../Models/DatabaseModels/FormDomain";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
+import { IsBillingEnabled } from "../../../Server/EnvironmentConfig";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
@@ -144,9 +150,19 @@ type Kind = {
   deletePermission: Permission;
   // Read-only roles that open the Custom Domains page.
   readOnlyRoles: Array<Permission>;
-  // Granted with labels, it narrows which domains the caller may change.
-  labelledParentEditPermission: Permission;
+  /*
+   * Granted with labels, it narrows which domains the caller may change -
+   * null for a form's, whose form carries no labels.
+   */
+  labelledParentEditPermission: Permission | null;
   parentRelation: string;
+  /*
+   * The plan the caller's project is on, as getDatabaseCommonInteractionProps
+   * gives the props it: a form's domain is held to the plan forms need
+   * (Growth) where billing is on, as the form is; a status page's and a
+   * dashboard's domains name no plan of their own.
+   */
+  callerPlan: PlanType | null;
 };
 
 const KINDS: Array<[string, Kind]> = [
@@ -166,6 +182,7 @@ const KINDS: Array<[string, Kind]> = [
       readOnlyRoles: [Permission.Viewer, Permission.StatusPageViewer],
       labelledParentEditPermission: Permission.StatusPageMember,
       parentRelation: "statusPage",
+      callerPlan: null,
     },
   ],
   [
@@ -184,6 +201,34 @@ const KINDS: Array<[string, Kind]> = [
       readOnlyRoles: [Permission.Viewer, Permission.SettingsViewer],
       labelledParentEditPermission: Permission.EditDashboard,
       parentRelation: "dashboard",
+      callerPlan: null,
+    },
+  ],
+  /*
+   * A form's own domains: read through their form, and changed by whoever
+   * may change where the form is shared - never a member tier.
+   */
+  [
+    "form domains",
+    {
+      name: "Form Domain",
+      path: "/form-domain",
+      service: FormDomainService as unknown as DomainService,
+      modelType: FormDomain,
+      parentColumn: "formId",
+      parentReadPermission: Permission.ReadForm,
+      readPermission: Permission.ReadFormDomain,
+      editPermission: Permission.EditFormDomain,
+      createPermission: Permission.CreateFormDomain,
+      deletePermission: Permission.DeleteFormDomain,
+      readOnlyRoles: [
+        Permission.Viewer,
+        Permission.ProjectMember,
+        Permission.IncidentViewer,
+      ],
+      labelledParentEditPermission: null,
+      parentRelation: "form",
+      callerPlan: PlanType.Growth,
     },
   ],
 ];
@@ -307,6 +352,14 @@ async function callAs(
   route: string,
   params?: Record<string, string>,
 ): Promise<{ next: MockedFn }> {
+  /*
+   * In place, not a copy: some tests check the very props the route hands
+   * on. A test that names a plan of its own keeps it.
+   */
+  if (kind.callerPlan && props.currentPlan === undefined) {
+    props.currentPlan = kind.callerPlan;
+  }
+
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
     .mockResolvedValue(props);
@@ -353,6 +406,7 @@ beforeAll(() => {
   mockRouter.routes.length = 0;
   new StatusPageDomainAPI();
   new DashboardDomainAPI();
+  new FormDomainAPI();
 });
 
 beforeEach(() => {
@@ -369,6 +423,45 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
     .getUpdatePermissions()
     .slice()
     .sort();
+
+  /*
+   * A form's domains are a part of forms, which need Growth on OneUptime
+   * Cloud: a project below it is refused the change where billing is on -
+   * whoever asks - and nothing is asked where billing is off.
+   */
+  // Only for a kind whose domains name a plan of their own.
+  const planTest: (name: string, run: () => Promise<void>) => void = (
+    name: string,
+    run: () => Promise<void>,
+  ): void => {
+    if (kind.callerPlan) {
+      test(name, run);
+    }
+  };
+
+  planTest(
+    "a project below the plan its domains need is refused the change where billing is on",
+    async () => {
+      for (const [, changeRoute] of CHANGE_ROUTES) {
+        jest.clearAllMocks();
+        const spies: Spies = stubDomainTable(kind);
+        const props: DatabaseCommonInteractionProps = customDomainCaller({
+          permissions: [Permission.ProjectOwner],
+        });
+
+        props.currentPlan = PlanType.Free;
+
+        await callAs(props, kind, changeRoute.route);
+
+        expect({
+          route: changeRoute.route,
+          reached: changeRoute.reachedTheChange(spies),
+        }).toEqual({ route: changeRoute.route, reached: !IsBillingEnabled });
+
+        jest.restoreAllMocks();
+      }
+    },
+  );
 
   test("the update list the routes hold callers to is the domain table's own", () => {
     expect(updateList).toContain(kind.editPermission);
@@ -677,45 +770,58 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
        * domains of the status pages or dashboards carrying them - the update
        * of the domain is narrowed that way, and so is the check.
        */
-      test("an editor limited to some labels may change only domains of the status pages or dashboards that carry them", async () => {
-        const spies: Spies = stubDomainTable(kind);
-        const labelId: ObjectID = ObjectID.generate();
+      // Only for a kind whose status page or dashboard carries labels.
+      const labelledTest: (name: string, run: () => Promise<void>) => void = (
+        name: string,
+        run: () => Promise<void>,
+      ): void => {
+        if (kind.labelledParentEditPermission) {
+          test(name, run);
+        }
+      };
 
-        // The label join tables, as a migrated database names them.
-        withLabelJoinTables();
+      labelledTest(
+        "an editor limited to some labels may change only domains of the status pages or dashboards that carry them",
+        async () => {
+          const spies: Spies = stubDomainTable(kind);
+          const labelId: ObjectID = ObjectID.generate();
 
-        const props: DatabaseCommonInteractionProps = customDomainCaller({
-          permissions: [
-            kind.parentReadPermission,
-            kind.readPermission,
-            kind.editPermission,
-          ],
-        });
+          // The label join tables, as a migrated database names them.
+          withLabelJoinTables();
 
-        props.userTenantAccessPermission![
-          props.tenantId!.toString()
-        ]!.permissions.push({
-          _type: "UserPermission",
-          permission: kind.labelledParentEditPermission,
-          labelIds: [labelId],
-          isBlockPermission: false,
-        });
+          const props: DatabaseCommonInteractionProps = customDomainCaller({
+            permissions: [
+              kind.parentReadPermission,
+              kind.readPermission,
+              kind.editPermission,
+            ],
+          });
 
-        await callAs(props, kind, changeRoute.route);
+          props.userTenantAccessPermission![
+            props.tenantId!.toString()
+          ]!.permissions.push({
+            _type: "UserPermission",
+            permission: kind.labelledParentEditPermission!,
+            labelIds: [labelId],
+            isBlockPermission: false,
+          });
 
-        const lookup: { query: Record<string, unknown> } = spies.findOneBy.mock
-          .calls[0]![0] as { query: Record<string, unknown> };
+          await callAs(props, kind, changeRoute.route);
 
-        /*
-         * An update narrows by the parents the caller may edit with a
-         * condition on the domain's own id, leaving the caller's filter on
-         * the relation as it was sent.
-         */
-        expect(JSON.stringify(lookup.query["_id"])).toContain(
-          labelId.toString(),
-        );
-        expect(lookup.query[kind.parentRelation]).toBeUndefined();
-      });
+          const lookup: { query: Record<string, unknown> } = spies.findOneBy
+            .mock.calls[0]![0] as { query: Record<string, unknown> };
+
+          /*
+           * An update narrows by the parents the caller may edit with a
+           * condition on the domain's own id, leaving the caller's filter on
+           * the relation as it was sent.
+           */
+          expect(JSON.stringify(lookup.query["_id"])).toContain(
+            labelId.toString(),
+          );
+          expect(lookup.query[kind.parentRelation]).toBeUndefined();
+        },
+      );
 
       test("a master admin gets to the change", async () => {
         const spies: Spies = stubDomainTable(kind);

@@ -34,6 +34,9 @@ import CertificateReissueUtil from "../../Utils/CertificateReissue";
 import QueryHelper from "../Types/Database/QueryHelper";
 import { CustomDomainVerificationResult } from "../../Types/CustomDomain/CustomDomainVerification";
 import { CustomDomainCertificate } from "../../Types/CustomDomain/CustomDomainCertificates";
+import CustomDomainConflicts, {
+  CustomDomainKind,
+} from "../Utils/CustomDomain/CustomDomainConflicts";
 
 const STATUS_PAGE_DOMAIN_EGRESS_LABEL: string = "Status page domain";
 
@@ -181,6 +184,16 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
         ? `${normalizedSubdomain}.${baseDomain}`
         : baseDomain;
     }
+
+    /*
+     * One name, one thing to show: a name a dashboard or a form already has,
+     * in any project, is refused (CustomDomainConflicts) - the visit could
+     * only ever lead to one of them.
+     */
+    await CustomDomainConflicts.assertNameIsFree({
+      kind: CustomDomainKind.StatusPage,
+      fullDomain: createBy.data.fullDomain || "",
+    });
 
     createBy.data.cnameVerificationToken = ObjectID.generate().toString();
 

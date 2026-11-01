@@ -11,7 +11,9 @@ import {
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import { hasRecoveryDeadBand } from "./Utils/RecommendationCriteriaAssertions";
 import { AGENT_EMITTED_METRIC_NAMES } from "./Utils/KubernetesAgentEmittedMetrics";
-import MonitorStepKubernetesMonitor from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
+import MonitorStepKubernetesMonitor, {
+  MonitorStepKubernetesMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
 import {
   EvaluateOverTimeType,
@@ -889,6 +891,114 @@ describe("KubernetesAlertTemplates - metric/criteria agreement", () => {
     expect(config).toContain("        metrics/restarts-increase:\n");
     expect(config).toContain(
       "            - cumulative_to_delta/restarts-increase\n",
+    );
+  });
+
+  /*
+   * A Workload scope puts the workload's name on EVERY query of the step
+   * (MonitorTelemetryMonitor.monitorKubernetes), so a query whose metric
+   * does not carry it reads nothing. The increase used to leave the
+   * restarts pipeline straight for the exporter, without the workload
+   * names k8sattributes gives the cluster's other container metrics: a
+   * crash loop scoped to its Deployment never fired. It is now handed to
+   * the metrics pipeline, which runs the same k8sattributes on it as on
+   * k8s.container.ready.
+   */
+  test("k8s-crashloopbackoff's two metrics get the pod's workload names from the same k8sattributes, so a Workload scope filters both alike", () => {
+    const config: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+      ),
+      "utf8",
+    );
+    const pipelines: string = config.substring(
+      config.indexOf("      pipelines:\n"),
+    );
+    const metricsPipeline: string = pipelines.substring(
+      pipelines.indexOf("        metrics:\n"),
+      pipelines.indexOf("        logs:\n"),
+    );
+    const restartsPipeline: string = pipelines.substring(
+      pipelines.indexOf("        metrics/restarts-increase:\n"),
+    );
+
+    /*
+     * k8s.container.ready arrives from k8s_cluster, the increase from the
+     * restarts pipeline; the metrics pipeline enriches both.
+     */
+    expect(metricsPipeline).toContain(
+      "          receivers:\n            - k8s_cluster\n",
+    );
+    expect(metricsPipeline).toContain(
+      "            - forward/restarts-increase\n",
+    );
+    expect(metricsPipeline).toContain("            - k8sattributes\n");
+    expect(restartsPipeline).toContain(
+      "            - cumulative_to_delta/restarts-increase\n          exporters:\n            - forward/restarts-increase\n",
+    );
+
+    /*
+     * Neither query filters on an attribute of its own: the scope's is the
+     * only one, and both metrics carry it.
+     */
+    const queries: Array<any> = getQueryConfigs("k8s-crashloopbackoff");
+    expect(
+      queries.map((query: any) => {
+        return [
+          query.metricQueryData.filterData.metricName,
+          query.metricQueryData.filterData.attributes,
+        ];
+      }),
+    ).toEqual([
+      ["k8s.container.restarts.increase", {}],
+      ["k8s.container.ready", {}],
+    ]);
+    // Scoped by default to the whole cluster; the scope is the user's.
+    expect(getKubernetesMonitor(getStep("k8s-crashloopbackoff"))).toEqual(
+      expect.objectContaining({
+        resourceScope: "Cluster",
+        resourceFilters: {},
+      }),
+    );
+  });
+
+  test("k8s-job-failures reads a copy on the Job's own resource, which carries the Job's name a Workload scope of kind Job filters on", () => {
+    const config: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+      ),
+      "utf8",
+    );
+
+    // copy_metric puts the copy under the count's own resource and scope.
+    expect(config).toContain(
+      '- copy_metric(name="k8s.job.failed_pods.increase", description="Pods of the Job that failed since the agent\'s previous sample of it.") where name == "k8s.job.failed_pods"',
+    );
+    // Made before anything adds to the resource, so both get the same.
+    const processors: string = config.substring(
+      config.indexOf("      pipelines:\n        metrics:\n"),
+    );
+    expect(
+      processors.indexOf("- transform/job-failures-increase\n"),
+    ).toBeLessThan(processors.indexOf("- k8sattributes\n"));
+    expect(
+      processors.indexOf("- transform/job-failures-increase\n"),
+    ).toBeLessThan(processors.indexOf("- resource\n"));
+
+    const monitor: MonitorStepKubernetesMonitor = getKubernetesMonitor(
+      getStep("k8s-job-failures"),
+    );
+    expect(monitor.resourceScope).toBe("Workload");
+    const [query] = getQueryConfigs("k8s-job-failures");
+    expect(query.metricQueryData.filterData.attributes).toEqual({});
+    // The name a Job scope filters on is the one the template groups by.
+    expect(query.metricQueryData.groupByAttributeKeys).toContain(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+        workloadType: "job",
+        workloadName: "nightly-export",
+      }),
     );
   });
 

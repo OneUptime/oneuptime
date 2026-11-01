@@ -7,12 +7,33 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import MonitorStepKubernetesMonitor, {
+  KUBERNETES_WORKLOAD_SCOPE_KINDS,
   KubernetesResourceScope,
   MonitorStepKubernetesMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
+import {
+  KubernetesAlertTemplate,
+  buildKubernetesMonitorConfig,
+  getAllKubernetesAlertTemplates,
+  getKubernetesAlertTemplateById,
+} from "../../../Types/Monitor/KubernetesAlertTemplates";
+import {
+  KubernetesMetricDefinition,
+  getAllKubernetesMetrics,
+  getKubernetesMetricById,
+} from "../../../Types/Monitor/KubernetesMetricCatalog";
+import ObjectID from "../../../Types/ObjectID";
+import RollingTime from "../../../Types/RollingTime/RollingTime";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -20,7 +41,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * Workload Name and never set its kind, and the worker applied the filter
  * only when both were set: a monitor scoped to "checkout" watched every
  * workload in the cluster. The form now asks for the kind beside the name,
- * starting on Deployment, and the name always travels with a kind.
+ * starting on the kind the chosen template watches (else Deployment), and
+ * the name always travels with a kind.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -128,4 +150,737 @@ describe("Kubernetes monitor form - a workload is named with its kind", () => {
     });
     expect(screen.getByText("StatefulSet")).toBeInTheDocument();
   });
+});
+
+/*
+ * Workload Kind follows the chosen template. Job Failures reads a Job's own
+ * metric, which carries the Job's name and no Deployment's, so a Job
+ * Failures monitor scoped to "nightly-export" read nothing while the kind
+ * started on Deployment. A template that watches one kind now starts the
+ * field on it; a kind the person picked stays theirs; a template that
+ * watches no one kind, and a monitor already saved, are as they were.
+ */
+
+// The form as the monitor page holds it: each change is handed back.
+function StatefulForm(props: {
+  initial: MonitorStepKubernetesMonitor;
+  onChange: MockFunction;
+  initialTemplateId?: string | undefined;
+}): React.ReactElement {
+  const [value, setValue] = React.useState<MonitorStepKubernetesMonitor>(
+    props.initial,
+  );
+
+  return (
+    <KubernetesMonitorStepForm
+      monitorStepKubernetesMonitor={value}
+      initialTemplateId={props.initialTemplateId}
+      onChange={(next: MonitorStepKubernetesMonitor) => {
+        setValue(next);
+        props.onChange(next);
+      }}
+      onMonitorCriteriaChange={(): void => {}}
+    />
+  );
+}
+
+async function settle(): Promise<void> {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
+async function renderNewMonitor(
+  onChange: MockFunction,
+  initialTemplateId?: string,
+): Promise<void> {
+  render(
+    <StatefulForm
+      initial={{
+        ...MonitorStepKubernetesMonitorUtil.getDefault(),
+        clusterIdentifier: "prod",
+      }}
+      onChange={onChange}
+      initialTemplateId={initialTemplateId}
+    />,
+  );
+  await settle();
+}
+
+async function pickTemplate(id: string): Promise<void> {
+  if (screen.queryByTestId("alert-template-change")) {
+    fireEvent.click(screen.getByTestId("alert-template-change"));
+    await settle();
+  }
+
+  fireEvent.click(screen.getByTestId(`alert-template-${id}`));
+  await settle();
+}
+
+async function openAdvancedTab(): Promise<void> {
+  fireEvent.click(screen.getByRole("tab", { name: "Advanced" }));
+  await settle();
+}
+
+function workloadKindList(): HTMLElement {
+  return screen.getByRole("combobox", { name: "Workload Kind" });
+}
+
+// The kind the Workload Kind field shows.
+function shownWorkloadKind(): string {
+  const control: HTMLElement | null = workloadKindList().closest(
+    ".ou-select__control",
+  );
+
+  expect(control).not.toBeNull();
+
+  return within(control!).getByTestId("dropdown-value-label").textContent || "";
+}
+
+async function pickFromList(list: HTMLElement, label: string): Promise<void> {
+  fireEvent.keyDown(list, { key: "ArrowDown" });
+
+  const option: HTMLElement | undefined = (
+    await screen.findAllByTestId("dropdown-option-label")
+  ).find((element: HTMLElement) => {
+    return element.textContent === label;
+  });
+
+  expect(option).toBeDefined();
+  fireEvent.click(option!);
+  await settle();
+}
+
+function kindLabel(kind: string | undefined): string {
+  return KUBERNETES_WORKLOAD_SCOPE_KINDS.find((entry: { value: string }) => {
+    return entry.value === (kind || "deployment");
+  })!.label;
+}
+
+// The name field's label and placeholder: an HPA's, or a workload's.
+function shownNameField(): { label: string; placeholder: string } {
+  const hpa: boolean = screen.queryByText("HPA Name") !== null;
+
+  expect(screen.queryByText(hpa ? "Workload Name" : "HPA Name")).toBeNull();
+
+  const placeholder: string = hpa ? "e.g. my-hpa" : "e.g. my-deployment";
+  expect(screen.getByPlaceholderText(placeholder)).toBeInTheDocument();
+
+  return { label: hpa ? "HPA Name" : "Workload Name", placeholder };
+}
+
+function templateMonitor(id: string): MonitorStepKubernetesMonitor {
+  return getKubernetesAlertTemplateById(id)!.getMonitorStep({
+    clusterIdentifier: "prod",
+    onlineMonitorStatusId: ObjectID.generate(),
+    offlineMonitorStatusId: ObjectID.generate(),
+    defaultIncidentSeverityId: ObjectID.generate(),
+    defaultAlertSeverityId: ObjectID.generate(),
+    monitorName: "Kubernetes",
+  }).data!.kubernetesMonitor!;
+}
+
+describe("Kubernetes monitor form - Workload Kind follows the chosen template", () => {
+  test.each(getAllKubernetesAlertTemplates())(
+    "$name starts Workload Kind on the kind it watches",
+    async (template: KubernetesAlertTemplate) => {
+      const onChange: MockFunction = getJestMockFunction();
+
+      await renderNewMonitor(onChange);
+      await pickTemplate(template.id);
+
+      const monitor: MonitorStepKubernetesMonitor = lastChange(onChange);
+
+      // A template that watches no one kind sets none, as before.
+      expect(monitor.resourceFilters).toEqual(
+        template.workloadKind ? { workloadType: template.workloadKind } : {},
+      );
+
+      if (monitor.resourceScope === KubernetesResourceScope.Workload) {
+        await openAdvancedTab();
+        expect(shownWorkloadKind()).toBe(kindLabel(template.workloadKind));
+        expect(shownNameField().label).toBe(
+          template.workloadKind === "hpa" ? "HPA Name" : "Workload Name",
+        );
+      }
+    },
+  );
+
+  test("Job Failures: a Workload Name is saved as a Job's name", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await pickTemplate("k8s-job-failures");
+    await openAdvancedTab();
+
+    expect(shownWorkloadKind()).toBe("Job");
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. my-deployment"), {
+      target: { value: "nightly-export" },
+    });
+
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "nightly-export",
+      workloadType: "job",
+    });
+    expect(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey(
+        lastChange(onChange).resourceFilters,
+      ),
+    ).toBe("resource.k8s.job.name");
+  });
+
+  test("HPA Saturated at Max Replicas: a name is asked for and saved as the HPA's", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await pickTemplate("k8s-hpa-at-max-replicas");
+    await openAdvancedTab();
+
+    expect(shownWorkloadKind()).toBe("HorizontalPodAutoscaler");
+    expect(shownNameField()).toEqual({
+      label: "HPA Name",
+      placeholder: "e.g. my-hpa",
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. my-hpa"), {
+      target: { value: "web" },
+    });
+
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "web",
+      workloadType: "hpa",
+    });
+    expect(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey(
+        lastChange(onChange).resourceFilters,
+      ),
+    ).toBe("resource.k8s.hpa.name");
+  });
+
+  test("a link that names HPA Saturated at Max Replicas starts the kind on HorizontalPodAutoscaler", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange, "k8s-hpa-at-max-replicas");
+
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "hpa",
+    });
+  });
+
+  test("a link that names Job Failures starts the kind on Job", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange, "k8s-job-failures");
+
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "job",
+    });
+  });
+
+  test("switching templates: the kind follows the new template", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openAdvancedTab();
+
+    await pickTemplate("k8s-job-failures");
+    expect(shownWorkloadKind()).toBe("Job");
+
+    await pickTemplate("k8s-daemonset-unavailable");
+    expect(shownWorkloadKind()).toBe("DaemonSet");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "daemonset",
+    });
+
+    // An HPA, named by its own name.
+    await pickTemplate("k8s-hpa-at-max-replicas");
+    expect(shownWorkloadKind()).toBe("HorizontalPodAutoscaler");
+    expect(shownNameField().label).toBe("HPA Name");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "hpa",
+    });
+
+    // No kind of its own, at another scope: none, and no Workload Kind.
+    await pickTemplate("k8s-crashloopbackoff");
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+    expect(
+      screen.queryByRole("combobox", { name: "Workload Kind" }),
+    ).not.toBeInTheDocument();
+
+    await pickTemplate("k8s-job-failures");
+    expect(shownWorkloadKind()).toBe("Job");
+    expect(shownNameField().label).toBe("Workload Name");
+
+    await pickTemplate("k8s-deployment-replica-mismatch");
+    expect(shownWorkloadKind()).toBe("Deployment");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "deployment",
+    });
+  });
+
+  test("a kind the person picked survives a template switch", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await pickTemplate("k8s-job-failures");
+    await openAdvancedTab();
+
+    await pickFromList(workloadKindList(), "CronJob");
+    expect(shownWorkloadKind()).toBe("CronJob");
+
+    await pickTemplate("k8s-daemonset-unavailable");
+    expect(shownWorkloadKind()).toBe("CronJob");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "cronjob",
+    });
+
+    await pickTemplate("k8s-hpa-at-max-replicas");
+    expect(shownWorkloadKind()).toBe("CronJob");
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. my-deployment"), {
+      target: { value: "nightly" },
+    });
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "nightly",
+      workloadType: "cronjob",
+    });
+  });
+
+  test("a kind the person picked survives switches to and from HPA Saturated at Max Replicas", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await pickTemplate("k8s-hpa-at-max-replicas");
+    await openAdvancedTab();
+
+    // The person names a Deployment instead: theirs to keep.
+    await pickFromList(workloadKindList(), "Deployment");
+    expect(shownNameField().label).toBe("Workload Name");
+
+    await pickTemplate("k8s-job-failures");
+    expect(shownWorkloadKind()).toBe("Deployment");
+
+    await pickTemplate("k8s-hpa-at-max-replicas");
+    expect(shownWorkloadKind()).toBe("Deployment");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "deployment",
+    });
+
+    // And an HPA picked by hand stays, over a template of another kind.
+    await pickFromList(workloadKindList(), "HorizontalPodAutoscaler");
+    expect(shownNameField().label).toBe("HPA Name");
+
+    await pickTemplate("k8s-daemonset-unavailable");
+    expect(shownWorkloadKind()).toBe("HorizontalPodAutoscaler");
+    expect(shownNameField().label).toBe("HPA Name");
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. my-hpa"), {
+      target: { value: "web" },
+    });
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "web",
+      workloadType: "hpa",
+    });
+  });
+
+  test("leaving the Workload scope and coming back starts on the template's kind again", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await pickTemplate("k8s-job-failures");
+    await openAdvancedTab();
+
+    const resourceScopeList: () => HTMLElement = (): HTMLElement => {
+      return within(screen.getByRole("tabpanel")).getAllByRole("combobox")[0]!;
+    };
+
+    await pickFromList(resourceScopeList(), "Namespace");
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+    expect(
+      screen.queryByRole("combobox", { name: "Workload Kind" }),
+    ).not.toBeInTheDocument();
+
+    await pickFromList(resourceScopeList(), "Workload");
+    expect(shownWorkloadKind()).toBe("Job");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "job",
+    });
+  });
+
+  test("an existing monitor opens with its saved kind, unchanged", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    // A Job Failures monitor saved with the kind the form used to start on.
+    render(
+      <StatefulForm
+        initial={{
+          ...templateMonitor("k8s-job-failures"),
+          resourceFilters: {
+            workloadType: "deployment",
+            workloadName: "nightly-export",
+          },
+        }}
+        onChange={onChange}
+      />,
+    );
+    await settle();
+    await openAdvancedTab();
+
+    expect(shownWorkloadKind()).toBe("Deployment");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  /*
+   * HPA Saturated at Max Replicas monitors saved before the HPA had a kind:
+   * as a Deployment's name, or with no kind. They read nothing, but are
+   * left as saved: the person sees what the worker reads them as.
+   */
+  test.each([
+    {
+      as: "a Deployment's name",
+      saved: { workloadType: "deployment", workloadName: "web" },
+      shown: "Deployment",
+      label: "Workload Name",
+    },
+    // The worker reads a name with no kind as a Deployment's.
+    {
+      as: "a name with no kind",
+      saved: { workloadName: "web" },
+      shown: "Deployment",
+      label: "Workload Name",
+    },
+    {
+      as: "an HPA's name",
+      saved: { workloadType: "hpa", workloadName: "web" },
+      shown: "HorizontalPodAutoscaler",
+      label: "HPA Name",
+    },
+  ])(
+    "an existing HPA Saturated at Max Replicas monitor saved with $as opens as saved, unchanged",
+    async (input: {
+      as: string;
+      saved: MonitorStepKubernetesMonitor["resourceFilters"];
+      shown: string;
+      label: string;
+    }) => {
+      const onChange: MockFunction = getJestMockFunction();
+
+      render(
+        <StatefulForm
+          initial={{
+            ...templateMonitor("k8s-hpa-at-max-replicas"),
+            resourceFilters: input.saved,
+          }}
+          onChange={onChange}
+        />,
+      );
+      await settle();
+      await openAdvancedTab();
+
+      expect(shownWorkloadKind()).toBe(input.shown);
+      expect(shownNameField().label).toBe(input.label);
+      expect(screen.getByDisplayValue("web")).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+    },
+  );
+
+  test("an existing monitor saved without a kind shows what its name is read as", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    render(
+      <StatefulForm
+        initial={{
+          ...templateMonitor("k8s-daemonset-unavailable"),
+          resourceFilters: { workloadName: "node-exporter" },
+        }}
+        onChange={onChange}
+      />,
+    );
+    await settle();
+    await openAdvancedTab();
+
+    // The worker reads a name with no kind as a Deployment's.
+    expect(shownWorkloadKind()).toBe("Deployment");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The Custom Metric tab. A workload metric such as Job Failed Pods carries
+ * only its Job's name, but Workload Kind started on Deployment for every
+ * metric: Job Failed Pods scoped to one Job filtered on
+ * `resource.k8s.deployment.name` and read nothing. The field now starts on
+ * the kind the metric is about.
+ */
+
+async function openCustomMetricTab(): Promise<void> {
+  fireEvent.click(screen.getByRole("tab", { name: "Custom Metric" }));
+  await settle();
+}
+
+// The Custom Metric tab's lists: the metric first, then its Resource Scope.
+function customMetricList(index: number): HTMLElement {
+  return within(screen.getByRole("tabpanel")).getAllByRole("combobox")[index]!;
+}
+
+async function pickMetric(id: string): Promise<void> {
+  const metric: KubernetesMetricDefinition = getKubernetesMetricById(id)!;
+
+  await pickFromList(
+    customMetricList(0),
+    `${metric.friendlyName}${metric.unit ? ` (${metric.unit})` : ""}`,
+  );
+}
+
+function typeWorkloadName(name: string): void {
+  fireEvent.change(screen.getByPlaceholderText("e.g. my-deployment"), {
+    target: { value: name },
+  });
+}
+
+describe("Kubernetes monitor form - Workload Kind follows the chosen metric", () => {
+  test.each(getAllKubernetesMetrics())(
+    "$friendlyName starts Workload Kind on the kind it is about",
+    async (metric: KubernetesMetricDefinition) => {
+      const onChange: MockFunction = getJestMockFunction();
+
+      await renderNewMonitor(onChange);
+      await openCustomMetricTab();
+      await pickMetric(metric.id);
+
+      const monitor: MonitorStepKubernetesMonitor = lastChange(onChange);
+
+      expect(
+        monitor.metricViewConfig.queryConfigs[0]!.metricQueryData.filterData
+          .metricName,
+      ).toBe(metric.metricName);
+      // A metric about no one kind sets none, as before.
+      expect(monitor.resourceFilters).toEqual(
+        metric.workloadKind ? { workloadType: metric.workloadKind } : {},
+      );
+
+      if (monitor.resourceScope === KubernetesResourceScope.Workload) {
+        expect(shownWorkloadKind()).toBe(kindLabel(metric.workloadKind));
+        expect(shownNameField().label).toBe(
+          metric.workloadKind === "hpa" ? "HPA Name" : "Workload Name",
+        );
+      } else {
+        expect(
+          screen.queryByRole("combobox", { name: "Workload Kind" }),
+        ).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  test("Job Failed Pods: a Workload Name is saved as a Job's name", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    await pickMetric("job-failed-pods");
+
+    expect(shownWorkloadKind()).toBe("Job");
+
+    typeWorkloadName("nightly-export");
+
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "nightly-export",
+      workloadType: "job",
+    });
+    expect(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey(
+        lastChange(onChange).resourceFilters,
+      ),
+    ).toBe("resource.k8s.job.name");
+  });
+
+  test("HPA Current Replicas: a name is asked for and saved as the HPA's", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    await pickMetric("hpa-current-replicas");
+
+    expect(shownWorkloadKind()).toBe("HorizontalPodAutoscaler");
+    expect(shownNameField()).toEqual({
+      label: "HPA Name",
+      placeholder: "e.g. my-hpa",
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. my-hpa"), {
+      target: { value: "web" },
+    });
+
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "web",
+      workloadType: "hpa",
+    });
+    expect(
+      MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey(
+        lastChange(onChange).resourceFilters,
+      ),
+    ).toBe("resource.k8s.hpa.name");
+  });
+
+  test("switching metrics: the kind follows the new metric", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+
+    await pickMetric("job-failed-pods-increase");
+    expect(shownWorkloadKind()).toBe("Job");
+
+    await pickMetric("daemonset-ready-nodes");
+    expect(shownWorkloadKind()).toBe("DaemonSet");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "daemonset",
+    });
+
+    await pickMetric("statefulset-ready-replicas");
+    expect(shownWorkloadKind()).toBe("StatefulSet");
+
+    // An HPA's, named by its own name.
+    await pickMetric("hpa-current-replicas");
+    expect(shownWorkloadKind()).toBe("HorizontalPodAutoscaler");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "hpa",
+    });
+
+    // Watched at another scope: no kind, and no Workload Kind field.
+    await pickMetric("pod-cpu-utilization");
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+    expect(
+      screen.queryByRole("combobox", { name: "Workload Kind" }),
+    ).not.toBeInTheDocument();
+
+    await pickMetric("job-successful-pods");
+    expect(shownWorkloadKind()).toBe("Job");
+
+    await pickMetric("deployment-available-replicas");
+    expect(shownWorkloadKind()).toBe("Deployment");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "deployment",
+    });
+  });
+
+  test("a kind the person picked survives a metric switch", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    await pickMetric("job-failed-pods");
+
+    await pickFromList(workloadKindList(), "CronJob");
+    expect(shownWorkloadKind()).toBe("CronJob");
+
+    await pickMetric("deployment-desired-replicas");
+    expect(shownWorkloadKind()).toBe("CronJob");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "cronjob",
+    });
+
+    await pickMetric("hpa-current-replicas");
+    expect(shownWorkloadKind()).toBe("CronJob");
+
+    typeWorkloadName("nightly");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "nightly",
+      workloadType: "cronjob",
+    });
+  });
+
+  test("leaving the Workload scope and coming back starts on the metric's kind again", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    await pickMetric("job-failed-pods");
+
+    await pickFromList(customMetricList(1), "Namespace");
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+    expect(
+      screen.queryByRole("combobox", { name: "Workload Kind" }),
+    ).not.toBeInTheDocument();
+
+    await pickFromList(customMetricList(1), "Workload");
+    expect(shownWorkloadKind()).toBe("Job");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadType: "job",
+    });
+  });
+
+  test("a metric about no one kind leaves Workload Kind on Deployment, as before", async () => {
+    const onChange: MockFunction = getJestMockFunction();
+
+    await renderNewMonitor(onChange);
+    await openCustomMetricTab();
+    // Every Workload-scoped metric has a kind: a pod's, scoped to a workload.
+    await pickMetric("pod-cpu-utilization");
+    await pickFromList(customMetricList(1), "Workload");
+
+    expect(lastChange(onChange).resourceScope).toBe(
+      KubernetesResourceScope.Workload,
+    );
+    expect(lastChange(onChange).resourceFilters).toEqual({});
+    expect(shownWorkloadKind()).toBe("Deployment");
+
+    typeWorkloadName("web");
+    expect(lastChange(onChange).resourceFilters).toEqual({
+      workloadName: "web",
+      workloadType: "deployment",
+    });
+  });
+
+  test.each([
+    { metricId: "job-failed-pods", saved: "deployment", shown: "Deployment" },
+    { metricId: "job-failed-pods", saved: "job", shown: "Job" },
+    {
+      metricId: "hpa-current-replicas",
+      saved: "deployment",
+      shown: "Deployment",
+    },
+    {
+      metricId: "hpa-current-replicas",
+      saved: "hpa",
+      shown: "HorizontalPodAutoscaler",
+    },
+  ])(
+    "an existing $metricId monitor saved as a $shown's opens with that kind, unchanged",
+    async (input: { metricId: string; saved: string; shown: string }) => {
+      const onChange: MockFunction = getJestMockFunction();
+      const metric: KubernetesMetricDefinition = getKubernetesMetricById(
+        input.metricId,
+      )!;
+
+      render(
+        <StatefulForm
+          initial={{
+            ...buildKubernetesMonitorConfig({
+              clusterIdentifier: "prod",
+              metricName: metric.metricName,
+              metricAlias: "job_failed_pods",
+              resourceScope: metric.defaultResourceScope,
+              rollingTime: RollingTime.Past5Minutes,
+              aggregationType: metric.defaultAggregation,
+            }),
+            resourceFilters: {
+              workloadType: input.saved,
+              workloadName: "nightly-export",
+            },
+          }}
+          onChange={onChange}
+        />,
+      );
+      await settle();
+      await openAdvancedTab();
+
+      expect(shownWorkloadKind()).toBe(input.shown);
+      expect(shownNameField().label).toBe(
+        input.saved === "hpa" ? "HPA Name" : "Workload Name",
+      );
+      expect(onChange).not.toHaveBeenCalled();
+    },
+  );
 });

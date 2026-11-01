@@ -365,7 +365,11 @@ data:
       {{- end }}
 
     processors:
-      # Enrich all telemetry with Kubernetes metadata
+      # Enrich all telemetry with Kubernetes metadata. In the metrics
+      # pipeline this is also where k8s.container.restarts.increase gets its
+      # workload names (see transform/restarts-increase). No container.id:
+      # the increase is keyed without it, and k8sattributes would put the
+      # running container's ID back on it, a new one with every restart.
       k8sattributes:
         auth_type: serviceAccount
         extract:
@@ -485,9 +489,10 @@ data:
       # Container restarts as OneUptime's CrashLoopBackOff Detection template
       # counts them: k8s.container.restarts.increase, the times a container
       # restarted since this collector's previous sample of it, which the
-      # metrics/restarts-increase pipeline below sends. k8s.container.restarts
-      # (the container status' restartCount) goes on unchanged in the metrics
-      # pipeline, for the charts.
+      # metrics/restarts-increase pipeline below makes and hands to the
+      # metrics pipeline. k8s.container.restarts (the container status'
+      # restartCount) goes on unchanged in the metrics pipeline, for the
+      # charts.
       #
       # A monitor can only take the difference of samples inside one minute,
       # so the template used to miss every restart between two samples in
@@ -510,6 +515,15 @@ data:
       # running or waiting in CrashLoopBackOff, so a crash-looping container
       # is sampled between its runs too (k8sclusterreceiver
       # internal/container/containers.go at 0.161.0 and 0.96.0).
+      # The forward/restarts-increase connector then hands the increases to
+      # the metrics pipeline, where k8sattributes gives them the workload
+      # names it gives k8s.container.restarts, found by the pod's UID (its
+      # Deployment, ReplicaSet, StatefulSet, DaemonSet, Job or CronJob, and
+      # its app labels), and resource stamps the cluster. That is after the
+      # conversion, so the names are no part of the series a restart is
+      # counted in: a pod keeps them through every restart of its
+      # containers, and a sample whose pod k8sattributes has not seen yet
+      # still counts its restarts, without them.
       # tests/restarts-increase_test.yaml pins these, and
       # Tests/Ops/agent-restarts-increase-behaviour.sh runs them in the
       # collector the chart pins and in 0.96.0.
@@ -574,6 +588,11 @@ data:
       #      previous sample is kept for 2 hours.
       # The receiver reports every Job in the cluster at each interval until
       # the Job is deleted, so a failing Job is sampled between its retries.
+      # The copy shares the count's resource, so it carries what the count
+      # carries: the Job's name, UID and namespace (the Job is the workload,
+      # and a pod it retries with leaves its resource as it is), then the
+      # cluster's attributes from resource. k8sattributes adds nothing to a
+      # Job's resource, which names no pod to look up.
       # tests/job-failures-increase_test.yaml pins these, and
       # Tests/Ops/agent-job-failures-increase-behaviour.sh runs them in the
       # collector the chart pins and in 0.96.0.
@@ -733,6 +752,13 @@ data:
           max_interval: 60s
           max_elapsed_time: 300s
 
+    connectors:
+      # From the metrics/restarts-increase pipeline, which makes the
+      # restarts since each container's previous sample, into the metrics
+      # pipeline, which enriches and sends them with everything else
+      # k8s_cluster reports (see transform/restarts-increase).
+      forward/restarts-increase: {}
+
     service:
       extensions:
         - health_check
@@ -740,6 +766,11 @@ data:
         metrics:
           receivers:
             - k8s_cluster
+            # The restarts since each container's previous sample, made in
+            # metrics/restarts-increase below. From here on they go the way
+            # k8s.container.restarts goes: k8sattributes gives them the same
+            # workload names.
+            - forward/restarts-increase
             {{- if eq (include "kubernetes-agent.ebpfEnabled" .) "true" }}
             # OBI emits application/network/stats metrics on the same OTLP
             # receiver that handles its traces — pull them into the same
@@ -842,9 +873,12 @@ data:
         # pipeline of its own because its series must not carry container.id,
         # which the receiver puts on the resource every metric of a container
         # shares: it comes off this pipeline's copy only. k8s_cluster feeds
-        # both metrics pipelines, each its own copy. No k8sattributes here, so
-        # these carry the receiver's own pod, container, namespace and node
-        # names, not workload names.
+        # both metrics pipelines, each its own copy. Once the increases are
+        # made it hands them to the metrics pipeline, whose k8sattributes
+        # gives them the workload names the cluster's other container metrics
+        # carry - without a k8sattributes of its own, which would list and
+        # watch every pod in the cluster once more - and whose resource, batch
+        # and exporter send them.
         metrics/restarts-increase:
           receivers:
             - k8s_cluster
@@ -857,7 +891,5 @@ data:
             - filter/telemetry
             {{- end }}
             - cumulative_to_delta/restarts-increase
-            - resource
-            - batch
           exporters:
-            - otlphttp
+            - forward/restarts-increase

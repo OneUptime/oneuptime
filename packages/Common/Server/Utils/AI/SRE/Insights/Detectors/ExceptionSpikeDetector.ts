@@ -4,14 +4,18 @@ import SortOrder from "../../../../../../Types/BaseDatabase/SortOrder";
 import InBetween from "../../../../../../Types/BaseDatabase/InBetween";
 import PositiveNumber from "../../../../../../Types/PositiveNumber";
 import { JSONObject } from "../../../../../../Types/JSON";
+import Includes from "../../../../../../Types/BaseDatabase/Includes";
 import IncludesNone from "../../../../../../Types/BaseDatabase/IncludesNone";
 import { NON_ACTIONABLE_ERROR_CLASSES } from "../../../../../../Types/Telemetry/ErrorClass";
+import { getOccurrenceFingerprintQuery } from "../../../../../../Types/Telemetry/ExceptionGroupFingerprints";
 import { LIMIT_PER_PROJECT } from "../../../../../../Types/Database/LimitMax";
 import AIInsightType from "../../../../../../Types/AI/AIInsightType";
 import AIInsightSeverity from "../../../../../../Types/AI/AIInsightSeverity";
 import TelemetryException from "../../../../../../Models/DatabaseModels/TelemetryException";
 import Service from "../../../../../../Models/DatabaseModels/Service";
-import TelemetryExceptionService from "../../../../../Services/TelemetryExceptionService";
+import TelemetryExceptionService, {
+  ExceptionOfGroup,
+} from "../../../../../Services/TelemetryExceptionService";
 import ExceptionInstanceService from "../../../../../Services/ExceptionInstanceService";
 import ServiceService from "../../../../../Services/ServiceService";
 import QueryHelper from "../../../../../Types/Database/QueryHelper";
@@ -35,7 +39,9 @@ import {
  * quiet all day suddenly firing). Candidates come cheap from Postgres
  * (group table); the actual rates come from two ClickHouse counts per
  * candidate (fingerprint bloom index + time range — the exception-monitor
- * count idiom). Deterministic — no LLM anywhere in this detector.
+ * count idiom), over its own occurrences and those of the exceptions merged
+ * into it, which count on it. Deterministic — no LLM anywhere in this
+ * detector.
  *
  * A finding also says where in the application's own code the exception
  * was raised (ExceptionOwnCode), read for the spiking ones only: the
@@ -147,12 +153,14 @@ export default class ExceptionSpikeDetector implements InsightDetector {
    *
    * DELIBERATELY NOT the failure-mode key NewExceptionDetector files under.
    * That detector's evidence is a Postgres column it can simply add up across
-   * the groups of one failure mode; a spike is a RATE, measured per ingest
-   * fingerprint in ClickHouse. Rolling several fingerprints into one insight
-   * would mean summing their windows and re-deciding the spike on the total —
-   * which changes what counts as a spike, not just how many rows it files.
-   * The title carries the type, the message and the multiplier, so sibling
-   * groups read as distinct rows rather than as copies.
+   * the groups of one failure mode; a spike is a RATE, measured per exception
+   * in ClickHouse - over its own fingerprint and those a person merged into
+   * it as the same bug, never over siblings nobody merged. Rolling several
+   * exceptions into one insight would mean summing their windows and
+   * re-deciding the spike on the total — which changes what counts as a
+   * spike, not just how many rows it files. The title carries the type, the
+   * message and the multiplier, so sibling groups read as distinct rows
+   * rather than as copies.
    */
   public static buildFingerprint(telemetryExceptionId: string): string {
     return `exception-spike:${telemetryExceptionId}`;
@@ -223,10 +231,36 @@ export default class ExceptionSpikeDetector implements InsightDetector {
       decision: ExceptionSpikeDecision;
     }> = [];
 
+    /*
+     * An exception's occurrences are its own and those of the exceptions
+     * merged into it, which count on it: one read of what was merged into
+     * the candidates (TelemetryExceptionService.getGroupFingerprints). A
+     * candidate nothing was merged into is counted by its own fingerprint.
+     */
+    const groupFingerprints: Map<
+      string,
+      Array<string>
+    > = await TelemetryExceptionService.getGroupFingerprints({
+      projectId: context.projectId,
+      exceptions: exceptions
+        .filter((exception: TelemetryException): boolean => {
+          return Boolean(exception.id && exception.fingerprint);
+        })
+        .map((exception: TelemetryException): ExceptionOfGroup => {
+          return { id: exception.id!, fingerprint: exception.fingerprint! };
+        }),
+    });
+
     for (const exception of exceptions) {
       if (!exception.id || !exception.fingerprint) {
         continue;
       }
+
+      const fingerprint: string | Includes = getOccurrenceFingerprintQuery(
+        groupFingerprints.get(exception.id.toString().toLowerCase()) || [
+          exception.fingerprint,
+        ],
+      );
 
       /*
        * Two bounded ClickHouse counts (fingerprint bloom + time range —
@@ -238,7 +272,7 @@ export default class ExceptionSpikeDetector implements InsightDetector {
         await ExceptionInstanceService.countBy({
           query: {
             projectId: context.projectId,
-            fingerprint: exception.fingerprint,
+            fingerprint,
             time: new InBetween(recentWindowStart, context.now),
           } as never,
           skip: 0,
@@ -250,7 +284,7 @@ export default class ExceptionSpikeDetector implements InsightDetector {
         {
           query: {
             projectId: context.projectId,
-            fingerprint: exception.fingerprint,
+            fingerprint,
             time: new InBetween(priorWindowStart, recentWindowStart),
           } as never,
           skip: 0,

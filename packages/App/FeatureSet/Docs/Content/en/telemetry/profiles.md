@@ -317,7 +317,7 @@ When a function of your own code takes at least 5% of the profile's time or memo
 
 When a profile carries trace and span IDs (for example as `trace_id` / `span_id` sample labels), you can navigate directly from a slow trace span to the corresponding CPU or memory profile to understand exactly what code was executing, and **Open linked trace** goes the other way.
 
-A span's **Profile** tab also includes the samples linked to the spans nested under it, since profilers often attach a request's CPU time to a child span rather than to the request span itself.
+A span's **Profile samples** tab also includes the samples linked to the spans nested under it, since profilers often attach a request's CPU time to a child span rather than to the request span itself.
 
 A trace's page also links to the Profiler on the trace's service for the 15 minutes either side of it, when that service was profiled then, and a service's or a host's **Performance Profiles** page opens the Profiler on that service or host.
 

@@ -81,12 +81,12 @@ Under dem velger du én av fire visninger:
 
 | Visning | Hva den viser |
 | --- | --- |
-| **Waterfall** | Hvert span på en tidslinje, nestet under spannet som startet det. Slå på **Critical path** for å fremheve kjeden av spans som avgjorde hvor lang tid forespørselen tok. |
+| **Fossefall** | Hvert span på en tidslinje, nestet under spannet som startet det. Slå på **Kritisk sti** for å fremheve kjeden av spans som avgjorde hvor lang tid forespørselen tok. |
 | **Flammegraf** | Det samme treet som stablede søyler, der de bredeste søylene tok lengst tid. |
-| **Service map** | Tjenestene forespørselen gikk gjennom, og kallene mellom dem. |
-| **Operations** | Én rad per tjeneste og span-navn, med kall, feil, egen tid og total tid. En operasjon som kalles 10 ganger eller mer fra ett forelder-span, markeres: ofte en N+1-spørring eller en løkke som kunne vært samlet. |
+| **Tjenestekart** | Tjenestene forespørselen gikk gjennom, og kallene mellom dem. |
+| **Operasjoner** | Én rad per tjeneste og span-navn, med kall, feil, egen tid og total tid. En operasjon som kalles 10 ganger eller mer fra ett forelder-span, markeres: ofte en N+1-spørring eller en løkke som kunne vært samlet. |
 
-Klikk på et span i en hvilken som helst visning for å åpne panelet, med faner for attributter, hendelser, logger, unntak og lenker, og for profilen eller LLM-kallet når det har et. Søk i sporets spans etter navn, ID eller tjeneste med søkefeltet ved siden av visningene (trykk `/`), og slå på **Errors only** for bare å beholde spannene som feilet.
+Klikk på et span i en hvilken som helst visning for å åpne panelet, med faner for attributter, hendelser, logger, unntak og lenker, og for profilen eller LLM-kallet når det har et. Søk i sporets spans etter navn, ID eller tjeneste med søkefeltet ved siden av visningene (trykk `/`), og slå på **Bare feil** for bare å beholde spannene som feilet.
 
 Et stort spor laster 500 spans om gangen. Klikk på knappen nederst i sporet for å laste flere, eller alle.
 

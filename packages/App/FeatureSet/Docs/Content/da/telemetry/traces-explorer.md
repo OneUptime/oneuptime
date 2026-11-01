@@ -81,12 +81,12 @@ Under dem vælger du en af fire visninger:
 
 | Visning | Hvad den viser |
 | --- | --- |
-| **Waterfall** | Hvert span på en tidslinje, indlejret under det span, der startede det. Slå **Critical path** til for at fremhæve den kæde af spans, der afgjorde, hvor lang tid forespørgslen tog. |
+| **Vandfald** | Hvert span på en tidslinje, indlejret under det span, der startede det. Slå **Kritisk sti** til for at fremhæve den kæde af spans, der afgjorde, hvor lang tid forespørgslen tog. |
 | **Flammegraf** | Det samme træ som stablede bjælker, hvor de bredeste bjælker tog længst tid. |
-| **Service map** | De tjenester, forespørgslen gik igennem, og kaldene mellem dem. |
-| **Operations** | Én række pr. tjeneste og span-navn med kald, fejl, egen tid og samlet tid. En operation, der kaldes 10 gange eller mere fra ét forælder-span, markeres: ofte en N+1-forespørgsel eller en løkke, der kunne samles. |
+| **Tjenestekort** | De tjenester, forespørgslen gik igennem, og kaldene mellem dem. |
+| **Operationer** | Én række pr. tjeneste og span-navn med kald, fejl, egen tid og samlet tid. En operation, der kaldes 10 gange eller mere fra ét forælder-span, markeres: ofte en N+1-forespørgsel eller en løkke, der kunne samles. |
 
-Klik på et span i en vilkårlig visning for at åbne dets panel med faner for dets attributter, begivenheder, protokoller, undtagelser og links samt dets profil eller LLM-kald, når det har et. Søg i sporets spans efter navn, ID eller tjeneste med søgefeltet ved siden af visningerne (tryk på `/`), og slå **Errors only** til for kun at beholde de spans, der fejlede.
+Klik på et span i en vilkårlig visning for at åbne dets panel med faner for dets attributter, begivenheder, protokoller, undtagelser og links samt dets profil eller LLM-kald, når det har et. Søg i sporets spans efter navn, ID eller tjeneste med søgefeltet ved siden af visningerne (tryk på `/`), og slå **Kun fejl** til for kun at beholde de spans, der fejlede.
 
 Et stort spor indlæser 500 spans ad gangen. Klik på knappen nederst i sporet for at indlæse flere eller dem alle.
 

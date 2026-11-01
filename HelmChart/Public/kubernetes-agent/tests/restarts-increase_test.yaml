@@ -16,13 +16,27 @@
 # because the rest of the cluster's metrics keep container.id and
 # k8s.container.restarts goes on as the receiver sends it.
 #
+# The receiver puts no workload name on a container's resource (the
+# k8s.container entity: its ID, name and image, and its pod's UID, name,
+# namespace and node, receiver metadata.yaml at 0.161.0). The cluster's other
+# container metrics get theirs - k8s.deployment.name, k8s.replicaset.name,
+# k8s.statefulset.name, k8s.daemonset.name, k8s.job.name, k8s.cronjob.name -
+# from k8sattributes in the metrics pipeline, which finds the pod by its UID.
+# So once the increases are made, the forward/restarts-increase connector
+# hands them to that pipeline, and they get the same names from the same
+# processor, without a k8sattributes of their own (which would list and watch
+# every pod in the cluster once more). After the conversion, so the names are
+# no part of the series a restart is counted in: a sample whose pod
+# k8sattributes has not seen yet still counts its restarts.
+#
 # convert_gauge_to_sum is a datapoint function before collector 0.108.0 and a
 # metric one from it (only that from 0.113.0), and `helm upgrade
 # --reuse-values` keeps 0.96.0, so the chart writes it in the context the
 # collector it renders for has (kubernetes-agent.collectorAtLeast).
 # Tests/Ops/validate-collector-configs.sh builds both renders with
 # `otelcol validate`, and Tests/Ops/agent-restarts-increase-behaviour.sh runs
-# these processors in both collectors on a crash loop.
+# these processors, and the hop into the metrics pipeline, in both
+# collectors on a crash loop.
 #
 # The patterns read the rendered collector config with the ConfigMap's own
 # indent stripped: processors at 2 spaces and their keys at 4, pipelines at 4
@@ -36,11 +50,14 @@ templates:
 set:
   clusterName: prod-us
 tests:
-  - it: sends them from a pipeline of its own that k8s_cluster feeds, ending in the same exporter
+  - it: makes them in a pipeline of its own that k8s_cluster feeds, and hands them to the metrics pipeline
     asserts:
+      # The whole pipeline: the conversion, and nothing after it but the
+      # connector into the metrics pipeline - not the exporter itself, which
+      # would send them a second time.
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n        - cumulative_to_delta/restarts-increase\\n        - resource\\n        - batch\\n      exporters:\\n        - otlphttp\\n"
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n        - cumulative_to_delta/restarts-increase\\n      exporters:\\n        - forward/restarts-increase\\n(?:\\n|$)"
       # k8s_cluster still feeds the metrics pipeline, which sends
       # k8s.container.restarts on as the receiver reads it, for the charts:
       # none of these processors run there.
@@ -54,6 +71,72 @@ tests:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "k8s\\.container\\.restarts:\\s*\\n\\s*enabled:"
+
+  - it: hands them over through a forward connector of their own, which only the metrics pipeline receives from
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\nconnectors:\\n(?:  #[^\\n]*\\n)*  forward/restarts-increase: \\{\\}\\n\\nservice:\\n"
+      # Received by the metrics pipeline, right after k8s_cluster.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?:        #[^\\n]*\\n)*        - forward/restarts-increase\\n"
+      # Exactly twice: the restarts pipeline exports to it, the metrics
+      # pipeline receives from it. Any other pipeline that took them would
+      # send them twice.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "^(?:[^\\n]*\\n)*?        - forward/restarts-increase\\n(?:[^\\n]*\\n)*?        - forward/restarts-increase\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "- forward/restarts-increase\\n[\\s\\S]*- forward/restarts-increase\\n[\\s\\S]*- forward/restarts-increase\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    (?:logs|traces):\\n      receivers:\\n(?:        [^\\n]*\\n)*?        - forward/restarts-increase\\n"
+
+  - it: where the metrics pipeline's k8sattributes gives them the workload names it gives k8s.container.restarts
+    asserts:
+      # The metrics pipeline runs k8sattributes, then resource, batch and the
+      # exporter, on whatever it receives: from k8s_cluster and from the
+      # connector alike.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n        - memory_limiter\\n(?:        #[^\\n]*\\n)*        - transform/job-failures-increase\\n        - cumulative_to_delta/job-failures-increase\\n        - transform/pod-level-mark\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - resource\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*?        - batch\\n      exporters:\\n        - otlphttp\\n"
+      # Every workload name, by the pod's UID, which the increase keeps: the
+      # pod's IP is first, but no k8s_cluster resource carries one.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  k8sattributes:\\n    auth_type: serviceAccount\\n    extract:\\n      metadata:\\n        - k8s\\.pod\\.name\\n        - k8s\\.pod\\.uid\\n        - k8s\\.namespace\\.name\\n        - k8s\\.node\\.name\\n        - k8s\\.deployment\\.name\\n        - k8s\\.replicaset\\.name\\n        - k8s\\.statefulset\\.name\\n        - k8s\\.daemonset\\.name\\n        - k8s\\.job\\.name\\n        - k8s\\.cronjob\\.name\\n        - k8s\\.container\\.name\\n      labels:\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    pod_association:\\n      - sources:\\n          - from: resource_attribute\\n            name: k8s\\.pod\\.ip\\n      - sources:\\n          - from: resource_attribute\\n            name: k8s\\.pod\\.uid\\n"
+      # Not in the restarts pipeline: nothing adds to the resource before
+      # the conversion, and no second k8sattributes watches every pod.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)+      processors:\\n(?: *(?:#[^\\n]*|- [^\\n]*)\\n)*? *- (?:k8sattributes|resource)\\b"
+      # One k8sattributes for the whole collector, as before.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  k8sattributes/"
+
+  - it: never puts container.id back on them, which would make every restart a series of its own
+    asserts:
+      # k8sattributes sets the running container's ID only when it extracts
+      # container.id (processor.go addContainerAttributes, 0.161.0 and
+      # 0.96.0), and it does not.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n\\s+- container\\.id\\n"
+      # Nor does any statement or resource action.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "set\\(attributes\\[\"container\\.id\"\\]|key: container\\.id\\b"
+      # Nor any attribute of a container's own run, which changes with every
+      # restart: the receiver's last terminated reason stays off.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "last_terminated_reason|k8s\\.container\\.restart_count"
 
   - it: keeps k8s.container.restarts alone in that pipeline's copy of what k8s_cluster sends
     asserts:
@@ -140,6 +223,18 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n"
+      # The same hop into the metrics pipeline: 0.96.0 has the forward
+      # connector, and connectors have been on by default since 0.74.0 (the
+      # service.connectors gate went in 0.81.0).
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - cumulative_to_delta/restarts-increase\\n      exporters:\\n        - forward/restarts-increase\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?:        #[^\\n]*\\n)*        - forward/restarts-increase\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  forward/restarts-increase: \\{\\}\\n"
 
   - it: turns only the increase into the restarts since each sample, sending nothing for a first sample, with 2 hours of memory
     asserts:
@@ -156,7 +251,12 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n(?:        #[^\\n]*\\n)*        - filter/telemetry\\n        - cumulative_to_delta/restarts-increase\\n        - resource\\n        - batch\\n"
+          pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n(?:        #[^\\n]*\\n)*        - filter/telemetry\\n        - cumulative_to_delta/restarts-increase\\n      exporters:\\n        - forward/restarts-increase\\n"
+      # And again in the metrics pipeline, after k8sattributes: the same
+      # rules, which keep what they kept.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - k8sattributes\\n        - transform/pod-level-unmark\\n        - filter/telemetry\\n        - resource\\n"
 
   - it: and the namespace filters for metrics, which the receiver's own namespace attribute answers
     set:
@@ -184,6 +284,19 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n      processors:\\n        - memory_limiter\\n        - filter/restarts-increase-source\\n        - transform/restarts-increase\\n        - cumulative_to_delta/restarts-increase\\n"
 
+  - it: joins the metrics pipeline's other receivers with eBPF, kube-state-metrics and the control-plane scrapes on
+    set:
+      ebpf.enabled: true
+      kubeStateMetrics.enabled: true
+      controlPlane.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?:        #[^\\n]*\\n)*        - forward/restarts-increase\\n(?: *#[^\\n]*\\n)*        - otlp\\n(?: *#[^\\n]*\\n)*        - prometheus\\n      processors:\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - cumulative_to_delta/restarts-increase\\n      exporters:\\n        - forward/restarts-increase\\n"
+
   - it: sends them on every preset, since the cluster collector always runs
     set:
       preset: gke-autopilot
@@ -191,6 +304,9 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?:        #[^\\n]*\\n)*        - forward/restarts-increase\\n"
 
   - it: sends them on EKS Fargate too
     set:
@@ -199,3 +315,6 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    metrics/restarts-increase:\\n      receivers:\\n        - k8s_cluster\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  forward/restarts-increase: \\{\\}\\n"

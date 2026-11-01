@@ -214,7 +214,7 @@ In **Domain** (placeholder `Select domain`), pick one of your verified domains. 
 Click **Create Status Page Domain**. The dialog closes and the new domain's **DNS Setup** opens, with the record to add.
 :::
 
-A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different subdomain, add that domain and delete the old one.
+A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different subdomain, add that domain and delete the old one. A name a dashboard or a form already uses, in any project, is refused: one domain shows one status page, dashboard or form.
 
 ### DNS Setup and verification
 

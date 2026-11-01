@@ -69,18 +69,28 @@ New-VIPermission -Entity (Get-Folder -NoRecursion) -Principal 'VSPHERE.LOCAL\one
 
 ### 에이전트 설치 및 시작
 
+각 OneUptime은 자기 릴리스의 에이전트 설치 스크립트와 파일을 제공합니다. 아래 명령은 `https://oneuptime.com`에서 내려받으므로, 자체 호스팅 OneUptime에서는 이 주소를 사용자의 URL로 바꾸세요. 설치 스크립트는 먼저 `install.sh`로 저장되므로, 실행하기 전에 읽어 볼 수 있습니다.
+
 :::tabs
 @tab install.sh
 에이전트를 실행할 머신에서 설치 스크립트를 내려받아 실행하세요:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh
 bash install.sh
 ```
 
 스크립트는 OneUptime URL, 수집 키, vCenter 이름, vCenter 엔드포인트, 읽기 전용 자격 증명(암호는 화면에 표시하지 않고 읽음), 그리고 AI 에이전트가 수정을 적용해도 되는지(그렇다면 전용 vSphere 사용자와 절대 변경하면 안 되는 VM)를 묻습니다. `/opt/oneuptime-vmware-agent`에 설치하고, `0600` 권한의 `.env` 파일을 쓰고, Docker Compose로 에이전트를 시작합니다. 각 값을 입력한 그대로 Docker Compose용 따옴표로 감싸므로, `$`, `#`, 공백, 따옴표가 들어간 암호도 입력한 그대로 동작합니다. 스크립트를 다시 실행하면 다시 묻는 대신 기존 `.env`의 내용을 모두 재사용하며, 이것이 [에이전트를 업그레이드](#에이전트-업그레이드)하는 방법입니다.
 @tab Docker Compose
-[VMwareAgent 디렉터리](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)에서 `docker-compose.yml`과 `otel-collector-config.yaml`을 새 폴더로 내려받은 다음, 그 옆에 `.env` 파일을 만드세요. 암호가 들어 있으므로 `chmod 600 .env`로 비공개로 유지하세요:
+사용 중인 OneUptime에서 `docker-compose.yml`과 `otel-collector-config.yaml`을 새 폴더로 내려받으세요:
+
+```bash
+mkdir oneuptime-vmware-agent && cd oneuptime-vmware-agent
+curl -fsSLO https://oneuptime.com/install/vmware-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
+```
+
+그 옆에 `.env` 파일을 만드세요. 암호가 들어 있으므로 `chmod 600 .env`로 비공개로 유지하세요:
 
 ```bash title=".env"
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
@@ -99,7 +109,7 @@ VCENTER_COLLECTION_INTERVAL=2m
 docker compose up -d
 ```
 @tab systemd
-에이전트에는 Docker가 필요하지 않습니다. OpenTelemetry Collector 바이너리 하나와 구성 파일 하나로 이루어져 있습니다. systemd 235 이상이 있는 Linux 머신(x86_64 또는 arm64, Ubuntu 18.04, Debian 10, RHEL 8 이상)에서 에이전트가 고정한 `otelcol-contrib` 릴리스를 같은 `otel-collector-config.yaml`과 함께 systemd 서비스로 실행하세요. 에이전트가 이를 위해 제공하는 유닛 [`oneuptime-vmware-agent-native.service`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service)는 capabilities도 쓰기 가능한 곳도 없는 일회용 비권한 사용자로 Collector를 실행합니다.
+에이전트에는 Docker가 필요하지 않습니다. OpenTelemetry Collector 바이너리 하나와 구성 파일 하나로 이루어져 있습니다. systemd 235 이상이 있는 Linux 머신(x86_64 또는 arm64, Ubuntu 18.04, Debian 10, RHEL 8 이상)에서 에이전트가 고정한 `otelcol-contrib` 릴리스를 같은 `otel-collector-config.yaml`과 함께 systemd 서비스로 실행하세요. 에이전트가 이를 위해 제공하는 유닛 [`oneuptime-vmware-agent-native.service`](https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service)는 capabilities도 쓰기 가능한 곳도 없는 일회용 비권한 사용자로 Collector를 실행합니다.
 
 Collector, 구성, 유닛을 내려받아 `/opt/oneuptime-vmware-agent`에 설치하세요:
 
@@ -109,9 +119,9 @@ VERSION=0.161.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 curl -fsSL -o oneuptime-vmware-agent.service \
-  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+  https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service
 
 sudo install -d -m 0755 /opt/oneuptime-vmware-agent
 sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
@@ -313,7 +323,7 @@ Collector는 시작할 때만 구성을 읽습니다. `docker compose restart on
 Docker 설치도 systemd에서 실행해 머신과 함께 시작하고 실패하면 다시 시작하게 할 수 있습니다. 그 유닛은 Docker Compose를 감싸며, 설치 스크립트가 에이전트를 두는 `/opt/oneuptime-vmware-agent`에 에이전트가 있다고 가정합니다:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent.service -o /etc/systemd/system/oneuptime-vmware-agent.service
+sudo curl -fsSL https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent.service -o /etc/systemd/system/oneuptime-vmware-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-vmware-agent
 ```
@@ -331,15 +341,15 @@ Collector는 `docker-compose.yml`에(Docker 없이 설치했다면 내려받은 
 `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 `otel-collector-config.yaml`을 새로 고치고, 에이전트를 다시 만들어 Collector가 새 구성을 읽게 합니다.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent -o install.sh
 bash install.sh
 ```
 @tab Docker Compose
 에이전트의 폴더에서 두 파일을 다시 내려받고(파일에 가한 변경이 있으면 다시 적용), 이미지를 가져와 에이전트를 다시 만드세요:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/docker-compose.yml
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -352,9 +362,9 @@ VERSION=0.161.0   # the collector release the agent pins
 ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 curl -fL -o otelcol-contrib.tar.gz \
   https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v${VERSION}/otelcol-contrib_${VERSION}_linux_${ARCH}.tar.gz
-curl -fsSLO https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/vmware-agent/otel-collector-config.yaml
 curl -fsSL -o oneuptime-vmware-agent.service \
-  https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/systemd/oneuptime-vmware-agent-native.service
+  https://oneuptime.com/install/vmware-agent/systemd/oneuptime-vmware-agent-native.service
 
 sudo install -d -m 0755 /opt/oneuptime-vmware-agent
 sudo tar --no-same-owner --preserve-permissions -xzf otelcol-contrib.tar.gz -C /opt/oneuptime-vmware-agent otelcol-contrib
@@ -400,10 +410,10 @@ sudo rm -r /opt/oneuptime-vmware-agent
 ## 문제 해결
 
 :::details 먼저 진단 스크립트 실행
-에이전트에는 전체 체인을 확인하는 스크립트 [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/VMwareAgent/troubleshoot.sh)가 함께 제공됩니다. 컨테이너 런타임, vCenter가 응답하고 자격 증명을 받아들이는지, 모든 메트릭에 붙은 vCenter 이름, 토큰 형식, Collector 자체 메트릭, 그리고 OneUptime이 수집 키를 받아들이는지를 확인합니다. 마지막 확인이 가장 중요합니다. OneUptime은 잘못된 키를 `401`로 거부하며(비활성화된 키나 브라우저 키는 `422`), Collector는 둘 다 영구적인 오류로 취급합니다. 배치를 버리고 `Exporting failed` 오류를 하나 기록할 뿐이므로, 컨테이너가 정상인 동안에는 놓치기 쉽습니다. 스크립트는 에이전트의 네트워크 안에서 `GET <url>/otlp/v1/validate`를 요청해 `200`(유효) 또는 `401`(무효)을 직접 받고, 이전 서버에서는 `POST /fluentd/v1/logs`로 대체하며, 같은 방식으로 `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml`도 요청하므로 DNS, 방화벽, TLS 실패가 Collector가 겪는 그대로 드러납니다.
+에이전트에는 전체 체인을 확인하는 스크립트 [`troubleshoot.sh`](https://oneuptime.com/install/vmware-agent/troubleshoot.sh)가 함께 제공됩니다. 컨테이너 런타임, vCenter가 응답하고 자격 증명을 받아들이는지, 모든 메트릭에 붙은 vCenter 이름, 토큰 형식, Collector 자체 메트릭, 그리고 OneUptime이 수집 키를 받아들이는지를 확인합니다. 마지막 확인이 가장 중요합니다. OneUptime은 잘못된 키를 `401`로 거부하며(비활성화된 키나 브라우저 키는 `422`), Collector는 둘 다 영구적인 오류로 취급합니다. 배치를 버리고 `Exporting failed` 오류를 하나 기록할 뿐이므로, 컨테이너가 정상인 동안에는 놓치기 쉽습니다. 스크립트는 에이전트의 네트워크 안에서 `GET <url>/otlp/v1/validate`를 요청해 `200`(유효) 또는 `401`(무효)을 직접 받고, 이전 서버에서는 `POST /fluentd/v1/logs`로 대체하며, 같은 방식으로 `<VCENTER_ENDPOINT>/sdk/vimServiceVersions.xml`도 요청하므로 DNS, 방화벽, TLS 실패가 Collector가 겪는 그대로 드러납니다.
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/VMwareAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/vmware-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-vmware-agent
 ```
 

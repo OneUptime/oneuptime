@@ -477,4 +477,138 @@ describe("DashboardVariableInterpolation", () => {
       });
     });
   });
+
+  /*
+   * A query's fallback (MetricQueryConfigData.fallback) is drawn in its
+   * place when it has no data, so it is scoped by the same variables: a
+   * chart of one cluster falls back to that cluster's running count, never
+   * to every cluster's.
+   */
+  describe("applyToQueryConfig with a fallback", () => {
+    function withFallback(
+      attributes: Record<string, unknown> | undefined,
+      fallbackAttributes: Record<string, unknown> | undefined,
+    ): MetricQueryConfigData {
+      return {
+        ...makeQueryConfig(attributes),
+        fallback: {
+          queryConfig: makeQueryConfig(fallbackAttributes),
+          hint: { text: "Older agents send only the running count." },
+        },
+      };
+    }
+
+    function fallbackOf(config: MetricQueryConfigData): MetricQueryConfigData {
+      return config.fallback!.queryConfig;
+    }
+
+    const cluster: DashboardVariable = makeVariable({
+      attributeKey: "resource.k8s.cluster.name",
+      selectedValue: "prod-eu",
+    });
+
+    const namespaces: DashboardVariable = makeVariable({
+      id: "var-2",
+      name: "namespace",
+      attributeKey: "resource.k8s.namespace.name",
+      isMultiSelect: true,
+      selectedValues: ["payments", "checkout"],
+    });
+
+    test("applies every variable to the fallback as it does to the query", () => {
+      const result: MetricQueryConfigData =
+        DashboardVariableInterpolation.applyToQueryConfig(
+          withFallback({}, {}),
+          [cluster, namespaces],
+        );
+
+      for (const config of [result, fallbackOf(result)]) {
+        expect(attributesOf(config)?.["resource.k8s.cluster.name"]).toBe(
+          "prod-eu",
+        );
+        expect(
+          (attributesOf(config)?.["resource.k8s.namespace.name"] as Includes)
+            .values,
+        ).toEqual(["payments", "checkout"]);
+      }
+
+      // The hint travels with it, as stored.
+      expect(result.fallback?.hint).toEqual({
+        text: "Older agents send only the running count.",
+      });
+    });
+
+    test("All clears the filter from the fallback too", () => {
+      const result: MetricQueryConfigData =
+        DashboardVariableInterpolation.applyToQueryConfig(
+          withFallback(
+            { "resource.k8s.cluster.name": "prod-eu" },
+            { "resource.k8s.cluster.name": "prod-eu", keep: "me" },
+          ),
+          [makeVariable({ attributeKey: "resource.k8s.cluster.name" })],
+        );
+
+      expect(attributesOf(result)).toEqual({});
+      expect(attributesOf(fallbackOf(result))).toEqual({ keep: "me" });
+    });
+
+    test("scopes the fallback even when the query already had the value", () => {
+      const config: MetricQueryConfigData = withFallback(
+        { "resource.k8s.cluster.name": "prod-eu" },
+        {},
+      );
+
+      const result: MetricQueryConfigData =
+        DashboardVariableInterpolation.applyToQueryConfig(config, [cluster]);
+
+      expect(result).not.toBe(config);
+      expect(result.metricQueryData).toBe(config.metricQueryData);
+      expect(attributesOf(fallbackOf(result))).toEqual({
+        "resource.k8s.cluster.name": "prod-eu",
+      });
+    });
+
+    test("returns the same config reference when neither changes", () => {
+      const config: MetricQueryConfigData = withFallback(
+        { "resource.k8s.cluster.name": "prod-eu" },
+        { "resource.k8s.cluster.name": "prod-eu" },
+      );
+
+      expect(
+        DashboardVariableInterpolation.applyToQueryConfig(config, [cluster]),
+      ).toBe(config);
+      expect(
+        DashboardVariableInterpolation.applyToQueryConfig(config, []),
+      ).toBe(config);
+    });
+
+    test("leaves the stored config as it was", () => {
+      const config: MetricQueryConfigData = withFallback({}, {});
+      const before: string = JSON.stringify(config);
+
+      DashboardVariableInterpolation.applyToQueryConfig(config, [
+        cluster,
+        namespaces,
+      ]);
+
+      expect(JSON.stringify(config)).toBe(before);
+    });
+
+    test("a fallback with no filter is left alone, and the query still scoped", () => {
+      const config: MetricQueryConfigData = {
+        ...makeQueryConfig({}),
+        fallback: {
+          queryConfig: { metricQueryData: {} } as MetricQueryConfigData,
+        },
+      };
+
+      const result: MetricQueryConfigData =
+        DashboardVariableInterpolation.applyToQueryConfig(config, [cluster]);
+
+      expect(attributesOf(result)?.["resource.k8s.cluster.name"]).toBe(
+        "prod-eu",
+      );
+      expect(result.fallback).toBe(config.fallback);
+    });
+  });
 });

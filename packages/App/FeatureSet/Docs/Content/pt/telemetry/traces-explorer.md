@@ -81,12 +81,12 @@ Abaixo deles, escolha uma das quatro visualizações:
 
 | Visualização | O que mostra |
 | --- | --- |
-| **Waterfall** | Cada span em uma linha do tempo, aninhado sob o span que o iniciou. Ative **Critical path** para destacar a cadeia de spans que determinou quanto tempo a requisição levou. |
+| **Cascata** | Cada span em uma linha do tempo, aninhado sob o span que o iniciou. Ative **Caminho crítico** para destacar a cadeia de spans que determinou quanto tempo a requisição levou. |
 | **Gráfico de chama** | A mesma árvore em barras empilhadas, em que as barras mais largas levaram mais tempo. |
-| **Service map** | Os serviços por onde a requisição passou e as chamadas entre eles. |
-| **Operations** | Uma linha por serviço e nome de span, com chamadas, erros, tempo próprio e tempo total. Uma operação chamada 10 ou mais vezes a partir de um mesmo span pai é marcada: muitas vezes uma consulta N+1 ou um laço que poderia ser agrupado. |
+| **Mapa de serviços** | Os serviços por onde a requisição passou e as chamadas entre eles. |
+| **Operações** | Uma linha por serviço e nome de span, com chamadas, erros, tempo próprio e tempo total. Uma operação chamada 10 ou mais vezes a partir de um mesmo span pai é marcada: muitas vezes uma consulta N+1 ou um laço que poderia ser agrupado. |
 
-Clique em um span em qualquer visualização para abrir o painel dele, com abas para atributos, eventos, registros, exceções e links, além do perfil ou da chamada de LLM quando ele tiver. Pesquise os spans do traço por nome, ID ou serviço com a caixa de pesquisa ao lado das visualizações (pressione `/`), e ative **Errors only** para manter só os spans que falharam.
+Clique em um span em qualquer visualização para abrir o painel dele, com abas para atributos, eventos, registros, exceções e links, além do perfil ou da chamada de LLM quando ele tiver. Pesquise os spans do traço por nome, ID ou serviço com a caixa de pesquisa ao lado das visualizações (pressione `/`), e ative **Somente erros** para manter só os spans que falharam.
 
 Um traço grande carrega 500 spans por vez. Clique no botão no fim do traço para carregar mais, ou todos.
 

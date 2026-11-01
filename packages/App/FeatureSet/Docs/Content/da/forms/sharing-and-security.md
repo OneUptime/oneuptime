@@ -1,10 +1,11 @@
 # Deling & sikkerhed
 
-En formular er åben for alle, der har dens link, og hver indsendelse kan tilkalde dit vagthold eller sætte et vedligeholdelsesvindue i din kalender. Denne side handler om formularens side **Del** — linket, at slå formularen fra, beskeden efter indsendelse og IP-tilladelseslisten — og hvert andet tjek, en anmodning passerer på vejen.
+En formular er åben for alle, der har dens link, og hver indsendelse kan tilkalde dit vagthold eller sætte et vedligeholdelsesvindue i din kalender. Denne side handler om formularens side **Del** — linket, at slå formularen fra, beskeden efter indsendelse og IP-tilladelseslisten — og hvert andet tjek, en anmodning passerer på vejen. Den handler også om at vise formularen på dit eget domæne.
 
 :::cards
 - [Del linket](#del-linket): Kopiér det, åbn det, og nulstil det, når det spreder sig for langt.
 - [Et link til hver skabelon](#et-link-til-hver-skabelon): Ét bogmærke pr. tilfælde, én formular bag dem alle.
+- [Brugerdefinerede domæner](#brugerdefinerede-domæner): Vis formularen på dit eget domæne, med et gratis certifikat.
 - [Hvad der beskytter en formular](#hvad-der-beskytter-en-formular): Hvert tjek, en anmodning passerer, i rækkefølge.
 - [Fejlfinding](#fejlfinding): Hvad hver besked på formularens side betyder, og hvad du skal gøre.
 :::
@@ -14,17 +15,17 @@ En formular er åben for alle, der har dens link, og hver indsendelse kan tilkal
 | Kort | Hvad det indeholder |
 | --- | --- |
 | **Status** | **Modtager indsendelser** — om formularens link virker. |
-| **Delingslink** | Linket, med **Kopiér link**, **Åbn formular** og **Nulstil link**. |
+| **Delingslink** | Hver adresse, formularen svarer på, hver med **Kopiér link**, og **Nulstil link**. |
 | **Efter indsendelse** | Den **Takkebesked**, folk ser, når de har indsendt, under nummeret på det, formularen oprettede. |
 | **Yderligere indstillinger** | **IP-tilladelsesliste**, sammenklappet, indtil du åbner den. |
 
 ## Del linket
 
-Kortet **Delingslink** viser formularens link, som `https://oneuptime.com/accounts/form/<share-key>`:
+Kortet **Delingslink** viser hver adresse, formularen svarer på: først dens [brugerdefinerede domæner](#brugerdefinerede-domæner), derefter dens link på OneUptime, som `https://oneuptime.com/accounts/form/<share-key>`:
 
-- **Kopiér link** kopierer det.
-- **Åbn formular** åbner formularen i en ny fane, som folk ser den.
-- **Nulstil link** giver formularen et nyt link, efter at du har bekræftet. Det gamle link holder op med at virke med det samme og viser beskeden om, at formularen ikke er tilgængelig, så alle, du delte det med, skal have det nye. Brug det, når et link har spredt sig længere, end det burde.
+- Hver adresse åbner formularen i en ny fane, sådan som folk ser den, og **Kopiér link** ved siden af kopierer den.
+- Et brugerdefineret domæne, der ikke virker endnu, er markeret med **Ikke live endnu**, med årsagen. Uden brugerdefineret domæne tilbyder en linje under linket **Tilføj et brugerdefineret domæne**.
+- **Nulstil link** giver formularen et nyt link, efter at du har bekræftet. Det gamle link holder op med at virke med det samme og viser beskeden om, at formularen ikke er tilgængelig, så alle, du delte det med, skal have det nye. Brug det, når et link har spredt sig længere, end det burde. Formularens brugerdefinerede domæner indeholder ingen nøgle og bliver ved med at virke.
 
 Alle med linket kan åbne formularen og indsende den, uden en OneUptime-konto og uden at logge ind. At være logget ind ændrer intet: OneUptime ved kun, hvem der indsendte, ud fra det navn og den e-mail, der er indtastet i formularen. Så behandl linket som et telefonnummer til dit vagthold. Del det, hvor de folk, der skal bruge det, finder det — en intranetside, en support-runbook, en fastgjort chatbesked — og ikke på et offentligt websted, medmindre du vil have indsendelser fra hvem som helst.
 
@@ -34,19 +35,71 @@ Links til de gamle hændelsesformularer, `/accounts/incident-form/<share-key>`, 
 
 ### Et link til hver skabelon
 
-Hver af formularens [skabeloner](/docs/forms/building#skabeloner) har sit eget link: formularens link med `?template=` og skabelonens id, som `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Kopiér link** på formularens side **Skabeloner** kopierer det. Det åbner formularen med den skabelon udfyldt, så et team kan gemme ét bogmærke pr. tilfælde, mens du beholder én formular. Når indsenderen vælger en anden skabelon, følger adressen i browseren med, så det link, der kopieres, er formularen, som den ses.
+Hver af formularens [skabeloner](/docs/forms/building#skabeloner) har sit eget link: formularens link med `?template=` og skabelonens id, som `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Kopiér link** på formularens side **Skabeloner** kopierer det. Det åbner formularen med den skabelon udfyldt, så et team kan gemme ét bogmærke pr. tilfælde, mens du beholder én formular. Når indsenderen vælger en anden skabelon, følger adressen i browseren med, så det link, der kopieres, er formularen, som den ses. På et [brugerdefineret domæne](#brugerdefinerede-domæner) er en skabelons link domænet med samme `?template=`, som `https://report.acme.com/?template=<template-id>`, og **Nulstil link** lader det virke.
 
 En skabelons link er formularens link: det virker, så længe formularen står på **Modtager indsendelser**, og **Nulstil link** trækker det tilbage sammen med resten. Et link, der nævner en skabelon, du har slettet, åbner formularen, som om det ikke nævnte nogen — med standardskabelonen, hvis der er en.
 
 ### Slå en formular fra
 
-For at holde op med at tage imod indsendelser uden at slette formularen skal du slå **Modtager indsendelser** fra. Linket viser så "Denne formular er ikke tilgængelig. Den kan være slået fra, eller linket kan være forældet.", og kortet **Delingslink** minder dig om, at formularen er slået fra. Slå den til igen, så virker det samme link igen.
+For at holde op med at tage imod indsendelser uden at slette formularen skal du slå **Modtager indsendelser** fra. Linket viser så "Denne formular er ikke tilgængelig. Den kan være slået fra, eller linket kan være forældet.", og kortet **Delingslink** minder dig om, at formularen er slået fra. Slå den til igen, så virker det samme link igen. Formularens brugerdefinerede domæner viser den samme besked, mens den er slået fra.
 
 ### Takkebeskeden
 
 Efter en indsendelse siger siden "Tak — dit svar er sendt." og giver nummeret på det, der blev oprettet, og derefter din **Takkebesked**, i Markdown. Brug den til at sige, hvad der sker nu, og hvor man skal henvende sig, når noget haster. Uden en viser siden kun standardbeskeden.
 
 Et billede i formularens beskrivelse eller takkebesked vises for alle, der åbner linket, så længe formularen står på **Modtager indsendelser**. Slå formularen fra, eller tag billedet ud, så er billedet privat igen, medmindre noget andet, alle ser, stadig indeholder det.
+
+## Brugerdefinerede domæner
+
+Som udgangspunkt vises en formular på sit link, på OneUptimes egen adresse. For at vise den på et domæne, du selv ejer, som `report.acme.com`, skal du åbne formularens side **Brugerdefinerede domæner**, lige efter **Del** i dens sidemenu. Den virker som en [statussides brugerdefinerede domæner](/docs/status-pages/branding-and-domains#brugerdefinerede-domæner).
+
+At lægge formularen på dit eget domæne tager tre trin, og kun de to første er dine:
+
+1. **Tilføj domænet**: et underdomæne og et af dine bekræftede domæner.
+2. **Tilføj dets CNAME-post** hos din DNS-udbyder. Dialogen **DNS-opsætning** åbner med posten, så snart du tilføjer domænet.
+3. **Det gratis SSL-certifikat udstedes automatisk**, så snart posten er fundet. Der er ingen knap at trykke på.
+
+Når domænet er live, viser kortet **Delingslink** det over formularens link. Begge åbner den samme formular.
+
+### Tilføj et domæne
+
+Klik på **Opret Formulardomæne**. Dialogen er én side:
+
+- **Underdomæne**: kun etiketten, med pladsholderen `report (leave blank for root)`. Skriv bare `report`, ikke hele værtsnavnet. Lad feltet stå tomt, eller skriv `@`, for at bruge roddomænet.
+- **Domæne**: et af de domæner, der er bekræftet under **Projektindstillinger** > **Avanceret** > **Domæner**, hvor du med en TXT-post beviser, at du ejer et domæne. Linket **Tilføj et domæne** ved siden af feltet åbner den side i en ny fane.
+- **Flere felter**: foldet sammen. Åbn det kun for at bruge dit eget certifikat: slå **Upload brugerdefineret certifikat** til, og indsæt **Certifikat** og dets **Privat certifikatnøgle**.
+
+Klik på **Opret Formulardomæne** igen for at tilføje det. Dialogen lukker, og det nye domænes **DNS-opsætning** åbner. Et domænes navn og dets formular ligger fast, når det er tilføjet, så **Rediger** ændrer kun dets certifikat: for at ændre et af dem skal du tilføje det nye domæne og slette det gamle.
+
+Et domæne viser én statusside, ét dashboard eller én formular, så et navn, som en af dem allerede har, i et hvilket som helst projekt, afvises: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
+
+### DNS-opsætning og Tjek nu
+
+Dialogen **DNS-opsætning** viser posten, du skal tilføje hos din DNS-udbyder, hvert felt med en kopiknap: **Type** `CNAME`, **Navn** det fulde domæne, du tilføjede, og **Værdi** din installations CNAME-post. For et roddomæne tillader mange DNS-udbydere ikke en CNAME-post: brug i stedet din udbyders ALIAS-, ANAME- eller CNAME-flattening-post med samme værdi.
+
+OneUptime tjekker hvert ubekræftet domæne hvert 15. minut, og når det finder posten, bestiller det domænets gratis Let's Encrypt-certifikat i samme tjek. Klik på **Tjek nu** for at tjekke med det samme. Indtil et domæne er live, har dets række en handling **DNS-opsætning**, der åbner den samme dialog, hvor **Tjek nu** også bestiller et certifikat igen, som slog fejl eller er udløbet, højst én gang pr. domæne hvert 15. minut. Fornyelsen sker automatisk, i god tid før certifikatet udløber.
+
+Kolonnen **Status** siger, hvor langt hvert domæne er på vejen mod HTTPS, i de samme otte tilstande som en statussides domæner: se [Sådan læser du domænets kolonne Status](/docs/status-pages/branding-and-domains#sådan-læser-du-domænets-kolonne-status). Når en bestilling slog fejl, står årsagen på linjen nedenunder: som regel en CAA-post på dit domæne, der ikke tillader `letsencrypt.org`, eller, på en selvhostet installation, en server, som Let's Encrypt ikke kan nå på port 80.
+
+Når der er bestilt et gratis certifikat til et domæne, viser dets række **Reissue SSL**, som beder Let's Encrypt om et helt nyt certifikat før den automatiske fornyelse, én gang hver 24. time pr. domæne. Formularen forbliver online med det nuværende certifikat imens. Et certifikat, du har uploadet, fornyer du selv: rediger domænet, og indsæt det nye.
+
+### Hvad domænet viser
+
+Et domæne viser sin formular i roden, som `https://report.acme.com`, og intet andet fra OneUptime: ingen login-side og ingen anden formular. Enhver anden adresse på domænet åbner formularen i roden og beholder sin forespørgsel, så en skabelons link også virker der. Siden er formularens egen: dens logo eller intet, aldrig OneUptimes, dens navn som fanens titel, i det lyse tema og uden OneUptimes analyser. Captcha, filer og takkebeskeden virker der som på linket, og hvert tjek i [Hvad der beskytter en formular](#hvad-der-beskytter-en-formular) gælder, med domænet som formularens egen side.
+
+- **Nulstil link** ændrer kun formularens link på OneUptime: dens domæner indeholder ingen nøgle, så de bliver ved med at virke.
+- At slå **Modtager indsendelser** fra lukker også formularen på dens domæner, med beskeden om, at den ikke er tilgængelig.
+- At slette formularen sletter dens domæner, og **Duplikér formular** kopierer ingen af dem. Et slettet domæne holder straks op med at vise formularen.
+
+### På en selvhostet installation
+
+Formularer bruger statussidernes CNAME-post: `STATUS_PAGE_CNAME_RECORD` i `config.env`, eller `statusPage.cnameRecord` i Helm-chartet. For at give formulardomæner deres eget mål skal du sætte `FORM_CNAME_RECORD`: i `config.env` til Docker Compose, eller med chartets fælles `extraEnv` i Helm-chartet. Uden nogen af dem siger siden **Brugerdefinerede domæner**, at brugerdefinerede domæner ikke er slået til, i stedet for at vise en post, og OneUptime bekræfter ingen formulardomæner og bestiller ingen certifikater til dem.
+
+Serveren skal svare på port 80, hvor Let's Encrypt tjekker hvert domæne. En installation uden en Let's Encrypt-kontonøgle, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` i Helm-chartet), bestiller ingen certifikater: en formulars domæne er live, så snart dets post er bekræftet, og vises med din egen proxys HTTPS eller et certifikat, du uploader. Med captcha slået til skal en webstedsnøgle, der oplister de værtsnavne, den virker på, også opliste formularens domæner.
+
+### Hvem der kan administrere domæner
+
+Projektets ejere og administratorer, og alle med **Edit Form**, kan tilføje en formulars domæner, tjekke dem, genudstede deres certifikater og slette dem. Det kan tilladelserne kun til en formulars domæner også, som **Edit Form Domain**: [Formularer – overblik](/docs/forms/index#tilladelser) oplister dem. Alle, der kan læse en formular, ser dens domæner, deres **Status** og posten i **DNS-opsætning**; for dem er **Tjek nu** og **Reissue SSL** låst og siger, hvilken tilladelse der skal til. En API-nøgle virker på samme måde på `/form-domain`: `verify-cname`, `order-ssl` og `reissue-ssl` kræver **Edit Form Domain** eller **Edit Form**.
 
 ## Hvad der beskytter en formular
 
@@ -145,6 +198,10 @@ Når din OneUptime-instans har hCaptcha slået til, viser formularen en captcha,
 - Formularen blev slettet.
 - På OneUptime Cloud er projektet under **Growth**-planen, eller dets abonnement er ikke betalt.
 - Linket blev afkortet, da det blev kopieret.
+:::
+
+:::details Formularens domæne viser ikke formularen
+Åbn formularens side **Brugerdefinerede domæner**, og læs domænets kolonne **Status**: indtil dets post er bekræftet, og dets certifikat er på plads, viser en browser en certifikatadvarsel eller slet ingenting. Et domæne, der ikke længere står på siden, fordi det selv eller dets formular blev slettet, viser en side om, at intet blev fundet, og et domæne, hvis overordnede domæne ikke længere er bekræftet, viser beskeden om, at formularen ikke er tilgængelig. På en selvhostet installation skal du tjekke, at posten peger på din OneUptime-server, og at serveren svarer på port 80 og 443.
 :::
 
 :::details Formularen kan kun åbnes fra et tilladt netværk

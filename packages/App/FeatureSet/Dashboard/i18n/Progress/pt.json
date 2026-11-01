@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39011,
-    "untranslated": 13328
+    "keys": 39098,
+    "untranslated": 13223
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -118,11 +118,13 @@
     "Span",
     "Spans",
     "Stack",
+    "Stack trace",
     "Stacks",
     "Status",
     "Tablet",
     "Tags",
     "Tokens",
+    "Top P",
     "Total",
     "Total:",
     "URLs",
@@ -170,6 +172,7 @@
     "prod-vcenter",
     "s",
     "security-alerts",
+    "span {{spanId}}",
     "status",
     "storefront-web",
     "svc-backup",
@@ -195,6 +198,8 @@
     "{{count}} datastores",
     "{{count}} host",
     "{{count}} hosts",
+    "{{count}} span",
+    "{{count}} spans",
     "{{minutes}} min",
     "{{tokens}} tokens"
   ]

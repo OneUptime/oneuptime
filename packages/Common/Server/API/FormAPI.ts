@@ -1,11 +1,14 @@
 import FormRateLimit, {
   FormRateLimitBucket,
+  FormRateLimitFormSource,
 } from "../Middleware/FormRateLimit";
 import UserMiddleware from "../Middleware/UserAuthorization";
+import FormDomainService from "../Services/FormDomainService";
 import FormService, {
   Service as FormServiceType,
 } from "../Services/FormService";
 import { resolveClientIp } from "../Utils/ClientIp";
+import { getRequestHost } from "../Utils/RequestHost";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -26,6 +29,11 @@ import {
   PublicFormSubmissionResult,
 } from "../../Types/Form/FormPublic";
 import { JSONObject } from "../../Types/JSON";
+import {
+  FORM_CUSTOM_DOMAIN_CNAME_VERIFICATION_ROUTE,
+  FORM_CUSTOM_DOMAIN_ROUTE,
+  FORM_CUSTOM_DOMAIN_SUBMIT_ROUTE,
+} from "../../Types/Form/FormCustomDomain";
 
 /*
  * The form's CRUD routes (inherited from BaseAPI, all behind the signed-in
@@ -34,6 +42,24 @@ import { JSONObject } from "../../Types/JSON";
  *
  *   GET  /form/public/:shareKey          the form's questions
  *   POST /form/public/:shareKey/submit   create from the answers
+ *
+ * and their twins for a form on its own domain (FormDomain), which the page
+ * on that domain calls on that domain, naming no key - the form is the one
+ * the domain answers with, found by the request's Host:
+ *
+ *   GET  /form/custom-domain             the form's questions
+ *   POST /form/custom-domain/submit      create from the answers
+ *   GET  /form/custom-domain/cname-verification/:token
+ *                                        the CNAME sweeps' check that the
+ *                                        domain reaches this installation
+ *
+ * The two custom domain routes the page calls run the same steps as the
+ * link's, in the same order, with one difference in the first:
+ * refuseForeignPageRequestsOnCustomDomain holds the request to the domain's
+ * own origin - the page is served there, not on this instance's own - and
+ * the counters key the form by its domain (FormRateLimitFormSource). The
+ * form itself is then read through its key, so every check after that is
+ * the link's, word for word (FormService.getPublicFormOnCustomDomain).
  *
  * Neither can be mistaken for a CRUD route: those are /form, /form/get-list,
  * /form/count and /form/:id with or without /get-item, /update-item or
@@ -125,6 +151,9 @@ const isPlainObject: IsPlainObjectFunction = (
   return value !== null && typeof value === "object" && !Array.isArray(value);
 };
 
+// The answer to a token or a name that is not a form domain's.
+export const FORM_CUSTOM_DOMAIN_TOKEN_MESSAGE: string = "Invalid token.";
+
 export default class FormAPI extends BaseAPI<Form, FormServiceType> {
   public constructor() {
     super(Form, FormService);
@@ -214,6 +243,152 @@ export default class FormAPI extends BaseAPI<Form, FormServiceType> {
         }
       },
     );
+
+    this.registerCustomDomainRoutes();
+  }
+
+  /*
+   * The routes a form's page calls on its own domain (see the top of this
+   * file), and the CNAME check the form domain sweeps make there.
+   */
+  private registerCustomDomainRoutes(): void {
+    const crudApiPath: string =
+      new this.entityType().getCrudApiPath()?.toString() || "";
+
+    this.router.get(
+      `${crudApiPath}${FORM_CUSTOM_DOMAIN_ROUTE}`,
+      FormAPI.refuseForeignPageRequestsOnCustomDomain,
+      FormAPI.requireFormPageHeader,
+      FormRateLimit.getMiddleware(
+        FormRateLimitBucket.Read,
+        FormRateLimitFormSource.CustomDomain,
+      ),
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          const form: PublicForm =
+            await FormService.getPublicFormOnCustomDomain({
+              hostname: getRequestHost(req),
+              clientIp: resolveClientIp(req),
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            form as unknown as JSONObject,
+          );
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${crudApiPath}${FORM_CUSTOM_DOMAIN_SUBMIT_ROUTE}`,
+      FormAPI.refuseForeignPageRequestsOnCustomDomain,
+      FormAPI.requireJsonBody,
+      FormRateLimit.getMiddleware(
+        FormRateLimitBucket.Submit,
+        FormRateLimitFormSource.CustomDomain,
+      ),
+      UserMiddleware.getPublicRouteUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          const request: PublicFormSubmissionRequest =
+            FormAPI.readSubmissionRequest(req.body);
+
+          const clientIp: string | undefined = resolveClientIp(req);
+
+          const result: PublicFormSubmissionResult =
+            await FormService.submitPublicFormOnCustomDomain({
+              hostname: getRequestHost(req),
+              request: request,
+              clientIp: clientIp,
+              captchaRemoteIp: clientIp,
+            });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            result as unknown as JSONObject,
+          );
+        } catch (err) {
+          FormRateLimit.setRetryAfterFor(res, err);
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * The form domain sweeps' check that a domain reaches this installation
+     * (FormDomainService.isCnameValid): 200 only when the request came to
+     * the form domain whose token it names, so a token proves the name, and
+     * a name proves nothing without its token. Read-only and anonymous, as
+     * a status page domain's twin route is; the sweeps send no page headers.
+     */
+    this.router.get(
+      `${crudApiPath}${FORM_CUSTOM_DOMAIN_CNAME_VERIFICATION_ROUTE}/:token`,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          Response.setNoCacheHeaders(res);
+
+          const isOwnToken: boolean =
+            await FormDomainService.isVerificationTokenOfDomain({
+              hostname: getRequestHost(req),
+              token: req.params["token"],
+            });
+
+          if (!isOwnToken) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(FORM_CUSTOM_DOMAIN_TOKEN_MESSAGE),
+            );
+          }
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+  }
+
+  /*
+   * First on the two routes a form's page calls on its own domain, as
+   * refuseForeignPageRequests is on the link's: a request a browser sent
+   * from a page that is not the domain's own is refused, 403, before it
+   * costs or spends anything. The page is served on the domain, so its
+   * origin is the domain's, not this instance's: SameOriginRequest's
+   * isForeignPageRequestToHost compares a request's Origin with the host
+   * the request was sent to. Which form the domain answers with is not
+   * looked up yet, so the refusal says nothing about it.
+   */
+  public static refuseForeignPageRequestsOnCustomDomain(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): void {
+    if (
+      SameOriginRequest.isForeignPageRequestToHost({
+        headers: req.headers,
+        hostname: getRequestHost(req),
+      })
+    ) {
+      Response.setNoCacheHeaders(res);
+
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new ForbiddenException(FORM_FOREIGN_PAGE_MESSAGE),
+      );
+    }
+
+    return next();
   }
 
   /*

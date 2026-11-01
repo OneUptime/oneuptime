@@ -84,6 +84,28 @@ export interface MetricWindowWait {
   coveredMs: number;
 }
 
+/*
+ * How a criteria that judges the window as one value takes it from the
+ * window's samples: the Average, Sum, Maximum Value or Minimum Value
+ * evaluation types, in the words a sentence names them by.
+ */
+export type MetricWindowAggregation = "average" | "sum" | "maximum" | "minimum";
+
+/**
+ * The one value a criteria compared with its threshold when it judged the
+ * whole window at once (see MetricCriteriaContext.windowAggregate).
+ */
+export interface MetricWindowAggregate {
+  aggregation: MetricWindowAggregation;
+  /*
+   * In the same display unit as the samples, and taken from the same
+   * values the criteria compared (CompareCriteria.reduceWindow).
+   */
+  value: number;
+  // How many samples it was taken over; 0 for a window with none.
+  sampleCount: number;
+}
+
 export interface MetricAnomalyBaseline {
   state: MetricAnomalyState;
   /** Baseline mean for the matching hour-of-week, rolling window. */
@@ -148,9 +170,22 @@ export default interface MetricCriteriaContext {
   /**
    * All samples in the evaluation window that breached the threshold,
    * in chronological order. Used to render the Breaching Samples list
-   * of timestamps and values on the incident root-cause page.
+   * of timestamps and values on the incident root-cause page. For a Sum
+   * criteria, which compares the window's total and never a sample, they
+   * are the samples that added to that total (every one that is not 0).
    */
   breachingSamples?: Array<MetricBreachingSample> | undefined;
+  /**
+   * What the criteria compared with its threshold, when it judged the
+   * window as one value - an Average, Sum, Maximum Value or Minimum Value
+   * criteria. A summed template (restarts or failures in 15 minutes) is
+   * judged on the window's total, which no single sample shows: one with
+   * a restart in each of five minutes has no sample above 1. So the value
+   * a reader is shown for the series - its row in an Affected Resources
+   * list, the analysis sentence, the Breaching Samples summary - is this
+   * one. Absent for Any Value and All Values, which judge each sample.
+   */
+  windowAggregate?: MetricWindowAggregate | undefined;
   /**
    * Total number of samples considered during evaluation (including
    * non-breaching ones), so the root cause can show "N of M samples

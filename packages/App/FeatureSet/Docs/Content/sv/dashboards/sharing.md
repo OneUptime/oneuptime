@@ -146,7 +146,7 @@ Den som bara kan läsa domänen, till exempel en Viewer eller en Settings Viewer
 
 Samma sak gäller API-nycklar. En nyckel som bara kan läsa instrumentpanelsdomäner kan inte anropa `verify-cname`, `order-ssl` eller `reissue-ssl` på `/dashboard-domain`. Ge den **Read Dashboard Domain** och **Edit Dashboard Domain** om den behöver det.
 
-En domän tillhör en instrumentpanel i projektet åt gången. Du kan koppla fler än en anpassad domän till en enda instrumentpanel om du visar samma innehåll för flera målgrupper: en kundinriktad instrumentpanel med ditt eget varumärke, en samprofilerad partnerpanel eller en offentlig hälsosida med en egen URL.
+En domän tillhör en instrumentpanel i projektet åt gången. Du kan koppla fler än en anpassad domän till en enda instrumentpanel om du visar samma innehåll för flera målgrupper: en kundinriktad instrumentpanel med ditt eget varumärke, en samprofilerad partnerpanel eller en offentlig hälsosida med en egen URL. Ett namn som en statussida eller ett formulär redan använder, i vilket projekt som helst, avvisas: en domän visar en statussida, en instrumentpanel eller ett formulär.
 
 ## Varumärke
 

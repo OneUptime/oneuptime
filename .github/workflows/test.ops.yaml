@@ -146,14 +146,16 @@ jobs:
       - run: bash Tests/Ops/agent-cpu-names-behaviour.sh
       # And for container restarts (CrashLoopBackOff Detection): the cluster
       # collector's metrics/restarts-increase pipeline as the chart renders
-      # it, on the collector the chart pins and on 0.96.0, fed seven samples
-      # of what k8s_cluster sends for four containers - an int gauge on a
-      # resource keyed by container.id, which changes with every restart.
-      # The pipeline must send k8s.container.restarts.increase alone, the
-      # restarts since each pod's previous sample of the container (a crash
-      # loop's 0 / 1 / 0 / 1 / 2 / 1, across five minutes and an hour too),
-      # nothing for a pod recreated under its name or a count that went down,
-      # 0 for a quiet container, as a delta sum without container.id.
+      # it, and the metrics pipeline it hands the increases to (k8sattributes
+      # stood in for), on the collector the chart pins and on 0.96.0, fed
+      # seven samples of what k8s_cluster sends for seven containers - an int
+      # gauge on a resource keyed by container.id, which changes with every
+      # restart. They must send k8s.container.restarts.increase, the restarts
+      # since each pod's previous sample of the container (a crash loop's
+      # 0 / 1 / 0 / 1 / 2 / 1, across five minutes and an hour too), nothing
+      # for a pod recreated under its name or a count that went down, 0 for a
+      # quiet container, as a delta sum without container.id, with its pod's
+      # workload names and what the count carries; and the count as it came.
       - run: bash Tests/Ops/agent-restarts-increase-behaviour.sh
       # And for Job failures (Job Failures): the cluster collector's
       # transform/job-failures-increase and cumulative_to_delta/
@@ -165,8 +167,9 @@ jobs:
       # failures since each Job's previous sample (a failing Job's
       # 0 / 1 / 0 / 1 / 2 / 1, across five minutes and an hour too), nothing
       # for a Job recreated under its name or a count that went down, 0 for
-      # a Job done long ago, as a delta sum with the Job's UID; and the count
-      # itself and everything beside it as it came.
+      # a Job done long ago, as a delta sum with the Job's UID and exactly
+      # the count's attributes; and the count itself and everything beside
+      # it as it came.
       - run: bash Tests/Ops/agent-job-failures-increase-behaviour.sh
       # And for container CPU: the Docker, Podman and Docker Swarm agents
       # build container.cpu.utilization from container.cpu.usage.total

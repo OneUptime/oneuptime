@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39011,
-    "untranslated": 13304
+    "keys": 39098,
+    "untranslated": 13201
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -44,6 +44,7 @@
     "SLI %",
     "SLOs",
     "Slug",
+    "Top P",
     "UTC",
     "VLAN",
     "VM 101 · pve1",

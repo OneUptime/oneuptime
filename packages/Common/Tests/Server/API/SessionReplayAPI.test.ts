@@ -9,6 +9,7 @@ import RumSessionReplayViewService from "../../../Server/Services/RumSessionRepl
 import RumSessionService from "../../../Server/Services/RumSessionService";
 import RumSessionChunkService from "../../../Server/Services/RumSessionChunkService";
 import ExceptionInstanceService from "../../../Server/Services/ExceptionInstanceService";
+import TelemetryExceptionService from "../../../Server/Services/TelemetryExceptionService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
 import SessionReplayIdentity from "../../../Server/Utils/SessionReplay/SessionReplayIdentity";
 import SessionReplayReadService, {
@@ -6246,6 +6247,183 @@ describe("Session replay playback API", () => {
   });
 
   describe("for-exception", () => {
+    /*
+     * The occurrences of the exceptions merged into one count on it
+     * (TelemetryExceptionMerge), so a session that threw one of them threw
+     * it: the route looks up the exception the fingerprint is the own of,
+     * and what was merged into it (TelemetryExceptionService
+     * .getGroupFingerprintsOfFingerprint), and asks for any of the group's.
+     */
+    describe("an exception others were merged into", () => {
+      const survivorId: string = "30000000-0000-4000-8000-000000000001";
+      let lookups: Array<{ sql: string; params: Array<unknown> }>;
+
+      function mergedInto(data: {
+        survivor: Array<string>;
+        merged: Array<string>;
+      }): void {
+        jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+          manager: {
+            query: async (sql: string, params: Array<unknown>) => {
+              lookups.push({ sql, params });
+
+              if (sql.includes("ROW_NUMBER()")) {
+                return data.merged.map((fingerprint: string) => {
+                  return { survivorId, fingerprint };
+                });
+              }
+
+              return data.survivor.map((id: string) => {
+                return { id };
+              });
+            },
+          },
+        } as never);
+      }
+
+      beforeEach(() => {
+        lookups = [];
+        TelemetryExceptionService.clearGroupFingerprints();
+      });
+
+      afterEach(() => {
+        TelemetryExceptionService.clearGroupFingerprints();
+      });
+
+      function owner(): {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } {
+        return buildPrincipal({
+          projectId: projectId,
+          userId: userId,
+          permissions: [Permission.ProjectOwner],
+        });
+      }
+
+      test("the sessions that threw an exception merged into it are its sessions too", async () => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = owner();
+        mockProps(principal.databaseProps);
+        mergedInto({ survivor: [survivorId], merged: ["fp-merged"] });
+        exceptionQuerySpy.mockResolvedValue(
+          fakeResultSet([{ sessionId: "threw-the-merged-one" }]) as never,
+        );
+
+        const result: CallResult = await callRoute({
+          uri: FOR_EXCEPTION_ROUTE,
+          request: principal.request,
+          body: {
+            fingerprint: "fp-1",
+            primaryEntityId: applicationAId.toString(),
+            primaryEntityType: ServiceType.RealUserMonitor,
+          },
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+
+        // The exception of the fingerprint, in the caller's project and service.
+        expect(lookups[0]!.params).toEqual([
+          projectId.toString(),
+          "fp-1",
+          20,
+          applicationAId.toString(),
+        ]);
+        expect(lookups[0]!.sql).toContain(
+          `"mergedIntoTelemetryExceptionId" IS NULL`,
+        );
+        // Then what was merged into it.
+        expect(lookups[1]!.params).toEqual([
+          projectId.toString(),
+          [survivorId],
+          100,
+          10000,
+        ]);
+
+        const instances: Statement = exceptionQuerySpy.mock
+          .calls[0]![0] as Statement;
+        expect(instances.query).toContain("AND fingerprint IN (");
+        expect(Object.values(instances.query_params)).toContainEqual([
+          "fp-1",
+          "fp-merged",
+        ]);
+
+        const headers: Statement = headerQuerySpy.mock
+          .calls[0]![0] as Statement;
+        expect(headers.query).toMatch(
+          /hasAny\(exceptionFingerprints, \{p\d+:Array\(String\)\}\)/,
+        );
+        expect(headers.query).toMatch(
+          /hasAny\(aggExceptionFingerprints, \{p\d+:Array\(String\)\}\)/,
+        );
+        expect(Object.values(headers.query_params)).toContainEqual([
+          "threw-the-merged-one",
+        ]);
+      });
+
+      test("the project looked in is the caller's, whatever the body says", async () => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = owner();
+        mockProps(principal.databaseProps);
+        mergedInto({ survivor: [], merged: [] });
+
+        await callRoute({
+          uri: FOR_EXCEPTION_ROUTE,
+          request: principal.request,
+          body: {
+            fingerprint: "fp-1",
+            projectId: ObjectID.generate().toString(),
+          },
+        });
+
+        expect(lookups).toHaveLength(1);
+        expect(lookups[0]!.params).toEqual([projectId.toString(), "fp-1", 20]);
+      });
+
+      test("nothing merged into it, or a lookup that fails: the fingerprint alone, as before any merge", async () => {
+        for (const failing of [false, true]) {
+          jest.clearAllMocks();
+          lookups = [];
+          TelemetryExceptionService.clearGroupFingerprints();
+          const principal: {
+            request: JSONObject;
+            databaseProps: DatabaseCommonInteractionProps;
+          } = owner();
+          mockProps(principal.databaseProps);
+
+          if (failing) {
+            jest
+              .spyOn(TelemetryExceptionService, "getRepository")
+              .mockImplementation(() => {
+                throw new Error("Postgres is down");
+              });
+          } else {
+            mergedInto({ survivor: [survivorId], merged: [] });
+          }
+
+          const result: CallResult = await callRoute({
+            uri: FOR_EXCEPTION_ROUTE,
+            request: principal.request,
+            body: { fingerprint: "fp-1" },
+          });
+
+          expect(result.thrownToNext).toBeUndefined();
+
+          const headers: Statement = headerQuerySpy.mock
+            .calls[0]![0] as Statement;
+          expect(headers.query).toMatch(
+            /hasAny\(exceptionFingerprints, \[\{p\d+:String\}\]\)/,
+          );
+          expect(headers.query).not.toContain("Array(String)}) OR");
+          expect(Object.values(headers.query_params)).toContain("fp-1");
+        }
+      });
+    });
+
     test("filters to the applications a label-scoped caller can reach", async () => {
       const principal: {
         request: JSONObject;

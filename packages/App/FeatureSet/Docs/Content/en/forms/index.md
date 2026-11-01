@@ -94,6 +94,7 @@ On **Share**, copy the link and send it to the people who should use the form. S
 | **Templates** | Named sets of answers people can start the form from, how each asks the questions, the one it opens with, and each one's own link. |
 | **On Submit** | What each submission creates, and how every field of it is filled in. **Edit Settings** changes the defaults and what always applies. |
 | **Share** | **Accepting Submissions**, the **Share Link**, the message shown after submitting, and, under **More settings**, the **IP Allowlist**. |
+| **Custom Domains** | The form's own domains, such as `report.acme.com`, with their DNS records and certificates. See [Custom domains](/docs/forms/sharing-and-security#custom-domains). |
 | **Submissions** | Every submission made through the form, newest first, with its answers and what it created. |
 | **Duplicate Form** | Under **Advanced**: a copy of the form, named for you, with its questions, templates, On Submit settings, branding, thank-you message and IP allowlist, and a link of its own. The copy starts turned off, and opens on its builder. |
 | **Delete Form** | Deleting the form, under **Advanced**. Its submissions are deleted with it; the incidents and events it created are not. |
@@ -135,6 +136,10 @@ Forms let people outside your team create incidents and maintenance events in yo
 | **Read Form** | Seeing forms, their questions, their settings and their links. | The above, plus Project Member, Viewer, and the incident and scheduled maintenance roles |
 | **Read Form Submission** | Seeing the submissions and their answers. | Project Owner, Project Admin |
 | **Delete Form Submission** | Deleting submissions. | Project Owner, Project Admin |
+| **Create Form Domain** | Adding a [custom domain](/docs/forms/sharing-and-security#custom-domains) to a form. | Project Owner, Project Admin, and **Edit Form** |
+| **Edit Form Domain** | Checking a form's custom domains, and ordering, reissuing or changing their certificates. | Project Owner, Project Admin, and **Edit Form** |
+| **Delete Form Domain** | Removing a form's custom domains. | Project Owner, Project Admin, and **Edit Form** |
+| **Read Form Domain** | Seeing a form's custom domains, their DNS records and how far each is on its way to HTTPS. | Everyone with **Read Form** |
 
 Submissions hold what strangers typed — names, email addresses, and answers that may never reach the record — so only project owners and admins see them unless you grant **Read Form Submission**. Anyone who can read a form can see and share its link. Submitting a form needs no permission at all. For how roles and granular permissions combine, see [Users, Teams & Permissions](/docs/permissions/index).
 
@@ -144,7 +149,7 @@ On OneUptime Cloud, forms need the **Growth** plan or above, and a form's **IP A
 
 ## Forms through the API
 
-Forms are an ordinary API resource at `/api/form`, and their submissions at `/api/form-submission`, which you can read and delete but not create or edit. The [API reference](/reference) has the full request and response shapes.
+Forms are an ordinary API resource at `/api/form`, and their submissions at `/api/form-submission`, which you can read and delete but not create or edit. The [API reference](/reference) has the full request and response shapes. A form's custom domains are at `/api/form-domain`.
 
 ### Questions and settings
 
@@ -255,7 +260,7 @@ Forms have the generated workflow components — **On Create Form**, **On Update
 
 ### The public page's own endpoints
 
-The public page talks to two routes that need no API key: `GET /api/form/public/<shareKey>`, which returns the form's name, description and questions — and its logo, the logo's alt text and its favicon, the images base64, when it has them, and its templates, with their answers to the questions the page asks — and `POST /api/form/public/<shareKey>/submit`, which submits it, naming the template the submitter started from in `templateId`. They are the page's own endpoints, not an API to build on: every call goes through the form's protections — see [Sharing & Security](/docs/forms/sharing-and-security) — and they change with the page. To create incidents from your own code, use `POST /api/incident` with an API key — see [Declaring an Incident](/docs/incidents/declaring-incidents).
+The public page talks to two routes that need no API key: `GET /api/form/public/<shareKey>`, which returns the form's name, description and questions — and its logo, the logo's alt text and its favicon, the images base64, when it has them, and its templates, with their answers to the questions the page asks — and `POST /api/form/public/<shareKey>/submit`, which submits it, naming the template the submitter started from in `templateId`. They are the page's own endpoints, not an API to build on: every call goes through the form's protections — see [Sharing & Security](/docs/forms/sharing-and-security) — and they change with the page. To create incidents from your own code, use `POST /api/incident` with an API key — see [Declaring an Incident](/docs/incidents/declaring-incidents). On a form's [custom domain](/docs/forms/sharing-and-security#custom-domains), the page uses `GET /api/form/custom-domain` and `POST /api/form/custom-domain/submit` on that domain instead, which name no key: the domain names the form.
 
 ## Where your incident forms went
 

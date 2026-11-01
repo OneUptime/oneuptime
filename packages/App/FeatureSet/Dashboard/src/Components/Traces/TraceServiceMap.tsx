@@ -1,6 +1,8 @@
 import SpanUtil, { DivisibilityFactor } from "../../Utils/SpanUtil";
 import Span, { SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import ReactFlow, {
   Background,
@@ -22,6 +24,7 @@ import {
   edgeWidthForCalls,
   healthForErrorRate,
 } from "../Topology/TopologyMeta";
+import { ERROR_COUNT, SPAN_COUNT } from "../../Utils/TraceDetailPresentation";
 
 /*
  * Per-trace service map: the same aggregation as before (nodes = services
@@ -97,6 +100,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
   props: TraceServiceMapProps,
 ): ReactElement => {
   const { spans, telemetryServices } = props;
+  const translator: Translator = useTranslator();
 
   // Build nodes and edges from spans
   const { nodes, edges } = React.useMemo(() => {
@@ -232,12 +236,12 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
         );
         const statLines: Array<ReactElement> = [
           <span key="stats">
-            {node.spanCount} span{node.spanCount === 1 ? "" : "s"}
+            {translator.translatePlural(SPAN_COUNT, node.spanCount)}
             {node.errorCount > 0 && (
               <span
                 style={{ color: HEALTH_COLORS[health], marginInlineStart: 8 }}
               >
-                {node.errorCount} error{node.errorCount === 1 ? "" : "s"}
+                {translator.translatePlural(ERROR_COUNT, node.errorCount)}
               </span>
             )}
           </span>,
@@ -282,11 +286,16 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
         target: edge.toServiceId,
         data: { slowestSpanId: edge.slowestSpanId },
         type: "smoothstep",
-        label: `${edge.callCount}x · avg ${durationStr}${
-          edge.errorCount > 0
-            ? ` · ${edge.errorCount} error${edge.errorCount === 1 ? "" : "s"}`
-            : ""
-        }`,
+        // The calls and their average, then their errors, each worded whole.
+        label: [
+          translator.translateTemplate("{{count}}x · avg {{duration}}", {
+            count: translator.formatNumber(edge.callCount),
+            duration: durationStr,
+          }),
+          ...(edge.errorCount > 0
+            ? [translator.translatePlural(ERROR_COUNT, edge.errorCount)]
+            : []),
+        ].join(" · "),
         labelStyle: { fontSize: 10, fill: "#6b7280" },
         labelBgStyle: {
           fill: "var(--ou-surface-primary, #ffffff)",
@@ -301,12 +310,16 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
     });
 
     return { flowNodes, flowEdges };
-  }, [nodes, edges, divisibilityFactor]);
+    /*
+     * Rebuilt for another language, not on every render: a new nodes array
+     * would put back the services a person dragged.
+     */
+  }, [nodes, edges, divisibilityFactor, translator.language]);
 
   if (nodes.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500 text-sm">
-        No services found in this trace
+        {translator.translateText("No services found in this trace")}
       </div>
     );
   }
@@ -314,8 +327,9 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
   return (
     <div className="trace-service-map">
       <div className="text-[11px] text-gray-500 mb-2 px-1">
-        Service flow for this trace. Arrows show cross-service calls with count
-        and latency. Click a service or call to open its slowest span.
+        {translator.translateText(
+          "Service flow for this trace. Arrows show cross-service calls with count and latency. Click a service or call to open its slowest span.",
+        )}
       </div>
       <div
         className="rounded border border-gray-200 bg-gray-50"

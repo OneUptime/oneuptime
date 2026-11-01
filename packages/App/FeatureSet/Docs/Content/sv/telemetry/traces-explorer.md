@@ -81,12 +81,12 @@ Under dem väljer du en av fyra vyer:
 
 | Vy | Vad den visar |
 | --- | --- |
-| **Waterfall** | Varje span på en tidslinje, nästlat under det span som startade det. Slå på **Critical path** för att markera kedjan av spans som avgjorde hur lång tid förfrågan tog. |
+| **Vattenfall** | Varje span på en tidslinje, nästlat under det span som startade det. Slå på **Kritisk väg** för att markera kedjan av spans som avgjorde hur lång tid förfrågan tog. |
 | **Flamdiagram** | Samma träd som staplade staplar, där de bredaste staplarna tog längst tid. |
-| **Service map** | Tjänsterna som förfrågan gick genom, och anropen mellan dem. |
-| **Operations** | En rad per tjänst och span-namn, med anrop, fel, egen tid och total tid. En operation som anropas 10 gånger eller mer från ett och samma föräldraspan markeras: ofta en N+1-fråga eller en loop som kunde ha samlats ihop. |
+| **Tjänstekarta** | Tjänsterna som förfrågan gick genom, och anropen mellan dem. |
+| **Operationer** | En rad per tjänst och span-namn, med anrop, fel, egen tid och total tid. En operation som anropas 10 gånger eller mer från ett och samma föräldraspan markeras: ofta en N+1-fråga eller en loop som kunde ha samlats ihop. |
 
-Klicka på ett span i valfri vy för att öppna dess panel, med flikar för attribut, händelser, loggar, undantag och länkar, och för dess profil eller LLM-anrop när det har ett. Sök bland spårets spans på namn, ID eller tjänst med sökrutan bredvid vyerna (tryck på `/`), och slå på **Errors only** för att bara behålla de spans som misslyckades.
+Klicka på ett span i valfri vy för att öppna dess panel, med flikar för attribut, händelser, loggar, undantag och länkar, och för dess profil eller LLM-anrop när det har ett. Sök bland spårets spans på namn, ID eller tjänst med sökrutan bredvid vyerna (tryck på `/`), och slå på **Endast fel** för att bara behålla de spans som misslyckades.
 
 Ett stort spår läser in 500 spans åt gången. Klicka på knappen längst ned i spåret för att läsa in fler, eller alla.
 

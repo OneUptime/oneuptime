@@ -38,6 +38,7 @@ const FRONTEND_ENV_ALLOW_LIST: Array<string> = [
   "VERSION",
   "STATUS_PAGE_CNAME_RECORD",
   "DASHBOARD_CNAME_RECORD",
+  "FORM_CNAME_RECORD",
   "ANALYTICS_KEY",
   "ANALYTICS_HOST",
   "GIT_SHA",
@@ -916,6 +917,17 @@ export const StatusPageCNameRecord: string =
 
 export const DashboardCNameRecord: string =
   process.env["DASHBOARD_CNAME_RECORD"] || "";
+
+/*
+ * What a form's own domain must point its CNAME record to, and the switch
+ * for forms on custom domains: without it, nothing verifies or orders a
+ * form domain's certificate. Every custom domain is served by the same
+ * ingress, so an installation that serves status pages on custom domains
+ * serves forms on them too: FORM_CNAME_RECORD when it is set, else the
+ * status page CNAME record.
+ */
+export const FormCNameRecord: string =
+  process.env["FORM_CNAME_RECORD"] || StatusPageCNameRecord;
 
 export const ClickhousePort: Port = new Port(
   process.env["CLICKHOUSE_PORT"] || "8123",

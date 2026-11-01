@@ -32,6 +32,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { spawnSync } = require("child_process");
+const { agentFilesCurlStub } = require("./Utils/AgentFilesCurlStub");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = path.join(REPO_ROOT, "agents", "DatabaseAgent");
@@ -60,8 +61,10 @@ function writeExecutable(file, text) {
 }
 
 /*
- * `curl` serves the agent's files from this checkout — or from SERVE_DIR,
- * a copy standing in for a newer upstream — and records each URL; `docker`
+ * `curl` serves the agent's files the way the OneUptime the agent reports to
+ * does, at <ONEUPTIME_URL>/install/database-agent/<file>, from this checkout
+ * — or from SERVE_DIR, a copy standing in for a newer release — and records
+ * each call (Utils/AgentFilesCurlStub); `docker`
  * succeeds and records its arguments and — for `compose up` — whether the
  * login reached it through the environment, and the config it would start.
  */
@@ -70,21 +73,11 @@ function installStubs(dir) {
   fs.mkdirSync(bin);
   writeExecutable(
     path.join(bin, "curl"),
-    `#!/usr/bin/env bash
-url=""; out=""
-while [ $# -gt 0 ]; do
-  case "$1" in
-    -o) out="$2"; shift 2 ;;
-    -*) shift ;;
-    *) url="$1"; shift ;;
-  esac
-done
-printf '%s\\n' "$url" >> "$STUB_DIR/curl.log"
-rel="\${url#https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/}"
-served="\${SERVE_DIR:-${AGENT_DIR}}"
-[ -f "$served/$rel" ] || exit 22
-cp "$served/$rel" "$out"
-`,
+    agentFilesCurlStub({
+      installName: "database-agent",
+      agentDirectory: "DatabaseAgent",
+      servedDir: AGENT_DIR,
+    }),
   );
   writeExecutable(
     path.join(bin, "docker"),
@@ -143,6 +136,104 @@ const BASE = {
   DATABASE_TLS_INSECURE: "true",
   DATABASE_QUERY_EVENTS: "false",
 };
+
+/*
+ * Where the files come from: the OneUptime the agent reports to serves the
+ * files of its own release at <ONEUPTIME_URL>/install/database-agent/<file>.
+ * A OneUptime older than that answers 404 or its own page, and the files
+ * come from GitHub instead; anything else stops the install before it
+ * writes anything.
+ */
+describe("install.sh, where its files come from", () => {
+  const SERVED = "https://oneuptime.example.com/install/database-agent";
+  const GITHUB =
+    "https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent";
+  const POSTGRES = {
+    ...BASE,
+    DATABASE_SYSTEM: "postgresql",
+    DATABASE_ENDPOINT: "db.example.com:5432",
+    DATABASE_USERNAME: "oneuptime_monitor",
+    DATABASE_PASSWORD: "secret",
+  };
+
+  function requested(dir) {
+    const log = path.join(dir, "curl.log");
+
+    return (fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "")
+      .split("\n")
+      .filter((line) => {
+        return line.includes(" -w ");
+      })
+      .map((line) => {
+        return line.split(" ").pop();
+      });
+  }
+
+  test("downloads the compose file, the engine's config and the unit from the OneUptime, never GitHub", () => {
+    const dir = scratch();
+    const run = runInstall(dir, POSTGRES);
+
+    expect(run.status).toBe(0);
+    expect(requested(dir)).toEqual([
+      `${SERVED}/docker-compose.yml`,
+      `${SERVED}/configs/postgresql.yaml`,
+      `${SERVED}/systemd/oneuptime-database-agent.service`,
+    ]);
+    expect(
+      fs.readFileSync(
+        path.join(run.installDir, "otel-collector-config.yaml"),
+        "utf8",
+      ),
+    ).toBe(
+      fs.readFileSync(
+        path.join(AGENT_DIR, "configs", "postgresql.yaml"),
+        "utf8",
+      ),
+    );
+    // The diagnostic it points at is the same OneUptime's.
+    expect(run.output).toContain(
+      `If nothing shows up: curl -fsSL ${SERVED}/troubleshoot.sh | bash -s -- -d ${run.installDir}`,
+    );
+    expect(run.output).not.toContain("raw.githubusercontent.com");
+  });
+
+  test("an older OneUptime (404) gets the files from GitHub, and the diagnostic from there too", () => {
+    const dir = scratch();
+    installStubs(dir);
+    fs.writeFileSync(path.join(dir, "oneuptime.answer"), "404 text/html");
+
+    const run = runInstall(dir, POSTGRES);
+
+    expect(run.status).toBe(0);
+    expect(run.output).toContain("Downloading them from GitHub instead.");
+    expect(requested(dir)).toEqual([
+      `${SERVED}/docker-compose.yml`,
+      `${GITHUB}/docker-compose.yml`,
+      `${GITHUB}/configs/postgresql.yaml`,
+      `${GITHUB}/systemd/oneuptime-database-agent.service`,
+    ]);
+    expect(run.output).toContain(
+      `If nothing shows up: curl -fsSL ${GITHUB}/troubleshoot.sh`,
+    );
+  });
+
+  test("a OneUptime that answers with an error stops the install before .env is written", () => {
+    const dir = scratch();
+    installStubs(dir);
+    fs.writeFileSync(path.join(dir, "oneuptime.answer"), "502 text/html");
+
+    const run = runInstall(dir, POSTGRES);
+
+    expect(run.status).not.toBe(0);
+    expect(run.output).toContain(
+      `Error: ${SERVED}/docker-compose.yml answered 502, not the file`,
+    );
+    expect(fs.existsSync(path.join(run.installDir, ".env"))).toBe(false);
+    expect(requested(dir).join("\n")).not.toContain(
+      "raw.githubusercontent.com",
+    );
+  });
+});
 
 describe("install.sh", () => {
   test("escapes every $ of the login for the collector, and quotes it for Compose", () => {
@@ -225,7 +316,16 @@ describe("install.sh", () => {
     const section = readme.substring(
       readme.indexOf("## Quick Start — Docker Compose"),
     );
-    const sample = section.match(/```bash\n([\s\S]*?)\n```/)[1];
+    // The section downloads the files from OneUptime first, then shows the .env.
+    expect(section.match(/```bash\n([\s\S]*?)\n```/)[1]).toBe(
+      [
+        "curl -fsSL https://oneuptime.com/install/database-agent/docker-compose.yml -o docker-compose.yml",
+        "curl -fsSL https://oneuptime.com/install/database-agent/configs/postgresql.yaml -o otel-collector-config.yaml",
+      ].join("\n"),
+    );
+    const sample = section
+      .substring(section.indexOf("Create a `.env` file"))
+      .match(/```bash\n([\s\S]*?)\n```/)[1];
 
     // The sample says what it holds, in install.sh's own words.
     expect(sample.split("\n")[0]).toBe(MARKER);
@@ -774,7 +874,9 @@ describe("install.sh", () => {
 
     expect(first.status).toBe(0);
     expect(first.envLine("ONEUPTIME_AI_ALLOW_WRITES")).toBe("true");
-    expect(first.envLine("ONEUPTIME_AI_DATABASE_USERNAME")).toBe("'oneuptime_ai'");
+    expect(first.envLine("ONEUPTIME_AI_DATABASE_USERNAME")).toBe(
+      "'oneuptime_ai'",
+    );
     // Compose quoting only (its $$ is one $): no collector escaping.
     expect(first.envLine("ONEUPTIME_AI_DATABASE_PASSWORD")).toBe('"a$$b\'c"');
     expect(first.envLine("ONEUPTIME_AI_PROTECTED_TARGETS")).toBe("'session:1'");

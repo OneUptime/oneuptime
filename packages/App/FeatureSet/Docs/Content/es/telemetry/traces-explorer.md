@@ -81,12 +81,12 @@ Debajo, elija una de cuatro vistas:
 
 | Vista | Qué muestra |
 | --- | --- |
-| **Cascada** | Cada span en una línea de tiempo, anidado bajo el span que lo inició. Active **Critical path** para resaltar la cadena de spans que decidió cuánto duró la solicitud. |
+| **Cascada** | Cada span en una línea de tiempo, anidado bajo el span que lo inició. Active **Ruta crítica** para resaltar la cadena de spans que decidió cuánto duró la solicitud. |
 | **Gráfico de llamas** | El mismo árbol como barras apiladas, donde las barras más anchas tardaron más. |
 | **Mapa de servicios** | Los servicios por los que pasó la solicitud y las llamadas entre ellos. |
 | **Operaciones** | Una fila por servicio y nombre de span, con sus llamadas, errores, tiempo propio y tiempo total. Una operación llamada 10 o más veces desde un mismo span padre se marca: suele ser una consulta N+1 o un bucle que podría agruparse. |
 
-Haga clic en un span en cualquier vista para abrir su panel, con pestañas para sus atributos, eventos, registros, excepciones y enlaces, y su perfil o su llamada a un LLM cuando los tiene. Busque entre los spans de la traza por nombre, ID o servicio con el cuadro de búsqueda junto a las vistas (pulse `/`), y active **Errors only** para quedarse solo con los spans que fallaron.
+Haga clic en un span en cualquier vista para abrir su panel, con pestañas para sus atributos, eventos, registros, excepciones y enlaces, y su perfil o su llamada a un LLM cuando los tiene. Busque entre los spans de la traza por nombre, ID o servicio con el cuadro de búsqueda junto a las vistas (pulse `/`), y active **Solo errores** para quedarse solo con los spans que fallaron.
 
 Una traza grande carga 500 spans cada vez. Haga clic en el botón al final de la traza para cargar más, o todos.
 

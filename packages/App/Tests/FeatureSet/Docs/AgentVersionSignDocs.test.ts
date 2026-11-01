@@ -47,6 +47,9 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
+// The docs show OneUptime Cloud's address; a self-hosted reader puts theirs.
+const DOCS_ONEUPTIME_URL: string = "https://oneuptime.com";
+
 /*
  * An outdated agent version shows a warning sign on its resource, and the
  * sign opens how to upgrade it. The agents' guides say so where they show
@@ -284,13 +287,17 @@ describe("the English guides' other commands are the ones the upgrade dialog sho
         "## Upgrading the agent",
       );
       expect(section).toContain(
-        "```bash\n" + getDockerSwarmAgentInstallScriptCommand() + "\n```",
+        "```bash\n" +
+          getDockerSwarmAgentInstallScriptCommand(DOCS_ONEUPTIME_URL) +
+          "\n```",
       );
       expect(section).toContain(
         "```bash\n" + DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND + "\n```",
       );
       expect(
-        section.indexOf(getDockerSwarmAgentInstallScriptCommand()),
+        section.indexOf(
+          getDockerSwarmAgentInstallScriptCommand(DOCS_ONEUPTIME_URL),
+        ),
       ).toBeLessThan(
         section.indexOf(DOCKER_SWARM_AGENT_COMPOSE_UPGRADE_COMMAND),
       );
@@ -479,14 +486,16 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
       const section: string = upgradeSectionOf(language, page);
       const upgrade: string =
         agent === "proxmox"
-          ? getProxmoxAgentUpgradeCommand()
-          : getCephAgentUpgradeCommand();
+          ? getProxmoxAgentUpgradeCommand(DOCS_ONEUPTIME_URL)
+          : getCephAgentUpgradeCommand(DOCS_ONEUPTIME_URL);
       const compose: string =
         agent === "proxmox"
-          ? getProxmoxAgentDownloadCommand() +
+          ? getProxmoxAgentDownloadCommand(DOCS_ONEUPTIME_URL) +
             "\n" +
             PROXMOX_AGENT_RECREATE_COMMAND
-          : getCephAgentDownloadCommand() + "\n" + CEPH_AGENT_RECREATE_COMMAND;
+          : getCephAgentDownloadCommand(DOCS_ONEUPTIME_URL) +
+            "\n" +
+            CEPH_AGENT_RECREATE_COMMAND;
 
       expect(section).toContain("```bash\n" + upgrade + "\n```");
       expect(section).toContain("```bash\n" + compose + "\n```");
@@ -501,13 +510,15 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
     (language: string) => {
       const section: string = upgradeSectionOf(language, STORAGE_ARRAYS);
       expect(section).toContain(
-        "```bash\n" + getStorageArrayAgentUpgradeCommand() + "\n```",
+        "```bash\n" +
+          getStorageArrayAgentUpgradeCommand(DOCS_ONEUPTIME_URL) +
+          "\n```",
       );
       expect(section).toContain("`INSTALL_DIR=<folder> bash install.sh`");
       expect(section).toContain(`\`${STORAGE_ARRAY_AGENT_INSTALL_DIR}\``);
       expect(section).toContain(
         "```bash\n" +
-          getStorageArrayAgentDownloadCommand() +
+          getStorageArrayAgentDownloadCommand(DOCS_ONEUPTIME_URL) +
           "\n" +
           STORAGE_ARRAY_AGENT_RECREATE_COMMAND +
           "\n```",
@@ -520,18 +531,22 @@ describe("the Proxmox, Ceph, VMware and Storage Array guides say the sign follow
     (language: string) => {
       const section: string = upgradeSectionOf(language, VMWARE);
       expect(section).toContain(
-        "```bash\n" + getVMwareAgentUpgradeCommand() + "\n```",
+        "```bash\n" +
+          getVMwareAgentUpgradeCommand(DOCS_ONEUPTIME_URL) +
+          "\n```",
       );
       expect(section).toContain(
         "```bash\n" +
-          getVMwareAgentDownloadCommand() +
+          getVMwareAgentDownloadCommand(DOCS_ONEUPTIME_URL) +
           "\n" +
           VMWARE_AGENT_RECREATE_COMMAND +
           "\n```",
       );
       // The dialog's Without Docker tab (the page's systemd tab): the release the agent pins, again.
       expect(section).toContain(
-        "```bash\n" + getVMwareNativeUpgradeCommand() + "\n```",
+        "```bash\n" +
+          getVMwareNativeUpgradeCommand(DOCS_ONEUPTIME_URL) +
+          "\n```",
       );
     },
   );

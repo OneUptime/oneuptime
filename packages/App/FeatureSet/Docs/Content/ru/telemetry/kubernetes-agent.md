@@ -998,9 +998,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 Начните с диагностического скрипта. Он проверяет состояние подов, декодирует и проверяет ключ приёма, проверяет, что кластер может достучаться до OneUptime, и спрашивает OneUptime, принимает ли он ваш ключ, а затем выводит один вердикт с наиболее вероятной причиной:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/HelmChart/Public/kubernetes-agent/troubleshoot.sh \
+curl -fsSL https://oneuptime.com/install/kubernetes-agent/troubleshoot.sh \
   | bash -s -- -n oneuptime-agent
 ```
+
+Каждый OneUptime раздаёт этот скрипт своего релиза: на самостоятельно размещённом OneUptime используйте свой URL вместо `https://oneuptime.com`. Чтобы прочитать скрипт перед запуском, откройте его адрес в браузере.
 
 Он только читает состояние кластера и выполняет пару проб; он ничего не меняет. Для самой точной проверки исходящего трафика сначала установите агент с `--set debug.enabled=true`: это добавляет в поды агента небольшой sidecar с сетевыми инструментами, чтобы скрипт проверял собственный путь коллектора наружу.
 

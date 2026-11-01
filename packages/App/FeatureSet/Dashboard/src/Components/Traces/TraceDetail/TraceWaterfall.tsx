@@ -1,5 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -58,7 +60,7 @@ export interface ComponentProps {
   onViewportChange: (viewport: TimeViewport) => void;
   // Bumped to scroll the selected span into view even if it did not change.
   revealRequest: number;
-  // Shown when a filter hides every span.
+  // Shown when a filter hides every span: English, drawn in the reader's language.
   emptyMessage: string;
 }
 
@@ -131,6 +133,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { tree, rows, viewport } = props;
+  const translator: Translator = useTranslator();
 
   const containerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
@@ -286,7 +289,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
               style={{ width: `${namePercent}%` }}
             >
               <span className="truncate font-medium uppercase tracking-wide">
-                Span
+                {translator.translateText("Span")}
               </span>
               <span className="flex flex-none items-center gap-0.5">
                 <button
@@ -295,7 +298,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                   onClick={props.onExpandAll}
                   data-testid="trace-expand-all"
                 >
-                  Expand all
+                  {translator.translateText("Expand all")}
                 </button>
                 <button
                   type="button"
@@ -303,14 +306,16 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                   onClick={props.onCollapseAll}
                   data-testid="trace-collapse-all"
                 >
-                  Collapse all
+                  {translator.translateText("Collapse all")}
                 </button>
               </span>
             </div>
             <div
               role="separator"
               aria-orientation="vertical"
-              aria-label="Resize the span name column"
+              aria-label={translator.translateText(
+                "Resize the span name column",
+              )}
               aria-valuenow={Math.round(namePercent)}
               aria-valuemin={MIN_NAME_COLUMN_PERCENT}
               aria-valuemax={MAX_NAME_COLUMN_PERCENT}
@@ -356,7 +361,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
           <div
             ref={bodyRef}
             role="tree"
-            aria-label="Spans in this trace"
+            aria-label={translator.translateText("Spans in this trace")}
             aria-multiselectable={false}
             tabIndex={0}
             className="relative overflow-y-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
@@ -391,7 +396,7 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                   className="absolute inset-x-0 top-6 text-center text-sm text-gray-500"
                   data-testid="trace-waterfall-empty"
                 >
-                  {props.emptyMessage}
+                  {translator.translateText(props.emptyMessage)}
                 </div>
               )}
 
@@ -481,11 +486,12 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                             type="button"
                             tabIndex={-1}
                             className="flex h-5 w-5 flex-none items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-700"
-                            aria-label={
+                            aria-label={translator.translateTemplate(
                               row.isCollapsed
-                                ? `Expand ${span.name}`
-                                : `Collapse ${span.name}`
-                            }
+                                ? "Expand {{name}}"
+                                : "Collapse {{name}}",
+                              { name: span.name },
+                            )}
                             data-testid="trace-row-toggle"
                             onClick={(event: React.MouseEvent) => {
                               event.stopPropagation();
@@ -525,14 +531,20 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                           title={span.name}
                         >
                           <HighlightedText
-                            text={span.name || "(unnamed span)"}
+                            text={
+                              span.name ||
+                              translator.translateText("(unnamed span)") ||
+                              ""
+                            }
                             searchText={row.isContext ? "" : props.searchText}
                           />
                         </span>
                         {span.isError && (
                           <span
                             className="flex-none"
-                            title="This span has an error status"
+                            title={translator.translateText(
+                              "This span has an error status",
+                            )}
                           >
                             <Icon
                               icon={IconProp.Error}
@@ -543,24 +555,34 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                         {isLinked && (
                           <span
                             className="flex-none rounded-full bg-amber-100 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
-                            title="This span was named in the link that opened this page"
+                            title={translator.translateText(
+                              "This span was named in the link that opened this page",
+                            )}
                           >
-                            Linked
+                            {translator.translateText("Linked")}
                           </span>
                         )}
                         {row.node.isSameRequest && (
                           <span
                             className="flex-none rounded-full bg-sky-100 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
-                            title="The same request, recorded twice (for example by the Kubernetes agent and by an SDK in the app). Shown inside the other recording so their spans read as one."
+                            title={translator.translateText(
+                              "The same request, recorded twice (for example by the Kubernetes agent and by an SDK in the app). Shown inside the other recording so their spans read as one.",
+                            )}
                             data-testid="trace-row-same-request"
                           >
-                            Same request
+                            {translator.translateText("Same request")}
                           </span>
                         )}
                         {row.isCollapsed && (
                           <span
                             className="flex-none rounded bg-gray-100 px-1.5 text-[10px] font-medium tabular-nums text-gray-600"
-                            title={`${row.node.descendantCount} hidden spans`}
+                            title={translator.translatePlural(
+                              {
+                                one: "{{count}} hidden span",
+                                other: "{{count}} hidden spans",
+                              },
+                              row.node.descendantCount,
+                            )}
                           >
                             +{row.node.descendantCount}
                           </span>
@@ -568,7 +590,16 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                       </div>
                       <div
                         className={`relative flex-1 ${isOffCriticalPath || row.isContext ? "opacity-30" : ""}`}
-                        title={`${span.name} · ${durationLabel} · starts ${formatOffsetNano(span.startTimeUnixNano - tree.startTimeUnixNano)}`}
+                        title={translator.translateTemplate(
+                          "{{name}} · {{duration}} · starts {{offset}}",
+                          {
+                            name: span.name,
+                            duration: durationLabel,
+                            offset: formatOffsetNano(
+                              span.startTimeUnixNano - tree.startTimeUnixNano,
+                            ),
+                          },
+                        )}
                       >
                         {geometry.isOutside ? (
                           <span

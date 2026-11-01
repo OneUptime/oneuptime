@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import TelemetryExceptionMerge, {
   ExceptionMergeOutcome,
   ExceptionMergeResult,
@@ -523,6 +524,129 @@ describe("unmerging", () => {
     await expect(unmerge(B)).rejects.toThrow(NotAuthorizedException);
 
     expect(statements).toHaveLength(0);
+  });
+});
+
+/*
+ * A merge or an unmerge changes what each exception's occurrences are read
+ * by (TelemetryExceptionService.getGroupFingerprints), so once it is written
+ * the group fingerprints kept of its project's exceptions are forgotten -
+ * here at once, elsewhere through Redis. One that changed nothing, or was
+ * refused, forgets nothing.
+ */
+describe("what a merge or an unmerge tells the reads of occurrences", () => {
+  let forget: SpyInstance<
+    typeof TelemetryExceptionService.forgetGroupFingerprints
+  >;
+
+  beforeEach(() => {
+    forget = jest
+      .spyOn(TelemetryExceptionService, "forgetGroupFingerprints")
+      .mockResolvedValue(undefined);
+  });
+
+  function forgotAfterTheWrite(): void {
+    expect(forget).toHaveBeenCalledTimes(1);
+    expect(forget.mock.calls[0]![0].map(String)).toEqual([
+      PROJECT_ID.toString(),
+    ]);
+
+    const written: number = Math.max(
+      ...(TelemetryExceptionService.executeTransaction as unknown as jest.Mock)
+        .mock.invocationCallOrder,
+    );
+    expect(forget.mock.invocationCallOrder[0]!).toBeGreaterThan(written);
+  }
+
+  test("a merge forgets its project's, once it is written", async () => {
+    await merge(A, [B]);
+
+    forgotAfterTheWrite();
+  });
+
+  test("merging again what is merged already, or a refused merge, forgets nothing", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+    await merge(A, [B]);
+
+    rows = [row(A), row(B, { primaryEntityId: OTHER_SERVICE_ID })];
+    await expect(merge(A, [B])).rejects.toThrow(BadDataException);
+
+    editableIds = [A];
+    await expect(merge(A, [B])).rejects.toThrow(NotAuthorizedException);
+
+    expect(forget).not.toHaveBeenCalled();
+  });
+
+  test("an unmerge forgets the project's of the one taken out, once it is written", async () => {
+    rows = [row(A), row(B, { mergedIntoId: A })];
+
+    await TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(B),
+      props: CALLER,
+    });
+
+    forgotAfterTheWrite();
+  });
+
+  test("an unmerge of one that is not merged forgets nothing", async () => {
+    await TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(B),
+      props: CALLER,
+    });
+
+    expect(forget).not.toHaveBeenCalled();
+  });
+
+  test("what a merge and an unmerge change is read at once, though it was kept", async () => {
+    forget.mockRestore();
+    TelemetryExceptionService.clearGroupFingerprints();
+
+    // What Postgres holds of what was merged into what.
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (sql: string, params: Array<unknown>) => {
+          const ids: Array<string> = (params[1] as Array<string>) || [];
+          return rows
+            .filter((candidate: Row): boolean => {
+              return (
+                sql.includes("ROW_NUMBER()") &&
+                candidate.mergedIntoId !== null &&
+                ids.includes(candidate.mergedIntoId)
+              );
+            })
+            .map((candidate: Row) => {
+              return {
+                survivorId: candidate.mergedIntoId,
+                fingerprint: candidate.fingerprint,
+              };
+            });
+        },
+      },
+    } as never);
+
+    const groupOfA: () => Promise<Array<string>> = (): Promise<
+      Array<string>
+    > => {
+      return TelemetryExceptionService.getGroupFingerprintsOf({
+        projectId: PROJECT_ID,
+        exception: { id: A, fingerprint: "fp-a" },
+      });
+    };
+
+    expect(await groupOfA()).toEqual(["fp-a"]);
+
+    await merge(A, [B]);
+    rows = [row(A), row(B, { mergedIntoId: A })];
+    expect(await groupOfA()).toEqual(["fp-a", "fp-b"]);
+
+    await TelemetryExceptionMerge.unmerge({
+      telemetryExceptionId: new ObjectID(B),
+      props: CALLER,
+    });
+    rows = [row(A), row(B)];
+    expect(await groupOfA()).toEqual(["fp-a"]);
+
+    TelemetryExceptionService.clearGroupFingerprints();
   });
 });
 

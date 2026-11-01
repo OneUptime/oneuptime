@@ -172,7 +172,12 @@ const GUIDES: Array<[string, GuideCase]> = [
   [
     "Docker Swarm cluster",
     {
-      build: getDockerSwarmClusterConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getDockerSwarmClusterConnectionGuide(
+          identifier,
+          VARS.oneuptimeUrl,
+        );
+      },
       resourceNoun: "cluster",
       agentName: "OneUptime Docker Swarm Agent",
     },
@@ -180,7 +185,9 @@ const GUIDES: Array<[string, GuideCase]> = [
   [
     "Proxmox cluster",
     {
-      build: getProxmoxClusterConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getProxmoxClusterConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
       resourceNoun: "cluster",
       agentName: "OneUptime Proxmox Agent",
     },
@@ -188,7 +195,9 @@ const GUIDES: Array<[string, GuideCase]> = [
   [
     "Ceph cluster",
     {
-      build: getCephClusterConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getCephClusterConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
       resourceNoun: "cluster",
       agentName: "OneUptime Ceph Agent",
     },
@@ -196,7 +205,9 @@ const GUIDES: Array<[string, GuideCase]> = [
   [
     "VMware vCenter",
     {
-      build: getVMwareVCenterConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getVMwareVCenterConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
       resourceNoun: "vCenter",
       agentName: "OneUptime VMware Agent",
     },
@@ -204,7 +215,9 @@ const GUIDES: Array<[string, GuideCase]> = [
   [
     "Storage array",
     {
-      build: getStorageArrayConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getStorageArrayConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
       resourceNoun: "storage array",
       agentName: "OneUptime Storage Array Agent",
     },
@@ -560,6 +573,8 @@ const COMPOSE_INSTALL_METHODS: Array<ComposeInstallMethod> = [
 
 interface ComposeCase {
   build: (identifier: string) => ResourceConnectionGuide;
+  // Where this OneUptime serves the agent's files: /install/<installName>.
+  installName: string;
   // The resource's guide with one install method picked.
   setupGuide: (method: ComposeInstallMethod, name: string) => SetupGuideContent;
   agentDirectory: string;
@@ -571,7 +586,12 @@ describe.each([
   [
     "Docker Swarm",
     {
-      build: getDockerSwarmClusterConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getDockerSwarmClusterConnectionGuide(
+          identifier,
+          VARS.oneuptimeUrl,
+        );
+      },
       setupGuide: (
         method: ComposeInstallMethod,
         name: string,
@@ -583,6 +603,7 @@ describe.each([
         });
       },
       agentDirectory: "DockerSwarmAgent",
+      installName: "docker-swarm-agent",
       containerName: "oneuptime-docker-swarm-agent",
       variable: "DOCKER_SWARM_CLUSTER_NAME",
     },
@@ -590,7 +611,9 @@ describe.each([
   [
     "Proxmox",
     {
-      build: getProxmoxClusterConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getProxmoxClusterConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
       setupGuide: (
         method: ComposeInstallMethod,
         name: string,
@@ -603,6 +626,7 @@ describe.each([
         });
       },
       agentDirectory: "ProxmoxAgent",
+      installName: "proxmox-agent",
       containerName: "oneuptime-proxmox-agent",
       variable: "PROXMOX_CLUSTER_NAME",
     },
@@ -610,7 +634,9 @@ describe.each([
   [
     "Ceph",
     {
-      build: getCephClusterConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getCephClusterConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
       setupGuide: (
         method: ComposeInstallMethod,
         name: string,
@@ -623,6 +649,7 @@ describe.each([
         });
       },
       agentDirectory: "CephAgent",
+      installName: "ceph-agent",
       containerName: "oneuptime-ceph-agent",
       variable: "CEPH_CLUSTER_NAME",
     },
@@ -630,7 +657,9 @@ describe.each([
   [
     "VMware",
     {
-      build: getVMwareVCenterConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getVMwareVCenterConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
       setupGuide: (
         method: ComposeInstallMethod,
         name: string,
@@ -643,6 +672,7 @@ describe.each([
         });
       },
       agentDirectory: "VMwareAgent",
+      installName: "vmware-agent",
       containerName: "oneuptime-vmware-agent",
       variable: "VMWARE_VCENTER_NAME",
     },
@@ -650,7 +680,9 @@ describe.each([
   [
     "Storage Array",
     {
-      build: getStorageArrayConnectionGuide,
+      build: (identifier: string): ResourceConnectionGuide => {
+        return getStorageArrayConnectionGuide(identifier, VARS.oneuptimeUrl);
+      },
       /*
        * One guide covers the install script and Docker Compose for the
        * picked platform, so both methods read the same document.
@@ -667,6 +699,7 @@ describe.each([
         });
       },
       agentDirectory: "StorageArrayAgent",
+      installName: "storage-array-agent",
       containerName: "oneuptime-storage-array-agent",
       variable: "STORAGE_ARRAY_NAME",
     },
@@ -725,7 +758,8 @@ describe.each([
     test("the second check is the diagnostic script where the guide documents one, else the logs", () => {
       const second: ResourceConnectionGuideStep =
         guide.troubleshootingSteps[1]!;
-      const url: string = `https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/${composeCase.agentDirectory}/troubleshoot.sh`;
+      // From the reader's own OneUptime, which serves it for its release.
+      const url: string = `${VARS.oneuptimeUrl}/install/${composeCase.installName}/troubleshoot.sh`;
       const documented: Array<boolean> = COMPOSE_INSTALL_METHODS.map(
         (method: ComposeInstallMethod): boolean => {
           return markdownFor(method).includes(url);
@@ -738,7 +772,7 @@ describe.each([
       if (documented[0]) {
         expect(second.title).toBe("Run the diagnostic script");
         expect(second.code).toBe(
-          `curl -sSL ${url} -o troubleshoot.sh && bash troubleshoot.sh`,
+          `curl -fsSL ${url} -o troubleshoot.sh && bash troubleshoot.sh`,
         );
         expect(
           fs.existsSync(

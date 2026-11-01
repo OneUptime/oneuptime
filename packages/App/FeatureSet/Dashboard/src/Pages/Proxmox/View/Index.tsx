@@ -18,6 +18,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceConnectionGuideCard from "../../../Components/ResourceConnection/ResourceConnectionGuideCard";
 import { getProxmoxClusterConnectionGuide } from "../../../Components/ResourceConnection/ResourceConnectionGuides";
+import { getConfiguredOneUptimeUrl } from "../../../Components/SetupGuide/ConfiguredOneUptimeUrl";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
@@ -2787,6 +2788,7 @@ const ProxmoxClusterOverview: FunctionComponent<
         lastSeenAt={cluster.lastSeenAt}
         guide={getProxmoxClusterConnectionGuide(
           (cluster.name as string | undefined) || "",
+          getConfiguredOneUptimeUrl(),
         )}
         documentationRoute={RouteUtil.populateRouteParams(
           RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_DOCUMENTATION] as Route,

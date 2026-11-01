@@ -3,7 +3,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import { SpanSelfTime } from "Common/Utils/Traces/CriticalPath";
 import { SpanTree, WaterfallNode, WaterfallSpan } from "./TraceWaterfall";
 
@@ -109,6 +109,36 @@ export function pluralize(
 ): string {
   return `${count.toLocaleString()} ${count === 1 ? singular : plural || `${singular}s`}`;
 }
+
+/*
+ * The counts the trace page draws, as the reader's language words them:
+ * looked up with the page's translator (translatePlural) where each is
+ * drawn. In English they read as pluralize wrote them.
+ */
+export const SPAN_COUNT: PluralTemplate = {
+  one: "{{count}} span",
+  other: "{{count}} spans",
+};
+
+export const ERROR_COUNT: PluralTemplate = {
+  one: "{{count}} error",
+  other: "{{count}} errors",
+};
+
+export const ATTRIBUTE_COUNT: PluralTemplate = {
+  one: "{{count}} attribute",
+  other: "{{count}} attributes",
+};
+
+export const EXCEPTION_COUNT: PluralTemplate = {
+  one: "{{count}} exception",
+  other: "{{count}} exceptions",
+};
+
+export const MATCH_COUNT: PluralTemplate = {
+  one: "{{count}} match",
+  other: "{{count}} matches",
+};
 
 export interface TraceSummary {
   rootSpan: WaterfallSpan | null;

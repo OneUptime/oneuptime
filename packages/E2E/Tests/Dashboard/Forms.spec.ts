@@ -234,6 +234,19 @@ const ctx: Ctx = {
 
 type ShareLinkFunction = (shareKey: string) => string;
 
+/*
+ * The form's link on OneUptime, as the Share Link card lists it with the
+ * form's own domains (the shared address list, PublicAddresses): its live
+ * address is a link to the whole URL, opened in a new tab.
+ */
+type ShareLinkAddressFunction = (target: Page) => Locator;
+
+const shareLinkAddress: ShareLinkAddressFunction = (target: Page): Locator => {
+  return target.locator(
+    '[data-testid="public-address"][data-kind="OneUptime"] [data-testid="public-address-link"]',
+  );
+};
+
 // Exactly what the dashboard hands out: <ACCOUNTS_URL>/form/<shareKey>.
 const shareLinkFor: ShareLinkFunction = (shareKey: string): string => {
   return URL.fromString(BASE_URL.toString())
@@ -269,7 +282,7 @@ type PointFrontendAtTestTargetFunction = (
  * registerAndCreateProject does for the signed-in page, so the page's
  * requests stay on the origin it was loaded from. Everything else in env.js
  * is left as the server wrote it. A whole context can be pointed too, for
- * the tabs the dashboard opens itself (Open Form).
+ * the tabs the dashboard opens itself (the Share Link card's addresses).
  *
  * It does not make a stack whose own HOST differs usable: the public form's
  * routes refuse a browser request whose Origin is not the stack's own
@@ -730,7 +743,7 @@ test.describe("Forms", () => {
     });
     ctx.user = await getSessionUser({ page: ctx.page });
 
-    // Open Form opens the public page in a new tab of this same context.
+    // The Share Link card opens the public page in a new tab of this context.
     await pointFrontendAtTestTarget(ctx.page.context());
 
     // Letters and digits only: the private note escapes Markdown characters.
@@ -1891,17 +1904,16 @@ test.describe("Forms", () => {
     await openFormPage({
       path: "share",
       ready: (target: Page): Locator => {
-        return target.getByTestId("form-share-link");
+        return shareLinkAddress(target);
       },
     });
-    await expect(page.getByTestId("form-share-link")).toHaveText(
+
+    // The card lists the link on OneUptime, which opens exactly it, in a new tab.
+    await expect(shareLinkAddress(page)).toHaveAttribute(
+      "href",
       shareLinkFor(oldShareKey),
     );
-
-    // Open Form opens exactly that link, in a new tab.
-    const openForm: Locator = page.locator("#form-open-form");
-    await expect(openForm).toHaveAttribute("href", shareLinkFor(oldShareKey));
-    await expect(openForm).toHaveAttribute("target", "_blank");
+    await expect(shareLinkAddress(page)).toHaveAttribute("target", "_blank");
 
     await page.getByRole("button", { name: "Reset Link", exact: true }).click();
     const confirm: Locator = page.getByTestId("modal");
@@ -1927,7 +1939,8 @@ test.describe("Forms", () => {
       .not.toBe(oldShareKey);
     ctx.shareKey = await readShareKey(ctx.formId);
     expect(ctx.shareKey).toMatch(UUID_PATTERN);
-    await expect(page.getByTestId("form-share-link")).toHaveText(
+    await expect(shareLinkAddress(page)).toHaveAttribute(
+      "href",
       shareLinkFor(ctx.shareKey),
     );
 
@@ -1947,7 +1960,7 @@ test.describe("Forms", () => {
     await openFormPage({
       path: "share",
       ready: (target: Page): Locator => {
-        return target.getByTestId("form-share-link");
+        return shareLinkAddress(target);
       },
     });
 

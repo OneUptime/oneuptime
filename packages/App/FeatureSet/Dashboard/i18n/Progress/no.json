@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39011,
-    "untranslated": 13348
+    "keys": 39098,
+    "untranslated": 13245
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -114,6 +114,7 @@
     "Span",
     "Spans",
     "Stack",
+    "Stack trace",
     "Stacks",
     "Start",
     "Start import",
@@ -123,6 +124,7 @@
     "Team",
     "Test",
     "Test {{name}}",
+    "Top P",
     "Tunnel",
     "Type",
     "UTC",

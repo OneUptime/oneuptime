@@ -3518,6 +3518,90 @@ describe("SessionReplayReadService statements", () => {
     });
 
     /*
+     * The occurrences of the exceptions merged into one count on it
+     * (TelemetryExceptionMerge): a session that threw one of them threw it.
+     * Its group's fingerprints - its own first - are asked of the instance
+     * table and of both header predicates.
+     */
+    test("an exception others were merged into: the instances and the headers are asked for any of its group's fingerprints", async () => {
+      exceptionQuerySpy.mockResolvedValue(
+        fakeResultSet([{ sessionId: "live-of-merged" }]) as never,
+      );
+
+      await SessionReplayReadService.getSessionsForException({
+        projectId: projectId,
+        exceptionFingerprint: "fp-1",
+        mergedExceptionFingerprints: ["fp-merged-a", "fp-1", "", "fp-merged-b"],
+        accessibleRumApplicationIds: null,
+        limit: 5,
+      });
+
+      const instances: Statement = statementOf(exceptionQuerySpy);
+      expect(instances.query).toMatch(
+        /AND fingerprint IN \(\{p\d+:Array\(String\)\}\)\s+AND sessionId != ''/,
+      );
+      expect(instances.query).not.toContain("fingerprint = ");
+      expect(boundValues(instances)).toContainEqual([
+        "fp-1",
+        "fp-merged-a",
+        "fp-merged-b",
+      ]);
+
+      const headers: Statement = statementOf(headerQuerySpy);
+      expect(whereSection(headers.query)).toMatch(
+        /AND \(hasAny\(exceptionFingerprints, \{p\d+:Array\(String\)\}\) OR sessionId IN \(\{p\d+:Array\(String\)\}\)\)/,
+      );
+      expect(
+        havingSection(headers.query.replace("HAVING (", "HAVING 1 = 1 AND (")),
+      ).toMatch(
+        /hasAny\(aggExceptionFingerprints, \{p\d+:Array\(String\)\}\) OR sessionId IN \(\{p\d+:Array\(String\)\}\)/,
+      );
+      expect(
+        boundValues(headers).filter((value: unknown): boolean => {
+          return (
+            Array.isArray(value) &&
+            JSON.stringify(value) ===
+              JSON.stringify(["fp-1", "fp-merged-a", "fp-merged-b"])
+          );
+        }),
+      ).toHaveLength(2);
+      expect(boundValues(headers)).toContainEqual(["live-of-merged"]);
+    });
+
+    test("nothing merged into it: its own fingerprint alone, as the statements were before any merge", async () => {
+      for (const merged of [undefined, [], ["fp-1"], [""]]) {
+        exceptionQuerySpy.mockClear();
+        headerQuerySpy.mockClear();
+        exceptionQuerySpy.mockResolvedValue(
+          fakeResultSet([{ sessionId: "live-1" }]) as never,
+        );
+
+        await SessionReplayReadService.getSessionsForException({
+          projectId: projectId,
+          exceptionFingerprint: "fp-1",
+          ...(merged ? { mergedExceptionFingerprints: merged } : {}),
+          accessibleRumApplicationIds: null,
+          limit: 5,
+        });
+
+        const instances: Statement = statementOf(exceptionQuerySpy);
+        // p0 is the table, p1 the project.
+        expect(instances.query).toMatch(
+          /WHERE projectId = \{p1:String\}\s+AND fingerprint = \{p2:String\}\s+AND sessionId != ''/,
+        );
+        expect(instances.query_params["p2"]).toBe("fp-1");
+
+        const headers: Statement = statementOf(headerQuerySpy);
+        expect(whereSection(headers.query)).toMatch(
+          /AND \(hasAny\(exceptionFingerprints, \[\{p\d+:String\}\]\) OR sessionId IN/,
+        );
+        expect(headers.query).toMatch(
+          /HAVING \(hasAny\(aggExceptionFingerprints, \[\{p\d+:String\}\]\)/,
+        );
+      }
+    });
+
+    /*
      * A pinned sessionId NARROWS the instance lookup; it does not replace
      * it. Returning the pin unchecked reduced the statement to
      * `sessionId = X AND (hasAny(fingerprints, [f]) OR sessionId IN (X))`,

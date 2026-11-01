@@ -1,16 +1,14 @@
 import Domain from "../../Models/DatabaseModels/Domain";
 import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
-import Hostname from "../../Types/API/Hostname";
 import ObjectID from "../../Types/ObjectID";
 import StatusPageDomainService from "../Services/StatusPageDomainService";
 import { ExpressRequest } from "./Express";
+import { normalizeRequestHost } from "./RequestHost";
 
 const BUILT_IN_PRIMARY_HOSTS: Set<string> = new Set<string>([
   "localhost",
   "ingress",
 ]);
-
-const INVALID_HOST_AUTHORITY_CHARACTER: RegExp = /[\s/?#]/;
 
 /**
  * Parse the HTTP Host authority without consulting Express' `req.hostname`.
@@ -19,38 +17,12 @@ const INVALID_HOST_AUTHORITY_CHARACTER: RegExp = /[\s/?#]/;
  * is enabled. That header is caller-controlled on several of the Nginx routes
  * in this repository, so it cannot decide whether tenant-controlled code is
  * returned. Nginx overwrites the actual Host header with `$host`, which makes
- * the raw Host the appropriate input to this security boundary.
+ * the raw Host the appropriate input to this security boundary. The rule is
+ * RequestHost's, which a form's own domain reads too.
  */
 export const normalizeStatusPageRequestHost: (
   rawHost: string | undefined,
-) => string | null = (rawHost: string | undefined): string | null => {
-  const authority: string = rawHost?.trim() || "";
-
-  if (
-    !authority ||
-    authority.includes("@") ||
-    authority.includes(",") ||
-    INVALID_HOST_AUTHORITY_CHARACTER.test(authority) ||
-    !Hostname.isValid(authority)
-  ) {
-    return null;
-  }
-
-  try {
-    let hostname: string = Hostname.fromAuthority(authority)
-      .hostname.trim()
-      .toLowerCase();
-
-    // Treat the fully-qualified spelling of a DNS name as the same host.
-    if (hostname.endsWith(".")) {
-      hostname = hostname.slice(0, -1);
-    }
-
-    return hostname || null;
-  } catch {
-    return null;
-  }
-};
+) => string | null = normalizeRequestHost;
 
 export const isPrimaryStatusPageHost: (hostname: string) => boolean = (
   hostname: string,

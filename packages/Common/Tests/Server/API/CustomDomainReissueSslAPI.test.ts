@@ -58,6 +58,7 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
     __esModule: true,
     StatusPageCNameRecord: mockCNameRecord,
     DashboardCNameRecord: mockCNameRecord,
+    FormCNameRecord: mockCNameRecord,
   };
 });
 
@@ -89,8 +90,10 @@ jest.mock("../../../Server/Utils/Logger", () => {
 
 import StatusPageDomainAPI from "../../../Server/API/StatusPageDomainAPI";
 import DashboardDomainAPI from "../../../Server/API/DashboardDomainAPI";
+import FormDomainAPI from "../../../Server/API/FormDomainAPI";
 import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
 import DashboardDomainService from "../../../Server/Services/DashboardDomainService";
+import FormDomainService from "../../../Server/Services/FormDomainService";
 import CommonAPI from "../../../Server/API/CommonAPI";
 import Response from "../../../Server/Utils/Response";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
@@ -105,6 +108,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import { DOMAIN_NOT_CHANGEABLE_MESSAGE } from "../../../Server/API/CustomDomainRoutes";
 import { customDomainCaller } from "./CustomDomainCallers";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -122,11 +126,19 @@ type Surface = {
   name: string;
   buildApi: () => void;
   route: string;
-  service: typeof StatusPageDomainService | typeof DashboardDomainService;
+  service:
+    | typeof StatusPageDomainService
+    | typeof DashboardDomainService
+    | typeof FormDomainService;
   // Module path re-required by the "custom domains switched off" case below.
   apiModulePath: string;
   // What somebody who may read and edit this kind of domain holds.
   editorPermissions: Array<Permission>;
+  /*
+   * The plan the caller's project is on, as getDatabaseCommonInteractionProps
+   * gives it: a form's domain needs the plan forms need where billing is on.
+   */
+  callerPlan?: PlanType | undefined;
 };
 
 const surfaces: Array<[string, Surface]> = [
@@ -166,12 +178,34 @@ const surfaces: Array<[string, Surface]> = [
       ],
     },
   ],
+  [
+    "FormDomainAPI",
+    {
+      name: "FormDomainAPI",
+      buildApi: (): void => {
+        new FormDomainAPI();
+      },
+      route: "/form-domain/reissue-ssl/:id",
+      service: FormDomainService,
+      apiModulePath: "../../../Server/API/FormDomainAPI",
+      // The domains are read through their form: reading it is asked too.
+      editorPermissions: [
+        Permission.ReadForm,
+        Permission.ReadFormDomain,
+        Permission.EditFormDomain,
+      ],
+      callerPlan: PlanType.Growth,
+    },
+  ],
 ];
 
 describe.each(surfaces)("%s reissue-ssl", (_name: string, surface: Surface) => {
-  const callerProps: DatabaseCommonInteractionProps = customDomainCaller({
-    permissions: surface.editorPermissions,
-  });
+  const callerProps: DatabaseCommonInteractionProps = {
+    ...customDomainCaller({
+      permissions: surface.editorPermissions,
+    }),
+    ...(surface.callerPlan ? { currentPlan: surface.callerPlan } : {}),
+  };
 
   let domainId: ObjectID;
 
@@ -414,6 +448,15 @@ describe("reissue-ssl with custom domains switched off", () => {
         route: "/dashboard-domain/reissue-ssl/:id",
       },
     ],
+    [
+      "FormDomainAPI",
+      {
+        label: "FormDomainAPI",
+        apiModulePath: "../../../Server/API/FormDomainAPI",
+        serviceModulePath: "../../../Server/Services/FormDomainService",
+        route: "/form-domain/reissue-ssl/:id",
+      },
+    ],
   ];
 
   test.each(disabledSurfaces)(
@@ -431,6 +474,7 @@ describe("reissue-ssl with custom domains switched off", () => {
           __esModule: true,
           StatusPageCNameRecord: "",
           DashboardCNameRecord: "",
+          FormCNameRecord: "",
         };
       });
 

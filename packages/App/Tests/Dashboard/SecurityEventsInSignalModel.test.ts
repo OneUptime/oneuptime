@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityEventRequestOutcome from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
@@ -221,6 +222,139 @@ describe("the link into Security Events", () => {
     expect(JSON.parse(query.get("filters")!)).toEqual([
       ["attributes.oneuptime.exception.fingerprint", "fp-1"],
     ]);
+  });
+});
+
+/*
+ * The occurrences of the exceptions merged into one count on it
+ * (TelemetryExceptionMerge), so a request that threw one of them threw it:
+ * an exception's callout asks for any of its group's fingerprints, its own
+ * first, and links to all of them - held to a bound its link can carry.
+ */
+describe("the security events of an exception others were merged into", () => {
+  const window: InBetween<Date> = new InBetween<Date>(
+    new Date("2026-10-27T05:45:12.000Z"),
+    new Date("2026-10-27T07:45:12.000Z"),
+  );
+
+  test("asks for any of its own fingerprint and those merged into it", () => {
+    const query: Record<string, unknown> =
+      Model.buildSecurityEventsInSignalQuery({
+        scope: {
+          exceptionFingerprint: " fp-1 ",
+          mergedExceptionFingerprints: ["fp-2", " fp-3 ", "", "fp-1", "fp-2"],
+        },
+        window,
+        projectId: PROJECT_ID,
+      }) as Record<string, unknown>;
+
+    const value: unknown = (query["attributes"] as Record<string, unknown>)[
+      "oneuptime.exception.fingerprint"
+    ];
+    expect(value).toBeInstanceOf(Includes);
+    expect((value as Includes).values).toEqual(["fp-1", "fp-2", "fp-3"]);
+    expect(query["projectId"]).toBe(PROJECT_ID);
+    expect(query["time"]).toBe(window);
+  });
+
+  test("nothing merged into it: the plain equality it always was", () => {
+    for (const merged of [undefined, [], [""], ["fp-1"]]) {
+      const query: Record<string, unknown> =
+        Model.buildSecurityEventsInSignalQuery({
+          scope: {
+            exceptionFingerprint: "fp-1",
+            ...(merged ? { mergedExceptionFingerprints: merged } : {}),
+          },
+          window,
+          projectId: null,
+        }) as Record<string, unknown>;
+
+      expect(query["attributes"]).toEqual({
+        "oneuptime.exception.fingerprint": "fp-1",
+      });
+    }
+  });
+
+  test("links into Security Events with a chip for each, which the list reads as any of them", () => {
+    const query: URLSearchParams = queryOf(
+      Model.buildSecurityEventsInSignalRoute({
+        scope: {
+          exceptionFingerprint: "fp-1",
+          mergedExceptionFingerprints: ["fp-2", "fp-3"],
+        },
+        window,
+      })!,
+    );
+
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["attributes.oneuptime.exception.fingerprint", "fp-1"],
+      ["attributes.oneuptime.exception.fingerprint", "fp-2"],
+      ["attributes.oneuptime.exception.fingerprint", "fp-3"],
+    ]);
+  });
+
+  test(`at most ${20} fingerprints, its own first, in the read and in the link alike`, () => {
+    const merged: Array<string> = Array.from(
+      { length: 40 },
+      (_value: unknown, index: number): string => {
+        return `fp-merged-${index}`;
+      },
+    );
+    const scope: ModelModuleType.SecurityEventsInSignalScope = {
+      exceptionFingerprint: "fp-own",
+      mergedExceptionFingerprints: merged,
+    };
+
+    expect(Model.SECURITY_EVENTS_IN_SIGNAL_MAX_EXCEPTION_FINGERPRINTS).toBe(20);
+
+    const asked: Array<string> = (
+      (
+        (
+          Model.buildSecurityEventsInSignalQuery({
+            scope,
+            window,
+            projectId: null,
+          }) as Record<string, unknown>
+        )["attributes"] as Record<string, unknown>
+      )["oneuptime.exception.fingerprint"] as Includes
+    ).values as Array<string>;
+
+    expect(asked).toEqual(["fp-own", ...merged.slice(0, 19)]);
+
+    const linked: Array<[string, string]> = JSON.parse(
+      queryOf(Model.buildSecurityEventsInSignalRoute({ scope, window })!).get(
+        "filters",
+      )!,
+    );
+    expect(
+      linked.map((pair: [string, string]): string => {
+        return pair[1];
+      }),
+    ).toEqual(asked);
+    // A link a server takes: well under the 8 KB a request line may be.
+    expect(
+      Model.buildSecurityEventsInSignalRoute({ scope, window })!.toString()
+        .length,
+    ).toBeLessThan(4096);
+  });
+
+  test("is still an exception's callout, saying so in its own words", () => {
+    expect(
+      Model.getSecurityEventsInSignalKind({
+        exceptionFingerprint: "fp-1",
+        mergedExceptionFingerprints: ["fp-2"],
+      }),
+    ).toBe(Model.SecurityEventsInSignalKind.Exception);
+    // A request's, line's or session's scope says nothing of merged ones.
+    expect(
+      Model.getSecurityEventsInSignalFilterValues({ traceId: "trace-1" }),
+    ).toEqual(["traceId", ["trace-1"]]);
+    expect(
+      Model.getSecurityEventsInSignalFilter({
+        exceptionFingerprint: "fp-1",
+        mergedExceptionFingerprints: ["fp-2"],
+      }),
+    ).toEqual(["attributes.oneuptime.exception.fingerprint", "fp-1"]);
   });
 });
 

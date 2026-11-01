@@ -17,10 +17,13 @@ import { getResourceTopologyKind } from "./ResourceTopologyKinds";
  * virtual machines, a cluster with 6,000 pods — and a drawing of all of it
  * is unreadable long before it is slow. So the view follows four rules:
  *
- *   1. Open only as deep as fits. The resource opens level by level until
- *      the next level would put more on screen than a person can read
- *      (VIEW_BUDGET). Anything below stays closed and says what it holds:
- *      "14 virtual machines · 2 need attention".
+ *   1. Open the way to what needs attention, only as deep as fits. The
+ *      resource opens level by level until the next level would put more on
+ *      screen than a person can read (VIEW_BUDGET), and below it only the
+ *      parts with something that needs attention inside open by themselves
+ *      (and a part that is the only one where it sits): a healthy branch
+ *      stays one closed card that says what it holds, "14 virtual machines",
+ *      and a troubled one opens down to the trouble.
  *   2. Show a few of each kind, troubled ones first. An open part shows its
  *      parts grouped by kind, and each group shows the first few
  *      (CARD_PREVIEW cards, or CHIP_PREVIEW small chips for parts that hold
@@ -109,6 +112,8 @@ export interface ResourceTopologyCardItem {
   canOpen: boolean;
   isMatch: boolean;
   isFocus: boolean;
+  /* A part with no record of its own, that only groups others ("Hardware"). */
+  isSection: boolean;
   /* When open: its parts, one group per kind. */
   groups: Array<ResourceTopologyGroupItem>;
 }
@@ -149,6 +154,8 @@ export interface ResourceTopologyGroupItem {
   asChips: boolean;
   items: Array<ResourceTopologyCardItem | ResourceTopologyChipItem>;
   more: ResourceTopologyMoreItem | null;
+  /* Every part of the group in this view, drawn or folded away. */
+  memberIds: Array<string>;
 }
 
 export interface ResourceTopologyRelatedItem {
@@ -186,6 +193,49 @@ export interface ResourceTopologyViewOptions {
    * readably (see ResourceTopologyFit).
    */
   maxAutomaticDepth?: number | undefined;
+  /*
+   * Parts that are always open: what a lane holds (a host's callers and
+   * what it calls) is the lane, never one closed card. Its parts that hold
+   * nothing are chips, however few.
+   */
+  alwaysOpen?: ReadonlySet<string> | undefined;
+  /*
+   * Parts always shown, with every part above them open, as if someone had
+   * gone to each: the services a host's lanes call or are called by, so
+   * every call is drawn. A person can still close a part above one.
+   */
+  reveal?: ReadonlyArray<string> | undefined;
+  /*
+   * Every part within the automatic depth opens, healthy ones too: for a
+   * first view with room to spare (see ResourceTopologyFit). Otherwise only
+   * the way to trouble opens by itself (opensByItself).
+   */
+  opensAll?: boolean | undefined;
+}
+
+/*
+ * Whether a part opens by itself, within the depth that fits: when
+ * something inside it needs attention, or when it is the only part where it
+ * sits (one datacenter, one Compose project), which would otherwise leave
+ * the map a single closed card.
+ */
+export function opensByItself(
+  graph: ResourceTopologyGraph,
+  node: ResourceTopologyNode,
+): boolean {
+  if (node.childIds.length === 0) {
+    return false;
+  }
+
+  if (node.attentionBelow > 0) {
+    return true;
+  }
+
+  const parent: ResourceTopologyNode | undefined = node.parentId
+    ? graph.nodes.get(node.parentId)
+    : undefined;
+
+  return Boolean(parent && parent.childIds.length === 1);
 }
 
 interface KindGroup {
@@ -264,11 +314,12 @@ function childrenOf(
 /*
  * What opening `node` puts on screen with nothing narrowed: how much (in
  * cards, a chip counting half and a group's heading half) and which of the
- * cards it shows hold parts of their own.
+ * cards it shows open by themselves after it (opensByItself).
  */
 function previewOf(
   graph: ResourceTopologyGraph,
   node: ResourceTopologyNode,
+  opensAll: boolean = false,
 ): { weight: number; openable: Array<ResourceTopologyNode> } {
   let weight: number = 0;
   const openable: Array<ResourceTopologyNode> = [];
@@ -301,7 +352,7 @@ function previewOf(
     weight += cards.length + (group.members.length > cards.length ? 1 : 0);
 
     for (const card of cards) {
-      if (card.childIds.length > 0) {
+      if (opensAll ? card.childIds.length > 0 : opensByItself(graph, card)) {
         openable.push(card);
       }
     }
@@ -314,11 +365,14 @@ function previewOf(
  * How many levels below `topId` open by themselves: level by level, until
  * opening the next level would put more than `budget` on screen. The top is
  * always open — its groups' previews keep even a huge first level readable.
+ * Below it, only the parts that open by themselves count, or every part
+ * that holds others with `opensAll`.
  */
 export function getAutomaticDepth(
   graph: ResourceTopologyGraph,
   topId: string,
   budget: number = VIEW_BUDGET,
+  opensAll: boolean = false,
 ): number {
   const top: ResourceTopologyNode | undefined = graph.nodes.get(topId);
 
@@ -336,7 +390,7 @@ export function getAutomaticDepth(
 
     for (const node of level) {
       const preview: { weight: number; openable: Array<ResourceTopologyNode> } =
-        previewOf(graph, node);
+        previewOf(graph, node, opensAll);
       added += preview.weight;
       next.push(...preview.openable);
     }
@@ -597,10 +651,17 @@ export function computeResourceTopologyView(
 
   const narrowing: Narrowing | null = narrow(graph, state, scope, options);
 
-  // Every part above a pinned part is open.
+  /*
+   * Every part above a pinned part is open, and above a part the map
+   * reveals by itself.
+   */
+  const pins: Set<string> = new Set<string>([
+    ...state.pinned,
+    ...(options.reveal || []),
+  ]);
   const pinnedOpen: Set<string> = new Set<string>();
 
-  for (const id of state.pinned) {
+  for (const id of pins) {
     if (!graph.nodes.has(id) || (scope && !scope.has(id))) {
       continue;
     }
@@ -619,7 +680,12 @@ export function computeResourceTopologyView(
   const automaticDepth: number = narrowing
     ? 0
     : Math.min(
-        getAutomaticDepth(graph, automaticTop.id, budget),
+        getAutomaticDepth(
+          graph,
+          automaticTop.id,
+          budget,
+          Boolean(options.opensAll),
+        ),
         Math.max(1, options.maxAutomaticDepth ?? Number.POSITIVE_INFINITY),
       );
 
@@ -640,7 +706,7 @@ export function computeResourceTopologyView(
     node: ResourceTopologyNode,
     automatic: boolean,
   ): boolean => {
-    if (lineageNext.has(node.id)) {
+    if (lineageNext.has(node.id) || options.alwaysOpen?.has(node.id)) {
       return true;
     }
 
@@ -656,7 +722,14 @@ export function computeResourceTopologyView(
       return narrowing.forcedOpen.has(node.id);
     }
 
-    return automatic && node.depth - automaticTop.depth < automaticDepth;
+    return (
+      automatic &&
+      node.depth - automaticTop.depth < automaticDepth &&
+      (node.id === automaticTop.id ||
+        (options.opensAll
+          ? node.childIds.length > 0
+          : opensByItself(graph, node)))
+    );
   };
 
   const cardPreview: number = narrowing ? CARD_PREVIEW_NARROWED : CARD_PREVIEW;
@@ -705,9 +778,7 @@ export function computeResourceTopologyView(
     return members.filter(
       (member: ResourceTopologyNode, index: number): boolean => {
         return (
-          index < limit ||
-          state.pinned.has(member.id) ||
-          pinnedOpen.has(member.id)
+          index < limit || pins.has(member.id) || pinnedOpen.has(member.id)
         );
       },
     );
@@ -753,6 +824,7 @@ export function computeResourceTopologyView(
       canOpen: canOpen,
       isMatch: Boolean(narrowing?.matches.has(node.id)),
       isFocus: focus?.id === node.id,
+      isSection: Boolean(node.isSection),
       groups: [],
     };
 
@@ -760,15 +832,24 @@ export function computeResourceTopologyView(
       return card;
     }
 
+    /*
+     * A lane's parts that hold nothing are chips however few: the line of
+     * each call carries its rate, so a card would only repeat it - and a
+     * narrow lane leaves the host's map room to be drawn larger.
+     */
+    const isLane: boolean = Boolean(options.alwaysOpen?.has(node.id));
+    const holdsNothing: (member: ResourceTopologyNode) => boolean = (
+      member: ResourceTopologyNode,
+    ): boolean => {
+      return keptChildren(member).length === 0;
+    };
+
     for (const group of groupByKind(children)) {
       const key: string = groupKey(node.id, group.kind);
       const inFull: boolean = state.shownInFull.has(key);
-      const asChips: boolean = drawnAsChips(
-        group.members,
-        (member: ResourceTopologyNode): boolean => {
-          return keptChildren(member).length === 0;
-        },
-      );
+      const asChips: boolean = isLane
+        ? group.members.every(holdsNothing)
+        : drawnAsChips(group.members, holdsNothing);
       const limit: number = asChips
         ? inFull
           ? CHIP_FULL_LIMIT
@@ -834,6 +915,9 @@ export function computeResourceTopologyView(
                 canShowAll: !inFull,
               }
             : null,
+        memberIds: group.members.map((member: ResourceTopologyNode): string => {
+          return member.id;
+        }),
       });
     }
 
@@ -936,4 +1020,194 @@ export function flattenResourceTopologyView(
   walk(visible.top, 0);
 
   return rows;
+}
+
+/*
+ * Moving through the map from the keyboard, the way a tree is read: down and
+ * up between the parts side by side (in the order they are drawn, one group
+ * after another), forward into a part - opening it first when it is closed -
+ * and back out to the part that holds it, closing an open part first. Home
+ * and End go to the first and the last part beside it. Forward and back are
+ * the arrows that point along the line: right and left on a page read from
+ * left to right, the other way round on one read from right to left.
+ */
+export type ResourceTopologyKeyMove =
+  | "next"
+  | "previous"
+  | "forward"
+  | "back"
+  | "first"
+  | "last";
+
+export type ResourceTopologyKeyAction =
+  // Move the keyboard to this item of the map: a part, or a "+ N more".
+  | { type: "move"; itemId: string }
+  | { type: "open"; nodeId: string }
+  | { type: "close"; nodeId: string };
+
+interface KeyEntry {
+  card: ResourceTopologyCardItem | null;
+  parentId: string | null;
+  /* The items beside it, itself included, in the order they are drawn. */
+  siblings: Array<string>;
+  /* Its own items, when it is an open card. */
+  children: Array<string>;
+}
+
+/* Every item of a view, with what is beside it, above it and in it. */
+function indexForKeys(visible: ResourceTopologyVisible): Map<string, KeyEntry> {
+  const entries: Map<string, KeyEntry> = new Map<string, KeyEntry>();
+
+  const walk: (
+    card: ResourceTopologyCardItem,
+    parentId: string | null,
+    siblings: Array<string>,
+  ) => void = (
+    card: ResourceTopologyCardItem,
+    parentId: string | null,
+    siblings: Array<string>,
+  ): void => {
+    const children: Array<string> = [];
+
+    for (const group of card.groups) {
+      for (const item of group.items) {
+        children.push(item.id);
+      }
+
+      if (group.more) {
+        children.push(group.more.id);
+      }
+    }
+
+    entries.set(card.id, {
+      card: card,
+      parentId: parentId,
+      siblings: siblings,
+      children: card.isOpen ? children : [],
+    });
+
+    for (const group of card.groups) {
+      for (const item of group.items) {
+        if (item.type === "card") {
+          walk(item, card.id, children);
+        } else {
+          entries.set(item.id, {
+            card: null,
+            parentId: card.id,
+            siblings: children,
+            children: [],
+          });
+        }
+      }
+
+      if (group.more) {
+        entries.set(group.more.id, {
+          card: null,
+          parentId: card.id,
+          siblings: children,
+          children: [],
+        });
+      }
+    }
+  };
+
+  walk(visible.top, null, [visible.top.id]);
+
+  return entries;
+}
+
+export function getTopologyKeyAction(
+  visible: ResourceTopologyVisible,
+  itemId: string,
+  move: ResourceTopologyKeyMove,
+): ResourceTopologyKeyAction | null {
+  return keyActionIn(indexForKeys(visible), itemId, move);
+}
+
+/* Items passed over before a key gives up, so it can never loop. */
+const MAX_KEY_STEPS: number = 64;
+
+/*
+ * Where a key lands among the items the map draws a button for. An item
+ * with none - a lane's section, which the map draws as the lane's heading -
+ * is passed over: on in the same direction (down past it from the first,
+ * up past it from the last), or, going back, out to what holds it.
+ */
+export function getTopologyKeyTarget(
+  visible: ResourceTopologyVisible,
+  itemId: string,
+  move: ResourceTopologyKeyMove,
+  hasButton: (itemId: string) => boolean,
+): ResourceTopologyKeyAction | null {
+  const index: Map<string, KeyEntry> = indexForKeys(visible);
+  const onward: ResourceTopologyKeyMove =
+    move === "previous" || move === "last" ? "previous" : "next";
+  let action: ResourceTopologyKeyAction | null = keyActionIn(
+    index,
+    itemId,
+    move,
+  );
+
+  for (let step: number = 0; step < MAX_KEY_STEPS; step++) {
+    if (!action || action.type !== "move" || hasButton(action.itemId)) {
+      return action;
+    }
+
+    if (move === "back") {
+      const parentId: string | null =
+        index.get(action.itemId)?.parentId || null;
+
+      action = parentId ? { type: "move", itemId: parentId } : null;
+      continue;
+    }
+
+    action = keyActionIn(index, action.itemId, onward);
+  }
+
+  return null;
+}
+
+function keyActionIn(
+  index: Map<string, KeyEntry>,
+  itemId: string,
+  move: ResourceTopologyKeyMove,
+): ResourceTopologyKeyAction | null {
+  const entry: KeyEntry | undefined = index.get(itemId);
+
+  if (!entry) {
+    return null;
+  }
+
+  const position: number = entry.siblings.indexOf(itemId);
+  const moveTo: (id: string | undefined) => ResourceTopologyKeyAction | null = (
+    id: string | undefined,
+  ): ResourceTopologyKeyAction | null => {
+    return id && id !== itemId ? { type: "move", itemId: id } : null;
+  };
+
+  switch (move) {
+    case "next":
+      return moveTo(entry.siblings[position + 1]);
+    case "previous":
+      return position > 0 ? moveTo(entry.siblings[position - 1]) : null;
+    case "first":
+      return moveTo(entry.siblings[0]);
+    case "last":
+      return moveTo(entry.siblings[entry.siblings.length - 1]);
+    case "forward":
+      if (entry.card && entry.card.canOpen && !entry.card.isOpen) {
+        return { type: "open", nodeId: entry.card.nodeId };
+      }
+
+      return moveTo(entry.children[0]);
+    case "back":
+      // The resource itself is always open: back from it goes nowhere.
+      if (entry.card && entry.card.isOpen && entry.parentId !== null) {
+        return { type: "close", nodeId: entry.card.nodeId };
+      }
+
+      return moveTo(entry.parentId || undefined);
+    default:
+      return null;
+  }
 }

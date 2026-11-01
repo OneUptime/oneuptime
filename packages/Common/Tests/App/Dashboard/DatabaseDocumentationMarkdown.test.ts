@@ -1144,9 +1144,11 @@ describe("a database's own guide", () => {
 
     expect(markdown).toContain("## Run the agent in Kubernetes");
     expect(markdown).toContain("kubectl -n payments create configmap");
+    // The engine's config, from this OneUptime, which serves it for its release.
     expect(markdown).toContain(
-      "/agents/DatabaseAgent/configs/postgresql.yaml -o config.yaml",
+      `curl -fsSL ${URL}/install/database-agent/configs/postgresql.yaml -o config.yaml`,
     );
+    expect(markdown).not.toContain("githubusercontent");
     expect(markdown).toContain("namespace: payments");
     expect(markdown).toContain(`value: "${DATABASE_ID}"`);
     expect(markdown).toContain("write every `$` in it as `$$`");

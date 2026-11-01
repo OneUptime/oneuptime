@@ -166,6 +166,7 @@ import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResource from "Common/Models/DatabaseModels/KubernetesResource";
 import Label from "Common/Models/DatabaseModels/Label";
+import ExceptionSavedView from "Common/Models/DatabaseModels/ExceptionSavedView";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -177,6 +178,11 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
+import {
+  clampExceptionTrendBucket,
+  emptyExceptionTrend,
+  getExceptionTrendBucketSizeInSeconds,
+} from "Common/Types/Telemetry/ExceptionListStats";
 import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -1621,6 +1627,9 @@ fixture.dataset.logSavedViewId = CHECKOUT_ERRORS_VIEW_ID;
 // Read by the Metrics explorer's saved-views control; none exist.
 table(MetricSavedView);
 
+// Read by the exceptions list's saved-views control (c804d835a3); none exist.
+table(ExceptionSavedView);
+
 /*
  * The Exceptions explorer's exception groups (Postgres TelemetryException,
  * one row per fingerprint): five, all unresolved and last seen inside the
@@ -2510,6 +2519,50 @@ const EXPLORER_ENDPOINTS = [
         }
       }
       return { facets, timedOutFacets: [] };
+    },
+  },
+  {
+    /*
+     * The exceptions list's affected users and trend bars, a row each
+     * (#5443): every asked-for group's occurrences in the bar its lastSeenAt
+     * falls in, as the server buckets the request's range, and no count of
+     * users - these groups carry none, and null draws nothing.
+     */
+    path: "/telemetry-exception/list-stats",
+    answer: (body, url, entry) => {
+      const start = new Date(body.startTime);
+      const end = new Date(body.endTime);
+      const bucketSizeInSeconds = getExceptionTrendBucketSizeInSeconds(
+        start,
+        end,
+      );
+      const rows = table(TelemetryException);
+      const ids = Array.isArray(body.telemetryExceptionIds)
+        ? body.telemetryExceptionIds.map(String)
+        : [];
+      const stats = ids.map((id) => {
+        const trend = emptyExceptionTrend();
+        const row = rows.find((candidate) => {
+          return String(candidate._id).toLowerCase() === id.toLowerCase();
+        });
+        const at = row ? toTime(row.lastSeenAt) : NaN;
+        if (row && at >= start.getTime() && at <= end.getTime()) {
+          const bar = clampExceptionTrendBucket(
+            Math.floor((at - start.getTime()) / (bucketSizeInSeconds * 1000)),
+          );
+          if (bar !== null) {
+            trend[bar] += row.occuranceCount || 0;
+          }
+        }
+        return { telemetryExceptionId: id, affectedUsers: null, trend };
+      });
+      entry.stats = stats.length;
+      return {
+        stats,
+        bucketSizeInSeconds,
+        startTime: body.startTime,
+        endTime: body.endTime,
+      };
     },
   },
   {

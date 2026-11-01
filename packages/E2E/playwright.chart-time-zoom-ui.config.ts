@@ -8,6 +8,13 @@ import path from "path";
 const executablePath: string | undefined =
   process.env["CHART_TIME_ZOOM_CHROMIUM_PATH"] || undefined;
 
+/*
+ * The fixture server's port (ChartTimeZoom/Fixture/server.js reads the same
+ * variable), so a run on a shared machine can keep clear of another
+ * session's fixture server. CI never sets it.
+ */
+const port: string = process.env["CHART_TIME_ZOOM_FIXTURE_PORT"] || "4233";
+
 export default defineConfig({
   testDir: "./ChartTimeZoom",
   testMatch: "*.spec.ts",
@@ -34,7 +41,7 @@ export default defineConfig({
     },
   ],
   use: {
-    baseURL: "http://127.0.0.1:4233",
+    baseURL: `http://127.0.0.1:${port}`,
     locale: "en-US",
     timezoneId: "UTC",
     trace: "retain-on-failure",
@@ -43,7 +50,7 @@ export default defineConfig({
   webServer: {
     command: "node ChartTimeZoom/Fixture/server.js",
     cwd: path.resolve(__dirname),
-    url: "http://127.0.0.1:4233",
+    url: `http://127.0.0.1:${port}`,
     timeout: 300000,
     reuseExistingServer: !process.env["CI"],
   },

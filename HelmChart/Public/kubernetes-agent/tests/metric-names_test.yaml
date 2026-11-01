@@ -15,8 +15,9 @@
 # names collector 0.96.0 sent. And the cluster collector's
 # metrics/restarts-increase pipeline renames ITS OWN COPY of
 # k8s.container.restarts to k8s.container.restarts.increase, the restarts
-# since each sample (tests/restarts-increase_test.yaml); the metrics pipeline
-# still sends k8s.container.restarts as the receiver names it. And the
+# since each sample (tests/restarts-increase_test.yaml), and hands the copy
+# to the metrics pipeline under that name; the metrics pipeline still sends
+# k8s.container.restarts as the receiver names it. And the
 # cluster collector's transform/job-failures-increase sends a COPY of
 # k8s.job.failed_pods as k8s.job.failed_pods.increase, the failures since
 # each sample (tests/job-failures-increase_test.yaml); the count itself goes

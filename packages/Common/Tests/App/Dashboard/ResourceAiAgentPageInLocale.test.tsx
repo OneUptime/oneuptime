@@ -9,7 +9,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import fs from "fs";
@@ -47,6 +54,8 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 import { toSentenceTerm } from "../../../UI/Utils/TranslateTemplate";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
+import Host from "../../../Models/DatabaseModels/Host";
+import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/ConfiguredOneUptimeUrl";
 
 /*
  * A resource's AI agent page in the reader's language, read from the
@@ -70,6 +79,11 @@ const RESOURCE_ID: string = "44444444-0000-4000-8000-000000000004";
 
 const DOCKER: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
   AiResourceType.DockerHost,
+);
+
+// A host's agent comes with an installer of its own.
+const HOST: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+  AiResourceType.Host,
 );
 
 const LANGUAGES: Array<string> = ["de", "fr", "ja"];
@@ -236,8 +250,8 @@ async function setLanguage(code: string): Promise<void> {
   });
 }
 
-function openAgentPage(): void {
-  const pagePath: string = RouteMap[DOCKER.agentPage]!.toString()
+function openAgentPage(descriptor: ResourceAiAgentDescriptor = DOCKER): void {
+  const pagePath: string = RouteMap[descriptor.agentPage]!.toString()
     .replace(":projectId", PROJECT_ID)
     .replace(":id", RESOURCE_ID);
   goTo(pagePath);
@@ -246,11 +260,11 @@ function openAgentPage(): void {
     <MemoryRouter initialEntries={[pagePath]}>
       <Routes>
         <PageRoute
-          path={String(RouteMap[DOCKER.agentPage])}
+          path={String(RouteMap[descriptor.agentPage])}
           element={
             <ResourceAiAgentPage
-              descriptor={DOCKER}
-              pageRoute={RouteMap[DOCKER.agentPage] as Route}
+              descriptor={descriptor}
+              pageRoute={RouteMap[descriptor.agentPage] as Route}
               currentProject={Object.assign(new Project(), { name: "Acme" })}
               hasPaymentMethod={true}
             />
@@ -295,6 +309,85 @@ afterEach(() => {
 
 afterAll(async () => {
   await setLanguage("en");
+});
+
+/*
+ * A host's AI agent page, with no agent yet: its installer first - how to
+ * run it, that it can be read first, what it asks for with the answers the
+ * page knows - and the compose snippet folded under "Install it yourself
+ * with Docker Compose", every word in the reader's language.
+ */
+describe("the Host AI agent's installer in the reader's language", () => {
+  test.each(LANGUAGES)(
+    "%s: the installer, what it asks for and the way by hand",
+    async (code: string) => {
+      await setLanguage(code);
+      jest
+        .spyOn(ModelAPI, "getItem")
+        .mockImplementation(async (): Promise<unknown> => {
+          return Object.assign(new Host(), {
+            _id: RESOURCE_ID,
+            hostIdentifier: "web-prod-01",
+          });
+        });
+      serve(
+        makeStatus({
+          resourceType: AiResourceType.Host,
+          resourceName: "web-prod-01",
+          agent: null,
+          gaps: [gap("ai_agent_not_connected")],
+          isInvestigationReady: false,
+        }),
+      );
+      openAgentPage(HOST);
+
+      const installer: HTMLElement = await findTestId(
+        "ai-agent-install-installer",
+      );
+      expect(installer).toHaveTextContent(
+        wordingIn(code, "Run the installer on the host:"),
+      );
+
+      await waitFor(
+        () => {
+          expect(
+            screen.getByTestId("ai-agent-install-installer-notes"),
+          ).toHaveTextContent(
+            filledIn(
+              code,
+              "It asks for your OneUptime URL ({{url}}), your project's telemetry ingestion key and this host's name ({{name}}).",
+              { url: getConfiguredOneUptimeUrl(), name: "web-prod-01" },
+            ),
+          );
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
+
+      const notes: HTMLElement = screen.getByTestId(
+        "ai-agent-install-installer-notes",
+      );
+      expect(notes).toHaveTextContent(
+        wordingIn(
+          code,
+          "The first line downloads the script as install.sh, so you can read it before you run it.",
+        ),
+      );
+      expect(notes).toHaveTextContent(
+        wordingIn(
+          code,
+          "It runs privileged, as root, in the host's pid namespace: the host's own systemctl, journalctl and ps run through nsenter. Rootless Docker cannot do that.",
+        ),
+      );
+      expect(
+        within(screen.getByTestId("ai-agent-install-by-hand")).getByRole(
+          "button",
+          {
+            name: wordingIn(code, "Install it yourself with Docker Compose"),
+          },
+        ),
+      ).toBeInTheDocument();
+    },
+  );
 });
 
 describe("a resource's AI agent page in the reader's language", () => {

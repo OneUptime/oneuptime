@@ -41,10 +41,11 @@ tests:
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "localhost:(2379|6443|10259|10257)"
-      # The prometheus receiver is in the metrics pipeline.
+      # The prometheus receiver is in the metrics pipeline (after the
+      # restarts increase's connector, tests/restarts-increase_test.yaml).
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n      receivers:\\n        - k8s_cluster\\n(?:        # [^\\n]*\\n)*(?:        - otlp\\n)?        - prometheus\\n"
+          pattern: "\\n      receivers:\\n        - k8s_cluster\\n(?:        # [^\\n]*\\n)*        - forward/restarts-increase\\n(?:        # [^\\n]*\\n)*(?:        - otlp\\n)?        - prometheus\\n"
 
   - it: gives etcd, the scheduler and the controller manager no job until they have endpoints
     set:

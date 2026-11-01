@@ -9,8 +9,10 @@ import path from "path";
  * product layouts, side menus, Topology pages and the master TopologyPage
  * with the app's esbuild config, Tailwind, theme and font, over a synthetic
  * estate. What jsdom cannot show is checked here: the drawing framed at a
- * readable zoom, boxes nested and side by side, a host's calls drawn left to
- * right, a picked pod's line to its node, a phone, dark mode and German.
+ * readable zoom, a tree of cards with no part inside or over another, the
+ * lines coloured by trouble, the arrow keys, a host's calls drawn left to
+ * right, a picked pod's line to its node, a phone, dark mode, German and
+ * Persian (mirrored).
  */
 const port: string = process.env["RESOURCE_TOPOLOGY_FIXTURE_PORT"] || "4437";
 

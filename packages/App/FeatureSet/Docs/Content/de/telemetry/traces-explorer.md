@@ -81,12 +81,12 @@ Darunter wählen Sie eine von vier Ansichten:
 
 | Ansicht | Was sie zeigt |
 | --- | --- |
-| **Wasserfall** | Jeden Span auf einer Zeitachse, eingerückt unter dem Span, der ihn gestartet hat. Schalten Sie **Critical path** ein, um die Kette von Spans hervorzuheben, die bestimmt hat, wie lange die Anfrage dauerte. |
+| **Wasserfall** | Jeden Span auf einer Zeitachse, eingerückt unter dem Span, der ihn gestartet hat. Schalten Sie **Kritischer Pfad** ein, um die Kette von Spans hervorzuheben, die bestimmt hat, wie lange die Anfrage dauerte. |
 | **Flame-Graph** | Denselben Baum als gestapelte Balken, wobei die breitesten Balken am längsten gedauert haben. |
 | **Dienstkarte** | Die Dienste, durch die die Anfrage gelaufen ist, und die Aufrufe zwischen ihnen. |
 | **Vorgänge** | Eine Zeile pro Dienst und Span-Name, mit seinen Aufrufen, Fehlern, seiner Eigenzeit und Gesamtzeit. Ein Vorgang, der 10 oder mehr Male von einem Eltern-Span aus aufgerufen wird, ist markiert: oft eine N+1-Abfrage oder eine Schleife, die man bündeln könnte. |
 
-Klicken Sie in einer beliebigen Ansicht auf einen Span, um sein Fenster zu öffnen, mit Tabs für seine Attribute, Ereignisse, Protokolle, Ausnahmen und Links sowie sein Profil oder seinen LLM-Aufruf, wenn er eines hat. Durchsuchen Sie die Spans des Traces nach Name, ID oder Dienst mit dem Suchfeld neben den Ansichten (drücken Sie `/`), und schalten Sie **Errors only** ein, um nur die fehlgeschlagenen Spans zu behalten.
+Klicken Sie in einer beliebigen Ansicht auf einen Span, um sein Fenster zu öffnen, mit Tabs für seine Attribute, Ereignisse, Protokolle, Ausnahmen und Links sowie sein Profil oder seinen LLM-Aufruf, wenn er eines hat. Durchsuchen Sie die Spans des Traces nach Name, ID oder Dienst mit dem Suchfeld neben den Ansichten (drücken Sie `/`), und schalten Sie **Nur Fehler** ein, um nur die fehlgeschlagenen Spans zu behalten.
 
 Ein großer Trace lädt 500 Spans auf einmal. Klicken Sie auf die Schaltfläche unten im Trace, um weitere oder alle zu laden.
 

@@ -160,6 +160,19 @@ const SILENT_PAGES: Array<SilentPage> = [
     ),
     appBundle: '<script type="module" src="/admin/dist/Index.js">',
   },
+  /*
+   * A form on its owner's own domain (App/FeatureSet/Frontend/
+   * FormDomainPage.ts): the sign-in app's page, but the customer's.
+   */
+  {
+    label: "a form on its own domain",
+    viewPath: viewPath("App", "FeatureSet", "Accounts", "views", "index.ejs"),
+    locals: {
+      isFormDomainPage: true,
+      formDomainPageTitle: "Report a Problem",
+    },
+    appBundle: '<script type="module" src="/accounts/dist/Index.js">',
+  },
 ];
 
 type RenderPageFunction = (

@@ -11,6 +11,7 @@ import ClientRateLimitCounter, {
   ClientRateLimitRefusal,
 } from "../Utils/RateLimit/ClientRateLimitCounter";
 import Response from "../Utils/Response";
+import { getRequestHost } from "../Utils/RequestHost";
 import ObjectID from "../../Types/ObjectID";
 import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
@@ -94,11 +95,27 @@ export enum FormRateLimitScope {
 }
 
 export enum FormRateLimitBucket {
-  // GET /form/public/:shareKey. Fails open.
+  /*
+   * GET /form/public/:shareKey, and GET /form/custom-domain on a form's own
+   * domain. Fails open.
+   */
   Read = "read",
 
-  // POST /form/public/:shareKey/submit. Fails closed.
+  /*
+   * POST /form/public/:shareKey/submit, and POST /form/custom-domain/submit
+   * on a form's own domain. Fails closed.
+   */
   Submit = "submit",
+}
+
+/*
+ * Which form a request is about, as the per-form counters key it: by the
+ * share key in its path (the form's link), or by the domain it was sent to
+ * (the form on its own domain, which names no key).
+ */
+export enum FormRateLimitFormSource {
+  ShareKey = "share-key",
+  CustomDomain = "custom-domain",
 }
 
 export enum FormRateLimitOutcome {
@@ -406,6 +423,30 @@ export default class FormRateLimit {
    */
   public static resolveFormKey(req: ExpressRequest): string {
     return FormRateLimit.getFormKey(req.params?.["shareKey"]);
+  }
+
+  /*
+   * The form a request to a form's own domain is about: the domain, as its
+   * Host header names it - lower case, no port - since the page there names
+   * no key, and the domain answers with one form. A Host that is not a name
+   * shares one "invalid" bucket, as a malformed key does. A form reached at
+   * its link and at its domain is counted under each, per address; the
+   * per-address counter across every form, and the form's own ceiling -
+   * keyed by its share key, whichever way it was reached - count both
+   * together.
+   */
+  public static resolveCustomDomainFormKey(req: ExpressRequest): string {
+    return FormRateLimit.getCustomDomainFormKey(getRequestHost(req));
+  }
+
+  public static getCustomDomainFormKey(
+    hostname: string | null | undefined,
+  ): string {
+    if (typeof hostname !== "string" || hostname.trim().length === 0) {
+      return "invalid";
+    }
+
+    return `d:${FormRateLimit.sanitizeKeySegment(hostname.trim().toLowerCase())}`;
   }
 
   /*
@@ -753,6 +794,7 @@ export default class FormRateLimit {
    */
   public static getMiddleware(
     bucket: FormRateLimitBucket = FormRateLimitBucket.Read,
+    formSource: FormRateLimitFormSource = FormRateLimitFormSource.ShareKey,
   ): (
     req: ExpressRequest,
     res: ExpressResponse,
@@ -764,7 +806,10 @@ export default class FormRateLimit {
       next: NextFunction,
     ): Promise<void> => {
       const config: FormRateLimitBucketConfig = FormRateLimit.getConfig(bucket);
-      const formKey: string = FormRateLimit.resolveFormKey(req);
+      const formKey: string =
+        formSource === FormRateLimitFormSource.CustomDomain
+          ? FormRateLimit.resolveCustomDomainFormKey(req)
+          : FormRateLimit.resolveFormKey(req);
       const clientIp: string = FormRateLimit.resolveClientIp(req);
 
       const decision: FormRateLimitDecision = await FormRateLimit.consume({

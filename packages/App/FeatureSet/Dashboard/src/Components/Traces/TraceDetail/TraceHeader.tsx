@@ -6,13 +6,15 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { ComposedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import SpanUtil from "../../../Utils/SpanUtil";
-import { formatRelativeTime } from "../../../Utils/ExceptionDetailPresentation";
+import { exceptionTimeValue } from "../../../Utils/ExceptionDetailPresentation";
 import {
+  ERROR_COUNT,
   OrphanSpanNote,
+  SPAN_COUNT,
   ServiceSummary,
   TraceServiceInfo,
   TraceSummary,
@@ -21,7 +23,6 @@ import {
   formatPercent,
   getOrphanSpanNote,
   getServiceInfo,
-  pluralize,
 } from "../../../Utils/TraceDetailPresentation";
 
 export interface ComponentProps {
@@ -46,9 +47,11 @@ export interface ComponentProps {
 }
 
 interface Stat {
+  // English, a key of the locales: drawn in the reader's language.
   label: string;
   value: ReactElement | string;
   testId: string;
+  // English too.
   hint?: string | undefined;
 }
 
@@ -65,9 +68,13 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
   const rootService: TraceServiceInfo | null = summary.rootSpan
     ? getServiceInfo(props.serviceInfoById, summary.rootSpan.serviceId)
     : null;
-  const startedRelative: string | null = summary.startTime
-    ? formatRelativeTime(summary.startTime)
-    : null;
+  /*
+   * How long ago it started, written in the language the "Started" sentence
+   * is filled in: never a German time in an English sentence.
+   */
+  const startedRelative: ComposedValue | undefined = summary.startTime
+    ? exceptionTimeValue(summary.startTime)
+    : undefined;
   const startedAbsolute: string | null = summary.startTime
     ? OneUptimeDate.getDateAsUserFriendlyFormattedString(summary.startTime)
     : null;
@@ -93,7 +100,9 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
           <span>
             {summary.loadedSpanCount.toLocaleString()}
             <span className="ml-1 text-sm font-normal text-gray-500">
-              of {summary.totalSpanCount.toLocaleString()}
+              {translator.translateTemplate("of {{total}}", {
+                total: summary.totalSpanCount.toLocaleString(),
+              })}
             </span>
           </span>
         ) : (
@@ -114,11 +123,15 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
             type="button"
             className="inline-flex items-baseline gap-1.5 text-red-600 hover:underline"
             onClick={props.onShowErrors}
-            title="Show only the spans with an error status"
+            title={translator.translateText(
+              "Show only the spans with an error status",
+            )}
           >
             {summary.errorCount.toLocaleString()}
             <span className="text-sm font-normal text-red-500">
-              {formatPercent(summary.errorRatePercent)} of spans
+              {translator.translateTemplate("{{percent}} of spans", {
+                percent: formatPercent(summary.errorRatePercent),
+              })}
             </span>
           </button>
         ) : (
@@ -161,8 +174,8 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                 data-testid="trace-status"
               >
                 {summary.isError
-                  ? pluralize(summary.errorCount, "error")
-                  : "No errors"}
+                  ? translator.translatePlural(ERROR_COUNT, summary.errorCount)
+                  : translator.translateText("No errors")}
               </span>
               {summary.rootSpan?.kind && (
                 <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/15">
@@ -193,11 +206,11 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
               className="mt-1.5 break-words text-lg font-semibold leading-snug text-gray-900"
               data-testid="trace-title"
             >
-              {summary.rootSpan?.name || "Trace"}
+              {summary.rootSpan?.name || translator.translateText("Trace")}
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
               <span className="inline-flex items-center gap-1.5">
-                <span>Trace</span>
+                <span>{translator.translateText("Trace")}</span>
                 <code
                   className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[11px] text-gray-700"
                   title={props.traceId}
@@ -218,8 +231,14 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                   title={startedAbsolute}
                 >
                   <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-                  Started {startedRelative ? `${startedRelative} · ` : ""}
-                  {startedAbsolute}
+                  {startedRelative
+                    ? translator.translateTemplate(
+                        "Started {{relative}} · {{time}}",
+                        { relative: startedRelative, time: startedAbsolute },
+                      )
+                    : translator.translateTemplate("Started {{time}}", {
+                        time: startedAbsolute,
+                      })}
                 </span>
               )}
             </div>
@@ -236,7 +255,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
             size="md"
             variant="ghost"
             label="Copy link"
-            copiedLabel="Link copied"
+            copiedLabel={translator.translateText("Link copied") || ""}
             title="Copy a link to this trace"
             className="w-full !border-gray-300 font-medium !text-gray-700 shadow-sm sm:w-auto"
           />
@@ -265,10 +284,12 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
               key={stat.label}
               className={`bg-white px-5 py-3 ${index === stats.length - 1 ? "col-span-2 sm:col-span-1" : ""}`}
               data-testid={stat.testId}
-              title={stat.hint}
+              title={
+                stat.hint ? translator.translateText(stat.hint) : undefined
+              }
             >
               <dt className="text-xs font-medium text-gray-500">
-                {stat.label}
+                {translator.translateText(stat.label)}
               </dt>
               <dd className="mt-0.5 text-xl font-semibold tabular-nums text-gray-900">
                 {stat.value}
@@ -285,9 +306,11 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
         >
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="text-xs font-medium text-gray-500">
-              Time spent by service
+              {translator.translateText("Time spent by service")}
               <span className="ml-1 font-normal text-gray-400">
-                (self time — click a service to filter the spans)
+                {translator.translateText(
+                  "(self time — click a service to filter the spans)",
+                )}
               </span>
             </div>
             {props.selectedServiceIds.length > 0 && (
@@ -296,7 +319,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                 className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
                 onClick={props.onClearServices}
               >
-                Show all services
+                {translator.translateText("Show all services")}
               </button>
             )}
           </div>
@@ -358,11 +381,14 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                     {formatPercent(service.percent)}
                   </span>
                   <span className="max-sm:hidden tabular-nums text-gray-400 sm:inline">
-                    {pluralize(service.spanCount, "span")}
+                    {translator.translatePlural(SPAN_COUNT, service.spanCount)}
                   </span>
                   {service.errorCount > 0 && (
                     <span className="rounded bg-red-50 px-1 font-medium tabular-nums text-red-600">
-                      {pluralize(service.errorCount, "error")}
+                      {translator.translatePlural(
+                        ERROR_COUNT,
+                        service.errorCount,
+                      )}
                     </span>
                   )}
                 </button>

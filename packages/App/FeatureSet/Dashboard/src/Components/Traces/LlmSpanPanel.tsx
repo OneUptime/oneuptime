@@ -4,6 +4,8 @@ import { SpanEvent } from "Common/Models/AnalyticsModels/Span";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import LlmSpanDisplayUtil, {
   LlmMessage,
   LlmSpanDisplay,
@@ -48,14 +50,17 @@ function getRoleColor(role: string): { bg: string; text: string } {
   };
 }
 
+// A measure of the call: its name in English (a key of the locales), its value as reported.
 const Metric: FunctionComponent<{
   label: string;
   value: string;
 }> = (props: { label: string; value: string }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
       <div className="text-[11px] uppercase tracking-wide text-gray-400">
-        {props.label}
+        {translator.translateText(props.label)}
       </div>
       <div className="mt-0.5 font-mono text-sm font-semibold text-gray-800">
         {props.value}
@@ -67,6 +72,7 @@ const Metric: FunctionComponent<{
 const MessageBlock: FunctionComponent<{
   message: LlmMessage;
 }> = (props: { message: LlmMessage }): ReactElement => {
+  const translator: Translator = useTranslator();
   const colors: { bg: string; text: string } = getRoleColor(props.message.role);
   return (
     <div className="overflow-hidden rounded-lg border border-gray-200">
@@ -74,13 +80,16 @@ const MessageBlock: FunctionComponent<{
         className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide"
         style={{ backgroundColor: colors.bg, color: colors.text }}
       >
-        {props.message.role || "message"}
+        {/* The role as the call recorded it ("system", "assistant"). */}
+        {props.message.role || translator.translateText("message")}
       </div>
       <div className="max-h-72 overflow-auto bg-white px-3 py-2 text-[13px] leading-6 text-gray-800">
         {props.message.content ? (
           <LazyMarkdownViewer text={props.message.content} />
         ) : (
-          <span className="italic text-gray-400">(no text content)</span>
+          <span className="italic text-gray-400">
+            {translator.translateText("(no text content)")}
+          </span>
         )}
       </div>
     </div>
@@ -94,13 +103,15 @@ const Messages: FunctionComponent<{
   title: string;
   messages: Array<LlmMessage>;
 }): ReactElement | null => {
+  const translator: Translator = useTranslator();
+
   if (props.messages.length === 0) {
     return null;
   }
   return (
     <div className="space-y-2">
       <div className="text-[11px] uppercase tracking-wide text-gray-400">
-        {props.title}
+        {translator.translateText(props.title)}
       </div>
       <div className="space-y-2">
         {props.messages.map(
@@ -122,6 +133,7 @@ const Messages: FunctionComponent<{
 const LlmSpanPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
+  const translator: Translator = useTranslator();
   const display: LlmSpanDisplay = useMemo(() => {
     return LlmSpanDisplayUtil.parse({
       attributes: props.attributes,
@@ -200,7 +212,7 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
     label: "Cost",
     value: display.hasCost
       ? `$${display.cost.toFixed(6)}`
-      : "not reported by SDK",
+      : translator.translateText("not reported by SDK") || "",
   });
   if (props.durationLabel) {
     metrics.push({ label: "Latency", value: props.durationLabel });
@@ -225,7 +237,7 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
       <header className="flex items-center gap-2">
         <Icon icon={IconProp.Sparkles} className="h-4 w-4 text-violet-500" />
         <span className="text-[11px] font-semibold uppercase tracking-wide text-violet-500">
-          AI / LLM Call
+          {translator.translateText("AI / LLM Call")}
         </span>
       </header>
 
@@ -239,7 +251,9 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
                     key={chip.label}
                     className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-white px-2.5 py-1 text-xs"
                   >
-                    <span className="text-gray-400">{chip.label}</span>
+                    <span className="text-gray-400">
+                      {translator.translateText(chip.label)}
+                    </span>
                     <span className="font-mono font-medium text-gray-800">
                       {chip.value}
                     </span>
@@ -270,7 +284,9 @@ const LlmSpanPanel: FunctionComponent<ComponentProps> = (
               (param: { label: string; value: string }): ReactElement => {
                 return (
                   <span key={param.label}>
-                    <span className="text-gray-400">{param.label}:</span>{" "}
+                    <span className="text-gray-400">
+                      {translator.translateText(param.label)}:
+                    </span>{" "}
                     <span className="font-mono text-gray-800">
                       {param.value}
                     </span>

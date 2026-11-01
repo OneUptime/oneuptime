@@ -91,6 +91,12 @@ jest.mock("../../../UI/Config", () => {
     },
   });
 
+  Object.defineProperty(mocked, "FormCNameRecord", {
+    get: (): string => {
+      return "forms.oneuptime.com";
+    },
+  });
+
   return mocked;
 });
 
@@ -162,11 +168,13 @@ jest.mock("../../../UI/Utils/Project", () => {
 
 import StatusPageDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Domains";
 import DashboardCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/CustomDomains";
+import FormCustomDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/CustomDomains";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { DNS_SETUP_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
 import Domain from "../../../Models/DatabaseModels/Domain";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import DashboardDomain from "../../../Models/DatabaseModels/DashboardDomain";
+import FormDomain from "../../../Models/DatabaseModels/FormDomain";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
@@ -184,7 +192,7 @@ interface PageCase {
   Page: (props: PageComponentProps) => React.ReactElement;
   path: string;
   modelType: unknown;
-  parentColumn: "statusPageId" | "dashboardId";
+  parentColumn: "statusPageId" | "dashboardId" | "formId";
   createButton: string;
   subdomainPlaceholder: string;
   subdomain: string;
@@ -217,6 +225,19 @@ const PAGES: Array<PageCase> = [
     subdomainPlaceholder: "dashboard (leave blank for root)",
     subdomain: "dashboard",
     cnameRecord: "dashboards.oneuptime.com",
+  },
+  {
+    name: "a form",
+    Page: FormCustomDomains as (
+      props: PageComponentProps,
+    ) => React.ReactElement,
+    path: `/dashboard/${PROJECT_ID}/forms/${PARENT_ID}/custom-domains`,
+    modelType: FormDomain,
+    parentColumn: "formId",
+    createButton: "Create Form Domain",
+    subdomainPlaceholder: "report (leave blank for root)",
+    subdomain: "report",
+    cnameRecord: "forms.oneuptime.com",
   },
 ];
 

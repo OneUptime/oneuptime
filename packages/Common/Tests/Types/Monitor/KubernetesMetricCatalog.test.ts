@@ -8,7 +8,11 @@ import {
   getKubernetesMetricCategoryLabel,
   getKubernetesMetricsByCategory,
 } from "../../../Types/Monitor/KubernetesMetricCatalog";
-import { KubernetesResourceScope } from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
+import {
+  KUBERNETES_WORKLOAD_KINDS,
+  KubernetesResourceScope,
+  MonitorStepKubernetesMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import {
@@ -620,13 +624,13 @@ describe("KubernetesMetricCatalog", () => {
       );
     });
 
-    test("says what a sample's value is, and what its sum is", () => {
+    test("says what a sample's value is, what its sum is, and that it can be scoped to a workload", () => {
       const description: string = getKubernetesMetricByMetricName(
         "k8s.container.restarts.increase",
       )!.description;
 
       expect(description).toBe(
-        "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it.",
+        "Restarts since the agent's previous sample of the container. Their sum over a window is the restarts in it. Carries its pod's workload names, so it can be scoped to a workload.",
       );
       // Read as a count, with no unit to print.
       expect(
@@ -653,6 +657,55 @@ describe("KubernetesMetricCatalog", () => {
       expect(config).toContain(
         "            - k8s.container.restarts.increase\n          match_type: strict\n        initial_value: drop\n",
       );
+    });
+
+    /*
+     * A Workload scope filters every query on the workload's name
+     * (MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey), and
+     * the restarts pipeline has no k8sattributes of its own: the increase
+     * gets the names in the metrics pipeline, which the restarts pipeline
+     * hands it to once it is made.
+     */
+    test("carries the workload names a Workload scope filters on, from the metrics pipeline it is handed to", () => {
+      const config: string = fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../HelmChart/Public/kubernetes-agent/templates/configmap-deployment.yaml",
+        ),
+        "utf8",
+      );
+      const pipelines: string = config.substring(
+        config.indexOf("      pipelines:\n"),
+      );
+      const restartsPipeline: string = pipelines.substring(
+        pipelines.indexOf("        metrics/restarts-increase:\n"),
+      );
+      const metricsPipeline: string = pipelines.substring(
+        pipelines.indexOf("        metrics:\n"),
+        pipelines.indexOf("        logs:\n"),
+      );
+
+      expect(restartsPipeline).toContain(
+        "          exporters:\n            - forward/restarts-increase\n",
+      );
+      expect(restartsPipeline).not.toContain("- k8sattributes");
+      expect(metricsPipeline).toContain("            - k8s_cluster\n");
+      expect(metricsPipeline).toContain(
+        "            - forward/restarts-increase\n",
+      );
+      expect(metricsPipeline).toContain("            - k8sattributes\n");
+
+      // Every kind a Workload Kind can name is a name k8sattributes extracts.
+      for (const kind of KUBERNETES_WORKLOAD_KINDS) {
+        const key: string | null =
+          MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+            workloadType: kind.value,
+            workloadName: "checkout",
+          });
+
+        expect(key).toBe(`resource.k8s.${kind.value}.name`);
+        expect(config).toContain(`            - k8s.${kind.value}.name\n`);
+      }
     });
   });
 
@@ -701,14 +754,21 @@ describe("KubernetesMetricCatalog", () => {
       );
     });
 
-    test("says what a sample's value is, and what its sum is", () => {
+    test("says what a sample's value is, what its sum is, and that it can be scoped to a Job", () => {
       const description: string = getKubernetesMetricByMetricName(
         "k8s.job.failed_pods.increase",
       )!.description;
 
       expect(description).toBe(
-        "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it.",
+        "Pods of the Job that failed since the agent's previous sample of it. Their sum over a window is the failures in it. Carries the Job's name and namespace, so it can be scoped to a Job.",
       );
+      // A Workload scope of kind Job filters on the Job's own name.
+      expect(
+        MonitorStepKubernetesMonitorUtil.getWorkloadNameAttributeKey({
+          workloadType: "job",
+          workloadName: "nightly-export",
+        }),
+      ).toBe("resource.k8s.job.name");
       // Read as a count, with no unit to print.
       expect(
         MetricValueFormatter.format({

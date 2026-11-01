@@ -1,10 +1,11 @@
 # Delning & säkerhet
 
-Ett formulär är öppet för alla som har dess länk, och varje inlämning kan larma ditt jourteam eller lägga in ett underhållsfönster i din kalender. Den här sidan handlar om formulärets sida **Dela** — länken, att stänga av formuläret, meddelandet efter inlämningen och IP-tillåtelselistan — och varje annan kontroll som en begäran passerar på vägen.
+Ett formulär är öppet för alla som har dess länk, och varje inlämning kan larma ditt jourteam eller lägga in ett underhållsfönster i din kalender. Den här sidan handlar om formulärets sida **Dela** — länken, att stänga av formuläret, meddelandet efter inlämningen och IP-tillåtelselistan — och varje annan kontroll som en begäran passerar på vägen. Den handlar också om att visa formuläret på din egen domän.
 
 :::cards
 - [Dela länken](#dela-länken): Kopiera den, öppna den och återställ den när den sprids för långt.
 - [En länk för varje mall](#en-länk-för-varje-mall): Ett bokmärke per fall, ett enda formulär bakom alla.
+- [Anpassade domäner](#anpassade-domäner): Visa formuläret på din egen domän, med ett kostnadsfritt certifikat.
 - [Vad som skyddar ett formulär](#vad-som-skyddar-ett-formulär): Varje kontroll som en begäran passerar, i ordning.
 - [Felsökning](#felsökning): Vad varje meddelande på formulärets sida betyder, och vad du ska göra.
 :::
@@ -14,17 +15,17 @@ Ett formulär är öppet för alla som har dess länk, och varje inlämning kan 
 | Kort | Vad det innehåller |
 | --- | --- |
 | **Status** | **Tar emot inlämningar** — om formulärets länk fungerar. |
-| **Delningslänk** | Länken, med **Kopiera länk**, **Öppna formulär** och **Återställ länk**. |
+| **Delningslänk** | Varje adress som formuläret svarar på, var och en med **Kopiera länk**, och **Återställ länk**. |
 | **Efter inlämning** | Det **Tackmeddelande** som personer ser när de har lämnat in, under numret på det som formuläret skapade. |
 | **Fler inställningar** | **IP-tillåtelselista**, hopfälld tills du öppnar den. |
 
 ## Dela länken
 
-Kortet **Delningslänk** visar formulärets länk, som `https://oneuptime.com/accounts/form/<share-key>`:
+Kortet **Delningslänk** listar varje adress som formuläret svarar på: först formulärets [anpassade domäner](#anpassade-domäner), sedan dess länk på OneUptime, som `https://oneuptime.com/accounts/form/<share-key>`:
 
-- **Kopiera länk** kopierar den.
-- **Öppna formulär** öppnar formuläret i en ny flik, som personer ser det.
-- **Återställ länk** ger formuläret en ny länk, efter att du har bekräftat. Den gamla länken slutar fungera direkt och visar meddelandet om att formuläret inte är tillgängligt, så alla som du delade den med behöver den nya. Använd den när en länk har spridits längre än den borde.
+- Varje adress öppnar formuläret i en ny flik, så som andra ser det, och **Kopiera länk** bredvid kopierar den.
+- En anpassad domän som inte fungerar än är markerad med **Inte live än**, med orsaken. Utan anpassad domän erbjuder en rad under länken **Lägg till en anpassad domän**.
+- **Återställ länk** ger formuläret en ny länk, efter att du har bekräftat. Den gamla länken slutar fungera direkt och visar meddelandet om att formuläret inte är tillgängligt, så alla som du delade den med behöver den nya. Använd den när en länk har spridits längre än den borde. Formulärets anpassade domäner innehåller ingen nyckel och fortsätter att fungera.
 
 Alla med länken kan öppna formuläret och lämna in det, utan ett OneUptime-konto och utan att logga in. Att vara inloggad ändrar ingenting: OneUptime vet bara vem som lämnade in utifrån det namn och den e-post som skrivs i formuläret. Behandla därför länken som ett telefonnummer till ditt jourteam. Dela den där de som ska använda den hittar den — en intranätsida, en supportrunbook, ett fäst chattmeddelande — och inte på en offentlig webbplats, om du inte vill ha inlämningar från vem som helst.
 
@@ -34,19 +35,71 @@ Länkar till de gamla incidentformulären, `/accounts/incident-form/<share-key>`
 
 ### En länk för varje mall
 
-Var och en av formulärets [mallar](/docs/forms/building#mallar) har en egen länk: formulärets länk med `?template=` och mallens id, som `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Kopiera länk** på formulärets sida **Mallar** kopierar den. Den öppnar formuläret med den mallen ifylld, så att ett team kan spara ett bokmärke per fall medan du behåller ett enda formulär. När inlämnaren väljer en annan mall följer adressen i webbläsaren med, så länken som kopieras är formuläret som det visas.
+Var och en av formulärets [mallar](/docs/forms/building#mallar) har en egen länk: formulärets länk med `?template=` och mallens id, som `https://oneuptime.com/accounts/form/<share-key>?template=<template-id>`. **Kopiera länk** på formulärets sida **Mallar** kopierar den. Den öppnar formuläret med den mallen ifylld, så att ett team kan spara ett bokmärke per fall medan du behåller ett enda formulär. När inlämnaren väljer en annan mall följer adressen i webbläsaren med, så länken som kopieras är formuläret som det visas. På en [anpassad domän](#anpassade-domäner) är en malls länk domänen med samma `?template=`, som `https://report.acme.com/?template=<template-id>`, och **Återställ länk** låter den fungera.
 
 En malls länk är formulärets länk: den fungerar så länge formuläret står på **Tar emot inlämningar**, och **Återställ länk** drar tillbaka den tillsammans med resten. En länk som anger en mall som du har tagit bort öppnar formuläret som om den inte angav någon — med standardmallen, om det finns en.
 
 ### Stäng av ett formulär
 
-För att sluta ta emot inlämningar utan att ta bort formuläret stänger du av **Tar emot inlämningar**. Länken visar då "Det här formuläret är inte tillgängligt. Det kan ha stängts av, eller så kan länken vara inaktuell.", och kortet **Delningslänk** påminner dig om att formuläret är avstängt. Slå på det igen så fungerar samma länk igen.
+För att sluta ta emot inlämningar utan att ta bort formuläret stänger du av **Tar emot inlämningar**. Länken visar då "Det här formuläret är inte tillgängligt. Det kan ha stängts av, eller så kan länken vara inaktuell.", och kortet **Delningslänk** påminner dig om att formuläret är avstängt. Slå på det igen så fungerar samma länk igen. Formulärets anpassade domäner visar samma meddelande medan det är avstängt.
 
 ### Tackmeddelandet
 
 Efter en inlämning säger sidan "Tack — ditt svar har skickats." och anger numret på det som skapades, sedan ditt **Tackmeddelande**, i Markdown. Använd det för att säga vad som händer härnäst, och vart man ska vända sig när något är brådskande. Utan ett visar sidan bara standardmeddelandet.
 
 En bild i formulärets beskrivning eller tackmeddelande visas för alla som öppnar länken så länge formuläret står på **Tar emot inlämningar**. Stäng av formuläret, eller ta bort bilden, så är bilden privat igen, om inte något annat som alla ser fortfarande innehåller den.
+
+## Anpassade domäner
+
+Från början visas ett formulär på sin länk, på OneUptimes egen adress. För att visa det på en egen domän, som `report.acme.com`, öppnar du formulärets sida **Anpassade domäner**, direkt efter **Dela** i sidomenyn. Den fungerar som en [statussidas anpassade domäner](/docs/status-pages/branding-and-domains#anpassade-domäner).
+
+Att lägga formuläret på din egen domän tar tre steg, och bara de två första är dina:
+
+1. **Lägg till domänen**: en underdomän och en av dina verifierade domäner.
+2. **Lägg till dess CNAME-post** hos din DNS-leverantör. Dialogrutan **DNS-inställning** öppnas med posten så snart du lägger till domänen.
+3. **Det kostnadsfria SSL-certifikatet utfärdas automatiskt** så snart posten har hittats. Det finns ingen knapp att trycka på.
+
+När domänen är live listar kortet **Delningslänk** den ovanför formulärets länk. Båda öppnar samma formulär.
+
+### Lägga till en domän
+
+Klicka på **Skapa Formulärdomän**. Dialogrutan är en enda sida:
+
+- **Underdomän**: bara etiketten, med platshållaren `report (leave blank for root)`. Skriv bara `report`, inte hela värdnamnet. Lämna fältet tomt eller skriv `@` för att använda rotdomänen.
+- **Domän**: en av domänerna som är verifierade under **Projektinställningar** > **Avancerad** > **Domäner**, där du med en TXT-post visar att du äger en domän. Länken **Lägg till en domän** bredvid fältet öppnar den sidan i en ny flik.
+- **Fler fält**: hopfällt. Öppna det bara för att använda ett eget certifikat: slå på **Ladda upp anpassat certifikat** och klistra in **Certifikat** och dess **Privat certifikatnyckel**.
+
+Klicka på **Skapa Formulärdomän** igen för att lägga till den. Dialogrutan stängs och den nya domänens **DNS-inställning** öppnas. En domäns namn och dess formulär ligger fast när den har lagts till, så **Redigera** ändrar bara dess certifikat: för att ändra något av dem lägger du till den nya domänen och tar bort den gamla.
+
+En domän visar en statussida, en instrumentpanel eller ett formulär, så ett namn som någon av dem redan har, i vilket projekt som helst, avvisas: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
+
+### DNS-inställning och Kontrollera nu
+
+Dialogrutan **DNS-inställning** visar posten som du lägger till hos din DNS-leverantör, varje fält med en kopieringsknapp: **Typ** `CNAME`, **Namn** hela domänen som du lade till, och **Värde** din installations CNAME-post. För en rotdomän tillåter många DNS-leverantörer ingen CNAME-post: använd i stället leverantörens ALIAS-, ANAME- eller CNAME-flattening-post med samma värde.
+
+OneUptime kontrollerar varje overifierad domän var 15:e minut, och när den hittar posten beställer den domänens kostnadsfria Let's Encrypt-certifikat i samma kontroll. Klicka på **Kontrollera nu** för att kontrollera direkt. Tills en domän är live har dess rad en åtgärd **DNS-inställning** som öppnar samma dialogruta, där **Kontrollera nu** också beställer om ett certifikat som misslyckades eller har gått ut, högst en gång per domän var 15:e minut. Förnyelsen sker automatiskt, i god tid innan certifikatet går ut.
+
+Kolumnen **Status** visar hur långt varje domän har kommit på vägen till HTTPS, i samma åtta tillstånd som en statussidas domäner: se [Läsa domänens kolumn Status](/docs/status-pages/branding-and-domains#läsa-domänens-kolumn-status). När en beställning misslyckades står orsaken på raden under: oftast en CAA-post på din domän som inte tillåter `letsencrypt.org` eller, på en egenvärdad installation, en server som Let's Encrypt inte når på port 80.
+
+När ett kostnadsfritt certifikat har beställts för en domän visar dess rad **Reissue SSL**, som ber Let's Encrypt om ett helt nytt certifikat före den automatiska förnyelsen, en gång per 24 timmar och domän. Formuläret är online med det nuvarande certifikatet under tiden. Ett certifikat som du har laddat upp förnyar du själv: redigera domänen och klistra in det nya.
+
+### Vad domänen visar
+
+En domän visar sitt formulär i roten, som `https://report.acme.com`, och inget annat från OneUptime: ingen inloggningssida och inget annat formulär. Varje annan adress på domänen öppnar formuläret i roten och behåller sin fråga, så en malls länk fungerar där också. Sidan är formulärets egen: dess logotyp eller ingen, aldrig OneUptimes, dess namn som flikens titel, i det ljusa temat och utan OneUptimes analyser. Captcha, filer och tackmeddelandet fungerar där som på länken, och varje kontroll i [Vad som skyddar ett formulär](#vad-som-skyddar-ett-formulär) gäller, med domänen som formulärets egen sida.
+
+- **Återställ länk** ändrar bara formulärets länk på OneUptime: dess domäner innehåller ingen nyckel, så de fortsätter att fungera.
+- Att stänga av **Tar emot inlämningar** stänger formuläret även på dess domäner, med meddelandet om att det inte är tillgängligt.
+- Att ta bort formuläret tar bort dess domäner, och **Duplicera formulär** kopierar ingen av dem. En borttagen domän slutar genast visa formuläret.
+
+### På en egenvärdad installation
+
+Formulär använder statussidornas CNAME-post: `STATUS_PAGE_CNAME_RECORD` i `config.env`, eller `statusPage.cnameRecord` i Helm-diagrammet. För att ge formulärdomäner ett eget mål anger du `FORM_CNAME_RECORD`: i `config.env` för Docker Compose, eller med diagrammets gemensamma `extraEnv` i Helm. Utan något av dem säger sidan **Anpassade domäner** att anpassade domäner inte är aktiverade i stället för att visa en post, och OneUptime verifierar inga formulärdomäner och beställer inga certifikat för dem.
+
+Servern måste svara på port 80, där Let's Encrypt kontrollerar varje domän. En installation utan Let's Encrypt-kontonyckel, `LETS_ENCRYPT_ACCOUNT_KEY` (`letsEncrypt.accountKey` i Helm-diagrammet), beställer inga certifikat: ett formulärs domän är live så snart dess post är verifierad, och visas med din egen proxys HTTPS eller ett certifikat som du laddar upp. Med captcha påslaget måste en webbplatsnyckel som listar de värdnamn den fungerar på också lista formulärets domäner.
+
+### Vem som kan hantera domäner
+
+Projektets ägare och administratörer, och alla med **Edit Form**, kan lägga till ett formulärs domäner, kontrollera dem, utfärda deras certifikat på nytt och ta bort dem. Det kan även behörigheterna för enbart ett formulärs domäner, som **Edit Form Domain**: [Formulär – översikt](/docs/forms/index#behörigheter) listar dem. Alla som kan läsa ett formulär ser dess domäner, deras **Status** och posten i **DNS-inställning**; för dem är **Kontrollera nu** och **Reissue SSL** låsta och säger vilken behörighet som krävs. En API-nyckel fungerar på samma sätt på `/form-domain`: `verify-cname`, `order-ssl` och `reissue-ssl` kräver **Edit Form Domain** eller **Edit Form**.
 
 ## Vad som skyddar ett formulär
 
@@ -145,6 +198,10 @@ När din OneUptime-instans har hCaptcha påslaget visar formuläret en captcha, 
 - Formuläret togs bort.
 - På OneUptime Cloud ligger projektet under **Growth**-planen, eller så är dess prenumeration obetald.
 - Länken klipptes av när den kopierades.
+:::
+
+:::details Formulärets domän visar inte formuläret
+Öppna formulärets sida **Anpassade domäner** och läs domänens kolumn **Status**: tills dess post är verifierad och dess certifikat är på plats visar en webbläsare en certifikatvarning, eller ingenting alls. En domän som inte längre finns på sidan, för att den själv eller dess formulär togs bort, visar en sida om att inget hittades, och en domän vars överordnade domän inte längre är verifierad visar meddelandet om att formuläret inte är tillgängligt. På en egenvärdad installation kontrollerar du att posten pekar på din OneUptime-server och att servern svarar på port 80 och 443.
 :::
 
 :::details Formuläret kan bara öppnas från ett tillåtet nätverk

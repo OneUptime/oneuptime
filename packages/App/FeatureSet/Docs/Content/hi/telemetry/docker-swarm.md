@@ -47,23 +47,25 @@ flowchart TB
 :::steps
 ### एजेंट इंस्टॉल करें और शुरू करें
 
+हर OneUptime अपनी रिलीज़ की एजेंट इंस्टॉल स्क्रिप्ट और फ़ाइलें ख़ुद देता है: नीचे दिए कमांड उन्हें `https://oneuptime.com` से डाउनलोड करते हैं, इसलिए सेल्फ़-होस्टेड OneUptime पर इस पते को अपने URL से बदलें। इंस्टॉल स्क्रिप्ट पहले `install.sh` के रूप में सहेजी जाती है, ताकि आप उसे चलाने से पहले पढ़ सकें।
+
 :::tabs
 @tab install.sh
 इंस्टॉल स्क्रिप्ट डाउनलोड करें और उसे किसी मैनेजर नोड पर चलाएँ:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
 स्क्रिप्ट आपका OneUptime URL, इंजेशन कुंजी और क्लस्टर का नाम पूछती है। यह `/opt/oneuptime-docker-swarm-agent` में इंस्टॉल करती है, एक ऐसी `.env` फ़ाइल लिखती है जिसे सिर्फ़ उसका मालिक पढ़ सकता है और जिसमें नोड का होस्ट नाम `DOCKER_SWARM_NODE_NAME` के रूप में होता है, और तीनों कंटेनर शुरू करती है। AI एजेंट को छोड़ने के लिए `--no-ai-agent` जोड़ें।
 @tab Docker Compose
-[DockerSwarmAgent डायरेक्टरी](https://github.com/OneUptime/oneuptime/tree/master/agents/DockerSwarmAgent) से `docker-compose.yml`, `otel-collector-config.yaml` और `inventory-snapshot.sh` किसी मैनेजर नोड के एक नए फ़ोल्डर में डाउनलोड करें:
+अपने OneUptime से `docker-compose.yml`, `otel-collector-config.yaml` और `inventory-snapshot.sh` किसी मैनेजर नोड के एक नए फ़ोल्डर में डाउनलोड करें:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 
@@ -156,7 +158,7 @@ processors:
 एजेंट को नोड के साथ शुरू करने और विफल होने पर फिर से शुरू करने के लिए उसकी systemd यूनिट इंस्टॉल करें। यह मानती है कि एजेंट `/opt/oneuptime-docker-swarm-agent` में है, जहाँ इंस्टॉल स्क्रिप्ट उसे रखती है:
 
 ```bash
-sudo curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
+sudo curl -fsSL https://oneuptime.com/install/docker-swarm-agent/systemd/oneuptime-docker-swarm-agent.service -o /etc/systemd/system/oneuptime-docker-swarm-agent.service
 sudo systemctl daemon-reload
 sudo systemctl enable --now oneuptime-docker-swarm-agent
 ```
@@ -168,7 +170,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 मैनेजर नोड पर इंस्टॉल स्क्रिप्ट फिर से चलाएँ, और उसके सवालों के जवाब उसी URL, कुंजी और क्लस्टर नाम से दें। यह नवीनतम फ़ाइलें डाउनलोड करती है, इमेज पुल करती है और एजेंट को फिर से शुरू करती है:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/install.sh -o install.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent -o install.sh
 sh install.sh
 ```
 
@@ -205,10 +207,10 @@ swarm की `docker-compose.yml` (और `install.sh`) **Docker Swarm AI एज
 ## समस्या निवारण
 
 :::details पहले डायग्नोस्टिक स्क्रिप्ट चलाएँ
-एजेंट एक स्क्रिप्ट, [`troubleshoot.sh`](https://github.com/OneUptime/oneuptime/blob/master/agents/DockerSwarmAgent/troubleshoot.sh), के साथ आता है, जो पूरी शृंखला जाँचती है: कंटेनर, यह कि इन्वेंटरी पोलर किसी मैनेजर पर है (`docker node ls`), स्नैपशॉट फ़ाइल, हर चीज़ पर लगा क्लस्टर नाम, टोकन का आकार, कलेक्टर के अपने मेट्रिक्स, और क्या OneUptime इंजेशन कुंजी स्वीकार करता है। वह आखिरी जाँच सबसे अहम है। OneUptime गलत कुंजी को `401` के साथ अस्वीकार करता है (अक्षम कुंजी या ब्राउज़र कुंजी के लिए `422`), और कलेक्टर इसे हर बैच के लिए एक `Exporting failed` पंक्ति के रूप में लॉग करता है, जो आसानी से छूट जाती है। स्क्रिप्ट सीधे `200` (मान्य) या `401` (अमान्य) पाने के लिए `GET <url>/otlp/v1/validate` पूछती है। इसे मैनेजर नोड पर चलाएँ:
+एजेंट एक स्क्रिप्ट, [`troubleshoot.sh`](https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh), के साथ आता है, जो पूरी शृंखला जाँचती है: कंटेनर, यह कि इन्वेंटरी पोलर किसी मैनेजर पर है (`docker node ls`), स्नैपशॉट फ़ाइल, हर चीज़ पर लगा क्लस्टर नाम, टोकन का आकार, कलेक्टर के अपने मेट्रिक्स, और क्या OneUptime इंजेशन कुंजी स्वीकार करता है। वह आखिरी जाँच सबसे अहम है। OneUptime गलत कुंजी को `401` के साथ अस्वीकार करता है (अक्षम कुंजी या ब्राउज़र कुंजी के लिए `422`), और कलेक्टर इसे हर बैच के लिए एक `Exporting failed` पंक्ति के रूप में लॉग करता है, जो आसानी से छूट जाती है। स्क्रिप्ट सीधे `200` (मान्य) या `401` (अमान्य) पाने के लिए `GET <url>/otlp/v1/validate` पूछती है। इसे मैनेजर नोड पर चलाएँ:
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DockerSwarmAgent/troubleshoot.sh -o troubleshoot.sh
+curl -fsSL https://oneuptime.com/install/docker-swarm-agent/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-docker-swarm-agent
 ```
 :::

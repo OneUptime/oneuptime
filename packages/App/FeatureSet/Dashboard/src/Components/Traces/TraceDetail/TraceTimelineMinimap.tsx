@@ -1,6 +1,8 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import { DOUBLE_CLICK_DISAMBIGUATION_MS } from "Common/UI/Components/Charts/ChartLibrary/Utils/DoubleClick";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -45,6 +47,24 @@ interface Mark {
 }
 
 /*
+ * What the track says it does - its tooltip, and the name a screen reader
+ * reads it by - in English, keys of the locales: drawn in the reader's
+ * language. Zoomed, both add the double-click that shows the whole trace.
+ */
+export const TRACE_MINIMAP_TITLE: string = translationKey(
+  "Drag across the trace to zoom into that time range",
+);
+export const TRACE_MINIMAP_ZOOMED_TITLE: string = translationKey(
+  "Drag across the trace to zoom into that time range. Double-click to see the whole trace.",
+);
+export const TRACE_MINIMAP_LABEL: string = translationKey(
+  "Trace overview. Drag to zoom into a time range.",
+);
+export const TRACE_MINIMAP_ZOOMED_LABEL: string = translationKey(
+  "Trace overview. Drag to zoom into a time range, double-click to see the whole trace.",
+);
+
+/*
  * The whole trace at a glance: every span as a hairline in tree order. Drag
  * across it to zoom the waterfall into that slice of time; click to move the
  * zoomed window; double-click to go back to the whole trace, like every
@@ -54,6 +74,7 @@ interface Mark {
 const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const trackRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const [dragWindow, setDragWindow] = useState<TimeViewport | null>(null);
@@ -164,16 +185,12 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
         ref={trackRef}
         className="relative flex-1 cursor-crosshair touch-none select-none overflow-hidden rounded-md border border-gray-200 bg-white"
         style={{ height: `${MINIMAP_HEIGHT_PX}px` }}
-        title={
-          isZoomed
-            ? "Drag across the trace to zoom into that time range. Double-click to see the whole trace."
-            : "Drag across the trace to zoom into that time range"
-        }
-        aria-label={
-          isZoomed
-            ? "Trace overview. Drag to zoom into a time range, double-click to see the whole trace."
-            : "Trace overview. Drag to zoom into a time range."
-        }
+        title={translator.translateText(
+          isZoomed ? TRACE_MINIMAP_ZOOMED_TITLE : TRACE_MINIMAP_TITLE,
+        )}
+        aria-label={translator.translateText(
+          isZoomed ? TRACE_MINIMAP_ZOOMED_LABEL : TRACE_MINIMAP_LABEL,
+        )}
         role="img"
         onPointerDown={(event: React.PointerEvent<HTMLDivElement>) => {
           if (event.button !== 0) {
@@ -288,8 +305,8 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
-          title="Zoom out"
-          aria-label="Zoom out"
+          title={translator.translateText("Zoom out")}
+          aria-label={translator.translateText("Zoom out")}
           disabled={!isZoomed}
           onClick={() => {
             props.onViewportChange(zoomViewport(props.viewport, 2));
@@ -300,8 +317,8 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-800"
-          title="Zoom in"
-          aria-label="Zoom in"
+          title={translator.translateText("Zoom in")}
+          aria-label={translator.translateText("Zoom in")}
           onClick={() => {
             props.onViewportChange(zoomViewport(props.viewport, 0.5));
           }}
@@ -317,7 +334,7 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
               props.onViewportChange(FULL_VIEWPORT);
             }}
           >
-            Reset zoom
+            {translator.translateText("Reset zoom")}
           </button>
         )}
       </div>
