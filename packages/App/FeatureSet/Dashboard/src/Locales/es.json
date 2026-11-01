@@ -23520,7 +23520,7 @@
   "The Podman API socket must be on: sudo systemctl enable --now podman.socket.": "El socket de la API de Podman debe estar activado: sudo systemctl enable --now podman.socket.",
   "The agent protects no guest of its own accord: if it runs in a VM or container of this cluster, put that guest's VMID in ONEUPTIME_AI_PROTECTED_TARGETS.": "El agente no protege ningún invitado por sí solo: si se ejecuta en una VM o un contenedor de este clúster, pon el VMID de ese invitado en ONEUPTIME_AI_PROTECTED_TARGETS.",
   "The agent sends this host's metrics and logs to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends this host's metrics and logs to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
-  "The agent sends your cluster's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "The agent sends your cluster's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",
+  "The agent sends your cluster's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.": "El agente envía las métricas de tu clúster a OneUptime con esta clave. Elige una clave existente o crea una nueva: los comandos de abajo se actualizan para usarla.",
   "The container must reach the monitors (ports 3300 and 6789) and the mgr and OSD daemons (6800-7300).": "El contenedor debe poder llegar a los monitores (puertos 3300 y 6789) y a los daemons mgr y OSD (6800-7300).",
   "The login's grants are the hard limit: the collector's monitoring login lets AI read and nothing else. Cancelling a query or ending a session needs a login that may signal other sessions (for example pg_signal_backend on PostgreSQL, CONNECTION_ADMIN on MySQL) — give the agent its own as ONEUPTIME_AI_DATABASE_USERNAME and ONEUPTIME_AI_DATABASE_PASSWORD.": "Los permisos del usuario son el límite infranqueable: el usuario de monitoreo del collector permite a la IA leer y nada más. Cancelar una consulta o terminar una sesión requiere un usuario que pueda enviar señales a otras sesiones (por ejemplo, pg_signal_backend en PostgreSQL o CONNECTION_ADMIN en MySQL): dale al agente un usuario propio con ONEUPTIME_AI_DATABASE_USERNAME y ONEUPTIME_AI_DATABASE_PASSWORD.",
   "The probe \"{{probe}}\" did not report a ping result within two minutes. Check that the probe is online and running a version that supports on-demand diagnostics.": "The probe \"{{probe}}\" did not report a ping result within two minutes. Check that the probe is online and running a version that supports on-demand diagnostics.",
@@ -39337,5 +39337,8 @@
   "Route Events": "Route Events",
   "Service Events": "Service Events",
   "Stable addresses in front of pods": "Stable addresses in front of pods",
-  "TLS": "TLS"
+  "TLS": "TLS",
+  "This guest": "Este invitado",
+  "This node": "Este nodo",
+  "This storage": "Este almacenamiento"
 }

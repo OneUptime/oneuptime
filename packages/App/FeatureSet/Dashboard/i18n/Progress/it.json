@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39299,
-    "untranslated": 13260
+    "keys": 39302,
+    "untranslated": 13195
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -213,6 +213,7 @@
     "{{count}} dashboard",
     "{{count}} datacenter",
     "{{count}} datastore",
+    "{{count}} guest",
     "{{count}} host",
     "{{count}} repository",
     "{{count}} span",

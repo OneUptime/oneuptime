@@ -39337,5 +39337,8 @@
   "Route Events": "Route Events",
   "Service Events": "Service Events",
   "Stable addresses in front of pods": "Stable addresses in front of pods",
-  "TLS": "TLS"
+  "TLS": "TLS",
+  "This guest": "このゲスト",
+  "This node": "このノード",
+  "This storage": "このストレージ"
 }
