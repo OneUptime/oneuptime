@@ -1,0 +1,53 @@
+{
+  "de": [
+    "Details",
+    "Offline",
+    "Status",
+    "Status:"
+  ],
+  "fr": [
+    "Description",
+    "Incident",
+    "Incident - {{title}}",
+    "Note",
+    "[Incident] {{title}}"
+  ],
+  "it": [
+    "Offline"
+  ],
+  "pt": [
+    "Offline",
+    "Status",
+    "Status:"
+  ],
+  "nl": [
+    "Details",
+    "Incident",
+    "Incident - {{title}}",
+    "Incident: {{title}}",
+    "Offline",
+    "Status",
+    "Status:",
+    "[Incident] {{title}}"
+  ],
+  "da": [
+    "Note",
+    "Note:",
+    "Offline",
+    "Status",
+    "Status:"
+  ],
+  "no": [
+    "Status",
+    "Status:"
+  ],
+  "sv": [
+    "Incident",
+    "Incident - {{title}}",
+    "Incident: {{title}}",
+    "Offline",
+    "Status",
+    "Status:",
+    "[Incident] {{title}}"
+  ]
+}

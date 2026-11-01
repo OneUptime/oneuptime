@@ -8,6 +8,20 @@ import ObjectID from "Common/Types/ObjectID";
 import BaseAPI from "Common/UI/Utils/API/API";
 import { STATUS_PAGE_IDENTITY_API_URL } from "./Config";
 import UserUtil from "./User";
+import i18next from "i18next";
+
+/*
+ * The language the reader reads the page in, as a request's Accept-Language
+ * says it: what a sign-up stores, so their notifications are written in it
+ * (Common/Server/Utils/StatusPage/SubscriberLanguage). Empty before the
+ * page's translation is set up.
+ */
+export const getReaderLanguageHeaders: () => Headers = (): Headers => {
+  const language: string | undefined =
+    i18next.resolvedLanguage || i18next.language || undefined;
+
+  return language ? { "accept-language": language } : {};
+};
 
 export default class API extends BaseAPI {
   public static override getDefaultHeaders(): Headers {
@@ -20,6 +34,7 @@ export default class API extends BaseAPI {
     return {
       "status-page-id": statusPageId.toString(),
       tenantid: "",
+      ...getReaderLanguageHeaders(),
     };
   }
 

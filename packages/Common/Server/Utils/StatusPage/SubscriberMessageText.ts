@@ -111,6 +111,37 @@ export const SubscriberChatText: {
   ),
 };
 
+// The message a Slack or Microsoft Teams channel gets when it is subscribed.
+export const SubscribedChatText: {
+  readonly heading: string;
+  readonly subscribed: string;
+  readonly statusPage: string;
+  readonly unsubscribe: string;
+  readonly stopTheseNotifications: string;
+  readonly youWillReceive: string;
+  readonly incidents: string;
+  readonly scheduledMaintenance: string;
+  readonly announcements: string;
+  readonly statusUpdates: string;
+  readonly stayInformed: string;
+} = {
+  heading: translationKey("New Subscription to {{statusPageName}}"),
+  subscribed: translationKey(
+    "You have successfully subscribed to receive status updates!",
+  ),
+  statusPage: translationKey("Status Page:"),
+  unsubscribe: translationKey("Unsubscribe:"),
+  stopTheseNotifications: translationKey("Stop these notifications"),
+  youWillReceive: translationKey(
+    "You will receive real-time notifications for:",
+  ),
+  incidents: translationKey("Incidents and outages"),
+  scheduledMaintenance: translationKey("Scheduled maintenance events"),
+  announcements: translationKey("Service announcements"),
+  statusUpdates: translationKey("Status updates"),
+  stayInformed: translationKey("Stay informed about service availability!"),
+};
+
 /*
  * THE WORDS THE SENDERS PUT IN THE DEFAULT EMAILS AND THEIR SUBJECTS.
  */
@@ -328,6 +359,40 @@ ${this.chatLabel(translator, SubscriberChatText.note)}
 ${FeedMarkdown.asMarkdown(data.note || "")}
 
 ${this.chatLinks(translator, { statusPageUrl: data.statusPageUrl, unsubscribeUrl: data.unsubscribeUrl })}`.toString();
+  }
+
+  /*
+   * The Slack and Microsoft Teams message a channel gets when it is
+   * subscribed: what it will hear about, and the links to the page and to
+   * unsubscribe. The page's name is plain text its admins typed: escaped in
+   * the heading and inside the link's own words, so it reads as typed.
+   */
+  public static subscribedChatMessage(
+    translator: Translator,
+    data: {
+      statusPageName: string;
+      statusPageUrl: string;
+      unsubscribeUrl: string;
+    },
+  ): string {
+    const text: (words: string) => string = (words: string): string => {
+      return this.text(translator, words);
+    };
+
+    return mdText`## 📢 ${translator.translateTemplate(SubscribedChatText.heading, { statusPageName: data.statusPageName })}
+
+**${text(SubscribedChatText.subscribed)}**
+
+🔗 **${text(SubscribedChatText.statusPage)}** [${data.statusPageName}](${data.statusPageUrl})
+🔕 **${text(SubscribedChatText.unsubscribe)}** [${text(SubscribedChatText.stopTheseNotifications)}](${data.unsubscribeUrl})
+
+${text(SubscribedChatText.youWillReceive)}
+• ${text(SubscribedChatText.incidents)} 
+• ${text(SubscribedChatText.scheduledMaintenance)}  
+• ${text(SubscribedChatText.announcements)}
+• ${text(SubscribedChatText.statusUpdates)}
+
+${text(SubscribedChatText.stayInformed)} 🚀`.toString();
   }
 
   /*
