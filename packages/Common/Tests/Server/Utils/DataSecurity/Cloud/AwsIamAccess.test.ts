@@ -929,7 +929,7 @@ describe("the access entries IAM adds to each store", () => {
       principalName: OUTSIDE,
       principalType: DataStorePrincipalType.Account,
       accessLevel: DataStoreAccessLevel.Read,
-      grantedVia: "Can assume role exporter, whose IAM policy policy-1",
+      grantedVia: "Can assume role exporter: IAM policy policy-1",
       isExternal: true,
       isPublic: false,
     });

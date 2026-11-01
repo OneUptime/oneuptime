@@ -1338,10 +1338,13 @@ describe("who reaches a store through IAM", () => {
     });
   }
 
+  // The entries IAM grants: an identity's own policy, a group's, or a role it may assume.
   function iamEntries(store: CloudDataStoreRead): Array<DataStoreAccessEntry> {
     return store.access.filter((entry: DataStoreAccessEntry): boolean => {
       return (
         entry.grantedVia.startsWith("IAM policy") ||
+        entry.grantedVia.startsWith("Inline IAM policy") ||
+        entry.grantedVia.startsWith("Group ") ||
         entry.grantedVia.startsWith("Can assume role")
       );
     });
@@ -1408,7 +1411,7 @@ describe("who reaches a store through IAM", () => {
         principalName: "uploader",
         principalType: DataStorePrincipalType.User,
         accessLevel: DataStoreAccessLevel.Write,
-        grantedVia: "IAM policy group uploaders: inline policy put-orders",
+        grantedVia: "Group uploaders: inline IAM policy put-orders",
         isExternal: false,
         isPublic: false,
         lastUsedAt: new Date("2026-10-26T09:00:00Z"),
@@ -1434,7 +1437,7 @@ describe("who reaches a store through IAM", () => {
       [
         "table-admin",
         DataStoreAccessLevel.Admin,
-        "IAM policy inline policy customers-admin",
+        "Inline IAM policy customers-admin",
       ],
     ]);
     // Reach inside the account leaves the bucket private.
@@ -1477,7 +1480,7 @@ describe("who reaches a store through IAM", () => {
       principalType: DataStorePrincipalType.Account,
       accessLevel: DataStoreAccessLevel.Read,
       grantedVia:
-        "Can assume role vendor-reader, whose IAM policy AmazonS3ReadOnlyAccess",
+        "Can assume role vendor-reader: IAM policy AmazonS3ReadOnlyAccess",
       isExternal: true,
       isPublic: false,
     });
@@ -1506,7 +1509,7 @@ describe("who reaches a store through IAM", () => {
     expect(bucket.posture.publicRead).toBe(true);
     expect(bucket.posture.publicWrite).toBe(false);
     expect(bucket.posture.publicReason).toBe(
-      "Any AWS account can assume a role whose IAM policy reaches it (Can assume role open-door, whose IAM policy inline policy read-all).",
+      "Any AWS account can assume a role whose IAM policy reaches it (Can assume role open-door: inline IAM policy read-all).",
     );
     expect(getDataStoreExposure(bucket.posture)).toBe(DataStoreExposure.Public);
     expect(publicEntries(bucket)).toEqual([

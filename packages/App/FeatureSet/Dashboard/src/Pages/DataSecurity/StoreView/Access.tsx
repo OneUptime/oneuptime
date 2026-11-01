@@ -1,8 +1,13 @@
 import PageComponentProps from "../../PageComponentProps";
 import { useDataStoreViewContext } from "./DataStoreViewContext";
 import {
+  AccessLevelPill,
   GrantedViaCell,
   NOT_USED_IN_90_DAYS,
+  PrincipalText,
+  canOpenIdentities,
+  getAccessIdentityRoute,
+  showsPrincipal,
 } from "../../../Components/DataSecurity/IdentityCells";
 import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
 import { Gray500, Orange500, Red500 } from "Common/Types/BrandColors";
@@ -29,6 +34,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * connected accounts, come first: that is the access to look at. Access
  * not used in 90 days is marked, and has a filter of its own: it is what
  * the unused-access check asks a person to review here.
+ *
+ * Each row opens the identity's own page - every other store it reaches,
+ * and why it ranks where it does - for a reader who may read identities.
  */
 
 const ACCESS_LEVEL_OPTIONS: Array<DropdownOption> = [
@@ -82,7 +90,11 @@ const DataStoreAccessPage: FunctionComponent<
       isDeleteable={false}
       isEditable={false}
       isCreateable={false}
-      isViewable={false}
+      // A row opens its identity's page, for whoever may read identities.
+      isViewable={canOpenIdentities()}
+      // Its View opens the row's identity: "View Identity" to a screen reader.
+      singularName="Identity"
+      onViewPage={getAccessIdentityRoute}
       showRefreshButton={true}
       // Outside your accounts first; anyone on the internet is outside too.
       sortBy="isExternal"
@@ -95,7 +107,9 @@ const DataStoreAccessPage: FunctionComponent<
       noItemsMessage="Nobody is known to reach this store yet. Its access is read with its configuration, from a cloud connection with Data Security turned on."
       searchableFields={["principal", "principalName"]}
       selectMoreFields={{
+        principal: true,
         principalName: true,
+        principalType: true,
         isPublic: true,
         isSeenInTraces: true,
         isUnused: true,
@@ -148,9 +162,9 @@ const DataStoreAccessPage: FunctionComponent<
                     />
                   )}
                 </div>
-                {item.principalName && item.principal && !item.isPublic ? (
-                  <div className="font-mono text-xs text-gray-500 [overflow-wrap:anywhere]">
-                    <IsolatedText text={item.principal} />
+                {showsPrincipal(item) ? (
+                  <div className="text-xs text-gray-500 [overflow-wrap:anywhere]">
+                    <PrincipalText principal={item.principal || ""} />
                   </div>
                 ) : (
                   <></>
@@ -195,13 +209,8 @@ const DataStoreAccessPage: FunctionComponent<
           title: "Access Level",
           type: FieldType.Element,
           getElement: (item: DataStoreAccess): ReactElement => {
-            return item.accessLevel ? (
-              <span className="text-sm text-gray-700">
-                {translator.translateText(item.accessLevel)}
-              </span>
-            ) : (
-              <TableEmptyValue />
-            );
+            // Red for Admin, as on Access and an identity's page.
+            return <AccessLevelPill level={item.accessLevel} />;
           },
         },
         {

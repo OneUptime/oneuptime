@@ -112,7 +112,7 @@ export const DATA_EXPOSURE_TEMPLATE: SecurityPlaybookTemplateDefinition = {
       // The response checklist, as the case's own tasks to tick off.
       step(SecurityPlaybookActionType.AddCaseTasks, {
         tasks: [
-          "Find who read the data while it was exposed: the store's access logs, and its Who Can Reach It",
+          "Find who read the data while it was exposed, from the store's access logs and its Who Can Reach It page",
           "Decide whether this is a breach you must report, to whom and by when",
           "Rotate every secret and key the store held",
           "Close the case with what was exposed, for how long, and to whom",

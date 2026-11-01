@@ -171,18 +171,19 @@ const SecurityCaseDataAtRisk: FunctionComponent<ComponentProps> = (
               return (
                 <li
                   key={identity.id}
-                  className="flex flex-wrap items-center gap-x-1.5 [overflow-wrap:anywhere]"
+                  className="flex items-start gap-x-1.5"
                   data-testid={
                     SECURITY_CASE_CONTEXT_TEST_IDS.impactDataIdentity
                   }
                 >
+                  {/* On the text's first line, beside it however it wraps. */}
                   <Icon
                     icon={IconProp.Key}
-                    className="h-3.5 w-3.5 shrink-0 text-gray-400"
+                    className="mt-[3px] h-3.5 w-3.5 shrink-0 text-gray-400"
                   />
                   <AppLink
                     to={getDataSecurityIdentityRoute(identity.id)}
-                    className="text-gray-900 hover:text-indigo-700 hover:underline"
+                    className="min-w-0 text-gray-900 hover:text-indigo-700 hover:underline [overflow-wrap:anywhere]"
                   >
                     {translator.translatePlural(
                       IMPACT_DATA_IDENTITY,

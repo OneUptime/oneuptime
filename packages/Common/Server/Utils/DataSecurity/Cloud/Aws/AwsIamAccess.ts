@@ -139,6 +139,16 @@ export const MAX_IAM_ENTRIES_PER_STORE: number = 200;
 // The longest "granted via" text an entry keeps (DataStoreAccess.grantedVia).
 const MAX_VIA_LENGTH: number = 500;
 
+/*
+ * How a policy is named in an identity's list (IamIdentity.policies' via):
+ * "AmazonS3ReadOnlyAccess", "inline policy orders-read", and a group's as
+ * "group analysts: AmazonS3ReadOnlyAccess". Names IAM allows hold no space
+ * or colon, so describeVia reads them back.
+ */
+const INLINE_POLICY_PREFIX: string = "inline policy ";
+const GROUP_PREFIX: string = "group ";
+const GROUP_SEPARATOR: string = ": ";
+
 // How far back IAM tracks a role's last use: an empty RoleLastUsed means not in this window.
 export const IAM_LAST_USED_WINDOW_IN_DAYS: number = 400;
 
@@ -287,7 +297,7 @@ function readDate(text: string): Date | undefined {
 function inlinePolicies(block: string, list: string): Array<IamPolicy> {
   return members(block, list).map((member: string): IamPolicy => {
     return {
-      name: `inline policy ${child(member, "PolicyName") || "(unnamed)"}`,
+      name: `${INLINE_POLICY_PREFIX}${child(member, "PolicyName") || "(unnamed)"}`,
       statements: statementsOf(
         decodePolicyDocument(child(member, "PolicyDocument")),
       ),
@@ -486,7 +496,10 @@ export function readAuthorizationDetails(
       }
 
       for (const policy of group.inline) {
-        policies.push({ policy, via: `group ${group.name}: ${policy.name}` });
+        policies.push({
+          policy,
+          via: `${GROUP_PREFIX}${group.name}${GROUP_SEPARATOR}${policy.name}`,
+        });
       }
 
       for (const arn of group.attached) {
@@ -495,7 +508,7 @@ export function readAuthorizationDetails(
         if (policy) {
           policies.push({
             policy,
-            via: `group ${group.name}: ${policy.name}`,
+            via: `${GROUP_PREFIX}${group.name}${GROUP_SEPARATOR}${policy.name}`,
           });
         }
       }
@@ -1023,9 +1036,38 @@ function clampVia(text: string): string {
     : text;
 }
 
-function describeVia(reach: IamReach): string {
+// "IAM policy AmazonS3ReadOnlyAccess", "inline IAM policy orders-read".
+function describePolicyName(name: string): string {
+  return name.startsWith(INLINE_POLICY_PREFIX)
+    ? `inline IAM policy ${name.slice(INLINE_POLICY_PREFIX.length)}`
+    : `IAM policy ${name}`;
+}
+
+/*
+ * What grants an identity its access, as its Granted Via column says it:
+ * "IAM policy AmazonS3ReadOnlyAccess", "Inline IAM policy orders-read",
+ * "Group analysts: IAM policy AmazonS3ReadOnlyAccess", each "with
+ * conditions" when the grant holds only under them. Inside a sentence
+ * ("Can assume role exporter: inline IAM policy ...") it starts lower
+ * case.
+ */
+function describeVia(
+  reach: IamReach,
+  options: { isInSentence?: boolean } = {},
+): string {
+  const separatorAt: number = reach.via.indexOf(GROUP_SEPARATOR);
+  const text: string = `${
+    reach.via.startsWith(GROUP_PREFIX) && separatorAt > GROUP_PREFIX.length
+      ? `${reach.via.slice(0, separatorAt)}${GROUP_SEPARATOR}${describePolicyName(
+          reach.via.slice(separatorAt + GROUP_SEPARATOR.length),
+        )}`
+      : describePolicyName(reach.via)
+  }${reach.isConditional ? ", with conditions" : ""}`;
+
   return clampVia(
-    `IAM policy ${reach.via}${reach.isConditional ? ", with conditions" : ""}`,
+    options.isInSentence
+      ? text
+      : `${text.charAt(0).toUpperCase()}${text.slice(1)}`,
   );
 }
 
@@ -1123,7 +1165,9 @@ export function buildIamAccessEntries(data: {
           principalType: truster.principalType,
           accessLevel: reach.level,
           grantedVia: clampVia(
-            `Can assume role ${identity.name}, whose ${describeVia(reach)}`,
+            `Can assume role ${identity.name}: ${describeVia(reach, {
+              isInSentence: true,
+            })}`,
           ),
           isExternal: true,
           isPublic: truster.isPublic,

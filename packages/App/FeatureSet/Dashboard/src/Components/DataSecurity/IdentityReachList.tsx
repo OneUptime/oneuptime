@@ -1,6 +1,10 @@
 import AppLink from "../AppLink/AppLink";
 import { SensitivityPill } from "./DataSecurityPills";
-import { AccessLevelPill, GrantedViaCell } from "./IdentityCells";
+import {
+  AccessLevelPill,
+  GrantedViaCell,
+  NOT_USED_IN_90_DAYS,
+} from "./IdentityCells";
 import { getStoreViewRoute } from "./IssueListRoute";
 import IssueMoment from "./IssueMoment";
 import DataStoreAccess from "Common/Models/DatabaseModels/DataStoreAccess";
@@ -9,12 +13,14 @@ import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
   isDataSensitivity,
 } from "Common/Types/DataSecurity/DataSensitivity";
+import { Gray500 } from "Common/Types/BrandColors";
 import { DataStoreAccessLevel } from "Common/Types/DataSecurity/DataStoreAccess";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import Pill from "Common/UI/Components/Pill/Pill";
 import LocalTable from "Common/UI/Components/Table/LocalTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -35,13 +41,18 @@ import React, {
  * Every store the identity's grants reach, the most sensitive first - so
  * the stores a leaked credential would put at risk lead - then the most it
  * may do, then by name. Each row says the store, how sensitive what it
- * holds is, what the identity may do to it, what grants that and when it
- * was last used. Read as one list of at most MAX_REACH_ROWS grants, sorted
+ * holds is, what the identity may do to it - its access level, as a
+ * store's Who Can Reach It says it - what grants that and when it was last
+ * used, a grant unused for 90 days marked as there. Read as one list of at most MAX_REACH_ROWS grants, sorted
  * here: an identity with more grants than that says how many under the
  * list.
  */
 
 export const IDENTITY_REACH_LIST_ID: string = "data-security-identity-reach";
+
+// A grant of the identity's that nobody has used in 90 days.
+export const IDENTITY_REACH_UNUSED_TEST_ID: string =
+  "data-security-identity-reach-unused";
 
 // The most grants the list reads; Admin roles reaching every bucket are cut there.
 export const MAX_REACH_ROWS: number = 500;
@@ -196,6 +207,16 @@ const IdentityReachList: FunctionComponent<ComponentProps> = (
                         ) : (
                           <></>
                         )}
+                        {access.isUnused ? (
+                          <div
+                            className="mt-1"
+                            data-testid={IDENTITY_REACH_UNUSED_TEST_ID}
+                          >
+                            <Pill text={NOT_USED_IN_90_DAYS} color={Gray500} />
+                          </div>
+                        ) : (
+                          <></>
+                        )}
                       </div>
                     );
                   },
@@ -213,7 +234,7 @@ const IdentityReachList: FunctionComponent<ComponentProps> = (
                 },
                 {
                   key: "accessLevel",
-                  title: "May",
+                  title: "Access Level",
                   type: FieldType.Element,
                   disableSort: true,
                   getElement: (access: DataStoreAccess): ReactElement => {

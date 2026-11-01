@@ -219,7 +219,11 @@ export const IMPACT_EVIDENCE: Record<SecurityCaseExposureEvidenceKind, string> =
   };
 
 export const IMPACT_EXPOSURE_HEADING: string = translationKey("Exposure");
-export const IMPACT_AT_RISK_HEADING: string = translationKey("At risk");
+/*
+ * The records a case names, under the fold: "Records at risk", not "At
+ * risk", since the card's Data at risk sits right above the fold.
+ */
+export const IMPACT_AT_RISK_HEADING: string = translationKey("Records at risk");
 export const IMPACT_TALKED_TO_HEADING: string = translationKey("Network peers");
 
 export const IMPACT_OWNERS: string = translationKey("Owners");
@@ -258,7 +262,7 @@ export const IMPACT_FLOW_RECEIVED: string = translationKey(
 );
 
 export const IMPACT_SHOW_DETAILS: string = translationKey(
-  "Show what is at risk",
+  "Show the records at risk",
 );
 export const IMPACT_HIDE_DETAILS: string = translationKey("Hide details");
 

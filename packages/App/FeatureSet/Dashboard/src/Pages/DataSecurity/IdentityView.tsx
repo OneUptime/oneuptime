@@ -1,13 +1,19 @@
 import PageComponentProps from "../PageComponentProps";
 import { SensitivityPill } from "../../Components/DataSecurity/DataSecurityPills";
+import AppLink from "../../Components/AppLink/AppLink";
 import {
   ANYONE_ON_THE_INTERNET,
   AccessLevelPill,
-  IdentityLastUsedCell,
   NOT_USED_IN_90_DAYS,
+  OPEN_SERVICE,
   OUTSIDE_YOUR_ACCOUNTS,
+  PrincipalText,
+  UNKNOWN_USE,
+  getTracedServiceRoute,
+  lastUsedNote,
   showsPrincipal,
 } from "../../Components/DataSecurity/IdentityCells";
+import IssueMoment from "../../Components/DataSecurity/IssueMoment";
 import IdentityReachList from "../../Components/DataSecurity/IdentityReachList";
 import IssueRiskScore, {
   FactorWords,
@@ -21,6 +27,7 @@ import { getDataSecurityBreadcrumbs } from "../../Utils/Breadcrumbs/DataSecurity
 import { RouteUtil } from "../../Utils/RouteMap";
 import DataSecuritySideMenu from "./SideMenu";
 import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
+import Route from "Common/Types/API/Route";
 import Select from "Common/Types/BaseDatabase/Select";
 import {
   DataSecurityIdentityReach,
@@ -35,7 +42,6 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
 import API from "Common/UI/Utils/API/API";
@@ -307,6 +313,7 @@ const DataSecurityIdentityView: FunctionComponent<
       identity,
       translator,
     );
+    const serviceRoute: Route | null = getTracedServiceRoute(identity);
 
     return (
       <>
@@ -342,10 +349,19 @@ const DataSecurityIdentityView: FunctionComponent<
             variant="segment"
             icon={IconProp.Clock}
             label="Last Used"
-            value={<IdentityLastUsedCell identity={identity} />}
-            description={translator.translateText(
-              "Where its cloud or traces can tell",
-            )}
+            value={
+              identity.lastUsedAt ? (
+                <IssueMoment value={identity.lastUsedAt} />
+              ) : identity.isUnused ? (
+                translator.translateText(NOT_USED_IN_90_DAYS) || ""
+              ) : (
+                // Not a finding, a gap: quieter than a value.
+                <span className="text-gray-500">
+                  {translator.translateText(UNKNOWN_USE)}
+                </span>
+              )
+            }
+            description={translator.translateText(lastUsedNote(identity))}
           />
           <EventStatTile
             variant="segment"
@@ -369,14 +385,27 @@ const DataSecurityIdentityView: FunctionComponent<
               data-testid="data-security-identity-about"
             >
               {showsPrincipal(identity) ? (
-                <div className="font-mono text-sm text-gray-900 [overflow-wrap:anywhere]">
-                  <IsolatedText text={identity.principal || ""} />
+                <div className="text-sm text-gray-900 [overflow-wrap:anywhere]">
+                  <PrincipalText principal={identity.principal || ""} />
                 </div>
               ) : (
                 <></>
               )}
-              {kind ? (
-                <div className="text-sm text-gray-500">{kind}</div>
+              {kind || serviceRoute ? (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+                  {kind ? <span>{kind}</span> : <></>}
+                  {serviceRoute ? (
+                    <AppLink
+                      to={serviceRoute}
+                      className="font-medium text-indigo-600 hover:underline"
+                      dataTestId="data-security-identity-service"
+                    >
+                      <span>{translator.translateText(OPEN_SERVICE)}</span>
+                    </AppLink>
+                  ) : (
+                    <></>
+                  )}
+                </div>
               ) : (
                 <></>
               )}

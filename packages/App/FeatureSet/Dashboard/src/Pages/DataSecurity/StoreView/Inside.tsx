@@ -13,7 +13,7 @@ import {
 } from "./DataStoreViewContext";
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
-import { Gray500, Green500, Purple500 } from "Common/Types/BrandColors";
+import { Gray500, Green500 } from "Common/Types/BrandColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
 import { DataSecurityScrubResult } from "Common/Types/DataSecurity/DataSecurityApiTypes";
@@ -23,6 +23,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
@@ -64,7 +65,11 @@ import React, {
  * field's name, the names beside it and the shapes of its values - never a
  * value (Server/Utils/AI/DataSecurity/FieldSuggestion). It reads as
  * OneUptime AI's, with its reason, matched no value, and counts toward
- * nothing until a person confirms it.
+ * nothing until a person confirms it. Its own line says so, with the AI
+ * mark the product's AI wears elsewhere, rather than a pill: a line breaks
+ * at a space in a laptop's column ("Von OneUptime AI / vorgeschlagen"),
+ * where a pill broke inside its words. Being OneUptime AI's says it is not
+ * sure, so it carries no Low confidence pill beside it.
  */
 
 const CONFIDENCE_OPTIONS: Array<DropdownOption> = [
@@ -90,6 +95,8 @@ export const SUGGESTED_BY_AI: string = translationKey(
 export const CONFIRMED: string = translationKey("Confirmed");
 
 // The test ids of a suggestion's parts, for the offline walks.
+export const FINDING_AI_SUGGESTION_TEST_ID: string =
+  "data-store-finding-ai-suggestion";
 export const FINDING_AI_REASON_TEST_ID: string = "data-store-finding-ai-reason";
 
 // Whether a person can confirm a finding: one the scan, or OneUptime AI, was not sure of.
@@ -403,16 +410,13 @@ const DataStoreInside: FunctionComponent<
                      * A finding the scan is not sure of says so here, while
                      * the Confidence column is left out: those are the ones
                      * to judge, and they do not count toward the store's
-                     * sensitivity until someone does.
-                     */}
-                    {/*
-                     * These pills wrap rather than set the column's width:
-                     * in German they are longer than any data type's name.
+                     * sensitivity until someone does. OneUptime AI's says
+                     * so on its own line below.
                      */}
                     {item.confidence &&
-                    item.confidence !== DataConfidence.High ? (
+                    item.confidence !== DataConfidence.High &&
+                    !item.isAiSuggested ? (
                       <Pill
-                        isWrapping={true}
                         text={translator.translateTemplate(
                           CONFIDENCE_BELOW_HIGH,
                           {
@@ -426,21 +430,8 @@ const DataStoreInside: FunctionComponent<
                     ) : (
                       <></>
                     )}
-                    {item.isAiSuggested ? (
-                      <Pill
-                        text={SUGGESTED_BY_AI}
-                        color={Purple500}
-                        isWrapping={true}
-                      />
-                    ) : (
-                      <></>
-                    )}
                     {item.isConfirmed ? (
-                      <Pill
-                        text={CONFIRMED}
-                        color={Green500}
-                        isWrapping={true}
-                      />
+                      <Pill text={CONFIRMED} color={Green500} />
                     ) : (
                       <></>
                     )}
@@ -453,16 +444,35 @@ const DataStoreInside: FunctionComponent<
                     )}
                   </div>
                   {/*
-                   * OneUptime AI's own words, in the language it wrote
-                   * them: why it suggests this type.
+                   * Whose suggestion it is, and OneUptime AI's own words,
+                   * in the language it wrote them: why it suggests this
+                   * type.
                    */}
-                  {item.isAiSuggested && item.aiReason ? (
-                    <p
-                      className="max-w-xs whitespace-normal text-xs text-gray-500 [overflow-wrap:anywhere]"
-                      data-testid={FINDING_AI_REASON_TEST_ID}
+                  {item.isAiSuggested ? (
+                    <div
+                      className="max-w-xs space-y-0.5"
+                      data-testid={FINDING_AI_SUGGESTION_TEST_ID}
                     >
-                      <IsolatedText text={item.aiReason} />
-                    </p>
+                      <div className="flex items-start gap-1 text-xs font-medium text-purple-700">
+                        <Icon
+                          icon={IconProp.Sparkles}
+                          className="mt-px h-3.5 w-3.5 shrink-0"
+                        />
+                        <span className="whitespace-normal">
+                          {translator.translateText(SUGGESTED_BY_AI)}
+                        </span>
+                      </div>
+                      {item.aiReason ? (
+                        <p
+                          className="whitespace-normal text-xs text-gray-500 [overflow-wrap:anywhere]"
+                          data-testid={FINDING_AI_REASON_TEST_ID}
+                        >
+                          <IsolatedText text={item.aiReason} />
+                        </p>
+                      ) : (
+                        <></>
+                      )}
+                    </div>
                   ) : (
                     <></>
                   )}

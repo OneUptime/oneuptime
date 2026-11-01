@@ -12,6 +12,7 @@ import {
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   DataSecurityResponseAction,
+  EXPOSURE_RESPONSE_ACTIONS,
   describeDataSecurityResponseAction,
   getDataSecurityResponseActionForIssue,
 } from "Common/Types/DataSecurity/DataSecurityResponseAction";
@@ -113,6 +114,19 @@ const CONFIRM_TITLES: Readonly<Record<DataSecurityResponseAction, string>> = {
 
 const PANEL_TITLE: string = translationKey("Fix it from here");
 
+/*
+ * The button's mark: a lock for the changes that close a store to the
+ * internet or to accounts outside, a shield for the ones that turn on a
+ * protection it lacks - versioning is not a lock.
+ */
+export function getResponseActionIcon(
+  action: DataSecurityResponseAction,
+): IconProp {
+  return EXPOSURE_RESPONSE_ACTIONS.includes(action)
+    ? IconProp.Lock
+    : IconProp.ShieldCheck;
+}
+
 const PANEL_DESCRIPTIONS: Readonly<Record<DataSecurityResponseAction, string>> =
   {
     [DataSecurityResponseAction.BlockPublicAccess]: translationKey(
@@ -150,7 +164,7 @@ export const UNAVAILABLE_SENTENCES: Readonly<
   Record<DataSecurityResponseUnavailableReason, string>
 > = {
   [DataSecurityResponseUnavailableReason.ResponseOff]: translationKey(
-    "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants this one narrow write.",
+    "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.",
   ),
   [DataSecurityResponseUnavailableReason.ConnectionGone]: translationKey(
     "This store's cloud connection is gone or turned off, so fix it in its cloud with the steps below.",
@@ -369,7 +383,7 @@ const IssueResponseAction: FunctionComponent<ComponentProps> = (
         <div className="shrink-0">
           <Button
             title={title}
-            icon={IconProp.Lock}
+            icon={getResponseActionIcon(action)}
             buttonStyle={ButtonStyleType.PRIMARY}
             disabled={!availability.isAvailable || !gate.isAllowed}
             tooltip={

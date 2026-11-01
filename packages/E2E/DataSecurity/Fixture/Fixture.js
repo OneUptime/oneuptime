@@ -761,7 +761,7 @@ table(DataStoreAccess).push(
     principalType: DataStorePrincipalType.Account,
     accessLevel: DataStoreAccessLevel.Read,
     grantedVia:
-      "Can assume role vendor-reader, whose IAM policy AmazonS3ReadOnlyAccess",
+      "Can assume role vendor-reader: IAM policy AmazonS3ReadOnlyAccess",
     isExternal: true,
     isPublic: false,
     isSeenInTraces: false,
@@ -778,7 +778,7 @@ table(DataStoreAccess).push(
     principalName: "legacy-etl",
     principalType: DataStorePrincipalType.Role,
     accessLevel: DataStoreAccessLevel.Read,
-    grantedVia: "IAM policy inline policy orders-read",
+    grantedVia: "Inline IAM policy orders-read",
     isExternal: false,
     isPublic: false,
     isSeenInTraces: false,

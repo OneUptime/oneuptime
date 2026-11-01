@@ -4001,13 +4001,21 @@ test.describe("a case", () => {
     );
     await expect(lastChange).toContainText("Version 2026.10.2");
 
-    // Record by record, behind a button.
+    /*
+     * Record by record, behind a button that says what it shows: the
+     * records at risk, apart from the data at risk above it.
+     */
     await expect(
       impact.getByTestId("security-case-impact-details"),
     ).toHaveCount(0);
     await impact
-      .getByRole("button", { name: "Show what is at risk", exact: true })
+      .getByRole("button", { name: "Show the records at risk", exact: true })
       .click();
+    await expect(
+      impact
+        .getByTestId("security-case-impact-details")
+        .getByRole("heading", { name: "Records at risk", exact: true }),
+    ).toBeVisible();
     const runner: Locator = impact.getByTestId("security-case-impact-record");
     await expect(runner).toHaveCount(1);
     await expect(
@@ -4042,7 +4050,7 @@ test.describe("a case", () => {
       theme: "dark",
     });
     await impact
-      .getByRole("button", { name: "Show what is at risk", exact: true })
+      .getByRole("button", { name: "Show the records at risk", exact: true })
       .click({ timeout: 30000 });
     await expect(runner).toBeVisible();
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
@@ -4118,6 +4126,20 @@ test.describe("a case", () => {
     );
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "case-data-at-risk-desktop");
+
+    // On a phone, the identity's key stays beside its line as the line wraps.
+    await open(page, SPRAY_CASE_PATH, { width: 390, height: 844 });
+    const phoneIdentity: Locator = cardTitled(page, "Impact").getByTestId(
+      "security-case-impact-data-identity",
+    );
+
+    await expect(phoneIdentity).toBeVisible({ timeout: 30000 });
+    const keyBox: Box = await boxOf(phoneIdentity.locator("svg").first());
+    const lineBox: Box = await boxOf(phoneIdentity.getByRole("link"));
+
+    expect(Math.abs(keyBox.y - lineBox.y)).toBeLessThan(8);
+    expect(keyBox.x + keyBox.width).toBeLessThanOrEqual(lineBox.x + 1);
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
 
     // A case whose people reach no data says nothing of it.
     await open(page, DOMAIN_CASE_PATH);

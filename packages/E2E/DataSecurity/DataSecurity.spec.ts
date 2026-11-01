@@ -606,8 +606,14 @@ test.describe("German and Persian", () => {
  * ---------------------------------------------------------------------------
  */
 
+const PUBLIC_IDENTITY: string = "1a000000-0000-4000-8000-000000000001";
 const EXPORTER_IDENTITY: string = "1a000000-0000-4000-8000-000000000002";
+const LEGACY_IDENTITY: string = "1a000000-0000-4000-8000-000000000004";
+const SERVICE_IDENTITY: string = "1a000000-0000-4000-8000-000000000005";
 const IDENTITY_PATH: string = `${BASE}/access/${EXPORTER_IDENTITY}`;
+
+// What a monospace principal's computed font names: Tailwind's font-mono stack.
+const MONOSPACE: RegExp = /mono/i;
 
 // The identities list's rows: its body is the table's id with "-body".
 function identityRows(page: Page): Locator {
@@ -688,16 +694,68 @@ test.describe("who can reach the data", () => {
       page.getByTestId("data-security-identity-risk-score"),
     ).toBeVisible();
 
-    // Every store it reaches, and through what.
+    // Its principal reads as the identifier it is, in monospace.
+    const principal: Locator = page
+      .getByTestId("data-security-identity-about")
+      .locator("bdi.font-mono");
+
+    await expect(principal).toHaveText(
+      "arn:aws:iam::123456789012:role/finance-exporter",
+    );
+    expect(
+      await principal.evaluate((element: Element): string => {
+        return getComputedStyle(element).fontFamily;
+      }),
+    ).toMatch(MONOSPACE);
+
+    // When it was last used, and that it is inside the 90 days.
+    await expect(page.getByText("Used in the last 90 days")).toBeVisible();
+
+    // Every store it reaches, at what access level, and through what.
     const reach: Locator = page.getByTestId("data-security-identity-reach");
 
     await expect(reach).toContainText("customer-exports");
     await expect(reach).toContainText("Bucket policy");
     await expect(reach).toContainText("orders-db");
     await expect(reach).toContainText("IAM policy AmazonRDSReadOnlyAccess");
+    await expect(
+      reach.getByRole("columnheader", { name: "Access Level" }),
+    ).toBeVisible();
     await page.waitForLoadState("networkidle");
     expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
     await screenshot(page, "identity-1280");
+  });
+
+  test("an identity whose last use no cloud reports says so, and a service seen in traces opens its service", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Anyone on the internet: no cloud says when it last read the bucket.
+    await open(page, `${BASE}/access/${PUBLIC_IDENTITY}`);
+    await expect(
+      page.getByText("Its cloud does not say when it was last used"),
+    ).toBeVisible();
+    await expect(page.getByText("Unknown", { exact: true })).toBeVisible();
+
+    // A role nobody has used for months: its grant is marked where it is listed.
+    await open(page, `${BASE}/access/${LEGACY_IDENTITY}`);
+    await expect(
+      page.getByTestId("data-security-identity-reach-unused"),
+    ).toHaveText("Not used in 90 days");
+
+    // A service seen in traces: no id under its name, and a way to its service.
+    await open(page, `${BASE}/access/${SERVICE_IDENTITY}`);
+    await expect(
+      page.getByTestId("data-security-identity-about"),
+    ).not.toContainText("66666666-6666-4666-8666-666666666666");
+    await expect(
+      page.getByTestId("data-security-identity-service"),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/service/66666666-6666-4666-8666-666666666666`,
+    );
+    await screenshot(page, "identity-service-1280");
   });
 
   test("an account outside reaches the bucket through a role it may assume", async ({
@@ -713,7 +771,7 @@ test.describe("who can reach the data", () => {
 
     await expect(row).toContainText("Outside your accounts");
     await expect(row).toContainText(
-      "Can assume role vendor-reader, whose IAM policy AmazonS3ReadOnlyAccess",
+      "Can assume role vendor-reader: IAM policy AmazonS3ReadOnlyAccess",
     );
   });
 
@@ -754,13 +812,42 @@ test.describe("who can reach the data", () => {
         .getByTestId("data-store-access-unused"),
     ).toHaveText("Not used in 90 days");
     // Access in use is not marked.
-    await expect(
-      page
-        .locator("tbody tr")
-        .filter({ hasText: "checkout" })
-        .getByTestId("data-store-access-unused"),
-    ).toHaveCount(0);
+    const service: Locator = page
+      .locator("tbody tr")
+      .filter({ hasText: "checkout" });
+
+    await expect(service.getByTestId("data-store-access-unused")).toHaveCount(
+      0,
+    );
+    // A service seen in traces goes by its name: its id means nothing to a reader.
+    await expect(service).not.toContainText(
+      "66666666-6666-4666-8666-666666666666",
+    );
+
+    const legacy: Locator = page
+      .locator("tbody tr")
+      .filter({ hasText: "legacy-etl" });
+    // A role's ARN, under its name, in monospace.
+    const arn: Locator = legacy.locator("bdi.font-mono");
+
+    await expect(arn).toHaveText("arn:aws:iam::123456789012:role/legacy-etl");
+    expect(
+      await arn.evaluate((element: Element): string => {
+        return getComputedStyle(element).fontFamily;
+      }),
+    ).toMatch(MONOSPACE);
+    // Its access level is a pill, as on Access and an identity's page.
+    await expect(legacy.getByTestId("pill-text")).toContainText(["Read"]);
     await screenshot(page, "store-access-unused-1280");
+
+    // Each row opens its identity's page: what else it reaches.
+    await rowAction(page, legacy, "View");
+    await expect(page).toHaveURL(
+      new RegExp(`${escapeRegExp(`${BASE}/access/${LEGACY_IDENTITY}`)}$`),
+    );
+    await expect(
+      page.getByTestId("data-security-identity-about"),
+    ).toContainText("arn:aws:iam::123456789012:role/legacy-etl");
   });
 
   test("a new project's Access says nothing reaches its stores yet", async ({
@@ -805,8 +892,11 @@ test.describe("OneUptime AI's suggestions on What's Inside", () => {
     const suggested: Locator = findingRow(page, "geb_datum");
 
     await expect(suggested).toContainText("Date of birth");
-    await expect(suggested).toContainText("Suggested by OneUptime AI");
-    await expect(suggested).toContainText("Low confidence");
+    // OneUptime AI's on a line of its own: being its suggestion says it is unsure.
+    await expect(
+      suggested.getByTestId("data-store-finding-ai-suggestion"),
+    ).toContainText("Suggested by OneUptime AI");
+    await expect(suggested).not.toContainText("Low confidence");
     await expect(
       suggested.getByTestId("data-store-finding-ai-reason"),
     ).toHaveText(
