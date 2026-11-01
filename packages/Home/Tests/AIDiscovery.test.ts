@@ -393,6 +393,64 @@ describe("AIDiscovery", () => {
     ).toContain("Canonical page: https://oneuptime.com/product/queues");
   });
 
+  test("the OpenShift page is listed for machines as a solution, never a product", () => {
+    const txt: string = generateLlmsTxt(homeUrl, []);
+    const productsSection: string = txt.slice(
+      txt.indexOf("## Products"),
+      txt.indexOf("## Solutions"),
+    );
+    const solutionsSection: string = txt.slice(
+      txt.indexOf("## Solutions"),
+      txt.indexOf("## Industries"),
+    );
+
+    expect(productsSection.length).toBeGreaterThan(0);
+    expect(solutionsSection).toContain(
+      "- [OpenShift Monitoring](https://oneuptime.com/product/openshift.md): ",
+    );
+    expect(productsSection).not.toContain("/product/openshift");
+
+    const products: Array<JSONObject> = generateProductsJson(homeUrl)[
+      "products"
+    ] as Array<JSONObject>;
+
+    expect(products.length).toBeGreaterThan(20);
+    expect(
+      products.filter((product: JSONObject): boolean => {
+        return product["url"] === "https://oneuptime.com/product/openshift";
+      }),
+    ).toEqual([]);
+  });
+
+  test("the Kubernetes product tells machines about OpenShift", () => {
+    const products: Array<JSONObject> = generateProductsJson(homeUrl)[
+      "products"
+    ] as Array<JSONObject>;
+    const kubernetes: JSONObject | undefined = products.find(
+      (product: JSONObject): boolean => {
+        return product["url"] === "https://oneuptime.com/product/kubernetes";
+      },
+    );
+
+    expect(kubernetes!["features"] as Array<string>).toContain(
+      "OpenShift Container Platform, ROSA, ARO and OKD clusters",
+    );
+  });
+
+  test("the OpenShift page's Markdown is generated from its PageSEO entry", () => {
+    const md: string = generatePageMarkdown(
+      PageSEOConfig["/product/openshift"]!,
+      homeUrl,
+    );
+
+    expect(md).toContain("# OpenShift Monitoring");
+    expect(md).toContain(
+      "Canonical page: https://oneuptime.com/product/openshift",
+    );
+    // No softwareApplication: it is no product, so it has no feature list.
+    expect(md).not.toContain("## Features");
+  });
+
   test("llms.txt lists the enterprise pages and the claims matrix", () => {
     const txt: string = generateLlmsTxt(homeUrl, []);
 

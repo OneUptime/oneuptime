@@ -160,6 +160,24 @@ describe("SelfHosted content model", () => {
     }
   });
 
+  test("OpenShift is no agent of its own: the Kubernetes agent covers it", () => {
+    /*
+     * The sentence above lists agents, and OpenShift clusters run the
+     * Kubernetes agent with its openshift preset. Naming OpenShift there
+     * would promise an agent that does not exist.
+     */
+    const agents: ArchitectureComponent | undefined = ArchitectureTiers.flatMap(
+      (tier: ArchitectureTier) => {
+        return tier.components;
+      },
+    ).find((component: ArchitectureComponent) => {
+      return component.name === "Agents";
+    });
+
+    expect(agents!.description).toContain("Kubernetes");
+    expect(agents!.description).not.toContain("OpenShift");
+  });
+
   test("sizing tiers go from evaluation to scale and each is fully specified", () => {
     expect(
       SizingTiers.map((tier: SizingTier) => {
