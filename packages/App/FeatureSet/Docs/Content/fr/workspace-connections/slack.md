@@ -278,6 +278,10 @@ Les boutons des messages Slack de OneUptime agissent eux aussi en votre nom : en
 - **Où vous recevez la réponse.** Sous le message qui porte le bouton, dans un message que vous seul voyez ; par message direct seulement si Slack le refuse. Un bouton pressé trop tard dit qui est passé avant vous, et quand, par exemple "Incident INC-2 was already acknowledged by Simon Lee at 6:07 PM."
 - **Si votre compte Slack n'est pas connecté.** La réponse vous demande de le connecter, avec un bouton **Connect Slack account**. Le bouton ouvre vos propres paramètres Slack dans OneUptime et connecte votre compte en une étape, après vous être connecté à OneUptime si besoin. OneUptime termine ensuite ce que vous avez pressé, en votre nom, et répond sous le même message ; pour un bouton qui ouvre un formulaire, ou une commande, il vous demande de le presser ou de la relancer. Le bouton fonctionne une fois, pendant 30 minutes, et seulement pour le compte Slack qui l'a pressé : connecté à Slack sous le nom de quelqu'un d'autre, il ne connecte rien.
 
+## Approuver un correctif proposé par OneUptime AI
+
+Un correctif que OneUptime AI propose à l'approbation est publié dans les canaux de l'incident ou de l'alerte avec ses changements et trois boutons. **Review and approve** ouvre tout ce que le correctif exécute, avec **Approve and run**, qui exécute exactement cela, en votre nom. **Dismiss** rejette le correctif, et **View in OneUptime** ouvre l'incident ou l'alerte. Ils agissent en votre nom, comme chaque bouton des messages Slack de OneUptime : l'approbation exige le droit d'approuver des correctifs dans le projet et, pour un correctif sur un cluster ou une ressource, de le modifier. Un correctif qui a changé après la publication de son message est refusé, et rien ne s'exécute. Voir [Approuver ou rejeter un correctif depuis Slack ou Microsoft Teams](/docs/ai/ai-sre#approuver-ou-rejeter-un-correctif-depuis-slack-ou-microsoft-teams).
+
 ## Déconnecter
 
 - **Déconnecter** ne dissocie que votre propre compte Slack, et retire avec lui votre méthode de notification Slack.
