@@ -1,7 +1,7 @@
 import ExceptionInstance from "../../../Models/AnalyticsModels/ExceptionInstance";
+import { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import Project from "../../../Models/DatabaseModels/Project";
 import Service from "../../../Models/DatabaseModels/Service";
-import { DEFAULT_RETENTION_IN_DAYS } from "../../../Models/DatabaseModels/TelemetryUsageBilling";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../Types/JSON";
@@ -20,6 +20,7 @@ import ExceptionMonitorResponse, {
   ExceptionLearnedBaseline,
 } from "../../../Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
+import { resolveTelemetryRetentionInDays } from "../../../Types/Telemetry/TelemetryRetentionConfig";
 import GlobalCache from "../../Infrastructure/GlobalCache";
 import ExceptionInstanceService from "../../Services/ExceptionInstanceService";
 import ProjectService from "../../Services/ProjectService";
@@ -181,6 +182,37 @@ export default class ExceptionLearnedBaselineUtil {
         end: new Date(end),
         windowCount: Math.round((end - start) / windowInMs),
       });
+    }
+
+    return weeks;
+  }
+
+  /*
+   * The part of each earlier week the monitor's history reaches, in whole
+   * windows. A week before it begins is left out. One that reaches past it
+   * is cut, not dropped: the three windows of a 24-hour rule reach 15 days
+   * and more back, past the 15 OneUptime keeps by default, and dropping them
+   * would leave that rule learning for good.
+   */
+  public static getWeeksOfHistory(data: {
+    weeks: Array<ExceptionBaselineWeek>;
+    historyStart: Date;
+    windowSeconds: number;
+  }): Array<ExceptionBaselineWeek> {
+    const windowInMs: number = data.windowSeconds * 1000;
+    const firstWindow: number =
+      Math.ceil(data.historyStart.getTime() / windowInMs) * windowInMs;
+    const weeks: Array<ExceptionBaselineWeek> = [];
+
+    for (const week of data.weeks) {
+      const start: number = Math.max(week.start.getTime(), firstWindow);
+      const windowCount: number = Math.round(
+        (week.end.getTime() - start) / windowInMs,
+      );
+
+      if (windowCount > 0) {
+        weeks.push({ ...week, start: new Date(start), windowCount });
+      }
     }
 
     return weeks;
@@ -421,11 +453,12 @@ export default class ExceptionLearnedBaselineUtil {
         now: data.windowEnd,
       });
 
-    const weeksOfHistory: Array<ExceptionBaselineWeek> = weeks.filter(
-      (week: ExceptionBaselineWeek) => {
-        return week.start.getTime() >= historyStart.getTime();
-      },
-    );
+    const weeksOfHistory: Array<ExceptionBaselineWeek> =
+      ExceptionLearnedBaselineUtil.getWeeksOfHistory({
+        weeks,
+        historyStart,
+        windowSeconds: data.windowSeconds,
+      });
 
     const baseline: ExceptionLearnedBaseline =
       ExceptionLearnedBaselineUtil.summarize({
@@ -462,8 +495,9 @@ export default class ExceptionLearnedBaselineUtil {
    * services existed - the oldest of them, since exceptions of a service
    * added later are a real change to the count - and no earlier than
    * OneUptime still holds them, by the shortest retention among them, as a
-   * week that has expired reads as a week without exceptions. A monitor
-   * without services watches its whole project.
+   * week that has expired reads as a week without exceptions. Retention is
+   * resolved as ingest stamps an exception: under traces, as the error span
+   * it was recorded on. A monitor without services watches its whole project.
    */
   private static async getHistoryStart(data: {
     projectId: ObjectID;
@@ -472,12 +506,26 @@ export default class ExceptionLearnedBaselineUtil {
   }): Promise<Date> {
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
-      select: { createdAt: true, defaultTelemetryRetentionInDays: true },
+      select: {
+        createdAt: true,
+        defaultTelemetryRetentionInDays: true,
+        telemetryRetentionConfig: true,
+      },
       props: { isRoot: true },
     });
 
-    const projectRetentionInDays: number =
-      project?.defaultTelemetryRetentionInDays || DEFAULT_RETENTION_IN_DAYS;
+    const getRetentionInDays: (service: Service | undefined) => number = (
+      service: Service | undefined,
+    ): number => {
+      return resolveTelemetryRetentionInDays({
+        pillar: "traces",
+        bucketKey: SpanStatus.Error,
+        serviceConfig: service?.telemetryRetentionConfig,
+        serviceRetentionInDays: service?.retainTelemetryDataForDays,
+        projectConfig: project?.telemetryRetentionConfig,
+        projectRetentionInDays: project?.defaultTelemetryRetentionInDays,
+      });
+    };
 
     const services: Array<Service> =
       data.telemetryServiceIds.length > 0
@@ -486,7 +534,11 @@ export default class ExceptionLearnedBaselineUtil {
               projectId: data.projectId,
               _id: new Includes(data.telemetryServiceIds),
             },
-            select: { createdAt: true, retainTelemetryDataForDays: true },
+            select: {
+              createdAt: true,
+              retainTelemetryDataForDays: true,
+              telemetryRetentionConfig: true,
+            },
             skip: 0,
             limit: data.telemetryServiceIds.length,
             props: { isRoot: true },
@@ -495,14 +547,8 @@ export default class ExceptionLearnedBaselineUtil {
 
     const retentionInDays: number =
       services.length > 0
-        ? Math.min(
-            ...services.map((service: Service): number => {
-              return (
-                service.retainTelemetryDataForDays || projectRetentionInDays
-              );
-            }),
-          )
-        : projectRetentionInDays;
+        ? Math.min(...services.map(getRetentionInDays))
+        : getRetentionInDays(undefined);
 
     const existedSince: Array<number> = (
       services.length > 0 ? services : [project]

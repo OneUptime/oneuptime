@@ -557,8 +557,9 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     sensitivity: "Low" | "Medium" | "High",
   ): number {
     return (
-      ANOMALY_SIGMA_BY_SENSITIVITY[sensitivity as AnomalyDetectionSensitivity] ??
-      ANOMALY_SIGMA_BY_SENSITIVITY[AnomalyDetectionSensitivity.Medium]
+      ANOMALY_SIGMA_BY_SENSITIVITY[
+        sensitivity as AnomalyDetectionSensitivity
+      ] ?? ANOMALY_SIGMA_BY_SENSITIVITY[AnomalyDetectionSensitivity.Medium]
     );
   }
 

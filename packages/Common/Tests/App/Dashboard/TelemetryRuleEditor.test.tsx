@@ -495,7 +495,11 @@ describe("When to alert, for a Logs monitor", () => {
     );
   });
 
-  test.each(["New exceptions", "Exceptions that came back", "A rise over the usual"])(
+  test.each([
+    "New exceptions",
+    "Exceptions that came back",
+    "A rise over the usual",
+  ])(
     "%s has no baseline, so it offers no unusual conditions",
     (measure: string) => {
       renderEditor({
@@ -584,7 +588,10 @@ describe("When to alert, for a Logs monitor", () => {
     [TelemetryRuleRecipeKey.AnyException],
     [TelemetryRuleRecipeKey.NewException],
   ])("a %s rule has no such fold", (key: TelemetryRuleRecipeKey) => {
-    renderEditor({ monitorType: MonitorType.Exceptions, initial: recipeStep(key) });
+    renderEditor({
+      monitorType: MonitorType.Exceptions,
+      initial: recipeStep(key),
+    });
 
     expect(
       screen.queryByTestId("telemetry-rule-anomaly-more-fields"),

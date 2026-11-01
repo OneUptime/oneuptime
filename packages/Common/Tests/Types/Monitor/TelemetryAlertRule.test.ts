@@ -4,6 +4,7 @@ import {
   AnomalyDetectionSensitivity,
   CheckOn,
   CriteriaFilter,
+  MetricAnomalyDetectionOptions,
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
@@ -359,23 +360,26 @@ describe("The comparisons the rule editor offers", () => {
     CheckOn.NewExceptionCount,
     CheckOn.RegressedExceptionCount,
     CheckOn.ExceptionCountIncreasePercent,
-  ])("%s has no baseline, so a rule on it has no anomaly condition", (measure: CheckOn) => {
-    expect(
-      TelemetryAlertRuleUtil.getComparisons({
-        monitorType: MonitorType.Exceptions,
-        measure,
-      }),
-    ).toEqual([
-      FilterType.GreaterThan,
-      FilterType.GreaterThanOrEqualTo,
-      FilterType.LessThan,
-      FilterType.LessThanOrEqualTo,
-      FilterType.EqualTo,
-    ]);
-    expect(
-      TelemetryAlertRuleUtil.supportsAnomaly(MonitorType.Exceptions, measure),
-    ).toBe(false);
-  });
+  ])(
+    "%s has no baseline, so a rule on it has no anomaly condition",
+    (measure: CheckOn) => {
+      expect(
+        TelemetryAlertRuleUtil.getComparisons({
+          monitorType: MonitorType.Exceptions,
+          measure,
+        }),
+      ).toEqual([
+        FilterType.GreaterThan,
+        FilterType.GreaterThanOrEqualTo,
+        FilterType.LessThan,
+        FilterType.LessThanOrEqualTo,
+        FilterType.EqualTo,
+      ]);
+      expect(
+        TelemetryAlertRuleUtil.supportsAnomaly(MonitorType.Exceptions, measure),
+      ).toBe(false);
+    },
+  );
 
   test("an anomaly condition on the exception count reads as a rule, and one on another measure does not", () => {
     const step: MonitorStep = defaultStep(MonitorType.Exceptions);
@@ -1673,6 +1677,77 @@ describe("Writing a rule back", () => {
         MonitorType.Logs,
       ),
     ).toBeNull();
+  });
+});
+
+describe("an exception spike rule, as a form saves it", () => {
+  test("is valid criteria, with no number to ask for", () => {
+    const step: MonitorStep = defaultStep(MonitorType.Exceptions);
+    const written: MonitorStep = TelemetryAlertRuleUtil.write({
+      monitorType: MonitorType.Exceptions,
+      monitorStep: step,
+      rule: {
+        ...ruleOf(MonitorType.Exceptions, step),
+        filterType: FilterType.AnomalouslyHigh,
+        threshold: undefined,
+        anomalyDetection: { sensitivity: AnomalyDetectionSensitivity.Medium },
+      },
+    });
+
+    expect(
+      MonitorCriteria.getValidationError(
+        written.data!.monitorCriteria!,
+        MonitorType.Exceptions,
+      ),
+    ).toBeNull();
+  });
+
+  test("a rule on a measure with a number still asks for one", () => {
+    const step: MonitorStep = defaultStep(MonitorType.Exceptions);
+    const written: MonitorStep = TelemetryAlertRuleUtil.write({
+      monitorType: MonitorType.Exceptions,
+      monitorStep: step,
+      rule: {
+        ...ruleOf(MonitorType.Exceptions, step),
+        measure: CheckOn.NewExceptionCount,
+        filterType: FilterType.GreaterThan,
+        threshold: undefined,
+      },
+    });
+
+    expect(
+      MonitorCriteria.getValidationError(
+        written.data!.monitorCriteria!,
+        MonitorType.Exceptions,
+      ),
+    ).not.toBeNull();
+  });
+
+  test("its settings survive a save and a reload", () => {
+    const step: MonitorStep = defaultStep(MonitorType.Exceptions);
+    const anomalyDetection: MetricAnomalyDetectionOptions = {
+      sensitivity: AnomalyDetectionSensitivity.High,
+      windowDays: 60,
+      sigmaCount: 2.5,
+      minimumCount: 4,
+    };
+    const written: MonitorStep = TelemetryAlertRuleUtil.write({
+      monitorType: MonitorType.Exceptions,
+      monitorStep: step,
+      rule: {
+        ...ruleOf(MonitorType.Exceptions, step),
+        filterType: FilterType.AnomalouslyHigh,
+        threshold: undefined,
+        anomalyDetection,
+      },
+    });
+    const reloaded: MonitorStep = MonitorStep.fromJSON(
+      JSON.parse(JSON.stringify(written.toJSON())),
+    );
+
+    expect(ruleOf(MonitorType.Exceptions, reloaded).anomalyDetection).toEqual(
+      anomalyDetection,
+    );
   });
 });
 

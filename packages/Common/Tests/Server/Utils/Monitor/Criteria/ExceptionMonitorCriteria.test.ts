@@ -159,7 +159,9 @@ describe("ExceptionMonitorCriteria: the count against the learned baseline", () 
     };
 
     expect(await judge(14, at(AnomalyDetectionSensitivity.Low))).toBeNull();
-    expect(await judge(14, at(AnomalyDetectionSensitivity.Medium))).toBeTruthy();
+    expect(
+      await judge(14, at(AnomalyDetectionSensitivity.Medium)),
+    ).toBeTruthy();
     expect(await judge(14, at(AnomalyDetectionSensitivity.High))).toBeTruthy();
   });
 

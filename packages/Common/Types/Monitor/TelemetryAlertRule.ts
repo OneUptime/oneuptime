@@ -304,7 +304,9 @@ export default class TelemetryAlertRuleUtil {
   }): Array<FilterType> {
     const comparisons: Array<FilterType> = [...STATIC_COMPARISONS];
 
-    if (TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType, data.measure)) {
+    if (
+      TelemetryAlertRuleUtil.supportsAnomaly(data.monitorType, data.measure)
+    ) {
       comparisons.push(...ANOMALY_COMPARISONS);
     }
 

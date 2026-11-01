@@ -1467,11 +1467,11 @@ describe("criteria", () => {
       "Until a service has two weeks of history, the criteria is still learning and does not fire, however many exceptions it throws. History only reaches as far back as OneUptime keeps exceptions: 15 days unless you changed it",
     );
 
-    const recipe: TelemetryRuleRecipe = getRecipes(
-      MonitorType.Exceptions,
-    ).find((candidate: TelemetryRuleRecipe): boolean => {
-      return candidate.title === "Exceptions spike";
-    }) as TelemetryRuleRecipe;
+    const recipe: TelemetryRuleRecipe = getRecipes(MonitorType.Exceptions).find(
+      (candidate: TelemetryRuleRecipe): boolean => {
+        return candidate.title === "Exceptions spike";
+      },
+    ) as TelemetryRuleRecipe;
 
     expect(recipe.filterType).toBe(FilterType.AnomalouslyHigh);
     expect(recipe.anomalyDetection?.sensitivity).toBe(

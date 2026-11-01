@@ -971,12 +971,12 @@ describe("ExceptionMonitorMeasureReader.read: the learned baseline", () => {
   beforeEach(() => {
     reads = [];
 
-    jest
-      .spyOn(ExceptionLearnedBaselineUtil, "read")
-      .mockImplementation((async (data: BaselineRead) => {
-        reads.push(data);
-        return baselineOf(data.windowDays);
-      }) as never);
+    jest.spyOn(ExceptionLearnedBaselineUtil, "read").mockImplementation((async (
+      data: BaselineRead,
+    ) => {
+      reads.push(data);
+      return baselineOf(data.windowDays);
+    }) as never);
   });
 
   test("a plain count reads no baseline", async () => {
@@ -1077,15 +1077,15 @@ describe("ExceptionMonitorMeasureReader.read: the learned baseline", () => {
       return undefined;
     }) as never);
 
-    jest
-      .spyOn(ExceptionLearnedBaselineUtil, "read")
-      .mockImplementation((async (data: BaselineRead) => {
-        if (data.windowDays === 28) {
-          throw new Error("timed out");
-        }
+    jest.spyOn(ExceptionLearnedBaselineUtil, "read").mockImplementation((async (
+      data: BaselineRead,
+    ) => {
+      if (data.windowDays === 28) {
+        throw new Error("timed out");
+      }
 
-        return baselineOf(data.windowDays);
-      }) as never);
+      return baselineOf(data.windowDays);
+    }) as never);
 
     const measures: ExceptionMonitorMeasures = await readStep(
       anomalyStep([undefined, { windowDays: 28 }]),

@@ -285,12 +285,12 @@ describe("an anomaly condition on the exception count", () => {
 
   test("each sensitivity reads the numbers every anomaly condition shares", () => {
     for (const sensitivity of Object.values(AnomalyDetectionSensitivity)) {
-      expect(
-        getExceptionAnomalySettings({ sensitivity }).sigmaCount,
-      ).toBe(ANOMALY_SIGMA_BY_SENSITIVITY[sensitivity]);
-      expect(
-        getExceptionAnomalySettings({ sensitivity }).minimumCount,
-      ).toBe(EXCEPTION_ANOMALY_MINIMUM_COUNT[sensitivity]);
+      expect(getExceptionAnomalySettings({ sensitivity }).sigmaCount).toBe(
+        ANOMALY_SIGMA_BY_SENSITIVITY[sensitivity],
+      );
+      expect(getExceptionAnomalySettings({ sensitivity }).minimumCount).toBe(
+        EXCEPTION_ANOMALY_MINIMUM_COUNT[sensitivity],
+      );
     }
   });
 

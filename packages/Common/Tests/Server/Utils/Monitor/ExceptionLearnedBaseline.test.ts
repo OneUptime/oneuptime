@@ -20,6 +20,7 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import ServiceService from "../../../../Server/Services/ServiceService";
 import AnalyticsQuery from "../../../../Server/Types/AnalyticsDatabase/Query";
 import ExceptionInstance from "../../../../Models/AnalyticsModels/ExceptionInstance";
+import { SpanStatus } from "../../../../Models/AnalyticsModels/Span";
 import Project from "../../../../Models/DatabaseModels/Project";
 import Service from "../../../../Models/DatabaseModels/Service";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
@@ -256,6 +257,85 @@ describe("the earlier weeks a baseline reads", () => {
   test("a window of a week or more has no earlier week of its own", () => {
     expect(weeksOf({ windowSeconds: 7 * 24 * 60 * 60 })).toEqual([]);
     expect(weeksOf({ windowSeconds: 30 * 24 * 60 * 60 })).toEqual([]);
+  });
+});
+
+describe("the part of each earlier week the history reaches", () => {
+  const weeksOf: (windowSeconds: number) => Array<ExceptionBaselineWeek> = (
+    windowSeconds: number,
+  ): Array<ExceptionBaselineWeek> => {
+    return ExceptionLearnedBaselineUtil.getWeeks({
+      windowStart: new Date(WINDOW_END.getTime() - windowSeconds * SECOND),
+      windowEnd: WINDOW_END,
+      windowSeconds,
+      windowDays: 14,
+    });
+  };
+
+  const held: (
+    windowSeconds: number,
+    historyStart: Date,
+  ) => Array<ExceptionBaselineWeek> = (
+    windowSeconds: number,
+    historyStart: Date,
+  ): Array<ExceptionBaselineWeek> => {
+    return ExceptionLearnedBaselineUtil.getWeeksOfHistory({
+      weeks: weeksOf(windowSeconds),
+      historyStart,
+      windowSeconds,
+    });
+  };
+
+  test("a week wholly after it begins is read whole", () => {
+    expect(held(WINDOW_SECONDS, ago(100 * DAY))).toEqual(
+      weeksOf(WINDOW_SECONDS),
+    );
+  });
+
+  test("a week wholly before it is left out", () => {
+    expect(held(WINDOW_SECONDS, ago(9 * DAY))).toEqual([
+      weeksOf(WINDOW_SECONDS)[0],
+    ]);
+    expect(held(WINDOW_SECONDS, ago(3 * DAY))).toEqual([]);
+  });
+
+  test("a week it begins in is cut to its whole windows", () => {
+    // 09:20 two weeks back: the hour's two last windows are held whole.
+    const [first, second]: Array<ExceptionBaselineWeek> = held(
+      WINDOW_SECONDS,
+      new Date("2026-10-19T09:20:00.000Z"),
+    );
+
+    expect(first).toEqual(weeksOf(WINDOW_SECONDS)[0]);
+    expect(second).toEqual({
+      weeksBack: 2,
+      start: new Date("2026-10-19T09:30:00.000Z"),
+      end: new Date("2026-10-19T10:00:00.000Z"),
+      windowCount: 2,
+    });
+  });
+
+  test("a week of which no whole window is held is left out", () => {
+    expect(
+      held(WINDOW_SECONDS, new Date("2026-10-19T09:50:00.000Z")),
+    ).toHaveLength(1);
+  });
+
+  /*
+   * Found against a real ClickHouse server. A 24-hour rule reads three days
+   * around each earlier week, so the second reaches 15.5 days back: dropped
+   * whole for reaching past the 15 days kept by default, it left every
+   * 24-hour rule learning for good.
+   */
+  test("every window the form offers has two weeks under the default retention", () => {
+    for (const windowSeconds of [
+      5, 10, 30, 60, 300, 600, 900, 1800, 3600, 21600, 43200, 86400,
+    ]) {
+      expect({
+        windowSeconds,
+        weeks: held(windowSeconds, ago(15 * DAY)).length,
+      }).toEqual({ windowSeconds, weeks: 2 });
+    }
   });
 });
 
@@ -785,8 +865,7 @@ describe("judge: how often it alerts on seeded services", () => {
 
       if (
         stateOf(count, weeks, {
-          sensitivity:
-            data.sensitivity || AnomalyDetectionSensitivity.Medium,
+          sensitivity: data.sensitivity || AnomalyDetectionSensitivity.Medium,
         }) === ExceptionAnomalyState.Anomalous
       ) {
         alerts++;
@@ -820,9 +899,7 @@ describe("judge: how often it alerts on seeded services", () => {
   });
 
   test("a burst is caught on a quiet service", () => {
-    expect(
-      trial({ seed: 61, mean: 0.5, multiplier: 60 }),
-    ).toBeGreaterThan(0.9);
+    expect(trial({ seed: 61, mean: 0.5, multiplier: 60 })).toBeGreaterThan(0.9);
   });
 
   test("Low is quieter than Medium, and High is louder", () => {
@@ -1025,17 +1102,19 @@ describe("read: from the monitor's own query", () => {
     time: new InBetween(WINDOW_START, WINDOW_END),
   };
 
+  type ReadOverrides = Partial<{
+    telemetryServiceIds: Array<ObjectID> | undefined;
+    countQuery: AnalyticsQuery<ExceptionInstance>;
+    windowEnd: Date;
+    windowStart: Date;
+    windowSeconds: number;
+    windowDays: number;
+  }>;
+
   const read: (
-    overrides?: Partial<{
-      telemetryServiceIds: Array<ObjectID> | undefined;
-      countQuery: AnalyticsQuery<ExceptionInstance>;
-      windowEnd: Date;
-      windowStart: Date;
-      windowSeconds: number;
-      windowDays: number;
-    }>,
+    overrides?: ReadOverrides,
   ) => Promise<ExceptionLearnedBaseline> = async (
-    overrides = {},
+    overrides: ReadOverrides = {},
   ): Promise<ExceptionLearnedBaseline> => {
     return await ExceptionLearnedBaselineUtil.read({
       projectId: PROJECT_ID,
@@ -1359,13 +1438,77 @@ describe("read: from the monitor's own query", () => {
     expect((await read({ windowDays: 28 })).weeksOfHistory).toBe(4);
   });
 
+  /*
+   * An exception is stamped with retention under traces, as the error span
+   * it was recorded on (OtelTracesIngestService.buildExceptionRow). A bound
+   * read any other way takes weeks that have expired for quiet ones.
+   */
+  test("the retention of traces is the one that keeps exceptions", async () => {
+    service = serviceOf({ createdAt: ago(365 * DAY) });
+    service.telemetryRetentionConfig = { traces: { default: 60 } };
+
+    expect((await read({ windowDays: 28 })).weeksOfHistory).toBe(4);
+
+    cache.clear();
+    service.telemetryRetentionConfig = { traces: { default: 21 } };
+
+    expect((await read({ windowDays: 28 })).weeksOfHistory).toBe(3);
+  });
+
+  test("the retention of an error span comes first, as it does for the exception", async () => {
+    service = serviceOf({ createdAt: ago(365 * DAY) });
+    service.telemetryRetentionConfig = {
+      traces: { default: 60, byStatus: { [SpanStatus.Error]: 22 } },
+    };
+
+    expect((await read({ windowDays: 28 })).weeksOfHistory).toBe(3);
+  });
+
+  test("the project's retention of traces applies to a service without its own", async () => {
+    project!.telemetryRetentionConfig = { traces: { default: 60 } };
+
+    expect((await read({ windowDays: 28 })).weeksOfHistory).toBe(4);
+  });
+
   test("a retention too short for two weeks keeps learning, rather than taking expired weeks for quiet ones", async () => {
     service = serviceOf({
       createdAt: ago(365 * DAY),
       retainTelemetryDataForDays: 7,
     });
 
-    expect((await read()).weeksOfHistory).toBe(0);
+    const baseline: ExceptionLearnedBaseline = await read();
+
+    expect(baseline.weeksOfHistory).toBeLessThan(2);
+    expect(
+      ExceptionLearnedBaselineUtil.judge({
+        count: 100000,
+        baseline,
+        filterType: FilterType.AnomalouslyHigh,
+        options: undefined,
+      }).state,
+    ).toBe(ExceptionAnomalyState.Learning);
+  });
+
+  test("a 24-hour rule reads what is kept of its second week, and can alert", async () => {
+    const windowSeconds: number = 24 * 60 * 60;
+
+    const baseline: ExceptionLearnedBaseline = await read({
+      windowSeconds,
+      windowStart: new Date(WINDOW_END.getTime() - windowSeconds * SECOND),
+    });
+
+    expect(baseline.weeksOfHistory).toBe(2);
+
+    for (const windowRead of windowReads) {
+      expect(
+        (windowRead.query.time as InBetween<Date>).startValue as Date,
+      ).not.toBeUndefined();
+      expect(
+        (
+          (windowRead.query.time as InBetween<Date>).startValue as Date
+        ).getTime(),
+      ).toBeGreaterThanOrEqual(ago(15 * DAY).getTime());
+    }
   });
 
   test("several services: history starts with the oldest, and reaches as far as the shortest retention", async () => {
