@@ -749,7 +749,7 @@ const RumApplicationUserFlows: FunctionComponent<
             to={usersRoute}
             className="text-sm font-medium text-indigo-700 hover:underline"
           >
-            {translator.translateText("Browse Replay Users")}
+            {translator.translateTemplate("Browse Replay Users")}
           </AppLink>
         }
       />

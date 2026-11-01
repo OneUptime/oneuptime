@@ -169,7 +169,7 @@ export const UserFlowPersonBar: FunctionComponent<BarProps> = (
                 className="font-medium text-indigo-700 hover:underline"
                 dataTestId="user-flow-person-sessions"
               >
-                {translator.translateText("Open in session list")}
+                {translator.translateTemplate("Open in session list")}
               </AppLink>
             ) : (
               <></>
