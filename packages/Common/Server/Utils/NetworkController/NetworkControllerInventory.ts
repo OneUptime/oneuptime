@@ -210,7 +210,7 @@ interface CandidateIdentity {
   serial: string;
   // The MACs it is known by: typed, or an ARP table's.
   macs: Array<string>;
-  // One of its own ports, which its poll read. "" until a poll has.
+  // One of its own ports, which its poll or a scan read. "" until one has.
   ownMac: string;
   names: Set<string>;
   address: string;
@@ -253,7 +253,9 @@ function identityOf(
     serial: toSerialKey(candidate.serialNumber),
     macs: macs,
     ownMac:
-      details.values[NetworkDeviceDiscoveredField.OwnMacAddress]?.value || "",
+      details.values[NetworkDeviceDiscoveredField.OwnMacAddress]?.value ||
+      details.values[NetworkDeviceDiscoveredField.ScannedMacAddress]?.value ||
+      "",
     names: names,
     address: IP.isIP(address) ? address : "",
     details: details,

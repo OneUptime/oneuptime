@@ -38,6 +38,11 @@ import { normalizeReverseDnsName } from "../../Utils/NetworkDiscovery/ReverseDns
  * each fact came from; when a value someone saved disagrees with what
  * discovery read, both are shown.
  *
+ * WHAT A SCAN READS. After the system group, a scan reads a host that answered
+ * it once more, for its own MAC, model, serial number and firmware (issue
+ * #5384's follow-up): the details a device with no SNMP credentials of its own
+ * cannot get from a poll.
+ *
  * FLAT, ON PURPOSE. Each entry is a top-level key of the jsonb column, so the
  * four writers - the discovery engine (scan results), the ARP learner (MACs),
  * the poll pipeline (resolved addresses and the device's own MAC) and a
@@ -78,6 +83,21 @@ export enum NetworkDeviceDiscoveredField {
    * ARP table's MAC contradicts neither.
    */
   OwnMacAddress = "ownMacAddress",
+  /*
+   * The same reading, by a discovery scan's follow-up read of a host that
+   * answered its SNMP query, for a device nothing walks. A key of its own, not
+   * a second reader of the one above: each key has one writer (see FLAT above),
+   * and the poll writes its key only when the value changes, so a scan sharing
+   * it would keep replacing a walked device's reading with an older one, and a
+   * poll that picks another port among more interfaces would keep replacing the
+   * scan's.
+   */
+  ScannedMacAddress = "scannedMacAddress",
+  // What the same follow-up read: ENTITY-MIB's chassis row, or the vendor's MIB.
+  Model = "model",
+  SerialNumber = "serialNumber",
+  FirmwareVersion = "firmwareVersion",
+  SoftwareVersion = "softwareVersion",
 }
 
 // How a value was read.
@@ -259,6 +279,11 @@ export const NETWORK_DEVICE_DISCOVERED_FIELDS: ReadonlyArray<NetworkDeviceDiscov
     NetworkDeviceDiscoveredField.MacAddress,
     NetworkDeviceDiscoveredField.IpAddress,
     NetworkDeviceDiscoveredField.OwnMacAddress,
+    NetworkDeviceDiscoveredField.ScannedMacAddress,
+    NetworkDeviceDiscoveredField.Model,
+    NetworkDeviceDiscoveredField.SerialNumber,
+    NetworkDeviceDiscoveredField.FirmwareVersion,
+    NetworkDeviceDiscoveredField.SoftwareVersion,
   ];
 
 // The SNMP system group: the fields a discovery scan's SNMP query reads.
@@ -269,6 +294,22 @@ export const NETWORK_DEVICE_DISCOVERED_SNMP_FIELDS: ReadonlyArray<NetworkDeviceD
     NetworkDeviceDiscoveredField.SystemObjectId,
     NetworkDeviceDiscoveredField.SystemLocation,
     NetworkDeviceDiscoveredField.SystemContact,
+  ];
+
+/*
+ * What a scan reads next from a host that answered that query
+ * (SnmpHardwareIdentity). A list apart from the one above because a missing
+ * value means something else: the system group is read whole, so a field it
+ * lacks is empty on the device, while this read is best-effort and an older
+ * probe does not make it at all, so a field missing here says nothing.
+ */
+export const NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS: ReadonlyArray<NetworkDeviceDiscoveredField> =
+  [
+    NetworkDeviceDiscoveredField.ScannedMacAddress,
+    NetworkDeviceDiscoveredField.Model,
+    NetworkDeviceDiscoveredField.SerialNumber,
+    NetworkDeviceDiscoveredField.FirmwareVersion,
+    NetworkDeviceDiscoveredField.SoftwareVersion,
   ];
 
 /*
@@ -297,6 +338,15 @@ const METHOD_BY_FIELD: Readonly<
   [NetworkDeviceDiscoveredField.IpAddress]: NetworkDeviceDiscoveryMethod.Dns,
   [NetworkDeviceDiscoveredField.OwnMacAddress]:
     NetworkDeviceDiscoveryMethod.Snmp,
+  [NetworkDeviceDiscoveredField.ScannedMacAddress]:
+    NetworkDeviceDiscoveryMethod.Snmp,
+  [NetworkDeviceDiscoveredField.Model]: NetworkDeviceDiscoveryMethod.Snmp,
+  [NetworkDeviceDiscoveredField.SerialNumber]:
+    NetworkDeviceDiscoveryMethod.Snmp,
+  [NetworkDeviceDiscoveredField.FirmwareVersion]:
+    NetworkDeviceDiscoveryMethod.Snmp,
+  [NetworkDeviceDiscoveredField.SoftwareVersion]:
+    NetworkDeviceDiscoveryMethod.Snmp,
 };
 
 const READER_TYPE_BY_FIELD: Readonly<
@@ -322,14 +372,25 @@ const READER_TYPE_BY_FIELD: Readonly<
     NetworkDeviceDiscoveryReaderType.Probe,
   [NetworkDeviceDiscoveredField.OwnMacAddress]:
     NetworkDeviceDiscoveryReaderType.Probe,
+  [NetworkDeviceDiscoveredField.ScannedMacAddress]:
+    NetworkDeviceDiscoveryReaderType.DiscoveryScan,
+  [NetworkDeviceDiscoveredField.Model]:
+    NetworkDeviceDiscoveryReaderType.DiscoveryScan,
+  [NetworkDeviceDiscoveredField.SerialNumber]:
+    NetworkDeviceDiscoveryReaderType.DiscoveryScan,
+  [NetworkDeviceDiscoveredField.FirmwareVersion]:
+    NetworkDeviceDiscoveryReaderType.DiscoveryScan,
+  [NetworkDeviceDiscoveredField.SoftwareVersion]:
+    NetworkDeviceDiscoveryReaderType.DiscoveryScan,
 };
 
 /*
  * The longest each value is kept: the width of the device column that holds
- * the same detail (sysDescr is varchar(500), the rest of the system group
- * varchar(100)), a DNS name's 253 characters, a NetBIOS name's 15, an IPv6
- * address with an IPv4 tail's 45. A longer value is cut, never refused: a
- * sysDescr of 600 characters still names the platform in its first 500.
+ * the same detail (sysDescr is varchar(500), the rest of the system group and
+ * the hardware identity varchar(100)), a DNS name's 253 characters, a NetBIOS
+ * name's 15, an IPv6 address with an IPv4 tail's 45. A longer value is cut,
+ * never refused: a sysDescr of 600 characters still names the platform in its
+ * first 500.
  */
 export const MAX_DISCOVERED_VALUE_LENGTH: Readonly<
   Record<NetworkDeviceDiscoveredField, number>
@@ -344,6 +405,11 @@ export const MAX_DISCOVERED_VALUE_LENGTH: Readonly<
   [NetworkDeviceDiscoveredField.MacAddress]: 17,
   [NetworkDeviceDiscoveredField.IpAddress]: 45,
   [NetworkDeviceDiscoveredField.OwnMacAddress]: 17,
+  [NetworkDeviceDiscoveredField.ScannedMacAddress]: 17,
+  [NetworkDeviceDiscoveredField.Model]: 100,
+  [NetworkDeviceDiscoveredField.SerialNumber]: 100,
+  [NetworkDeviceDiscoveredField.FirmwareVersion]: 100,
+  [NetworkDeviceDiscoveredField.SoftwareVersion]: 100,
 };
 
 // A reader's id and name, cut to these.
@@ -506,6 +572,7 @@ export function normalizeDiscoveredValue(
       return normalizeNetbiosName(value);
     case NetworkDeviceDiscoveredField.MacAddress:
     case NetworkDeviceDiscoveredField.OwnMacAddress:
+    case NetworkDeviceDiscoveredField.ScannedMacAddress:
       return typeof value === "string" ? normalizeMac(value) : undefined;
     case NetworkDeviceDiscoveredField.IpAddress: {
       const text: string | undefined = cleanDiscoveredText(

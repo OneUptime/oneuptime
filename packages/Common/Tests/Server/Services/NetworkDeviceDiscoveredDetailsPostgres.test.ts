@@ -577,6 +577,17 @@ describePostgres("a device's discovered details merged on Postgres", () => {
         },
       },
     });
+    const byScannedMac: string = await insertCandidate({
+      hostname: "10.20.30.49",
+      discoveredDetails: {
+        scannedMacAddress: {
+          value: "e0:55:3d:12:34:58",
+          method: "snmp",
+          readBy: { type: "discoveryScan", id: CONNECTION_ID },
+          readAt: "2026-10-23T08:00:00.000Z",
+        },
+      },
+    });
     const byName: string = await insertCandidate({
       hostname: "10.20.30.46",
       name: " Store 12 Gateway ",
@@ -667,6 +678,7 @@ describePostgres("a device's discovered details merged on Postgres", () => {
         byLearnedMac,
         byAddress,
         byOwnMac,
+        byScannedMac,
         byName,
         bySysName,
         byScannedName,

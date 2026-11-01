@@ -39,11 +39,17 @@ import ArpEntry from "Common/Types/Monitor/SnmpMonitor/ArpEntry";
 import FdbEntry from "Common/Types/Monitor/SnmpMonitor/FdbEntry";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
+import SnmpHardwareIdentity from "Common/Types/Monitor/SnmpMonitor/SnmpHardwareIdentity";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import {
+  SNMP_VENDOR_IDENTITY_FIELDS,
   SnmpVendorIdentityRead,
   getSnmpVendorIdentityReads,
 } from "Common/Types/Monitor/SnmpMonitor/SnmpVendorIdentity";
+import {
+  DeviceOwnMacCandidate,
+  pickDeviceOwnMac,
+} from "Common/Utils/NetworkDevice/DeviceOwnMacUtil";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
 import {
   SnmpTableResult,
@@ -271,6 +277,21 @@ const ENDPOINT_WALK_BUDGET_MS: number = 30000;
  * rows.
  */
 const TABLE_WALK_BUDGET_MS: number = 30000;
+
+/*
+ * Wall-clock budget for a discovery scan's follow-up read of one host
+ * (probeHardwareIdentity). A scan's requests time out after 2 seconds and are
+ * not retried, so two parts of the read can go unanswered and the third still
+ * has a second. A device that answers spends a few hundred milliseconds of it.
+ */
+const HARDWARE_IDENTITY_BUDGET_MS: number = 5000;
+
+/*
+ * Rows of a table the same read looks at: at most two GETBULKs a column. The
+ * first Ethernet port and the chassis row sit near the top of their tables, and
+ * a modular router's thousands of rows are the poll's to read, not a sweep's.
+ */
+const MAX_HARDWARE_IDENTITY_TABLE_ROWS: number = 2 * SNMP_TABLE_MAX_REPETITIONS;
 
 // One cell of a GET built from a table OID, a column and a row index.
 interface TableCellRequest {
@@ -627,42 +648,292 @@ export default class SnmpMonitor {
       (config.timeout || 5000) *
         (config.snmpVersion === SnmpVersion.V3 ? 3 : 1) +
       500;
+
+    try {
+      signal?.throwIfAborted();
+      return await SnmpMonitor.raceDeadline({
+        work: SnmpMonitor.readSystemInfo(session),
+        timeoutInMs: timeoutInMs,
+        timeoutMessage: "SNMP discovery probe timed out",
+        signal: signal,
+      });
+    } catch (err) {
+      signal?.throwIfAborted();
+      onError?.(err);
+      return null;
+    } finally {
+      session.close();
+    }
+  }
+
+  /*
+   * `work`, unless its time runs out or the scan aborts first. Closing the
+   * session it runs on is the caller's, and is what ends whatever it still has
+   * in flight.
+   */
+  private static async raceDeadline<T>(data: {
+    work: Promise<T>;
+    timeoutInMs: number;
+    timeoutMessage: string;
+    signal: AbortSignal | undefined;
+  }): Promise<T> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let onAbort: (() => void) | undefined;
     const deadline: Promise<never> = new Promise<never>(
       (_resolve: (value: never) => void, reject: (error: unknown) => void) => {
         timer = setTimeout(() => {
-          reject(new Error("SNMP discovery probe timed out"));
-        }, timeoutInMs);
+          reject(new Error(data.timeoutMessage));
+        }, data.timeoutInMs);
         onAbort = (): void => {
-          reject(signal?.reason || new Error("Discovery scan aborted"));
+          reject(data.signal?.reason || new Error("Discovery scan aborted"));
         };
-        signal?.addEventListener("abort", onAbort, { once: true });
-        if (signal?.aborted) {
+        data.signal?.addEventListener("abort", onAbort, { once: true });
+        if (data.signal?.aborted) {
           onAbort();
         }
       },
     );
 
     try {
-      signal?.throwIfAborted();
-      return await Promise.race([
-        SnmpMonitor.readSystemInfo(session),
-        deadline,
-      ]);
-    } catch (err) {
-      signal?.throwIfAborted();
-      onError?.(err);
-      return null;
+      return await Promise.race([data.work, deadline]);
     } finally {
       if (timer) {
         clearTimeout(timer);
       }
       if (onAbort) {
-        signal?.removeEventListener("abort", onAbort);
+        data.signal?.removeEventListener("abort", onAbort);
       }
+    }
+  }
+
+  /*
+   * What a discovery scan asks a host next, once the host has answered the
+   * scan's read of its system group: the MAC of one of its own ports, ENTITY-
+   * MIB's chassis row, and what its platform keeps in its own MIB
+   * (SnmpHardwareIdentity). A device with no SNMP credentials of its own is
+   * never walked, so a scan is the only thing that can read these from it.
+   *
+   * A sweep pays for this once per host that answers, so it stays small: at
+   * most two GETBULKs for each of two interface columns and for entPhysicalClass,
+   * a GET of the chassis row when there is one, and a GET of the vendor's scalars
+   * for a listed platform. A device with neither costs three requests.
+   *
+   * In that order because an agent asked for an object it lacks may not answer
+   * at all ("the MS/MR fails to respond", Meraki's SNMP guide), and IF-MIB is
+   * the one a Meraki device does answer. Each part stands alone: one that fails
+   * or times out loses only its own values, and the time the rest may take is
+   * bounded by HARDWARE_IDENTITY_BUDGET_MS, not by what they would have cost.
+   * What was read before the budget ran out is kept.
+   *
+   * The host has already answered, and nothing here may say otherwise: this
+   * reports no failure, and throws only for the scan's abort, which it obeys at
+   * once (closing the session ends the request in flight). A key is absent for
+   * whatever it did not get - see SnmpHardwareIdentity.
+   */
+  public static async probeHardwareIdentity(
+    config: MonitorStepSnmpMonitor,
+    sysObjectId: string | undefined,
+    scanSignal?: AbortSignal,
+  ): Promise<SnmpHardwareIdentity> {
+    const signal: AbortSignal | undefined = scanSignal
+      ? AbortSignal.any([scanSignal])
+      : undefined;
+    signal?.throwIfAborted();
+
+    const identity: SnmpHardwareIdentity = {};
+    let session: snmp.Session;
+
+    try {
+      session = SnmpMonitor.createSnmpSession(config, {});
+    } catch (err) {
+      logger.debug(
+        `Discovery could not open an SNMP session to read ${config.hostname}'s hardware identity: ${err}`,
+      );
+      return identity;
+    }
+
+    const deadlineAt: number = Date.now() + HARDWARE_IDENTITY_BUDGET_MS;
+
+    try {
+      await SnmpMonitor.raceDeadline({
+        work: SnmpMonitor.readHardwareIdentity({
+          session: session,
+          hostname: config.hostname,
+          sysObjectId: sysObjectId,
+          deadlineAt: deadlineAt,
+          identity: identity,
+        }),
+        timeoutInMs: HARDWARE_IDENTITY_BUDGET_MS,
+        timeoutMessage: "SNMP hardware identity read ran out of time",
+        signal: signal,
+      });
+    } catch (err) {
+      signal?.throwIfAborted();
+      logger.debug(
+        `Discovery read of ${config.hostname}'s hardware identity stopped: ${err}`,
+      );
+    } finally {
       session.close();
     }
+
+    // A copy: a request failing after the budget cannot change what was returned.
+    return { ...identity };
+  }
+
+  /*
+   * The three parts of probeHardwareIdentity, each filling in `identity` as it
+   * finishes so that a later one running out of time cannot lose what it read.
+   * Never rejects.
+   */
+  private static async readHardwareIdentity(data: {
+    session: snmp.Session;
+    hostname: string;
+    sysObjectId: string | undefined;
+    deadlineAt: number;
+    identity: SnmpHardwareIdentity;
+  }): Promise<void> {
+    try {
+      const macAddress: string | undefined =
+        await SnmpMonitor.readOwnMacAddress(data.session, data.deadlineAt);
+
+      if (macAddress) {
+        data.identity.scannedMacAddress = macAddress;
+      }
+    } catch (err) {
+      logger.debug(
+        `SNMP interface read failed for ${data.hostname} (discovery): ${err}`,
+      );
+    }
+
+    let entityInfo: SnmpEntityInfo | undefined = undefined;
+
+    try {
+      entityInfo = await SnmpMonitor.readChassisInfo(
+        data.session,
+        data.deadlineAt,
+      );
+      SnmpMonitor.fillHardwareIdentity(data.identity, entityInfo);
+    } catch (err) {
+      logger.debug(
+        `SNMP ENTITY-MIB read failed for ${data.hostname} (discovery; device may not implement it): ${err}`,
+      );
+    }
+
+    try {
+      SnmpMonitor.fillHardwareIdentity(
+        data.identity,
+        await SnmpMonitor.readVendorIdentity(
+          data.session,
+          data.sysObjectId,
+          entityInfo,
+        ),
+      );
+    } catch (err) {
+      logger.debug(
+        `SNMP vendor identity read failed for ${data.hostname} (discovery): ${err}`,
+      );
+    }
+  }
+
+  private static fillHardwareIdentity(
+    identity: SnmpHardwareIdentity,
+    entityInfo: SnmpEntityInfo | undefined,
+  ): void {
+    for (const field of SNMP_VENDOR_IDENTITY_FIELDS) {
+      const value: string | undefined = entityInfo?.[field];
+
+      if (value) {
+        identity[field] = value;
+      }
+    }
+  }
+
+  // The device's own MAC, out of the first rows of its interface table.
+  private static async readOwnMacAddress(
+    session: snmp.Session,
+    deadlineAt: number,
+  ): Promise<string | undefined> {
+    const ifTable: SnmpTableRows = await SnmpMonitor.getBoundedTableColumns(
+      session,
+      IF_TABLE_OID,
+      [IF_TABLE_COLUMNS.ifType, IF_TABLE_COLUMNS.ifPhysAddress],
+      MAX_HARDWARE_IDENTITY_TABLE_ROWS,
+      deadlineAt,
+    );
+
+    return pickDeviceOwnMac(
+      Object.keys(ifTable).map(
+        (interfaceIndex: string): DeviceOwnMacCandidate => {
+          const row: Record<string, unknown> = ifTable[interfaceIndex]!;
+
+          return {
+            interfaceIndex: parseInt(interfaceIndex, 10),
+            macAddress: SnmpMonitor.toMacAddress(
+              row[IF_TABLE_COLUMNS.ifPhysAddress.toString()],
+            ),
+            interfaceType: SnmpMonitor.toMetricNumber(
+              row[IF_TABLE_COLUMNS.ifType.toString()],
+            ),
+          };
+        },
+      ),
+    );
+  }
+
+  /*
+   * ENTITY-MIB's chassis row: entPhysicalClass finds it, and one GET reads it.
+   * Reading the whole table as a poll does would be seven walks per host, and
+   * the first of them is all a device without ENTITY-MIB needs to say so.
+   *
+   * The chassis row only, not pickEntityInfo's other choice of the first row
+   * with a serial number. This reads a table's first rows, so a row that looks
+   * like the first may be a module's or an optic's, and a wrong serial number
+   * is worse than none. A device with no chassis row keeps that for its poll.
+   */
+  private static async readChassisInfo(
+    session: snmp.Session,
+    deadlineAt: number,
+  ): Promise<SnmpEntityInfo | undefined> {
+    const classColumn: string =
+      ENT_PHYSICAL_COLUMNS.entPhysicalClass.toString();
+    const classes: SnmpTableRows = await SnmpMonitor.getBoundedTableColumns(
+      session,
+      ENT_PHYSICAL_TABLE_OID,
+      [ENT_PHYSICAL_COLUMNS.entPhysicalClass],
+      MAX_HARDWARE_IDENTITY_TABLE_ROWS,
+      deadlineAt,
+    );
+
+    const chassisRow: string | undefined = Object.keys(classes)
+      .sort((a: string, b: string) => {
+        return parseInt(a, 10) - parseInt(b, 10);
+      })
+      .find((rowIndex: string): boolean => {
+        return (
+          SnmpMonitor.toMetricNumber(classes[rowIndex]![classColumn]) ===
+          ENT_PHYSICAL_CLASS_CHASSIS
+        );
+      });
+
+    if (!chassisRow) {
+      return undefined;
+    }
+
+    return SnmpMonitor.pickEntityInfo(
+      await SnmpMonitor.getTableCells({
+        session: session,
+        tableOid: ENT_PHYSICAL_TABLE_OID,
+        columns: [
+          ENT_PHYSICAL_COLUMNS.entPhysicalClass,
+          ENT_PHYSICAL_COLUMNS.entPhysicalModelName,
+          ENT_PHYSICAL_COLUMNS.entPhysicalSerialNum,
+          ENT_PHYSICAL_COLUMNS.entPhysicalFirmwareRev,
+          ENT_PHYSICAL_COLUMNS.entPhysicalSoftwareRev,
+        ],
+        rowIndexes: [chassisRow],
+        deadlineAt: deadlineAt,
+      }),
+    );
   }
 
   /*
@@ -1571,8 +1842,9 @@ export default class SnmpMonitor {
   /*
    * Exactly these cells of a table, with GETs of up to snmpGetChunkSize
    * varbinds each - for the readings of known sensors, where walking the
-   * whole column would read every fan and power supply too. A cell the
-   * agent does not have (noSuchInstance) is left out of the result.
+   * whole column would read every fan and power supply too, and for a scan's
+   * read of the chassis row. A cell the agent does not have (noSuchInstance)
+   * is left out of the result.
    */
   private static async getTableCells(data: {
     session: snmp.Session;
@@ -1602,7 +1874,7 @@ export default class SnmpMonitor {
     ) {
       if (Date.now() > data.deadlineAt) {
         throw new Error(
-          "SNMP transceiver read exceeded its time budget before every sensor was read",
+          "SNMP cell read exceeded its time budget before every cell was read",
         );
       }
 

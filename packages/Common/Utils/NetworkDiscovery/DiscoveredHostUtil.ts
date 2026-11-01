@@ -5,6 +5,10 @@ import {
   readDiscoveredHostNetbiosStatus,
   readDiscoveredHostReverseDnsStatus,
 } from "../../Types/NetworkDevice/DiscoveredHostNamingStatus";
+import {
+  NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS,
+  normalizeDiscoveredValue,
+} from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import { normalizeNetbiosName } from "./NetbiosNameUtil";
 import { normalizeReverseDnsName } from "./ReverseDnsNameUtil";
 
@@ -54,7 +58,7 @@ function isDiscoveredHostObject(
  * here for the same reason: one reading of the payload for every reader.
  * A fifth, `netbiosName` (issue #3677), is untrusted for the same reason and
  * more so — the scanned host reports it about itself — and gets the same
- * treatment.
+ * treatment, as does what a host says about its hardware.
  *
  * All of them are fixed here rather than at each call site, so the row the
  * operator sees, the badge above it, the list Import walks, and the hosts an
@@ -173,6 +177,29 @@ export function normalizeDiscoveredHosts(
       normalized.netbiosNameStatus = netbiosNameStatus;
     } else {
       delete normalized.netbiosNameStatus;
+    }
+
+    /*
+     * What the host said about its hardware (SnmpHardwareIdentity): a MAC
+     * through the one MAC normaliser, the rest cleaned and bounded. Self-
+     * reported like the NetBIOS name and read out of the same jsonb, so what
+     * fails is DELETED the same way.
+     */
+    for (const field of NETWORK_DEVICE_DISCOVERED_HARDWARE_FIELDS) {
+      const row: Record<string, unknown> = normalized as unknown as Record<
+        string,
+        unknown
+      >;
+      const value: string | undefined = normalizeDiscoveredValue(
+        field,
+        row[field],
+      );
+
+      if (value) {
+        row[field] = value;
+      } else {
+        delete row[field];
+      }
     }
 
     cleaned.push(normalized);

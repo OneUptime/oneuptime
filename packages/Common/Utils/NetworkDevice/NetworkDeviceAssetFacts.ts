@@ -66,8 +66,8 @@ import {
  *   DNS name          its reverse-DNS name, or the DNS name it is polled at.
  *   MAC address       typed on the device or learned from an ARP table, else
  *                     what its controller lists, else one of its own ports
- *                     (DeviceOwnMacUtil), in the IEEE form hosts report
- *                     (AC-DE-48-23-45-67).
+ *                     (DeviceOwnMacUtil) as its poll read it, else as a scan
+ *                     did, in the IEEE form hosts report (AC-DE-48-23-45-67).
  *   manufacturer      ENTITY-MIB's maker; else the sysDescr's; else the
  *                     sysObjectID enterprise's - but never an SNMP AGENT's
  *                     ("Net-SNMP" names the software answering, not the box).
@@ -88,11 +88,12 @@ import {
  *
  * WHAT DISCOVERY ADDS (issue #5185). A device OneUptime only pings has none of
  * the SNMP columns above, but the discovery scan that sweeps its subnet may
- * have read its system group, its reverse-DNS name and its NetBIOS name; a
- * walked router's ARP table its MAC; its probe the address its DNS name
- * resolves to. Those readings are kept apart, in the device's discovered
- * details (Types/NetworkDevice/NetworkDeviceDiscoveredDetails), and this is
- * the one place they meet the columns - the "effective" inputs below:
+ * have read its system group, its model, serial number, firmware and one of its
+ * own MACs, its reverse-DNS name and its NetBIOS name; a walked router's ARP
+ * table its MAC; its probe the address its DNS name resolves to. Those readings
+ * are kept apart, in the device's discovered details
+ * (Types/NetworkDevice/NetworkDeviceDiscoveredDetails), and this is the one
+ * place they meet the columns - the "effective" inputs below:
  *
  *   - A value SAVED on the device - typed, set through the API, kept from
  *     its import - always wins, and is never replaced by anything discovery
@@ -644,6 +645,17 @@ export function getNetworkDeviceEffectiveInputs(
     };
   }
 
+  /*
+   * The same reading by a discovery scan, for a device nothing walks. After
+   * the poll's whatever their times: the poll reads every interface, and the
+   * scan only the first few.
+   */
+  if (!macAddress.value) {
+    macAddress = readDiscoveredOnly(
+      details.values[NetworkDeviceDiscoveredField.ScannedMacAddress],
+    );
+  }
+
   const controllerMaker: NetworkDeviceEffectiveInput = controller
     ? {
         value: getNetworkControllerProviderTitle(controller.provider),
@@ -671,18 +683,24 @@ export function getNetworkDeviceEffectiveInputs(
     ),
     vendor: withControllerReading(polled(device.vendor), controllerMaker),
     deviceModel: withControllerReading(
-      polled(device.deviceModel),
+      polled(device.deviceModel, NetworkDeviceDiscoveredField.Model),
       controllerInput(controller, NetworkDeviceControllerField.Model),
     ),
     serialNumber: withControllerReading(
-      polled(device.serialNumber),
+      polled(device.serialNumber, NetworkDeviceDiscoveredField.SerialNumber),
       controllerInput(controller, NetworkDeviceControllerField.SerialNumber),
     ),
     firmwareVersion: withControllerReading(
-      polled(device.firmwareVersion),
+      polled(
+        device.firmwareVersion,
+        NetworkDeviceDiscoveredField.FirmwareVersion,
+      ),
       controllerInput(controller, NetworkDeviceControllerField.FirmwareVersion),
     ),
-    softwareVersion: polled(device.softwareVersion),
+    softwareVersion: polled(
+      device.softwareVersion,
+      NetworkDeviceDiscoveredField.SoftwareVersion,
+    ),
     dnsName: dnsName,
     macAddress: macAddress,
     netbiosName: readDiscoveredOnly(
