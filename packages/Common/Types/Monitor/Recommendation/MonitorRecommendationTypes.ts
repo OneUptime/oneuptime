@@ -140,6 +140,16 @@ export interface MonitorRecommendationContext {
    * OneUptime ships no templates for are offered nothing.
    */
   storageSystem?: string | null | undefined;
+  /*
+   * A Kubernetes cluster's platform: its `provider`, which ingest reads off
+   * the cluster's telemetry ("OpenShift", "EKS", ...). Every cluster is
+   * offered the Kubernetes recommendations; an OpenShift cluster is offered
+   * the OpenShift ones too (OpenShiftAlertTemplates), which read records only
+   * the agent's openshift preset sends. `null` / `undefined` (not reported
+   * yet) and any other platform withhold them: on those, each would be a
+   * monitor over logs nobody sends.
+   */
+  kubernetesProvider?: string | null | undefined;
 }
 
 /*

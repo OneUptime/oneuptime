@@ -28,7 +28,7 @@ flowchart TB
 | Nodecollector | DaemonSet | Podlogs uit `/var/log/pods`, kubelet- en cAdvisor-metrics en de OS-metrics van de node. | Overal behalve op EKS Fargate |
 | eBPF-instrumentatie (OBI) | DaemonSet | HTTP-, gRPC-, SQL- en Redis-traces en requestmetrics van elke pod, en de servicemap. | Standaard, behalve op GKE Autopilot en EKS Fargate |
 | Kubernetes-AI-agent | Deployment | Alleen-lezen `kubectl` voor OneUptime AI terwijl die een incident of waarschuwing onderzoekt. | Standaard |
-| Logtailer | Deployment | Podlogs via de Kubernetes-API, waar de nodecollector ze niet kan lezen. | Met de presets `gke-autopilot` en `eks-fargate` |
+| Logtailer | Deployment | Podlogs via de Kubernetes-API, waar de nodecollector ze niet kan lezen. | Met de presets `gke-autopilot`, `eks-fargate` en `openshift-restricted` |
 | Kostenengine en poller | Deployments | Uitgaven per namespace, workload en pod. | Met `cost.enabled=true` |
 
 Elke agentimage is alleen voor Linux, dus elke workload is vastgezet op Linux-nodes.
@@ -215,8 +215,9 @@ Een update vervangt de hele configuratie: een waarde die je weglaat, valt terug 
 | `gke-autopilot` | **GKE Autopilot** | De logtailer leest ze via de Kubernetes-API (geen `hostPath`, geen hosttoegang) | Kubelet en cAdvisor, zonder `hostPath` |
 | `eks-fargate` | **EKS Fargate** | De logtailer leest ze via de Kubernetes-API (geen `hostPath`, geen hosttoegang) | Geen: Fargate draait geen DaemonSets |
 | `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | De nodecollector leest `/var/log/pods` via `hostPath`, onder een security context constraint die de chart ervoor aanmaakt | Kubelet, cAdvisor en de OS-metrics van de node |
+| `openshift-restricted` | **OpenShift**, als een beheerder geen SCC wil toevoegen | De logtailer leest ze via de Kubernetes-API (geen `hostPath`, geen hosttoegang) | Kubelet en cAdvisor, zonder `hostPath` |
 
-Twijfel je, begin dan met `standard`. Mislukt de installatie met een Pod Security-fout die `hostPath` noemt, installeer dan opnieuw met `preset=gke-autopilot` (of `eks-fargate` op Fargate). GKE Autopilot en EKS Fargate weigeren ook geprivilegieerde pods, die eBPF en de profiler nodig hebben, dus die twee presets laten beide weg. Gebruik op OpenShift `openshift`: zie [OpenShift](#openshift).
+Twijfel je, begin dan met `standard`. Mislukt de installatie met een Pod Security-fout die `hostPath` noemt, installeer dan opnieuw met `preset=gke-autopilot` (of `eks-fargate` op Fargate). GKE Autopilot en EKS Fargate weigeren ook geprivilegieerde pods, die eBPF en de profiler nodig hebben, dus die twee presets laten beide weg. Gebruik op OpenShift `openshift`, of `openshift-restricted` als een beheerder geen SCC wil toevoegen: zie [OpenShift](#openshift).
 
 ## OpenShift
 
@@ -229,6 +230,23 @@ Installeer met `--set preset=openshift`, zoals het tabblad **OpenShift** hierbov
 - Hij voorziet de telemetrie van de agent van `oneuptime.kubernetes.distribution=openshift`, zodat het **Platform** van het cluster op **OpenShift** staat, en voegt de cloud toe waarin het cluster draait (`cloud.provider`, `cloud.platform`), als die er is.
 
 Voor het aanmaken van de SCC's zijn cluster-admin-rechten nodig. Zonder de preset installeert de release wel, maar OpenShift start de nodecollector- en eBPF-pods van de agent nooit, en de installatienotities melden dat ook.
+
+**Als een beheerder geen SCC wil toevoegen,** installeer dan met `--set preset=openshift-restricted`. De chart maakt dan geen SCC aan en elke pod draait onder `restricted-v2`, zoals bij `gke-autopilot`. Het cluster blijft als OpenShift zichtbaar. Daarmee lever je in:
+
+- Podlogs van de nodes: de logtailer leest ze via de Kubernetes-API, met één langlopende verbinding per container.
+- De OS-metrics van de node. Node-, pod- en containermetrics blijven: de nodecollector leest de kubelet en cAdvisor via het netwerk.
+- eBPF-traces en de profiler, wat `ebpf.enabled` en `profiling.enabled` ook zeggen. Stuur de traces van je services met een OpenTelemetry-SDK om ze te traceren.
+- Auditlogs, die van de node worden gelezen.
+
+Om ze terug te krijgen, stap je bij een upgrade als cluster-admin over op `openshift` met `--set preset=openshift`.
+
+**Wat je in OneUptime ziet.** De agent leest ook de eigen objecten van OpenShift uit, alleen-lezen, en toont ze op de pagina's van het cluster:
+
+- Het **Overzicht** van het cluster begint met de kaart **OpenShift**: de versie die het draait, of er een update loopt of mislukt, en hoeveel van zijn clusteroperators gezond zijn, met wat elk van de andere meldt. Een niet-beschikbare operator maakt het cluster **Ongezond**, en een verminderde operator of een mislukte update maakt het **Verminderd**.
+- **Routes** en **Services**, onder **Netwerk**: waar elke Route antwoordt, hoe die TLS beëindigt, naar welke services die verkeer stuurt en met welk aandeel, en waarom een router de Route weigerde. De TLS-sleutel van een Route verlaat het cluster nooit: de agent vervangt die voordat hij de Route verstuurt.
+- **DeploymentConfigs**, onder **Workloads**, lees je net als Deployments: hun rollouts, de CPU en het geheugen van hun pods, en de events van de ReplicationControllers en pods die ze draaien.
+
+**Waarschuwingen over operators en updates.** De pagina **Aanbevelingen** van een OpenShift-cluster biedt **Cluster Operator Unavailable**, **Cluster Operator Degraded** en **Cluster Update Failing** aan. Elk daarvan is een logmonitor op de momentopnamen die de agent elke `resourceSpecs.interval` verstuurt. Hij waarschuwt zodra twee momentopnamen dat melden, dus een operator die tijdens een update even omklapt, veroorzaakt niets, en hij lost de waarschuwing op wanneer een momentopname meldt dat het probleem voorbij is, nooit omdat de agent is gestopt met versturen.
 
 **De eigen waarschuwingen van OpenShift.** OpenShift levert Prometheus en Alertmanager mee, met waarschuwingen voor zijn operators, etcd en de nodes. Om voor elke waarschuwing een incident in OneUptime te openen, voeg je in de webconsole onder **Administration → Cluster Settings → Configuration → Alertmanager** een webhook-ontvanger voor OneUptime toe, zoals [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) beschrijft.
 
@@ -244,6 +262,7 @@ Voor het aanmaken van de SCC's zijn cluster-admin-rechten nodig. Zonder de prese
 | Clustermetrics | Nodecondities, toewijsbare resources, aantal pods |
 | Kubernetes-events | Elk event, Warning en Normal, uit elke namespace en van elk soort object: zie [Kubernetes-events](#kubernetes-events) |
 | Podlogs | De stdout en stderr van elke container (via `hostPath` op standaardclusters, via de Kubernetes-API op Autopilot en Fargate) |
+| OpenShift-objecten (de OpenShift-presets) | ClusterOperators, de ClusterVersion, Routes, DeploymentConfigs en Services: zie [OpenShift](#openshift) |
 | Applicatietraces (eBPF, standaard aan) | HTTP-, gRPC-, SQL- en Redis-spans van elke pod, zonder SDK of codewijzigingen |
 | HTTP RED-metrics (eBPF) | `http.server.request.duration`, en de groottes van request- en responsebody's, per service |
 | Servicegraaf (eBPF) | Randen met requestrate, latentie en fouten tussen aanroeper en aangeroepene, die de servicemap tekenen |
@@ -517,6 +536,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**Op OpenShift** is `--set controlPlane.enabled=true` genoeg voor de scheduler en de controller manager, op beide OpenShift-presets. OpenShift draait van elk meerdere replica's achter een Service, dus de agent vindt elke replica in de EndpointSlices van de Service en scrapet die afzonderlijk, met het token van zijn serviceaccount. `controlPlane.scheduler.endpoints` en `controlPlane.controllerManager.endpoints` gaan nog steeds voor als je ze instelt. etcd vraagt om een clientcertificaat, dus het wordt pas gescrapet als `controlPlane.etcd.clientCertSecret` een Secret noemt waarin er een staat. De monitoring van OpenShift heeft er een: kopieer het als cluster-admin naar een Secret met de drie sleutels die de chart leest:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+De kopie volgt de rotatie van dat certificaat door OpenShift niet, dus voer deze commando's opnieuw uit als de metrics van etcd stoppen. Een gehost control plane (ROSA met HCP, HyperShift) draait deze componenten buiten het cluster: de agent vindt er geen, en die tabbladen blijven daar leeg.
+
 Beheerde Kubernetes-diensten (EKS, GKE, AKS) stellen etcd, de scheduler en de controller manager niet beschikbaar, dus die tabbladen blijven daar leeg. Tot de metrics van een tabblad binnenkomen, toont de pagina **Controlevlak** in plaats van de grafieken wat je moet instellen, met het commando om te kopiëren.
 
 ### CoreDNS-metrics inschakelen
@@ -629,7 +668,7 @@ Als een app al traces exporteert met een OpenTelemetry-SDK, merkt OBI dat op en 
 
 Zet eBPF uit wanneer:
 
-- Je installeert op **GKE Autopilot** of **EKS Fargate**: die platforms weigeren geprivilegieerde pods, dus `preset=gke-autopilot` en `preset=eks-fargate` laten eBPF al voor je weg, en de profiler daarmee ook.
+- Je installeert op **GKE Autopilot** of **EKS Fargate**: die platforms weigeren geprivilegieerde pods, dus `preset=gke-autopilot` en `preset=eks-fargate` laten eBPF al voor je weg, en de profiler daarmee ook. `preset=openshift-restricted` doet hetzelfde op OpenShift.
 - De nodes een kernel ouder dan 5.8 draaien zonder BTF-backports.
 - Je al traces vanuit OpenTelemetry-SDK's in elke app stuurt en ook de eBPF-metrics niet wilt. (Alleen voor de traces hoeft het niet: OBI stopt met eBPF-traces voor een app waarvan hij ziet dat die zijn eigen traces exporteert, zoals hierboven.)
 

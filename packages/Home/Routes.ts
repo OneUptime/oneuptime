@@ -935,6 +935,21 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    // Not a product of its own: the page leads into the Kubernetes product.
+    app.get(
+      "/product/openshift",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
+          "/product/openshift",
+          res.locals["homeUrl"] as string,
+        );
+        res.render(`${ViewsPath}/openshift`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo,
+        });
+      },
+    );
+
     app.get("/product/docker", (_req: ExpressRequest, res: ExpressResponse) => {
       const seo: PageSEOData & { fullCanonicalUrl: string } = getSEOForPath(
         "/product/docker",

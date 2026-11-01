@@ -36,8 +36,9 @@ The `preset` option picks compatible defaults for your Kubernetes distribution �
 | `gke-autopilot` | **GKE Autopilot** | Kubernetes API log tailer Deployment (no hostPath) |
 | `eks-fargate` | **EKS Fargate** | Kubernetes API log tailer Deployment (no hostPath) |
 | `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | DaemonSet reading `/var/log/pods` via hostPath, under a security context constraint (SCC) the chart creates for it |
+| `openshift-restricted` | **OpenShift**, where an admin will not add an SCC | Kubernetes API log tailer Deployment (no hostPath) |
 
-On `gke-autopilot` and `eks-fargate` the preset also leaves out the eBPF auto-instrumentation and the continuous profiler, whatever `ebpf.enabled` and `profiling.enabled` say. Both run a privileged pod on every node: GKE Autopilot refuses privileged pods, and EKS Fargate runs neither privileged pods nor DaemonSets. To get application traces there, send them from your services with an OpenTelemetry SDK.
+On `gke-autopilot` and `eks-fargate` the preset also leaves out the eBPF auto-instrumentation and the continuous profiler, whatever `ebpf.enabled` and `profiling.enabled` say. Both run a privileged pod on every node: GKE Autopilot refuses privileged pods, and EKS Fargate runs neither privileged pods nor DaemonSets. To get application traces there, send them from your services with an OpenTelemetry SDK. `openshift-restricted` leaves them out too: see below.
 
 **GKE Autopilot:**
 
@@ -84,6 +85,47 @@ OpenShift admits a pod only under an SCC its service account may use, and until 
 - Stamps `oneuptime.kubernetes.distribution=openshift` on the agent's telemetry, and turns on the collector's `openshift` resource detector, which adds `cloud.provider` and `cloud.platform` (for example `aws_openshift`) on a cloud.
 
 Creating the SCCs takes cluster-admin rights, as the chart's ClusterRole already does. With `serviceAccount.create=false`, every pod runs as the service account you name, and both SCCs are granted to it.
+
+**OpenShift, where an admin will not add an SCC:**
+
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod \
+  --set aiAgent.enabled=true \
+  --set preset=openshift-restricted
+```
+
+`openshift` is the recommended preset on OpenShift. `openshift-restricted` is for a cluster whose admin will not add one: the chart creates no SCC and every pod runs under `restricted-v2`, the way `gke-autopilot` works. It is still OpenShift to the agent: unpinned user IDs, the `oneuptime.kubernetes.distribution` stamp, the `openshift` resource detector and OpenShift's own objects stay. What it gives up:
+
+- **Pod logs from the nodes.** The log tailer reads them through the Kubernetes API, which costs one long-lived API connection per container.
+- **Host metrics** (`hostMetrics`): disk I/O, filesystem inodes, NIC errors, paging and load average read the node's `/proc` and `/sys`. Node, pod and container metrics stay: the node collector still reads each kubelet and cAdvisor over the network.
+- **eBPF traces and the continuous profiler,** whatever `ebpf.enabled` and `profiling.enabled` say. To get application traces, send them from your services with an OpenTelemetry SDK.
+- **Audit logs** (`auditLogs`), which are read from the node.
+
+To get them back, move to `openshift` with `--set preset=openshift` on an upgrade, as a cluster admin.
+
+**Control plane on OpenShift.** On both presets, `--set controlPlane.enabled=true` is enough for the API server, the scheduler and the controller manager. OpenShift runs several replicas of each behind a Service, so the chart finds every replica in the Service's EndpointSlices and scrapes it on its own, with the service account's token, in the jobs `kube-scheduler` and `kube-controller-manager`. Reading EndpointSlices is added to the ClusterRole only then. `controlPlane.<component>.endpoints`, when you set them, win for that component, and setting `controlPlane.<component>.insecureSkipVerify=false` checks each replica's certificate against OpenShift's service CA.
+
+etcd asks for a client certificate, so it has a job only once `controlPlane.etcd.clientCertSecret` names a Secret that holds one. Copy OpenShift's own, as a cluster admin:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+The copy does not follow OpenShift's rotation of that certificate: run these again when etcd's metrics stop. A hosted control plane (ROSA with HCP, HyperShift) has no such pods in the cluster, so discovery finds nothing and those metrics stay empty; nothing else changes.
 
 If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works. On OpenShift the install itself succeeds, but the pods that need more than `restricted-v2` are never created; the install notes say so, and `--set preset=openshift` fixes it.
 
@@ -485,7 +527,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-agent` to see a
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, `eks-fargate`, or `openshift`. See table above. |
+| `preset` | `""` *(→ `standard`)* | `standard`, `gke-autopilot`, `eks-fargate`, `openshift`, or `openshift-restricted`. See table above. |
 | `namespaceFilters.rules` | Exclude `kube-system` from `podLogs` and `ebpfDiscovery` | Scoped namespace rules. Patterns match the full namespace name and support `*`; any include rule creates an allowlist for its scope, and exclude rules always win. |
 | `namespaceFilters.rules[].action` | — | `include` or `exclude`. |
 | `namespaceFilters.rules[].namespaces` | — | Namespace names or patterns such as `team-*`. |
@@ -499,14 +541,14 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-agent` to see a
 | `logs.enabled` | `true` | Turn pod log collection on or off. Metrics are unaffected — the node collector keeps running for kubelet / cAdvisor / host metrics and just stops reading pod logs. |
 | `logs.mode` | `""` *(derived from `preset`)* | Advanced override — `daemonset`, `api`, or `disabled`. Explicit value always wins over the preset. |
 | `logs.windowsPods.enabled` | `false` | Hybrid mode for mixed-OS clusters: run the API log tailer alongside the DaemonSet, restricted to pods on Windows nodes (which the Linux-only DaemonSet cannot reach). Linux pods keep node-local file tailing; no log line ships twice. Only meaningful in `daemonset` log mode. |
-| `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. Off on the `gke-autopilot` and `eks-fargate` presets, whatever it says. See section below. |
-| `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. Off on the `gke-autopilot` and `eks-fargate` presets, whatever it says. |
-| `hostMetrics.enabled` | `true` | Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average) via the OTel `hostmetrics` receiver. Each series carries the collecting node's `k8s.node.name`, so it breaks down per node. |
+| `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. Off on the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets, whatever it says. See section below. |
+| `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. Off on the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets, whatever it says. |
+| `hostMetrics.enabled` | `true` | Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average) via the OTel `hostmetrics` receiver. Each series carries the collecting node's `k8s.node.name`, so it breaks down per node. Off on the presets without `hostPath` (`gke-autopilot`, `eks-fargate`, `openshift-restricted`), whatever it says. |
 | `auditLogs.enabled` | `false` | Tail `/var/log/kubernetes/audit.log` from the host. Self-managed clusters only — managed K8s routes audit logs to a cloud sink. |
 | `csi.enabled` | `false` | Scrape Prometheus metrics from CSI (storage) driver pods. |
 | `coreDns.enabled` | `false` | Scrape Prometheus metrics from CoreDNS (`kube-dns` Service by default). |
 | `resourceSpecs.enabled` | `true` | Pull full K8s object specs (labels, env vars, status) for the dashboard. |
-| `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager, each at the endpoints in its own list (`controlPlane.<component>.endpoints`). The API server defaults to its in-cluster address, `https://kubernetes.default.svc:443/metrics`; etcd, the scheduler and the controller manager run on the control-plane nodes, so they have no default (the agent's pod has no host network) and are scraped once you list addresses it can reach. An `http://` endpoint is scraped in plain HTTP (etcd's metrics port, 2381), and `controlPlane.etcd.clientCertSecret` names a Secret (`ca.crt`, `tls.crt`, `tls.key`) with the client certificate etcd's HTTPS port asks for. Self-managed clusters only — managed offerings typically don't expose these endpoints. |
+| `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager, each at the endpoints in its own list (`controlPlane.<component>.endpoints`). The API server defaults to its in-cluster address, `https://kubernetes.default.svc:443/metrics`; etcd, the scheduler and the controller manager run on the control-plane nodes, so they have no default (the agent's pod has no host network) and are scraped once you list addresses it can reach. An `http://` endpoint is scraped in plain HTTP (etcd's metrics port, 2381), and `controlPlane.etcd.clientCertSecret` names a Secret (`ca.crt`, `tls.crt`, `tls.key`) with the client certificate etcd's HTTPS port asks for. Self-managed clusters only — managed offerings typically don't expose these endpoints. On the OpenShift presets there is nothing to list: see below. |
 | `kubeletstats.utilizationMetrics.enabled` | `true` | Saturation metrics — container & pod CPU/memory as a percentage of request and limit. No extra scrape; derived from data the kubelet already returns. The Pod CPU / Memory Saturating Container Limit monitors read them. A container with no limit (or request) gets none of these series, and a pod only when every container in it has one. |
 | `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |
 | `cadvisor.enabled` | `true` | Scrape this node's kubelet `/metrics/cadvisor` endpoint for CFS throttling and OOM kill counters that `kubeletstats` doesn't translate. An allowlist drops everything except 3 metrics at the receiver. |
@@ -552,7 +594,7 @@ Profiling needs nodes whose `hostPID` is the kernel's root PID namespace, as any
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `profiling.enabled` | `false` | Master switch. Off by default — opt in for continuous CPU flame graphs. Same kernel and privileged-pod requirements as `ebpf.*`, so the `gke-autopilot` and `eks-fargate` presets leave it off. |
+| `profiling.enabled` | `false` | Master switch. Off by default — opt in for continuous CPU flame graphs. Same kernel and privileged-pod requirements as `ebpf.*`, so the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets leave it off. |
 | `profiling.image.tag` | `0.152.0` | `otel/opentelemetry-collector-ebpf-profiler` image tag. |
 | `profiling.samplesPerSecond` | `19` | Sampling frequency. Higher = more detail + more CPU. |
 | `profiling.offCpuThreshold` | `0` | (0–1] enables off-CPU profiling at the given sampling probability — diagnoses lock contention and blocking I/O. Off by default. |
@@ -576,7 +618,7 @@ The agent ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](h
 Requirements:
 
 - **Linux kernel 5.8+** with BTF. This is the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, and RHEL/Stream 9+. Kernel 4.18+ works on RHEL-family distros with vendor backports. `ebpf.contextPropagation`, on by default, has **no** additional kernel floor — do not assume an older kernel makes it inert. See **Cross-service trace linking** below.
-- The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). GKE Autopilot and EKS Fargate refuse privileged pods, so the `gke-autopilot` and `eks-fargate` presets leave it out for you. On OpenShift, the `openshift` preset creates an SCC that lets only its pods run privileged. On any other cluster that blocks privileged pods, turn it off: `--set ebpf.enabled=false`.
+- The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). GKE Autopilot and EKS Fargate refuse privileged pods, so the `gke-autopilot` and `eks-fargate` presets leave it out for you. On OpenShift, the `openshift` preset creates an SCC that lets only its pods run privileged, and `openshift-restricted` leaves it out. On any other cluster that blocks privileged pods, turn it off: `--set ebpf.enabled=false`.
 
 Turn it off if you don't want it:
 

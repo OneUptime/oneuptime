@@ -28,7 +28,7 @@ flowchart TB
 | 노드 Collector | DaemonSet | `/var/log/pods`의 Pod 로그, kubelet 및 cAdvisor 메트릭, 노드의 OS 메트릭. | EKS Fargate를 제외한 모든 곳 |
 | eBPF 계측 (OBI) | DaemonSet | 모든 Pod의 HTTP, gRPC, SQL, Redis 트레이스와 요청 메트릭, 그리고 서비스 맵. | 기본값 (GKE Autopilot과 EKS Fargate 제외) |
 | Kubernetes AI 에이전트 | Deployment | OneUptime AI가 인시던트나 알림을 조사하는 동안 사용하는 읽기 전용 `kubectl`. | 기본값 |
-| 로그 테일러 | Deployment | 노드 Collector가 읽을 수 없는 경우 Kubernetes API를 통한 Pod 로그. | `gke-autopilot` 및 `eks-fargate` 프리셋 |
+| 로그 테일러 | Deployment | 노드 Collector가 읽을 수 없는 경우 Kubernetes API를 통한 Pod 로그. | `gke-autopilot`, `eks-fargate` 및 `openshift-restricted` 프리셋 |
 | 비용 엔진과 폴러 | Deployments | 네임스페이스, 워크로드, Pod별 지출. | `cost.enabled=true`일 때 |
 
 모든 에이전트 이미지는 Linux 전용이므로 모든 워크로드는 Linux 노드에 고정됩니다.
@@ -215,8 +215,9 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `gke-autopilot` | **GKE Autopilot** | 로그 테일러가 Kubernetes API를 통해 읽음 (`hostPath` 없음, 호스트 접근 없음) | `hostPath` 없이 Kubelet과 cAdvisor |
 | `eks-fargate` | **EKS Fargate** | 로그 테일러가 Kubernetes API를 통해 읽음 (`hostPath` 없음, 호스트 접근 없음) | 없음: Fargate는 DaemonSet을 실행하지 않음 |
 | `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | 노드 Collector가 차트가 만들어 주는 보안 컨텍스트 제약 조건 아래에서 `hostPath`를 통해 `/var/log/pods`를 읽음 | Kubelet, cAdvisor, 노드의 OS 메트릭 |
+| `openshift-restricted` | **OpenShift**(관리자가 SCC를 추가하지 않는 경우) | 로그 테일러가 Kubernetes API를 통해 읽음 (`hostPath` 없음, 호스트 접근 없음) | `hostPath` 없이 Kubelet과 cAdvisor |
 
-확실하지 않다면 `standard`로 시작하세요. `hostPath`를 언급하는 Pod Security 오류로 설치가 실패하면 `preset=gke-autopilot`(Fargate에서는 `eks-fargate`)으로 다시 설치하세요. GKE Autopilot과 EKS Fargate는 eBPF와 프로파일러에 필요한 privileged Pod도 거부하므로, 이 두 프리셋에서는 둘 다 제외됩니다. OpenShift에서는 `openshift`를 사용하세요([OpenShift](#openshift) 참조).
+확실하지 않다면 `standard`로 시작하세요. `hostPath`를 언급하는 Pod Security 오류로 설치가 실패하면 `preset=gke-autopilot`(Fargate에서는 `eks-fargate`)으로 다시 설치하세요. GKE Autopilot과 EKS Fargate는 eBPF와 프로파일러에 필요한 privileged Pod도 거부하므로, 이 두 프리셋에서는 둘 다 제외됩니다. OpenShift에서는 `openshift`를 사용하고, 관리자가 SCC를 추가하지 않는 경우에는 `openshift-restricted`를 사용하세요([OpenShift](#openshift) 참조).
 
 ## OpenShift
 
@@ -229,6 +230,23 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 - 에이전트의 텔레메트리에 `oneuptime.kubernetes.distribution=openshift`를 붙이므로 클러스터의 **플랫폼**이 **OpenShift**로 표시되며, 클러스터가 클라우드에서 실행되는 경우 그 클라우드(`cloud.provider`, `cloud.platform`)도 추가합니다.
 
 SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도 릴리스는 설치되지만 OpenShift가 에이전트의 노드 Collector와 eBPF Pod를 시작하지 않으며, 설치 후 Helm이 출력하는 노트에도 그렇게 표시됩니다.
+
+**관리자가 SCC를 추가하지 않는 경우** 대신 `--set preset=openshift-restricted`로 설치하세요. 그러면 차트는 SCC를 만들지 않고 모든 Pod가 `gke-autopilot`처럼 `restricted-v2`에서 실행됩니다. 클러스터는 계속 OpenShift로 표시됩니다. 대신 다음을 포기하게 됩니다.
+
+- 노드의 Pod 로그: 로그 테일러가 Kubernetes API를 통해 읽으며, 컨테이너마다 장기 연결을 하나씩 사용합니다.
+- 노드의 OS 메트릭. 노드, Pod, 컨테이너 메트릭은 유지됩니다. 노드 Collector가 kubelet과 cAdvisor를 네트워크로 읽습니다.
+- eBPF 트레이스와 프로파일러. `ebpf.enabled`와 `profiling.enabled` 값과 관계없이 제외됩니다. 서비스를 트레이스하려면 OpenTelemetry SDK로 서비스에서 트레이스를 보내세요.
+- 감사 로그. 노드에서 읽기 때문입니다.
+
+이를 되찾으려면 업그레이드할 때 cluster-admin으로 `--set preset=openshift`를 지정해 `openshift`로 옮기세요.
+
+**OneUptime에서 보이는 내용.** 에이전트는 OpenShift 자체 객체도 읽기 전용으로 읽어 클러스터 페이지에 보여 줍니다.
+
+- 클러스터의 **개요** 맨 앞에 **OpenShift** 카드가 표시됩니다. 실행 중인 버전, 업데이트가 진행 중인지 또는 실패하고 있는지, 클러스터 Operator 중 정상인 수와 나머지 각 Operator가 보고하는 내용을 보여 줍니다. 사용할 수 없는 Operator가 있으면 클러스터는 **비정상**이 되고, 저하된 Operator나 실패하는 업데이트가 있으면 **저하됨**이 됩니다.
+- **네트워크** 아래의 **Routes**와 **서비스**: 각 Route가 응답하는 위치, TLS 종료 방식, 트래픽을 보내는 서비스와 그 비율, 라우터가 Route를 거부한 이유를 보여 줍니다. Route의 TLS 키는 클러스터 밖으로 나가지 않습니다. 에이전트가 Route를 보내기 전에 키를 교체합니다.
+- **워크로드** 아래의 **DeploymentConfigs**는 Deployment와 같은 방식으로 표시됩니다. 롤아웃, Pod의 CPU와 메모리, 실행하는 ReplicationController와 Pod의 이벤트를 보여 줍니다.
+
+**Operator 및 업데이트 알림.** OpenShift 클러스터의 **권장 사항** 페이지에서는 **Cluster Operator Unavailable**, **Cluster Operator Degraded**, **Cluster Update Failing**을 제공합니다. 각각은 에이전트가 `resourceSpecs.interval`마다 보내는 스냅샷을 대상으로 하는 로그 모니터입니다. 스냅샷 두 개가 문제를 보고하면 알림을 보내므로, 업데이트 중 Operator 상태가 잠깐 바뀌는 것만으로는 아무 일도 일어나지 않습니다. 또한 스냅샷이 문제가 끝났다고 보고할 때 해결되며, 에이전트가 전송을 멈췄다는 이유로 해결되는 일은 없습니다.
 
 **OpenShift 자체 알림.** OpenShift에는 Prometheus와 Alertmanager가 포함되어 있으며, Operator, etcd, 노드에 대한 알림이 함께 제공됩니다. 각 알림마다 OneUptime에서 인시던트를 열려면 웹 콘솔의 **Administration → Cluster Settings → Configuration → Alertmanager**에서 OneUptime용 웹훅 수신기를 추가하세요. 방법은 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)를 참고하세요.
 
@@ -244,6 +262,7 @@ SCC를 만들려면 cluster-admin 권한이 필요합니다. 프리셋 없이도
 | 클러스터 메트릭 | 노드 상태, 할당 가능한 리소스, Pod 수 |
 | Kubernetes 이벤트 | 모든 네임스페이스와 모든 종류의 객체에서 온 모든 이벤트(Warning과 Normal): [Kubernetes 이벤트](#kubernetes-이벤트) 참고 |
 | Pod 로그 | 모든 컨테이너의 stdout과 stderr (표준 클러스터에서는 `hostPath`를 통해, Autopilot과 Fargate에서는 Kubernetes API를 통해) |
+| OpenShift 객체 (OpenShift 프리셋) | ClusterOperator, ClusterVersion, Route, DeploymentConfig, Service: [OpenShift](#openshift) 참고 |
 | 애플리케이션 트레이스 (eBPF, 기본적으로 켜짐) | 모든 Pod의 HTTP, gRPC, SQL, Redis 스팬 (SDK나 코드 변경 불필요) |
 | HTTP RED 메트릭 (eBPF) | 서비스별 `http.server.request.duration`, 그리고 요청 및 응답 본문 크기 |
 | 서비스 그래프 (eBPF) | 호출자에서 피호출자로의 요청 속도, 지연 시간, 오류 엣지. 서비스 맵을 그립니다 |
@@ -517,6 +536,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**OpenShift에서는** 두 OpenShift 프리셋 모두 스케줄러와 컨트롤러 매니저에 `--set controlPlane.enabled=true`만으로 충분합니다. OpenShift는 각각의 복제본 여러 개를 Service 뒤에서 실행하므로, 에이전트는 Service의 EndpointSlice에서 복제본을 하나씩 찾아 서비스 계정 토큰으로 따로 스크레이프합니다. `controlPlane.scheduler.endpoints`와 `controlPlane.controllerManager.endpoints`를 설정하면 여전히 그 값이 우선합니다. etcd는 클라이언트 인증서를 요구하므로 `controlPlane.etcd.clientCertSecret`이 인증서가 든 Secret을 가리킬 때까지 스크레이프되지 않습니다. OpenShift 모니터링에 인증서가 있으니, cluster-admin으로 차트가 읽는 세 개의 키를 가진 Secret에 복사하세요.
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+이 사본은 OpenShift의 인증서 교체를 따라가지 않으므로, etcd 메트릭이 멈추면 이 명령을 다시 실행하세요. 호스팅 컨트롤 플레인(ROSA with HCP, HyperShift)은 이 구성 요소를 클러스터 밖에서 실행하므로 에이전트가 찾지 못하며, 그 탭은 비어 있습니다.
+
 관리형 Kubernetes 서비스(EKS, GKE, AKS)는 etcd, 스케줄러, 컨트롤러 매니저를 노출하지 않으므로 그 탭은 비어 있습니다. 탭의 메트릭이 도착할 때까지 **컨트롤 플레인** 페이지는 차트 대신 설정할 내용을 복사할 명령과 함께 보여 줍니다.
 
 ### CoreDNS 메트릭 활성화
@@ -629,7 +668,7 @@ PgBouncer, ProxySQL, mongos 같은 데이터베이스 프록시나 커넥션 풀
 
 다음 경우에는 eBPF를 끄세요:
 
-- **GKE Autopilot** 또는 **EKS Fargate**에 설치하는 경우: 이 플랫폼은 privileged Pod를 거부하므로 `preset=gke-autopilot`과 `preset=eks-fargate`는 이미 eBPF를, 그리고 프로파일러도 함께 제외합니다.
+- **GKE Autopilot** 또는 **EKS Fargate**에 설치하는 경우: 이 플랫폼은 privileged Pod를 거부하므로 `preset=gke-autopilot`과 `preset=eks-fargate`는 이미 eBPF를, 그리고 프로파일러도 함께 제외합니다. `preset=openshift-restricted`도 OpenShift에서 같은 일을 합니다.
 - 노드가 BTF 백포트 없이 5.8보다 오래된 커널을 실행하는 경우.
 - 이미 모든 앱에서 OpenTelemetry SDK로 트레이스를 보내고 eBPF 메트릭도 원하지 않는 경우. (트레이스만이라면 끌 필요가 없습니다. 위에서처럼 OBI는 자체적으로 트레이스를 내보내는 앱에 대해서는 eBPF 트레이스 전송을 멈춥니다.)
 

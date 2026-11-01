@@ -453,6 +453,8 @@ describePostgres("a device's discovered details merged on Postgres", () => {
 
   async function insertCandidate(data: {
     projectId?: ObjectID;
+    name?: string;
+    sysName?: string;
     hostname?: string;
     serialNumber?: string;
     macAddress?: string;
@@ -464,14 +466,16 @@ describePostgres("a device's discovered details merged on Postgres", () => {
     const id: ObjectID = ObjectID.generate();
     await database.query(
       `INSERT INTO "${schema}"."NetworkDevice"
-         ("_id", "projectId", "name", "hostname", "serialNumber", "macAddress",
+         ("_id", "projectId", "name", "sysName", "hostname", "serialNumber", "macAddress",
           "discoveredDetails", "isArchived", "deletedAt", "refreshRequestedAt",
           "createdAt", "updatedAt", "version")
-       VALUES ($1, $2, 'device', $3, $4, $5, $6::jsonb, $7, $8, $9,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11,
                '2026-10-01T00:00:00.000Z', '2026-10-01T00:00:00.000Z', 1)`,
       [
         id.toString(),
         (data.projectId || PROJECT_ID).toString(),
+        data.name || "device",
+        data.sysName || null,
         data.hostname || null,
         data.serialNumber || null,
         data.macAddress || null,
@@ -562,6 +566,36 @@ describePostgres("a device's discovered details merged on Postgres", () => {
     const byAddress: string = await insertCandidate({
       hostname: "10.20.30.44",
     });
+    const byOwnMac: string = await insertCandidate({
+      hostname: "10.20.30.45",
+      discoveredDetails: {
+        ownMacAddress: {
+          value: "e0:55:3d:12:34:58",
+          method: "snmp",
+          readBy: { type: "probe", id: CONNECTION_ID },
+          readAt: "2026-10-23T08:00:00.000Z",
+        },
+      },
+    });
+    const byName: string = await insertCandidate({
+      hostname: "10.20.30.46",
+      name: " Store 12 Gateway ",
+    });
+    const bySysName: string = await insertCandidate({
+      hostname: "10.20.30.47",
+      sysName: "STORE 12 GATEWAY",
+    });
+    const byScannedName: string = await insertCandidate({
+      hostname: "10.20.30.48",
+      discoveredDetails: {
+        sysName: {
+          value: "Store 12 gateway",
+          method: "snmp",
+          readBy: { type: "discoveryScan", id: CONNECTION_ID },
+          readAt: "2026-10-23T08:00:00.000Z",
+        },
+      },
+    });
     const describedBefore: string = await insertCandidate({
       hostname: "10.99.0.1",
       discoveredDetails: {
@@ -615,6 +649,7 @@ describePostgres("a device's discovered details merged on Postgres", () => {
         serials: ["Q2KD-ABCD-1234"],
         macs: ["e0:55:3d:12:34:57", "e0:55:3d:12:34:58"],
         addresses: ["10.20.30.44"],
+        names: ["store 12 gateway"],
       },
       limit: 100,
     });
@@ -626,7 +661,17 @@ describePostgres("a device's discovered details merged on Postgres", () => {
         })
         .sort(),
     ).toEqual(
-      [bySerial, byTypedMac, byLearnedMac, byAddress, describedBefore].sort(),
+      [
+        bySerial,
+        byTypedMac,
+        byLearnedMac,
+        byAddress,
+        byOwnMac,
+        byName,
+        bySysName,
+        byScannedName,
+        describedBefore,
+      ].sort(),
     );
 
     const serialRow: (typeof found)[number] | undefined = found.find(
@@ -657,6 +702,7 @@ describePostgres("a device's discovered details merged on Postgres", () => {
             serials: ["Q2KD-ABCD-1234"],
             macs: ["e0:55:3d:12:34:57", "e0:55:3d:12:34:58"],
             addresses: ["10.20.30.44"],
+            names: [],
           },
           limit: 2,
         })
@@ -669,7 +715,7 @@ describePostgres("a device's discovered details merged on Postgres", () => {
         await NetworkDeviceService.findControllerMatchCandidates({
           projectId: PROJECT_ID,
           connectionId: CONNECTION_ID,
-          lookup: { serials: [], macs: [], addresses: [] },
+          lookup: { serials: [], macs: [], addresses: [], names: [] },
           limit: 100,
         })
       ).map((row: { id: string }) => {
@@ -734,5 +780,74 @@ describePostgres("a device's discovered details merged on Postgres", () => {
         connectionId: CONNECTION_ID,
       }),
     ).toBe(0);
+  });
+
+  test("a deleted connection's links go with its reading, and nobody else's do", async () => {
+    const reader: JSONObject = {
+      type: "networkController",
+      id: CONNECTION_ID.toString(),
+      name: "Stores",
+    };
+    const links: JSONObject = {
+      provider: "meraki",
+      readBy: reader,
+      readAt: "2026-11-01T06:00:00.000Z",
+      links: [{ port: "Port 49", peerName: "core", protocols: ["lldp"] }],
+    };
+    const theirLinks: JSONObject = {
+      ...links,
+      readBy: { ...reader, id: ObjectID.generate().toString() },
+    };
+
+    const ours: ObjectID = await insertDevice({
+      discoveredDetails: { controllerLinks: links },
+    });
+    const theirs: ObjectID = await insertDevice({
+      discoveredDetails: { controllerLinks: theirLinks },
+    });
+
+    await NetworkDeviceService.forgetControllerReadings({
+      projectId: PROJECT_ID,
+      connectionId: CONNECTION_ID,
+    });
+
+    expect(await detailsOf(ours)).toEqual({});
+    expect(await detailsOf(theirs)).toEqual({ controllerLinks: theirLinks });
+  });
+
+  test("a device known only by the links this connection read is still a candidate, with its site", async () => {
+    const reader: JSONObject = {
+      type: "networkController",
+      id: CONNECTION_ID.toString(),
+    };
+    const device: ObjectID = await insertDevice({
+      discoveredDetails: {
+        controllerLinks: {
+          provider: "meraki",
+          readBy: reader,
+          readAt: "2026-11-01T06:00:00.000Z",
+          links: [{ peerName: "core", protocols: [] }],
+        },
+      },
+    });
+
+    type Candidates = Awaited<
+      ReturnType<typeof NetworkDeviceService.findControllerMatchCandidates>
+    >;
+
+    const candidates: Candidates =
+      await NetworkDeviceService.findControllerMatchCandidates({
+        projectId: PROJECT_ID,
+        connectionId: CONNECTION_ID,
+        lookup: { serials: [], macs: [], addresses: [], names: [] },
+        limit: 10,
+      });
+
+    expect(
+      candidates.map((candidate: Candidates[number]): string => {
+        return candidate.id;
+      }),
+    ).toEqual([device.toString()]);
+    expect(candidates[0]?.siteId).toBeNull();
   });
 });

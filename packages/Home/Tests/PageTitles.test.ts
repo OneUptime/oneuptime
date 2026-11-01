@@ -850,6 +850,7 @@ describe("pages whose copy moved into the register", () => {
 
   test.each([
     ["kubernetes.ejs", "/product/kubernetes"],
+    ["openshift.ejs", "/product/openshift"],
     ["on-call.ejs", "/product/on-call"],
     ["network-monitoring.ejs", "/product/network-monitoring"],
     ["support.ejs", "/support"],

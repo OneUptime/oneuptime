@@ -38,6 +38,18 @@ export interface NetworkControllerReadSummary {
    */
   deviceCount?: number | undefined;
   describedDeviceCount?: number | undefined;
+  /*
+   * What the map took from the last read that had any clients: the clients
+   * it placed on a switch port (or, for a device here on Wi-Fi, an access
+   * point), and the Meraki devices with wired clients on them that are no
+   * device in OneUptime, whose clients have nothing to hang from. Reads between
+   * two client windows keep these, since they have nothing to say. Absent
+   * from a summary written before Meraki was read for the map.
+   */
+  placedClientCount?: number | undefined;
+  unplacedDeviceCount?: number | undefined;
+  // Devices in OneUptime whose links the last read of any links recorded.
+  linkedDeviceCount?: number | undefined;
   // Uplink windows this read stored, and the end of the newest (ISO).
   uplinkWindows: number;
   newestUplinkAt?: string | undefined;
@@ -111,6 +123,15 @@ export function readNetworkControllerReadSummary(
             readNumber(summary["describedDeviceCount"]),
           ),
         }
+      : {}),
+    ...(summary["placedClientCount"] !== undefined
+      ? { placedClientCount: readNumber(summary["placedClientCount"]) }
+      : {}),
+    ...(summary["unplacedDeviceCount"] !== undefined
+      ? { unplacedDeviceCount: readNumber(summary["unplacedDeviceCount"]) }
+      : {}),
+    ...(summary["linkedDeviceCount"] !== undefined
+      ? { linkedDeviceCount: readNumber(summary["linkedDeviceCount"]) }
       : {}),
     uplinkWindows: readNumber(summary["uplinkWindows"]),
     ...(newestUplinkAt ? { newestUplinkAt: newestUplinkAt } : {}),

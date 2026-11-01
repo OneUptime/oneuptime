@@ -39,7 +39,7 @@ export const KUBERNETES_EXAMPLE_CONTROLLER_MANAGER_ENDPOINT: string =
   "https://10.0.0.10:10257/metrics";
 
 /*
- * Where the cluster runs. The chart only distinguishes four presets
+ * Where the cluster runs. The chart only distinguishes a few presets
  * (KubernetesAgentPreset); the guide offers the managed services by name
  * because that is how people know their cluster, and because connecting
  * kubectl to each one is a different command.
@@ -53,7 +53,13 @@ export type KubernetesPlatform =
   | "gke-autopilot"
   | "eks-fargate";
 
-// The chart's `preset` value (HelmChart/Public/kubernetes-agent/values.yaml).
+/*
+ * The chart's `preset` values the guide installs with
+ * (HelmChart/Public/kubernetes-agent/values.yaml). openshift-restricted is
+ * not a platform of its own: `openshift` is the one to install on OpenShift,
+ * and the OpenShift troubleshooting names it for an admin who will not add
+ * SCCs.
+ */
 export type KubernetesAgentPreset =
   | "standard"
   | "gke-autopilot"
@@ -484,13 +490,6 @@ function getExpectedPods(preset: KubernetesAgentPreset): {
     row(`${release}-logs-xxxxx`),
   ].join("\n");
 
-  if (preset === "openshift") {
-    return {
-      listing: listing,
-      explanation: `The collector and the Kubernetes AI agent, plus one \`-logs\` and one \`-ebpf\` pod on every node, which run under the SCCs the chart created for them: \`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\` lists both.`,
-    };
-  }
-
   return {
     listing: listing,
     explanation:
@@ -499,9 +498,19 @@ function getExpectedPods(preset: KubernetesAgentPreset): {
 }
 
 function getVerifyStep(platform: KubernetesPlatform): SetupGuideStep {
-  const expected: { listing: string; explanation: string } = getExpectedPods(
-    getKubernetesAgentPreset(platform),
-  );
+  const preset: KubernetesAgentPreset = getKubernetesAgentPreset(platform);
+  const expected: { listing: string; explanation: string } =
+    getExpectedPods(preset);
+
+  /*
+   * On OpenShift the node pods run under the SCCs the chart creates for them.
+   * Said in the step's markdown, not in its explanation: a sentence with the
+   * SCCs' names in it is not one phrase a locale can translate.
+   */
+  const sccCheck: string =
+    preset === "openshift"
+      ? ` The \`-logs\` and \`-ebpf\` pods run under the SCCs the chart created for them: \`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\` lists both.`
+      : "";
 
   return {
     title: "Verify the installation",
@@ -512,7 +521,7 @@ You should see:
 
 ${codeBlock("output", expected.listing)}
 
-${expected.explanation} Once they are \`Running\`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.
+${expected.explanation}${sccCheck} Once they are \`Running\`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.
 
 **Kubernetes AI agent (on by default, read-only).** The \`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\` pod lets OneUptime AI investigate incidents and alerts on this cluster with read-only kubectl — \`get\`, \`describe\`, \`logs\`, \`events\`, \`top\` — using the same API key, and it can change nothing unless you give it write access later. Open the cluster and go to **AI → Agent** to see it. Don't want it? Install with \`${KUBERNETES_AI_INVESTIGATION_OPT_OUT_FLAG}\` instead of \`${KUBERNETES_AI_INVESTIGATION_INSTALL_FLAG}\`.`,
   };
@@ -792,7 +801,10 @@ ${codeBlock("bash", `kubectl get events -n ${namespace} --field-selector reason=
 ${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set preset=openshift"]))}
 
 - **The SCCs are missing:** check with \`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\`. Creating them takes cluster-admin rights, so an install by anyone else fails when it gets to them.
-- **\`violates PodSecurity\`:** the namespace's Pod Security level is stricter than the eBPF pods, which run privileged, need. Label it \`pod-security.kubernetes.io/enforce=privileged\`, or turn eBPF off with \`--set ebpf.enabled=false\`.`,
+- **\`violates PodSecurity\`:** the namespace's Pod Security level is stricter than the eBPF pods, which run privileged, need. Label it \`pod-security.kubernetes.io/enforce=privileged\`, or turn eBPF off with \`--set ebpf.enabled=false\`.
+- **Your cluster admin will not add SCCs:** use the \`openshift-restricted\` preset. The chart then creates no SCC and every pod runs under \`restricted-v2\`, so pod logs come through the Kubernetes API, and there are no host metrics, eBPF traces or profiles:
+
+${codeBlock("bash", getKubernetesAgentUpgradeCommand(["--set preset=openshift-restricted"]))}`,
     });
   } else if (!isRestrictedPlatform(platform)) {
     topics.push({

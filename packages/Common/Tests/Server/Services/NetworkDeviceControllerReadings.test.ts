@@ -92,6 +92,7 @@ describe("the device list's lookup", () => {
         serials: ["Q2HP-SWCH-0001"],
         macs: ["88:15:44:aa:00:01"],
         addresses: ["10.0.0.2"],
+        names: ["branch 1 core"],
       },
       limit: 50000,
     });
@@ -109,7 +110,15 @@ describe("the device list's lookup", () => {
       `(nd."discoveredDetails" -> 'macAddress' ->> 'value') = ANY($3::text[])`,
     );
     expect(sql).toContain(
+      `(nd."discoveredDetails" -> 'ownMacAddress' ->> 'value') = ANY($3::text[])`,
+    );
+    expect(sql).toContain(
       `(nd."discoveredDetails" -> 'controller' -> 'readBy' ->> 'id') = $5`,
+    );
+    expect(sql).toContain('lower(btrim(nd."name")) = ANY($7::text[])');
+    expect(sql).toContain('lower(btrim(nd."sysName")) = ANY($7::text[])');
+    expect(sql).toContain(
+      `lower(btrim(nd."discoveredDetails" -> 'sysName' ->> 'value')) = ANY($7::text[])`,
     );
     expect(sql).toContain("LIMIT $6");
     expect(query.mock.calls[0]![1]).toEqual([
@@ -119,6 +128,7 @@ describe("the device list's lookup", () => {
       ["10.0.0.2"],
       CONNECTION_ID.toString(),
       50000,
+      ["branch 1 core"],
     ]);
 
     expect(rows).toEqual([
@@ -140,7 +150,7 @@ describe("the device list's lookup", () => {
     await service.findControllerMatchCandidates({
       projectId: PROJECT_ID,
       connectionId: CONNECTION_ID,
-      lookup: { serials: [], macs: [], addresses: [] },
+      lookup: { serials: [], macs: [], addresses: [], names: [] },
       limit: 0.5,
     });
 

@@ -144,7 +144,14 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
    * (KubernetesEventAlertTemplates): templates are created with English
    * names.
    */
-  [KUBERNETES]: ["Enable AI Command Execution", "Pilot", "Warning Events"],
+  [KUBERNETES]: [
+    "Enable AI Command Execution",
+    "Pilot",
+    "Warning Events",
+    "Cluster Operator Unavailable",
+    "Cluster Operator Degraded",
+    "Cluster Update Failing",
+  ],
   // The dashboard template's name, from the template catalog.
   [COST]: ["Kubernetes Cost Dashboard"],
   // Alert template names: the templates are created with English names.
@@ -316,6 +323,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   [HOST]: ["AI investigations are on by default."],
   [KUBERNETES]: [
     "AI investigations are on by default.",
+    "If an admin will not add an SCC,",
+    "On OpenShift,",
+    "What you see in OneUptime.",
+    "Alerts on operators and updates.",
     "OpenShift's own alerts.",
     "Traces from your code.",
     "You get whole traces, not fragments.",

@@ -36,6 +36,7 @@ import {
 import Probe from "../../../Models/DatabaseModels/Probe";
 import ProbeService from "../../Services/ProbeService";
 import IP from "../../../Types/IP/IP";
+import { pickDeviceOwnMac } from "../../../Utils/NetworkDevice/DeviceOwnMacUtil";
 import { isFirstPollSinceRefresh } from "../../../Utils/NetworkDevice/NetworkDeviceRefresh";
 import { NetworkDevicePollMode } from "./NetworkDeviceHydrationUtil";
 import { mirrorInventoryRow } from "../Telemetry/InventoryEntityRegistry";
@@ -135,6 +136,7 @@ export default class NetworkInventoryUtil {
            * The ARP readings this device's table gives its neighbours are
            * credited to it by name, and the address its probe resolved is
            * recorded only for the name it is still polled at (issue #5185).
+           * Its own MAC is recorded only when it changed (issue #5384).
            */
           name: true,
           hostname: true,
@@ -645,6 +647,88 @@ export default class NetworkInventoryUtil {
       );
       logger.error(err);
     }
+
+    try {
+      await NetworkInventoryUtil.recordOwnMacAddress({
+        projectId: data.projectId,
+        device: ownedDevice,
+        probeId: data.probeId,
+        interfaces: walkedInterfaces,
+        now: now,
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to record the MAC address of network device ${deviceId.toString()}:`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
+   * The MAC of one of the device's own ports, out of the interface table its
+   * walk read, recorded in its discovered details (OneUptime issue #5384).
+   * The poll reads ifPhysAddress on every interface anyway; this is what a
+   * router nothing walked sits in front of - a Meraki MX at a branch - has
+   * for a MAC, and what ties it to its Meraki dashboard record.
+   *
+   * Never the device's MAC column: that one is typed, or an ARP table's, and
+   * the topology map and the Meraki match read it as the MAC behind the
+   * device's address.
+   *
+   * Written only when it changes, which on a stable fleet is never: unlike
+   * the address above, nothing shows the time of this reading. The device's
+   * facts say it was read by its poll, as of its last successful walk.
+   *
+   * Returns whether it wrote.
+   */
+  public static async recordOwnMacAddress(data: {
+    projectId: ObjectID;
+    device: NetworkDevice;
+    probeId?: ObjectID | undefined;
+    interfaces: Array<SnmpInterface>;
+    now: Date;
+  }): Promise<boolean> {
+    const macAddress: string | undefined = pickDeviceOwnMac(data.interfaces);
+
+    if (!data.device.id || !data.probeId || !macAddress) {
+      return false;
+    }
+
+    const recorded: NetworkDeviceDiscoveredValue | undefined =
+      readNetworkDeviceDiscoveredDetails(data.device.discoveredDetails).values[
+        NetworkDeviceDiscoveredField.OwnMacAddress
+      ];
+
+    if (recorded?.value === macAddress) {
+      return false;
+    }
+
+    const entry: NetworkDeviceDiscoveredValue | undefined =
+      buildDiscoveredValue({
+        field: NetworkDeviceDiscoveredField.OwnMacAddress,
+        value: macAddress,
+        readBy: {
+          type: NetworkDeviceDiscoveryReaderType.Probe,
+          id: data.probeId.toString(),
+        },
+        readAt: data.now,
+      });
+
+    if (!entry) {
+      return false;
+    }
+
+    await NetworkDeviceService.mergeDiscoveredDetails({
+      projectId: data.projectId,
+      patches: [
+        {
+          deviceId: data.device.id,
+          set: { [NetworkDeviceDiscoveredField.OwnMacAddress]: entry },
+        },
+      ],
+    });
+
+    return true;
   }
 
   /*

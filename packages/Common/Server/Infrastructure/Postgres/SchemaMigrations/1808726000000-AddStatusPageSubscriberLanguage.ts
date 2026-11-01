@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * already signed up has none, so they keep being written in the page's
  * default language (Server/Utils/StatusPage/SubscriberLanguage).
  */
-export class AddStatusPageSubscriberLanguage1808716000000
+export class AddStatusPageSubscriberLanguage1808726000000
   implements MigrationInterface
 {
-  public name: string = "AddStatusPageSubscriberLanguage1808716000000";
+  public name: string = "AddStatusPageSubscriberLanguage1808726000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

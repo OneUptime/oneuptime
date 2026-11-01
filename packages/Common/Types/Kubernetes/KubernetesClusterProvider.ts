@@ -27,11 +27,14 @@ import { normalizeCloudPlatform } from "../Cloud/CloudPlatform";
 export const KUBERNETES_DISTRIBUTION_ATTRIBUTE: string =
   "oneuptime.kubernetes.distribution";
 
+// What an OpenShift cluster's Provider reads.
+export const OPENSHIFT_KUBERNETES_PROVIDER: string = "OpenShift";
+
 // oneuptime.kubernetes.distribution values, lowercase, and their label.
 export const KUBERNETES_DISTRIBUTION_PROVIDERS: Readonly<
   Record<string, string>
 > = {
-  openshift: "OpenShift",
+  openshift: OPENSHIFT_KUBERNETES_PROVIDER,
 };
 
 // The semantic conventions' Kubernetes cloud.platform values, and their label.
@@ -43,10 +46,10 @@ export const KUBERNETES_CLOUD_PLATFORM_PROVIDERS: Readonly<
   azure_aks: "AKS",
   alibaba_cloud_ack: "ACK",
   tencent_cloud_eks: "Tencent EKS",
-  aws_openshift: "OpenShift",
-  azure_openshift: "OpenShift",
-  gcp_openshift: "OpenShift",
-  ibm_cloud_openshift: "OpenShift",
+  aws_openshift: OPENSHIFT_KUBERNETES_PROVIDER,
+  azure_openshift: OPENSHIFT_KUBERNETES_PROVIDER,
+  gcp_openshift: OPENSHIFT_KUBERNETES_PROVIDER,
+  ibm_cloud_openshift: OPENSHIFT_KUBERNETES_PROVIDER,
 };
 
 /*
@@ -91,6 +94,20 @@ export function getKubernetesClusterProvider(data: {
   }
 
   return null;
+}
+
+/*
+ * Whether a cluster's stored Provider says it is OpenShift, for what is true
+ * of the platform whichever cloud it runs on. Every way to it writes the same
+ * label, and the comparison ignores case, as the distribution's does.
+ */
+export function isOpenShiftClusterProvider(
+  provider: string | null | undefined,
+): boolean {
+  return (
+    (provider || "").trim().toLowerCase() ===
+    OPENSHIFT_KUBERNETES_PROVIDER.toLowerCase()
+  );
 }
 
 /*
