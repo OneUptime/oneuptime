@@ -4,7 +4,7 @@ El agente de Kubernetes de OneUptime es un chart de Helm que recoge las métrica
 
 :::cards
 - [Instalar el agente](#instalar-el-agente): Cuatro pasos con Helm.
-- [Elegir un preset](#elegir-un-preset): Clústeres estándar, GKE Autopilot o EKS Fargate.
+- [Elegir un preset](#elegir-un-preset): Clústeres estándar, GKE Autopilot, EKS Fargate u OpenShift.
 - [Opciones comunes](#opciones-comunes): Los ajustes que cambian la mayoría de los clústeres.
 - [Solución de problemas](#solución-de-problemas): Un script de diagnóstico y los problemas habituales.
 :::
@@ -32,7 +32,7 @@ flowchart LR
 | Colector de nodo | DaemonSet | Registros de pods desde `/var/log/pods`, métricas de kubelet y cAdvisor, y las métricas del sistema operativo del nodo. | Sí |
 | Instrumentación eBPF (OBI) | DaemonSet | Trazas HTTP, gRPC, SQL y Redis y métricas de solicitudes de cada pod, y el mapa de servicios. | Sí |
 | Agente de IA de Kubernetes | Deployment | Permite que OneUptime AI ejecute `kubectl` de solo lectura mientras investiga un incidente o una alerta de este clúster. | Sí |
-| Lector de registros | Deployment | Registros de pods a través de la API de Kubernetes, donde el colector de nodo no puede leerlos. | Con los presets `gke-autopilot` y `eks-fargate` |
+| Lector de registros | Deployment | Registros de pods a través de la API de Kubernetes, donde el colector de nodo no puede leerlos. | Con los presets `gke-autopilot`, `eks-fargate` y `openshift-restricted` |
 | Perfilador eBPF | DaemonSet | Flame graphs de CPU continuos de cada proceso. | No |
 | kube-state-metrics | Deployment | Fases de los pods, motivos de espera de los contenedores y cuotas de recursos. | No |
 
@@ -92,10 +92,14 @@ Algunas plataformas de Kubernetes no permiten que una carga de trabajo monte un 
 | `standard` (predeterminado) | Autogestionado, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | El colector de nodo lee `/var/log/pods` | Métricas de kubelet, cAdvisor y del sistema operativo |
 | `gke-autopilot` | **GKE Autopilot** | El lector de registros los lee a través de la API de Kubernetes | Métricas de kubelet y cAdvisor, sin `hostPath` |
 | `eks-fargate` | **EKS Fargate** | El lector de registros los lee a través de la API de Kubernetes | Nada: Fargate no ejecuta DaemonSets |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | El colector de nodo lee `/var/log/pods` | Métricas de kubelet, cAdvisor y del sistema operativo |
+| `openshift-restricted` | **OpenShift**, si un administrador no quiere añadir ninguna SCC | El lector de registros los lee a través de la API de Kubernetes | Métricas de kubelet y cAdvisor, sin `hostPath` |
 
 Si no está seguro, deje `preset` sin definir para obtener `standard`. Si la instalación falla con un error de Pod Security que menciona `hostPath`, instale de nuevo con `gke-autopilot`, o con `eks-fargate` en EKS Fargate.
 
-GKE Autopilot y EKS Fargate también rechazan los pods privilegiados, que la instrumentación eBPF y el perfilado necesitan, así que sus presets dejan fuera ambos:
+GKE Autopilot y EKS Fargate también rechazan los pods privilegiados, que la instrumentación eBPF y el perfilado necesitan, así que sus presets dejan fuera ambos.
+
+En OpenShift, la restricción de contexto de seguridad (SCC) predeterminada, `restricted-v2`, rechaza el colector de nodo y los pods de eBPF. El preset `openshift` crea una SCC para cada uno, usada solo por su propia cuenta de servicio, y deja que OpenShift elija el ID de usuario de todos los demás pods:
 
 :::tabs
 @tab Standard
@@ -124,7 +128,18 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
 ```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
+```
 :::
+
+Si un administrador no quiere añadir ninguna SCC, instale en su lugar con `--set preset=openshift-restricted`. El chart no crea entonces ninguna SCC y cada pod se ejecuta bajo `restricted-v2`: los registros de pods llegan a través de la API de Kubernetes, y no hay métricas del sistema operativo, trazas de eBPF ni perfiles. Consulte [OpenShift](/docs/telemetry/kubernetes-agent#openshift).
 
 ## Etiquetar el clúster
 
@@ -355,7 +370,7 @@ El perfilado necesita **Linux 5.10** o posterior, y un pod privilegiado con los 
 | `oneuptime.url` | (obligatorio) | Su URL de OneUptime. |
 | `oneuptime.apiKey` | (obligatorio) | La clave de ingesta, de **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. Se envía como la cabecera `x-oneuptime-token`; una clave de API de proyecto no sirve. |
 | `clusterName` | (obligatorio) | El nombre del clúster, único en el proyecto. Cada registro lo lleva como `k8s.cluster.name`. |
-| `preset` | (vacío: `standard`) | `standard`, `gke-autopilot` o `eks-fargate`. Consulte [Elegir un preset](#elegir-un-preset). |
+| `preset` | (vacío: `standard`) | `standard`, `gke-autopilot`, `eks-fargate`, `openshift` u `openshift-restricted`. Consulte [Elegir un preset](#elegir-un-preset). |
 | `oneuptime.labels` | `{}` | Etiquetas para cada registro de este agente. Consulte [Etiquetar el clúster](#etiquetar-el-clúster). |
 | `namespaceFilters.rules` | Deja `kube-system` fuera de `podLogs` y `ebpfDiscovery` | Reglas que incluyen o excluyen namespaces, para `podLogs`, `ebpfDiscovery`, `metrics` y `traces`. Los patrones pueden usar `*`, y excluir siempre gana. |
 | `filters.logs.minSeverity` | `""` | Descarta las líneas de registro de pods por debajo de este nivel: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` o `FATAL`. |

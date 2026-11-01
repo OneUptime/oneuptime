@@ -4,6 +4,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -34,7 +35,17 @@ export interface ComponentProps {
 }
 
 const NAV_BUTTON_CLASS_NAME: string =
-  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
+  "inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
+// An arrow at the end of what can be shown is locked, as every locked button looks.
+const getNavButtonClassName: (isLocked: boolean) => string = (
+  isLocked: boolean,
+): string => {
+  return `${NAV_BUTTON_CLASS_NAME} ${getHandDrawnButtonStateClassName({
+    isLocked: isLocked,
+    hoverClassName: "hover:bg-gray-50 hover:text-gray-900",
+  })}`;
+};
 
 const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -70,7 +81,7 @@ const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
         >
           <button
             type="button"
-            className={NAV_BUTTON_CLASS_NAME}
+            className={getNavButtonClassName(props.canGoEarlier === false)}
             aria-label={earlierLabel}
             title={earlierLabel}
             disabled={props.canGoEarlier === false}
@@ -91,7 +102,7 @@ const StatusTimelineWindowControls: FunctionComponent<ComponentProps> = (
           />
           <button
             type="button"
-            className={NAV_BUTTON_CLASS_NAME}
+            className={getNavButtonClassName(!props.canGoLater)}
             aria-label={laterLabel}
             title={laterLabel}
             disabled={!props.canGoLater}

@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
@@ -102,15 +103,16 @@ export const readProjectDashboards: () => Promise<
  * A row's Move up, Move down and Remove. Grey-500 at rest: an icon that is
  * the only sign of a control needs 3:1 against the white row (WCAG 1.4.11),
  * which grey-400 is not. One that can't be pressed (the first row's Move
- * up) is faded and has no hover colour at all, rather than a disabled:hover:
- * one the dark theme has no rule for.
+ * up) looks locked as every button does - faded, with no hover colour at
+ * all, rather than a disabled:hover: one the dark theme has no rule for.
  */
 function getIconButtonClassName(isDisabled: boolean): string {
-  return `rounded-md p-1.5 text-gray-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
-    isDisabled
-      ? "cursor-not-allowed opacity-40"
-      : "hover:bg-gray-100 hover:text-gray-700"
-  }`;
+  return `rounded-md p-1.5 text-gray-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${getHandDrawnButtonStateClassName(
+    {
+      isLocked: isDisabled,
+      hoverClassName: "hover:bg-gray-100 hover:text-gray-700",
+    },
+  )}`;
 }
 
 const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (

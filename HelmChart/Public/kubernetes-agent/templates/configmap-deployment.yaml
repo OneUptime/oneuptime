@@ -93,6 +93,42 @@ data:
             group: autoscaling.k8s.io
           {{- end }}
           {{- end }}
+      {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+
+      # OpenShift's own objects, on the openshift preset, pulled with the
+      # other resource specs: the cluster's operators and version, Routes and
+      # DeploymentConfigs, and the Services those Routes send traffic to.
+      # Pulled, never watched, as inventory keeps an object only while its
+      # snapshots arrive. A receiver of their own, with error_mode: ignore,
+      # so a cluster that does not serve one of them skips it instead of
+      # stopping the events and every other spec
+      # (kubernetes-agent.openshiftObjectsEnabled). Each names its group:
+      # another API may serve the same name (OpenShift Serverless's
+      # routes.serving.knative.dev and services.serving.knative.dev). A
+      # Service names none: the receiver takes no group as the core one.
+      k8sobjects/openshift:
+        error_mode: ignore
+        objects:
+          - name: clusteroperators
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: config.openshift.io
+          - name: clusterversions
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: config.openshift.io
+          - name: routes
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: route.openshift.io
+          - name: deploymentconfigs
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+            group: apps.openshift.io
+          - name: services
+            mode: pull
+            interval: {{ .Values.resourceSpecs.interval }}
+      {{- end }}
 
       {{- if or (eq (include "kubernetes-agent.controlPlaneScrapes" .) "true") .Values.serviceMesh.enabled .Values.csi.enabled .Values.coreDns.enabled .Values.kubeStateMetrics.enabled (and .Values.cost.enabled .Values.cost.metrics.enabled) }}
       # Scrape metrics via Prometheus endpoints (control plane, service
@@ -103,10 +139,14 @@ data:
             {{- if .Values.controlPlane.enabled }}
             {{- /* Each component is scraped at the endpoints in its own list,
                    from this pod, which has no host network: localhost is the
-                   pod itself. A component with no endpoints gets no job. The
-                   job's scheme comes from the endpoints (http:// is plain
-                   HTTP, anything else HTTPS) and the target is their
-                   host:port (kubernetes-agent.controlPlaneScheme/Target). */}}
+                   pod itself. A component with no endpoints gets no job, but
+                   on the OpenShift presets the scheduler, the controller
+                   manager and, with a client certificate, etcd are found
+                   through service discovery instead
+                   (kubernetes-agent.controlPlaneDiscovered). The job's scheme
+                   comes from the endpoints (http:// is plain HTTP, anything
+                   else HTTPS) and the target is their host:port
+                   (kubernetes-agent.controlPlaneScheme/Target). */}}
             {{- with .Values.controlPlane.etcd }}
             {{- if .endpoints }}
             - job_name: etcd
@@ -127,6 +167,21 @@ data:
                 - targets:
                     - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- else if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" "etcd")) "true" }}
+            # OpenShift's etcd members, each on its own, on the metrics port
+            # OpenShift's own ServiceMonitor reads. It asks for a client
+            # certificate: the one in the Secret
+            # controlPlane.etcd.clientCertSecret names, mounted by
+            # templates/deployment.yaml.
+            - job_name: etcd
+              scheme: https
+              metrics_path: /metrics
+              tls_config:
+                insecure_skip_verify: {{ .insecureSkipVerify }}
+                ca_file: /etc/oneuptime/etcd-client-cert/ca.crt
+                cert_file: /etc/oneuptime/etcd-client-cert/tls.crt
+                key_file: /etc/oneuptime/etcd-client-cert/tls.key
+              {{- include "kubernetes-agent.controlPlaneDiscoveryConfig" (dict "namespace" "openshift-etcd" "service" "etcd" "port" "etcd-metrics") | nindent 14 }}
             {{- end }}
             {{- end }}
             {{- with .Values.controlPlane.apiServer }}
@@ -163,6 +218,22 @@ data:
                 - targets:
                     - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- else if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" "scheduler")) "true" }}
+            # OpenShift's schedulers, each on its own, with the service
+            # account's token: the ClusterRole grants GET on /metrics.
+            - job_name: kube-scheduler
+              scheme: https
+              metrics_path: /metrics
+              tls_config:
+                insecure_skip_verify: {{ .insecureSkipVerify }}
+                {{- if not .insecureSkipVerify }}
+                # OpenShift's service CA signs the certificate, for the
+                # Service's name: every pod has the CA next to its token.
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+                server_name: scheduler.openshift-kube-scheduler.svc
+                {{- end }}
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              {{- include "kubernetes-agent.controlPlaneDiscoveryConfig" (dict "namespace" "openshift-kube-scheduler" "service" "scheduler" "port" "https") | nindent 14 }}
             {{- end }}
             {{- end }}
             {{- with .Values.controlPlane.controllerManager }}
@@ -178,6 +249,19 @@ data:
                 - targets:
                     - {{ include "kubernetes-agent.controlPlaneTarget" . | quote }}
                 {{- end }}
+            {{- else if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" "controllerManager")) "true" }}
+            # OpenShift's controller managers, the same way.
+            - job_name: kube-controller-manager
+              scheme: https
+              metrics_path: /metrics
+              tls_config:
+                insecure_skip_verify: {{ .insecureSkipVerify }}
+                {{- if not .insecureSkipVerify }}
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+                server_name: kube-controller-manager.openshift-kube-controller-manager.svc
+                {{- end }}
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              {{- include "kubernetes-agent.controlPlaneDiscoveryConfig" (dict "namespace" "openshift-kube-controller-manager" "service" "kube-controller-manager" "port" "https") | nindent 14 }}
             {{- end }}
             {{- end }}
             {{- end }}
@@ -392,6 +476,9 @@ data:
             - tag_name: k8s.pod.label.app.kubernetes.io/name
               key: app.kubernetes.io/name
               from: pod
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            {{- include "kubernetes-agent.deploymentConfigPodLabel" . | nindent 12 }}
+            {{- end }}
         pod_association:
           - sources:
               - from: resource_attribute
@@ -456,7 +543,26 @@ data:
           - key: oneuptime.agent.version
             value: {{ .Chart.AppVersion | quote }}
             action: insert
+          {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+          {{- include "kubernetes-agent.distributionAttribute" (dict "action" "insert") | nindent 10 }}
+          {{- end }}
           {{- include "kubernetes-agent.oneuptimeLabels" (dict "labels" .Values.oneuptime.labels "action" "insert") | nindent 10 }}
+      {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+      {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
+      {{- end }}
+      {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+
+      # A Route can carry its TLS private key inline, in spec.tls.key. It never
+      # leaves the cluster: the key is replaced before the record is exported,
+      # and OneUptime's Route parser reads nothing of spec.tls but how the
+      # route terminates TLS. The certificates beside it are public.
+      transform/openshift-route-tls:
+        error_mode: ignore
+        log_statements:
+          - context: log
+            statements:
+              - set(body["spec"]["tls"]["key"], "REDACTED") where IsMap(body) and body["kind"] == "Route" and body["spec"]["tls"]["key"] != nil
+      {{- end }}
 
       # The k8sobjects receiver emits LogRecords without a severity, so
       # Kubernetes events and resource snapshots arrive at OneUptime with
@@ -795,6 +901,9 @@ data:
             - filter/telemetry
             {{- end }}
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             {{- if eq (include "kubernetes-agent.dropNodeInspectorMetrics" .) "true" }}
             # Before batch, so a dropped datapoint never takes a batch slot.
             - filter/ebpf-node-inspector
@@ -805,10 +914,20 @@ data:
         logs:
           receivers:
             - k8sobjects
+            {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+            - k8sobjects/openshift
+            {{- end }}
           processors:
             - memory_limiter
+            {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+            # First, so no other processor holds a Route's key.
+            - transform/openshift-route-tls
+            {{- end }}
             - k8sattributes
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             - transform/severity
             # Intentionally NOT filtered by filters.logs.minSeverity — see the
             # note on $signals above. Kubernetes events are a low-volume,
@@ -842,6 +961,9 @@ data:
             - k8sattributes
             - transform/pod-level-unmark
             - resource
+            {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+            - resourcedetection/openshift
+            {{- end }}
             {{- if eq (include "kubernetes-agent.ebpfDatabaseFilterEnabled" .) "true" }}
             # Before the user's filters and the sampler, so neither spends
             # work on spans that are about to be dropped anyway.

@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -469,8 +470,21 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
       section.total,
       loaded.isScanLimited,
     );
-    const actionClassName: string =
-      "rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:cursor-wait disabled:text-gray-400";
+    /*
+     * Reload list and Show more: the one that loads is busy (it says
+     * Loading…), the other locked until it is done.
+     */
+    const actionClassNameOf: (action?: SectionAction | undefined) => string = (
+      action?: SectionAction | undefined,
+    ): string => {
+      return `rounded-md px-2 py-1 text-sm font-medium text-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+        {
+          isLocked: Boolean(pending),
+          isBusy: Boolean(action) && pending === action,
+          hoverClassName: "hover:text-indigo-800",
+        },
+      )}`;
+    };
 
     return (
       <div
@@ -509,7 +523,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
             {isOutdated && (
               <button
                 type="button"
-                className={`mt-1 ${actionClassName}`}
+                className={`mt-1 ${actionClassNameOf()}`}
                 onClick={() => {
                   Navigation.reload();
                 }}
@@ -531,7 +545,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
             </p>
             <button
               type="button"
-              className={actionClassName}
+              className={actionClassNameOf("reload")}
               aria-label={translator.translateTemplate(
                 "Reload list: {{list}}",
                 {
@@ -561,7 +575,7 @@ const InventoryRelationships: FunctionComponent<ComponentProps> = (
             </p>
             <button
               type="button"
-              className={actionClassName}
+              className={actionClassNameOf("more")}
               aria-label={translator.translateTemplate("Show more: {{list}}", {
                 list: translator.translateText(config.title) as string,
               })}

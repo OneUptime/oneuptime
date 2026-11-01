@@ -39,15 +39,38 @@ describe("kindFromResourceType", () => {
     );
   });
 
+  test("maps OpenShift's own resource types, from the openshift preset", () => {
+    expect(kindFromResourceType("routes")).toBe("Route");
+    expect(kindFromResourceType("deploymentconfigs")).toBe("DeploymentConfig");
+    expect(kindFromResourceType("clusteroperators")).toBe("ClusterOperator");
+    expect(kindFromResourceType("clusterversions")).toBe("ClusterVersion");
+  });
+
   test("is case-insensitive on the resource type", () => {
     expect(kindFromResourceType("Pods")).toBe("Pod");
     expect(kindFromResourceType("CRONJOBS")).toBe("CronJob");
+    expect(kindFromResourceType("ClusterOperators")).toBe("ClusterOperator");
   });
 
   test("returns null for unrecognized resource types", () => {
     expect(kindFromResourceType("secrets")).toBeNull();
     expect(kindFromResourceType("")).toBeNull();
     expect(kindFromResourceType("configmaps")).toBeNull();
+    // OpenShift objects the chart does not pull.
+    expect(kindFromResourceType("imagestreams")).toBeNull();
+    expect(kindFromResourceType("buildconfigs")).toBeNull();
+  });
+
+  test("never answers with an Object.prototype member for a type off the wire", () => {
+    for (const resourceType of [
+      "constructor",
+      "__proto__",
+      "toString",
+      "hasOwnProperty",
+      "valueOf",
+    ]) {
+      expect(kindFromResourceType(resourceType)).toBeNull();
+    }
   });
 
   test("INVENTORIED_RESOURCE_TYPES only contains recognized types", () => {
@@ -55,7 +78,16 @@ describe("kindFromResourceType", () => {
       expect(kindFromResourceType(resourceType)).not.toBeNull();
     }
     expect(INVENTORIED_RESOURCE_TYPES).toContain("pods");
-    expect(INVENTORIED_RESOURCE_TYPES.length).toBe(12);
+    expect(INVENTORIED_RESOURCE_TYPES.length).toBe(17);
+  });
+
+  test("INVENTORIED_RESOURCE_TYPES includes OpenShift's four, last", () => {
+    expect(INVENTORIED_RESOURCE_TYPES.slice(-4)).toEqual([
+      "routes",
+      "deploymentconfigs",
+      "clusteroperators",
+      "clusterversions",
+    ]);
   });
 });
 

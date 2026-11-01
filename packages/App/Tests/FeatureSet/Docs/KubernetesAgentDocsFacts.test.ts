@@ -398,7 +398,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
   describe("presets", () => {
     const helpers: string = chartFile("templates/_helpers.tpl");
 
-    it("are the chart's three, in the table's order", () => {
+    it("are the chart's five, in the table's order", () => {
       const schema: {
         properties: { preset: { enum: Array<string> } };
       } = JSON.parse(chartFile("values.schema.json"));
@@ -408,30 +408,79 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         "standard",
         "gke-autopilot",
         "eks-fargate",
+        "openshift",
+        "openshift-restricted",
       ]);
       expect(
         tableAfter("## Pick a preset").map((row: Array<string>): string => {
           return row[0] as string;
         }),
-      ).toEqual(["`standard` (default)", "`gke-autopilot`", "`eks-fargate`"]);
+      ).toEqual([
+        "`standard` (default)",
+        "`gke-autopilot`",
+        "`eks-fargate`",
+        "`openshift`",
+        "`openshift-restricted`",
+      ]);
     });
 
-    it("read logs through the API on GKE Autopilot and EKS Fargate, where hostPath is refused", () => {
+    it("read logs through the API where hostPath is refused: GKE Autopilot, EKS Fargate and openshift-restricted", () => {
       expect(helpers).toContain(
-        '{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}\napi',
+        '{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") (eq $preset "openshift-restricted") -}}\napi',
       );
       expect(helpers).toContain(
-        'define "kubernetes-agent.hostPathAvailable" -}}\n{{- $preset := default "" .Values.preset -}}\n{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}\nfalse',
+        'define "kubernetes-agent.hostPathAvailable" -}}\n{{- $preset := default "" .Values.preset -}}\n{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") (eq $preset "openshift-restricted") -}}\nfalse',
       );
 
       const rows: Array<Array<string>> = tableAfter("## Pick a preset");
 
       expect(rows[0]![2]).toBe("The node collector reads `/var/log/pods`");
-      for (const row of rows.slice(1)) {
+      for (const row of [rows[1]!, rows[2]!, rows[4]!]) {
         expect(row[2]).toBe(
           "The log tailer reads them through the Kubernetes API",
         );
       }
+    });
+
+    it("on openshift-restricted read the kubelet without hostPath, as on GKE Autopilot, under restricted-v2 with no SCC of the chart's", () => {
+      const rows: Array<Array<string>> = tableAfter("## Pick a preset");
+
+      expect(rows[4]![3]).toBe(
+        "Kubelet and cAdvisor metrics, without `hostPath`",
+      );
+      expect(rows[4]![1]).toBe(
+        "**OpenShift**, where an admin will not add an SCC",
+      );
+      expect(helpers).toContain(
+        'define "kubernetes-agent.openshiftSccs" -}}\n{{- if eq (default "" .Values.preset) "openshift" -}}\ntrue',
+      );
+      expect(chartFile("templates/openshift-scc.yaml")).toContain(
+        '{{- if eq (include "kubernetes-agent.openshiftSccs" .) "true" }}',
+      );
+      expect(english).toContain(
+        "Where an admin will not add an SCC, install with `--set preset=openshift-restricted` instead. The chart then creates no SCC and every pod runs under `restricted-v2`, so pod logs come through the Kubernetes API, and there are no OS metrics, eBPF traces or profiles.",
+      );
+    });
+
+    it("on OpenShift keep the node collector, under an SCC the chart creates, and let OpenShift choose every other pod's user", () => {
+      // hostPath and privileged pods stay allowed: the chart's SCCs allow them.
+      expect(helpers).not.toMatch(
+        /define "kubernetes-agent\.(hostPathAvailable|privilegedPodsAllowed|daemonSetSchedulable)" -}}\n[^\n]*\n[^\n]*"openshift"/,
+      );
+      expect(chartFile("templates/openshift-scc.yaml")).toContain(
+        "kind: SecurityContextConstraints",
+      );
+      expect(helpers).toContain(
+        'define "kubernetes-agent.nonRootPodSecurityContext" -}}\nrunAsNonRoot: true\n{{- if ne (include "kubernetes-agent.openshift" .root) "true" }}',
+      );
+
+      const rows: Array<Array<string>> = tableAfter("## Pick a preset");
+
+      expect(rows[3]![2]).toBe("The node collector reads `/var/log/pods`");
+      expect(rows[3]![3]).toBe("Kubelet, cAdvisor and OS metrics");
+      expect(english).toContain(
+        "On OpenShift, the default security context constraint (SCC), `restricted-v2`, refuses the node collector and the eBPF pods. The `openshift` preset creates an SCC for each, used only by its own service account, and lets OpenShift choose the user ID of every other pod:",
+      );
     });
 
     it("run no DaemonSet on EKS Fargate, and the node collector without hostPath on GKE Autopilot", () => {
@@ -448,7 +497,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       expect(rows[2]![3]).toBe("Nothing: Fargate runs no DaemonSets");
     });
 
-    it("on GKE Autopilot and EKS Fargate leave eBPF and profiling out themselves, because their pods are privileged", () => {
+    it("on GKE Autopilot, EKS Fargate and openshift-restricted leave eBPF and profiling out themselves, because their pods are privileged", () => {
       expect(chartFile("templates/daemonset-ebpf.yaml")).toContain(
         "privileged: true",
       );
@@ -458,7 +507,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
 
       // The chart decides it from the preset, as it does hostPath.
       expect(helpers).toContain(
-        'define "kubernetes-agent.privilegedPodsAllowed" -}}\n{{- $preset := default "" .Values.preset -}}\n{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") -}}\nfalse',
+        'define "kubernetes-agent.privilegedPodsAllowed" -}}\n{{- $preset := default "" .Values.preset -}}\n{{- if or (eq $preset "gke-autopilot") (eq $preset "eks-fargate") (eq $preset "openshift-restricted") -}}\nfalse',
       );
       expect(helpers).toContain(
         '{{- if and ((.Values.ebpf | default dict).enabled) (eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true") -}}',
@@ -521,7 +570,7 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
       }
 
       expect(english).toContain(
-        "GKE Autopilot and EKS Fargate also refuse privileged pods, which the eBPF instrumentation and profiling need, so their presets leave both out:",
+        "GKE Autopilot and EKS Fargate also refuse privileged pods, which the eBPF instrumentation and profiling need, so their presets leave both out.",
       );
       expect(english).toContain(
         "- The cluster is **GKE Autopilot** or **EKS Fargate**. Their presets do it for you: those platforms refuse privileged pods, and OBI must be privileged to load its programs.",
@@ -679,7 +728,8 @@ describe("Kubernetes Agent (Helm install), against the chart", () => {
         "Node collector": "Yes",
         "eBPF instrumentation (OBI)": "Yes",
         "Kubernetes AI agent": "Yes",
-        "Log tailer": "With the `gke-autopilot` and `eks-fargate` presets",
+        "Log tailer":
+          "With the `gke-autopilot`, `eks-fargate` and `openshift-restricted` presets",
         "eBPF profiler": "No",
         "kube-state-metrics": "No",
       });

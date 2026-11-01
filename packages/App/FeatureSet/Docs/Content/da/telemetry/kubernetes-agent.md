@@ -5,6 +5,7 @@ OneUptime Kubernetes-agenten er et Helm-chart, der indsamler din klynges metrikk
 :::cards
 - [Installer agenten](#installer-agenten): Fire trin med Helm.
 - [Installer som Amazon EKS-tilføjelse](#installer-som-amazon-eks-tilføjelse): Fra EKS-konsollen, uden Helm.
+- [OpenShift](#openshift): Presettet, de security context constraints, det opretter, og OpenShifts egne advarsler.
 - [Konfigurationsmuligheder](#konfigurationsmuligheder): Filtre, sampling, kontrolplan, service mesh, omkostninger og etiketter.
 - [Kubernetes-AI-agent](#kubernetes-ai-agent): Skrivebeskyttet `kubectl` til OneUptime AI og rettelser, når du tillader dem.
 - [Send mindre](#reducering-af-den-indsamlede-datamængde): Håndtagene, i rækkefølge efter effekt.
@@ -27,7 +28,7 @@ flowchart TB
 | Node-collector | DaemonSet | Pod-logs fra `/var/log/pods`, kubelet- og cAdvisor-metrikker og nodens OS-metrikker. | Overalt undtagen på EKS Fargate |
 | eBPF-instrumentering (OBI) | DaemonSet | HTTP-, gRPC-, SQL- og Redis-traces og request-metrikker fra hver pod samt servicekortet. | Som standard, undtagen på GKE Autopilot og EKS Fargate |
 | Kubernetes-AI-agent | Deployment | Skrivebeskyttet `kubectl` til OneUptime AI, mens den undersøger en hændelse eller advarsel. | Som standard |
-| Log-tailer | Deployment | Pod-logs gennem Kubernetes-API'et, hvor node-collectoren ikke kan læse dem. | Med presets `gke-autopilot` og `eks-fargate` |
+| Log-tailer | Deployment | Pod-logs gennem Kubernetes-API'et, hvor node-collectoren ikke kan læse dem. | Med presets `gke-autopilot`, `eks-fargate` og `openshift-restricted` |
 | Omkostningsmotor og poller | Deployments | Forbrug pr. namespace, workload og pod. | Med `cost.enabled=true` |
 
 Alle agentens images er kun til Linux, så alle workloads er fastlåst til Linux-noder.
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,35 @@ En opdatering erstatter hele konfigurationen: en værdi, du udelader, går tilba
 | `standard` (standard) | Selvadministrerede klynger, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Node-collectoren læser `/var/log/pods` gennem `hostPath` (laveste overhead) | Kubelet, cAdvisor og nodens OS-metrikker |
 | `gke-autopilot` | **GKE Autopilot** | Log-taileren læser dem gennem Kubernetes-API'et (ingen `hostPath`, ingen værtsadgang) | Kubelet og cAdvisor, uden `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Log-taileren læser dem gennem Kubernetes-API'et (ingen `hostPath`, ingen værtsadgang) | Ingen: Fargate kører ingen DaemonSets |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Node-collectoren læser `/var/log/pods` gennem `hostPath` under en security context constraint, som chartet opretter til den | Kubelet, cAdvisor og nodens OS-metrikker |
+| `openshift-restricted` | **OpenShift**, hvis en administrator ikke vil tilføje en SCC | Log-taileren læser dem gennem Kubernetes-API'et (ingen `hostPath`, ingen værtsadgang) | Kubelet og cAdvisor, uden `hostPath` |
 
-Er du i tvivl, så start med `standard`. Hvis installationen fejler med en Pod Security-fejl, der nævner `hostPath`, så installer igen med `preset=gke-autopilot` (eller `eks-fargate` på Fargate). GKE Autopilot og EKS Fargate afviser også privilegerede pods, som eBPF og profileren har brug for, så de to presets udelader begge.
+Er du i tvivl, så start med `standard`. Hvis installationen fejler med en Pod Security-fejl, der nævner `hostPath`, så installer igen med `preset=gke-autopilot` (eller `eks-fargate` på Fargate). GKE Autopilot og EKS Fargate afviser også privilegerede pods, som eBPF og profileren har brug for, så de to presets udelader begge. På OpenShift skal du bruge `openshift`, eller `openshift-restricted`, hvis en administrator ikke vil tilføje en SCC: se [OpenShift](#openshift).
+
+## OpenShift
+
+Installer med `--set preset=openshift`, som fanen **OpenShift** ovenfor gør. OpenShift tillader kun en pod under en security context constraint (SCC), som dens serviceaccount må bruge, og indtil en administrator giver mere, er det `restricted-v2` (OpenShift 4.11 og nyere): ingen `hostPath`-volumener, ingen privilegerede containere og et bruger-id fra namespacets eget interval. Derfor gør presettet følgende:
+
+- Det opretter to SCC'er, som hver kun bruges af den serviceaccount, dens egne pods kører med:
+  - én til node-collectoren: skrivebeskyttede `hostPath`-monteringer, som root med SELinux-typen `spc_t`, uprivilegeret, med alle capabilities fjernet;
+  - én til eBPF-instrumenteringen og profileren: privilegeret, i værtens PID-namespace. Kun mens en af dem er slået til.
+- Det lader OpenShift vælge bruger-id'et for alle andre pods, som kører under `restricted-v2`.
+- Det stempler agentens telemetri med `oneuptime.kubernetes.distribution=openshift`, så klyngens **Platform** viser **OpenShift**, og tilføjer den cloud, klyngen kører i (`cloud.provider`, `cloud.platform`), hvis der er en.
+
+Det kræver cluster-admin-rettigheder at oprette SCC'erne. Uden presettet installeres releasen, men OpenShift starter aldrig agentens node-collector- og eBPF-pods, og installationsnoterne siger det.
+
+**Hvis en administrator ikke vil tilføje en SCC,** så installer i stedet med `--set preset=openshift-restricted`. Chartet opretter så ingen SCC, og hver pod kører under `restricted-v2`, som med `gke-autopilot`. Klyngen vises stadig som OpenShift. Til gengæld mister du:
+
+- Pod-logs fra noderne: log-taileren læser dem gennem Kubernetes-API'et med én langvarig forbindelse pr. container.
+- Nodens OS-metrikker. Node-, pod- og container-metrikker bliver: node-collectoren læser kubelet og cAdvisor over netværket.
+- eBPF-traces og profileren, uanset hvad `ebpf.enabled` og `profiling.enabled` siger. Send traces fra dine tjenester med et OpenTelemetry SDK for at trace dem.
+- Audit-logs, som læses fra noden.
+
+For at få dem tilbage skal du skifte til `openshift` med `--set preset=openshift` ved en opgradering, som cluster-admin.
+
+**OpenShifts egne advarsler.** OpenShift leveres med Prometheus og Alertmanager og advarsler for sine operatorer, etcd og noder. For at oprette en hændelse i OneUptime for hver af dem skal du tilføje en webhook-modtager til OneUptime under **Administration → Cluster Settings → Configuration → Alertmanager** i webkonsollen, som [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager) beskriver.
+
+**Traces fra din kode.** eBPF-instrumenteringen tracer HTTP, gRPC og SQL uden kodeændringer. For at sende traces fra OpenTelemetry-SDK'er eller fra Red Hat build of OpenTelemetry skal du pege deres OTLP-exporter mod OneUptime, som [OpenTelemetry](/docs/telemetry/open-telemetry) beskriver.
 
 ## Hvad der indsamles
 
@@ -488,6 +527,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**På OpenShift** er `--set controlPlane.enabled=true` nok til scheduleren og controller manageren, på begge OpenShift-presets. OpenShift kører flere replikaer af hver bag en Service, så agenten finder hver replika i Servicens EndpointSlices og scraper den for sig, med sin tjenestekontos token. `controlPlane.scheduler.endpoints` og `controlPlane.controllerManager.endpoints` har stadig forrang, når du sætter dem. etcd beder om et klientcertifikat, så det bliver først scrapet, når `controlPlane.etcd.clientCertSecret` navngiver en Secret, der indeholder et. OpenShifts overvågning har et: kopiér det som cluster-admin til en Secret med de tre nøgler, chartet læser:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+Kopien følger ikke OpenShifts rotation af certifikatet, så kør disse kommandoer igen, når etcd's metrikker stopper. Et hostet control plane (ROSA med HCP, HyperShift) kører disse komponenter uden for klyngen: agenten finder ingen af dem, og de faner forbliver tomme der.
+
 Administrerede Kubernetes-tjenester (EKS, GKE, AKS) eksponerer ikke etcd, scheduleren eller controller manageren, så de faner forbliver tomme der. Indtil en fanes metrikker ankommer, viser siden **Kontrolplan** i stedet for dens grafer, hvad der skal sættes, med kommandoen til at kopiere.
 
 ### Slå CoreDNS-metrikker til
@@ -600,7 +659,7 @@ Hvis en app allerede eksporterer traces med et OpenTelemetry-SDK, bemærker OBI 
 
 Slå eBPF fra, når:
 
-- Du installerer på **GKE Autopilot** eller **EKS Fargate**: de platforme afviser privilegerede pods, så `preset=gke-autopilot` og `preset=eks-fargate` udelader allerede eBPF for dig, og profileren med det.
+- Du installerer på **GKE Autopilot** eller **EKS Fargate**: de platforme afviser privilegerede pods, så `preset=gke-autopilot` og `preset=eks-fargate` udelader allerede eBPF for dig, og profileren med det. `preset=openshift-restricted` gør det samme på OpenShift.
 - Noderne kører en kerne ældre end 5.8 uden BTF-backports.
 - Du allerede sender traces fra OpenTelemetry-SDK'er i hver app og heller ikke vil have eBPF-metrikkerne. (Alene for traces behøver du ikke: OBI holder op med at sende eBPF-traces for en app, som den ser eksportere sine egne, som ovenfor.)
 

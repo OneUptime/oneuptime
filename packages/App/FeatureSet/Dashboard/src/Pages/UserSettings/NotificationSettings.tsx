@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -583,7 +584,13 @@ const ChannelCell: FunctionComponent<ChannelCellProps> = (
       }
       onClick={handleClick}
       disabled={isBusy}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 disabled:opacity-60 ${stateClasses}`}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 ${getHandDrawnLookClassName(
+        {
+          // While it saves it is busy: as it is, with no hover.
+          className: stateClasses,
+          isBusy: isBusy,
+        },
+      )}`}
     >
       {props.enabled ? (
         <Icon icon={IconProp.Check} className="h-4 w-4" size={SizeProp.Small} />

@@ -1,7 +1,7 @@
 import FileModel from "Common/Models/DatabaseModels/File";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import { BUTTON_DISABLED_CLASS_NAME } from "Common/UI/Components/Button/Button";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import FilePicker from "Common/UI/Components/FilePicker/FilePicker";
 import Icon from "Common/UI/Components/Icon/Icon";
 import KeyboardKey, {
@@ -385,7 +385,12 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
           </div>
           <button
             type="button"
-            className="mb-1 text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:cursor-not-allowed disabled:text-gray-400"
+            className={`mb-1 text-sm font-medium text-indigo-600 ${getHandDrawnButtonStateClassName(
+              {
+                isLocked: !props.values.postedAt,
+                hoverClassName: "hover:text-indigo-500",
+              },
+            )}`}
             disabled={!props.values.postedAt}
             onClick={() => {
               update({ postedAt: null });
@@ -543,7 +548,12 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
                 type="button"
                 onClick={props.onCancel}
                 disabled={props.isSubmitting}
-                className="inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50"
+                className={`inline-flex h-9 items-center rounded-md px-3 text-sm font-medium text-gray-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: props.isSubmitting,
+                    hoverClassName: "hover:bg-gray-100",
+                  },
+                )}`}
               >
                 {tx("Cancel")}
               </button>
@@ -559,14 +569,18 @@ const NoteComposer: FunctionComponent<ComponentProps> = (
               }
               /*
                * An empty note cannot be posted, and the button looks it the
-               * way every locked button does (BUTTON_DISABLED_CLASS_NAME): a
-               * paler fill of its own was a bright block in the dark theme.
+               * way every locked button does (getHandDrawnButtonStateClassName):
+               * a paler fill of its own was a bright block in the dark theme.
                * While the note posts it is busy, not locked, so it keeps its
                * look beside its spinner.
                */
-              className={`inline-flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
-                isBlank ? BUTTON_DISABLED_CLASS_NAME : "hover:bg-indigo-700"
-              }`}
+              className={`inline-flex h-9 items-center gap-2 rounded-md bg-indigo-600 px-3.5 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${getHandDrawnButtonStateClassName(
+                {
+                  isLocked: isBlank,
+                  isBusy: props.isSubmitting,
+                  hoverClassName: "hover:bg-indigo-700",
+                },
+              )}`}
             >
               {props.isSubmitting && (
                 <Icon

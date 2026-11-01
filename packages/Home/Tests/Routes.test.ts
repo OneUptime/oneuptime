@@ -468,6 +468,51 @@ describe("VMware product page", () => {
   });
 });
 
+describe("OpenShift page", () => {
+  /*
+   * The same three-way agreement as a product page, with one difference: the
+   * Kubernetes product monitors OpenShift, so the SEO entry is a solution's.
+   * Typed as a product, llms.txt and products.json would list a product that
+   * does not exist.
+   */
+  test("the page is registered and renders its own template", () => {
+    expect(hasGetRoute("/product/openshift")).toBe(true);
+    expect(routesSource).toContain(`${"${ViewsPath}"}/openshift`);
+  });
+
+  test("it is routed like the infrastructure pages it sits beside", () => {
+    expect(hasGetRoute("/product/vmware")).toBe(true);
+    expect(bodyOfGetRoute("/product/openshift")).toContain("getSEOForPath(");
+    expect(bodyOfGetRoute("/product/openshift")).toContain(
+      '"/product/openshift"',
+    );
+  });
+
+  test("it is a canonical page, not a redirect", () => {
+    expect(redirectTargetOf("/product/openshift")).toBeNull();
+    expect(isRedirectPath("/product/openshift")).toBe(false);
+  });
+
+  test("it resolves SEO data typed as a solution, not a product", () => {
+    const seo: PageSEOData | undefined = PageSEOConfig["/product/openshift"];
+
+    expect(seo).toBeDefined();
+    expect(seo!.canonicalPath).toBe("/product/openshift");
+    expect(seo!.pageType).toBe("solutions");
+  });
+
+  test("it is prioritised in the sitemap config like the solutions", () => {
+    const sitemapSource: string = fs.readFileSync(
+      path.join(__dirname, "..", "Utils", "Sitemap.ts"),
+      "utf-8",
+    );
+
+    expect(sitemapSource).toContain(
+      '"/product/openshift": { priority: 0.8, changefreq: "weekly" }',
+    );
+  });
+});
+
 describe("Databases product page", () => {
   /*
    * The same three-way agreement - route, SEO entry, sitemap priority - plus

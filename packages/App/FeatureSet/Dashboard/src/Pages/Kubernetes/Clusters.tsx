@@ -4,6 +4,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
+import { getKubernetesClusterProviderLabel } from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import KubernetesClusterOwnerTeam from "Common/Models/DatabaseModels/KubernetesClusterOwnerTeam";
 import KubernetesClusterOwnerUser from "Common/Models/DatabaseModels/KubernetesClusterOwnerUser";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
@@ -214,6 +215,22 @@ const KubernetesClusters: FunctionComponent<
             },
             title: "Cluster Name (clusterName)",
             type: FieldType.Text,
+          },
+          {
+            field: {
+              provider: true,
+            },
+            title: "Platform",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            // OpenShift, EKS, GKE, ... once the cluster's telemetry names it.
+            getElement: (item: KubernetesCluster): ReactElement => {
+              return (
+                <span className="text-sm text-gray-700">
+                  {getKubernetesClusterProviderLabel(item.provider) || "—"}
+                </span>
+              );
+            },
           },
           {
             field: {

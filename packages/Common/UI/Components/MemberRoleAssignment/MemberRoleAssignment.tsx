@@ -25,6 +25,7 @@ import {
   BUTTON_DISABLED_CURSOR_CLASS_NAME,
   ButtonStyleType,
 } from "../Button/Button";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import Tooltip from "../Tooltip/Tooltip";
 import { PermissionGateResult } from "../../Utils/PermissionGate";
@@ -535,7 +536,13 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
               setShowConfirmDelete(member);
             }}
             disabled={isUnassigning?.toString() === member.memberId.toString()}
-            className="ml-auto inline-flex flex-shrink-0 items-center p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+            className={`ml-auto inline-flex flex-shrink-0 items-center p-1.5 text-gray-400 rounded-md transition-colors ${getHandDrawnButtonStateClassName(
+              {
+                isBusy:
+                  isUnassigning?.toString() === member.memberId.toString(),
+                hoverClassName: "hover:text-red-600 hover:bg-red-50",
+              },
+            )}`}
             title={translator.translateText("Remove")}
             aria-label={translator.translateTemplate(
               "Remove {{member}} from {{role}}",
@@ -800,7 +807,13 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                                 }
                               }}
                               disabled={!selectedUserOption || isAssigning}
-                              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              className={`inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 border border-transparent rounded-md transition-colors ${getHandDrawnButtonStateClassName(
+                                {
+                                  isLocked: !selectedUserOption,
+                                  isBusy: isAssigning,
+                                  hoverClassName: "hover:bg-indigo-700",
+                                },
+                              )}`}
                             >
                               {isAssigning ? (
                                 <Icon

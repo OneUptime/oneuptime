@@ -450,12 +450,7 @@ spec:
       # RuntimeDefault seccomp). The agent only talks HTTPS to OneUptime and
       # to the cluster's API server.
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
+        {{- include "kubernetes-agent.nonRootPodSecurityContext" (dict "root" $ "runAsUser" 1000 "runAsGroup" 1000 "fsGroup" 1000) | nindent 8 }}
       containers:
         - name: ai-agent
           image: "{{ $imageRepository }}:{{ $imageTag }}"

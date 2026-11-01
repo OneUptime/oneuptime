@@ -1,3 +1,7 @@
+import {
+  getHandDrawnButtonStateClassName,
+  getLockedPartClassName,
+} from "Common/UI/Components/Button/ButtonStates";
 import { FormPaletteState } from "../FormBuilderState";
 import FormsCopy, { FORM_QUESTION_TYPE_TEXT } from "../FormsCopy";
 import { FORM_ANSWER_TYPE_ICONS } from "./QuestionInputPreview";
@@ -58,33 +62,36 @@ const PaletteEntry: FunctionComponent<EntryProps> = (
     return translateString(text) || text;
   };
 
+  // An added question, or one the form cannot take: locked.
+  const isLocked: boolean = Boolean(props.isAdded || props.isDisabled);
+  const fadedClassName: string = getLockedPartClassName({ isLocked });
+
   return (
     <li>
       <button
         type="button"
-        className="group flex w-full items-start gap-3 rounded-md px-2 py-2 text-left hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-        disabled={props.isAdded || props.isDisabled}
+        className={`group flex w-full items-start gap-3 rounded-md px-2 py-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+          {
+            isLocked: isLocked,
+            // Its Added says why: the rest of the entry fades, Added does not.
+            holdsItsReason: true,
+            hoverClassName: "hover:bg-indigo-50",
+          },
+        )}`}
+        disabled={isLocked}
         data-testid={props.dataTestId}
         onClick={props.onClick}
       >
         <span
-          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
-            props.isAdded || props.isDisabled
-              ? "bg-gray-100 text-gray-400"
-              : "bg-indigo-50 text-indigo-600 group-hover:bg-white"
+          className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 ${
+            isLocked ? fadedClassName : "group-hover:bg-white"
           }`}
         >
           <Icon icon={props.icon} className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1">
-          <span
-            className={`flex items-center gap-2 text-sm font-medium ${
-              props.isAdded || props.isDisabled
-                ? "text-gray-400"
-                : "text-gray-900"
-            }`}
-          >
-            <span className="truncate">{props.title}</span>
+          <span className="flex items-center gap-2 text-sm font-medium text-gray-900">
+            <span className={`truncate ${fadedClassName}`}>{props.title}</span>
             {props.isAdded ? (
               <span className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-[11px] font-medium text-gray-500">
                 <Icon icon={IconProp.Check} className="h-3 w-3" />
@@ -95,7 +102,9 @@ const PaletteEntry: FunctionComponent<EntryProps> = (
             )}
           </span>
           {props.description ? (
-            <span className="mt-0.5 block text-xs text-gray-500">
+            <span
+              className={`mt-0.5 block text-xs text-gray-500 ${fadedClassName}`}
+            >
               {props.description}
             </span>
           ) : (

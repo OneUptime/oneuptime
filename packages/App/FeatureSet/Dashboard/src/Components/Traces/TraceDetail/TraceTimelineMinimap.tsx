@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import IconProp from "Common/Types/Icon/IconProp";
 import { DOUBLE_CLICK_DISAMBIGUATION_MS } from "Common/UI/Components/Charts/ChartLibrary/Utils/DoubleClick";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -304,7 +305,12 @@ const TraceTimelineMinimap: FunctionComponent<ComponentProps> = (
       <div className="flex flex-none items-center gap-1">
         <button
           type="button"
-          className="flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
+          className={`flex h-7 w-7 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-500 ${getHandDrawnButtonStateClassName(
+            {
+              isLocked: !isZoomed,
+              hoverClassName: "hover:bg-gray-50 hover:text-gray-800",
+            },
+          )}`}
           title={translator.translateText("Zoom out")}
           aria-label={translator.translateText("Zoom out")}
           disabled={!isZoomed}

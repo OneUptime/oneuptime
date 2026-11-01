@@ -48,15 +48,15 @@ Uma pessoa conta como assento a partir do momento em que você a convida, antes 
 :::steps
 ### Adicionar primeiro um método de pagamento
 
-Uma mudança de plano precisa de um método de pagamento. Sem um, **Change Plan** abre **Add a Payment Method** no lugar: veja [Métodos de pagamento](#métodos-de-pagamento).
+Uma mudança de plano precisa de um método de pagamento. Sem um, **Alterar plano** abre **Add a Payment Method** no lugar: veja [Métodos de pagamento](#métodos-de-pagamento).
 
-### Clicar em Change Plan
+### Clicar em Alterar plano
 
-No cartão **Plano Atual**, clique em **Change Plan**. **Plano anual** começa ativado: desative para ver os preços mensais.
+No cartão **Plano Atual**, clique em **Alterar plano**. Os planos abrem no período em que o projeto é cobrado; alterne entre **Mensal** e **Anual** para ver os outros preços.
 
 ### Escolher o plano
 
-Cada plano mostra o preço por usuário. A nota abaixo dos planos diz o que acontece com o seu teste: **Your free trial carries over** enquanto o projeto ainda está no período de teste, e **Changing plan does not start a free trial** quando não está mais.
+Cada plano mostra o preço por usuário, e **Plano atual** marca aquele em que o projeto está. A nota abaixo dos planos diz o que acontece com o seu teste: **Seu teste grátis continua** enquanto o projeto ainda está no período de teste, e **Mudar de plano não inicia um teste grátis** quando não está mais.
 
 ### Salvar a mudança
 
@@ -184,7 +184,7 @@ Um projeto no plano Free precisa de um método de pagamento antes de criar monit
 Um projeto com faturas não pagas fica inativo, e é excluído se elas continuarem sem pagamento. Abra **Faturas** e clique em **Pagar fatura** em cada uma que ainda está em aberto.
 :::
 
-:::details Change Plan abre Add a Payment Method
+:::details Alterar plano abre Add a Payment Method
 O projeto ainda não tem método de pagamento. Adicione um e depois mude o plano.
 :::
 

@@ -1184,9 +1184,9 @@ describe("Pagination", () => {
       const next: HTMLElement = screen.getByTestId("pagination-next-button");
 
       expect(next).toBeDisabled();
-      expect(next).toHaveClass("opacity-40", "cursor-not-allowed");
+      expect(next).toHaveClass("opacity-50", "cursor-not-allowed");
       expect(screen.getByTestId("pagination-previous-button")).not.toHaveClass(
-        "opacity-40",
+        "opacity-50",
       );
     });
 
@@ -1242,10 +1242,10 @@ describe("Pagination", () => {
       renderPagination({ totalItemsCount: 7 });
 
       expect(screen.getByTestId("pagination-previous-button")).toHaveClass(
-        "opacity-40",
+        "opacity-50",
       );
       expect(screen.getByTestId("pagination-next-button")).toHaveClass(
-        "opacity-40",
+        "opacity-50",
       );
     });
 
@@ -1261,12 +1261,12 @@ describe("Pagination", () => {
         "pagination-next-button",
       ]) {
         expect(screen.getByTestId(testId)).toBeDisabled();
-        expect(screen.getByTestId(testId)).toHaveClass("opacity-40");
+        expect(screen.getByTestId(testId)).toHaveClass("opacity-50");
       }
 
       expect(screen.getByTestId("pagination-page-12")).toBeDisabled();
       expect(screen.getByTestId("pagination-page-12")).not.toHaveClass(
-        "opacity-40",
+        "opacity-50",
       );
       expect(screen.getByTestId("pagination-page-12")).toHaveClass(
         "bg-indigo-50",
@@ -1626,7 +1626,7 @@ describe("Pagination", () => {
       );
 
       expect(indicator).toBeDisabled();
-      expect(indicator).toHaveClass("opacity-40");
+      expect(indicator).toHaveClass("opacity-50");
 
       fireEvent.click(indicator);
 

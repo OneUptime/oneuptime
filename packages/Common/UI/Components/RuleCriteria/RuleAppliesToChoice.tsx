@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CLASS_NAME } from "../Button/ButtonStates";
 import useTranslateValue from "../../Utils/Translation";
 import FieldLabelElement from "../Forms/Fields/FieldLabel";
 import React, {
@@ -135,7 +136,7 @@ const RuleAppliesToChoice: FunctionComponent<ComponentProps> = (
     return (
       <label
         className={`flex w-fit max-w-full items-start gap-3 ${
-          data.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          data.disabled ? BUTTON_DISABLED_CLASS_NAME : "cursor-pointer"
         }`}
       >
         {/*

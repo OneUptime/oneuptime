@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -98,7 +99,7 @@ import useRecordChannelMembers, {
 export const CHANNEL_ACTIONS_CLASS_NAME: string = "mt-3 flex flex-wrap gap-2";
 
 export const JOIN_BUTTON_CLASS_NAME: string =
-  "inline-flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 disabled:cursor-wait disabled:opacity-70";
+  "inline-flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
 
 export const ADD_PEOPLE_BUTTON_CLASS_NAME: string =
   "inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
@@ -109,7 +110,7 @@ const STATE_BOX_CLASS_NAME: string =
 
 // The link-like button or link that offers the next step inside that box.
 const STATE_ACTION_CLASS_NAME: string =
-  "mt-1.5 inline-flex items-center gap-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-wait disabled:opacity-70";
+  "mt-1.5 inline-flex items-center gap-1.5 rounded text-sm font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
  * "Try again" for a read that did not answer: busy, with a spinner, while
@@ -133,7 +134,10 @@ const TryAgainButton: FunctionComponent<{
       disabled={props.isBusy}
       aria-busy={props.isBusy || undefined}
       onClick={props.onClick}
-      className={STATE_ACTION_CLASS_NAME}
+      className={getHandDrawnLookClassName({
+        className: STATE_ACTION_CLASS_NAME,
+        isBusy: props.isBusy,
+      })}
     >
       {props.isBusy && (
         <Icon icon={IconProp.Spinner} className="h-3.5 w-3.5 animate-spin" />
@@ -667,7 +671,10 @@ const ChannelSection: FunctionComponent<ChannelSectionProps> = (
               onClick={() => {
                 void join();
               }}
-              className={JOIN_BUTTON_CLASS_NAME}
+              className={getHandDrawnLookClassName({
+                className: JOIN_BUTTON_CLASS_NAME,
+                isBusy: isJoining,
+              })}
             >
               {isJoining && (
                 <Icon

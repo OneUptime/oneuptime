@@ -3,6 +3,7 @@ import { translateTemplate } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
 import Icon from "../Icon/Icon";
 import PeopleAvatar from "./PeopleAvatar";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import {
   getPeoplePickerKindDefinition,
   PeoplePickerKindDefinition,
@@ -97,7 +98,12 @@ export const PeopleChip: FunctionComponent<PeopleChipProps> = (
             name: removeName,
           })}
           title={translateTemplate(REMOVE_PICK_TEMPLATE, { name: removeName })}
-          className="flex flex-shrink-0 items-center justify-center rounded-full p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`flex flex-shrink-0 items-center justify-center rounded-full p-0.5 text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+            {
+              isLocked: props.disabled,
+              hoverClassName: "hover:bg-gray-100 hover:text-gray-700",
+            },
+          )}`}
         >
           <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
         </button>

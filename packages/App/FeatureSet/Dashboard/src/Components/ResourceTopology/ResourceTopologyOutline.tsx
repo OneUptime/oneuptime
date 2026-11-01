@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -238,7 +239,12 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           disabled={!more.canShowAll}
-          className="text-sm font-medium text-indigo-600 hover:text-indigo-800 disabled:text-gray-500"
+          className={`text-sm font-medium text-indigo-600 ${getHandDrawnButtonStateClassName(
+            {
+              isLocked: !more.canShowAll,
+              hoverClassName: "hover:text-indigo-800",
+            },
+          )}`}
           onClick={() => {
             props.callbacks.onToggleGroup(more.groupKey);
           }}

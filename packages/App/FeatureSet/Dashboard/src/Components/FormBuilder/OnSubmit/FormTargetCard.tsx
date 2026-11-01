@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import FormsCopy from "../FormsCopy";
 import Form from "Common/Models/DatabaseModels/Form";
 import {
@@ -124,11 +125,14 @@ const FormTargetCard: FunctionComponent<ComponentProps> = (
               disabled={isDisabled}
               title={isDisabled ? updateGate.disabledReason : undefined}
               data-testid={`form-target-${target}`}
-              className={`flex items-start gap-3 rounded-lg border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60 ${
-                isSelected
-                  ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
-                  : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-              }`}
+              className={`flex items-start gap-3 rounded-lg border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnLookClassName(
+                {
+                  className: isSelected
+                    ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
+                    : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50",
+                  isLocked: isDisabled,
+                },
+              )}`}
               onClick={() => {
                 if (!isSelected && updateGate.isAllowed) {
                   setError("");

@@ -5,6 +5,7 @@
 :::cards
 - [Установка агента](#установка-агента): Четыре шага с Helm.
 - [Установка в виде дополнения Amazon EKS](#установка-в-виде-дополнения-amazon-eks): Из консоли EKS, без Helm.
+- [OpenShift](#openshift): Пресет, создаваемые им ограничения контекста безопасности и собственные оповещения OpenShift.
 - [Параметры конфигурации](#параметры-конфигурации): Фильтры, сэмплирование, плоскость управления, сервисная сетка, затраты и метки.
 - [ИИ-агент Kubernetes](#ии-агент-kubernetes): `kubectl` только для чтения для OneUptime AI и исправления, когда вы их разрешаете.
 - [Отправляйте меньше](#сокращение-объёма-собираемых-данных): Рычаги в порядке их влияния.
@@ -27,7 +28,7 @@ flowchart TB
 | Коллектор узла | DaemonSet | Логи подов из `/var/log/pods`, метрики kubelet и cAdvisor, а также метрики ОС узла. | Везде, кроме EKS Fargate |
 | Инструментирование eBPF (OBI) | DaemonSet | Трассировки и метрики запросов HTTP, gRPC, SQL и Redis от каждого пода, а также карта сервисов. | По умолчанию, кроме GKE Autopilot и EKS Fargate |
 | ИИ-агент Kubernetes | Deployment | `kubectl` только для чтения для OneUptime AI, пока тот расследует инцидент или оповещение. | По умолчанию |
-| Сборщик логов | Deployment | Логи подов через API Kubernetes там, где коллектор узла не может их прочитать. | С пресетами `gke-autopilot` и `eks-fargate` |
+| Сборщик логов | Deployment | Логи подов через API Kubernetes там, где коллектор узла не может их прочитать. | С пресетами `gke-autopilot`, `eks-fargate` и `openshift-restricted` |
 | Движок затрат и опросчик | Deployments | Расходы по пространствам имён, рабочим нагрузкам и подам. | С `cost.enabled=true` |
 
 Все образы агента работают только в Linux, поэтому каждая рабочая нагрузка привязана к узлам Linux.
@@ -88,6 +89,17 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set clusterName="my-cluster" \
   --set aiAgent.enabled=true \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --create-namespace \
+  --set oneuptime.url="YOUR_ONEUPTIME_URL" \
+  --set oneuptime.apiKey="YOUR_ONEUPTIME_API_KEY" \
+  --set clusterName="my-cluster" \
+  --set aiAgent.enabled=true \
+  --set preset=openshift
 ```
 :::
 
@@ -202,8 +214,35 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `standard` (по умолчанию) | Самостоятельно управляемые кластеры, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Коллектор узла читает `/var/log/pods` через `hostPath` (минимальные накладные расходы) | Kubelet, cAdvisor и метрики ОС узла |
 | `gke-autopilot` | **GKE Autopilot** | Сборщик логов читает их через API Kubernetes (без `hostPath`, без доступа к хосту) | Kubelet и cAdvisor, без `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Сборщик логов читает их через API Kubernetes (без `hostPath`, без доступа к хосту) | Нет: Fargate не запускает DaemonSet |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Коллектор узла читает `/var/log/pods` через `hostPath` под ограничением контекста безопасности, которое для него создаёт чарт | Kubelet, cAdvisor и метрики ОС узла |
+| `openshift-restricted` | **OpenShift**, если администратор не хочет добавлять SCC | Сборщик логов читает их через API Kubernetes (без `hostPath`, без доступа к хосту) | Kubelet и cAdvisor, без `hostPath` |
 
-Если не уверены, начните со `standard`. Если установка завершается ошибкой Pod Security, в которой упоминается `hostPath`, установите заново с `preset=gke-autopilot` (или `eks-fargate` на Fargate). GKE Autopilot и EKS Fargate также отклоняют привилегированные поды, которые нужны eBPF и профилировщику, поэтому эти два пресета исключают и то и другое.
+Если не уверены, начните со `standard`. Если установка завершается ошибкой Pod Security, в которой упоминается `hostPath`, установите заново с `preset=gke-autopilot` (или `eks-fargate` на Fargate). GKE Autopilot и EKS Fargate также отклоняют привилегированные поды, которые нужны eBPF и профилировщику, поэтому эти два пресета исключают и то и другое. В OpenShift используйте `openshift` или `openshift-restricted`, если администратор не хочет добавлять SCC: см. [OpenShift](#openshift).
+
+## OpenShift
+
+Установите агент с `--set preset=openshift`, как на вкладке **OpenShift** выше. OpenShift допускает к запуску только те поды, чей сервисный аккаунт может использовать подходящее ограничение контекста безопасности (SCC), и пока администратор не разрешит большего, таким ограничением будет `restricted-v2` (OpenShift 4.11 и новее): никаких томов `hostPath`, никаких привилегированных контейнеров, а идентификатор пользователя берётся из собственного диапазона пространства имён. Поэтому пресет:
+
+- Создаёт два SCC, каждым из которых может пользоваться только сервисный аккаунт соответствующих подов:
+  - одно для коллектора узла: монтирование `hostPath` только для чтения, запуск от root с типом SELinux `spc_t`, без привилегий, со сброшенными capabilities;
+  - одно для инструментирования eBPF и профилировщика: привилегированное, в пространстве имён PID хоста. Только пока включено хотя бы одно из двух.
+- Позволяет OpenShift выбирать идентификатор пользователя для всех остальных подов, которые работают в рамках `restricted-v2`.
+- Проставляет `oneuptime.kubernetes.distribution=openshift` в телеметрии агента, чтобы в поле **Платформа** кластера значилось **OpenShift**, и добавляет облако, в котором работает кластер (`cloud.provider`, `cloud.platform`), если оно есть.
+
+Для создания SCC нужны права cluster-admin. Без пресета релиз устанавливается, но OpenShift так и не запускает поды коллектора узла и eBPF агента, о чём сообщают и примечания после установки.
+
+**Если администратор не хочет добавлять SCC,** устанавливайте с `--set preset=openshift-restricted`. Тогда чарт не создаёт SCC, и каждый под работает под `restricted-v2`, как при `gke-autopilot`. Кластер по-прежнему отображается как OpenShift. Взамен вы теряете:
+
+- Логи подов с узлов: сборщик логов читает их через API Kubernetes, по одному долгоживущему соединению на контейнер.
+- Метрики ОС узла. Метрики узлов, подов и контейнеров остаются: коллектор узла читает kubelet и cAdvisor по сети.
+- Трассировки eBPF и профилировщик, что бы ни указывали `ebpf.enabled` и `profiling.enabled`. Чтобы трассировать свои сервисы, отправляйте из них трассировки через OpenTelemetry SDK.
+- Журналы аудита, которые читаются с узла.
+
+Чтобы вернуть всё это, перейдите на `openshift` с помощью `--set preset=openshift` при обновлении, с правами cluster-admin.
+
+**Собственные оповещения OpenShift.** OpenShift поставляется с Prometheus и Alertmanager, а также с оповещениями для своих операторов, etcd и узлов. Чтобы по каждому из них открывался инцидент в OneUptime, добавьте получателя-вебхук для OneUptime в разделе **Administration → Cluster Settings → Configuration → Alertmanager** веб-консоли, как описано в [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
+
+**Трассировки из вашего кода.** Инструментирование eBPF трассирует HTTP, gRPC и SQL без изменений в коде. Чтобы отправлять трассировки из SDK OpenTelemetry или из Red Hat build of OpenTelemetry, направьте их экспортёр OTLP на OneUptime, как описано в [OpenTelemetry](/docs/telemetry/open-telemetry).
 
 ## Что собирается
 
@@ -488,6 +527,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**В OpenShift** для планировщика и диспетчера контроллеров достаточно `--set controlPlane.enabled=true`, на обоих пресетах OpenShift. OpenShift запускает по несколько реплик каждого за Service, поэтому агент находит каждую реплику в EndpointSlice этого Service и опрашивает её отдельно, с токеном своего сервисного аккаунта. `controlPlane.scheduler.endpoints` и `controlPlane.controllerManager.endpoints`, если вы их задали, по-прежнему имеют приоритет. etcd запрашивает клиентский сертификат, поэтому он не опрашивается, пока `controlPlane.etcd.clientCertSecret` не укажет Secret с таким сертификатом. Он есть у мониторинга OpenShift: скопируйте его с правами cluster-admin в Secret с тремя ключами, которые читает чарт:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+Копия не следует за ротацией этого сертификата в OpenShift, поэтому запустите эти команды снова, когда метрики etcd перестанут приходить. Размещённая плоскость управления (ROSA с HCP, HyperShift) запускает эти компоненты вне кластера: агент не находит ни одного из них, и эти вкладки там остаются пустыми.
+
 Управляемые сервисы Kubernetes (EKS, GKE, AKS) не открывают etcd, планировщик и диспетчер контроллеров, поэтому эти вкладки там остаются пустыми. Пока метрики вкладки не пришли, страница **Плоскость управления** показывает вместо графиков, что нужно задать, с командой для копирования.
 
 ### Включение метрик CoreDNS
@@ -600,7 +659,7 @@ eBPF видит сетевые вызовы, а не ваш код, поэтом
 
 Отключайте eBPF, когда:
 
-- Вы устанавливаете на **GKE Autopilot** или **EKS Fargate**: эти платформы отклоняют привилегированные поды, поэтому `preset=gke-autopilot` и `preset=eks-fargate` уже исключают eBPF за вас, а вместе с ним и профилировщик.
+- Вы устанавливаете на **GKE Autopilot** или **EKS Fargate**: эти платформы отклоняют привилегированные поды, поэтому `preset=gke-autopilot` и `preset=eks-fargate` уже исключают eBPF за вас, а вместе с ним и профилировщик. `preset=openshift-restricted` делает то же самое в OpenShift.
 - На узлах работает ядро старше 5.8 без бэкпортов BTF.
 - Вы уже отправляете трассировки из OpenTelemetry SDK в каждом приложении и метрики eBPF вам тоже не нужны. (Ради одних только трассировок этого делать не нужно: OBI перестаёт отправлять трассировки eBPF для приложения, которое, как он видит, экспортирует собственные, как описано выше.)
 

@@ -1,3 +1,4 @@
+import { getHandDrawnLookClassName } from "Common/UI/Components/Button/ButtonStates";
 import IncidentVideoCall from "Common/Models/DatabaseModels/IncidentVideoCall";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
@@ -212,7 +213,7 @@ export function describeTranscriptLength(
 }
 
 const LINK_BUTTON_CLASS_NAME: string =
-  "rounded-md font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50";
+  "rounded-md font-medium text-indigo-600 hover:text-indigo-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 /*
  * Where OneUptime AI's reading stands, as one sentence beside its mark: the
@@ -402,7 +403,10 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
                   type="button"
                   data-testid="call-transcript-read-again"
                   disabled={isRereading}
-                  className={LINK_BUTTON_CLASS_NAME}
+                  className={getHandDrawnLookClassName({
+                    className: LINK_BUTTON_CLASS_NAME,
+                    isBusy: isRereading,
+                  })}
                   onClick={() => {
                     void readAgain();
                   }}
@@ -821,7 +825,10 @@ const CallTranscriptBlock: FunctionComponent<ComponentProps> = (
             type="button"
             data-testid="call-transcript-get"
             disabled={isGetting}
-            className={`${LINK_BUTTON_CLASS_NAME} text-xs`}
+            className={`${getHandDrawnLookClassName({
+              className: LINK_BUTTON_CLASS_NAME,
+              isBusy: isGetting,
+            })} text-xs`}
             onClick={() => {
               void getFromProvider();
             }}

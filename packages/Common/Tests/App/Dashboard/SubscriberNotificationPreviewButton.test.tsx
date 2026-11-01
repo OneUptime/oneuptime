@@ -554,15 +554,25 @@ describe("nothing to preview yet", () => {
     });
   }
 
-  test("grey, not the link colour, and no underline on hover", () => {
+  /*
+   * Locked as every button is: the link's own colour, faded, with the
+   * not-allowed cursor and no hover - not a grey of its own, which the dark
+   * theme drew brighter than the live link.
+   */
+  test("locked: the link colour faded, the not-allowed cursor, and no underline on hover", () => {
     renderWaiting();
 
     const classes: Array<string> = classesOf(link());
 
     expect(classes).toEqual(
-      expect.arrayContaining(["text-gray-400", "cursor-not-allowed"]),
+      expect.arrayContaining([
+        "text-indigo-600",
+        "opacity-50",
+        "cursor-not-allowed",
+      ]),
     );
-    expect(classes).not.toContain("text-indigo-600");
+    expect(classes).not.toContain("text-gray-400");
+    expect(classes).not.toContain("cursor-pointer");
     expect(classes).not.toContain("hover:underline");
     expect(classes).not.toContain("hover:text-indigo-700");
   });

@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import CodeConnectApi, { CodeConnectSource } from "./CodeConnectApi";
 import CodeHostChoices from "./CodeHostChoices";
 import {
@@ -775,7 +776,12 @@ const CodeConnectDialog: FunctionComponent<ComponentProps> = (
                 });
               }
             }}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`text-sm font-medium text-indigo-600 ${getHandDrawnButtonStateClassName(
+              {
+                isBusy: isListing,
+                hoverClassName: "hover:text-indigo-500",
+              },
+            )}`}
           >
             {translator.translateText(CODE_CONNECT_COPY.loadMore)}
           </button>

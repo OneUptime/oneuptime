@@ -381,6 +381,7 @@ describe("only head-social.ejs writes a page's preview tags", () => {
     ["support.ejs", "/support", {}],
     ["pricing.ejs", "/pricing", { pricing: [] }],
     ["kubernetes.ejs", "/product/kubernetes", {}],
+    ["openshift.ejs", "/product/openshift", {}],
   ] as Array<[string, string, Record<string, unknown>]>)(
     "%s carries each preview tag once",
     async (

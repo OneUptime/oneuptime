@@ -86,6 +86,10 @@ import {
   getCloudProviderForPlatform,
   normalizeCloudPlatform,
 } from "Common/Types/Cloud/CloudPlatform";
+import {
+  KUBERNETES_DISTRIBUTION_ATTRIBUTE,
+  getKubernetesClusterProvider,
+} from "Common/Types/Kubernetes/KubernetesClusterProvider";
 import { resolveCloudInstanceName } from "Common/Utils/Telemetry/CloudInstanceIdentity";
 import {
   CloudMonitoredResource,
@@ -1862,8 +1866,19 @@ export default abstract class OtelIngestBaseService {
             data.attributes,
             "oneuptime.agent.version",
           );
+          const provider: string | null = getKubernetesClusterProvider({
+            distribution: this.getStringAttribute(
+              data.attributes,
+              KUBERNETES_DISTRIBUTION_ATTRIBUTE,
+            ),
+            cloudPlatform: this.getStringAttribute(
+              data.attributes,
+              "cloud.platform",
+            ),
+          });
           return await KubernetesClusterService.updateLastSeen(clusterId, {
             agentVersion: agentVersion || undefined,
+            provider: provider || undefined,
           });
         },
         promoteLabels: async (clusterId: ObjectID): Promise<void> => {

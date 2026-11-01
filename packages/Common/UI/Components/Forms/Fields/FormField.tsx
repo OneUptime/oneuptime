@@ -774,6 +774,15 @@ const FormField: <T extends GenericObject>(
                   props.field.fieldType ===
                   FormFieldSchemaType.MultiSelectDropdown
                 }
+                /*
+                 * A required pick has no clear button - one is always
+                 * picked, as a required colour has no "No color" - and an
+                 * optional one keeps it, to go back to none. Dropdown's
+                 * default drew the clear button on every form dropdown, a
+                 * playbook step's required Run This Step among them, and
+                 * pressing it only made the form say the field was required.
+                 */
+                isClearable={!required}
                 options={props.field.dropdownOptions || []}
                 placeholder={translatedPlaceholder || ""}
                 /*

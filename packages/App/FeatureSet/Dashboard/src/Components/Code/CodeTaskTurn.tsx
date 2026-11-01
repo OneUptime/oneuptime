@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import FixProductionVerdict from "../AI/FixProductionVerdict";
 import {
   getAvatarTone,
@@ -882,7 +883,12 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                   data-testid="code-turn-retry"
                   disabled={props.isRetrying}
                   onClick={props.onRetry}
-                  className="flex-shrink-0 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-red-700 shadow-sm ring-1 ring-inset ring-red-200 hover:bg-red-50 disabled:opacity-60"
+                  className={`flex-shrink-0 rounded-md bg-white px-2.5 py-1 text-xs font-medium text-red-700 shadow-sm ring-1 ring-inset ring-red-200 ${getHandDrawnButtonStateClassName(
+                    {
+                      isBusy: props.isRetrying,
+                      hoverClassName: "hover:bg-red-50",
+                    },
+                  )}`}
                 >
                   {translator.translateText("Try again")}
                 </button>
@@ -910,7 +916,12 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
                   data-testid="code-turn-retry"
                   disabled={props.isRetrying}
                   onClick={props.onRetry}
-                  className="ml-1 font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-60"
+                  className={`ml-1 font-medium text-indigo-600 ${getHandDrawnButtonStateClassName(
+                    {
+                      isBusy: props.isRetrying,
+                      hoverClassName: "hover:text-indigo-500",
+                    },
+                  )}`}
                 >
                   {translator.translateText("Try again")}
                 </button>
