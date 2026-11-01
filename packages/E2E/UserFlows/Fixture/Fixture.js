@@ -13,6 +13,7 @@ import { initReactI18next } from "react-i18next";
 import Layout from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/Layout";
 import UserFlows from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/UserFlows";
 import Recordings from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplay";
+import ReplayUsers from "../../../App/FeatureSet/Dashboard/src/Pages/Rum/View/SessionReplayUsers";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Project from "Common/Models/DatabaseModels/Project";
 import ObjectID from "Common/Types/ObjectID";
@@ -46,7 +47,22 @@ import PermissionUtil from "Common/UI/Utils/Permission";
  *             > /products/M > /cart                    (frustrated browsing)
  *   H  10 x  / > /help
  *
- * ?fixture=empty answers with no sessions, ?fixture=error with a 500.
+ * Narrowed to one person the read answers from PEOPLE below instead, the way
+ * the server does: only their sessions, each saying whose it is.
+ *
+ *   Jane, newest first:
+ *     janeCheckout  /pricing > /cart > /checkout > /cart > /checkout/payment
+ *                   on a desktop, with 2 errors on the payment page and a
+ *                   rage click on the cart. Shared browser.
+ *     janeLive      /login > /account on a phone, still recording, on her
+ *                   own browser.
+ *     janeLost      / on a desktop, sealed with no footage to watch.
+ *   Bob: bobBilling  /billing on the shared browser.
+ *   Anonymous: anon  /pricing on the shared browser, nobody signed in.
+ *
+ * ?fixture=empty answers with no sessions, ?fixture=error with a 500, and
+ * ?fixture=no-identity as a role that may not read end-user identity: a
+ * reference is refused, and no label is ever sent.
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -179,6 +195,199 @@ function buildResponse() {
   };
 }
 
+const JANE_REFERENCE = "jane@example.com";
+const JANE_KEY = "a".repeat(64);
+const BOB_KEY = "b".repeat(64);
+const SHARED_BROWSER = "c".repeat(32);
+const JANES_PHONE = "d".repeat(32);
+
+const finished = { isFinalized: true, sealedReason: "", chunkCount: 12 };
+
+const PEOPLE = [
+  {
+    sessionId: "1".repeat(32),
+    minutesAgo: 30,
+    deviceType: "desktop",
+    pages: [
+      "/pricing",
+      "/cart",
+      "/checkout",
+      "/cart",
+      "/checkout/payment",
+    ],
+    errors: { "/checkout/payment": 2 },
+    frustration: { "/cart": 1 },
+    key: JANE_KEY,
+    label: JANE_REFERENCE,
+    visitorId: SHARED_BROWSER,
+    recording: finished,
+  },
+  {
+    sessionId: "2".repeat(32),
+    minutesAgo: 90,
+    deviceType: "mobile",
+    pages: ["/login", "/account"],
+    key: JANE_KEY,
+    label: JANE_REFERENCE,
+    visitorId: JANES_PHONE,
+    recording: { isFinalized: false, sealedReason: "", chunkCount: 0 },
+  },
+  {
+    sessionId: "3".repeat(32),
+    minutesAgo: 240,
+    deviceType: "desktop",
+    pages: ["/"],
+    key: JANE_KEY,
+    label: JANE_REFERENCE,
+    visitorId: JANES_PHONE,
+    recording: {
+      isFinalized: true,
+      sealedReason: "recording-lost",
+      chunkCount: 0,
+    },
+  },
+  {
+    sessionId: "4".repeat(32),
+    minutesAgo: 300,
+    deviceType: "desktop",
+    pages: ["/billing"],
+    key: BOB_KEY,
+    label: "bob@example.com",
+    visitorId: SHARED_BROWSER,
+    recording: finished,
+  },
+  {
+    sessionId: "5".repeat(32),
+    minutesAgo: 360,
+    deviceType: "desktop",
+    pages: ["/pricing"],
+    key: "",
+    label: "",
+    visitorId: SHARED_BROWSER,
+    recording: finished,
+  },
+];
+
+function matchesPerson(person, filters, mayReadIdentity) {
+  if (filters.identifier !== undefined) {
+    const value = filters.identifier;
+
+    return (
+      (mayReadIdentity && value === person.label) ||
+      value === person.visitorId ||
+      value === person.sessionId
+    );
+  }
+
+  return (
+    filters.identifiedUserKey === person.key ||
+    filters.visitorId === person.visitorId ||
+    filters.sessionId === person.sessionId
+  );
+}
+
+function buildPersonResponse(filters) {
+  const mayReadIdentity = scenario !== "no-identity";
+  const pages = [];
+  const indexOf = (path) => {
+    const url = `${origin}${path}`;
+    let index = pages.indexOf(url);
+    if (index < 0) {
+      index = pages.length;
+      pages.push(url);
+    }
+    return index;
+  };
+
+  const sessions = PEOPLE.filter((person) =>
+    matchesPerson(person, filters, mayReadIdentity),
+  ).map((person) => {
+    const errors = person.errors || {};
+    const frustration = person.frustration || {};
+    const signalPages = new Set([
+      ...Object.keys(errors),
+      ...Object.keys(frustration),
+    ]);
+
+    return {
+      sessionId: person.sessionId,
+      startUnixMs: now - person.minutesAgo * 60 * 1000,
+      durationMs: person.pages.length * 45000,
+      deviceType: person.deviceType,
+      browserName: "Chrome",
+      countryCode: "DK",
+      errorCount: Object.values(errors).reduce((a, b) => a + b, 0),
+      frustrationCount: Object.values(frustration).reduce((a, b) => a + b, 0),
+      pages: person.pages.map(indexOf),
+      pageSignals: [...signalPages].map((page) => [
+        indexOf(page),
+        errors[page] || 0,
+        frustration[page] || 0,
+      ]),
+      detail: {
+        identifiedUserKey: person.key,
+        visitorId: person.visitorId,
+        ...(mayReadIdentity ? { identifiedUserLabel: person.label } : {}),
+        hasRecordingEnded: false,
+        ...person.recording,
+      },
+    };
+  });
+
+  return {
+    pages,
+    sessions,
+    sessionsInWindow: sessions.length,
+    isSampled: false,
+    maxSessions: 5000,
+    startUnixMs: now - 7 * 86400000,
+    endUnixMs: now,
+    ignoredFilters:
+      filters.identifier !== undefined && !mayReadIdentity
+        ? ["identifiedUserRef"]
+        : [],
+  };
+}
+
+function replayUserRow(overrides) {
+  return {
+    sessionCount: 3,
+    liveSessionCount: 0,
+    firstSeenUnixMs: now - 240 * 60 * 1000,
+    lastSeenUnixMs: now - 30 * 60 * 1000,
+    totalDurationMs: 180000,
+    errorCount: 2,
+    frustrationCount: 1,
+    errorSessionCount: 1,
+    pageCount: 8,
+    lastSessionId: PEOPLE[0].sessionId,
+    lastEntryUrl: `${origin}/pricing`,
+    browserName: "Chrome",
+    browserVersion: "130",
+    osName: "macOS",
+    deviceType: "desktop",
+    countryCode: "DK",
+    identifiedUserKey: "",
+    visitorId: "",
+    ...overrides,
+  };
+}
+
+const REPLAY_USERS = [
+  replayUserRow({
+    groupKey: `u:${JANE_KEY}`,
+    kind: "identified",
+    identifiedUserKey: JANE_KEY,
+    identifiedUserLabel: JANE_REFERENCE,
+  }),
+  replayUserRow({
+    groupKey: `v:${SHARED_BROWSER}`,
+    kind: "visitor",
+    visitorId: SHARED_BROWSER,
+  }),
+  replayUserRow({ groupKey: "", kind: "anonymous" }),
+];
+
 const fixture = { requests, projectId, appId };
 window.__userFlowFixture = fixture;
 
@@ -233,7 +442,13 @@ API.post = async ({ url, data }) => {
         {},
       );
     }
+    if (data.filters) {
+      return new HTTPResponse(200, buildPersonResponse(data.filters), {});
+    }
     return new HTTPResponse(200, buildResponse(), {});
+  }
+  if (route === "users") {
+    return new HTTPResponse(200, { users: REPLAY_USERS, nextCursor: null }, {});
   }
   if (route === "list") {
     return new HTTPResponse(200, { sessions: [], nextCursor: null }, {});
@@ -290,6 +505,7 @@ createRoot(document.getElementById("root")).render(
       <Route path="/dashboard/:projectId/rum/:id" element={<FixtureLayout />}>
         <Route path="user-flows" element={<UserFlows />} />
         <Route path="session-replay" element={<Recordings />} />
+        <Route path="session-replay-users" element={<ReplayUsers />} />
       </Route>
     </Routes>
   </BrowserRouter>,

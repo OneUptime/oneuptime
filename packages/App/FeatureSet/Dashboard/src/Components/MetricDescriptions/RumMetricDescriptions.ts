@@ -111,10 +111,11 @@ export const RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS: Record<
  * reads: the newest USER_FLOW_DEFAULT_MAX_SESSIONS (5,000) recorded
  * sessions that STARTED in the range, each one's pages in order, flattened
  * from its recording chunks (one every SESSION_REPLAY_FLUSH_INTERVAL_MS,
- * 15s). A chunk lists each page once, so a return inside one chunk is
- * lost; back-to-back repeats (a reload) are collapsed. The Sessions, Device
- * and hidden-page controls re-fold the same journeys, so "analysed" means
- * "after those filters".
+ * 15s). A chunk lists its pages in the order they were visited; one from an
+ * older recorder lists each page once, so a return inside it is lost.
+ * Back-to-back repeats (a reload) are collapsed. The Sessions, Device and
+ * hidden-page controls re-fold the same journeys, so "analysed" means "after
+ * those filters".
  *
  * Per page, Errors and Frustrated count SESSIONS, and a signal is placed on
  * the page its chunk was flushed from (the chunk's `url`), not the page it
@@ -183,7 +184,7 @@ export const RUM_USER_FLOW_METRIC_DESCRIPTIONS: Record<
     "Session Replay recordings that started in the selected range and match the Sessions and Device filters; one whose pages are all hidden drops out. At most the newest 5,000 recordings are read, so on a busy range the line below says how many there were in total.",
   ),
   pagesPerSession: translationKey(
-    "The average number of pages in a session's journey, with the median below: half of the sessions saw that many pages or fewer. Going back to an earlier page counts again, but a reload counts once, a return within one recording chunk (about 15 seconds) is missed, and hidden pages are left out.",
+    "The average number of pages in a session's journey, with the median below: half of the sessions saw that many pages or fewer. Going back to an earlier page counts again, but a reload counts once, a return within one recording chunk (about 15 seconds) is missed on recordings from an older recorder, and hidden pages are left out.",
   ),
   singlePageSessions: translationKey(
     "The share of analysed sessions that saw only one page: they never moved to another page before the recording ended. Reloading the page does not count as moving on, and hidden pages are ignored. The line below is how many sessions that is.",
@@ -207,7 +208,7 @@ export const RUM_USER_FLOW_METRIC_DESCRIPTIONS: Record<
     "Analysed sessions that visited this page at least once. A session that came back to it later still counts once here.",
   ),
   pageVisits: translationKey(
-    "How many times the page was visited, counting returns after another page. A reload or two views in a row count once, and a return within the same recording chunk (about 15 seconds) is missed.",
+    "How many times the page was visited, counting returns after another page. A reload or two views in a row count once, and a return within the same recording chunk (about 15 seconds) is missed on recordings from an older recorder.",
   ),
   pageLanded: translationKey(
     "Analysed sessions whose first recorded page was this one: they arrived on the application here.",

@@ -34,7 +34,16 @@ surviving a reload, the time range read from the URL into the request, the
 Top paths / Pages / Back and forth tables, an anchor nobody visited, the empty
 and error states, and a phone viewport where the map scrolls inside its card.
 
-`?fixture=empty` answers with no sessions and `?fixture=error` with a 500.
+`UserJourneys.spec.ts` covers one person's journeys over the `PEOPLE` table in
+`Fixture/Fixture.js`: finding someone by what you know, the landing page, order,
+repeat visits and exit page of each session, a session still recording and one
+with no footage, device and session filters, switching between the journeys, the
+person's flow map and everyone's, a browser or a session as a link, a role that
+may not read identity, the way in from Replay Users, and a phone. It also holds
+the one rule that must not slip: what someone typed never reaches the address.
+
+`?fixture=empty` answers with no sessions, `?fixture=error` with a 500 and
+`?fixture=no-identity` as a role that may not read end-user identity.
 
 Screenshots are written to `output/playwright/user-flows-ui/`. They are
 production UI screenshots with synthetic data. Failure traces are under its

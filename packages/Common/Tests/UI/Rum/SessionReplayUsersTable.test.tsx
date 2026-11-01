@@ -588,7 +588,7 @@ describe("SessionReplayUsersTable row actions", () => {
     return cells[cells.length - 1] as HTMLElement;
   }
 
-  it("a person's row shows Sessions as its one button and Watch latest in its ⋯ menu", async () => {
+  it("a person's row shows Sessions as its one button, and Watch latest and View journey in its ⋯ menu", async () => {
     mockUsers(() => {
       return usersResponse([wireRollup()]);
     });
@@ -626,7 +626,7 @@ describe("SessionReplayUsersTable row actions", () => {
         .map((item: HTMLElement): string => {
           return item.textContent || "";
         }),
-    ).toEqual(["Watch latest"]);
+    ).toEqual(["Watch latest", "View journey"]);
     /* Portalled out of the row, so the table's overflow cannot clip it. */
     expect(row).not.toContainElement(menu);
 
@@ -634,7 +634,11 @@ describe("SessionReplayUsersTable row actions", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("a person with no recording to open shows Sessions and no ⋯", async () => {
+  /*
+   * Nothing to watch, but the pages they visited are still there to read:
+   * a journey needs a person, not footage.
+   */
+  it("a person with no recording to open shows Sessions, and only their journey in the ⋯", async () => {
     mockUsers(() => {
       return usersResponse([wireRollup({ lastSessionId: "" })]);
     });
@@ -646,8 +650,13 @@ describe("SessionReplayUsersTable row actions", () => {
     expect(
       within(row as HTMLElement).getByTestId("session-user-view-sessions"),
     ).toBeInTheDocument();
-    expect(moreButtonOf(row as HTMLElement)).toBeNull();
-    expect(within(row as HTMLElement).queryByTestId("row-actions")).toBeNull();
+    expect(
+      within(openMenuOf(row as HTMLElement))
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(["View journey"]);
   });
 
   it("the unlinked bucket's newest recording is its one button: a real link, and no ⋯", async () => {
@@ -698,7 +707,7 @@ describe("SessionReplayUsersTable row actions", () => {
     expect(within(cell).queryAllByRole("link")).toHaveLength(0);
   });
 
-  it("only the rows with both a person and a recording carry a ⋯", async () => {
+  it("every row that names someone carries a ⋯; the unlinked bucket has no one to follow", async () => {
     mockUsers(() => {
       return usersResponse([
         wireRollup(),
@@ -715,7 +724,71 @@ describe("SessionReplayUsersTable row actions", () => {
       rows.map((row: HTMLElement): boolean => {
         return Boolean(moreButtonOf(row));
       }),
-    ).toEqual([true, false, false]);
+    ).toEqual([true, true, false]);
+  });
+
+  it("View journey opens THAT row's person on User Flows, by what names nobody", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup(), wireRollup(VISITOR_ROLLUP)]);
+    });
+
+    const { onViewUserSessions } = renderTable();
+
+    const rows: Array<HTMLElement> = await waitForUserRows(2);
+
+    fireEvent.click(
+      within(openMenuOf(rows[0] as HTMLElement)).getByRole("menuitem", {
+        name: "View journey",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(navigatedTo(0)).toContain("/user-flows?");
+    expect(navigatedTo(0)).toContain(`userKey=${USER_KEY}`);
+    expect(navigatedTo(0)).toContain(APP_ID);
+    /* The label is the server's to give; a link never carries it. */
+    expect(decodeURIComponent(navigatedTo(0))).not.toContain("jane");
+    expect(onViewUserSessions).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(screen.queryByRole("menu")).toBeNull();
+    });
+
+    fireEvent.click(
+      within(openMenuOf(rows[1] as HTMLElement)).getByRole("menuitem", {
+        name: "View journey",
+      }),
+    );
+
+    expect(navigatedTo(1)).toContain("/user-flows?");
+    expect(navigatedTo(1)).toContain(`visitor=${VISITOR_A}`);
+    expect(navigatedTo(1)).not.toContain("userKey=");
+  });
+
+  it("View journey keeps the window the person was counted in", async () => {
+    mockUsers(() => {
+      return usersResponse([wireRollup()]);
+    });
+
+    renderTable();
+
+    const [row] = await waitForUserRows(1);
+
+    fireEvent.click(
+      within(openMenuOf(row as HTMLElement)).getByRole("menuitem", {
+        name: "View journey",
+      }),
+    );
+
+    const search: URLSearchParams = new URLSearchParams(
+      navigatedTo(0).split("?")[1],
+    );
+
+    /*
+     * Written out: this table's day is the session list's default, but the
+     * User Flows page reads no range as a week.
+     */
+    expect(search.get("range")).toBe(TimeRange.PAST_ONE_DAY);
   });
 
   it("choosing Watch latest opens THAT row's newest session, and never filters by the person", async () => {

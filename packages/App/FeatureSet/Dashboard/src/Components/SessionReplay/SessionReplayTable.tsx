@@ -107,6 +107,7 @@ import {
   SessionReplayListUrlState,
   SessionReplaySortOption,
 } from "./SessionReplayListFilters";
+import { buildUserFlowPersonSearch } from "../UserFlow/UserFlowUrlState";
 import {
   SEARCH_BOX_CHIP_FIELDS,
   stringifySessionReplaySearchBox,
@@ -1438,6 +1439,38 @@ interface SessionReplayTableRow extends SessionReplaySummary {
   cells: Array<ReactElement>;
   /* See getSessionReplayFirstErrorRoute; null keeps the action off the row. */
   firstErrorRoute: Route | null;
+  /* See getSessionJourneyRoute; null keeps the action off the row. */
+  journeyRoute: Route | null;
+}
+
+/*
+ * This session on the User Flows page, page by page, on the window the list
+ * shows, so a session the list holds is one the page can find.
+ */
+export function getSessionJourneyRoute(data: {
+  sessionId: string;
+  rumApplicationId: string;
+  timeRange: RangeStartAndEndDateTime;
+}): Route | null {
+  if (!data.sessionId) {
+    return null;
+  }
+
+  try {
+    const route: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS] as Route,
+      { modelId: new ObjectID(data.rumApplicationId) },
+    );
+
+    return new Route(
+      `${route.toString()}${buildUserFlowPersonSearch(
+        { kind: "session", sessionId: data.sessionId },
+        data.timeRange,
+      )}`,
+    );
+  } catch {
+    return null;
+  }
 }
 
 /*
@@ -1482,6 +1515,26 @@ function getSessionReplayRowActions(
          */
         if (row.firstErrorRoute) {
           openSession(row.firstErrorRoute, false);
+        }
+
+        onCompleteAction();
+      },
+    },
+    {
+      title: "View journey",
+      icon: IconProp.Share,
+      buttonStyleType: ButtonStyleType.OUTLINE,
+      placement: ActionButtonPlacement.MoreMenu,
+      tooltip: "See the pages visited in this session, in order",
+      isVisible: (row: SessionReplayTableRow): boolean => {
+        return Boolean(row.journeyRoute);
+      },
+      onClick: (
+        row: SessionReplayTableRow,
+        onCompleteAction: VoidFunction,
+      ): void => {
+        if (row.journeyRoute) {
+          Navigation.navigate(row.journeyRoute);
         }
 
         onCompleteAction();
@@ -2241,9 +2294,21 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             rumApplicationId: rumApplicationIdString,
             nowUnixMs,
           }),
+          journeyRoute: getSessionJourneyRoute({
+            sessionId: row.sessionId,
+            rumApplicationId: rumApplicationIdString,
+            timeRange: timeRange,
+          }),
         };
       });
-    }, [rows, rumApplicationIdString, nowUnixMs, openSession, filterByUser]);
+    }, [
+      rows,
+      rumApplicationIdString,
+      nowUnixMs,
+      openSession,
+      filterByUser,
+      timeRange,
+    ]);
 
   const rowActions: Array<ActionButtonSchema<SessionReplayTableRow>> =
     useMemo((): Array<ActionButtonSchema<SessionReplayTableRow>> => {

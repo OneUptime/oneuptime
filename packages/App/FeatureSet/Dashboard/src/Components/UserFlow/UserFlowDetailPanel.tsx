@@ -30,6 +30,7 @@ import {
   pluralizeSessions,
 } from "./UserFlowFormat";
 import { UserFlowSelection } from "./UserFlowMap";
+import { UserFlowPerson } from "./UserFlowPerson";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
 /*
@@ -44,6 +45,8 @@ export interface ComponentProps {
   analysis: UserFlowAnalysis;
   rumApplicationId: ObjectID;
   timeRange: RangeStartAndEndDateTime;
+  /* Whose map this is, so a link off it stays on them. */
+  person?: UserFlowPerson | undefined;
   onAnchor: (page: string, direction: UserFlowDirection) => void;
   onHide: (page: string) => void;
   onClose: () => void;
@@ -213,7 +216,11 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
   const sessionsForPage: (page: string) => Route | null = (
     page: string,
   ): Route | null => {
-    const search: string = buildSessionsForPageSearch(page, props.timeRange);
+    const search: string = buildSessionsForPageSearch(
+      page,
+      props.timeRange,
+      props.person,
+    );
 
     return search ? new Route(`${sessionListRoute.toString()}${search}`) : null;
   };
