@@ -39325,5 +39325,6 @@
   "status message": "status message",
   "trace id": "trace id",
   "{{count}} req": "{{count}} req",
-  "{{name}} Service Color": "{{name}} Service Color"
+  "{{name}} Service Color": "{{name}} Service Color",
+  "metric explorer": "metric explorer"
 }

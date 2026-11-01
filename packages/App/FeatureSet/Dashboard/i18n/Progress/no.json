@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 13244
+    "keys": 39288,
+    "untranslated": 13144
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -50,6 +50,7 @@
     "Filter:",
     "Filter: {{expression}}",
     "Finland (+358)",
+    "Flat",
     "Gateway",
     "Gemini for Google Workspace",
     "Google SecOps",
@@ -68,6 +69,7 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "Managers",
+    "Median (P50)",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Mexico (+52)",
@@ -154,6 +156,7 @@
     "build=1.4.2, plan=pro",
     "checkout-.*",
     "customer facing|tier-1",
+    "database",
     "db-primary",
     "failed password",
     "fullest: {{storageName}}",
@@ -162,6 +165,7 @@
     "ip",
     "kubectl set image deployment/web * -n web",
     "main",
+    "median",
     "message",
     "name",
     "port {{port}}",

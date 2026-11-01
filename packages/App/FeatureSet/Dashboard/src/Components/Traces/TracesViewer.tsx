@@ -3918,7 +3918,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       histogramTitle={
         chartMetric === "count"
           ? getTraceSpanTypeChartTitle(spanType)
-          : "Response time"
+          : translationKey("Response time")
       }
       histogramLoading={histogramLoading}
       histogramError={histogramError}

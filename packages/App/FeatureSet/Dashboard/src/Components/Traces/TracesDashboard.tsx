@@ -45,6 +45,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { getTimeRangeLabel } from "Common/UI/Components/Date/TimeRangePickerDropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Dropdown, {
@@ -724,7 +725,7 @@ const TracesDashboard: FunctionComponent = (): ReactElement => {
    */
   const isCustomRange: boolean = timeRange.range === TimeRange.CUSTOM;
   const rangeTerm: TranslatableTerm = translatableTerm(
-    timeRange.range as string,
+    getTimeRangeLabel(timeRange.range),
     { inSentence: true },
   );
   const noTracesInRange: string = isCustomRange

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39179,
-    "untranslated": 13241
+    "keys": 39288,
+    "untranslated": 13140
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -79,6 +79,7 @@
     "MITRE ATT&CK Enterprise v{{version}}",
     "Managers",
     "Max",
+    "Median (P50)",
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Min",
@@ -90,6 +91,7 @@
     "Object Gateway",
     "Object Gateways",
     "Offline",
+    "Ok",
     "Online",
     "OpenShift",
     "PR #{{number}}",
@@ -173,6 +175,7 @@
     "ip",
     "kubectl set image deployment/web * -n web",
     "main",
+    "median",
     "message",
     "name",
     "port {{port}}",
