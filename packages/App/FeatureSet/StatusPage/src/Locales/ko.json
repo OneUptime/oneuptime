@@ -1,4 +1,7 @@
 {
+  "Phone number of subscriber": "구독자의 전화번호",
+  "Email address of the subscriber.": "구독자의 이메일 주소입니다.",
+  "Name of the Slack workspace for validation and identification": "확인 및 식별에 사용하는 Slack 워크스페이스 이름",
   "Something went wrong": "문제가 발생했습니다",
   "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 새로 고치세요",
   "Error details": "오류 세부 정보",

@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "與此授權關聯的公司名稱。",
+  "Annual contract value (in USD) for this license.": "此授權的年度合約金額（美元）。",
+  "Expiration date of this license.": "此授權的到期日期。",
   "Something went wrong": "發生了問題",
   "An unexpected error has occurred. Please reload the page to continue": "發生了未預期的錯誤。請重新載入頁面以繼續",
   "Error details": "錯誤詳細資料",

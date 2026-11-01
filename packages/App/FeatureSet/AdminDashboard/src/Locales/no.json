@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "Firmanavn som er knyttet til denne lisensen.",
+  "Annual contract value (in USD) for this license.": "Årlig kontraktsverdi (i USD) for denne lisensen.",
+  "Expiration date of this license.": "Utløpsdato for denne lisensen.",
   "Something went wrong": "Noe gikk galt",
   "An unexpected error has occurred. Please reload the page to continue": "Det oppstod en uventet feil. Last inn siden på nytt for å fortsette",
   "Error details": "Feildetaljer",

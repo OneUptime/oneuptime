@@ -1,4 +1,7 @@
 {
+  "Phone number of subscriber": "Phone number of subscriber",
+  "Email address of the subscriber.": "Email address of the subscriber.",
+  "Name of the Slack workspace for validation and identification": "Name of the Slack workspace for validation and identification",
   "Something went wrong": "Something went wrong",
   "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
   "Error details": "Error details",

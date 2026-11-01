@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "Company name associated with this license.",
+  "Annual contract value (in USD) for this license.": "Annual contract value (in USD) for this license.",
+  "Expiration date of this license.": "Expiration date of this license.",
   "Something went wrong": "Something went wrong",
   "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
   "Error details": "Error details",

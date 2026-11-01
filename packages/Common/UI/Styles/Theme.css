@@ -2185,6 +2185,21 @@ html.dark .border-t-gray-600 {
 }
 
 /*
+ * Korean keeps its words whole. Korean puts spaces between its words, and
+ * a word broken over two lines reads as two words ("처리" and "량" for
+ * 처리량, throughput), but a browser breaks Korean between any two
+ * syllables, as it breaks Chinese and Japanese, which have no spaces. A
+ * Korean page says so on <html lang="ko"> (Common/UI/Utils/PageLanguage),
+ * so its lines break only between words, and a word too long for its line
+ * still breaks rather than run out of its box. Inherited: an element that
+ * sets its own word-break (break-all for an ID) keeps it.
+ */
+html:lang(ko) {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/*
  * Right to left. A Persian page sets <html dir="rtl"> (Common/UI/Utils/
  * PageLanguage) and Tailwind's left and right follow it (Common/UI/Styles/
  * TailwindReadingDirection.js). Code reads left to right on every page: a
@@ -2211,19 +2226,4 @@ pre:dir(rtl) {
 :is(code, kbd, samp):dir(rtl) {
   direction: ltr;
   unicode-bidi: isolate;
-}
-
-/*
- * Korean keeps its words whole. Korean puts spaces between its words, and
- * a word broken over two lines reads as two words ("처리" and "량" for
- * 처리량, throughput), but a browser breaks Korean between any two
- * syllables, as it breaks Chinese and Japanese, which have no spaces. A
- * Korean page says so on <html lang="ko"> (Common/UI/Utils/PageLanguage),
- * so its lines break only between words, and a word too long for its line
- * still breaks rather than run out of its box. Inherited: an element that
- * sets its own word-break (break-all for an ID) keeps it.
- */
-html:lang(ko) {
-  word-break: keep-all;
-  overflow-wrap: break-word;
 }

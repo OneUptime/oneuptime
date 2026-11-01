@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "このライセンスに関連付けられた会社名。",
+  "Annual contract value (in USD) for this license.": "このライセンスの年間契約額（USD）。",
+  "Expiration date of this license.": "このライセンスの有効期限。",
   "Something went wrong": "問題が発生しました",
   "An unexpected error has occurred. Please reload the page to continue": "予期しないエラーが発生しました。続行するにはページを再読み込みしてください",
   "Error details": "エラーの詳細",

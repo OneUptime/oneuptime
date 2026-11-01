@@ -1,4 +1,8 @@
 import { REPOSITORY_ROOT } from "./LocaleFiles";
+import {
+  FormColumnDescription,
+  FormColumnDescriptionFinder,
+} from "./FormColumnDescriptions";
 import fs from "fs";
 import path from "path";
 import ts from "typescript";
@@ -27,7 +31,10 @@ import ts from "typescript";
  *   - "setter":         the message given to a state setter such as
  *                       setError("...") or setWarningMessage("...");
  *   - "model":          a model's singularName, pluralName or
- *                       tableDescription, or a column's title.
+ *                       tableDescription, or a column's title;
+ *   - "column":         a model column's description a form field draws
+ *                       because it has none of its own
+ *                       (FormColumnDescriptions).
  *
  * It also lists the strings that are on screen but not looked up at run
  * time (`hardcoded`): element text, text attributes of plain HTML elements,
@@ -41,7 +48,8 @@ export type ExtractedKind =
   | "prop"
   | "jsx-text"
   | "setter"
-  | "model";
+  | "model"
+  | "column";
 
 export interface ExtractedString {
   text: string;
@@ -1425,6 +1433,10 @@ export const scanSourceRoots: (
   const strings: Array<ExtractedString> = [];
   const hardcoded: Array<HardcodedString> = [];
   const nestedKeyReferences: Array<UndefinedNestedKey> = [];
+  // The column descriptions the UI's forms draw (FormColumnDescriptions).
+  const columns: FormColumnDescriptionFinder = new FormColumnDescriptionFinder(
+    rootDirectory,
+  );
 
   for (const root of roots) {
     for (const filePath of listSourceFiles(
@@ -1434,15 +1446,31 @@ export const scanSourceRoots: (
         continue;
       }
 
+      const text: string = fs.readFileSync(filePath, "utf8");
       const result: SourceScanResult = scanSourceText(
         toRepositoryPath(filePath, rootDirectory),
-        fs.readFileSync(filePath, "utf8"),
+        text,
         { kind: root.kind },
       );
 
       strings.push(...result.strings);
       hardcoded.push(...result.hardcoded);
       nestedKeyReferences.push(...result.nestedKeyReferences);
+
+      if (root.kind === "ui") {
+        strings.push(
+          ...columns
+            .find(filePath, text)
+            .map((column: FormColumnDescription): ExtractedString => {
+              return {
+                text: column.text,
+                kind: "column",
+                file: column.file,
+                line: column.line,
+              };
+            }),
+        );
+      }
     }
   }
 

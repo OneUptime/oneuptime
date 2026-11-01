@@ -1,4 +1,7 @@
 {
+  "Phone number of subscriber": "सब्सक्राइबर का फ़ोन नंबर",
+  "Email address of the subscriber.": "सब्सक्राइबर का ईमेल पता।",
+  "Name of the Slack workspace for validation and identification": "सत्यापन और पहचान के लिए Slack वर्कस्पेस का नाम",
   "Something went wrong": "कुछ गड़बड़ हो गई",
   "An unexpected error has occurred. Please reload the page to continue": "एक अनपेक्षित त्रुटि हुई। जारी रखने के लिए पेज फिर से लोड करें",
   "Error details": "त्रुटि विवरण",

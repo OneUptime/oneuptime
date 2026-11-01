@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "Företagsnamn som är kopplat till denna licens.",
+  "Annual contract value (in USD) for this license.": "Årligt kontraktsvärde (i USD) för denna licens.",
+  "Expiration date of this license.": "Utgångsdatum för denna licens.",
   "Something went wrong": "Något gick fel",
   "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Läs in sidan igen för att fortsätta",
   "Error details": "Felinformation",

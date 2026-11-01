@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "Nome da empresa associada a esta licença.",
+  "Annual contract value (in USD) for this license.": "Valor anual do contrato (em USD) desta licença.",
+  "Expiration date of this license.": "Data de expiração desta licença.",
   "Something went wrong": "Algo deu errado",
   "An unexpected error has occurred. Please reload the page to continue": "Ocorreu um erro inesperado. Recarregue a página para continuar",
   "Error details": "Detalhes do erro",

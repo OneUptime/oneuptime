@@ -1,4 +1,7 @@
 {
+  "Phone number of subscriber": "Abonnentens telefonnummer",
+  "Email address of the subscriber.": "Abonnentens e-postadresse.",
+  "Name of the Slack workspace for validation and identification": "Navnet på Slack-arbeidsområdet for validering og identifisering",
   "Something went wrong": "Noe gikk galt",
   "An unexpected error has occurred. Please reload the page to continue": "Det oppstod en uventet feil. Last inn siden på nytt for å fortsette",
   "Error details": "Feildetaljer",

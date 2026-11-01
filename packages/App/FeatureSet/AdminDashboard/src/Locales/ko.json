@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "이 라이선스와 연결된 회사 이름입니다.",
+  "Annual contract value (in USD) for this license.": "이 라이선스의 연간 계약 금액(USD)입니다.",
+  "Expiration date of this license.": "이 라이선스의 만료일입니다.",
   "Something went wrong": "문제가 발생했습니다",
   "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 새로 고치세요",
   "Error details": "오류 세부 정보",

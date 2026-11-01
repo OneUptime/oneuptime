@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "نام شرکت مرتبط با این مجوز.",
+  "Annual contract value (in USD) for this license.": "ارزش سالانه قرارداد (به دلار آمریکا) برای این مجوز.",
+  "Expiration date of this license.": "تاریخ انقضای این مجوز.",
   "Something went wrong": "مشکلی پیش آمد",
   "An unexpected error has occurred. Please reload the page to continue": "خطای غیرمنتظره‌ای رخ داد. برای ادامه، صفحه را دوباره بارگذاری کنید",
   "Error details": "جزئیات خطا",

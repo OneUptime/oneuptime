@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "Bedrijfsnaam die bij deze licentie hoort.",
+  "Annual contract value (in USD) for this license.": "Jaarlijkse contractwaarde (in USD) voor deze licentie.",
+  "Expiration date of this license.": "Vervaldatum van deze licentie.",
   "Something went wrong": "Er is iets misgegaan",
   "An unexpected error has occurred. Please reload the page to continue": "Er is een onverwachte fout opgetreden. Laad de pagina opnieuw om verder te gaan",
   "Error details": "Foutdetails",

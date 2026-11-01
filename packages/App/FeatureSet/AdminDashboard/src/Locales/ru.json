@@ -1,4 +1,7 @@
 {
+  "Company name associated with this license.": "Название компании, связанной с этой лицензией.",
+  "Annual contract value (in USD) for this license.": "Годовая стоимость контракта (в долларах США) по этой лицензии.",
+  "Expiration date of this license.": "Дата окончания срока действия этой лицензии.",
   "Something went wrong": "Что-то пошло не так",
   "An unexpected error has occurred. Please reload the page to continue": "Произошла непредвиденная ошибка. Перезагрузите страницу, чтобы продолжить",
   "Error details": "Подробности ошибки",
