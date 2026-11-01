@@ -36,7 +36,6 @@ import ObjectID from "../../../Types/ObjectID";
 import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { PROJECT_ID } from "./SideMenuHarness";
-import type { SpyInstance } from "jest-mock";
 
 jest.mock("react-i18next", () => {
   return {
@@ -256,24 +255,35 @@ describe("a service seen in traces", () => {
   });
 });
 
+// What a list read asked for.
+interface ListRead {
+  modelType: unknown;
+  query: Record<string, unknown>;
+  limit: number;
+  select: unknown;
+}
+
 describe("a grant's row opens its identity", () => {
-  let listSpy: SpyInstance<typeof ModelAPI.getList>;
+  let reads: Array<ListRead>;
   let found: Array<DataSecurityIdentity>;
 
   beforeEach(() => {
+    reads = [];
     found = [];
     jest
       .spyOn(ProjectUtil, "getCurrentProjectId")
       .mockReturnValue(new ObjectID(PROJECT_ID));
-    listSpy = jest.spyOn(ModelAPI, "getList").mockImplementation((async () => {
-      const result: ListResult<DataSecurityIdentity> = {
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (
+      read: ListRead,
+    ): Promise<ListResult<DataSecurityIdentity>> => {
+      reads.push(read);
+
+      return {
         data: found,
         count: found.length,
         skip: 0,
         limit: 1,
       };
-
-      return result;
     }) as unknown as typeof ModelAPI.getList);
   });
 
@@ -288,17 +298,16 @@ describe("a grant's row opens its identity", () => {
     expect(route).toBe(
       `/dashboard/${PROJECT_ID}/data-security/access/${identityId}`,
     );
-    expect(listSpy).toHaveBeenCalledTimes(1);
+    expect(reads).toHaveLength(1);
 
-    const asked: Parameters<typeof ModelAPI.getList>[0] = listSpy.mock
-      .calls[0]![0] as Parameters<typeof ModelAPI.getList>[0];
+    const asked: ListRead = reads[0]!;
 
     expect(asked.modelType).toBe(DataSecurityIdentity);
     expect(asked.limit).toBe(1);
     expect(asked.select).toEqual({ _id: true });
-    expect(String(asked.query["projectId" as never])).toBe(PROJECT_ID);
+    expect(String(asked.query["projectId"])).toBe(PROJECT_ID);
     // The key the evaluator writes: the principal, trimmed.
-    expect(asked.query["identityKey" as never]).toBe(LEGACY_ARN);
+    expect(asked.query["identityKey"]).toBe(LEGACY_ARN);
   });
 
   test("an identity not worked out yet says when it will be, rather than opening nothing", async () => {
