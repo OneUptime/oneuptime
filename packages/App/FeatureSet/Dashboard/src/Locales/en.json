@@ -39684,5 +39684,6 @@
   "Worked {{worked}} of the {{count}} times it ran here before_one": "Worked {{worked}} of the {{count}} times it ran here before",
   "load balancer": "load balancer",
   "managed instance group": "managed instance group",
-  "target group": "target group"
+  "target group": "target group",
+  "Azure virtual machine": "Azure virtual machine"
 }

@@ -55,7 +55,10 @@ export interface CloudChangeWords {
  * The catalog's kinds of resource, as the sentences name them - the
  * catalog's own display names (CLOUD_RESOURCE_KINDS), here as translation
  * keys, since the catalog itself is the agent's import-closed copy.
- * CloudChangeWords.test holds the two lists to the same words.
+ * CloudChangeWords.test holds the two lists to the same words, but for a
+ * kind whose display name does not say whose it is: "virtual machine" is
+ * an "Azure virtual machine" here, as "EC2 instance" and "Compute Engine
+ * VM" say theirs.
  */
 export const CLOUD_KIND_WORDS: Readonly<Record<string, string>> = {
   "aws:ecs-service": translationKey("ECS service"),
@@ -71,7 +74,7 @@ export const CLOUD_KIND_WORDS: Readonly<Record<string, string>> = {
   "azure:app-service": translationKey("App Service or Function App"),
   "azure:app-service-plan": translationKey("App Service plan"),
   "azure:container-app": translationKey("Container App"),
-  "azure:virtual-machine": translationKey("virtual machine"),
+  "azure:virtual-machine": translationKey("Azure virtual machine"),
   "azure:vm-scale-set": translationKey("VM scale set"),
   "azure:postgresql-flexible-server": translationKey(
     "PostgreSQL flexible server",

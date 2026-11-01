@@ -105,7 +105,7 @@ describe("every change of the catalog reads as one sentence", () => {
     [AZURE, `cloud restart-service ${CONTAINER_APP}`, "Restart the Container App api"],
     [AZURE, `cloud scale-out ${APP_PLAN} --count 3`, "Scale the App Service plan plan-1 out to 3 instances"],
     [AZURE, `cloud scale-in ${VMSS} --count 2`, "Scale the VM scale set vmss-1 in to 2 instances"],
-    [AZURE, `cloud reboot-instance ${AZURE_VM}`, "Reboot the virtual machine vm-1"],
+    [AZURE, `cloud reboot-instance ${AZURE_VM}`, "Reboot the Azure virtual machine vm-1"],
     [AZURE, `cloud roll-back-service ${APP_SERVICE} --slot staging`, "Swap the App Service or Function App web with its staging slot, back to the version before"],
     [AZURE, `cloud fail-over-database ${FAILOVER_GROUP}`, "Fail the SQL failover group fg-1 over to its standby"],
     [GCP, `cloud start-instance ${GCE}`, "Start the Compute Engine VM web-1"],
@@ -225,12 +225,25 @@ describe("a resource's short name", () => {
 });
 
 describe("the kinds' words are the catalog's own", () => {
+  // A display name that does not say whose kind it is, said in the words.
+  const NAMED_FOR_ITS_CLOUD: Readonly<Record<string, string>> = {
+    "azure:virtual-machine": "Azure virtual machine",
+  };
+
   test("every kind of the catalog has its words, the same as its display name", () => {
     for (const spec of CLOUD_RESOURCE_KINDS) {
-      expect(CLOUD_KIND_WORDS[`${spec.provider}:${spec.kind}`]).toBe(
-        spec.displayName,
+      const key: string = `${spec.provider}:${spec.kind}`;
+
+      expect(CLOUD_KIND_WORDS[key]).toBe(
+        NAMED_FOR_ITS_CLOUD[key] || spec.displayName,
       );
     }
+
+    expect(
+      CLOUD_RESOURCE_KINDS.find((spec: CloudResourceKindSpec): boolean => {
+        return `${spec.provider}:${spec.kind}` === "azure:virtual-machine";
+      })?.displayName,
+    ).toBe("virtual machine");
   });
 
   test("and nothing else has words", () => {
