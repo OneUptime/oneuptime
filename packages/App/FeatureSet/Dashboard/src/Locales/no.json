@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} miljø frakoblet",
   "{{count}} environments_one": "{{count}} miljø",
   "{{count}} more environments": "{{count}} miljøer til",
-  "{{count}} more environments_one": "{{count}} miljø til"
+  "{{count}} more environments_one": "{{count}} miljø til",
+  "Cloud Environment Label Rule": "Etikettregel for skymiljø",
+  "Cloud Environment Owner Rule": "Eierregel for skymiljø"
 }

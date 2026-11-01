@@ -33,8 +33,10 @@ import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPag
 
 /*
  * App Platforms, mounted at …/app-platforms/*: its Overview at the mount,
- * the environments list and each environment's pages under environments/,
- * and its rules and archived list beside them. Environments were Cloud's
+ * the environments list at environments, each environment's pages at
+ * …/app-platforms/:id, and its rules and archived list beside them (a
+ * fixed segment outranks the :id, so settings and archived are never read
+ * as an environment's id). Environments were Cloud's
  * until the two products split; their old Cloud addresses forward here by
  * themselves (Pages/Cloud/View/Layout, Utils/CloudResourceViewPages).
  */

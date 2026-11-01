@@ -52,6 +52,13 @@ const AppPlatformsOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       }}
       id="app-platforms-owner-rules-table"
       name="Settings > Cloud Environment Owner Rules"
+      /*
+       * The rule model is shared with Cloud, whose nouns it carries (cloud
+       * resource owner rules): the create button, the pager and the view page
+       * say what these rules are for.
+       */
+      singularName="Cloud Environment Owner Rule"
+      pluralName="Cloud Environment Owner Rules"
       userPreferencesKey="app-platforms-owner-rules-table"
       isDeleteable={true}
       isEditable={true}

@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} omgeving verbroken",
   "{{count}} environments_one": "{{count}} omgeving",
   "{{count}} more environments": "nog {{count}} omgevingen",
-  "{{count}} more environments_one": "nog {{count}} omgeving"
+  "{{count}} more environments_one": "nog {{count}} omgeving",
+  "Cloud Environment Label Rule": "Labelregel voor cloud-omgevingen",
+  "Cloud Environment Owner Rule": "Eigenaarregel voor cloud-omgevingen"
 }

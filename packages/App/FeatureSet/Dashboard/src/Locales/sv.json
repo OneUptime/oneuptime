@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} miljö frånkopplad",
   "{{count}} environments_one": "{{count}} miljö",
   "{{count}} more environments": "{{count}} miljöer till",
-  "{{count}} more environments_one": "{{count}} miljö till"
+  "{{count}} more environments_one": "{{count}} miljö till",
+  "Cloud Environment Label Rule": "Etikettregel för molnmiljöer",
+  "Cloud Environment Owner Rule": "Ägarregel för molnmiljöer"
 }

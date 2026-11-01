@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} 個環境已中斷連線",
   "{{count}} environments_one": "{{count}} 個環境",
   "{{count}} more environments": "另外 {{count}} 個環境",
-  "{{count}} more environments_one": "另外 {{count}} 個環境"
+  "{{count}} more environments_one": "另外 {{count}} 個環境",
+  "Cloud Environment Label Rule": "雲端環境標籤規則",
+  "Cloud Environment Owner Rule": "雲端環境擁有者規則"
 }

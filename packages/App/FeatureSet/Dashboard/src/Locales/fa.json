@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} محیط قطع",
   "{{count}} environments_one": "{{count}} محیط",
   "{{count}} more environments": "{{count}} محیط دیگر",
-  "{{count}} more environments_one": "{{count}} محیط دیگر"
+  "{{count}} more environments_one": "{{count}} محیط دیگر",
+  "Cloud Environment Label Rule": "قاعده برچسب محیط ابری",
+  "Cloud Environment Owner Rule": "قاعده مالکیت محیط ابری"
 }

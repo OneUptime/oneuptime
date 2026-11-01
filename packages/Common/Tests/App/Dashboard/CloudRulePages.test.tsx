@@ -87,6 +87,9 @@ interface PageCase {
   rowNoun: string;
   // A cloud tag is a resource's: environments have none.
   matchesCloudTags: boolean;
+  // What the create button, the pager and a rule's view call one and many.
+  singular: string;
+  plural: string;
 }
 
 const APP_PLATFORMS: string = `/dashboard/${PROJECT_ID}/app-platforms`;
@@ -104,6 +107,8 @@ const PAGES: Array<PageCase> = [
     alsoIn: "Also in Cloud",
     rowNoun: "Environment",
     matchesCloudTags: false,
+    singular: "Cloud Environment Label Rule",
+    plural: "Cloud Environment Label Rules",
   },
   {
     name: "App Platforms' owner rules",
@@ -116,6 +121,8 @@ const PAGES: Array<PageCase> = [
     alsoIn: "Also in Cloud",
     rowNoun: "Environment",
     matchesCloudTags: false,
+    singular: "Cloud Environment Owner Rule",
+    plural: "Cloud Environment Owner Rules",
   },
   {
     name: "Cloud's label rules",
@@ -128,6 +135,8 @@ const PAGES: Array<PageCase> = [
     alsoIn: "Also in App Platforms",
     rowNoun: "Resource",
     matchesCloudTags: true,
+    singular: "Cloud Resource Label Rule",
+    plural: "Cloud Resource Label Rules",
   },
   {
     name: "Cloud's owner rules",
@@ -140,6 +149,8 @@ const PAGES: Array<PageCase> = [
     alsoIn: "Also in App Platforms",
     rowNoun: "Resource",
     matchesCloudTags: true,
+    singular: "Cloud Resource Owner Rule",
+    plural: "Cloud Resource Owner Rules",
   },
 ];
 
@@ -251,6 +262,24 @@ describe.each(PAGES)("$name", (page: PageCase) => {
         return Boolean(field["field"]["cloudTagPattern"]);
       }),
     ).toBe(page.matchesCloudTags);
+  });
+
+  /*
+   * The rule model is shared, and its own nouns are Cloud's: a table names
+   * its rules by the props it is handed first, then by the model's.
+   */
+  test("calls its rules by what they are for", () => {
+    renderPage(page, page.listUrl);
+
+    const model: Props = new page.model();
+    const singular: string =
+      tableProps(page)["singularName"] || model["singularName"];
+    const plural: string =
+      tableProps(page)["pluralName"] || model["pluralName"];
+
+    expect(singular).toBe(page.singular);
+    expect(plural).toBe(page.plural);
+    expect(tableProps(page)["cardProps"]["title"]).toBe(page.plural);
   });
 
   test("a rule of its own shows its name alone", () => {

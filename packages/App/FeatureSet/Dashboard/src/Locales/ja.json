@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} 件の環境が切断",
   "{{count}} environments_one": "{{count}} 件の環境",
   "{{count}} more environments": "他 {{count}} 件の環境",
-  "{{count}} more environments_one": "他 {{count}} 件の環境"
+  "{{count}} more environments_one": "他 {{count}} 件の環境",
+  "Cloud Environment Label Rule": "クラウド環境のラベルルール",
+  "Cloud Environment Owner Rule": "クラウド環境の所有者ルール"
 }

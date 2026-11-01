@@ -52,6 +52,13 @@ const AppPlatformsLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       }}
       id="app-platforms-label-rules-table"
       name="Settings > Cloud Environment Label Rules"
+      /*
+       * The rule model is shared with Cloud, whose nouns it carries (cloud
+       * resource label rules): the create button, the pager and the view page
+       * say what these rules are for.
+       */
+      singularName="Cloud Environment Label Rule"
+      pluralName="Cloud Environment Label Rules"
       userPreferencesKey="app-platforms-label-rules-table"
       isDeleteable={true}
       isEditable={true}

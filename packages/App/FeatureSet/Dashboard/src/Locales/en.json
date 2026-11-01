@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} environment disconnected",
   "{{count}} environments_one": "{{count}} environment",
   "{{count}} more environments": "{{count}} more environments",
-  "{{count}} more environments_one": "{{count}} more environment"
+  "{{count}} more environments_one": "{{count}} more environment",
+  "Cloud Environment Label Rule": "Cloud Environment Label Rule",
+  "Cloud Environment Owner Rule": "Cloud Environment Owner Rule"
 }

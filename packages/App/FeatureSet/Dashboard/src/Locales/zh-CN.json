@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} 个环境已断开",
   "{{count}} environments_one": "{{count}} 个环境",
   "{{count}} more environments": "另外 {{count}} 个环境",
-  "{{count}} more environments_one": "另外 {{count}} 个环境"
+  "{{count}} more environments_one": "另外 {{count}} 个环境",
+  "Cloud Environment Label Rule": "云环境标签规则",
+  "Cloud Environment Owner Rule": "云环境所有者规则"
 }

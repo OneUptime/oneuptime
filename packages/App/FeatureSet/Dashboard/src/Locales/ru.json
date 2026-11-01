@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} среда отключена",
   "{{count}} environments_one": "{{count}} среда",
   "{{count}} more environments": "Ещё сред: {{count}}",
-  "{{count}} more environments_one": "Ещё {{count}} среда"
+  "{{count}} more environments_one": "Ещё {{count}} среда",
+  "Cloud Environment Label Rule": "Правило меток облачных сред",
+  "Cloud Environment Owner Rule": "Правило владельцев облачных сред"
 }

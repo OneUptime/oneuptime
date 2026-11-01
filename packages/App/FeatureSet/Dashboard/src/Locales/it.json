@@ -39182,5 +39182,7 @@
   "{{count}} environments disconnected_one": "{{count}} ambiente disconnesso",
   "{{count}} environments_one": "{{count}} ambiente",
   "{{count}} more environments": "{{count}} ambienti in più",
-  "{{count}} more environments_one": "{{count}} ambiente in più"
+  "{{count}} more environments_one": "{{count}} ambiente in più",
+  "Cloud Environment Label Rule": "Regola di etichetta degli ambienti cloud",
+  "Cloud Environment Owner Rule": "Regola di proprietario degli ambienti cloud"
 }
