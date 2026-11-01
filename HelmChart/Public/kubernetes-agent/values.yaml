@@ -400,6 +400,14 @@ deployment:
 # An endpoint is host:port, or a URL: `http://` is scraped in plain HTTP,
 # anything else over HTTPS, and a path other than /metrics is not kept (the
 # components serve /metrics). A component's endpoints share one scheme.
+#
+# On the OpenShift presets, `enabled: true` is enough for the scheduler and the
+# controller manager: each replica is found through service discovery (the
+# EndpointSlices of OpenShift's own Services) and scraped on its own, with the
+# service account's token. So is etcd, once clientCertSecret names a Secret
+# with a client certificate. A component's endpoints, when you set them, still
+# win. A hosted control plane (ROSA with HCP, HyperShift) has no such pods in
+# the cluster, so discovery finds nothing and those stay empty.
 controlPlane:
   enabled: false
   etcd:
@@ -420,6 +428,17 @@ controlPlane:
     #     --from-file=ca.crt=/etc/kubernetes/pki/etcd/ca.crt \
     #     --from-file=tls.crt=/etc/kubernetes/pki/etcd/healthcheck-client.crt \
     #     --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
+    # On OpenShift, a copy of the certificate its own monitoring uses, which
+    # is also what gives etcd its scrape job there:
+    #   oc extract secret/etcd-metric-client -n openshift-etcd-operator \
+    #     --to=etcd-cert --confirm
+    #   oc extract configmap/etcd-metric-serving-ca \
+    #     -n openshift-etcd-operator --to=etcd-cert --confirm
+    #   oc create secret generic etcd-client-cert -n <namespace> \
+    #     --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+    #     --from-file=tls.crt=etcd-cert/tls.crt \
+    #     --from-file=tls.key=etcd-cert/tls.key
+    # The copy does not follow OpenShift's rotation of that certificate.
     clientCertSecret: ""
   apiServer:
     # Where the API server answers inside every cluster, read with the
@@ -435,6 +454,7 @@ controlPlane:
     # control-plane node and accepts the service account's token, but
     # kubeadm binds it to 127.0.0.1. Give it a --bind-address the agent's pod
     # can reach, then list the nodes, e.g. https://10.0.0.10:10259/metrics.
+    # On the OpenShift presets, leave it empty: see above.
     endpoints: []
     # Set to false, on the OpenShift presets, to check each replica's
     # certificate against OpenShift's service CA (service-ca.crt beside the
@@ -443,7 +463,9 @@ controlPlane:
   controllerManager:
     # Empty by default, for the same reason: port 10257, e.g.
     # https://10.0.0.10:10257/metrics.
+    # On the OpenShift presets, leave it empty: see above.
     endpoints: []
+    # As for the scheduler.
     insecureSkipVerify: true
 
 # Pod log collection.
@@ -537,7 +559,7 @@ logs:
 
 # Resource spec collection — pulls full K8s resource objects (pods, nodes,
 # deployments, etc.) for displaying labels, annotations, env vars, status,
-# and other details in the dashboard. On the openshift preset it also pulls
+# and other details in the dashboard. On the OpenShift presets it also pulls
 # OpenShift's own objects: ClusterOperators, the ClusterVersion, Routes and
 # DeploymentConfigs (a Route's TLS key is replaced before it leaves the
 # cluster), and the Services those Routes send traffic to. Those need

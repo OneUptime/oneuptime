@@ -318,7 +318,7 @@ Usage: {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
 */}}
 {{/*
 The label that says which DeploymentConfig a pod belongs to, for the
-k8sattributes processors on the openshift preset. A DeploymentConfig's pods
+k8sattributes processors on the OpenShift presets. A DeploymentConfig's pods
 are owned by the ReplicationController of its rollout, which k8sattributes
 does not resolve to a workload as it does a Deployment's, so nothing else on
 their telemetry names it. OpenShift sets this label on every one of them, and
@@ -1714,11 +1714,11 @@ Usage:
 
 {{/*
 Whether the control-plane scrape has anything to scrape: controlPlane.enabled
-and at least one component with endpoints. A component with none (etcd, the
-scheduler and the controller manager by default: they answer on the
-control-plane nodes, which the pod cannot guess) gets no job, and a
-prometheus receiver with no job at all refuses to start, so the receiver is
-only added when this is "true".
+and at least one component with endpoints, or one found through service
+discovery. A component with neither (etcd, the scheduler and the controller
+manager by default: they answer on the control-plane nodes, which the pod
+cannot guess) gets no job, and a prometheus receiver with no job at all refuses
+to start, so the receiver is only added when this is "true".
 
 Usage: {{- if eq (include "kubernetes-agent.controlPlaneScrapes" .) "true" }}
 */}}
@@ -1732,7 +1732,92 @@ Usage: {{- if eq (include "kubernetes-agent.controlPlaneScrapes" .) "true" }}
 {{- end -}}
 {{- end -}}
 {{- end -}}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" -}}
+{{- $any = true -}}
+{{- end -}}
 {{- $any -}}
+{{- end -}}
+
+{{/*
+Whether a control-plane component's scrape job finds its targets through
+service discovery rather than at the endpoints you list.
+
+OpenShift runs the scheduler, the controller manager and etcd as static pods
+on the control-plane nodes, one replica on each, behind a Service. A fixed
+address would reach whichever replica the Service picks, a different one on
+each scrape, so on the OpenShift presets each replica is found in the Service's
+EndpointSlices and scraped on its own, as OpenShift's own ServiceMonitors do.
+
+  - The scheduler and the controller manager accept the service account's
+    token: they delegate to the API server, and the ClusterRole grants GET on
+    /metrics.
+  - etcd asks for a client certificate, so it has a job only once
+    controlPlane.etcd.clientCertSecret names a Secret that holds one.
+  - The API server is not one of them: it answers at kubernetes.default.svc,
+    which needs no discovery.
+
+Endpoints you list win: the component keeps its job, at your list. A hosted
+control plane (ROSA with HCP, HyperShift) has no such pods in the cluster, so
+discovery finds no target there and nothing else changes. On any other preset
+these jobs do not render at all.
+
+Takes a dict: `root`, and `component`, a key of controlPlane.
+Usage: {{- if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" "scheduler")) "true" }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneDiscovered" -}}
+{{- $controlPlane := .root.Values.controlPlane | default dict -}}
+{{- $values := get $controlPlane .component | default dict -}}
+{{- $discoverable := has .component (list "scheduler" "controllerManager") -}}
+{{- if eq .component "etcd" -}}
+{{- $discoverable = not (empty $values.clientCertSecret) -}}
+{{- end -}}
+{{- if and $controlPlane.enabled (eq (include "kubernetes-agent.openshift" .root) "true") $discoverable (not $values.endpoints) -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether any control-plane job uses service discovery, which is what the
+ClusterRole's read of EndpointSlices is for (templates/rbac.yaml) and what the
+notes explain.
+Usage: {{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneDiscovery" -}}
+{{- $root := . -}}
+{{- $any := false -}}
+{{- range $component := list "etcd" "scheduler" "controllerManager" -}}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $root "component" $component)) "true" -}}
+{{- $any = true -}}
+{{- end -}}
+{{- end -}}
+{{- $any -}}
+{{- end -}}
+
+{{/*
+How a scrape job finds a control-plane component's replicas on OpenShift: the
+EndpointSlices of one namespace, each of them a target at its own address, kept
+only for that Service and for its port with that name. A Service lists several
+ports (etcd's lists six), and every endpoint of every port is a target until
+relabelling drops it.
+
+Takes a dict: `namespace`, `service` and `port`, the port's name.
+Usage: {{- include "kubernetes-agent.controlPlaneDiscoveryConfig" (dict "namespace" "openshift-etcd" "service" "etcd" "port" "etcd-metrics") | nindent 14 }}
+*/}}
+{{- define "kubernetes-agent.controlPlaneDiscoveryConfig" -}}
+kubernetes_sd_configs:
+  - role: endpointslice
+    namespaces:
+      names:
+        - {{ .namespace }}
+relabel_configs:
+  - source_labels: [__meta_kubernetes_service_name]
+    action: keep
+    regex: {{ .service }}
+  - source_labels: [__meta_kubernetes_endpointslice_port_name]
+    action: keep
+    regex: {{ .port }}
 {{- end -}}
 
 {{/*

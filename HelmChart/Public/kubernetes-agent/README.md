@@ -107,6 +107,26 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 To get them back, move to `openshift` with `--set preset=openshift` on an upgrade, as a cluster admin.
 
+**Control plane on OpenShift.** On both presets, `--set controlPlane.enabled=true` is enough for the API server, the scheduler and the controller manager. OpenShift runs several replicas of each behind a Service, so the chart finds every replica in the Service's EndpointSlices and scrapes it on its own, with the service account's token, in the jobs `kube-scheduler` and `kube-controller-manager`. Reading EndpointSlices is added to the ClusterRole only then. `controlPlane.<component>.endpoints`, when you set them, win for that component, and setting `controlPlane.<component>.insecureSkipVerify=false` checks each replica's certificate against OpenShift's service CA.
+
+etcd asks for a client certificate, so it has a job only once `controlPlane.etcd.clientCertSecret` names a Secret that holds one. Copy OpenShift's own, as a cluster admin:
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+The copy does not follow OpenShift's rotation of that certificate: run these again when etcd's metrics stop. A hosted control plane (ROSA with HCP, HyperShift) has no such pods in the cluster, so discovery finds nothing and those metrics stay empty; nothing else changes.
+
 If you try the default `standard` preset on a cluster that blocks hostPath, the install fails with a Pod Security error. Re-install with `--set preset=gke-autopilot` (or `eks-fargate`) and it works. On OpenShift the install itself succeeds, but the pods that need more than `restricted-v2` are never created; the install notes say so, and `--set preset=openshift` fixes it.
 
 ## Kubernetes AI agent (AI investigations and fixes)
@@ -528,7 +548,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-agent` to see a
 | `csi.enabled` | `false` | Scrape Prometheus metrics from CSI (storage) driver pods. |
 | `coreDns.enabled` | `false` | Scrape Prometheus metrics from CoreDNS (`kube-dns` Service by default). |
 | `resourceSpecs.enabled` | `true` | Pull full K8s object specs (labels, env vars, status) for the dashboard. |
-| `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager, each at the endpoints in its own list (`controlPlane.<component>.endpoints`). The API server defaults to its in-cluster address, `https://kubernetes.default.svc:443/metrics`; etcd, the scheduler and the controller manager run on the control-plane nodes, so they have no default (the agent's pod has no host network) and are scraped once you list addresses it can reach. An `http://` endpoint is scraped in plain HTTP (etcd's metrics port, 2381), and `controlPlane.etcd.clientCertSecret` names a Secret (`ca.crt`, `tls.crt`, `tls.key`) with the client certificate etcd's HTTPS port asks for. Self-managed clusters only — managed offerings typically don't expose these endpoints. |
+| `controlPlane.enabled` | `false` | Scrape etcd / api-server / scheduler / controller-manager, each at the endpoints in its own list (`controlPlane.<component>.endpoints`). The API server defaults to its in-cluster address, `https://kubernetes.default.svc:443/metrics`; etcd, the scheduler and the controller manager run on the control-plane nodes, so they have no default (the agent's pod has no host network) and are scraped once you list addresses it can reach. An `http://` endpoint is scraped in plain HTTP (etcd's metrics port, 2381), and `controlPlane.etcd.clientCertSecret` names a Secret (`ca.crt`, `tls.crt`, `tls.key`) with the client certificate etcd's HTTPS port asks for. Self-managed clusters only — managed offerings typically don't expose these endpoints. On the OpenShift presets there is nothing to list: see below. |
 | `kubeletstats.utilizationMetrics.enabled` | `true` | Saturation metrics — container & pod CPU/memory as a percentage of request and limit. No extra scrape; derived from data the kubelet already returns. The Pod CPU / Memory Saturating Container Limit monitors read them. A container with no limit (or request) gets none of these series, and a pod only when every container in it has one. |
 | `kubeletstats.volumeMetrics.enabled` | `true` | Per-PVC disk usage (`k8s.volume.available`, `k8s.volume.capacity`). One series per PVC per pod — bounded for most clusters, heavier on stateful workloads with thousands of PVCs. |
 | `cadvisor.enabled` | `true` | Scrape this node's kubelet `/metrics/cadvisor` endpoint for CFS throttling and OOM kill counters that `kubeletstats` doesn't translate. An allowlist drops everything except 3 metrics at the receiver. |

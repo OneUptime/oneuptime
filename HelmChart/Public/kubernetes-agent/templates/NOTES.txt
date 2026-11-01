@@ -52,14 +52,19 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
 {{- if .Values.controlPlane.enabled }}
-{{- /* Only a component with endpoints is scraped (configmap-deployment.yaml):
-       etcd, the scheduler and the controller manager have none by default. */}}
+{{- /* A component is scraped at its endpoints, or, on the OpenShift presets,
+       where service discovery finds it (configmap-deployment.yaml): etcd,
+       the scheduler and the controller manager have no endpoints by default,
+       and on those presets etcd waits for a client certificate instead. */}}
 {{- $scraped := list }}
 {{- $notScraped := list }}
+{{- $etcdWaitsForCertificate := false }}
 {{- range $component := list "apiServer" "etcd" "scheduler" "controllerManager" }}
 {{- $label := get (dict "apiServer" "API server" "etcd" "etcd" "scheduler" "scheduler" "controllerManager" "controller manager") $component }}
-{{- if (get $.Values.controlPlane $component | default dict).endpoints }}
+{{- if or (get $.Values.controlPlane $component | default dict).endpoints (eq (include "kubernetes-agent.controlPlaneDiscovered" (dict "root" $ "component" $component)) "true") }}
 {{- $scraped = append $scraped $label }}
+{{- else if and (eq $component "etcd") (eq (include "kubernetes-agent.openshift" $) "true") }}
+{{- $etcdWaitsForCertificate = true }}
 {{- else }}
 {{- $notScraped = append $notScraped $label }}
 {{- end }}
@@ -69,6 +74,9 @@ The agent is now collecting:
 {{- end }}
 {{- if $notScraped }}
   - Control plane, not scraped until you list where it answers: {{ join ", " $notScraped }} (controlPlane.<component>.endpoints, an address this cluster collector's pod can reach)
+{{- end }}
+{{- if $etcdWaitsForCertificate }}
+  - Control plane, not scraped until it has a client certificate: etcd (controlPlane.etcd.clientCertSecret, see below)
 {{- end }}
 {{- end }}
 {{- if .Values.logs.enabled }}
@@ -152,6 +160,22 @@ the nodes, which run under SCCs this chart created for them alone:
   - {{ $fullname }}-ebpf: {{ if and $ebpf $profiling }}the eBPF instrumentation and the profiler{{ else if $ebpf }}the eBPF instrumentation{{ else }}the profiler{{ end }}
     (privileged, in the host's PID namespace)
 {{- end }}
+{{- end }}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
+
+The control plane's replicas are found through service discovery, so each is
+scraped on its own. A hosted control plane (ROSA with HCP, HyperShift) has none
+in the cluster: there those stay empty, and nothing else changes.
+{{- end }}
+{{- if and .Values.controlPlane.enabled (eq (include "kubernetes-agent.openshift" .) "true") (not .Values.controlPlane.etcd.endpoints) (not .Values.controlPlane.etcd.clientCertSecret) }}
+
+etcd asks for a client certificate, so it has no scrape job yet. To make one,
+copy OpenShift's certificate into a Secret, as a cluster admin, and name it:
+  oc extract secret/etcd-metric-client -n openshift-etcd-operator --to=etcd-cert --confirm
+  oc extract configmap/etcd-metric-serving-ca -n openshift-etcd-operator --to=etcd-cert --confirm
+  oc create secret generic etcd-client-cert -n {{ .Release.Namespace }} --from-file=ca.crt=etcd-cert/ca-bundle.crt --from-file=tls.crt=etcd-cert/tls.crt --from-file=tls.key=etcd-cert/tls.key
+  rm -r etcd-cert
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reset-then-reuse-values --set controlPlane.etcd.clientCertSecret=etcd-client-cert
 {{- end }}
 {{- end }}
 

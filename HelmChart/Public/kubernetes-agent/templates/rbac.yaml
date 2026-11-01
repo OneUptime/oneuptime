@@ -167,6 +167,15 @@ rules:
       - deploymentconfigs
     verbs: ["get", "list", "watch"]
 {{- end }}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
+  # For the control-plane scrapes on OpenShift (configmap-deployment.yaml):
+  # service discovery finds each replica in its Service's EndpointSlices. It
+  # reads the Services and pods beside them through the rules above.
+  - apiGroups: ["discovery.k8s.io"]
+    resources:
+      - endpointslices
+    verbs: ["get", "list", "watch"]
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

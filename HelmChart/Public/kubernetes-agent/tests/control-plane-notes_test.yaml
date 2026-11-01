@@ -44,3 +44,104 @@ tests:
     asserts:
       - notMatchRegexRaw:
           pattern: "Control plane"
+
+  # On the OpenShift presets the scheduler and the controller manager are found
+  # through service discovery (openshift-control-plane_test.yaml), so nothing
+  # waits for an address; etcd waits for a client certificate.
+  - it: names what service discovery scrapes on OpenShift, and sends nobody to list addresses
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane metrics: API server, scheduler, controller manager \\(prometheus\\)\\n"
+      - notMatchRegexRaw:
+          pattern: "not scraped until you list where it answers"
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane, not scraped until it has a client certificate: etcd \\(controlPlane\\.etcd\\.clientCertSecret, see below\\)\\n"
+
+  - it: says the same on openshift-restricted
+    set:
+      preset: openshift-restricted
+      controlPlane.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane metrics: API server, scheduler, controller manager \\(prometheus\\)\\n"
+      - notMatchRegexRaw:
+          pattern: "not scraped until you list where it answers"
+
+  - it: says how to give etcd its scrape job, in the release's namespace
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\netcd asks for a client certificate, so it has no scrape job yet\\. To make one,\\ncopy OpenShift's certificate into a Secret, as a cluster admin, and name it:\\n  oc extract secret/etcd-metric-client -n openshift-etcd-operator --to=etcd-cert --confirm\\n  oc extract configmap/etcd-metric-serving-ca -n openshift-etcd-operator --to=etcd-cert --confirm\\n  oc create secret generic etcd-client-cert -n oneuptime --from-file=ca\\.crt=etcd-cert/ca-bundle\\.crt --from-file=tls\\.crt=etcd-cert/tls\\.crt --from-file=tls\\.key=etcd-cert/tls\\.key\\n  rm -r etcd-cert\\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reset-then-reuse-values --set controlPlane\\.etcd\\.clientCertSecret=etcd-client-cert\\n"
+
+  - it: names etcd as scraped once it has its Secret, and stops explaining
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane metrics: API server, etcd, scheduler, controller manager \\(prometheus\\)\\n"
+      - notMatchRegexRaw:
+          pattern: "client certificate|oc extract"
+
+  - it: names etcd as scraped at the endpoints you list, with no Secret
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.etcd.endpoints:
+        - https://10.0.0.10:9979
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane metrics: API server, etcd, scheduler, controller manager \\(prometheus\\)\\n"
+      - notMatchRegexRaw:
+          pattern: "oc extract"
+
+  - it: still sends you to list the API server's address if you emptied it, on OpenShift too
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.apiServer.endpoints: []
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\n  - Control plane, not scraped until you list where it answers: API server \\(controlPlane\\.<component>\\.endpoints, an address this cluster collector's pod can reach\\)\\n"
+
+  - it: says a hosted control plane stays empty, and how replicas are found
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "\\nThe control plane's replicas are found through service discovery, so each is\\nscraped on its own\\. A hosted control plane \\(ROSA with HCP, HyperShift\\) has none\\nin the cluster: there those stay empty, and nothing else changes\\.\\n"
+
+  - it: does not say so when no replica is found that way
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.scheduler.endpoints:
+        - https://10.0.0.10:10259
+      controlPlane.controllerManager.endpoints:
+        - https://10.0.0.10:10257
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "service discovery"
+
+  - it: says none of it on OpenShift while the control plane is off
+    set:
+      preset: openshift
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Control plane|etcd|service discovery"
+
+  - it: says none of it on any other preset
+    set:
+      controlPlane.enabled: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "service discovery|oc extract|client certificate"
+      - matchRegexRaw:
+          pattern: "not scraped until you list where it answers: etcd, scheduler, controller manager"
