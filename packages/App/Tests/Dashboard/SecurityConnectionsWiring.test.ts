@@ -78,6 +78,21 @@ const RECORD_PAGES: ReadonlyArray<{
     page: ["Pages", "Inventory", "View", "Index.tsx"],
     modelId: "modelId",
   },
+  {
+    kind: SecurityConnectionKind.CloudResource,
+    page: ["Pages", "Cloud", "View", "MonitoredResourceOverview.tsx"],
+    modelId: "modelId",
+  },
+  {
+    kind: SecurityConnectionKind.ServerlessFunction,
+    page: ["Pages", "Serverless", "View", "Overview.tsx"],
+    modelId: "modelId",
+  },
+  {
+    kind: SecurityConnectionKind.Monitor,
+    page: ["Pages", "Monitor", "View", "Index.tsx"],
+    modelId: "modelId",
+  },
 ];
 
 describe("the way back: a Security card on each record's page", () => {
@@ -110,6 +125,24 @@ describe("the way back: a Security card on each record's page", () => {
       expect(page.split("<ResourceSecurityCard").length).toBe(2);
     },
   );
+
+  test("a monitor's page draws it only for a monitor that checks a host, read again on a Refresh rather than every poll", () => {
+    const page: string = source("Pages", "Monitor", "View", "Index.tsx");
+
+    expect(page).toContain(
+      'import { getMonitorTargetHosts } from "Common/Utils/SecurityCase/SecurityConnectionMatch";',
+    );
+    expect(page).toContain(
+      "{getMonitorTargetHosts(monitor.monitorSteps).length > 0 ? ( <ResourceSecurityCard kind={SecurityConnectionKind.Monitor} modelId={modelId} refreshToken={data.manualRefreshCount} />",
+    );
+    // In the side column, right after what is open on the monitor.
+    expect(
+      page.indexOf("<MonitorOpenWorkCard monitorId={modelId}"),
+    ).toBeLessThan(page.indexOf("<ResourceSecurityCard"));
+    expect(page.indexOf("<ResourceSecurityCard")).toBeLessThan(
+      page.indexOf("<MonitorStatusChangesCard"),
+    );
+  });
 
   test("an incident's page draws the cases behind it, about itself", () => {
     const page: string = source("Pages", "Incidents", "View", "Index.tsx");

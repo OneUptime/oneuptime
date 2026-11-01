@@ -39631,5 +39631,17 @@
   "Show the records at risk": "Mostrar los registros en riesgo",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "La página de esta identidad aún no está lista. Se calcula cada vez que se evalúan los almacenes de datos.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "Para hacerlo desde aquí, activa Respuesta de seguridad de datos en la conexión de nube de este almacén y ejecuta su comando de configuración actualizado. Concede solo los permisos de escritura limitados que necesitan estas correcciones.",
-  "Used in the last 90 days": "Usada en los últimos 90 días"
+  "Used in the last 90 days": "Usada en los últimos 90 días",
+  "In {{count}} teams": "En {{count}} equipos",
+  "In {{count}} teams_one": "En {{count}} equipo",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "Nombrado por {{value}}, una dirección privada que comprueba. Otra red puede asignársela a otra máquina.",
+  "Named {{value}}, a name it answers on.": "Nombrado {{value}}, un nombre en el que responde.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "Nombrado {{value}}, una forma corta o completa de {{matched}}, que comprueba. Otra máquina puede compartirlo.",
+  "Named {{value}}, its cloud resource ID.": "Nombrado {{value}}, su ID de recurso en la nube.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "Nombrado {{value}}, en {{matched}}, la dirección que comprueba.",
+  "Named {{value}}, the address it checks.": "Nombrado {{value}}, la dirección que comprueba.",
+  "No security event named what it checks in the last 7 days.": "Ningún evento de seguridad nombró lo que comprueba en los últimos 7 días.",
+  "On {{count}} on-call schedules": "En {{count}} programaciones de guardia",
+  "On {{count}} on-call schedules_one": "En {{count}} programación de guardia",
+  "What Security Events found about what it checks in the last 7 days.": "Lo que Eventos de seguridad encontró sobre lo que comprueba en los últimos 7 días."
 }

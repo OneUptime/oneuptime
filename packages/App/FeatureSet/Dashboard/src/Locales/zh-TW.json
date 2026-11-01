@@ -8869,7 +8869,7 @@
   "Cloud Resource Team Owners": "Cloud Resource Team Owners",
   "Cloud Resource User Owner": "Cloud Resource User Owner",
   "Cloud Resource User Owners": "Cloud Resource User Owners",
-  "Cloud Resources": "Cloud Resources",
+  "Cloud Resources": "雲端資源",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
   "Cloud environment not found.": "Cloud environment not found.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
@@ -39631,5 +39631,17 @@
   "Show the records at risk": "顯示面臨風險的記錄",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "此身分的頁面尚未就緒。每次評估資料儲存區時都會產生。",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "若要在此執行此操作，請在此資料儲存區的雲端連線上開啟「資料安全回應」，並執行更新後的設定命令。它只會授予這些修正所需的有限寫入權限。",
-  "Used in the last 90 days": "最近 90 天內曾使用"
+  "Used in the last 90 days": "最近 90 天內曾使用",
+  "In {{count}} teams": "屬於 {{count}} 個團隊",
+  "In {{count}} teams_one": "屬於 {{count}} 個團隊",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "透過 {{value}} 指向：它檢查的私人位址。其他網路可能會把該位址指派給其他機器。",
+  "Named {{value}}, a name it answers on.": "名為 {{value}}：它回應的名稱。",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "名為 {{value}}：它檢查的 {{matched}} 的簡稱或全稱。其他機器也可能使用此名稱。",
+  "Named {{value}}, its cloud resource ID.": "名為 {{value}}：其雲端資源 ID。",
+  "Named {{value}}, on {{matched}}, the address it checks.": "名為 {{value}}：位於它檢查的位址 {{matched}} 上。",
+  "Named {{value}}, the address it checks.": "名為 {{value}}：它檢查的位址。",
+  "No security event named what it checks in the last 7 days.": "過去 7 天沒有安全事件指向它檢查的對象。",
+  "On {{count}} on-call schedules": "在 {{count}} 個待命排程中",
+  "On {{count}} on-call schedules_one": "在 {{count}} 個待命排程中",
+  "What Security Events found about what it checks in the last 7 days.": "Security Events 在過去 7 天內找到的與它檢查的對象相關的內容。"
 }

@@ -8869,7 +8869,7 @@
   "Cloud Resource Team Owners": "Cloud Resource Team Owners",
   "Cloud Resource User Owner": "Cloud Resource User Owner",
   "Cloud Resource User Owners": "Cloud Resource User Owners",
-  "Cloud Resources": "Cloud Resources",
+  "Cloud Resources": "Облачные ресурсы",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
   "Cloud environment not found.": "Cloud environment not found.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
@@ -39631,5 +39631,17 @@
   "Show the records at risk": "Показать записи под угрозой",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "Страница этой идентичности ещё не готова. Она формируется при каждой оценке хранилищ данных.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "Чтобы делать это отсюда, включите «Реагирование безопасности данных» в облачном подключении этого хранилища и выполните обновлённую команду настройки. Она предоставляет только узкие права на запись, нужные этим исправлениям.",
-  "Used in the last 90 days": "Использовалась в последние 90 дней"
+  "Used in the last 90 days": "Использовалась в последние 90 дней",
+  "In {{count}} teams": "Команд: {{count}}",
+  "In {{count}} teams_one": "В {{count}} команде",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "Назван по {{value}} — частному адресу, который он проверяет. Другая сеть может выдать этот адрес другой машине.",
+  "Named {{value}}, a name it answers on.": "Назван {{value}} — именем, на котором он отвечает.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "Назван {{value}} — краткой или полной формой {{matched}}, который он проверяет. Такое имя может быть и у другой машины.",
+  "Named {{value}}, its cloud resource ID.": "Назван {{value}} — идентификатором его облачного ресурса.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "Назван {{value}} — на {{matched}}, адресе, который он проверяет.",
+  "Named {{value}}, the address it checks.": "Назван {{value}} — адресом, который он проверяет.",
+  "No security event named what it checks in the last 7 days.": "За последние 7 дней ни одно событие безопасности не назвало то, что он проверяет.",
+  "On {{count}} on-call schedules": "Расписаний дежурств: {{count}}",
+  "On {{count}} on-call schedules_one": "В {{count}} расписании дежурств",
+  "What Security Events found about what it checks in the last 7 days.": "Что Security Events нашёл о том, что он проверяет, за последние 7 дней."
 }

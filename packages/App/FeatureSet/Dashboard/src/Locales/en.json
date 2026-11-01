@@ -39631,5 +39631,17 @@
   "Show the records at risk": "Show the records at risk",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "This identity's page is not ready yet. It is worked out each time the stores are evaluated.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.",
-  "Used in the last 90 days": "Used in the last 90 days"
+  "Used in the last 90 days": "Used in the last 90 days",
+  "In {{count}} teams": "In {{count}} teams",
+  "In {{count}} teams_one": "In {{count}} team",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "Named by {{value}}, a private address it checks. Another network can give it to another machine.",
+  "Named {{value}}, a name it answers on.": "Named {{value}}, a name it answers on.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.",
+  "Named {{value}}, its cloud resource ID.": "Named {{value}}, its cloud resource ID.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "Named {{value}}, on {{matched}}, the address it checks.",
+  "Named {{value}}, the address it checks.": "Named {{value}}, the address it checks.",
+  "No security event named what it checks in the last 7 days.": "No security event named what it checks in the last 7 days.",
+  "On {{count}} on-call schedules": "On {{count}} on-call schedules",
+  "On {{count}} on-call schedules_one": "On {{count}} on-call schedule",
+  "What Security Events found about what it checks in the last 7 days.": "What Security Events found about what it checks in the last 7 days."
 }

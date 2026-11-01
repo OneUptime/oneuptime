@@ -8869,7 +8869,7 @@
   "Cloud Resource Team Owners": "Cloud Resource Team Owners",
   "Cloud Resource User Owner": "Cloud Resource User Owner",
   "Cloud Resource User Owners": "Cloud Resource User Owners",
-  "Cloud Resources": "Cloud Resources",
+  "Cloud Resources": "Skyressurser",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
   "Cloud environment not found.": "Cloud environment not found.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
@@ -39631,5 +39631,17 @@
   "Show the records at risk": "Vis poster i fare",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "Siden for denne identiteten er ikke klar ennå. Den beregnes hver gang datalagrene evalueres.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "For å gjøre dette herfra slår du på Datasikkerhetsrespons på skytilkoblingen for dette datalageret og kjører den oppdaterte konfigureringskommandoen. Den gir kun de avgrensede skrivetilgangene disse rettingene trenger.",
-  "Used in the last 90 days": "Brukt de siste 90 dagene"
+  "Used in the last 90 days": "Brukt de siste 90 dagene",
+  "In {{count}} teams": "I {{count}} team",
+  "In {{count}} teams_one": "I {{count}} team",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "Nevnt via {{value}}, en privat adresse den sjekker. Et annet nettverk kan gi den til en annen maskin.",
+  "Named {{value}}, a name it answers on.": "Nevnt som {{value}}, et navn den svarer på.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "Nevnt som {{value}}, en kort eller full form av {{matched}}, som den sjekker. En annen maskin kan ha samme navn.",
+  "Named {{value}}, its cloud resource ID.": "Nevnt som {{value}}, ID-en til skyressursen.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "Nevnt som {{value}}, på {{matched}}, adressen den sjekker.",
+  "Named {{value}}, the address it checks.": "Nevnt som {{value}}, adressen den sjekker.",
+  "No security event named what it checks in the last 7 days.": "Ingen sikkerhetshendelse har nevnt det den sjekker de siste 7 dagene.",
+  "On {{count}} on-call schedules": "På {{count}} vaktplaner",
+  "On {{count}} on-call schedules_one": "På {{count}} vaktplan",
+  "What Security Events found about what it checks in the last 7 days.": "Hva Security Events har funnet om det den sjekker de siste 7 dagene."
 }

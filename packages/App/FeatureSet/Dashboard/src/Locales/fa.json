@@ -8869,7 +8869,7 @@
   "Cloud Resource Team Owners": "Cloud Resource Team Owners",
   "Cloud Resource User Owner": "Cloud Resource User Owner",
   "Cloud Resource User Owners": "Cloud Resource User Owners",
-  "Cloud Resources": "Cloud Resources",
+  "Cloud Resources": "منابع ابری",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
   "Cloud environment not found.": "Cloud environment not found.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
@@ -39631,5 +39631,17 @@
   "Show the records at risk": "نمایش رکوردهای در معرض خطر",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "صفحهٔ این هویت هنوز آماده نیست. هر بار که مخزن‌ها ارزیابی می‌شوند ساخته می‌شود.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "برای انجام این کار از همین‌جا، «پاسخ امنیت داده» را در اتصال ابری این مخزن روشن کنید و فرمان راه‌اندازی به‌روزشده آن را اجرا کنید. این کار فقط دسترسی‌های نوشتن محدودی را اعطا می‌کند که این اصلاح‌ها لازم دارند.",
-  "Used in the last 90 days": "در ۹۰ روز گذشته استفاده شده"
+  "Used in the last 90 days": "در ۹۰ روز گذشته استفاده شده",
+  "In {{count}} teams": "در {{count}} تیم",
+  "In {{count}} teams_one": "در {{count}} تیم",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "از طریق {{value}} شناسایی شد؛ آدرس خصوصی‌ای که بررسی می‌کند. شبکه دیگری ممکن است آن را به ماشین دیگری بدهد.",
+  "Named {{value}}, a name it answers on.": "با نام {{value}} شناسایی شد؛ نامی که به آن پاسخ می‌دهد.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "با نام {{value}} شناسایی شد؛ شکل کوتاه یا کامل {{matched}} که بررسی می‌کند. ممکن است ماشین دیگری هم همین نام را داشته باشد.",
+  "Named {{value}}, its cloud resource ID.": "با نام {{value}} شناسایی شد؛ شناسه منبع ابری آن.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "با نام {{value}} شناسایی شد؛ روی {{matched}}، آدرسی که بررسی می‌کند.",
+  "Named {{value}}, the address it checks.": "با نام {{value}} شناسایی شد؛ آدرسی که بررسی می‌کند.",
+  "No security event named what it checks in the last 7 days.": "در ۷ روز گذشته هیچ رویداد امنیتی به آنچه بررسی می‌کند اشاره نکرده است.",
+  "On {{count}} on-call schedules": "در {{count}} زمان‌بندی آنکال",
+  "On {{count}} on-call schedules_one": "در {{count}} زمان‌بندی آنکال",
+  "What Security Events found about what it checks in the last 7 days.": "آنچه Security Events در ۷ روز گذشته درباره آنچه بررسی می‌کند یافته است."
 }

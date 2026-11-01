@@ -8869,7 +8869,7 @@
   "Cloud Resource Team Owners": "Cloud Resource Team Owners",
   "Cloud Resource User Owner": "Cloud Resource User Owner",
   "Cloud Resource User Owners": "Cloud Resource User Owners",
-  "Cloud Resources": "Cloud Resources",
+  "Cloud Resources": "क्लाउड संसाधन",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
   "Cloud environment not found.": "Cloud environment not found.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
@@ -39631,5 +39631,17 @@
   "Show the records at risk": "जोखिम में रिकॉर्ड दिखाएँ",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "इस पहचान का पेज अभी तैयार नहीं है। हर बार स्टोर का मूल्यांकन होने पर यह तैयार होता है।",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "इसे यहीं से करने के लिए, इस स्टोर के क्लाउड कनेक्शन पर डेटा सुरक्षा प्रतिक्रिया चालू करें और उसका अपडेट किया गया सेटअप कमांड चलाएं। यह केवल वही सीमित लिखने के एक्सेस देता है जिनकी इन सुधारों को ज़रूरत है।",
-  "Used in the last 90 days": "पिछले 90 दिनों में उपयोग हुआ"
+  "Used in the last 90 days": "पिछले 90 दिनों में उपयोग हुआ",
+  "In {{count}} teams": "{{count}} टीमों में",
+  "In {{count}} teams_one": "{{count}} टीम में",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "{{value}} से पहचाना गया, एक निजी पता जिसे यह जाँचता है। कोई दूसरा नेटवर्क इसे किसी दूसरी मशीन को दे सकता है।",
+  "Named {{value}}, a name it answers on.": "{{value}} नाम से पहचाना गया, एक नाम जिस पर यह जवाब देता है।",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "{{value}} नाम से पहचाना गया, {{matched}} का छोटा या पूरा रूप, जिसे यह जाँचता है। किसी दूसरी मशीन का भी यह नाम हो सकता है।",
+  "Named {{value}}, its cloud resource ID.": "{{value}} नाम से पहचाना गया, इसका क्लाउड संसाधन ID।",
+  "Named {{value}}, on {{matched}}, the address it checks.": "{{value}} नाम से पहचाना गया, {{matched}} पर, वह पता जिसे यह जाँचता है।",
+  "Named {{value}}, the address it checks.": "{{value}} नाम से पहचाना गया, वह पता जिसे यह जाँचता है।",
+  "No security event named what it checks in the last 7 days.": "पिछले 7 दिनों में किसी सुरक्षा इवेंट ने उसका नाम नहीं लिया जिसे यह जाँचता है।",
+  "On {{count}} on-call schedules": "{{count}} ऑन-कॉल अनुसूचियों में",
+  "On {{count}} on-call schedules_one": "{{count}} ऑन-कॉल अनुसूची में",
+  "What Security Events found about what it checks in the last 7 days.": "पिछले 7 दिनों में Security Events को उसके बारे में क्या मिला जिसे यह जाँचता है।"
 }

@@ -39631,5 +39631,17 @@
   "Show the records at risk": "Afficher les enregistrements à risque",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "La page de cette identité n'est pas encore prête. Elle est établie à chaque évaluation des magasins de données.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "Pour effectuer cette action d'ici, activez Réponse de sécurité des données sur la connexion cloud de ce magasin de données et exécutez sa commande de configuration mise à jour. Elle accorde uniquement les autorisations d'écriture limitées dont ces corrections ont besoin.",
-  "Used in the last 90 days": "Utilisée au cours des 90 derniers jours"
+  "Used in the last 90 days": "Utilisée au cours des 90 derniers jours",
+  "In {{count}} teams": "Dans {{count}} équipes",
+  "In {{count}} teams_one": "Dans {{count}} équipe",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "Nommé par {{value}}, une adresse privée qu'il vérifie. Un autre réseau peut l'attribuer à une autre machine.",
+  "Named {{value}}, a name it answers on.": "Nommé {{value}}, un nom sur lequel il répond.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "Nommé {{value}}, une forme courte ou complète de {{matched}}, qu'il vérifie. Une autre machine peut le partager.",
+  "Named {{value}}, its cloud resource ID.": "Nommé {{value}}, son ID de ressource cloud.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "Nommé {{value}}, sur {{matched}}, l'adresse qu'il vérifie.",
+  "Named {{value}}, the address it checks.": "Nommé {{value}}, l'adresse qu'il vérifie.",
+  "No security event named what it checks in the last 7 days.": "Aucun événement de sécurité n'a nommé ce qu'il vérifie au cours des 7 derniers jours.",
+  "On {{count}} on-call schedules": "Dans {{count}} plannings d'astreinte",
+  "On {{count}} on-call schedules_one": "Dans {{count}} planning d'astreinte",
+  "What Security Events found about what it checks in the last 7 days.": "Ce qu'Événements de sécurité a trouvé sur ce qu'il vérifie au cours des 7 derniers jours."
 }

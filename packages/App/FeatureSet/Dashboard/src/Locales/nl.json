@@ -8869,7 +8869,7 @@
   "Cloud Resource Team Owners": "Cloud Resource Team Owners",
   "Cloud Resource User Owner": "Cloud Resource User Owner",
   "Cloud Resource User Owners": "Cloud Resource User Owners",
-  "Cloud Resources": "Cloud Resources",
+  "Cloud Resources": "Cloud-resources",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
   "Cloud environment not found.": "Cloud environment not found.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
@@ -39631,5 +39631,17 @@
   "Show the records at risk": "Records in gevaar tonen",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "De pagina van deze identiteit is nog niet klaar. Ze wordt bepaald telkens wanneer de gegevensopslagen worden geëvalueerd.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "Om dit vanaf hier te doen, schakelt u Gegevensbeveiligingsrespons in op de cloudkoppeling van deze opslag en voert u de bijgewerkte installatieopdracht uit. Die verleent alleen de beperkte schrijfbevoegdheden die deze oplossingen nodig hebben.",
-  "Used in the last 90 days": "In de afgelopen 90 dagen gebruikt"
+  "Used in the last 90 days": "In de afgelopen 90 dagen gebruikt",
+  "In {{count}} teams": "In {{count}} teams",
+  "In {{count}} teams_one": "In {{count}} team",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "Genoemd via {{value}}, een privéadres dat het controleert. Een ander netwerk kan het aan een andere machine geven.",
+  "Named {{value}}, a name it answers on.": "Genoemd als {{value}}, een naam waarop het antwoordt.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "Genoemd als {{value}}, een korte of volledige vorm van {{matched}}, dat het controleert. Een andere machine kan die naam ook hebben.",
+  "Named {{value}}, its cloud resource ID.": "Genoemd als {{value}}, de ID van de cloud-resource.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "Genoemd als {{value}}, op {{matched}}, het adres dat het controleert.",
+  "Named {{value}}, the address it checks.": "Genoemd als {{value}}, het adres dat het controleert.",
+  "No security event named what it checks in the last 7 days.": "Geen enkele beveiligingsgebeurtenis heeft in de afgelopen 7 dagen genoemd wat het controleert.",
+  "On {{count}} on-call schedules": "In {{count}} bereikbaarheidsschema's",
+  "On {{count}} on-call schedules_one": "In {{count}} bereikbaarheidsschema",
+  "What Security Events found about what it checks in the last 7 days.": "Wat Security Events in de afgelopen 7 dagen heeft gevonden over wat het controleert."
 }

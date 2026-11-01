@@ -8869,7 +8869,7 @@
   "Cloud Resource Team Owners": "Cloud Resource Team Owners",
   "Cloud Resource User Owner": "Cloud Resource User Owner",
   "Cloud Resource User Owners": "Cloud Resource User Owners",
-  "Cloud Resources": "Cloud Resources",
+  "Cloud Resources": "Risorse cloud",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
   "Cloud environment not found.": "Cloud environment not found.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
@@ -39631,5 +39631,17 @@
   "Show the records at risk": "Mostra i record a rischio",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "La pagina di questa identità non è ancora pronta. Viene calcolata ogni volta che gli archivi dati vengono valutati.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "Per farlo da qui, attiva Risposta di sicurezza dei dati nella connessione cloud di questo archivio ed esegui il suo comando di configurazione aggiornato. Concede solo le autorizzazioni di scrittura limitate di cui hanno bisogno queste correzioni.",
-  "Used in the last 90 days": "Usata negli ultimi 90 giorni"
+  "Used in the last 90 days": "Usata negli ultimi 90 giorni",
+  "In {{count}} teams": "In {{count}} team",
+  "In {{count}} teams_one": "In {{count}} team",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "Nominato da {{value}}, un indirizzo privato che controlla. Un'altra rete può assegnarlo a un'altra macchina.",
+  "Named {{value}}, a name it answers on.": "Nominato {{value}}, un nome su cui risponde.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "Nominato {{value}}, una forma breve o completa di {{matched}}, che controlla. Un'altra macchina può condividerlo.",
+  "Named {{value}}, its cloud resource ID.": "Nominato {{value}}, il suo ID di risorsa cloud.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "Nominato {{value}}, su {{matched}}, l'indirizzo che controlla.",
+  "Named {{value}}, the address it checks.": "Nominato {{value}}, l'indirizzo che controlla.",
+  "No security event named what it checks in the last 7 days.": "Nessun evento di sicurezza ha nominato ciò che controlla negli ultimi 7 giorni.",
+  "On {{count}} on-call schedules": "In {{count}} pianificazioni di reperibilità",
+  "On {{count}} on-call schedules_one": "In {{count}} pianificazione di reperibilità",
+  "What Security Events found about what it checks in the last 7 days.": "Cosa ha trovato Security Events su ciò che controlla negli ultimi 7 giorni."
 }

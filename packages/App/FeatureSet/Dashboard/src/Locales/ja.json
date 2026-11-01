@@ -39631,5 +39631,17 @@
   "Show the records at risk": "リスクのあるレコードを表示",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "この ID のページはまだ準備できていません。データストアが評価されるたびに作成されます。",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "ここからこれを実行するには、このデータストアのクラウド接続で「データセキュリティ対応」を有効にし、更新されたセットアップコマンドを実行してください。これにより、これらの修正に必要な限定的な書き込み権限のみが付与されます。",
-  "Used in the last 90 days": "過去 90 日以内に使用"
+  "Used in the last 90 days": "過去 90 日以内に使用",
+  "In {{count}} teams": "{{count}} 個のチームに所属",
+  "In {{count}} teams_one": "{{count}} 個のチームに所属",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "{{value}} で特定: このモニターがチェックするプライベートアドレスです。別のネットワークでは別のマシンに割り当てられることがあります。",
+  "Named {{value}}, a name it answers on.": "{{value}} という名前: これが応答する名前です。",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "{{value}} という名前: このモニターがチェックする {{matched}} の短縮形または完全形です。別のマシンも同じ名前を持つ可能性があります。",
+  "Named {{value}}, its cloud resource ID.": "{{value}} という名前: クラウドリソース ID です。",
+  "Named {{value}}, on {{matched}}, the address it checks.": "{{value}} という名前: このモニターがチェックするアドレス {{matched}} 上にあります。",
+  "Named {{value}}, the address it checks.": "{{value}} という名前: このモニターがチェックするアドレスです。",
+  "No security event named what it checks in the last 7 days.": "過去 7 日間に、これがチェックする対象を示すセキュリティイベントはありません。",
+  "On {{count}} on-call schedules": "{{count}} 件のオンコールスケジュールに参加",
+  "On {{count}} on-call schedules_one": "{{count}} 件のオンコールスケジュールに参加",
+  "What Security Events found about what it checks in the last 7 days.": "過去 7 日間にセキュリティイベントがこれのチェック対象について見つけたこと。"
 }

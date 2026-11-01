@@ -211,6 +211,89 @@ describe("reading Connected Signals' answer", () => {
     expect(parsed.failedKinds).toEqual([SecurityConnectionKind.User]);
   });
 
+  test("a monitor's status and a member's schedules and teams, as the server sent them", () => {
+    const connections: SecurityConnectionsJson = model.parseSecurityConnections(
+      {
+        windowStart: WINDOW_START,
+        windowEnd: WINDOW_END,
+        resources: [
+          {
+            kind: SecurityConnectionKind.Monitor,
+            id: ITEM_ID,
+            name: "Checkout site",
+            certainty: SecurityConnectionCertainty.Exact,
+            matches: [],
+            status: { name: "Degraded", color: "#f59e0b" },
+          },
+          {
+            kind: SecurityConnectionKind.Monitor,
+            id: HOST_ID,
+            name: "No status",
+            certainty: SecurityConnectionCertainty.Exact,
+            matches: [],
+            status: { color: "#f59e0b" },
+          },
+          {
+            kind: SecurityConnectionKind.User,
+            id: USER_ID,
+            name: "Kim Morgan",
+            certainty: SecurityConnectionCertainty.Exact,
+            matches: [],
+            onCallSchedules: {
+              count: 2,
+              items: [
+                { id: "s-1", name: "Platform primary", isOnCallNow: true },
+                { id: "s-2", name: "Platform secondary", isOnCallNow: "yes" },
+                { name: "no id" },
+              ],
+            },
+            teams: { count: 1, items: [{ id: "t-1", title: "SRE" }] },
+          },
+          {
+            kind: SecurityConnectionKind.User,
+            id: SERVICE_ID,
+            name: "Not read",
+            certainty: SecurityConnectionCertainty.Exact,
+            matches: [],
+            onCallSchedules: null,
+            teams: null,
+          },
+        ],
+        unmatched: [],
+        unreadableKinds: [],
+        failedKinds: [],
+      } as unknown as JSONObject,
+    );
+
+    const [monitor, unnamed, member, unread] = connections.resources as [
+      SecurityConnectedResourceJson,
+      SecurityConnectedResourceJson,
+      SecurityConnectedResourceJson,
+      SecurityConnectedResourceJson,
+    ];
+
+    expect(monitor.status).toEqual({ name: "Degraded", color: "#f59e0b" });
+    // A status without a name is no status.
+    expect(unnamed).not.toHaveProperty("status");
+    expect(member.onCallSchedules).toEqual({
+      count: 2,
+      items: [
+        { id: "s-1", name: "Platform primary", isOnCallNow: true },
+        // Only true is on call now.
+        { id: "s-2", name: "Platform secondary", isOnCallNow: false },
+      ],
+    });
+    expect(member.teams).toEqual({
+      count: 1,
+      items: [{ id: "t-1", title: "SRE" }],
+    });
+    // Sent as not known: kept so; left out (any other kind): never made up.
+    expect(unread.onCallSchedules).toBeNull();
+    expect(unread.teams).toBeNull();
+    expect(monitor).not.toHaveProperty("onCallSchedules");
+    expect(monitor).not.toHaveProperty("teams");
+  });
+
   test("a record of a kind this Dashboard does not know, or without an id, is left out; an unsure one is possible", () => {
     const parsed: SecurityConnectionsJson = model.parseSecurityConnections({
       resources: [
@@ -572,6 +655,83 @@ describe("where a connection's links go", () => {
     ).toBeNull();
   });
 
+  test("a monitor's, a cloud resource's and a serverless function's own page", () => {
+    expect(
+      open(
+        model.getConnectedRecordRoute(SecurityConnectionKind.Monitor, ITEM_ID),
+      ).path,
+    ).toBe(`${BASE}/monitors/${ITEM_ID}`);
+    expect(
+      open(
+        model.getConnectedRecordRoute(
+          SecurityConnectionKind.CloudResource,
+          ITEM_ID,
+        ),
+      ).path,
+    ).toBe(`${BASE}/cloud/${ITEM_ID}`);
+    expect(
+      open(
+        model.getConnectedRecordRoute(
+          SecurityConnectionKind.ServerlessFunction,
+          ITEM_ID,
+        ),
+      ).path,
+    ).toBe(`${BASE}/serverless/${ITEM_ID}`);
+  });
+
+  test("a monitor's own logs and metrics; a cloud resource's and a function's logs and traces by their facet, and metrics", () => {
+    const monitor: Record<
+      string,
+      { path: string; query: Record<string, string> }
+    > = linksOf(SecurityConnectionKind.Monitor, ITEM_ID);
+
+    expect(Object.keys(monitor)).toEqual(["logs", "metrics"]);
+    expect(monitor["logs"]!.path).toBe(`${BASE}/monitors/${ITEM_ID}/logs`);
+    expect(monitor["metrics"]!.path).toBe(
+      `${BASE}/monitors/${ITEM_ID}/metrics`,
+    );
+    expect(monitor["metrics"]!.query["range"]).toBe("Custom");
+
+    for (const [kind, facet, metrics] of [
+      [
+        SecurityConnectionKind.CloudResource,
+        "cloudResourceId",
+        `${BASE}/cloud/${ITEM_ID}/metrics`,
+      ],
+      [
+        SecurityConnectionKind.ServerlessFunction,
+        "serverlessFunctionId",
+        `${BASE}/serverless/${ITEM_ID}/metrics`,
+      ],
+    ] as Array<[SecurityConnectionKind, string, string]>) {
+      const links: Record<
+        string,
+        { path: string; query: Record<string, string> }
+      > = linksOf(kind, ITEM_ID);
+
+      expect(Object.keys(links)).toEqual(["logs", "traces", "metrics"]);
+      expect(JSON.parse(links["logs"]!.query["filters"]!)).toEqual([
+        [facet, [ITEM_ID]],
+      ]);
+      // The traces explorer keeps one value a facet: as it writes its own.
+      expect(JSON.parse(links["traces"]!.query["filters"]!)).toEqual([
+        [facet, ITEM_ID],
+      ]);
+      expect(links["metrics"]!.path).toBe(metrics);
+    }
+  });
+
+  test("a member's schedule and team each open their own page", () => {
+    expect(open(model.getOnCallScheduleRoute(ITEM_ID)).path).toBe(
+      `${BASE}/on-call-duty/schedules/${ITEM_ID}`,
+    );
+    expect(open(model.getTeamRoute(ITEM_ID)).path).toBe(
+      `${BASE}/teams/${ITEM_ID}`,
+    );
+    expect(model.getOnCallScheduleRoute("schedule-1")).toBeNull();
+    expect(model.getTeamRoute("team-1")).toBeNull();
+  });
+
   test("a host's logs and traces filtered to it and pinned to the window, its metrics over it, its topology", () => {
     const links: Record<
       string,
@@ -679,6 +839,7 @@ describe("where a connection's links go", () => {
           id: HOST_ID,
           values: ["web-1", "203.0.113.9"],
           windowDays: 7,
+          isSearchedByLogs: false,
         },
         now,
       }),
@@ -696,6 +857,7 @@ describe("where a connection's links go", () => {
           id: USER_ID,
           values: ["kim@acme.example"],
           windowDays: 7,
+          isSearchedByLogs: false,
         },
         now,
       }),
@@ -705,22 +867,47 @@ describe("where a connection's links go", () => {
       "observable:kim@acme.example",
     );
 
-    // A service's: the events read from its logs.
-    const service: { path: string; query: Record<string, string> } = open(
-      model.getRecordSecurityEventsRoute({
-        security: {
-          kind: SecurityConnectionKind.Service,
-          id: SERVICE_ID,
-          values: [],
-          windowDays: 7,
-        },
-        now,
-      }),
-    );
+    // A service's, a function's, a cloud resource's searched by its logs: the events read from its logs.
+    for (const kind of [
+      SecurityConnectionKind.Service,
+      SecurityConnectionKind.ServerlessFunction,
+      SecurityConnectionKind.CloudResource,
+    ]) {
+      const service: { path: string; query: Record<string, string> } = open(
+        model.getRecordSecurityEventsRoute({
+          security: {
+            kind,
+            id: SERVICE_ID,
+            values: [],
+            windowDays: 7,
+            isSearchedByLogs: true,
+          },
+          now,
+        }),
+      );
 
-    expect(decodeURIComponent(service.query["search"]!)).toBe(
-      `@${SECURITY_LOG_RESOURCE_ID_ATTRIBUTE}:${SERVICE_ID}`,
-    );
+      expect(decodeURIComponent(service.query["search"]!)).toBe(
+        `@${SECURITY_LOG_RESOURCE_ID_ATTRIBUTE}:${SERVICE_ID}`,
+      );
+    }
+
+    // A monitor's: the events naming the hosts it checks.
+    expect(
+      decodeURIComponent(
+        open(
+          model.getRecordSecurityEventsRoute({
+            security: {
+              kind: SecurityConnectionKind.Monitor,
+              id: ITEM_ID,
+              values: ["shop.acme.example"],
+              windowDays: 7,
+              isSearchedByLogs: false,
+            },
+            now,
+          }),
+        ).query["search"]!,
+      ),
+    ).toBe("observable:shop.acme.example");
 
     // Nothing to search for opens nothing.
     expect(
@@ -730,6 +917,7 @@ describe("where a connection's links go", () => {
           id: HOST_ID,
           values: [],
           windowDays: 7,
+          isSearchedByLogs: false,
         },
         now,
       }),
@@ -750,5 +938,204 @@ describe("where a connection's links go", () => {
       `${BASE}/security-events/cases/${HOST_ID}`,
     );
     expect(model.getIncidentRoute("INC-7")).toBeNull();
+  });
+});
+
+describe("the sentence under a record's name", () => {
+  function match(
+    reason: SecurityConnectionReason,
+    entityValue: string,
+    matchedValue: string,
+    entityType: string = SecurityEntityType.Host,
+  ): SecurityConnectedResourceJson["matches"][number] {
+    return {
+      entityType,
+      entityValue,
+      certainty: SecurityConnectionCertainty.Exact,
+      reason,
+      matchedValue,
+    };
+  }
+
+  test("a monitor checking the very value it is named by: the address it checks", () => {
+    expect(
+      model.getConnectionReasonTemplate({
+        kind: SecurityConnectionKind.Monitor,
+        match: match(
+          SecurityConnectionReason.MonitorTarget,
+          "203.0.113.7",
+          "203.0.113.7",
+          SecurityEntityType.IpAddress,
+        ),
+      }),
+    ).toBe("Named {{value}}, the address it checks.");
+  });
+
+  test("a URL on the address it checks, or a value spelled otherwise: the value, then the address", () => {
+    for (const named of [
+      match(
+        SecurityConnectionReason.MonitorTarget,
+        "https://shop.acme.example/admin",
+        "shop.acme.example",
+        SecurityEntityType.Url,
+      ),
+      match(
+        SecurityConnectionReason.MonitorTarget,
+        "2001:DB8::7",
+        "2001:db8:0:0:0:0:0:7",
+        SecurityEntityType.IpAddress,
+      ),
+    ]) {
+      expect(
+        model.getConnectionReasonTemplate({
+          kind: SecurityConnectionKind.Monitor,
+          match: named,
+        }),
+      ).toBe("Named {{value}}, on {{matched}}, the address it checks.");
+    }
+
+    // The same value in another case: the plain sentence.
+    expect(
+      model.getConnectionReasonTemplate({
+        kind: SecurityConnectionKind.Monitor,
+        match: match(
+          SecurityConnectionReason.MonitorTarget,
+          "SHOP.acme.example",
+          "shop.acme.example",
+        ),
+      }),
+    ).toBe("Named {{value}}, the address it checks.");
+  });
+
+  test("a monitor that may check it says so in a monitor's words: it checks, it does not hold", () => {
+    expect(
+      model.getConnectionReasonTemplate({
+        kind: SecurityConnectionKind.Monitor,
+        match: match(
+          SecurityConnectionReason.ShortHostName,
+          "web-1",
+          "web-1.acme.internal",
+        ),
+      }),
+    ).toBe(
+      "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.",
+    );
+    expect(
+      model.getConnectionReasonTemplate({
+        kind: SecurityConnectionKind.Monitor,
+        match: match(
+          SecurityConnectionReason.PrivateAddress,
+          "10.0.3.17",
+          "10.0.3.17",
+        ),
+      }),
+    ).toBe(
+      "Named by {{value}}, a private address it checks. Another network can give it to another machine.",
+    );
+    // Not said to be a host: as any record says it.
+    expect(
+      model.getConnectionReasonTemplate({
+        kind: SecurityConnectionKind.Monitor,
+        match: match(SecurityConnectionReason.UntypedValue, "shop", "shop"),
+      }),
+    ).toBe(
+      "Named {{value}} without saying it is a host. Something else may have that name.",
+    );
+  });
+
+  test("every other record says the reason's own words", () => {
+    expect(
+      model.getConnectionReasonTemplate({
+        kind: SecurityConnectionKind.Host,
+        match: match(
+          SecurityConnectionReason.PrivateAddress,
+          "10.0.3.17",
+          "10.0.3.17",
+        ),
+      }),
+    ).toBe(
+      "Named by {{value}}, a private address it holds. Another network can give it to another machine.",
+    );
+    expect(
+      model.getConnectionReasonTemplate({
+        kind: SecurityConnectionKind.CloudResource,
+        match: match(
+          SecurityConnectionReason.ResourceId,
+          "arn:aws:s3:::acme-prod-data",
+          "arn:aws:s3:::acme-prod-data",
+        ),
+      }),
+    ).toBe("Named {{value}}, its cloud resource ID.");
+    expect(
+      model.getConnectionReasonTemplate({
+        kind: SecurityConnectionKind.CloudResource,
+        match: match(
+          SecurityConnectionReason.CloudEndpoint,
+          "checkout-1234.us-east-1.elb.amazonaws.com",
+          "checkout-1234.us-east-1.elb.amazonaws.com",
+        ),
+      }),
+    ).toBe("Named {{value}}, a name it answers on.");
+  });
+});
+
+describe("what a record's Security card says it is about", () => {
+  test("what named it; what was read from its logs; what named the hosts a monitor checks", () => {
+    expect(
+      model.getResourceSecurityDescription({
+        kind: SecurityConnectionKind.Host,
+        isSearchedByLogs: false,
+      }),
+    ).toEqual({
+      news: "What Security Events found about it in the last 7 days.",
+      quiet: "No security event named it in the last 7 days.",
+    });
+
+    for (const kind of [
+      SecurityConnectionKind.Service,
+      SecurityConnectionKind.ServerlessFunction,
+      SecurityConnectionKind.CloudResource,
+    ]) {
+      expect(
+        model.getResourceSecurityDescription({ kind, isSearchedByLogs: true }),
+      ).toEqual({
+        news: "What Security Events found in its logs in the last 7 days.",
+        quiet: "No security event was read from its logs in the last 7 days.",
+      });
+    }
+
+    expect(
+      model.getResourceSecurityDescription({
+        kind: SecurityConnectionKind.Monitor,
+        isSearchedByLogs: false,
+      }),
+    ).toEqual({
+      news: "What Security Events found about what it checks in the last 7 days.",
+      quiet: "No security event named what it checks in the last 7 days.",
+    });
+  });
+
+  test("an answer that does not say how it was searched is read as its kind always is", () => {
+    for (const [kind, searchedByLogs] of [
+      [SecurityConnectionKind.Service, true],
+      [SecurityConnectionKind.ServerlessFunction, true],
+      [SecurityConnectionKind.Host, false],
+      [SecurityConnectionKind.Monitor, false],
+      [SecurityConnectionKind.CloudResource, false],
+    ] as Array<[SecurityConnectionKind, boolean]>) {
+      expect(
+        model.parseResourceSecurity({ kind, id: HOST_ID } as JSONObject)
+          .isSearchedByLogs,
+      ).toBe(searchedByLogs);
+    }
+
+    // And one that does is believed: a cloud resource with nothing of its own to search for.
+    expect(
+      model.parseResourceSecurity({
+        kind: SecurityConnectionKind.CloudResource,
+        id: HOST_ID,
+        isSearchedByLogs: true,
+      } as JSONObject).isSearchedByLogs,
+    ).toBe(true);
   });
 });

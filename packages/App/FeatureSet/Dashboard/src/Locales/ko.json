@@ -8869,7 +8869,7 @@
   "Cloud Resource Team Owners": "Cloud Resource Team Owners",
   "Cloud Resource User Owner": "Cloud Resource User Owner",
   "Cloud Resource User Owners": "Cloud Resource User Owners",
-  "Cloud Resources": "Cloud Resources",
+  "Cloud Resources": "클라우드 리소스",
   "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.": "Cloud Run functions and 1st gen functions, set up in the Google Cloud console.",
   "Cloud environment not found.": "Cloud environment not found.",
   "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.": "Cloud environments you have archived. They are hidden from the main list but keep collecting telemetry. Select environments to unarchive them.",
@@ -39631,5 +39631,17 @@
   "Show the records at risk": "위험에 처한 레코드 보기",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "이 ID의 페이지가 아직 준비되지 않았습니다. 저장소가 평가될 때마다 만들어집니다.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "여기에서 이 작업을 하려면 이 저장소의 클라우드 연결에서 데이터 보안 대응을 켜고 업데이트된 설정 명령을 실행하세요. 이 명령은 이러한 수정에 필요한 제한된 쓰기 권한만 부여합니다.",
-  "Used in the last 90 days": "최근 90일 이내에 사용됨"
+  "Used in the last 90 days": "최근 90일 이내에 사용됨",
+  "In {{count}} teams": "팀 {{count}}개에 소속",
+  "In {{count}} teams_one": "팀 {{count}}개에 소속",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "{{value}}(으)로 지정됨: 이 모니터가 확인하는 사설 주소입니다. 다른 네트워크에서는 다른 머신에 할당될 수 있습니다.",
+  "Named {{value}}, a name it answers on.": "{{value}}(으)로 지정됨: 이것이 응답하는 이름입니다.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "{{value}}(으)로 지정됨: 이 모니터가 확인하는 {{matched}}의 짧은 형식 또는 전체 형식입니다. 다른 머신도 같은 이름을 가질 수 있습니다.",
+  "Named {{value}}, its cloud resource ID.": "{{value}}(으)로 지정됨: 클라우드 리소스 ID입니다.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "{{value}}(으)로 지정됨: 이 모니터가 확인하는 주소 {{matched}}에 있습니다.",
+  "Named {{value}}, the address it checks.": "{{value}}(으)로 지정됨: 이 모니터가 확인하는 주소입니다.",
+  "No security event named what it checks in the last 7 days.": "지난 7일 동안 이것이 확인하는 대상을 가리킨 보안 이벤트가 없습니다.",
+  "On {{count}} on-call schedules": "온콜 스케줄 {{count}}개에 참여",
+  "On {{count}} on-call schedules_one": "온콜 스케줄 {{count}}개에 참여",
+  "What Security Events found about what it checks in the last 7 days.": "지난 7일 동안 Security Events가 이것이 확인하는 대상에 대해 찾은 내용입니다."
 }

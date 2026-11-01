@@ -39631,5 +39631,17 @@
   "Show the records at risk": "Gefährdete Datensätze anzeigen",
   "This identity's page is not ready yet. It is worked out each time the stores are evaluated.": "Die Seite dieser Identität ist noch nicht bereit. Sie wird bei jeder Auswertung der Datenspeicher erstellt.",
   "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command. It grants only the narrow writes these fixes need.": "Um dies von hier aus zu tun, aktivieren Sie Datensicherheitsreaktion in der Cloud-Verbindung dieses Datenspeichers und führen Sie ihren aktualisierten Einrichtungsbefehl aus. Er gewährt nur die eng begrenzten Schreibzugriffe, die diese Korrekturen benötigen.",
-  "Used in the last 90 days": "In den letzten 90 Tagen verwendet"
+  "Used in the last 90 days": "In den letzten 90 Tagen verwendet",
+  "In {{count}} teams": "In {{count}} Teams",
+  "In {{count}} teams_one": "In {{count}} Team",
+  "Named by {{value}}, a private address it checks. Another network can give it to another machine.": "Über {{value}} genannt, eine private Adresse, die es prüft. Ein anderes Netzwerk kann sie einem anderen Rechner geben.",
+  "Named {{value}}, a name it answers on.": "Als {{value}} genannt, ein Name, unter dem es antwortet.",
+  "Named {{value}}, a short or full form of {{matched}}, which it checks. Another machine may share it.": "Als {{value}} genannt, eine Kurz- oder Langform von {{matched}}, das es prüft. Ein anderer Rechner kann ihn ebenfalls haben.",
+  "Named {{value}}, its cloud resource ID.": "Als {{value}} genannt, seine Cloud-Ressourcen-ID.",
+  "Named {{value}}, on {{matched}}, the address it checks.": "Als {{value}} genannt, auf {{matched}}, der Adresse, die es prüft.",
+  "Named {{value}}, the address it checks.": "Als {{value}} genannt, die Adresse, die es prüft.",
+  "No security event named what it checks in the last 7 days.": "Kein Sicherheitsereignis hat in den letzten 7 Tagen genannt, was es prüft.",
+  "On {{count}} on-call schedules": "In {{count}} Bereitschaftsplänen",
+  "On {{count}} on-call schedules_one": "In {{count}} Bereitschaftsplan",
+  "What Security Events found about what it checks in the last 7 days.": "Was Sicherheitsereignisse in den letzten 7 Tagen über das gefunden hat, was es prüft."
 }
