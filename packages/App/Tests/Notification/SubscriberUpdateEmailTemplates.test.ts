@@ -1,4 +1,5 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
@@ -19,6 +20,8 @@ const TEMPLATES_DIR: string = Path.resolve(
 );
 
 const handlebars: typeof Handlebars = Handlebars.create();
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(handlebars);
 
 const STATUS_URL: string = "https://status.example.com";
 const DETAILS_URL: string = "https://status.example.com/announcements/42";

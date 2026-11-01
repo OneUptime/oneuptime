@@ -12,6 +12,18 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const Handlebars = require("handlebars");
+/*
+ * The email language helpers the templates word their text with, as
+ * FeatureSet/Notification/Utils/EmailLanguage.ts registers them: loaded from
+ * that module itself, so a preview words every email as MailService does.
+ */
+require("ts-node").register({
+  transpileOnly: true,
+  compilerOptions: { module: "commonjs", moduleResolution: "node" },
+});
+const {
+  registerEmailLanguageHelpers,
+} = require("../../../FeatureSet/Notification/Utils/EmailLanguage");
 
 const root = path.resolve(__dirname, "../../../../..");
 const templatePath = "packages/App/FeatureSet/Notification/Templates";
@@ -461,6 +473,7 @@ function createRenderer(version) {
     if (card) card.isOpen = false;
     return "";
   });
+  registerEmailLanguageHelpers(engine);
   for (const file of partialsFor(version)) {
     const source = read(version, `Partials/${file}`);
     engine.registerPartial(file.slice(0, -4), source);

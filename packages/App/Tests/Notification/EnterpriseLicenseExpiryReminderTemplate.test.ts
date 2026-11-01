@@ -1,9 +1,13 @@
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import { visibleText } from "Common/Tests/Helpers/HtmlText";
 import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
+
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(Handlebars);
 
 /*
  * EnterpriseLicenseExpiryReminder.hbs - sent by oneuptime.com to the master

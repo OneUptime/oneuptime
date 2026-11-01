@@ -131,12 +131,12 @@
   "[Postmortem] {{title}}": "[Post-mortem] {{title}}",
   "[Scheduled Maintenance Note Updated] {{title}}": "[Onderhoudsnotitie bijgewerkt] {{title}}",
   "[Scheduled Maintenance Update] {{title}}": "[Update over onderhoud] {{title}}",
-  "[Scheduled Maintenance {{state}}] {{title}}": "[Gepland onderhoud {{state}}] {{title}}",
+  "[Scheduled Maintenance {{state}}] {{title}}": "[Gepland onderhoud: {{state}}] {{title}}",
   "[Scheduled Maintenance] {{title}}": "[Gepland onderhoud] {{title}}",
   "[Update Incident] {{title}}": "[Update over incident] {{title}}",
   "[Update Scheduled Maintenance] {{title}}": "[Update over onderhoud] {{title}}",
-  "[{{state}} Incident] {{title}}": "[Incident {{state}}] {{title}}",
-  "[{{state}} Scheduled Maintenance] {{title}}": "[Gepland onderhoud {{state}}] {{title}}",
+  "[{{state}} Incident] {{title}}": "[Incident: {{state}}] {{title}}",
+  "[{{state}} Scheduled Maintenance] {{title}}": "[Gepland onderhoud: {{state}}] {{title}}",
   "{{statusPageName}} - Manage Subscription": "{{statusPageName}} - Abonnement beheren",
   "{{statusPageName}} - Please confirm your subscription": "{{statusPageName}} - Bevestig uw abonnement"
 }

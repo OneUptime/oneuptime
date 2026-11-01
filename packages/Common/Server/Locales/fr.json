@@ -131,12 +131,12 @@
   "[Postmortem] {{title}}": "[Post-mortem] {{title}}",
   "[Scheduled Maintenance Note Updated] {{title}}": "[Note de maintenance mise à jour] {{title}}",
   "[Scheduled Maintenance Update] {{title}}": "[Mise à jour de maintenance] {{title}}",
-  "[Scheduled Maintenance {{state}}] {{title}}": "[Maintenance planifiée {{state}}] {{title}}",
+  "[Scheduled Maintenance {{state}}] {{title}}": "[Maintenance planifiée : {{state}}] {{title}}",
   "[Scheduled Maintenance] {{title}}": "[Maintenance planifiée] {{title}}",
   "[Update Incident] {{title}}": "[Mise à jour d'incident] {{title}}",
   "[Update Scheduled Maintenance] {{title}}": "[Mise à jour de maintenance] {{title}}",
-  "[{{state}} Incident] {{title}}": "[Incident {{state}}] {{title}}",
-  "[{{state}} Scheduled Maintenance] {{title}}": "[Maintenance planifiée {{state}}] {{title}}",
+  "[{{state}} Incident] {{title}}": "[Incident : {{state}}] {{title}}",
+  "[{{state}} Scheduled Maintenance] {{title}}": "[Maintenance planifiée : {{state}}] {{title}}",
   "{{statusPageName}} - Manage Subscription": "{{statusPageName}} - Gérer l'abonnement",
   "{{statusPageName}} - Please confirm your subscription": "{{statusPageName}} - Veuillez confirmer votre abonnement"
 }

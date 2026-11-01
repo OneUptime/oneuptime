@@ -14,6 +14,7 @@
  */
 
 import Handlebars from "handlebars";
+import { registerEmailLanguageHelpers } from "../../FeatureSet/Notification/Utils/EmailLanguage";
 import fs from "fs";
 import Path from "path";
 import StatusPageReportTreeUtil, {
@@ -32,6 +33,9 @@ import { getDefaultSubscriberNotificationTemplate } from "../../FeatureSet/Dashb
 import StatusPageSubscriberNotificationEventType from "Common/Types/StatusPage/StatusPageSubscriberNotificationEventType";
 import StatusPageSubscriberNotificationMethod from "Common/Types/StatusPage/StatusPageSubscriberNotificationMethod";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+
+// The email language helpers the templates word their text with.
+registerEmailLanguageHelpers(Handlebars);
 
 const TEMPLATES_DIR: string = Path.resolve(
   __dirname,

@@ -131,12 +131,12 @@
   "[Postmortem] {{title}}": "[Incidentanalys] {{title}}",
   "[Scheduled Maintenance Note Updated] {{title}}": "[Underhållsanteckning uppdaterad] {{title}}",
   "[Scheduled Maintenance Update] {{title}}": "[Uppdatering om underhåll] {{title}}",
-  "[Scheduled Maintenance {{state}}] {{title}}": "[Planerat underhåll {{state}}] {{title}}",
+  "[Scheduled Maintenance {{state}}] {{title}}": "[Planerat underhåll: {{state}}] {{title}}",
   "[Scheduled Maintenance] {{title}}": "[Planerat underhåll] {{title}}",
   "[Update Incident] {{title}}": "[Uppdatering om incident] {{title}}",
   "[Update Scheduled Maintenance] {{title}}": "[Uppdatering om underhåll] {{title}}",
-  "[{{state}} Incident] {{title}}": "[Incident {{state}}] {{title}}",
-  "[{{state}} Scheduled Maintenance] {{title}}": "[Planerat underhåll {{state}}] {{title}}",
+  "[{{state}} Incident] {{title}}": "[Incident: {{state}}] {{title}}",
+  "[{{state}} Scheduled Maintenance] {{title}}": "[Planerat underhåll: {{state}}] {{title}}",
   "{{statusPageName}} - Manage Subscription": "{{statusPageName}} - Hantera prenumeration",
   "{{statusPageName}} - Please confirm your subscription": "{{statusPageName}} - Bekräfta din prenumeration"
 }
