@@ -16,7 +16,8 @@ import ProviderLogoMarkSvg, {
  * code hosts' marks), so they all draw the same shapes, in the same way.
  */
 
-const SLACK: ProviderLogoMarkShapes = ALL_PROVIDER_LOGO_MARKS[ProviderLogo.Slack]!;
+const SLACK: ProviderLogoMarkShapes =
+  ALL_PROVIDER_LOGO_MARKS[ProviderLogo.Slack]!;
 
 function svgOf(element: React.ReactElement): SVGElement {
   const { container } = render(element);

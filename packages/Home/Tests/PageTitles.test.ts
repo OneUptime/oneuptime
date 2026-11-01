@@ -3,6 +3,7 @@ import PageSEOConfig, {
   PageSEOData,
   getPageSEO,
 } from "../Utils/PageSEO";
+import { getCompareMark } from "../Utils/CompareMark";
 import ProductCompare, {
   Product,
   getProductCompareSlugs,
@@ -776,6 +777,7 @@ describe("the comparison pages", () => {
         blackLogo: false,
         requestDemoCta: false,
         productConfig: ProductCompare(slug),
+        productMark: getCompareMark(ProductCompare(slug)),
         onlyShowCompareTable: false,
         seo,
         homeUrl: HOME_URL,

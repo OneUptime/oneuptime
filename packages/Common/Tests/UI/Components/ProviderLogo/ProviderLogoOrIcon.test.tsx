@@ -55,7 +55,10 @@ describe("ProviderLogoOrIcon", () => {
         `${PROVIDER_LOGO_TEST_ID_PREFIX}google-cloud-storage`,
       );
 
-      expect(logo).toHaveAttribute("data-provider-logo", "google-cloud-storage");
+      expect(logo).toHaveAttribute(
+        "data-provider-logo",
+        "google-cloud-storage",
+      );
       expect(logo.querySelector("img")).toBeNull();
       expect(getDrawnPathData(getDrawnMark(logo))).toEqual(
         getMarkPathData(ProviderLogo.GoogleCloudStorage),
@@ -198,7 +201,9 @@ describe("ProviderLogoOrIcon", () => {
       (size: ProviderLogoSize) => {
         render(<ProviderLogoOrIcon icon={IconProp.Webhook} size={size} />);
 
-        const tile: HTMLElement = screen.getByTestId(PROVIDER_ICON_TILE_TEST_ID);
+        const tile: HTMLElement = screen.getByTestId(
+          PROVIDER_ICON_TILE_TEST_ID,
+        );
 
         expect(classesOf(tile)).toEqual(
           expect.arrayContaining(

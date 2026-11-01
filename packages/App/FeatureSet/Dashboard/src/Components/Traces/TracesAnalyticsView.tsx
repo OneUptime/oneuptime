@@ -738,32 +738,32 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
           <></>
         )}
         <div className="relative flex items-center">
-        <select
-          className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-          aria-label={caption}
-          value={value}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-            onChange(e.target.value);
-          }}
-        >
-          {options.map((opt: SelectOption) => {
-            return (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            );
-          })}
-        </select>
-        {/*
+          <select
+            className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+            aria-label={caption}
+            value={value}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+              onChange(e.target.value);
+            }}
+          >
+            {options.map((opt: SelectOption) => {
+              return (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              );
+            })}
+          </select>
+          {/*
           The select's chevron: the product's own icon, inline and in the grey
           of a control's icons (the dark theme lightens it), at the end of
           the line whichever way the page reads - not an image of a grey
           chevron pinned to the right.
         */}
-        <Icon
-          icon={IconProp.ChevronDown}
-          className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400"
-        />
+          <Icon
+            icon={IconProp.ChevronDown}
+            className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-gray-400"
+          />
         </div>
       </div>
     );

@@ -125,7 +125,9 @@ describe("the mark loader table", () => {
 
       const module: { default: unknown } = await loader!();
 
-      expect(module.default).toEqual(ALL_PROVIDER_LOGO_MARKS[mark as ProviderLogo]);
+      expect(module.default).toEqual(
+        ALL_PROVIDER_LOGO_MARKS[mark as ProviderLogo],
+      );
     },
   );
 });
@@ -142,7 +144,9 @@ describe("loading a mark", () => {
       return { default: SHAPES };
     };
 
-    expect(loader.getLoadedProviderLogoMark(ProviderLogo.Slack)).toBeUndefined();
+    expect(
+      loader.getLoadedProviderLogoMark(ProviderLogo.Slack),
+    ).toBeUndefined();
     await expect(loader.loadProviderLogoMark(ProviderLogo.Slack)).resolves.toBe(
       SHAPES,
     );
@@ -150,7 +154,9 @@ describe("loading a mark", () => {
     await loader.loadProviderLogoMark(ProviderLogo.Slack);
     expect(calls).toBe(1);
 
-    loaders[ProviderLogo.Slack] = original;
+    if (original) {
+      loaders[ProviderLogo.Slack] = original;
+    }
   });
 
   test("marks asked for at the same time share one load", async () => {

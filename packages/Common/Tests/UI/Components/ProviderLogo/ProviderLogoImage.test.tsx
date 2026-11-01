@@ -372,7 +372,11 @@ describe("ProviderLogoImage", () => {
 
     test("a tile is drawn without a ring when bare", async () => {
       const tile: HTMLElement = await drawn(
-        <ProviderLogoImage logo={ProviderLogo.Python} isBare={true} size={20} />,
+        <ProviderLogoImage
+          logo={ProviderLogo.Python}
+          isBare={true}
+          size={20}
+        />,
         ProviderLogo.Python,
       );
 
@@ -419,7 +423,9 @@ describe("ProviderLogoImage", () => {
 
       expect(
         screen
-          .getAllByTestId(`${PROVIDER_LOGO_TEST_ID_PREFIX}${ProviderLogo.Ruby}`)[1]!
+          .getAllByTestId(
+            `${PROVIDER_LOGO_TEST_ID_PREFIX}${ProviderLogo.Ruby}`,
+          )[1]!
           .querySelector("svg[data-provider-logo-mark-svg]"),
       ).not.toBeNull();
       expect(requested).toEqual([]);
@@ -446,13 +452,16 @@ describe("ProviderLogoImage", () => {
       (logo: ProviderLogo) => {
         render(<ProviderLogoImage logo={logo} />);
 
-        expect(screen.getByRole("img", { name: PROVIDER_LOGO_NAMES[logo] }))
-          .toBe(tileOf(logo));
+        expect(
+          screen.getByRole("img", { name: PROVIDER_LOGO_NAMES[logo] }),
+        ).toBe(tileOf(logo));
       },
     );
 
     test("decorative, it is not read out: the words beside it name it", () => {
-      render(<ProviderLogoImage logo={ProviderLogo.Slack} isDecorative={true} />);
+      render(
+        <ProviderLogoImage logo={ProviderLogo.Slack} isDecorative={true} />,
+      );
 
       expect(tileOf(ProviderLogo.Slack)).toHaveAttribute("aria-hidden", "true");
       expect(screen.queryByRole("img")).toBeNull();

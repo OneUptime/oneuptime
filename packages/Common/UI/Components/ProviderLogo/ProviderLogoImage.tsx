@@ -49,12 +49,25 @@ import React, {
 
 /*
  * The size in pixels: of the tile, or of the mark alone when it is bare
- * (16, 20 or 24 - an icon's sizes).
+ * (12 to 24 - an icon's sizes).
  */
-export type ProviderLogoSize = 16 | 20 | 24 | 28 | 32 | 36 | 40 | 44 | 48;
+export type ProviderLogoSize =
+  | 12
+  | 14
+  | 16
+  | 20
+  | 24
+  | 28
+  | 32
+  | 36
+  | 40
+  | 44
+  | 48;
 
 // A tile's size and corners.
 const TILE_CLASS_NAMES: Readonly<Record<ProviderLogoSize, string>> = {
+  12: "h-3 w-3 rounded-sm",
+  14: "h-3.5 w-3.5 rounded-sm",
   16: "h-4 w-4 rounded",
   20: "h-5 w-5 rounded",
   24: "h-6 w-6 rounded-md",
@@ -74,6 +87,8 @@ const TILE_CLASS_NAMES: Readonly<Record<ProviderLogoSize, string>> = {
 export const PROVIDER_LOGO_TILE_ICON_SIZES: Readonly<
   Record<ProviderLogoSize, number>
 > = {
+  12: 8,
+  14: 9,
   16: 10,
   20: 12,
   24: 14,
@@ -88,6 +103,8 @@ export const PROVIDER_LOGO_TILE_ICON_SIZES: Readonly<
 export const PROVIDER_LOGO_TILE_ICON_CLASS_NAMES: Readonly<
   Record<ProviderLogoSize, string>
 > = {
+  12: "h-2 w-2",
+  14: "h-2 w-2",
   16: "h-2.5 w-2.5",
   20: "h-3 w-3",
   24: "h-3.5 w-3.5",
@@ -101,6 +118,8 @@ export const PROVIDER_LOGO_TILE_ICON_CLASS_NAMES: Readonly<
 
 // An icon drawn bare, as large as the size given.
 const BARE_ICON_CLASS_NAMES: Readonly<Record<ProviderLogoSize, string>> = {
+  12: "h-3 w-3",
+  14: "h-3.5 w-3.5",
   16: "h-4 w-4",
   20: "h-5 w-5",
   24: "h-6 w-6",

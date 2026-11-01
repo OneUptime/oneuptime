@@ -225,6 +225,8 @@ const LOG_FORMATS_LINE: string =
 // Computed colours the assertions compare against.
 const WHITE_RGB: string = "rgb(255, 255, 255)";
 const GRAY_900_RGB: string = "rgb(17, 24, 39)";
+// The grey of a tile's icon (text-gray-500), which a product's mark is drawn in.
+const GRAY_500_RGB: string = "rgb(107, 114, 128)";
 const GRAY_200_RGB: string = "rgb(229, 231, 235)";
 const INDIGO_50_RGB: string = "rgb(238, 242, 255)";
 const INDIGO_300_RGB: string = "rgb(165, 180, 252)";
@@ -910,27 +912,33 @@ function tileCategory(page: Page, item: Provider): Locator {
 }
 
 /*
- * The badge: the product's official logo (Common's ProviderLogoImage, a tile
- * holding the logo's image), the tile's first child. Then the name block
- * and, where the member can connect, the plus at the end.
+ * The badge: the product's official mark (Common's ProviderLogoImage, a tile
+ * holding the mark as an inline SVG in one colour - or, for a brand that
+ * allows no logo here, OneUptime's icon), the tile's first child. Then the
+ * name block and, where the member can connect, the plus at the end.
  */
 function tileBadge(page: Page, item: Provider): Locator {
   return tile(page, item).locator(":scope > [data-provider-logo]");
 }
 
-function tileLogoImage(page: Page, item: Provider): Locator {
-  return tileBadge(page, item).locator("img");
+// The badge's one drawing: the mark, or the icon that stands in for it.
+function tileMark(page: Page, item: Provider): Locator {
+  return tileBadge(page, item).locator("svg");
 }
 
 function tilePlus(page: Page, item: Provider): Locator {
   return tile(page, item).locator(":scope > div").nth(1).locator("svg");
 }
 
-// Whether an image has loaded and has a picture: a logo that did not arrive draws nothing.
-async function isDrawn(image: Locator): Promise<boolean> {
-  return image.evaluate((element: Element): boolean => {
-    const picture: HTMLImageElement = element as HTMLImageElement;
-    return picture.complete && picture.naturalWidth > 0;
+// Whether a drawing has shapes and takes room: a mark that did not arrive draws nothing.
+async function isDrawn(drawing: Locator): Promise<boolean> {
+  return drawing.evaluate((element: Element): boolean => {
+    const box: DOMRect = element.getBoundingClientRect();
+    return (
+      element.querySelectorAll("path").length > 0 &&
+      box.width > 0 &&
+      box.height > 0
+    );
   });
 }
 
@@ -1516,23 +1524,29 @@ test.describe("connections empty state", () => {
 
     /*
      * Three providers used to share a shield, then a generic icon each
-     * (official logos audit): each badge is its product's own logo now, a
-     * local file of the installation that arrives and is drawn.
+     * (official logos audit): each badge is its product's own mark now -
+     * an inline SVG in one colour that arrives with the installation and is
+     * drawn, never an image (icons-svg-one-color).
      */
     const logos: Array<string> = [];
     for (const item of PROVIDERS) {
       logos.push(
         (await tileBadge(page, item).getAttribute("data-provider-logo")) || "",
       );
-      await expect(tileLogoImage(page, item)).toHaveCount(1);
+      await expect(tileBadge(page, item).locator("img")).toHaveCount(0);
+      await expect(tileMark(page, item)).toHaveCount(1);
       await expect
         .poll(
           async (): Promise<boolean> => {
-            return isDrawn(tileLogoImage(page, item));
+            return isDrawn(tileMark(page, item));
           },
-          { message: `${item.title} logo is drawn` },
+          { message: `${item.title} mark is drawn` },
         )
         .toBe(true);
+      // One colour: the grey of a tile's icon.
+      expect(await textColor(tileBadge(page, item)), item.title).toBe(
+        GRAY_500_RGB,
+      );
     }
     expect(new Set(logos).size, "distinct tile logos").toBe(PROVIDERS.length);
     expect(logos).not.toContain("");
@@ -2945,7 +2959,7 @@ test.describe("connections empty state actions", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("hovering a tile turns its border and plus indigo; the logo keeps its own colours", async ({
+  test("hovering a tile turns its border and plus indigo; the mark keeps the tile's grey", async ({
     page,
   }: {
     page: Page;
@@ -2969,10 +2983,11 @@ test.describe("connections empty state actions", () => {
         return textColor(tilePlus(page, CROWDSTRIKE));
       })
       .toBe(INDIGO_600_RGB);
-    // A brand's logo is never re-coloured: its tile stays as it was.
+    // The badge stays as it was: its tile, and its mark in the tile's grey.
     expect(await backgroundColor(tileBadge(page, CROWDSTRIKE))).toBe(
       restingBadge,
     );
+    expect(await textColor(tileBadge(page, CROWDSTRIKE))).toBe(GRAY_500_RGB);
     // The name keeps its colour, and the cursor says it is clickable.
     expect(await textColor(tileButton(page, CROWDSTRIKE))).toBe(GRAY_900_RGB);
     expect(
@@ -3463,18 +3478,22 @@ test.describe("connections empty state in the dark theme", () => {
     ).toBeGreaterThan(0.5);
 
     /*
-     * Hover: indigo border and plus, still on the dark surface. The logo
-     * keeps its tile - the dark theme's surface - and its own colours, in
-     * the mark CrowdStrike draws on dark backgrounds.
+     * Hover: indigo border and plus, still on the dark surface. The badge
+     * keeps its tile - the dark theme's surface - and its mark in the grey
+     * the dark theme gives a tile's icon: one colour, light on the dark
+     * surface, the same mark as in the light theme.
      */
     const restingBadge: string = await backgroundColor(
       tileBadge(page, CROWDSTRIKE),
     );
     expect(restingBadge).not.toMatch(DARK_INDIGO_TINT);
-    await expect(tileLogoImage(page, CROWDSTRIKE)).toHaveAttribute(
-      "data-provider-logo-file",
-      "crowdstrike-dark.svg",
-    );
+    for (const item of PROVIDERS) {
+      expect(
+        luminance(await textColor(tileBadge(page, item))),
+        `${item.title} mark is light on the dark surface`,
+      ).toBeGreaterThan(0.2);
+      await expect(tileBadge(page, item).locator("img")).toHaveCount(0);
+    }
     await tile(page, CROWDSTRIKE).hover({
       position: await tileSpot(page, CROWDSTRIKE, "blank"),
     });

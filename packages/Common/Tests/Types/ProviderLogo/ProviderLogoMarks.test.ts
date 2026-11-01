@@ -136,15 +136,21 @@ describe("how every product is drawn", () => {
     for (const [product, maker] of Object.entries(
       PROVIDER_LOGOS_DRAWN_BY_THEIR_MAKERS_MARK,
     )) {
-      expect({ product, makerHasMark: Boolean(PROVIDER_LOGO_MARK_BOXES[maker!]) })
-        .toEqual({ product, makerHasMark: true });
+      expect({
+        product,
+        makerHasMark: Boolean(PROVIDER_LOGO_MARK_BOXES[maker!]),
+      }).toEqual({ product, makerHasMark: true });
     }
   });
 
   test("a stand-in is one of OneUptime's icons", () => {
-    for (const [product, icon] of Object.entries(PROVIDER_LOGO_STAND_IN_ICONS)) {
-      expect({ product, isIcon: Object.values(IconProp).includes(icon!) })
-        .toEqual({ product, isIcon: true });
+    for (const [product, icon] of Object.entries(
+      PROVIDER_LOGO_STAND_IN_ICONS,
+    )) {
+      expect({
+        product,
+        isIcon: Object.values(IconProp).includes(icon!),
+      }).toEqual({ product, isIcon: true });
     }
   });
 
@@ -242,25 +248,28 @@ describe("every mark is one colour, path data only", () => {
     },
   );
 
-  test.each(MARKS)("%s's shapes are path data, each one shape", (mark: ProviderLogo) => {
-    const shapes: ProviderLogoMarkShapes = shapesOf(mark);
+  test.each(MARKS)(
+    "%s's shapes are path data, each one shape",
+    (mark: ProviderLogo) => {
+      const shapes: ProviderLogoMarkShapes = shapesOf(mark);
 
-    expect(shapes.length).toBeGreaterThan(0);
+      expect(shapes.length).toBeGreaterThan(0);
 
-    for (const shape of shapes) {
-      expect(Object.keys(shape).sort()).toEqual(
-        shape.opacity === undefined ? ["d"] : ["d", "opacity"],
-      );
-      expect(shape.d).toMatch(PATH_DATA);
-      expect(shape.d.trim()[0]).toMatch(/[Mm]/);
+      for (const shape of shapes) {
+        expect(Object.keys(shape).sort()).toEqual(
+          shape.opacity === undefined ? ["d"] : ["d", "opacity"],
+        );
+        expect(shape.d).toMatch(PATH_DATA);
+        expect(shape.d.trim()[0]).toMatch(/[Mm]/);
 
-      if (shape.opacity !== undefined) {
-        // A lighter tint of the one colour, never another colour.
-        expect(shape.opacity).toBeGreaterThan(0);
-        expect(shape.opacity).toBeLessThan(1);
+        if (shape.opacity !== undefined) {
+          // A lighter tint of the one colour, never another colour.
+          expect(shape.opacity).toBeGreaterThan(0);
+          expect(shape.opacity).toBeLessThan(1);
+        }
       }
-    }
-  });
+    },
+  );
 
   test("only UptimeRobot's halo is drawn lighter, as its own icon draws it", () => {
     const tinted: Array<string> = MARKS.filter((mark: ProviderLogo) => {
@@ -293,36 +302,41 @@ describe("every mark is one colour, path data only", () => {
 });
 
 describe("every mark's box", () => {
-  test.each(MARKS)("%s's box is four numbers, wider and taller than nothing", (mark: ProviderLogo) => {
-    const viewBox: string = PROVIDER_LOGO_MARK_BOXES[mark]!;
-    const parts: Array<number> = viewBox.split(" ").map(Number);
+  test.each(MARKS)(
+    "%s's box is four numbers, wider and taller than nothing",
+    (mark: ProviderLogo) => {
+      const viewBox: string = PROVIDER_LOGO_MARK_BOXES[mark]!;
+      const parts: Array<number> = viewBox.split(" ").map(Number);
 
-    expect(parts).toHaveLength(4);
-    for (const part of parts) {
-      expect(Number.isFinite(part)).toBe(true);
-    }
-    expect(parts[2]).toBeGreaterThan(0);
-    expect(parts[3]).toBeGreaterThan(0);
-  });
+      expect(parts).toHaveLength(4);
+      for (const part of parts) {
+        expect(Number.isFinite(part)).toBe(true);
+      }
+      expect(parts[2]).toBeGreaterThan(0);
+      expect(parts[3]).toBeGreaterThan(0);
+    },
+  );
 
-  test.each(MARKS)("%s's first stroke starts inside its box", (mark: ProviderLogo) => {
-    const box: ProviderLogoMarkBox = getProviderLogoMarkBox(mark)!;
-    const [x, y] = box.viewBox.split(" ").map(Number) as [number, number];
-    const first: RegExpMatchArray | null = shapesOf(mark)[0]!.d.match(
-      FIRST_POINT,
-    );
+  test.each(MARKS)(
+    "%s's first stroke starts inside its box",
+    (mark: ProviderLogo) => {
+      const box: ProviderLogoMarkBox = getProviderLogoMarkBox(mark)!;
+      const [x, y] = box.viewBox.split(" ").map(Number) as [number, number];
+      const first: RegExpMatchArray | null =
+        shapesOf(mark)[0]!.d.match(FIRST_POINT);
 
-    expect(first).not.toBeNull();
+      expect(first).not.toBeNull();
 
-    const pointX: number = Number(first![1]);
-    const pointY: number = Number(first![2]);
-    const slack: number = Math.max(box.width, box.height) * 0.01;
+      const pointX: number = Number(first![1]);
+      const pointY: number = Number(first![2]);
+      const slack: number = Math.max(box.width, box.height) * 0.01;
 
-    expect(pointX).toBeGreaterThanOrEqual(x - slack);
-    expect(pointX).toBeLessThanOrEqual(x + box.width + slack);
-    expect(pointY).toBeGreaterThanOrEqual(y - slack);
-    expect(pointY).toBeLessThanOrEqual(y + box.height + slack);
-  });
+      expect(pointX).toBeGreaterThanOrEqual(x - slack);
+      expect(pointX).toBeLessThanOrEqual(x + box.width + slack);
+      expect(pointY).toBeGreaterThanOrEqual(y - slack);
+      expect(pointY).toBeLessThanOrEqual(y + box.height + slack);
+    },
+  );
 
   test("the wordmarks are wide, the symbols are not", () => {
     const ratio: (logo: ProviderLogo) => number = (logo: ProviderLogo) => {
@@ -339,8 +353,10 @@ describe("every mark's box", () => {
       ProviderLogo.Koa,
       ProviderLogo.DotNet,
     ]) {
-      expect({ wordmark, wide: ratio(wordmark) > PROVIDER_LOGO_WORDMARK_RATIO })
-        .toEqual({ wordmark, wide: true });
+      expect({
+        wordmark,
+        wide: ratio(wordmark) > PROVIDER_LOGO_WORDMARK_RATIO,
+      }).toEqual({ wordmark, wide: true });
     }
 
     for (const symbol of [
@@ -350,8 +366,10 @@ describe("every mark's box", () => {
       ProviderLogo.MinIO,
       ProviderLogo.Python,
     ]) {
-      expect({ symbol, wide: ratio(symbol) > PROVIDER_LOGO_WORDMARK_RATIO })
-        .toEqual({ symbol, wide: false });
+      expect({
+        symbol,
+        wide: ratio(symbol) > PROVIDER_LOGO_WORDMARK_RATIO,
+      }).toEqual({ symbol, wide: false });
     }
   });
 });
@@ -414,27 +432,34 @@ describe("the size a mark is drawn at", () => {
 });
 
 describe("the README says where every mark comes from", () => {
-  test.each(MARK_FILES)("%s.ts has its row, with its source", (mark: string) => {
-    const row: string | undefined = README.split("\n").find(
-      (line: string): boolean => {
-        return line.startsWith(`| \`${mark}.ts\` |`);
-      },
-    );
+  test.each(MARK_FILES)(
+    "%s.ts has its row, with its source",
+    (mark: string) => {
+      // Prettier pads the table's cells, so a row is found by its first cell.
+      const row: string | undefined = README.split("\n").find(
+        (line: string): boolean => {
+          return (
+            line.startsWith("|") &&
+            line.split("|")[1]?.trim() === `\`${mark}.ts\``
+          );
+        },
+      );
 
-    expect(row).toBeDefined();
+      expect(row).toBeDefined();
 
-    const cells: Array<string> = row!
-      .split("|")
-      .map((cell: string): string => {
-        return cell.trim();
-      })
-      .filter(Boolean);
+      const cells: Array<string> = row!
+        .split("|")
+        .map((cell: string): string => {
+          return cell.trim();
+        })
+        .filter(Boolean);
 
-    // The mark, the product, its source, the brand's rules.
-    expect(cells.length).toBe(4);
-    expect(cells[1]).toBe(PROVIDER_LOGO_NAMES[mark as ProviderLogo]);
-    expect(cells[2]!.length).toBeGreaterThan(10);
-  });
+      // The mark, the product, its source, the brand's rules.
+      expect(cells.length).toBe(4);
+      expect(cells[1]).toBe(PROVIDER_LOGO_NAMES[mark as ProviderLogo]);
+      expect(cells[2]!.length).toBeGreaterThan(10);
+    },
+  );
 
   test("every product drawn by an icon is named with its brand's rule", () => {
     const section: string = readmeSection("Drawn by one of OneUptime's icons");
