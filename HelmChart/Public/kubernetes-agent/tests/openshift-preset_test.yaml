@@ -660,3 +660,155 @@ tests:
           path: data["otel-collector-config.yaml"]
           pattern: "resourcedetection|oneuptime\\.kubernetes\\.distribution"
         template: templates/configmap-daemonset.yaml
+
+  # --- OpenShift's own objects -------------------------------------------------
+  - it: pulls the cluster's operators and version, Routes and DeploymentConfigs from a receiver of their own that skips any the cluster does not serve
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sobjects/openshift:\n    error_mode: ignore\n    objects:\n      - name: clusteroperators\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: clusterversions\n        mode: pull\n        interval: 300s\n        group: config\.openshift\.io\n      - name: routes\n        mode: pull\n        interval: 300s\n        group: route\.openshift\.io\n      - name: deploymentconfigs\n        mode: pull\n        interval: 300s\n        group: apps\.openshift\.io$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^    logs:\n      receivers:\n        - k8sobjects\n        - k8sobjects/openshift$'
+
+  - it: pulls them as often as the other resource specs
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      resourceSpecs.interval: 120s
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      - name: routes\n        mode: pull\n        interval: 120s\n        group: route\.openshift\.io$'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'interval: 300s'
+
+  - it: never watches them, since inventory keeps an object only while its snapshots arrive
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?s)k8sobjects/openshift:.*?mode: watch.*?\n  [a-z]'
+
+  - it: replaces a Route's TLS key before any other processor holds it
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  transform/openshift-route-tls:\n    error_mode: ignore\n    log_statements:\n      - context: log\n        statements:\n          - set\(body\["spec"\]\["tls"\]\["key"\], "REDACTED"\) where IsMap\(body\) and body\["kind"\] == "Route" and body\["spec"\]\["tls"\]\["key"\] != nil$'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^      processors:\n        - memory_limiter\n        # First, so no other processor holds a Route''s key\.\n        - transform/openshift-route-tls\n        - k8sattributes$'
+
+  - it: pulls none of them, and replaces nothing, on the standard preset
+    template: templates/configmap-deployment.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'k8sobjects/openshift|transform/openshift-route-tls'
+
+  - it: pulls none of them when resource specs are off
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      resourceSpecs.enabled: false
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'k8sobjects/openshift|transform/openshift-route-tls'
+
+  - it: pulls none of them on a collector without the receiver's error_mode, before 0.125.0
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      image.tag: "0.124.0"
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'k8sobjects/openshift|transform/openshift-route-tls|error_mode: ignore\n    objects:'
+
+  - it: pulls them from collector 0.125.0 on
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      image.tag: "0.125.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?m)^  k8sobjects/openshift:$'
+
+  - it: lets the agent read those objects, and only read them
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["config.openshift.io"]
+            resources:
+              - clusteroperators
+              - clusterversions
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["route.openshift.io"]
+            resources:
+              - routes
+            verbs: ["get", "list", "watch"]
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["apps.openshift.io"]
+            resources:
+              - deploymentconfigs
+            verbs: ["get", "list", "watch"]
+
+  - it: grants nothing of OpenShift's objects when they are not pulled
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+      resourceSpecs.enabled: false
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["route.openshift.io"]
+          any: true
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["apps.openshift.io"]
+          any: true
+
+  - it: grants nothing of route.openshift.io or apps.openshift.io on the standard preset
+    template: templates/rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["route.openshift.io"]
+          any: true
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["apps.openshift.io"]
+          any: true

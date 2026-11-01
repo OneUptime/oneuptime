@@ -523,7 +523,10 @@ logs:
 
 # Resource spec collection — pulls full K8s resource objects (pods, nodes,
 # deployments, etc.) for displaying labels, annotations, env vars, status,
-# and other details in the dashboard.
+# and other details in the dashboard. On the openshift preset it also pulls
+# OpenShift's own objects: ClusterOperators, the ClusterVersion, Routes and
+# DeploymentConfigs (a Route's TLS key is replaced before it leaves the
+# cluster). Those need collector 0.125.0 or later.
 resourceSpecs:
   enabled: true
   interval: 300s  # How often to pull full resource specs (default: 5 minutes)
