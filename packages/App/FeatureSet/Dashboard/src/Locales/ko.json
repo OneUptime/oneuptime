@@ -6282,6 +6282,8 @@
   "Alert State Changed": "경고 상태 변경됨",
   "Alert Unlinked": "경고 연결 해제됨",
   "Alert Updated": "경고 업데이트됨",
+  "App Deployed": "앱 배포됨",
+  "App Rolled Back": "앱 롤백됨",
   "Auto-Remediation": "자동 해결",
   "Burn Rate Alert Raised": "소진율 경고 발생",
   "Burn Rate Alert Resolved": "소진율 경고 해결됨",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "클라우드 리소스 생성됨",
   "Cloud Resource Restored": "클라우드 리소스 복원됨",
   "Cloud Resource Updated": "클라우드 리소스 업데이트됨",
-  "App Deployed": "앱 배포됨",
-  "App Rolled Back": "앱 롤백됨",
   "Coverage Gap Started": "커버리지 공백 발생",
   "Database Server Archived": "데이터베이스 서버 보관됨",
   "Database Server Created": "데이터베이스 서버 생성됨",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "이 환경에서 일어난 모든 일(생성 방식과 이유, 소유자, 앱의 모든 배포와 롤백, 그 이후의 모든 변경)입니다.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "이 앱의 서비스에 권장되는 경고(실패한 요청, 오류 급증, 느린 요청, 끊긴 트래픽, 새 예외)입니다.",
   "all running": "모두 실행 중",
-  "none reported yet": "아직 보고 없음"
+  "none reported yet": "아직 보고 없음",
+  "Waiting for first data": "첫 데이터를 기다리는 중"
 }

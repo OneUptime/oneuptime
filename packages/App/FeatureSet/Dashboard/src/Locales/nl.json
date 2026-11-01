@@ -6282,6 +6282,8 @@
   "Alert State Changed": "Status van waarschuwing gewijzigd",
   "Alert Unlinked": "Waarschuwing ontkoppeld",
   "Alert Updated": "Waarschuwing bijgewerkt",
+  "App Deployed": "App geïmplementeerd",
+  "App Rolled Back": "App teruggedraaid",
   "Auto-Remediation": "Automatisch herstel",
   "Burn Rate Alert Raised": "Waarschuwing voor verbruikssnelheid geactiveerd",
   "Burn Rate Alert Resolved": "Waarschuwing voor verbruikssnelheid opgelost",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "Cloud-resource aangemaakt",
   "Cloud Resource Restored": "Cloud-resource hersteld",
   "Cloud Resource Updated": "Cloud-resource bijgewerkt",
-  "App Deployed": "App geïmplementeerd",
-  "App Rolled Back": "App teruggedraaid",
   "Coverage Gap Started": "Dekkingshiaat begonnen",
   "Database Server Archived": "Databaseserver gearchiveerd",
   "Database Server Created": "Databaseserver aangemaakt",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "Alles wat er met deze omgeving is gebeurd - hoe en waarom ze is gemaakt, wie de eigenaar is, elke implementatie en terugdraaiing van haar apps en elke wijziging sindsdien.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "De aanbevolen waarschuwingen voor de service van deze app: mislukte aanvragen, foutpieken, trage aanvragen, verkeer dat stopt, nieuwe exceptions.",
   "all running": "alle actief",
-  "none reported yet": "nog geen gemeld"
+  "none reported yet": "nog geen gemeld",
+  "Waiting for first data": "Wacht op de eerste gegevens"
 }

@@ -6282,6 +6282,8 @@
   "Alert State Changed": "警报状态已更改",
   "Alert Unlinked": "警报已取消关联",
   "Alert Updated": "警报已更新",
+  "App Deployed": "应用已部署",
+  "App Rolled Back": "应用已回滚",
   "Auto-Remediation": "自动补救",
   "Burn Rate Alert Raised": "消耗率警报已触发",
   "Burn Rate Alert Resolved": "消耗率警报已解决",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "云资源已创建",
   "Cloud Resource Restored": "云资源已恢复",
   "Cloud Resource Updated": "云资源已更新",
-  "App Deployed": "应用已部署",
-  "App Rolled Back": "应用已回滚",
   "Coverage Gap Started": "覆盖空档开始",
   "Database Server Archived": "数据库服务器已归档",
   "Database Server Created": "数据库服务器已创建",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "此环境发生过的一切：如何及为何创建、归谁所有、其应用的每次部署和回滚，以及之后的每次更改。",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "为此应用的服务推荐的警报：失败的请求、错误激增、缓慢的请求、中断的流量和新的异常。",
   "all running": "全部运行中",
-  "none reported yet": "尚未上报"
+  "none reported yet": "尚未上报",
+  "Waiting for first data": "正在等待首批数据"
 }

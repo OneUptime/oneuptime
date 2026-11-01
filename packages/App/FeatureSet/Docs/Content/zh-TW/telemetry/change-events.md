@@ -30,6 +30,7 @@ flowchart LR
 | --- | --- | --- |
 | 部署 | 某個服務開始回報一個它先前在其環境中從未回報過的 `service.version` | `service-version` |
 | 滾動更新 | Kubernetes Deployment 的 Pod 開始執行一個它們先前從未執行過的 ReplicaSet：新的映像檔、變更過的環境變數或設定參照，或是一次重新啟動 | `kubernetes` |
+| 應用程式部署 | 受管理應用程式平台上的應用程式（例如 ECS 服務或 Cloud Run 服務）開始執行一個它先前從未執行過的修訂版本，或回到一個它先前執行過的修訂版本 | `app-platform` |
 | OneUptime AI 執行的修正 | AI 代理程式回報了一條會變更某些內容的指令的結果，例如 `kubectl rollout restart` | `oneuptime-ai` |
 | 運行手冊 | OneUptime 執行的運行手冊在開始後完成、失敗或被取消 | `runbook` |
 | 雲端變更 | 已連線雲端帳戶的活動記錄記下了一項變更：AWS CloudTrail、Azure 活動記錄或 Google Cloud 的 Admin Activity 稽核記錄 | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 滾動更新需要 [Kubernetes 代理程式](/docs/telemetry/kubernetes-agent)，它會為每個 Pod 的遙測資料標上其所屬的 Deployment 和 ReplicaSet。
+
+應用程式部署需要應用程式在 [受管理的應用程式平台](/docs/telemetry/cloud-environments#應用程式與部署) 上執行。它會記錄在應用程式所屬的環境下，並繪製在環境的圖表與應用程式自己的圖表上；在那裡，回復到應用程式先前執行過的修訂版本也會被記錄。
 
 雲端變更和供應商事件需要一個[已連線的雲端帳戶](/docs/telemetry/cloud-accounts)。當 OneUptime 列出了相應資源時，每一項都會連結到它所指的雲端資源，並繪製在該資源的圖表上。其類型取決於操作：操作名稱表明時為 `deployment`、`scaling` 或 `rollback`，否則為 `config-change`，健康事件則為 `provider-event`。未篩選到任何資源的圖表不會顯示雲端帳戶的活動記錄，這樣忙碌的帳戶就不會擠掉你的部署；供應商的健康事件仍會保留在這些圖表上。
 

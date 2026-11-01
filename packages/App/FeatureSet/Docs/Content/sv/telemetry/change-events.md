@@ -30,6 +30,7 @@ Du behöver inte skicka något för de här. OneUptime registrerar dem utifrån 
 | --- | --- | --- |
 | En driftsättning | En tjänst börjar rapportera en `service.version` som den inte har rapporterat tidigare i sin miljö | `service-version` |
 | En utrullning | Poddarna i en Kubernetes-Deployment börjar köra en ReplicaSet som de inte har kört tidigare: en ny avbildning, en ändrad miljövariabel eller konfigurationsreferens, eller en omstart | `kubernetes` |
+| En appdistribution | En app på en hanterad appplattform, till exempel en ECS-tjänst eller en Cloud Run-tjänst, börjar köra en revision som den inte har kört tidigare, eller går tillbaka till en som den körde tidigare | `app-platform` |
 | En åtgärd som OneUptime AI körde | En AI-agent rapporterar resultatet av ett kommando som ändrar något, till exempel `kubectl rollout restart` | `oneuptime-ai` |
 | Ett runbook | Ett runbook som OneUptime körde slutförs, misslyckas eller avbryts efter att det har startat | `runbook` |
 | En molnändring | Aktivitetsloggen för ett anslutet molnkonto registrerar en ändring: AWS CloudTrail, Azures aktivitetslogg eller Google Clouds granskningslogg Admin Activity | `cloud` |
@@ -46,6 +47,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 En utrullning kräver [Kubernetes-agenten](/docs/telemetry/kubernetes-agent), som märker varje podds telemetri med dess Deployment och ReplicaSet.
+
+En appdistribution kräver att appen körs på en [hanterad appplattform](/docs/telemetry/cloud-environments#appar-och-distributioner). Den registreras under appens miljö och ritas i miljöns diagram och i appens egna, och där registreras även en återgång till en revision som appen körde tidigare.
 
 En molnändring eller en leverantörshändelse kräver ett [anslutet molnkonto](/docs/telemetry/cloud-accounts). Var och en knyts till molnresursen den nämner, när OneUptime listar den resursen, och ritas i resursens diagram. Typen kommer från åtgärden: `deployment`, `scaling` eller `rollback` när åtgärdens namn säger det, annars `config-change`, och `provider-event` för en hälsohändelse. Diagram som inte är filtrerade till någon resurs utelämnar ett molnkontos aktivitetslogg, så att ett livligt konto inte tränger undan dina driftsättningar; leverantörens hälsohändelser finns kvar i dem.
 

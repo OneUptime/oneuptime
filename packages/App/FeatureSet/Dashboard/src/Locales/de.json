@@ -6282,6 +6282,8 @@
   "Alert State Changed": "Warnungsstatus geändert",
   "Alert Unlinked": "Verknüpfung der Warnung aufgehoben",
   "Alert Updated": "Warnung aktualisiert",
+  "App Deployed": "App bereitgestellt",
+  "App Rolled Back": "App zurückgesetzt",
   "Auto-Remediation": "Automatische Behebung",
   "Burn Rate Alert Raised": "Burn-Rate-Warnung ausgelöst",
   "Burn Rate Alert Resolved": "Burn-Rate-Warnung behoben",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "Cloud-Ressource erstellt",
   "Cloud Resource Restored": "Cloud-Ressource wiederhergestellt",
   "Cloud Resource Updated": "Cloud-Ressource aktualisiert",
-  "App Deployed": "App bereitgestellt",
-  "App Rolled Back": "App zurückgesetzt",
   "Coverage Gap Started": "Abdeckungslücke begonnen",
   "Database Server Archived": "Datenbankserver archiviert",
   "Database Server Created": "Datenbankserver erstellt",
@@ -39316,7 +39316,7 @@
   "The share of this environment's requests in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.": "Der Anteil der Anfragen dieser Umgebung im ausgewählten Zeitraum, deren Status auf Fehler gesetzt war; die Zeile darunter sagt, wie viele fehlschlugen. Der Balken wird ab 1 % gelb und ab 5 % rot.",
   "This app's name is too long to filter its telemetry by, so its logs and traces are in its environment's tabs.": "Der Name dieser App ist zu lang, um ihre Telemetrie danach zu filtern; ihre Logs und Traces stehen daher in den Tabs ihrer Umgebung.",
   "This app's requests in each interval, with the ones whose status was Error as a second line. A dashed line marks each deploy.": "Die Anfragen dieser App je Intervall, die mit dem Status Fehler als zweite Linie. Eine gestrichelte Linie markiert jedes Deployment.",
-  "View App": "App ansehen",
+  "View App": "App anzeigen",
   "View all {{count}} apps": "Alle {{count}} Apps ansehen",
   "View all {{count}} apps_one": "Die App ansehen",
   "in the last {{hours}} hours": "in den letzten {{hours}} Stunden",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "Alles, was mit dieser Umgebung geschehen ist – wie und warum sie erstellt wurde, wem sie gehört, jedes Deployment und jeder Rollback ihrer Apps und jede Änderung seitdem.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "Die für den Service dieser App empfohlenen Warnungen: fehlgeschlagene Anfragen, Fehlerspitzen, langsame Anfragen, ausbleibender Traffic, neue Exceptions.",
   "all running": "alle laufen",
-  "none reported yet": "noch keine gemeldet"
+  "none reported yet": "noch keine gemeldet",
+  "Waiting for first data": "Wartet auf die ersten Daten"
 }

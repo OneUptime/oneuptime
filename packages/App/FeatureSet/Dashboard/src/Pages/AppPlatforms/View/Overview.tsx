@@ -476,45 +476,59 @@ const CloudEnvironmentOverview: FunctionComponent<
     },
   ];
 
+  /*
+   * The charts, and under them the apps the environment runs - the ones
+   * that need a look first, right under the numbers they make up, before
+   * its details.
+   */
   const charts: ReactElement = (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <ChartCard
-        title="Requests"
-        icon={IconProp.Workflow}
-        iconColor="sky"
-        series={
-          [
-            { seriesName: "Requests", data: m?.countSeries ?? [] },
-            { seriesName: "Errors", data: m?.errorSeries ?? [] },
-          ] as Array<SeriesPoint>
-        }
-        windowStart={chartWindow?.start ?? null}
-        windowEnd={chartWindow?.end ?? null}
-        syncId={`cloud-${modelId.toString()}`}
-        showLegend={true}
-        loading={metricsLoading && !m}
-        description={CLOUD_METRIC_DESCRIPTIONS.requestsChart}
-        timeReferenceLines={deployMarkers}
-      />
-      <ChartCard
-        title="Memory"
-        icon={IconProp.SquareStack}
-        iconColor="violet"
-        series={
-          [{ seriesName: "Memory", data: memorySeries }] as Array<SeriesPoint>
-        }
-        windowStart={chartWindow?.start ?? null}
-        windowEnd={chartWindow?.end ?? null}
-        syncId={`cloud-${modelId.toString()}`}
-        yLegend="Bytes"
-        yFormatter={(n: number): string => {
-          return formatBytes(n);
-        }}
-        loading={metricsLoading && memorySeries.length === 0}
-        description={CLOUD_METRIC_DESCRIPTIONS.memoryChart}
-        timeReferenceLines={deployMarkers}
-      />
-    </div>
+    <>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ChartCard
+          title="Requests"
+          icon={IconProp.Workflow}
+          iconColor="sky"
+          series={
+            [
+              { seriesName: "Requests", data: m?.countSeries ?? [] },
+              { seriesName: "Errors", data: m?.errorSeries ?? [] },
+            ] as Array<SeriesPoint>
+          }
+          windowStart={chartWindow?.start ?? null}
+          windowEnd={chartWindow?.end ?? null}
+          syncId={`cloud-${modelId.toString()}`}
+          showLegend={true}
+          loading={metricsLoading && !m}
+          description={CLOUD_METRIC_DESCRIPTIONS.requestsChart}
+          timeReferenceLines={deployMarkers}
+        />
+        <ChartCard
+          title="Memory"
+          icon={IconProp.SquareStack}
+          iconColor="violet"
+          series={
+            [{ seriesName: "Memory", data: memorySeries }] as Array<SeriesPoint>
+          }
+          windowStart={chartWindow?.start ?? null}
+          windowEnd={chartWindow?.end ?? null}
+          syncId={`cloud-${modelId.toString()}`}
+          yLegend="Bytes"
+          yFormatter={(n: number): string => {
+            return formatBytes(n);
+          }}
+          loading={metricsLoading && memorySeries.length === 0}
+          description={CLOUD_METRIC_DESCRIPTIONS.memoryChart}
+          timeReferenceLines={deployMarkers}
+        />
+      </div>
+      <div className="mt-6">
+        <EnvironmentAppsCard
+          environmentId={modelId}
+          environment={r}
+          refreshToken={metricsRefreshCount}
+        />
+      </div>
+    </>
   );
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
@@ -578,22 +592,7 @@ const CloudEnvironmentOverview: FunctionComponent<
         description={r.description as string}
         chips={chips}
         tiles={tiles}
-        charts={
-          /*
-           * The apps it runs, the ones that need a look first, right under
-           * the numbers they make up - before its details.
-           */
-          <>
-            {charts}
-            <div className="mt-6">
-              <EnvironmentAppsCard
-                environmentId={modelId}
-                environment={r}
-                refreshToken={metricsRefreshCount}
-              />
-            </div>
-          </>
-        }
+        charts={charts}
         controls={
           <AutoRefreshControl
             autoRefreshInterval={autoRefreshInterval}

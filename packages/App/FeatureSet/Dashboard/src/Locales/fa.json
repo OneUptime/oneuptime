@@ -6282,6 +6282,8 @@
   "Alert State Changed": "وضعیت هشدار تغییر کرد",
   "Alert Unlinked": "پیوند هشدار لغو شد",
   "Alert Updated": "هشدار به‌روزرسانی شد",
+  "App Deployed": "برنامه مستقر شد",
+  "App Rolled Back": "برنامه بازگردانی شد",
   "Auto-Remediation": "رفع خودکار مشکل",
   "Burn Rate Alert Raised": "هشدار نرخ مصرف صادر شد",
   "Burn Rate Alert Resolved": "هشدار نرخ مصرف برطرف شد",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "منبع ابری ساخته شد",
   "Cloud Resource Restored": "منبع ابری بازیابی شد",
   "Cloud Resource Updated": "منبع ابری به‌روزرسانی شد",
-  "App Deployed": "برنامه مستقر شد",
-  "App Rolled Back": "برنامه بازگردانی شد",
   "Coverage Gap Started": "شکاف پوشش آغاز شد",
   "Database Server Archived": "سرور پایگاه داده بایگانی شد",
   "Database Server Created": "سرور پایگاه داده ساخته شد",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "هر آنچه برای این محیط رخ داده است - چگونه و چرا ساخته شد، مالک آن کیست، هر استقرار و بازگردانی برنامه‌هایش و هر تغییر پس از آن.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "هشدارهای پیشنهادی برای سرویس این برنامه: درخواست‌های ناموفق، جهش خطاها، درخواست‌های کند، ترافیکی که قطع می‌شود، استثناهای جدید.",
   "all running": "همه در حال اجرا",
-  "none reported yet": "هنوز چیزی گزارش نشده"
+  "none reported yet": "هنوز چیزی گزارش نشده",
+  "Waiting for first data": "در انتظار نخستین داده‌ها"
 }

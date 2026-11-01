@@ -6282,6 +6282,8 @@
   "Alert State Changed": "Состояние оповещения изменено",
   "Alert Unlinked": "Оповещение отвязано",
   "Alert Updated": "Оповещение обновлено",
+  "App Deployed": "Приложение развёрнуто",
+  "App Rolled Back": "Откат приложения",
   "Auto-Remediation": "Автоматическое исправление",
   "Burn Rate Alert Raised": "Оповещение о скорости расхода бюджета сработало",
   "Burn Rate Alert Resolved": "Оповещение о скорости расхода бюджета устранено",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "Облачный ресурс создан",
   "Cloud Resource Restored": "Облачный ресурс восстановлен",
   "Cloud Resource Updated": "Облачный ресурс обновлён",
-  "App Deployed": "Приложение развёрнуто",
-  "App Rolled Back": "Откат приложения",
   "Coverage Gap Started": "Возник пробел в покрытии",
   "Database Server Archived": "Сервер базы данных архивирован",
   "Database Server Created": "Сервер базы данных создан",
@@ -39316,7 +39316,7 @@
   "The share of this environment's requests in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.": "Доля запросов к этой среде в выбранном диапазоне со статусом «Ошибка»; строка ниже показывает, сколько из них завершились ошибкой. Полоса становится жёлтой с 1% и красной с 5%.",
   "This app's name is too long to filter its telemetry by, so its logs and traces are in its environment's tabs.": "Название этого приложения слишком длинное, чтобы фильтровать по нему телеметрию, поэтому его логи и трассировки - во вкладках его среды.",
   "This app's requests in each interval, with the ones whose status was Error as a second line. A dashed line marks each deploy.": "Запросы к этому приложению по интервалам; запросы со статусом «Ошибка» - второй линией. Пунктирная линия отмечает каждое развёртывание.",
-  "View App": "Открыть приложение",
+  "View App": "Просмотр приложения",
   "View all {{count}} apps": "Все приложения ({{count}})",
   "View all {{count}} apps_one": "Открыть приложение",
   "in the last {{hours}} hours": "за последние {{hours}} часа",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "Всё, что происходило с этой средой: как и зачем она создана, кому принадлежит, каждое развёртывание и откат её приложений и каждое изменение с тех пор.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "Рекомендуемые оповещения для сервиса этого приложения: неудачные запросы, всплески ошибок, медленные запросы, остановка трафика, новые исключения.",
   "all running": "все работают",
-  "none reported yet": "пока ни одного"
+  "none reported yet": "пока ни одного",
+  "Waiting for first data": "Ожидание первых данных"
 }

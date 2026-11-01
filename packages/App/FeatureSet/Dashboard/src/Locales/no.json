@@ -6282,6 +6282,8 @@
   "Alert State Changed": "Varseltilstand endret",
   "Alert Unlinked": "Varsel frakoblet",
   "Alert Updated": "Varsel oppdatert",
+  "App Deployed": "App utrullet",
+  "App Rolled Back": "App rullet tilbake",
   "Auto-Remediation": "Automatisk utbedring",
   "Burn Rate Alert Raised": "Forbruksratevarsel utløst",
   "Burn Rate Alert Resolved": "Forbruksratevarsel løst",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "Skyressurs opprettet",
   "Cloud Resource Restored": "Skyressurs gjenopprettet",
   "Cloud Resource Updated": "Skyressurs oppdatert",
-  "App Deployed": "App utrullet",
-  "App Rolled Back": "App rullet tilbake",
   "Coverage Gap Started": "Dekningshull startet",
   "Database Server Archived": "Databaseserver arkivert",
   "Database Server Created": "Databaseserver opprettet",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "Alt som har skjedd med dette miljøet - hvordan og hvorfor det ble opprettet, hvem som eier det, hver utrulling og tilbakerulling av appene og hver endring siden.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "De anbefalte varslene for tjenesten til denne appen: mislykkede forespørsler, feiltopper, trege forespørsler, trafikk som stopper, nye unntak.",
   "all running": "alle kjører",
-  "none reported yet": "ingen rapportert ennå"
+  "none reported yet": "ingen rapportert ennå",
+  "Waiting for first data": "Venter på de første dataene"
 }

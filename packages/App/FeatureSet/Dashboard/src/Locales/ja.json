@@ -6282,6 +6282,8 @@
   "Alert State Changed": "アラートの状態変更済み",
   "Alert Unlinked": "アラートリンク解除済み",
   "Alert Updated": "アラート更新済み",
+  "App Deployed": "アプリデプロイ済み",
+  "App Rolled Back": "アプリロールバック済み",
   "Auto-Remediation": "自動修復",
   "Burn Rate Alert Raised": "バーンレートアラート発生",
   "Burn Rate Alert Resolved": "バーンレートアラート解決済み",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "クラウドリソース作成済み",
   "Cloud Resource Restored": "クラウドリソース復元済み",
   "Cloud Resource Updated": "クラウドリソース更新済み",
-  "App Deployed": "アプリデプロイ済み",
-  "App Rolled Back": "アプリロールバック済み",
   "Coverage Gap Started": "カバレッジの空白が発生",
   "Database Server Archived": "データベースサーバーアーカイブ済み",
   "Database Server Created": "データベースサーバー作成済み",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "この環境に起きたすべての出来事 (作成の経緯と理由、所有者、アプリのデプロイとロールバック、その後のすべての変更) です。",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "このアプリのサービスにおすすめのアラート (失敗したリクエスト、エラーの急増、遅いリクエスト、途絶えたトラフィック、新しい例外) です。",
   "all running": "すべて実行中",
-  "none reported yet": "まだ報告なし"
+  "none reported yet": "まだ報告なし",
+  "Waiting for first data": "最初のデータを待っています"
 }

@@ -6282,6 +6282,8 @@
   "Alert State Changed": "Estado do alerta alterado",
   "Alert Unlinked": "Alerta desvinculado",
   "Alert Updated": "Alerta atualizado",
+  "App Deployed": "App implantado",
+  "App Rolled Back": "App revertido",
   "Auto-Remediation": "Remediação automática",
   "Burn Rate Alert Raised": "Alerta de taxa de consumo disparado",
   "Burn Rate Alert Resolved": "Alerta de taxa de consumo resolvido",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "Recurso de nuvem criado",
   "Cloud Resource Restored": "Recurso de nuvem restaurado",
   "Cloud Resource Updated": "Recurso de nuvem atualizado",
-  "App Deployed": "App implantado",
-  "App Rolled Back": "App revertido",
   "Coverage Gap Started": "Lacuna de cobertura iniciada",
   "Database Server Archived": "Servidor de banco de dados arquivado",
   "Database Server Created": "Servidor de banco de dados criado",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "Tudo o que aconteceu com este ambiente - como e por que foi criado, quem é o dono, cada implantação e rollback dos apps dele e cada mudança desde então.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "Os alertas recomendados para o serviço deste app: requisições com falha, picos de erros, requisições lentas, tráfego que para, novas exceções.",
   "all running": "todos em execução",
-  "none reported yet": "nenhum reportado ainda"
+  "none reported yet": "nenhum reportado ainda",
+  "Waiting for first data": "Aguardando os primeiros dados"
 }

@@ -6282,6 +6282,8 @@
   "Alert State Changed": "अलर्ट स्थिति बदली गई",
   "Alert Unlinked": "अलर्ट अनलिंक किया गया",
   "Alert Updated": "अलर्ट अपडेट किया गया",
+  "App Deployed": "ऐप डिप्लॉय किया गया",
+  "App Rolled Back": "ऐप रोलबैक किया गया",
   "Auto-Remediation": "स्वचालित सुधार",
   "Burn Rate Alert Raised": "बर्न रेट अलर्ट ट्रिगर हुआ",
   "Burn Rate Alert Resolved": "बर्न रेट अलर्ट सुलझाया गया",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "क्लाउड संसाधन बनाया गया",
   "Cloud Resource Restored": "क्लाउड संसाधन पुनर्स्थापित किया गया",
   "Cloud Resource Updated": "क्लाउड संसाधन अपडेट किया गया",
-  "App Deployed": "ऐप डिप्लॉय किया गया",
-  "App Rolled Back": "ऐप रोलबैक किया गया",
   "Coverage Gap Started": "कवरेज गैप शुरू हुआ",
   "Database Server Archived": "डेटाबेस सर्वर संग्रहीत किया गया",
   "Database Server Created": "डेटाबेस सर्वर बनाया गया",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "इस परिवेश के साथ जो कुछ हुआ - यह कैसे और क्यों बना, इसका मालिक कौन है, इसके ऐप का हर डिप्लॉय और रोलबैक, और तब से हर बदलाव।",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "इस ऐप की सेवा के लिए सुझाए गए अलर्ट: विफल अनुरोध, त्रुटियों में अचानक उछाल, धीमे अनुरोध, रुक जाने वाला ट्रैफ़िक, नए अपवाद।",
   "all running": "सभी चल रहे हैं",
-  "none reported yet": "अभी तक कोई रिपोर्ट नहीं"
+  "none reported yet": "अभी तक कोई रिपोर्ट नहीं",
+  "Waiting for first data": "पहले डेटा की प्रतीक्षा है"
 }

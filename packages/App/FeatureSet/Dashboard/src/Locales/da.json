@@ -6282,6 +6282,8 @@
   "Alert State Changed": "Advarselstilstand ændret",
   "Alert Unlinked": "Advarsel frakoblet",
   "Alert Updated": "Advarsel opdateret",
+  "App Deployed": "App udrullet",
+  "App Rolled Back": "App rullet tilbage",
   "Auto-Remediation": "Automatisk afhjælpning",
   "Burn Rate Alert Raised": "Forbrugsrateadvarsel udløst",
   "Burn Rate Alert Resolved": "Forbrugsrateadvarsel løst",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "Cloud-ressource oprettet",
   "Cloud Resource Restored": "Cloud-ressource gendannet",
   "Cloud Resource Updated": "Cloud-ressource opdateret",
-  "App Deployed": "App udrullet",
-  "App Rolled Back": "App rullet tilbage",
   "Coverage Gap Started": "Dækningshul startet",
   "Database Server Archived": "Databaseserver arkiveret",
   "Database Server Created": "Databaseserver oprettet",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "Alt, hvad der er sket med dette miljø - hvordan og hvorfor det blev oprettet, hvem der ejer det, hver udrulning og tilbagerulning af dets apps og hver ændring siden.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "De anbefalede advarsler for denne apps tjeneste: mislykkede anmodninger, fejlspidser, langsomme anmodninger, trafik der stopper, nye exceptions.",
   "all running": "alle kører",
-  "none reported yet": "ingen rapporteret endnu"
+  "none reported yet": "ingen rapporteret endnu",
+  "Waiting for first data": "Venter på de første data"
 }

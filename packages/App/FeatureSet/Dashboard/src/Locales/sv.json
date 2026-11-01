@@ -6282,6 +6282,8 @@
   "Alert State Changed": "Larmstatus ändrad",
   "Alert Unlinked": "Larm avlänkat",
   "Alert Updated": "Larm uppdaterat",
+  "App Deployed": "App distribuerad",
+  "App Rolled Back": "App återställd",
   "Auto-Remediation": "Automatisk åtgärd",
   "Burn Rate Alert Raised": "Larm för förbrukningstakt utlöst",
   "Burn Rate Alert Resolved": "Larm för förbrukningstakt löst",
@@ -6298,8 +6300,6 @@
   "Cloud Resource Created": "Molnresurs skapad",
   "Cloud Resource Restored": "Molnresurs återställd",
   "Cloud Resource Updated": "Molnresurs uppdaterad",
-  "App Deployed": "App distribuerad",
-  "App Rolled Back": "App återställd",
   "Coverage Gap Started": "Täckningslucka uppstod",
   "Database Server Archived": "Databasserver arkiverad",
   "Database Server Created": "Databasserver skapad",
@@ -39330,5 +39330,6 @@
   "Everything that has happened to this environment - how and why it was created, who owns it, every deploy and rollback of its apps, and every change since.": "Allt som har hänt med miljön - hur och varför den skapades, vem som äger den, varje distribution och återställning av dess appar och varje ändring sedan dess.",
   "The alerts recommended for this app's service: failed requests, error bursts, slow requests, traffic that stops, new exceptions.": "De rekommenderade larmen för appens tjänst: misslyckade begäranden, feltoppar, långsamma begäranden, trafik som upphör, nya undantag.",
   "all running": "alla körs",
-  "none reported yet": "inga rapporterade ännu"
+  "none reported yet": "inga rapporterade ännu",
+  "Waiting for first data": "Väntar på de första data"
 }
