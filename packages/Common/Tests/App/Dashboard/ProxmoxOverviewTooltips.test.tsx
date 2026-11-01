@@ -551,6 +551,7 @@ afterEach(() => {
  * (the CPU tile and the CPU chart) is matched by position.
  */
 const OVERVIEW_INFO: Array<[string, ProxmoxMetric]> = [
+  ["Agent Status", "agentStatus"],
   ["Cluster Health", "clusterHealth"],
   ["Cluster inventory counts", "clusterInventoryCounts"],
   ["High-availability states", "haStates"],

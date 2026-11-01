@@ -77,6 +77,7 @@ const TITLES: Record<ProxmoxMetric, string> = {
   clusterInventoryCounts: "Cluster inventory counts",
   haStates: "High-availability states",
   clusterHealth: "Cluster Health",
+  agentStatus: "Agent Status",
   backupsLastOk: "Last backup OK",
   backupsLastFailed: "Last backup failed",
   backupsNotInJob: "In no backup job",

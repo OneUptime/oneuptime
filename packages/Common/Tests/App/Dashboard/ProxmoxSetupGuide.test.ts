@@ -1292,9 +1292,9 @@ describe("the step that sends Proxmox VE's notifications", () => {
   test("the alerts it names are every notification template, in the picker's order", () => {
     const markdown: string =
       notificationsStep(guideFor("docker-compose")).markdown || "";
-    const sentence: string =
-      /\*\*Recommendations\*\* offer the (.+?) alerts\./.exec(markdown)?.[1] ||
-      "";
+    const alertsSentence: RegExp =
+      /\*\*Recommendations\*\* offer the (.+?) alerts\./;
+    const sentence: string = alertsSentence.exec(markdown)?.[1] || "";
     const named: Array<string> = Array.from(
       sentence.matchAll(/\*\*([^*]+)\*\*/g),
     ).map((match: RegExpMatchArray): string => {

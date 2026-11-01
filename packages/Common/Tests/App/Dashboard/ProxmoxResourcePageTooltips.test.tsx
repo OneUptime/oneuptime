@@ -898,7 +898,11 @@ describe("Proxmox guests list", () => {
       const row: HTMLElement = rowOf(name);
       return Array.from(row.parentElement!.children).indexOf(row);
     });
-    expect(order).toEqual([...order].sort((a: number, b: number) => a - b));
+    expect(order).toEqual(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    );
     expect(rowOf("web")).toHaveTextContent("VM");
     expect(rowOf("db")).toHaveTextContent("Container");
     expect(rowOf("web")).not.toHaveTextContent("qemu");

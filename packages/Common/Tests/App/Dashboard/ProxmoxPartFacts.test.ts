@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
 import MonitorRecommendationCatalog from "../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import {
@@ -173,9 +174,14 @@ describe("a guest's tags", () => {
 
   test("a huge tags label is split in linear time", () => {
     const huge: string = `${";".repeat(200000)}x${" ,".repeat(200000)}`;
-    const started: number = Date.now();
-    expect(parseProxmoxTags(huge)).toEqual(["x"]);
-    expect(Date.now() - started).toBeLessThan(1000);
+    const split: FastestRun<Array<string>> = fastestRun({
+      run: (): Array<string> => {
+        return parseProxmoxTags(huge);
+      },
+      limitInMs: 1000,
+    });
+    expect(split.result).toEqual(["x"]);
+    expect(split.inMs).toBeLessThan(1000);
   });
 });
 
