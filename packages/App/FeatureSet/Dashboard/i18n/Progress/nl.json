@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39848,
-    "untranslated": 13110
+    "untranslated": 13042
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -53,6 +53,7 @@
     "Console",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container: {{name}}",
     "Containers",
     "Content Security Policy",
     "Context",
@@ -115,6 +116,7 @@
     "Interface {{index}}",
     "Interfaces",
     "Japan (+81)",
+    "Kernel",
     "LXC 201 · pve3",
     "Label",
     "Label: {{name}}",
@@ -154,6 +156,8 @@
     "PVC",
     "Passthrough",
     "Peer",
+    "Persistent volume claims",
+    "Persistent volumes",
     "Platform",
     "Platforms",
     "Playbook",
@@ -186,6 +190,7 @@
     "Red Hat OpenShift",
     "Repository",
     "Resource",
+    "Routes",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",

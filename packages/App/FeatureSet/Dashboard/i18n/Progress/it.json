@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39848,
-    "untranslated": 13053
+    "untranslated": 12986
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -76,6 +76,7 @@
     "INP 540 ms",
     "Insight",
     "Job",
+    "Kernel",
     "LXC 201 · pve3",
     "MCP",
     "MITRE ATT&CK",
@@ -88,6 +89,7 @@
     "Min",
     "Mobile",
     "Monitor",
+    "Mount",
     "Namespace",
     "Nav",
     "No",

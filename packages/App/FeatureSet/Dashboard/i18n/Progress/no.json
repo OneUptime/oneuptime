@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39848,
-    "untranslated": 13046
+    "untranslated": 12979
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -30,6 +30,7 @@
     "CloudWatch Metric Streams",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container: {{name}}",
     "Content Security Policy",
     "CrowdStrike",
     "DE",
@@ -92,6 +93,8 @@
     "Passthrough",
     "Pause",
     "Peer",
+    "Persistent volume claims",
+    "Persistent volumes",
     "Person",
     "Playbook",
     "Playbooks",

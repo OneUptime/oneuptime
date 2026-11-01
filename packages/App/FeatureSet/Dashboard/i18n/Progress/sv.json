@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39848,
-    "untranslated": 13043
+    "untranslated": 12976
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -101,6 +101,8 @@
     "PVC",
     "Passthrough",
     "Peer",
+    "Persistent volume claims",
+    "Persistent volumes",
     "Person",
     "Plan",
     "Playbook",
@@ -122,6 +124,7 @@
     "Revision",
     "Revision {{revision}}",
     "Risk",
+    "Routes",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",

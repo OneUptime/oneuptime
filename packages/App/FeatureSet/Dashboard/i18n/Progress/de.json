@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39848,
-    "untranslated": 3976
+    "untranslated": 3938
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -139,6 +139,7 @@
     "Compliance",
     "Container",
     "Container {{container}}: {{reason}}",
+    "Container: {{name}}",
     "Content Security Policy",
     "Controller",
     "Controller Manager",

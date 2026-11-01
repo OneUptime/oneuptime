@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39848,
-    "untranslated": 13023
+    "untranslated": 12957
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -68,6 +68,7 @@
     "Interfaces",
     "Israel (+972)",
     "Job",
+    "Kernel",
     "LXC 201 · pve3",
     "Link",
     "Links",

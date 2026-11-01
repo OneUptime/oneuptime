@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 39848,
-    "untranslated": 7505
+    "untranslated": 7455
   },
   "sameAsEnglish": [
     " incidents",
@@ -380,6 +380,7 @@
     "Red Hat OpenShift",
     "Restrictions",
     "Rotations",
+    "Routes",
     "Runbook",
     "Runbooks",
     "SCIM (System for Cross-domain Identity Management)",
