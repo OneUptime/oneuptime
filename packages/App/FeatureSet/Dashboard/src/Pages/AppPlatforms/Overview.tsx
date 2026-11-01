@@ -13,9 +13,11 @@ import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceMod
 import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
 import {
   AppPlatformEnvironmentRow,
+  AppPlatformEnvironmentState,
   AppPlatformGroup,
   AppPlatformGroupTone,
   ENVIRONMENTS_SHOWN_PER_PLATFORM,
+  getAppPlatformEnvironmentState,
   getAppPlatformGroupTone,
   groupEnvironmentsByPlatform,
 } from "./Utils/AppPlatformsOverview";
@@ -122,6 +124,47 @@ function toRow(item: CloudResource): AppPlatformEnvironmentRow {
   };
 }
 
+/*
+ * Laid out by the room the card gives a platform, not the window's: beside
+ * the side menu a 768px window leaves a platform about 430px, a phone 320.
+ *
+ *   - The platform's line keeps its state beside its name from 24rem; under
+ *     that the state goes under the name, so a pill of four words never
+ *     squeezes "AWS ECS / Fargate" onto two lines.
+ *   - An environment's state ("Last seen 3 hours ago") ends its row from
+ *     34rem, in one column down the card; under that it goes under the
+ *     environment's name, so every row reads the same way at one width -
+ *     never beside one name and under the next, as a wrapped row did.
+ */
+export const PLATFORM_GROUP_CLASS_NAME: string =
+  "px-5 py-4 md:px-6 [container-type:inline-size]";
+export const PLATFORM_HEADER_CLASS_NAME: string =
+  "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 [@container(min-width:24rem)]:grid-cols-[auto_minmax(0,1fr)_auto]";
+export const PLATFORM_STATE_CLASS_NAME: string =
+  "col-start-2 mt-2 [@container(min-width:24rem)]:col-start-auto [@container(min-width:24rem)]:mt-0";
+export const ENVIRONMENT_ROW_CLASS_NAME: string =
+  "grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-x-2 [@container(min-width:34rem)]:grid-cols-[auto_minmax(0,1fr)_auto] [@container(min-width:34rem)]:gap-x-3";
+export const ENVIRONMENT_STATE_CLASS_NAME: string =
+  "col-start-2 text-xs [@container(min-width:34rem)]:col-start-auto [@container(min-width:34rem)]:text-end";
+
+// The dot before an environment's name, and the words after it, by state.
+const ENVIRONMENT_DOT_CLASS_NAMES: Readonly<
+  Record<AppPlatformEnvironmentState, string>
+> = {
+  [AppPlatformEnvironmentState.Connected]: "bg-emerald-500",
+  [AppPlatformEnvironmentState.Quiet]: "bg-amber-500",
+  [AppPlatformEnvironmentState.Waiting]: "bg-gray-300",
+};
+
+const ENVIRONMENT_STATE_TEXT_CLASS_NAMES: Readonly<
+  Record<AppPlatformEnvironmentState, string>
+> = {
+  // Read out, never drawn: the dot says it, and the healthy rows stay quiet.
+  [AppPlatformEnvironmentState.Connected]: "sr-only",
+  [AppPlatformEnvironmentState.Quiet]: "text-amber-700",
+  [AppPlatformEnvironmentState.Waiting]: "text-gray-500",
+};
+
 const PlatformGroupRows: FunctionComponent<{
   group: AppPlatformGroup;
   translator: Translator;
@@ -150,13 +193,13 @@ const PlatformGroupRows: FunctionComponent<{
 
   return (
     <li
-      className="px-5 py-4 md:px-6"
+      className={PLATFORM_GROUP_CLASS_NAME}
       data-testid="app-platforms-platform"
       data-platform={group.platform || "unknown"}
     >
-      <div className="flex items-start gap-3">
+      <div className={PLATFORM_HEADER_CLASS_NAME}>
         <CloudConnectionLogo provider={group.provider} size="sm" />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0">
           <div className="text-sm font-semibold text-gray-900 break-words">
             {group.title || translator.translateText(UNKNOWN_PLATFORM)}
           </div>
@@ -178,7 +221,7 @@ const PlatformGroupRows: FunctionComponent<{
           </div>
         </div>
         <div
-          className="flex-shrink-0"
+          className={PLATFORM_STATE_CLASS_NAME}
           data-testid="app-platforms-platform-status"
         >
           <Pill text={toneText} color={TONE_COLORS[tone]} />
@@ -186,40 +229,43 @@ const PlatformGroupRows: FunctionComponent<{
       </div>
       <ul className="mt-3 space-y-2 ps-9">
         {shown.map((row: AppPlatformEnvironmentRow): ReactElement => {
+          const state: AppPlatformEnvironmentState =
+            getAppPlatformEnvironmentState(row);
+
           return (
             <li
               key={row.id}
-              className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5"
+              className={ENVIRONMENT_ROW_CLASS_NAME}
               data-testid="app-platforms-environment"
+              data-state={state}
             >
-              <span className="flex min-w-0 items-baseline gap-2">
-                <span
-                  aria-hidden="true"
-                  className={`inline-block h-2 w-2 flex-shrink-0 translate-y-[-1px] rounded-full ${
-                    row.isConnected ? "bg-emerald-500" : "bg-gray-300"
-                  }`}
-                />
-                <AppLink
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW] as Route,
-                    { modelId: new ObjectID(row.id) },
-                  )}
-                  className="min-w-0 break-words text-sm font-medium text-gray-900 hover:underline"
-                >
-                  {row.name || "—"}
-                </AppLink>
-              </span>
               <span
-                className={`text-xs ${
-                  row.isConnected ? "text-gray-500" : "text-amber-700"
-                }`}
+                aria-hidden="true"
+                data-testid="app-platforms-environment-dot"
+                className={`inline-block h-2 w-2 flex-shrink-0 translate-y-[-1px] rounded-full ${ENVIRONMENT_DOT_CLASS_NAMES[state]}`}
+              />
+              <AppLink
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW] as Route,
+                  { modelId: new ObjectID(row.id) },
+                )}
+                className="min-w-0 break-words text-sm font-medium text-gray-900 hover:underline"
+              >
+                {row.name || "—"}
+              </AppLink>
+              <span
+                className={
+                  state === AppPlatformEnvironmentState.Connected
+                    ? ENVIRONMENT_STATE_TEXT_CLASS_NAMES[state]
+                    : `${ENVIRONMENT_STATE_CLASS_NAME} ${ENVIRONMENT_STATE_TEXT_CLASS_NAMES[state]}`
+                }
                 data-testid="app-platforms-environment-status"
               >
-                {row.isConnected
+                {state === AppPlatformEnvironmentState.Connected
                   ? translator.translateText(ENVIRONMENT_CONNECTED)
-                  : row.lastSeenAt
+                  : state === AppPlatformEnvironmentState.Quiet
                     ? translator.translateTemplate(ENVIRONMENT_LAST_SEEN, {
-                        time: OneUptimeDate.fromNow(row.lastSeenAt),
+                        time: OneUptimeDate.fromNow(row.lastSeenAt as Date),
                       })
                     : translator.translateText(ENVIRONMENT_NEVER_SEEN)}
               </span>

@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "他 {{count}} 件の環境",
   "{{count}} more environments_one": "他 {{count}} 件の環境",
   "Cloud Environment Label Rule": "クラウド環境のラベルルール",
-  "Cloud Environment Owner Rule": "クラウド環境の所有者ルール"
+  "Cloud Environment Owner Rule": "クラウド環境の所有者ルール",
+  "All cloud environments": "すべてのクラウド環境",
+  "Only cloud environments that match conditions": "条件に一致するクラウド環境のみ"
 }

@@ -16,10 +16,14 @@ import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOw
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import {
+  CLOUD_ENVIRONMENT_RULE_CRITERIA_SUBJECT,
+  CLOUD_ENVIRONMENT_RULE_RUN_NOUNS,
   CloudRuleName,
   getCloudRuleListKind,
+  getCloudRuleWording,
   withCloudRuleKind,
 } from "../../../Components/Cloud/CloudRuleKind";
+import { RuleWording } from "Common/UI/Components/RuleRun/RuleView";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -28,6 +32,10 @@ import Label from "Common/Models/DatabaseModels/Label";
 const cloudResourceKind: EqualToOrNull<string> = getCloudRuleListKind(
   CloudResourceKind.Environment,
 );
+
+// The pill on a rule's own page, and what its Run Now runs over.
+const RULE_WORDING: RuleWording<CloudResourceOwnerRule> =
+  getCloudRuleWording<CloudResourceOwnerRule>(CloudResourceKind.Environment);
 
 /*
  * App Platforms > Settings > Owner Rules: the rules for environments. A
@@ -54,8 +62,9 @@ const AppPlatformsOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       name="Settings > Cloud Environment Owner Rules"
       /*
        * The rule model is shared with Cloud, whose nouns it carries (cloud
-       * resource owner rules): the create button, the pager and the view page
-       * say what these rules are for.
+       * resource owner rules): the create button, the pager, the
+       * rule's own page (its Edit and Delete), its conditions ("All cloud
+       * environments") and Run Now say what these rules are for.
        */
       singularName="Cloud Environment Owner Rule"
       pluralName="Cloud Environment Owner Rules"
@@ -78,6 +87,9 @@ const AppPlatformsOwnerRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       onBeforeCreate={withCloudRuleKind<CloudResourceOwnerRule>(
         CloudResourceKind.Environment,
       )}
+      ruleCriteriaSubject={CLOUD_ENVIRONMENT_RULE_CRITERIA_SUBJECT}
+      ruleRunNouns={CLOUD_ENVIRONMENT_RULE_RUN_NOUNS}
+      ruleWording={RULE_WORDING}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
       selectMoreFields={{ isEnabled: true, cloudResourceKind: true }}

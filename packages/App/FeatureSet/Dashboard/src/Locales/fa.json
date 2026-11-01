@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "{{count}} محیط دیگر",
   "{{count}} more environments_one": "{{count}} محیط دیگر",
   "Cloud Environment Label Rule": "قاعده برچسب محیط ابری",
-  "Cloud Environment Owner Rule": "قاعده مالکیت محیط ابری"
+  "Cloud Environment Owner Rule": "قاعده مالکیت محیط ابری",
+  "All cloud environments": "همه محیط‌های ابری",
+  "Only cloud environments that match conditions": "فقط آن دسته از محیط‌های ابری که با شرط‌ها مطابقت دارند"
 }

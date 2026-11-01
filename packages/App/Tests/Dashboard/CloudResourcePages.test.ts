@@ -116,12 +116,25 @@ describe("Cloud Environments list", () => {
     expect(code).toContain("MANAGED_CLOUD_PLATFORMS.map(");
   });
 
-  test("shows friendly platform and provider labels and filters by platform", () => {
+  test("shows friendly platform labels and filters by platform and provider", () => {
     expect(code).toContain("getManagedCloudPlatformLabel(platform)");
-    expect(code).toContain('title: "Provider"');
-    expect(code).toContain("getCloudProviderLabel(");
 
     const filters: string = between(code, "filters={[", "columns={[");
+    const columns: string = between(code, "columns={[", "onViewPage=");
+
+    /*
+     * The platform says whose it is ("AWS ECS", "Azure App Service"): the
+     * list filters by provider, but has no Provider column of its own, which
+     * pushed Status under the row's buttons at 1280.
+     */
+    expect(filters).toContain('title: "Provider"');
+    expect(filters).toContain(
+      "filterDropdownOptions: PROVIDER_DROPDOWN_OPTIONS",
+    );
+    expect(columns).not.toContain('title: "Provider"');
+    expect(columns).not.toContain("cloudProvider: true");
+    expect(columns).toContain('title: "Platform"');
+    expect(columns).toContain('title: "Status"');
     const platformFilter: string = between(
       filters,
       "field: { cloudPlatform: true, }",

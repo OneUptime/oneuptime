@@ -115,9 +115,10 @@ export function getDeveloperDocsRoutes(data: {
             <DeveloperDocsPage
               {...data.props}
               pageRoute={RouteMap[key] as Route}
-              resource={resource}
+              resource={{ ...resource, ...(parent.resourceOptions || {}) }}
               scope={data.scope}
               page={page.type}
+              listQuery={parent.query}
             />
           }
         />

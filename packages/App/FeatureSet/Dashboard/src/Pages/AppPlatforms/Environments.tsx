@@ -39,7 +39,6 @@ import {
   CloudProvider,
   MANAGED_CLOUD_PLATFORMS,
   ManagedCloudPlatformDescriptor,
-  getCloudProviderLabel,
   getManagedCloudPlatformLabel,
 } from "Common/Types/Cloud/CloudPlatform";
 import AddResourceModal from "../../Components/ResourceOnboarding/AddResourceModal";
@@ -311,6 +310,11 @@ const AppPlatformEnvironments: FunctionComponent<
               );
             },
           },
+          /*
+           * The platform says whose it is ("AWS ECS", "Azure App Service"),
+           * so the list has no Provider column of its own: at 1280 it pushed
+           * Status under the row's buttons. The Provider filter stays.
+           */
           {
             field: {
               cloudPlatform: true,
@@ -338,23 +342,6 @@ const AppPlatformEnvironments: FunctionComponent<
                   )}
                 </div>
               );
-            },
-          },
-          {
-            field: {
-              cloudProvider: true,
-            },
-            title: "Provider",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: CloudResource): ReactElement => {
-              const provider: string = getCloudProviderLabel(
-                (item.cloudProvider as string) || "",
-              );
-              if (!provider) {
-                return <span className="text-sm text-gray-400">—</span>;
-              }
-              return <span className="text-sm text-gray-700">{provider}</span>;
             },
           },
           {

@@ -43,9 +43,12 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import CloudFleetSummary from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudFleetSummary";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
+
+const LATIN_DIGIT: RegExp = /[0-9]/;
 
 /*
  * Answers each of the six count requests from what it asks for, so the
@@ -106,7 +109,30 @@ describe("CloudFleetSummary", () => {
 
     expect(screen.getByText("Environments")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("4 AWS · 1 Google Cloud")).toBeInTheDocument();
+    const breakdown: HTMLElement = screen.getAllByTestId(
+      "cloud-fleet-summary-tile-sublabel",
+    )[0]!;
+    expect(breakdown).toHaveTextContent("4 AWS · 1 Google Cloud");
+    /*
+     * Each provider is one part that never breaks ("1 Google" over "Cloud"
+     * read as two things); a narrow tile wraps between the parts.
+     */
+    const parts: Array<HTMLElement> = Array.from(
+      breakdown.querySelectorAll(
+        "[data-testid='cloud-fleet-summary-tile-sublabel-part']",
+      ),
+    );
+    expect(
+      parts.map((part: HTMLElement): string => {
+        return part.textContent || "";
+      }),
+    ).toEqual(["4 AWS", "1 Google Cloud"]);
+    for (const part of parts) {
+      expect(part).toHaveClass("whitespace-nowrap");
+    }
+    // Still isolated, so a right-to-left page keeps the list's order.
+    expect(breakdown.querySelector("bdi")).not.toBeNull();
+    expect(breakdown.querySelector("bdi")!.contains(parts[0]!)).toBe(true);
 
     expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
@@ -311,5 +337,59 @@ describe("CloudFleetSummary in the reader's language", () => {
       "in letzter Zeit keine Telemetrie",
       "in den letzten 15 Min. gesehen",
     ]);
+  });
+
+  /*
+   * A Persian reader read the strip's numbers in Latin digits beside the
+   * platforms' counts in their own: every number the strip draws is written
+   * the reader's way, as translatePlural writes its counts.
+   */
+  test("writes every number in a Persian reader's digits", async () => {
+    await i18next.use(initReactI18next).init({
+      lng: "fa",
+      fallbackLng: false,
+      resources: { fa: { translation: persianLocale } },
+      keySeparator: false,
+      nsSeparator: false,
+      interpolation: { escapeValue: false },
+    });
+    await i18next.changeLanguage("fa");
+
+    mockCountResponse = fleet({
+      total: 6,
+      connected: 4,
+      byProvider: { aws: 2, gcp: 2, azure: 2 },
+      liveInstances: 3,
+    });
+
+    render(<CloudFleetSummary />);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("cloud-fleet-summary-tile")).toHaveLength(4);
+    });
+
+    const values: Array<string> = screen
+      .getAllByTestId("cloud-fleet-summary-tile")
+      .map((tile: HTMLElement): string => {
+        return tile.querySelector(".text-2xl")?.textContent || "";
+      });
+
+    expect(values).toEqual(["\u06f6", "\u06f4", "\u06f2", "\u06f3"]);
+
+    const sublabels: Array<string> = screen
+      .getAllByTestId("cloud-fleet-summary-tile-sublabel")
+      .map((line: HTMLElement): string => {
+        return line.textContent || "";
+      });
+
+    expect(sublabels[0]).toBe(
+      "\u06f2 AWS \u00b7 \u06f2 Azure \u00b7 \u06f2 Google Cloud",
+    );
+    expect(sublabels[1]).toContain("\u06f6\u06f7");
+    expect(sublabels[3]).toContain("\u06f1\u06f5");
+    // No Latin digit is left in any of them.
+    for (const line of [...values, ...sublabels]) {
+      expect(line).not.toMatch(LATIN_DIGIT);
+    }
   });
 });

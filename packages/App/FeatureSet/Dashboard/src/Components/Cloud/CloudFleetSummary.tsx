@@ -1,4 +1,5 @@
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -260,14 +261,34 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
                 {/*
                  * Wraps rather than cuts: the providers' breakdown (2 AWS · 2
                  * Azure · 2 Google Cloud) is longer than a quarter of a laptop's
-                 * row, and the row's tiles grow together. Isolated (bdi), the
-                 * breakdown keeps its order on a right-to-left page.
+                 * row, and the row's tiles grow together. It wraps between
+                 * providers, never inside one: "2 Google" over "Cloud" read
+                 * as two things. Isolated (bdi), the breakdown keeps its
+                 * order on a right-to-left page.
                  */}
                 <div
                   data-testid="cloud-fleet-summary-tile-sublabel"
                   className="mt-1 break-words text-xs text-gray-500"
                 >
-                  <bdi>{sublabel}</bdi>
+                  <bdi>
+                    {tile.sublabelParts && tile.sublabelParts.length > 1
+                      ? tile.sublabelParts.map(
+                          (part: string, partIndex: number): ReactElement => {
+                            return (
+                              <Fragment key={part}>
+                                {partIndex > 0 ? " · " : ""}
+                                <span
+                                  className="whitespace-nowrap"
+                                  data-testid="cloud-fleet-summary-tile-sublabel-part"
+                                >
+                                  {part}
+                                </span>
+                              </Fragment>
+                            );
+                          },
+                        )
+                      : sublabel}
+                  </bdi>
                 </div>
               </div>
             );

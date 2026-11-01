@@ -55,12 +55,20 @@ import CloudOwnerRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import {
   ALSO_IN_APP_PLATFORMS,
   ALSO_IN_CLOUD,
+  BOTH_PRODUCTS_RULE_RUN_NOUNS,
   BOTH_PRODUCTS_RULE_TOOLTIP,
+  CLOUD_ENVIRONMENT_RULE_RUN_NOUNS,
+  CLOUD_RESOURCE_RULE_RUN_NOUNS,
   CloudRuleName,
   getAlsoAppliesInText,
   getCloudRuleListKind,
+  getCloudRuleRunNouns,
+  getCloudRuleWording,
   withCloudRuleKind,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudRuleKind";
+import RuleCriteriaSubject from "../../../Types/Rules/RuleCriteriaSubject";
+import { RuleRunResourceNouns } from "../../../Types/Rules/RuleRun";
+import { RuleWording } from "../../../UI/Components/RuleRun/RuleView";
 import RuleSettingsPageProps from "../../../../App/FeatureSet/Dashboard/src/Pages/RuleSettingsPageProps";
 import CloudResourceLabelRule from "../../../Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "../../../Models/DatabaseModels/CloudResourceOwnerRule";
@@ -90,6 +98,13 @@ interface PageCase {
   // What the create button, the pager and a rule's view call one and many.
   singular: string;
   plural: string;
+  /*
+   * What the rules' conditions are about, and what their Run Now runs over,
+   * where the page says it itself: App Platforms' environments. Cloud's are
+   * the model's own words (cloud resources).
+   */
+  subject: RuleCriteriaSubject | undefined;
+  runNouns: RuleRunResourceNouns | undefined;
 }
 
 const APP_PLATFORMS: string = `/dashboard/${PROJECT_ID}/app-platforms`;
@@ -109,6 +124,8 @@ const PAGES: Array<PageCase> = [
     matchesCloudTags: false,
     singular: "Cloud Environment Label Rule",
     plural: "Cloud Environment Label Rules",
+    subject: RuleCriteriaSubject.CloudEnvironments,
+    runNouns: CLOUD_ENVIRONMENT_RULE_RUN_NOUNS,
   },
   {
     name: "App Platforms' owner rules",
@@ -123,6 +140,8 @@ const PAGES: Array<PageCase> = [
     matchesCloudTags: false,
     singular: "Cloud Environment Owner Rule",
     plural: "Cloud Environment Owner Rules",
+    subject: RuleCriteriaSubject.CloudEnvironments,
+    runNouns: CLOUD_ENVIRONMENT_RULE_RUN_NOUNS,
   },
   {
     name: "Cloud's label rules",
@@ -137,6 +156,8 @@ const PAGES: Array<PageCase> = [
     matchesCloudTags: true,
     singular: "Cloud Resource Label Rule",
     plural: "Cloud Resource Label Rules",
+    subject: undefined,
+    runNouns: undefined,
   },
   {
     name: "Cloud's owner rules",
@@ -151,6 +172,8 @@ const PAGES: Array<PageCase> = [
     matchesCloudTags: true,
     singular: "Cloud Resource Owner Rule",
     plural: "Cloud Resource Owner Rules",
+    subject: undefined,
+    runNouns: undefined,
   },
 ];
 
@@ -304,6 +327,46 @@ describe.each(PAGES)("$name", (page: PageCase) => {
     expect(screen.getByText("Production owners")).toBeInTheDocument();
     expect(screen.getByText(page.alsoIn)).toBeInTheDocument();
   });
+
+  /*
+   * A rule's own page, its create and edit forms and its Run Now speak the
+   * product's words too: "All cloud environments", "Edit Cloud Environment
+   * Owner Rule", "for the cloud environments that already exist".
+   */
+  test("names a rule's records and its run as this product does, on every page of the rule", () => {
+    renderPage(page, `${page.listUrl}/${RULE_ID}`);
+
+    expect(tableProps(page)["ruleCriteriaSubject"]).toBe(page.subject);
+    expect(tableProps(page)["ruleRunNouns"]).toBe(page.runNouns);
+    expect(
+      tableProps(page)["singularName"] || new page.model().singularName,
+    ).toBe(page.singular);
+  });
+
+  test("a rule made before the split wears its pill on its own page, and runs over both products", () => {
+    renderPage(page, `${page.listUrl}/${RULE_ID}`);
+
+    const wording: RuleWording<CloudResourceOwnerRule> =
+      tableProps(page)["ruleWording"];
+    expect(wording.select).toEqual({ cloudResourceKind: true });
+
+    const bothProducts: CloudResourceOwnerRule = new CloudResourceOwnerRule();
+    bothProducts.name = "Production owners";
+    render(wording.getBadge!(bothProducts)!);
+    expect(screen.getByText(page.alsoIn)).toBeInTheDocument();
+    expect(wording.getRunNouns!(bothProducts)).toBe(
+      BOTH_PRODUCTS_RULE_RUN_NOUNS,
+    );
+
+    const own: CloudResourceOwnerRule = new CloudResourceOwnerRule();
+    own.cloudResourceKind = page.kind;
+    expect(wording.getBadge!(own)).toBeNull();
+    expect(wording.getRunNouns!(own)).toEqual(
+      page.kind === CloudResourceKind.Environment
+        ? CLOUD_ENVIRONMENT_RULE_RUN_NOUNS
+        : CLOUD_RESOURCE_RULE_RUN_NOUNS,
+    );
+  });
 });
 
 describe("the rule kind helpers", () => {
@@ -340,6 +403,45 @@ describe("the rule kind helpers", () => {
     );
     expect(ALSO_IN_APP_PLATFORMS).toBe("Also in App Platforms");
     expect(ALSO_IN_CLOUD).toBe("Also in Cloud");
+  });
+
+  test("a rule runs over the rows of its own kind, and one made before the split over both", () => {
+    const rule: CloudResourceLabelRule = new CloudResourceLabelRule();
+
+    expect(getCloudRuleRunNouns(rule)).toEqual({
+      resourceSingular: "cloud resource or environment",
+      resourcePlural: "cloud resources and environments",
+    });
+
+    rule.cloudResourceKind = CloudResourceKind.Environment;
+    expect(getCloudRuleRunNouns(rule)).toEqual({
+      resourceSingular: "cloud environment",
+      resourcePlural: "cloud environments",
+    });
+
+    rule.cloudResourceKind = CloudResourceKind.Resource;
+    expect(getCloudRuleRunNouns(rule)).toEqual({
+      resourceSingular: "cloud resource",
+      resourcePlural: "cloud resources",
+    });
+  });
+
+  test("each product's wording names the other product in its pill", () => {
+    const bothProducts: CloudResourceLabelRule = new CloudResourceLabelRule();
+
+    render(
+      getCloudRuleWording<CloudResourceLabelRule>(CloudResourceKind.Environment)
+        .getBadge!(bothProducts)!,
+    );
+    expect(screen.getByText("Also in Cloud")).toBeInTheDocument();
+
+    cleanup();
+
+    render(
+      getCloudRuleWording<CloudResourceLabelRule>(CloudResourceKind.Resource)
+        .getBadge!(bothProducts)!,
+    );
+    expect(screen.getByText("Also in App Platforms")).toBeInTheDocument();
   });
 
   test("the pill says why", () => {

@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "{{count}} miljöer till",
   "{{count}} more environments_one": "{{count}} miljö till",
   "Cloud Environment Label Rule": "Etikettregel för molnmiljöer",
-  "Cloud Environment Owner Rule": "Ägarregel för molnmiljöer"
+  "Cloud Environment Owner Rule": "Ägarregel för molnmiljöer",
+  "All cloud environments": "Alla molnmiljöer",
+  "Only cloud environments that match conditions": "Endast molnmiljöer som uppfyller villkoren"
 }

@@ -46,6 +46,31 @@ export enum AppPlatformGroupTone {
   Silent = "silent",
 }
 
+/*
+ * How one environment's row reads. A connected one is quiet - its green dot
+ * says it, and the word is there for a screen reader only - so the rows
+ * that need a look are the ones with words beside them: one that was heard
+ * from and went quiet (when it was last heard from, in amber), and one that
+ * has sent nothing yet (waiting for its first data, in grey: nothing broke).
+ */
+export enum AppPlatformEnvironmentState {
+  Connected = "connected",
+  Quiet = "quiet",
+  Waiting = "waiting",
+}
+
+export function getAppPlatformEnvironmentState(
+  row: AppPlatformEnvironmentRow,
+): AppPlatformEnvironmentState {
+  if (row.isConnected) {
+    return AppPlatformEnvironmentState.Connected;
+  }
+
+  return row.lastSeenAt
+    ? AppPlatformEnvironmentState.Quiet
+    : AppPlatformEnvironmentState.Waiting;
+}
+
 // How many of a platform's environments the card lists before "and N more".
 export const ENVIRONMENTS_SHOWN_PER_PLATFORM: number = 5;
 

@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "{{count}} और परिवेश",
   "{{count}} more environments_one": "{{count}} और परिवेश",
   "Cloud Environment Label Rule": "क्लाउड परिवेश लेबल नियम",
-  "Cloud Environment Owner Rule": "क्लाउड परिवेश स्वामी नियम"
+  "Cloud Environment Owner Rule": "क्लाउड परिवेश स्वामी नियम",
+  "All cloud environments": "सभी क्लाउड परिवेश",
+  "Only cloud environments that match conditions": "केवल शर्तों से मेल खाने वाले क्लाउड परिवेश"
 }

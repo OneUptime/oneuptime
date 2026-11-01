@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "외 환경 {{count}}개",
   "{{count}} more environments_one": "외 환경 {{count}}개",
   "Cloud Environment Label Rule": "클라우드 환경 레이블 규칙",
-  "Cloud Environment Owner Rule": "클라우드 환경 소유자 규칙"
+  "Cloud Environment Owner Rule": "클라우드 환경 소유자 규칙",
+  "All cloud environments": "모든 클라우드 환경",
+  "Only cloud environments that match conditions": "조건과 일치하는 클라우드 환경만"
 }

@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "{{count}} entornos más",
   "{{count}} more environments_one": "{{count}} entorno más",
   "Cloud Environment Label Rule": "Regla de etiquetas de entornos en la nube",
-  "Cloud Environment Owner Rule": "Regla de propietario de entornos en la nube"
+  "Cloud Environment Owner Rule": "Regla de propietario de entornos en la nube",
+  "All cloud environments": "Todos los entornos en la nube",
+  "Only cloud environments that match conditions": "Solo los entornos en la nube que cumplen las condiciones"
 }

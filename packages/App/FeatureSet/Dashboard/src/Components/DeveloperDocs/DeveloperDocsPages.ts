@@ -1,7 +1,9 @@
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
+import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
+import { JSONObject } from "Common/Types/JSON";
 
 /*
  * The Developer pages (Terraform, API, AI Assistants) as routes: which pages
@@ -74,7 +76,23 @@ export interface DeveloperDocsParentPage {
    * and leaves this out.
    */
   product?: string | undefined;
+  /*
+   * For such a model, the product's own rows: what its Terraform page
+   * offers to import and its API examples list and count. Without it,
+   * App Platforms' Terraform page wrote import blocks for Cloud's
+   * resources too, and each product's for the other's rows - two
+   * Terraform resources for one row once both were followed.
+   */
+  query?: JSONObject | undefined;
+  // And what the product calls its rows, where the model calls them otherwise.
+  resourceOptions?: DeveloperDocsResourceOptions | undefined;
 }
+
+// App Platforms' rows are environments; the model calls them cloud resources.
+const CLOUD_ENVIRONMENT_RESOURCE_OPTIONS: DeveloperDocsResourceOptions = {
+  singularName: "Cloud Environment",
+  pluralName: "Cloud Environments",
+};
 
 /*
  * Every page with Developer pages under it: a resource's list page (its
@@ -399,25 +417,30 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
     },
     /*
      * One model, two products: App Platforms lists the environments its
-     * apps run in, Cloud every resource in its accounts.
+     * apps run in, Cloud every resource in its accounts. Each product's
+     * pages read and name its own rows only.
      */
     {
       pageKey: PageMap.APP_PLATFORMS_ENVIRONMENTS,
       scope: DeveloperDocsScope.List,
       tableName: "CloudResource",
       product: "App Platforms",
+      query: { cloudResourceKind: CloudResourceKind.Environment },
+      resourceOptions: CLOUD_ENVIRONMENT_RESOURCE_OPTIONS,
     },
     {
       pageKey: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
       scope: DeveloperDocsScope.View,
       tableName: "CloudResource",
       product: "App Platforms",
+      resourceOptions: CLOUD_ENVIRONMENT_RESOURCE_OPTIONS,
     },
     {
       pageKey: PageMap.CLOUD_MONITORED_RESOURCES,
       scope: DeveloperDocsScope.List,
       tableName: "CloudResource",
       product: "Cloud",
+      query: { cloudResourceKind: CloudResourceKind.Resource },
     },
     {
       pageKey: PageMap.CLOUD_RESOURCE_VIEW,

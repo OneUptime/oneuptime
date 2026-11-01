@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "nog {{count}} omgevingen",
   "{{count}} more environments_one": "nog {{count}} omgeving",
   "Cloud Environment Label Rule": "Labelregel voor cloud-omgevingen",
-  "Cloud Environment Owner Rule": "Eigenaarregel voor cloud-omgevingen"
+  "Cloud Environment Owner Rule": "Eigenaarregel voor cloud-omgevingen",
+  "All cloud environments": "Alle cloud-omgevingen",
+  "Only cloud environments that match conditions": "Alleen cloud-omgevingen die aan de voorwaarden voldoen"
 }

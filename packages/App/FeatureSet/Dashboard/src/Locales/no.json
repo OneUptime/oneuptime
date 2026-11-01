@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "{{count}} miljøer til",
   "{{count}} more environments_one": "{{count}} miljø til",
   "Cloud Environment Label Rule": "Etikettregel for skymiljø",
-  "Cloud Environment Owner Rule": "Eierregel for skymiljø"
+  "Cloud Environment Owner Rule": "Eierregel for skymiljø",
+  "All cloud environments": "Alle skymiljøer",
+  "Only cloud environments that match conditions": "Bare skymiljøer som oppfyller betingelsene"
 }

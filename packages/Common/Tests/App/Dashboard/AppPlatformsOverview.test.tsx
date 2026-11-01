@@ -66,13 +66,21 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
-import AppPlatformsOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Overview";
+import AppPlatformsOverview, {
+  ENVIRONMENT_ROW_CLASS_NAME,
+  ENVIRONMENT_STATE_CLASS_NAME,
+  PLATFORM_GROUP_CLASS_NAME,
+  PLATFORM_HEADER_CLASS_NAME,
+  PLATFORM_STATE_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Overview";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import {
   AppPlatformEnvironmentRow,
+  AppPlatformEnvironmentState,
   AppPlatformGroup,
   AppPlatformGroupTone,
   ENVIRONMENTS_SHOWN_PER_PLATFORM,
+  getAppPlatformEnvironmentState,
   getAppPlatformGroupTone,
   groupEnvironmentsByPlatform,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/AppPlatformsOverview";
@@ -332,6 +340,30 @@ describe("grouping the environments by platform", () => {
     expect(tone([true, false])).toBe(AppPlatformGroupTone.Partial);
     expect(tone([false, false])).toBe(AppPlatformGroupTone.Silent);
   });
+
+  test("an environment is connected, quiet once heard from, or waiting for its first data", () => {
+    expect(
+      getAppPlatformEnvironmentState(
+        row({ isConnected: true, lastSeenAt: new Date() }),
+      ),
+    ).toBe(AppPlatformEnvironmentState.Connected);
+    expect(
+      getAppPlatformEnvironmentState(
+        row({ isConnected: false, lastSeenAt: new Date() }),
+      ),
+    ).toBe(AppPlatformEnvironmentState.Quiet);
+    expect(
+      getAppPlatformEnvironmentState(
+        row({ isConnected: false, lastSeenAt: null }),
+      ),
+    ).toBe(AppPlatformEnvironmentState.Waiting);
+    // Connected wins, even before its first lastSeenAt is written.
+    expect(
+      getAppPlatformEnvironmentState(
+        row({ isConnected: true, lastSeenAt: null }),
+      ),
+    ).toBe(AppPlatformEnvironmentState.Connected);
+  });
 });
 
 describe("the Overview, before the first environment", () => {
@@ -490,6 +522,135 @@ describe("the Overview, with environments", () => {
     expect(
       within(appService).getByTestId("app-platforms-environment-status"),
     ).toHaveTextContent("Waiting for its first data");
+  });
+
+  /*
+   * The healthy rows stay quiet - a green dot, and "Connected" for a screen
+   * reader only - so the ones that need a look are the rows with words: one
+   * that went quiet says when it was last heard from, in amber, and one
+   * that has sent nothing yet says it waits for its first data, in grey.
+   * Each dot is the colour of its words.
+   */
+  test("only the rows that need a look say so, each dot the colour of its words", async () => {
+    await renderOverview();
+
+    await waitFor(() => {
+      expect(platformGroups()).toHaveLength(3);
+    });
+
+    const rowsByState: Record<string, Array<HTMLElement>> = {};
+    for (const environmentRow of screen.getAllByTestId(
+      "app-platforms-environment",
+    )) {
+      const state: string = environmentRow.getAttribute("data-state") || "";
+      rowsByState[state] = [...(rowsByState[state] || []), environmentRow];
+    }
+
+    expect(rowsByState[AppPlatformEnvironmentState.Connected]).toHaveLength(2);
+    expect(rowsByState[AppPlatformEnvironmentState.Quiet]).toHaveLength(1);
+    expect(rowsByState[AppPlatformEnvironmentState.Waiting]).toHaveLength(1);
+
+    for (const connected of rowsByState[
+      AppPlatformEnvironmentState.Connected
+    ]!) {
+      const status: HTMLElement = within(connected).getByTestId(
+        "app-platforms-environment-status",
+      );
+      expect(status).toHaveTextContent("Connected");
+      expect(status).toHaveClass("sr-only");
+      expect(
+        within(connected).getByTestId("app-platforms-environment-dot"),
+      ).toHaveClass("bg-emerald-500");
+    }
+
+    const quiet: HTMLElement =
+      rowsByState[AppPlatformEnvironmentState.Quiet]![0]!;
+    const quietStatus: HTMLElement = within(quiet).getByTestId(
+      "app-platforms-environment-status",
+    );
+    expect(quietStatus).toHaveTextContent(/^Last seen /);
+    expect(quietStatus).not.toHaveClass("sr-only");
+    expect(quietStatus).toHaveClass("text-amber-700");
+    expect(
+      within(quiet).getByTestId("app-platforms-environment-dot"),
+    ).toHaveClass("bg-amber-500");
+
+    const waiting: HTMLElement =
+      rowsByState[AppPlatformEnvironmentState.Waiting]![0]!;
+    const waitingStatus: HTMLElement = within(waiting).getByTestId(
+      "app-platforms-environment-status",
+    );
+    expect(waitingStatus).toHaveTextContent("Waiting for its first data");
+    expect(waitingStatus).toHaveClass("text-gray-500");
+    expect(waitingStatus).not.toHaveClass("text-amber-700");
+    expect(
+      within(waiting).getByTestId("app-platforms-environment-dot"),
+    ).toHaveClass("bg-gray-300");
+
+    // A dot is drawn, never read: the words say the state.
+    for (const dot of screen.getAllByTestId("app-platforms-environment-dot")) {
+      expect(dot).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+
+  /*
+   * Laid out by the room the card gives a platform (container queries),
+   * not the window's: a narrow platform puts its state under its name and
+   * an environment's state under the environment's name, the same way on
+   * every row; a wide one ends each line with them.
+   */
+  test("each platform and row is laid out by its own width, the same way on every row", async () => {
+    await renderOverview();
+
+    await waitFor(() => {
+      expect(platformGroups()).toHaveLength(3);
+    });
+
+    for (const group of platformGroups()) {
+      expect(group.className).toBe(PLATFORM_GROUP_CLASS_NAME);
+      expect(group.className).toContain("[container-type:inline-size]");
+      const status: HTMLElement = within(group).getByTestId(
+        "app-platforms-platform-status",
+      );
+      expect(status.className).toBe(PLATFORM_STATE_CLASS_NAME);
+      expect(status.parentElement!.className).toBe(PLATFORM_HEADER_CLASS_NAME);
+    }
+
+    // Narrow: under the name. Wide: its own column at the end of the row.
+    expect(PLATFORM_HEADER_CLASS_NAME).toContain(
+      "grid-cols-[auto_minmax(0,1fr)]",
+    );
+    expect(PLATFORM_HEADER_CLASS_NAME).toContain(
+      "[@container(min-width:24rem)]:grid-cols-[auto_minmax(0,1fr)_auto]",
+    );
+    expect(PLATFORM_STATE_CLASS_NAME).toContain("col-start-2");
+    expect(PLATFORM_STATE_CLASS_NAME).toContain(
+      "[@container(min-width:24rem)]:col-start-auto",
+    );
+    expect(ENVIRONMENT_ROW_CLASS_NAME).toContain(
+      "[@container(min-width:34rem)]:grid-cols-[auto_minmax(0,1fr)_auto]",
+    );
+    expect(ENVIRONMENT_STATE_CLASS_NAME).toContain("col-start-2");
+    expect(ENVIRONMENT_STATE_CLASS_NAME).toContain(
+      "[@container(min-width:34rem)]:col-start-auto",
+    );
+    // A row never wraps its end under itself by chance.
+    expect(ENVIRONMENT_ROW_CLASS_NAME).not.toContain("flex-wrap");
+
+    for (const environmentRow of screen.getAllByTestId(
+      "app-platforms-environment",
+    )) {
+      expect(environmentRow.className).toBe(ENVIRONMENT_ROW_CLASS_NAME);
+      const status: HTMLElement = within(environmentRow).getByTestId(
+        "app-platforms-environment-status",
+      );
+      if (
+        environmentRow.getAttribute("data-state") !==
+        AppPlatformEnvironmentState.Connected
+      ) {
+        expect(status.className).toContain(ENVIRONMENT_STATE_CLASS_NAME);
+      }
+    }
   });
 
   test("each environment links to its page in App Platforms", async () => {

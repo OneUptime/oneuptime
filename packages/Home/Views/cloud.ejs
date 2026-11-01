@@ -640,43 +640,43 @@
                       <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
                     </div>
                     <div class="flex-1 text-center">
-                      <span class="text-xs text-gray-400">aws · us-east-1 · signals</span>
+                      <span class="text-xs text-gray-400">web-prod-01 · aws · us-east-1</span>
                     </div>
                   </div>
                   <div class="p-4 space-y-3">
-                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-amber-100 bg-amber-50 hover:bg-amber-100 transition-colors">
-                      <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
-                        <%- include('./Partials/icons/logs', {iconClass: 'h-4 w-4'}) %>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-purple-100 bg-purple-50 hover:bg-purple-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/metrics', {iconClass: 'h-4 w-4'}) %>
                       </div>
                       <div class="flex-1">
-                        <div class="text-sm font-semibold text-gray-900">Logs</div>
-                        <div class="text-xs text-gray-500">38,402 entries in the last hour</div>
+                        <div class="text-sm font-semibold text-gray-900">Metrics</div>
+                        <div class="text-xs text-gray-500">CPU 51%, network and disk, read every 5 minutes</div>
                       </div>
-                      <svg class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <svg class="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                     </a>
-                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-yellow-100 bg-yellow-50 hover:bg-yellow-100 transition-colors">
-                      <div class="w-9 h-9 rounded-lg bg-yellow-100 flex items-center justify-center">
-                        <%- include('./Partials/icons/traces', {iconClass: 'h-4 w-4'}) %>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-teal-100 bg-teal-50 hover:bg-teal-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-teal-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/topology', {iconClass: 'h-4 w-4'}) %>
                       </div>
                       <div class="flex-1">
-                        <div class="text-sm font-semibold text-gray-900">Traces</div>
-                        <div class="text-xs text-gray-500">Service map across 12 services</div>
+                        <div class="text-sm font-semibold text-gray-900">Topology</div>
+                        <div class="text-xs text-gray-500">Behind lb-web: 4 virtual machines and orders-db</div>
                       </div>
-                      <svg class="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <svg class="h-4 w-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                     </a>
-                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-cyan-100 bg-cyan-50 hover:bg-cyan-100 transition-colors">
-                      <div class="w-9 h-9 rounded-lg bg-cyan-100 flex items-center justify-center">
-                        <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-rose-100 bg-rose-50 hover:bg-rose-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-rose-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/incidents', {iconClass: 'h-4 w-4'}) %>
                       </div>
                       <div class="flex-1">
-                        <div class="text-sm font-semibold text-gray-900">Kubernetes</div>
-                        <div class="text-xs text-gray-500">prod-eks · 18 nodes, 240 pods</div>
+                        <div class="text-sm font-semibold text-gray-900">Incidents and alerts</div>
+                        <div class="text-xs text-gray-500">1 open alert: CPU above 90% for 10 minutes</div>
                       </div>
-                      <svg class="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <svg class="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                     </a>
@@ -691,16 +691,16 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                   </svg>
                 </div>
-                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Correlated Signals</span>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Resource Pages</span>
               </div>
-              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Metrics, logs, and traces in one context</h3>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Everything about a resource, in one place</h3>
               <p class="mt-4 text-lg text-gray-600">A cloud resource isn't just a number on a chart. Its page holds its metrics, its changes, its incidents and alerts, and the resources it connects to — and OneUptime AI reads all of it when it investigates.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Logs, metrics, and traces side by side
+                  Metrics, changes, incidents, and alerts side by side
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -845,7 +845,7 @@
             </div>
             <div>
               <h2 class="text-lg font-semibold text-gray-900">Running apps on ECS, Cloud Run or App Service?</h2>
-              <p class="mt-2 text-sm leading-6 text-gray-600">App Platforms files the apps you run on managed app and container platforms by their own OpenTelemetry: each platform, account and region, with its running instances, logs, traces and metrics.</p>
+              <p class="mt-2 text-sm leading-6 text-gray-600">App Platforms monitors the apps you run on managed app and container platforms from their own OpenTelemetry: each platform, account and region, with its running instances, logs, traces and metrics.</p>
             </div>
           </div>
           <a href="/product/app-platforms" class="mt-6 inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 sm:mt-0">

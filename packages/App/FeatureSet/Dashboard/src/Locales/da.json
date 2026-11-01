@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "{{count}} miljøer mere",
   "{{count}} more environments_one": "{{count}} miljø mere",
   "Cloud Environment Label Rule": "Mærkatregel for cloud-miljø",
-  "Cloud Environment Owner Rule": "Ejerregel for cloud-miljø"
+  "Cloud Environment Owner Rule": "Ejerregel for cloud-miljø",
+  "All cloud environments": "Alle cloud-miljøer",
+  "Only cloud environments that match conditions": "Kun cloud-miljøer, der opfylder betingelserne"
 }

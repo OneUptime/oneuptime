@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "Ещё сред: {{count}}",
   "{{count}} more environments_one": "Ещё {{count}} среда",
   "Cloud Environment Label Rule": "Правило меток облачных сред",
-  "Cloud Environment Owner Rule": "Правило владельцев облачных сред"
+  "Cloud Environment Owner Rule": "Правило владельцев облачных сред",
+  "All cloud environments": "Все облачные среды",
+  "Only cloud environments that match conditions": "Только облачные среды, соответствующие условиям"
 }

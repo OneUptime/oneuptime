@@ -39186,5 +39186,7 @@
   "{{count}} more environments": "{{count}} more environments",
   "{{count}} more environments_one": "{{count}} more environment",
   "Cloud Environment Label Rule": "Cloud Environment Label Rule",
-  "Cloud Environment Owner Rule": "Cloud Environment Owner Rule"
+  "Cloud Environment Owner Rule": "Cloud Environment Owner Rule",
+  "All cloud environments": "All cloud environments",
+  "Only cloud environments that match conditions": "Only cloud environments that match conditions"
 }

@@ -18,8 +18,10 @@ import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
 import {
   CloudRuleName,
   getCloudRuleListKind,
+  getCloudRuleWording,
   withCloudRuleKind,
 } from "../../../Components/Cloud/CloudRuleKind";
+import { RuleWording } from "Common/UI/Components/RuleRun/RuleView";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Green, Red } from "Common/Types/BrandColors";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -28,6 +30,10 @@ import Label from "Common/Models/DatabaseModels/Label";
 const cloudResourceKind: EqualToOrNull<string> = getCloudRuleListKind(
   CloudResourceKind.Resource,
 );
+
+// The pill on a rule's own page, and what its Run Now runs over.
+const RULE_WORDING: RuleWording<CloudResourceLabelRule> =
+  getCloudRuleWording<CloudResourceLabelRule>(CloudResourceKind.Resource);
 
 const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
   props: RuleSettingsPageProps,
@@ -66,6 +72,8 @@ const CloudResourceLabelRulesPage: FunctionComponent<RuleSettingsPageProps> = (
       onBeforeCreate={withCloudRuleKind<CloudResourceLabelRule>(
         CloudResourceKind.Resource,
       )}
+      // A rule made for both products says so on its own page too.
+      ruleWording={RULE_WORDING}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
       selectMoreFields={{ isEnabled: true, cloudResourceKind: true }}

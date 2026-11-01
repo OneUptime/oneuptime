@@ -30,7 +30,7 @@
               Every app on every managed platform
             </h1>
             <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-              Monitor the apps you run on AWS ECS and Fargate, Google Cloud Run, Azure App Service and the other managed app and container platforms. Their own OpenTelemetry files each one under its platform, account and region, with its running instances, logs, traces and metrics.
+              Monitor the apps you run on AWS ECS and Fargate, Google Cloud Run, Azure App Service and the other managed app and container platforms. Send their OpenTelemetry, and OneUptime groups them by platform, account and region, with their running instances, logs, traces and metrics.
             </p>
 
             <div class="mt-10 flex items-center justify-center gap-x-6">
@@ -340,7 +340,7 @@
             <%= appPlatforms.platforms.length %> managed platforms, one product
           </h2>
           <p class="mt-4 text-lg text-gray-600">
-            Each platform's resource detector stamps its telemetry with <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.platform</code>, and OneUptime files the app under that platform, its account and its region.
+            Each platform's resource detector stamps its telemetry with <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.platform</code>, and OneUptime groups the app by that platform, its account and its region.
           </p>
         </div>
 
@@ -380,7 +380,7 @@
             Every platform, watched the same way
           </h2>
           <p class="mt-6 text-lg leading-8 text-gray-600">
-            Whether your apps run on one platform or five, OneUptime files them the same way: the environment they run in, its instances, and the requests, errors and latency of every service in it.
+            Whether your apps run on one platform or five, OneUptime shows them the same way: the environment they run in, its instances, and the requests, errors and latency of every service in it.
           </p>
         </div>
 
@@ -596,13 +596,13 @@
                 <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Auto-Discovery</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Cloud metadata, captured for you</h3>
-              <p class="mt-4 text-lg text-gray-600">Resource detectors read <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.platform</code>, <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.account.id</code>, and <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.region</code> directly from instance metadata services — so every signal already knows which environment it belongs to.</p>
+              <p class="mt-4 text-lg text-gray-600">Resource detectors read <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.platform</code>, <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.account.id</code>, and <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.region</code> directly from the platform's metadata — so every signal already knows which environment it belongs to.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  EC2, GCP, and Azure metadata detectors
+                  ECS, Cloud Run, and App Service metadata detectors
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -644,11 +644,11 @@
                     <div class="rounded-lg bg-gray-900 p-4 font-mono text-[11px] leading-relaxed">
                       <div class="text-gray-400">resource:</div>
                       <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.provider</span>: <span class="text-emerald-400">"aws"</span></div>
-                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.platform</span>: <span class="text-emerald-400">"aws_ec2"</span></div>
+                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.platform</span>: <span class="text-emerald-400">"aws_ecs"</span></div>
                       <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.account.id</span>: <span class="text-emerald-400">"4109…8841"</span></div>
                       <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.region</span>: <span class="text-emerald-400">"us-east-1"</span></div>
                       <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.availability_zone</span>: <span class="text-emerald-400">"us-east-1b"</span></div>
-                      <div class="text-gray-300 pl-3"><span class="text-sky-400">host.type</span>: <span class="text-emerald-400">"m6i.2xlarge"</span></div>
+                      <div class="text-gray-300 pl-3"><span class="text-sky-400">aws.ecs.launchtype</span>: <span class="text-emerald-400">"fargate"</span></div>
                     </div>
                     <div class="mt-3 flex items-center gap-2 text-[10px] text-gray-500">
                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -809,7 +809,7 @@
                   </svg>
                 </div>
                 <h3 class="mt-6 text-xl font-semibold text-gray-900">Resource detectors</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">EC2, GCP, and Azure instance-metadata detectors stamp every signal with its cloud, account, region, and zone automatically.</p>
+                <p class="mt-4 text-gray-600 leading-relaxed">The ECS, Cloud Run, App Service and other platforms' resource detectors stamp every signal with its platform, account, and region automatically.</p>
               </div>
             </div>
 
