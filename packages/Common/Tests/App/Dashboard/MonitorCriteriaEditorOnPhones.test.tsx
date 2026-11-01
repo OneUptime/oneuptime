@@ -101,7 +101,11 @@ function buildCriteria(
     monitorStatusId: STATUS_ID,
     filterCondition: FilterCondition.Any,
     filters: [
-      { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+      {
+        checkOn: CheckOn.IsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      },
       {
         checkOn: CheckOn.ResponseStatusCode,
         filterType: FilterType.GreaterThanOrEqualTo,

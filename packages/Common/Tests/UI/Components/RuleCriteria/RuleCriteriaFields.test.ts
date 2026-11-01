@@ -69,6 +69,15 @@ const INCIDENT_LABELS: Field<Entity> = {
   placeholder: "Select Incident Labels",
 };
 
+// A field as given, with no prompt of its own: the key left out.
+function withoutOwnPrompt(field: Field<Entity>): Field<Entity> {
+  const copy: Field<Entity> = { ...field };
+
+  delete copy.placeholder;
+
+  return copy;
+}
+
 const MONITOR_LABELS: Field<Entity> = {
   field: { monitorLabels: true },
   title: "Monitor Labels",
@@ -516,7 +525,7 @@ describe("value placeholders", () => {
     // A list with no prompt of its own asks the same.
     expect(
       getRuleCriteriaValuePlaceholder(
-        { ...MONITOR_LABELS, placeholder: undefined },
+        withoutOwnPrompt(MONITOR_LABELS),
         RuleCriteriaOperator.HasAnyOf,
       ),
     ).toBe(RuleCriteriaCopy.selectOneOrMore);
@@ -525,7 +534,7 @@ describe("value placeholders", () => {
   test("a choice with no prompt of its own asks for a value", () => {
     expect(
       getRuleCriteriaValuePlaceholder(
-        { ...MONITOR_TYPE, placeholder: undefined },
+        withoutOwnPrompt(MONITOR_TYPE),
         RuleCriteriaOperator.Equals,
       ),
     ).toBe(RuleCriteriaCopy.selectAValue);
