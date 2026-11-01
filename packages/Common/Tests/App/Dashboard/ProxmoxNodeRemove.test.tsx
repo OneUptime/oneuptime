@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -36,8 +37,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *
  * The overview keeps showing the node's last CPU and memory reading however
  * old, as every Proxmox detail page does (their tooltips say "the last
- * value the agent sent"); the Offline badge and Last Seen beside it say
- * how old it is. The node list is the page that hides stale numbers.
+ * value the agent sent"); the hero's Offline status and its "Last
+ * reported" line say how old it is. The node list is the page that hides
+ * stale numbers.
  */
 
 const CLUSTER_ID: string = "0193c0de-7777-4aaa-8bbb-000000000007";
@@ -216,12 +218,20 @@ function withMetrics(ageMs: number | null, overrides: Row = {}): Row {
   return row;
 }
 
+/*
+ * The node's row for the inventory reads; nothing for the rest of the page
+ * (its open incidents and alerts, the monitors behind its alerts card).
+ */
 function arrange(row: Row | null): void {
   modelGetItemMock.mockImplementation(async () => {
     return { _id: CLUSTER_ID, name: "pve-prod" };
   });
-  modelGetListMock.mockImplementation(async () => {
-    const data: Array<Row> = row ? [row] : [];
+  modelGetListMock.mockImplementation(async (request: unknown) => {
+    const modelType: new () => { tableName?: string } = (
+      request as { modelType: new () => { tableName?: string } }
+    ).modelType;
+    const data: Array<Row> =
+      row && new modelType().tableName === "ProxmoxResource" ? [row] : [];
     return { data, count: data.length, skip: 0, limit: 1 };
   });
 }
@@ -230,8 +240,19 @@ async function renderPage(): Promise<void> {
   await act(async () => {
     render(<ProxmoxClusterNodeDetail {...PAGE_PROPS} />);
   });
-  // The cluster name is the first thing on the page once it has loaded.
-  await screen.findByText("Node Name");
+  // The node's hero is the first thing on the page once it has loaded.
+  await screen.findByTestId("proxmox-node-hero");
+  await waitFor(() => {
+    expect(
+      screen.queryByTestId("proxmox-node-overview") ||
+        screen.queryByTestId("proxmox-node-not-reported"),
+    ).not.toBeNull();
+  });
+}
+
+// The status the hero shows for the node.
+function heroStatus(): HTMLElement {
+  return screen.getByTestId("proxmox-node-hero-status");
 }
 
 function removeButton(): HTMLElement | null {
@@ -289,7 +310,7 @@ describe("which nodes offer Remove Node", () => {
     arrange(nodeRow({ isUp: false, isNativePush: true }));
     await renderPage();
 
-    expect(screen.getByText("Offline")).toBeInTheDocument();
+    expect(heroStatus()).toHaveTextContent("Offline");
     expect(removeButton()).toBeInTheDocument();
     expect(removeButton()).toHaveTextContent(/^Remove Node$/);
     expect(
@@ -317,7 +338,7 @@ describe("which nodes offer Remove Node", () => {
     arrange(nodeRow({ isUp: true }));
     await renderPage();
 
-    expect(screen.getByText("Online")).toBeInTheDocument();
+    expect(heroStatus()).toHaveTextContent("Online");
     expect(removeButton()).toBeNull();
   });
 
@@ -326,7 +347,7 @@ describe("which nodes offer Remove Node", () => {
     arrange(nodeRow({ isUp: false, isNativePush: false }));
     await renderPage();
 
-    expect(screen.getByText("Offline")).toBeInTheDocument();
+    expect(heroStatus()).toHaveTextContent("Offline");
     expect(removeButton()).toBeNull();
     expect(screen.queryByText("Remove Node")).toBeNull();
   });
@@ -346,7 +367,7 @@ describe("which nodes offer Remove Node", () => {
       arrange(row);
       await renderPage();
 
-      expect(screen.getByText("Offline")).toBeInTheDocument();
+      expect(heroStatus()).toHaveTextContent("Offline");
       expect(removeButton()).toBeNull();
     },
   );
@@ -576,13 +597,16 @@ describe("removing", () => {
 
 describe("the last CPU and memory reading stays, however old", () => {
   const CPU_TEXT: string = "42.5%";
-  const MEMORY_TEXT: string = "4.0 GiB / 16.0 GiB";
+  const MEMORY_TEXT: string = "4.0 GiB of 16.0 GiB";
 
+  // The node's tiles: CPU and memory at its latest report.
   function expectReadingShown(): void {
-    expect(screen.getByText("CPU")).toBeInTheDocument();
-    expect(screen.getByText(CPU_TEXT)).toBeInTheDocument();
-    expect(screen.getByText("Memory (Used / Total)")).toBeInTheDocument();
-    expect(screen.getByText(MEMORY_TEXT)).toBeInTheDocument();
+    const tiles: HTMLElement = screen.getByTestId("proxmox-node-tiles");
+    expect(within(tiles).getByText("CPU")).toBeInTheDocument();
+    expect(within(tiles).getByText(CPU_TEXT)).toBeInTheDocument();
+    expect(within(tiles).getByText("Memory")).toBeInTheDocument();
+    expect(within(tiles).getByText("25.0%")).toBeInTheDocument();
+    expect(within(tiles).getByText(MEMORY_TEXT)).toBeInTheDocument();
   }
 
   test("a reading a minute old is shown", async () => {
@@ -592,13 +616,15 @@ describe("the last CPU and memory reading stays, however old", () => {
     expectReadingShown();
   });
 
-  test("a reading past the node list's 15-minute cutoff is still shown, next to Offline and Last Seen", async () => {
+  test("a reading past the node list's 15-minute cutoff is still shown, next to Offline and when it last reported", async () => {
     arrange(withMetrics(METRIC_STALE_MS + MINUTE_MS / 2, { isUp: false }));
     await renderPage();
 
     expectReadingShown();
-    expect(screen.getByText("Offline")).toBeInTheDocument();
-    expect(screen.getByText("Last Seen")).toBeInTheDocument();
+    expect(heroStatus()).toHaveTextContent("Offline");
+    expect(
+      screen.getByTestId("proxmox-node-hero-last-report"),
+    ).toHaveTextContent("Last reported 10 minutes ago");
   });
 
   test("an hours-old reading is still shown, with the Remove Node card", async () => {

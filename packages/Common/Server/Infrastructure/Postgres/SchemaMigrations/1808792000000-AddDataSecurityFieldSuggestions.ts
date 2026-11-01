@@ -21,10 +21,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Only added columns, each with a default or nullable: existing rows need
  * nothing else.
  */
-export class AddDataSecurityFieldSuggestions1808780000000
+export class AddDataSecurityFieldSuggestions1808792000000
   implements MigrationInterface
 {
-  public name: string = "AddDataSecurityFieldSuggestions1808780000000";
+  public name: string = "AddDataSecurityFieldSuggestions1808792000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

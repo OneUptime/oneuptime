@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39356,
-    "untranslated": 13186
+    "keys": 39518,
+    "untranslated": 13055
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -24,6 +24,7 @@
     "Elasticsearch URL",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "HEC URL",
     "ICMP (ping)",
     "INP 120 ms",
@@ -43,6 +44,7 @@
     "PVC",
     "Passthrough",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "Proxmox ID",
     "Re-encrypt",
     "Red Hat OpenShift",
     "Runbook: {{name}}",
@@ -54,6 +56,7 @@
     "Top P",
     "UTC",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM CPU",
@@ -62,6 +65,7 @@
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware VM",
     "VMware vCenter",
     "[\".customer-name\", \"#invoice-total\"]",

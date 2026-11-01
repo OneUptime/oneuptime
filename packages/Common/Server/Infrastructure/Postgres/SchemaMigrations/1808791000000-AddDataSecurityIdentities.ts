@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * default, which Postgres adds without rewriting the table; every entry
  * already there reads as not unused until its cloud is read again.
  */
-export class AddDataSecurityIdentities1808770000000
+export class AddDataSecurityIdentities1808791000000
   implements MigrationInterface
 {
-  public name: string = "AddDataSecurityIdentities1808770000000";
+  public name: string = "AddDataSecurityIdentities1808791000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

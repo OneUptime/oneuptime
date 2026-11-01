@@ -198,6 +198,8 @@ export async function loadProxmoxTopology(
       haState: true,
       onboot: true,
       isBackedUp: true,
+      isTemplate: true,
+      lastBackupStatus: true,
       latestCpuPercent: true,
       latestMemoryPercent: true,
       latestDiskBytes: true,

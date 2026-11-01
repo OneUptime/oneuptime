@@ -5,6 +5,7 @@ OneUptime Proxmox एजेंट किसी Proxmox VE क्लस्टर 
 :::cards
 - [चुनें कि कैसे कनेक्ट करना है](#चुनें-कि-कैसे-कनेक्ट-करना-है): एजेंट, या Proxmox VE 9 का अपना पुश।
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): एक API टोकन, फिर इंस्टॉल स्क्रिप्ट या Docker Compose।
+- [बैकअप परिणाम](#proxmox-ve-की-सूचनाएँ-भेजें): Proxmox VE की अपनी सूचनाएँ, दो कमांड से भेजी गईं।
 - [मूल पुश](#बिना-इंस्टॉल-का-विकल्प-proxmox-ve-9-का-मूल-opentelemetry-पुश): Proxmox VE 9 अपने मेट्रिक्स खुद भेजता है।
 - [समस्या निवारण](#समस्या-निवारण): एक डायग्नोस्टिक स्क्रिप्ट, और आम समस्याएँ।
 :::
@@ -33,9 +34,10 @@ flowchart TB
 | क्या इंस्टॉल करना है | एक मशीन पर Docker Compose | कुछ नहीं: Proxmox वेब UI में एक मेट्रिक सर्वर |
 | नोड, गेस्ट और स्टोरेज | हाँ | हाँ |
 | HA स्थिति, बूट पर शुरू, बैकअप कवरेज और रेप्लिकेशन | हाँ | नहीं |
+| Proxmox VE की सूचनाओं (8.3 या उसके बाद) से बैकअप परिणाम, फ़ेंस किए गए नोड और विफल रेप्लिकेशन | हाँ | हाँ |
 | Proxmox AI एजेंट | हाँ | नहीं |
 
-**HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up** और **Replication Failing** टेम्पलेट को एजेंट चाहिए। किसी क्लस्टर के लिए इनमें से एक ही उपयोग करें: दोनों चलाने से हर संसाधन दो बार रिपोर्ट होता है।
+**HA Resource in Error State**, **Guest Down**, **Guest Not Backed Up**, **Backup Running Too Long** और **Replication Failing** टेम्पलेट को एजेंट चाहिए। किसी क्लस्टर के लिए इनमें से एक ही उपयोग करें: दोनों चलाने से हर संसाधन दो बार रिपोर्ट होता है।
 
 ## शुरू करने से पहले
 
@@ -185,6 +187,44 @@ Everything is ready. Begin running and processing data.
 
 मूल `id` लेबल जैसा है वैसा रखा जाता है।
 
+## Proxmox VE की सूचनाएँ भेजें
+
+pve-exporter बताता है कि बैकअप जॉब में कौन-से गेस्ट शामिल हैं, पर यह नहीं कि बैकअप कैसा रहा। यह Proxmox VE खुद अपनी सूचनाओं में बताता है: हर बैकअप जॉब का परिणाम, फ़ेंस किया गया नोड, विफल रेप्लिकेशन, प्रतीक्षा में अपडेट। Proxmox VE 8.3 या उसके बाद, किसी भी नोड पर root के रूप में चलाई गई दो कमांड हर सूचना को क्लस्टर के लॉग के रूप में OneUptime को भेजती हैं, बिना कुछ इंस्टॉल किए, एजेंट या मूल पुश के साथ-साथ। क्लस्टर की सेटअप गाइड इन्हें आपके URL, कुंजी और क्लस्टर नाम भरे हुए दिखाती है।
+
+```bash
+pvesh create /cluster/notifications/endpoints/webhook --name oneuptime \
+  --method post --url 'https://oneuptime.com/otlp/v1/logs' \
+  --header "name=Content-Type,value=$(printf %s 'application/json' | base64 -w0)" \
+  --header "name=x-oneuptime-token,value=$(printf %s '{{ secrets.token }}' | base64 -w0)" \
+  --secret "name=token,value=$(printf %s 'YOUR_TELEMETRY_INGESTION_KEY' | base64 -w0)" \
+  --secret "name=cluster,value=$(printf %s 'pve-prod' | base64 -w0)" \
+  --body eyJyZXNvdXJjZUxvZ3MiOiBbeyJyZXNvdXJjZSI6IHsiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwcm94bW94LmNsdXN0ZXIubmFtZSIsICJ2YWx1ZSI6IHsic3RyaW5nVmFsdWUiOiB7eyBqc29uIHNlY3JldHMuY2x1c3RlciB9fSB9IH17eyNpZiBmaWVsZHMuaG9zdG5hbWV9fSwgeyJrZXkiOiAicHJveG1veC5ub2RlLm5hbWUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuaG9zdG5hbWUgfX0gfSB9e3svaWZ9fV19LCAic2NvcGVMb2dzIjogW3sic2NvcGUiOiB7Im5hbWUiOiAicHJveG1veC12ZS1ub3RpZmljYXRpb25zIn0sICJsb2dSZWNvcmRzIjogW3sidGltZVVuaXhOYW5vIjogInt7IHRpbWVzdGFtcCB9fTAwMDAwMDAwMCIsICJib2R5IjogeyJzdHJpbmdWYWx1ZSI6IHt7IGpzb24gbWVzc2FnZSB9fSB9LCAiYXR0cmlidXRlcyI6IFt7ImtleSI6ICJwdmUubm90aWZpY2F0aW9uLnR5cGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMudHlwZSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24uc2V2ZXJpdHkiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBzZXZlcml0eSB9fSB9IH0sIHsia2V5IjogInB2ZS5ub3RpZmljYXRpb24udGl0bGUiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiB0aXRsZSB9fSB9IH17eyNpZiBmaWVsZHMuW2pvYi1pZF19fSwgeyJrZXkiOiAicHZlLm5vdGlmaWNhdGlvbi5qb2JfaWQiLCAidmFsdWUiOiB7InN0cmluZ1ZhbHVlIjoge3sganNvbiBmaWVsZHMuW2pvYi1pZF0gfX0gfSB9e3svaWZ9fV19XX1dfV19 \
+  --comment 'Sends this cluster'\''s notifications to OneUptime'
+pvesh create /cluster/notifications/matchers --name oneuptime --target oneuptime \
+  --comment 'Every notification, to OneUptime'
+```
+
+पहली कमांड `oneuptime` नाम का एक webhook लक्ष्य जोड़ती है, जो कुंजी और क्लस्टर का नाम अपने सीक्रेट में रखता है; दूसरी बिना नियमों वाला एक matcher जोड़ती है, जिसे Proxmox VE हर सूचना के रूप में पढ़ता है। क्लस्टर का नाम वैसा ही उपयोग करें जैसा OneUptime दिखाता है: एजेंट का `PROXMOX_CLUSTER_NAME`, या मूल पुश के साथ Proxmox क्लस्टर का अपना नाम।
+
+हर सूचना इन एट्रिब्यूट के साथ आती है:
+
+| एट्रिब्यूट | मान |
+| --- | --- |
+| `pve.notification.type` | `vzdump` (बैकअप जॉब), `replication`, `fencing`, `package-updates` या `system-mail` |
+| `pve.notification.severity` | `info`, `notice`, `warning`, `error` या `unknown` |
+| `pve.notification.title` | सूचना का शीर्षक |
+| `pve.notification.job_id` | बैकअप जॉब की id, बैकअप जॉब के लिए |
+| `proxmox.node.name` | वह नोड जिसने इसे भेजा |
+
+बैकअप जॉब की सूचना से OneUptime हर गेस्ट का आख़िरी बैकअप दर्ज करता है: वह सफल हुआ या नहीं, कब पूरा हुआ, कितना बड़ा था और कितना समय लगा। गेस्ट का पेज इसे दिखाता है, **गेस्ट** सूची इसे अपने बैकअप कॉलम में दिखाती है, क्लस्टर का **अवलोकन** परिणाम गिनता है, और विफल बैकअप **ध्यान देने की ज़रूरत** में तब तक रहता है जब तक उस गेस्ट का कोई बाद का बैकअप सफल न हो। **Backup Job Failed** और **Node Fenced** अलर्ट यही लॉग पढ़ते हैं।
+
+इन्हें भेजना बंद करने के लिए:
+
+```bash
+pvesh delete /cluster/notifications/matchers/oneuptime
+pvesh delete /cluster/notifications/endpoints/webhook/oneuptime
+```
+
 ## वैकल्पिक — Proxmox सेवा लॉग भेजें
 
 डिफ़ॉल्ट रूप से एजेंट सिर्फ़ मेट्रिक्स भेजता है, इसलिए क्लस्टर का **लॉग** पेज खाली रहता है। Proxmox VE सेवाएँ आठ यूनिट के अंतर्गत systemd जर्नल में लॉग करती हैं: `pveproxy`, `pvedaemon`, `pve-firewall`, `pve-ha-crm`, `pve-ha-lrm`, `pvescheduler`, `pvestatd` और `qmeventd`। साथ आने वाली `otel-collector-config.yaml` में ठीक इन्हीं यूनिट के लिए कमेंट किया हुआ `journald` रिसीवर है, जो कमेंट की हुई `logs` पाइपलाइन से जुड़ा है जो `proxmox.cluster.name` लगाती है ताकि लॉग आपके क्लस्टर पर पहुँचें।
@@ -269,7 +309,7 @@ Proxmox VE 9.0 और उसके बाद के संस्करण एक
 
 - अकेला होस्ट, या एक साथ चुप हो जाने वाला पूरा क्लस्टर: रिपोर्ट करने को कोई नहीं बचता, इसलिए कोई प्रति-नोड अलर्ट नहीं चलता। इसके बजाय क्लस्टर **डिस्कनेक्टेड** हो जाता है, जैसे एजेंट रुकने पर।
 - 7 दिन से ज़्यादा चुप रहने वाला नोड अब रिपोर्ट नहीं होता: उसका अलर्ट हल हो जाता है और वह नोड पेज से हट जाता है। सेल्फ़-होस्टेड OneUptime ये 7 दिन `PVE_SILENT_NODE_RETENTION_HOURS` से बदलता है।
-- जिस नोड को आप क्लस्टर से निकालते हैं वह मरे हुए नोड जैसा ही दिखता है। उसके पेज पर **Remove Node** उपयोग करें: वह हट जाता है और उसका अलर्ट हल हो जाता है। वरना वह 7 दिन तक ऑफ़लाइन रहता है।
+- जिस नोड को आप क्लस्टर से निकालते हैं वह मरे हुए नोड जैसा ही दिखता है। उसके पेज पर **नोड हटाएं** उपयोग करें: वह हट जाता है और उसका अलर्ट हल हो जाता है। वरना वह 7 दिन तक ऑफ़लाइन रहता है।
 - नोड के गेस्ट और स्टोरेज: सिर्फ़ खुद नोड ऑफ़लाइन के रूप में रखा जाता है। उसके VM, कंटेनर और स्टोरेज उसकी आखिरी रिपोर्ट के लगभग 15 मिनट बाद अपने पेज से हट जाते हैं, और HA जिन गेस्ट को किसी दूसरे नोड पर फिर से शुरू करता है वे उस नोड के अंतर्गत लौट आते हैं।
 
 OneUptime इंजेशन बंद होने के बाद, हाल में चुप हुआ नोड तभी रिपोर्ट होता है जब बाकी में से कोई 2 मिनट तक फिर से पुश कर चुका हो, इसलिए खुद यह बंद होना कभी हर नोड के लिए अलर्ट नहीं करता। जो नोड पहले से ऑफ़लाइन था वह छोटे बंद के दौरान ऑफ़लाइन रहता है और अपना अलर्ट रखता है; 5 मिनट से लंबे बंद के बाद, बाकी के 2 मिनट पुश करते ही वह फिर से रिपोर्ट होता है।
@@ -284,9 +324,11 @@ OneUptime इंजेशन बंद होने के बाद, हाल 
 | --- | --- |
 | HA स्थिति | पुश नहीं होती: **HA Resource in Error State** टेम्पलेट को एजेंट चाहिए। |
 | बूट पर शुरू होने का फ़्लैग | पुश नहीं होता: **Guest Down**, जो सिर्फ़ बूट पर शुरू होने के लिए सेट गेस्ट के लिए अलर्ट करता है, को एजेंट चाहिए। |
-| बैकअप कवरेज और रेप्लिकेशन | पुश नहीं होते: **Guest Not Backed Up** और **Replication Failing** को एजेंट चाहिए। |
+| बैकअप कवरेज और रेप्लिकेशन | पुश नहीं होते: **Guest Not Backed Up**, **Backup Running Too Long** और **Replication Failing** को एजेंट चाहिए। |
 
 अगर आपको ये चाहिए, तो इसके बजाय एजेंट चलाएँ, और मेट्रिक सर्वर हटाएँ: दोनों चलाने से हर संसाधन दो बार रिपोर्ट होता है।
+
+बैकअप परिणाम, फ़ेंस किए गए नोड और विफल रेप्लिकेशन फिर भी OneUptime तक पहुँचते हैं: [Proxmox VE की सूचनाएँ भेजें](#proxmox-ve-की-सूचनाएँ-भेजें), जो मूल पुश के साथ भी काम करती हैं।
 
 ## systemd सेवा के रूप में चलाएँ
 
@@ -375,11 +417,18 @@ OneUptime किसी Proxmox क्लस्टर को उसके `proxmo
 :::
 
 :::details मूल पुश के साथ कोई नोड ऑफ़लाइन दिखता है
-उसने रिपोर्ट करना बंद कर दिया: डाउन नोड, अटका `pvestatd`, रुका हुआ `pmxcfs` या OneUptime तक कटा नेटवर्क एक जैसे दिखते हैं। उसकी अगली रिपोर्ट उसे वापस लाती है। अगर आपने नोड को क्लस्टर से निकाला है, तो उसके पेज पर **Remove Node** उपयोग करें; वरना वह 7 दिन तक ऑफ़लाइन रहता है। [जब कोई नोड रिपोर्ट करना बंद कर दे](#जब-कोई-नोड-रिपोर्ट-करना-बंद-कर-दे) देखें।
+उसने रिपोर्ट करना बंद कर दिया: डाउन नोड, अटका `pvestatd`, रुका हुआ `pmxcfs` या OneUptime तक कटा नेटवर्क एक जैसे दिखते हैं। उसकी अगली रिपोर्ट उसे वापस लाती है। अगर आपने नोड को क्लस्टर से निकाला है, तो उसके पेज पर **नोड हटाएं** उपयोग करें; वरना वह 7 दिन तक ऑफ़लाइन रहता है। [जब कोई नोड रिपोर्ट करना बंद कर दे](#जब-कोई-नोड-रिपोर्ट-करना-बंद-कर-दे) देखें।
 :::
 
 :::details मूल पुश के साथ Guest Down, HA या बैकअप अलर्ट कभी नहीं चलते
 मूल पुश HA स्थिति, बूट पर शुरू, बैकअप कवरेज या रेप्लिकेशन नहीं भेजता। उनके लिए [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें), और मेट्रिक सर्वर हटाएँ: दोनों चलाने से हर संसाधन दो बार रिपोर्ट होता है।
+:::
+
+:::details बैकअप परिणाम कभी नहीं दिखते
+1. Proxmox VE रिलीज़ जाँचें: webhook लक्ष्य के लिए 8.3 या उसके बाद का संस्करण चाहिए (`pveversion`)।
+2. जाँचें कि लक्ष्य और उसका matcher मौजूद हैं: `pvesh get /cluster/notifications/endpoints/webhook` और `pvesh get /cluster/notifications/matchers` दोनों `oneuptime` दिखाते हैं।
+3. `pvesh create /cluster/notifications/targets/oneuptime/test` से एक परीक्षण सूचना भेजें। यह एक मिनट के भीतर क्लस्टर के **लॉग** पेज पर दिखती है; अगर नहीं दिखती, तो लक्ष्य में कुंजी या URL गलत है।
+4. लक्ष्य के सीक्रेट में क्लस्टर का नाम जाँचें: ऐसा नाम जिसे OneUptime नहीं जानता, एक दूसरा क्लस्टर रजिस्टर करता है।
 :::
 
 ## अगले कदम

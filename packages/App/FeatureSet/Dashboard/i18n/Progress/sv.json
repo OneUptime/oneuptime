@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39356,
-    "untranslated": 13227
+    "keys": 39518,
+    "untranslated": 13096
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -52,6 +52,7 @@
     "Gateway",
     "Google SecOps",
     "Goroutines",
+    "HA: {{state}}",
     "Hello world",
     "Hunt",
     "Hunts",
@@ -82,6 +83,7 @@
     "Merge request !{{number}}",
     "Merge request {{label}}",
     "Min",
+    "N/A",
     "Nav",
     "Normal",
     "Null",
@@ -146,12 +148,14 @@
     "Tunnel",
     "UTC",
     "VLAN",
+    "VM",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VMID {{vmid}}",
     "VMware vCenter",
     "Version {{number}}",
     "Webhook",
@@ -208,6 +212,8 @@
     "{{count}} samples",
     "{{count}} team",
     "{{minutes}} min",
+    "{{percent}} full",
+    "{{size}} disk",
     "{{tokens}} tokens"
   ]
 }

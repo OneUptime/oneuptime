@@ -470,7 +470,8 @@ async function flush(): Promise<void> {
 
 async function renderOverview(): Promise<void> {
   render(<ProxmoxClusterOverview {...PAGE_PROPS} />);
-  await screen.findByText("pve-prod");
+  // The cluster's name heads the hero (and a not-quorate cluster's row).
+  await screen.findAllByText("pve-prod");
   await flush();
 }
 
@@ -550,6 +551,8 @@ afterEach(() => {
  * (the CPU tile and the CPU chart) is matched by position.
  */
 const OVERVIEW_INFO: Array<[string, ProxmoxMetric]> = [
+  ["Agent Status", "agentStatus"],
+  ["Cluster Health", "clusterHealth"],
   ["Cluster inventory counts", "clusterInventoryCounts"],
   ["High-availability states", "haStates"],
   ["Node Availability", "nodeAvailability"],
@@ -557,21 +560,15 @@ const OVERVIEW_INFO: Array<[string, ProxmoxMetric]> = [
   ["Memory", "clusterMemory"],
   ["Storage", "fullestStorage"],
   ["Guests", "guestsRunning"],
-  ["Backup Coverage", "backupCoverage"],
   ["CPU", "cpuChart"],
   ["Memory", "memoryChart"],
   ["Storage", "storageChart"],
   ["Network", "networkChart"],
+  ["In no backup job", "backupsNotInJob"],
   ["Last Sync", "replicationLastSync"],
   ["Duration", "replicationDuration"],
   ["Failed Syncs", "replicationFailedSyncs"],
   ["Capacity used", "cephCapacityUsed"],
-  ["Cluster Health", "clusterHealth"],
-  ["Quorum", "quorum"],
-  ["Nodes", "nodeCount"],
-  ["Guests", "guestCount"],
-  ["Storage", "storageCount"],
-  ["Agent Status", "agentStatus"],
   ["CPU Usage", "topGuestsByCpu"],
   ["Memory Usage", "topGuestsByMemory"],
 ];
@@ -591,6 +588,29 @@ const OVERVIEW_INFO_WITH_INDEX: Array<[string, ProxmoxMetric, number]> =
       return [title, key, index];
     },
   );
+
+const CLUSTER_PATH: string = `/dashboard/10000000-0000-4000-8000-000000000001/proxmox/${CLUSTER_ID}`;
+
+function heroHealth(): HTMLElement {
+  return screen.getByTestId("proxmox-hero-health");
+}
+
+// The Needs attention rows, as "name: reason, reason".
+function attentionRows(): Array<string> {
+  return screen
+    .queryAllByTestId("proxmox-needs-attention-item")
+    .map((item: HTMLElement): string => {
+      const reasons: Array<string> = within(item)
+        .queryAllByTestId("proxmox-needs-attention-reason")
+        .map((reason: HTMLElement): string => {
+          return reason.textContent || "";
+        });
+      const name: string =
+        within(item).getByTestId("proxmox-needs-attention-name").textContent ||
+        "";
+      return `${name}: ${reasons.join(", ")}`;
+    });
+}
 
 // ------------------------------------------------------------------- tests
 
@@ -633,19 +653,50 @@ describe("Proxmox cluster overview: every metric has an (i)", () => {
     }
   });
 
-  test("the metadata in the hero and the details card gets no (i)", async () => {
+  test("the metadata, the attention list and the node cards get no (i)", async () => {
     await renderOverview();
 
     for (const title of [
       "Last seen",
       "Cluster Details",
-      "Resources",
       "Nodes online",
+      "Needs attention",
+      "Nodes",
+      "Backups",
     ]) {
       expect(infoButtons(title)).toHaveLength(0);
     }
   });
+
+  test("with the notifications, each backup figure explains itself", async () => {
+    cluster["lastNotificationAt"] = minutesAgo(30);
+    inventory = inventory.map((row: Row) => {
+      return row["kind"] === "Guest"
+        ? { ...row, lastBackupStatus: "ok", lastBackupAt: minutesAgo(30) }
+        : row;
+    });
+
+    await renderOverview();
+
+    await expectAllExplained([
+      ["Last backup OK", "backupsLastOk"],
+      ["Last backup failed", "backupsLastFailed"],
+      ["In no backup job", "backupsNotInJob"],
+      ["Newest backup", "backupsNewest"],
+    ]);
+  });
 });
+
+async function expectAllExplained(
+  pairs: Array<[string, ProxmoxMetric]>,
+): Promise<void> {
+  for (const [title, key] of pairs) {
+    expect({ title, text: await tooltipTextOf(infoButton(title)) }).toEqual({
+      title,
+      text: PROXMOX_METRIC_DESCRIPTIONS[key],
+    });
+  }
+}
 
 describe("Proxmox cluster overview: the hero's count chips", () => {
   test("the count chips carry one (i), after the chips it explains", async () => {
@@ -670,6 +721,56 @@ describe("Proxmox cluster overview: the hero's count chips", () => {
     );
   });
 
+  test.each([
+    ["proxmox-hero-nodes", "/nodes"],
+    ["proxmox-hero-guests", "/guests"],
+    ["proxmox-hero-storage", "/storage"],
+  ])(
+    "the %s chip opens its list through a real link",
+    async (testId: string, suffix: string) => {
+      await renderOverview();
+
+      const link: HTMLElement = screen.getByTestId(testId);
+      expect(link.tagName).toBe("A");
+      expect(link.getAttribute("href")).toBe(`${CLUSTER_PATH}${suffix}`);
+
+      fireEvent.click(link);
+
+      expect(navigateMock).toHaveBeenCalledTimes(1);
+      expect(String(navigateMock.mock.calls[0]![0])).toBe(
+        link.getAttribute("href"),
+      );
+    },
+  );
+
+  test("a template never runs: it is counted on its own chip, not as a stopped guest", async () => {
+    inventory = [
+      ...inventory,
+      {
+        kind: "Guest",
+        externalId: "qemu/9000",
+        name: "debian-template",
+        vmid: 9000,
+        isUp: false,
+        isTemplate: true,
+        isBackedUp: false,
+      },
+    ];
+
+    await renderOverview();
+
+    const row: HTMLElement = infoButton(
+      "Cluster inventory counts",
+    ).parentElement?.closest("div.flex-wrap") as HTMLElement;
+    expect(row).toHaveTextContent("3/3 guests running");
+    expect(screen.getByTestId("proxmox-hero-templates")).toHaveTextContent(
+      "1 template",
+    );
+    expect(cardOf(infoButton("Guests", 0))).toHaveTextContent("3/3");
+    // Not "stopped", not "in no backup job": nothing needs it.
+    expect(attentionRows().join("\n")).not.toContain("debian-template");
+  });
+
   test("a hero with only version chips gets no counts (i)", async () => {
     inventory = [];
     cluster["nodeCount"] = 0;
@@ -684,80 +785,129 @@ describe("Proxmox cluster overview: the hero's count chips", () => {
   });
 });
 
-describe("Proxmox cluster overview: linked summary cards", () => {
-  test.each([
-    ["Nodes", "Open the node list", "/nodes"],
-    ["Guests", "Open the guest list", "/guests"],
-    ["Storage", "Open the storage list", "/storage"],
-  ])(
-    "the %s card still opens its list through a real link",
-    async (title: string, linkName: string, suffix: string) => {
-      await renderOverview();
-
-      const link: HTMLElement = screen.getByRole("link", { name: linkName });
-
-      expect(link.getAttribute("href")).toBe(
-        `/dashboard/10000000-0000-4000-8000-000000000001/proxmox/${CLUSTER_ID}${suffix}`,
-      );
-
-      fireEvent.click(link);
-
-      expect(navigateMock).toHaveBeenCalledTimes(1);
-      expect(String(navigateMock.mock.calls[0]![0])).toBe(
-        link.getAttribute("href"),
-      );
-
-      /*
-       * The card's own (i) sits beside the link, not inside it, and asking
-       * what the number means does not navigate.
-       */
-      const summaryInfo: HTMLElement = infoButtons(title).slice(-1)[0]!;
-      expect(link.contains(summaryInfo)).toBe(false);
-      expect(link.parentElement?.contains(summaryInfo)).toBe(true);
-
-      navigateMock.mockClear();
-      fireEvent.click(summaryInfo);
-      fireEvent.keyDown(summaryInfo, { key: "Enter" });
-      expect(navigateMock).not.toHaveBeenCalled();
-    },
-  );
-
-  test("the linked cards show their counts and the offline call-out", async () => {
+describe("Proxmox cluster overview: what needs attention", () => {
+  test("the list is the most urgent first, each part a step from its page", async () => {
     await renderOverview();
 
-    const nodesCard: HTMLElement = cardOf(infoButtons("Nodes")[0]!);
-
-    expect(nodesCard).toHaveTextContent("3");
-    expect(nodesCard).toHaveTextContent("(1 offline)");
-    expect(cardOf(infoButtons("Guests")[1]!)).toHaveTextContent("3");
-    expect(cardOf(infoButtons("Storage")[2]!)).toHaveTextContent("3");
-  });
-
-  test("no summary card is a role=button any more", async () => {
-    await renderOverview();
-
-    for (const title of [
-      "Cluster Health",
-      "Quorum",
-      "Nodes",
-      "Guests",
-      "Storage",
-      "Agent Status",
-    ]) {
-      const card: HTMLElement = cardOf(infoButtons(title).slice(-1)[0]!);
-      expect(card).not.toHaveAttribute("role");
-      expect(card).not.toHaveAttribute("tabindex");
+    expect(attentionRows()).toEqual([
+      "pve3: Offline",
+      "local: 90% full",
+      "db: In no backup job",
+      "100-0 (web): 2 failed syncs",
+    ]);
+    // Critical first, then each kind in turn: storage before guests.
+    expect(
+      screen
+        .queryAllByTestId("proxmox-needs-attention-item")
+        .map((item: HTMLElement) => {
+          return item.getAttribute("data-severity");
+        }),
+    ).toEqual(["critical", "warning", "warning", "warning"]);
+    expect(
+      within(screen.getByTestId("proxmox-needs-attention"))
+        .getByText("pve3")
+        .closest("a"),
+    ).toHaveAttribute(
+      "href",
+      `${CLUSTER_PATH}/nodes/${encodeURIComponent("node/pve3")}`,
+    );
+    // Each row is one link, the whole row; a node's row has no id line.
+    const rows: Array<HTMLElement> = screen.queryAllByTestId(
+      "proxmox-needs-attention-item",
+    );
+    for (const row of rows) {
+      expect(within(row).getAllByRole("link")).toHaveLength(1);
     }
+    expect(rows[0]).toHaveTextContent(/^pve3NodeOffline$/);
+    expect(rows[2]).toHaveTextContent("lxc/101");
+    expect(
+      screen.getByTestId("proxmox-needs-attention-summary"),
+    ).toHaveTextContent("1 critical3 to look at");
   });
 
-  test("the Quorum value carries no second, native tooltip", async () => {
+  test("a cluster Proxmox reports not quorate leads the list, and says so on its tile", async () => {
+    cluster["isQuorate"] = false;
+
     await renderOverview();
 
-    const card: HTMLElement = cardOf(infoButton("Quorum"));
-    const value: HTMLElement = within(card).getByText("2/3");
+    expect(attentionRows()[0]).toBe("pve-prod: Not quorate");
+    expect(cardOf(infoButton("Node Availability"))).toHaveTextContent(
+      "2/3nodes online · not quorate",
+    );
+  });
 
-    expect(value).not.toHaveAttribute("title");
-    expect(card.querySelector("[title]")).toBeNull();
+  test("a quorate cluster says so under its nodes", async () => {
+    cluster["isQuorate"] = true;
+
+    await renderOverview();
+
+    expect(cardOf(infoButton("Node Availability"))).toHaveTextContent(
+      "2/3nodes online · quorate",
+    );
+    expect(attentionRows().join("\n")).not.toContain("Not quorate");
+  });
+
+  test("an offline node makes the cluster Unhealthy", async () => {
+    await renderOverview();
+
+    expect(heroHealth()).toHaveTextContent("Unhealthy");
+  });
+
+  test("with every node online, a failing replication job alone makes it Degraded", async () => {
+    inventory = inventory
+      .filter((row: Row) => {
+        return row["externalId"] !== "node/pve3";
+      })
+      .map((row: Row) => {
+        return {
+          ...row,
+          isBackedUp: row["kind"] === "Guest" ? true : undefined,
+        };
+      })
+      .map((row: Row) => {
+        // Keep every storage volume under 85%.
+        return row["externalId"] === "storage/pve1/local"
+          ? { ...row, latestDiskBytes: 50 * GIB }
+          : row;
+      });
+
+    await renderOverview();
+
+    expect(heroHealth()).toHaveTextContent("Degraded");
+    expect(attentionRows()).toEqual(["100-0 (web): 2 failed syncs"]);
+  });
+
+  test("a healthy cluster shows no attention card at all", async () => {
+    inventory = inventory
+      .filter((row: Row) => {
+        return row["externalId"] !== "node/pve3";
+      })
+      .map((row: Row) => {
+        return {
+          ...row,
+          isBackedUp: row["kind"] === "Guest" ? true : undefined,
+          latestDiskBytes:
+            row["externalId"] === "storage/pve1/local"
+              ? 50 * GIB
+              : row["latestDiskBytes"],
+        };
+      });
+    series["pve_replication_failed_syncs"] = [point(1, "100-0", 0)];
+
+    await renderOverview();
+
+    expect(heroHealth()).toHaveTextContent("Healthy");
+    expect(screen.queryByTestId("proxmox-needs-attention")).toBeNull();
+  });
+
+  test("a disconnected agent turns the health into Unknown and holds the list back", async () => {
+    cluster["otelCollectorStatus"] = "disconnected";
+
+    await renderOverview();
+
+    expect(heroHealth()).toHaveTextContent("Health Unknown");
+    expect(screen.getAllByText("Disconnected").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("proxmox-needs-attention")).toBeNull();
   });
 });
 
@@ -889,12 +1039,89 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
     );
   });
 
-  test("backup coverage counts job coverage per guest", async () => {
+  test("before any notification, the Backups card counts job coverage and says how to see results", async () => {
     await renderOverview();
 
-    const tile: HTMLElement = cardOf(infoButton("Backup Coverage"));
-    expect(tile).toHaveTextContent("2/3");
-    expect(tile).toHaveTextContent("1 guest not in any backup job");
+    const card: HTMLElement = screen.getByTestId("proxmox-backups-card");
+    const stats: Array<string> = within(card)
+      .getAllByTestId("proxmox-backups-card-stat")
+      .map((stat: HTMLElement): string => {
+        return `${stat.getAttribute("data-key")}=${stat.querySelector("dd")?.textContent}`;
+      });
+    expect(stats).toEqual(["not-in-job=1"]);
+    // Straight to the guide's step that sends them, not to its step 1.
+    expect(
+      within(card).getByTestId("proxmox-backups-card-setup-link"),
+    ).toHaveAttribute(
+      "href",
+      `${CLUSTER_PATH}/documentation#send-notifications`,
+    );
+  });
+
+  test("with the notifications, the Backups card counts how the last backups went", async () => {
+    cluster["lastNotificationAt"] = minutesAgo(30);
+    inventory = inventory.map((row: Row) => {
+      if (row["externalId"] === "qemu/100") {
+        return {
+          ...row,
+          lastBackupStatus: "ok",
+          lastBackupAt: minutesAgo(90),
+        };
+      }
+      if (row["externalId"] === "lxc/101") {
+        return {
+          ...row,
+          lastBackupStatus: "failed",
+          lastBackupAt: minutesAgo(30),
+        };
+      }
+      return row;
+    });
+
+    await renderOverview();
+
+    const card: HTMLElement = screen.getByTestId("proxmox-backups-card");
+    const stats: Array<string> = within(card)
+      .getAllByTestId("proxmox-backups-card-stat")
+      .map((stat: HTMLElement): string => {
+        return `${stat.getAttribute("data-key")}=${stat.querySelector("dd")?.textContent}`;
+      });
+    expect(stats).toEqual([
+      "ok=1",
+      "failed=1",
+      "not-in-job=1",
+      "newest=30 minutes ago",
+    ]);
+    expect(within(card).queryByTestId("proxmox-backups-card-setup")).toBeNull();
+    // db's failed backup needs a look too.
+    expect(attentionRows()).toContain(
+      "db: In no backup job, Last backup failed",
+    );
+  });
+
+  test("the Nodes card lists every node, the offline one first, each a step from its page", async () => {
+    await renderOverview();
+
+    const items: Array<HTMLElement> = screen.getAllByTestId(
+      "proxmox-nodes-card-item",
+    );
+    expect(
+      items.map((item: HTMLElement) => {
+        return item.getAttribute("data-node");
+      }),
+    ).toEqual(["pve3", "pve1", "pve2"]);
+    expect(within(items[0]!).getByText("Offline")).toBeInTheDocument();
+    expect(within(items[1]!).getByText("pve1").closest("a")).toHaveAttribute(
+      "href",
+      `${CLUSTER_PATH}/nodes/${encodeURIComponent("node/pve1")}`,
+    );
+    // pve1 reported 10% a minute ago; an offline node shows no numbers.
+    expect(
+      within(items[1]!).getByTestId("proxmox-nodes-card-cpu"),
+    ).toHaveTextContent("10%");
+    expect(
+      within(items[0]!).getByTestId("proxmox-nodes-card-cpu"),
+    ).toHaveTextContent("—");
   });
 
   test("top consumers leave out a guest with no update in 15 minutes", async () => {
@@ -914,54 +1141,11 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
     expect(memorySection).not.toHaveTextContent("stale-guest");
   });
 
-  test("quorum and node availability count online nodes out of all nodes", async () => {
+  test("node availability counts online nodes out of all nodes", async () => {
     await renderOverview();
 
-    expect(cardOf(infoButton("Quorum"))).toHaveTextContent("2/3");
-    expect(cardOf(infoButton("Node Availability"))).toHaveTextContent("2/3");
-  });
-
-  test("an offline node makes the cluster Unhealthy", async () => {
-    await renderOverview();
-
-    expect(cardOf(infoButton("Cluster Health"))).toHaveTextContent("Unhealthy");
-  });
-
-  test("with every node online, a failing replication job alone makes it Degraded", async () => {
-    inventory = inventory
-      .filter((row: Row) => {
-        return row["externalId"] !== "node/pve3";
-      })
-      .map((row: Row) => {
-        return {
-          ...row,
-          isBackedUp: row["kind"] === "Guest" ? true : undefined,
-        };
-      })
-      .map((row: Row) => {
-        // Keep every storage volume under 85%.
-        return row["externalId"] === "storage/pve1/local"
-          ? { ...row, latestDiskBytes: 50 * GIB }
-          : row;
-      });
-
-    await renderOverview();
-
-    expect(cardOf(infoButton("Cluster Health"))).toHaveTextContent("Degraded");
-    expect(
-      screen.getByText("Why is this cluster degraded?"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("2 failed syncs")).toBeInTheDocument();
-  });
-
-  test("a disconnected agent turns Cluster Health into Unknown", async () => {
-    cluster["otelCollectorStatus"] = "disconnected";
-
-    await renderOverview();
-
-    expect(cardOf(infoButton("Cluster Health"))).toHaveTextContent("Unknown");
-    expect(cardOf(infoButton("Agent Status"))).toHaveTextContent(
-      "Disconnected",
+    expect(cardOf(infoButton("Node Availability"))).toHaveTextContent(
+      "2/3nodes online",
     );
   });
 
