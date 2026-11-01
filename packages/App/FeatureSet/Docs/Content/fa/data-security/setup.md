@@ -7,7 +7,7 @@
 - [هر سطح چه چیزی اعطا می‌کند](#هر-سطح-چه-چیزی-اعطا-میکند): کنش‌های AWS، و نقش‌های Azure و Google Cloud.
 - [اسکن پایگاه داده‌ای که خودتان اجرا می‌کنید](#اسکن-پایگاه-دادهای-که-خودتان-اجرا-میکنید): یک رشته اتصال فقط‌خواندنی، یا یک پراب در شبکهٔ شما.
 - [آنچه OneUptime نگه می‌دارد](#آنچه-oneuptime-نگه-میدارد): شمارش‌ها، مکان‌ها و نمونه‌های پوشانده‌شده، هرگز یک مقدار.
-- [اجازه دهید امنیت داده در معرض بودن را رفع کند](#اجازه-دهید-امنیت-داده-در-معرض-بودن-را-رفع-کند): تنها دسترسی نوشتنی که می‌توان به یک اتصال داد، که تا روشنش نکنید خاموش است.
+- [اجازه دهید امنیت داده در معرض بودن را رفع کند](#اجازه-دهید-امنیت-داده-در-معرض-بودن-را-رفع-کند): تنها دسترسی‌های نوشتنی که می‌توان به یک اتصال داد، که تا روشنشان نکنید خاموش‌اند.
 :::
 
 ## برای هر اتصال یک سطح انتخاب کنید
@@ -48,6 +48,9 @@
 | خواندن اینکه پایگاه‌های داده چگونه در دسترس قرار می‌گیرند، رمزگذاری و پشتیبان‌گیری می‌شوند، و اسنپ‌شات‌های دستی آن‌ها با چه کسانی به اشتراک گذاشته شده‌اند | `rds:DescribeDBInstances`، `rds:DescribeDBClusters`، `rds:DescribeDBSnapshots`، `rds:DescribeDBSnapshotAttributes`، `rds:DescribeDBClusterSnapshots`، `rds:DescribeDBClusterSnapshotAttributes`، `dynamodb:ListTables`، `dynamodb:DescribeTable`، `dynamodb:DescribeContinuousBackups`، `redshift:DescribeClusters`، `redshift:DescribeLoggingStatus` |
 | خواندن پیکربندی دامنه‌های جست‌وجو، کش‌ها و سیستم‌های فایل | `es:ListDomainNames`، `es:DescribeDomains`، `elasticache:DescribeReplicationGroups`، `elasticfilesystem:DescribeFileSystems` |
 | تشخیص کلیدهای خود AWS (alias/aws/...) از کلیدهایی که خودتان مدیریت می‌کنید | `kms:ListAliases` |
+| خواندن اینکه کدام کاربران و نقش‌ها از راه سیاست‌های IAM خودشان به هر باکت و هر جدول می‌رسند، چه کسی می‌تواند هر نقش را بر عهده بگیرد، و هر کدام آخرین بار کی استفاده شده است | `iam:GetAccountAuthorizationDetails`، `iam:GenerateCredentialReport`، `iam:GetCredentialReport` |
+
+کنش‌های IAM به **دسترسی** امکان می‌دهند هر نقش و هر کاربری را که از راه سیاست‌های خودش به یک مخزن می‌رسد نام ببرد، و بگوید هر کدام آخرین بار کی استفاده شده است. گزارش اعتبارنامه‌ای که IAM برای آن‌ها می‌سازد تاریخ‌ها و پرچم‌ها را دارد، هرگز گذرواژه یا کلید را. اتصالی که پیش از آنکه امنیت داده IAM را بخواند راه‌اندازی شده، تا وقتی فرمانش دوباره اجرا نشود فقط سیاست‌های خود هر مخزن را می‌خواند.
 
 سطح محتوا سه کنش به همین سیاست می‌افزاید، هر کدام روی منابع خودش:
 
@@ -95,7 +98,10 @@
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@
 
 ## اجازه دهید امنیت داده در معرض بودن را رفع کند
 
-تا وقتی چیز دیگری انتخاب نکنید، کار یک اتصال فقط خواندن است. **پاسخ امنیت داده**، زیر **فیلدهای بیشتر** در کنار **امنیت داده**، به امنیت داده اجازه می‌دهد دسترسی عمومی یک مخزن را هم مسدود کند و اشتراک‌گذاری اسنپ‌شات‌هایش را متوقف کند: از مسئلهٔ مخزن، با **از همین‌جا رفع کنید** ([بررسی‌ها و مسائل امنیت داده](/docs/data-security/checks-and-issues#از-همینجا-رفع-کنید) را ببینید)، و از پلی‌بوک‌های عملیات امنیتی. تا وقتی **مسدود کردن دسترسی عمومی و اشتراک‌گذاری** را انتخاب نکنید **خاموش** است، و آنگاه فرمانی که فرم نشان می‌دهد یک دسترسی نوشتن کوچک و مشخص را، جداگانه، اعطا می‌کند:
+تا وقتی چیز دیگری انتخاب نکنید، کار یک اتصال فقط خواندن است. **پاسخ امنیت داده**، زیر **فیلدهای بیشتر** در کنار **امنیت داده**، به امنیت داده اجازه می‌دهد تنظیمات یک مخزن را هم از راه اتصال تغییر دهد: دسترسی عمومی‌اش را مسدود کند و اشتراک‌گذاری اسنپ‌شات‌هایش را متوقف کند، از مسئلهٔ مخزن با **از همین‌جا رفع کنید** ([بررسی‌ها و مسائل امنیت داده](/docs/data-security/checks-and-issues#از-همینجا-رفع-کنید) را ببینید) و از پلی‌بوک‌های عملیات امنیتی، و تنظیمی را که از آن محافظت می‌کند، مانند نسخه‌بندی یا انتقال امن، از مسئلهٔ آن روشن کند. تا وقتی **رفع در معرض بودن و اصلاح تنظیمات** را انتخاب نکنید **خاموش** است، و آنگاه فرمانی که فرم نشان می‌دهد این دسترسی‌های نوشتن کوچک و مشخص را، جداگانه، اعطا می‌کند:
 
 | ابر | آنچه فرمان می‌افزاید | آنچه مجاز است انجام دهد |
 | --- | --- | --- |
-| AWS | سومین سیاست درون‌خطی، `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`، `s3:PutBucketPublicAccessBlock`، `rds:DescribeDBSnapshotAttributes`، `rds:DescribeDBClusterSnapshotAttributes`، `rds:ModifyDBSnapshotAttribute` و `rds:ModifyDBClusterSnapshotAttribute`: تنظیم Block Public Access یک باکت، و اینکه یک اسنپ‌شات دستی با چه کسانی به اشتراک گذاشته شده است |
-| Azure | یک نقش سفارشی، `OneUptime Data Security Response`، در محدودهٔ اتصال | `Microsoft.Storage/storageAccounts/read` و `Microsoft.Storage/storageAccounts/write`: تنظیمات یک حساب ذخیره‌سازی، مانند دسترسی ناشناس به blob، هرگز کلیدهای آن |
-| Google Cloud | یک نقش سفارشی، `oneuptimeDataSecurityResponse` | `storage.buckets.get` و `storage.buckets.update`: تنظیمات یک باکت، مانند جلوگیری از دسترسی عمومی |
+| AWS | سومین سیاست درون‌خطی، `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`، `s3:PutBucketPublicAccessBlock`، `s3:GetBucketVersioning`، `s3:PutBucketVersioning`، `s3:GetBucketOwnershipControls`، `s3:PutBucketOwnershipControls`، `rds:DescribeDBSnapshotAttributes`، `rds:DescribeDBClusterSnapshotAttributes`، `rds:ModifyDBSnapshotAttribute`، `rds:ModifyDBClusterSnapshotAttribute`، `dynamodb:DescribeContinuousBackups` و `dynamodb:UpdateContinuousBackups`: تنظیم Block Public Access، نسخه‌بندی و مالکیت اشیای یک باکت، اینکه یک اسنپ‌شات دستی با چه کسانی به اشتراک گذاشته شده است، و بازیابی به نقطه زمانی یک جدول |
+| Azure | یک نقش سفارشی، `OneUptime Data Security Response`، در محدودهٔ اتصال | `Microsoft.Storage/storageAccounts/read`، `Microsoft.Storage/storageAccounts/write`، `Microsoft.Storage/storageAccounts/blobServices/read` و `Microsoft.Storage/storageAccounts/blobServices/write`: تنظیمات یک حساب ذخیره‌سازی، مانند دسترسی ناشناس به blob و انتقال امن، و حذف نرم blobهای آن، هرگز کلیدهای آن |
+| Google Cloud | یک نقش سفارشی، `oneuptimeDataSecurityResponse` | `storage.buckets.get` و `storage.buckets.update`: تنظیمات یک باکت، مانند جلوگیری از دسترسی عمومی، دسترسی یکنواخت و نسخه‌بندی |
 
 هیچ‌چیز از آنچه اعطا می‌کند داده نمی‌خواند، چیزی را حذف نمی‌کند یا تغییر نمی‌دهد که چه کسی می‌تواند وارد شود. آن را دوباره روی **خاموش** بگذارید تا امنیت داده بی‌درنگ استفاده از آن را متوقف کند. برای اینکه در AWS دسترسی را هم بگیرید، سیاست را با `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse` حذف کنید.
+
+اتصالی که آن را پیش‌تر روشن کرده، باید فرمانش را برای این تنظیمات دوباره اجرا کند: تا آن زمان ابر تغییر را رد می‌کند، و پنل می‌گوید کدام مجوز کم است.
 
 ## چرا نمونه‌های محتوا اختیاری‌اند
 

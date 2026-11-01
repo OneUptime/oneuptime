@@ -7,7 +7,7 @@
 - [Что даёт каждый уровень](#что-даёт-каждый-уровень): Действия AWS, а также роли Azure и Google Cloud.
 - [Сканирование своей базы данных](#сканирование-базы-данных-которую-вы-обслуживаете-сами): Строка подключения только для чтения или зонд в вашей сети.
 - [Что сохраняет OneUptime](#что-сохраняет-oneuptime): Количества, расположения и замаскированные образцы, но никогда не сами значения.
-- [Позвольте Безопасности данных закрывать доступ извне](#позвольте-безопасности-данных-закрывать-доступ-извне): Единственное право на запись, которое можно дать подключению, выключенное, пока вы его не включите.
+- [Позвольте Безопасности данных закрывать доступ извне](#позвольте-безопасности-данных-закрывать-доступ-извне): Единственные права на запись, которые можно дать подключению, выключенные, пока вы их не включите.
 :::
 
 ## Выберите уровень для каждого подключения
@@ -48,6 +48,9 @@
 | Прочитать, как открыт доступ к базам данных, как они шифруются и резервируются и кому открыт доступ к их ручным снимкам | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | Прочитать, как настроены поисковые домены, кэши и файловые системы | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | Отличить собственные ключи AWS (alias/aws/...) от ключей, которыми управляете вы | `kms:ListAliases` |
+| Читать, какие пользователи и роли добираются до каждого бакета и каждой таблицы через собственные политики IAM, кто может принимать каждую роль и когда каждый из них использовался в последний раз | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+Действия IAM позволяют разделу **Доступ** назвать каждую роль и каждого пользователя, которые добираются до хранилища через собственные политики, и сказать, когда каждый из них использовался в последний раз. Отчёт об учётных данных, который IAM формирует для них, содержит даты и флаги, но никогда не пароль и не ключ. Подключение, настроенное до того, как Безопасность данных начала читать IAM, читает только собственные политики каждого хранилища, пока его команду не запустят снова.
 
 Уровень содержимого добавляет в ту же политику три действия, каждое на своих ресурсах:
 
@@ -95,7 +98,10 @@
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@
 
 ## Позвольте Безопасности данных закрывать доступ извне
 
-Подключение только читает, пока вы не решите иначе. **Реагирование безопасности данных** в разделе **Дополнительные поля** рядом с **Безопасность данных** позволяет Безопасности данных также блокировать публичный доступ к хранилищу и прекращать общий доступ к его снимкам: из проблемы хранилища кнопкой **Исправить отсюда** (см. [Проверки и проблемы Безопасности данных](/docs/data-security/checks-and-issues#исправить-отсюда)) и из плейбуков Security Operations. Это поле остаётся в значении **Выключено**, пока вы не выберете **Заблокировать публичный и общий доступ**, и тогда команда, которую показывает форма, отдельно даёт одно узкое право на запись:
+Подключение только читает, пока вы не решите иначе. **Реагирование безопасности данных** в разделе **Дополнительные поля** рядом с **Безопасность данных** позволяет Безопасности данных также менять настройки хранилища через подключение: блокировать публичный доступ к нему и прекращать общий доступ к его снимкам — из проблемы хранилища кнопкой **Исправить отсюда** (см. [Проверки и проблемы Безопасности данных](/docs/data-security/checks-and-issues#исправить-отсюда)) и из плейбуков Security Operations, а также включать защищающую его настройку, например управление версиями или безопасную передачу, — из его проблемы. Это поле остаётся в значении **Выключено**, пока вы не выберете **Закрывать доступ извне и исправлять настройки**, и тогда команда, которую показывает форма, отдельно даёт эти узкие права на запись:
 
 | Облако | Что добавляет команда | Что ей разрешено |
 | --- | --- | --- |
-| AWS | Третью встроенную политику, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` и `rds:ModifyDBClusterSnapshotAttribute`: Block Public Access бакета и то, кому открыт доступ к ручному снимку |
-| Azure | Пользовательскую роль `OneUptime Data Security Response` в области подключения | `Microsoft.Storage/storageAccounts/read` и `Microsoft.Storage/storageAccounts/write`: настройки учётной записи хранения, например анонимный доступ к BLOB-объектам, но никогда не её ключи |
-| Google Cloud | Пользовательскую роль `oneuptimeDataSecurityResponse` | `storage.buckets.get` и `storage.buckets.update`: настройки бакета, например предотвращение публичного доступа |
+| AWS | Третью встроенную политику, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` и `dynamodb:UpdateContinuousBackups`: Block Public Access, управление версиями и владение объектами бакета, то, кому открыт доступ к ручному снимку, и восстановление таблицы на момент времени |
+| Azure | Пользовательскую роль `OneUptime Data Security Response` в области подключения | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` и `Microsoft.Storage/storageAccounts/blobServices/write`: настройки учётной записи хранения, например анонимный доступ к BLOB-объектам и безопасную передачу, и обратимое удаление её BLOB-объектов, но никогда не её ключи |
+| Google Cloud | Пользовательскую роль `oneuptimeDataSecurityResponse` | `storage.buckets.get` и `storage.buckets.update`: настройки бакета, например предотвращение публичного доступа, единообразный доступ и управление версиями |
 
 Ничто из того, что оно даёт, не читает данные, ничего не удаляет и не меняет, кто может входить. Верните значение **Выключено**, и Безопасность данных сразу перестанет этим пользоваться. Чтобы в AWS заодно отозвать доступ, удалите политику командой `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse`.
+
+Подключению, в котором это поле включили раньше, нужно снова запустить свою команду для этих настроек: до тех пор облако отклоняет изменение, а панель говорит, какого разрешения не хватает.
 
 ## Почему образцы содержимого необязательны
 

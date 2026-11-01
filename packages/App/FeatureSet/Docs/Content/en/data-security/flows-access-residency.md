@@ -4,7 +4,7 @@ Knowing what a store holds is half of it. Data Security also works out where tha
 
 :::cards
 - [Data flows](#data-flows): Services, AI providers, outside hosts and copies.
-- [Who can reach a store](#who-can-reach-a-store): Every grant your cloud reports, and how exposed the store is.
+- [Who can reach a store](#who-can-reach-a-store): Every identity and grant, what each identity reaches, and how exposed the store is.
 - [Residency rules](#residency-rules): The regions each kind of data may live in.
 :::
 
@@ -39,18 +39,18 @@ A copy is found without either store's values. For each data type a scan finds w
 
 ## Who can reach a store
 
-The configuration read turns each cloud's own access settings - bucket policies and ACLs, Azure role assignments, Google Cloud IAM bindings, snapshot shares - into one list of who can reach the store, on its **Who Can Reach It** page:
+The configuration read turns each cloud's own access settings - bucket policies and ACLs, Azure role assignments, Google Cloud IAM bindings, snapshot shares, and on AWS each role's and user's own IAM policies - into one list of who can reach the store, on its **Who Can Reach It** page. The services the service map shows calling the store are on it too:
 
 | Column | What it says |
 | --- | --- |
-| **Principal** | Who or what has access, as the cloud names it: `*`, an account id, an ARN, an email, a service account. |
-| **Principal Type** | Public, Account, Role, User, Group, Service Principal, Service Account or Service. |
+| **Who** | Who or what has access, as the cloud names it: `*`, an account id, an ARN, an email, a service account, a service. An identity not used in 90 days is marked so. |
+| **Type** | Public, Account, Role, User, Group, Service Principal, Service Account or Service. |
 | **Access Level** | Read, Write or Admin. |
-| **Granted Via** | What grants it: a bucket policy, an ACL, a role assignment, an IAM binding or a snapshot share. |
-| **External** | The principal is outside the accounts, subscriptions and projects connected to OneUptime. |
-| **Public** | The principal is anyone on the internet. |
+| **Granted Via** | What grants it: a bucket policy, an ACL, an IAM policy, a role it may assume, a role assignment, an IAM binding or a snapshot share - or, for a service, that traces saw it use the store. |
+| **Reach** | Anyone on the internet, outside your accounts - the accounts, subscriptions and projects connected to OneUptime - or your accounts. |
+| **Last Used** | When the identity last used its access, as the cloud says it, or as the service map last saw the service call the store. |
 
-The list is read again with every configuration read, and a grant the cloud no longer reports is removed. [More than 25 identities can read Restricted data](/docs/data-security/checks-and-issues#access) counts the readers on it. The services that use a store are its **Uses** flows.
+The list is read again with every configuration read, and a grant the cloud no longer reports is removed. [More than 25 identities can read Restricted data](/docs/data-security/checks-and-issues#access) counts the readers on it, and [Identities unused for 90 days can still reach it](/docs/data-security/checks-and-issues#access) fails while one not used in 90 days can reach its sensitive data. The services that use a store are its **Uses** flows.
 
 From what it reads, every store gets an exposure:
 
@@ -63,6 +63,22 @@ From what it reads, every store gets an exposure:
 | **Unknown** | OneUptime could not read enough of its configuration to tell. |
 
 Public beats shared, and shared beats reachable: a public bucket that is also shared with another account is Public. Exposure adds to an issue's [risk score](/docs/data-security/checks-and-issues#risk-score).
+
+### Every identity, and what it can reach
+
+On AWS, the read lists the account's users and roles once, and decides as IAM does which of them reach each bucket and DynamoDB table, and how: what their policies allow minus what they deny, permissions boundaries, and a grant that holds only under conditions says so. An account outside your connected ones that may assume a role reaches what the role reaches. Each identity's last use comes from IAM, for roles, and from the account's credential report, for users.
+
+**Data Security → Access** lists every identity that can reach your stores, the riskiest first: what it reaches and how sensitive that is, the most it may do and when it was last used, with filters for **Outside Your Accounts**, **Not Used in 90 Days** and **Can Change Sensitive Data**. Each opens its own page: every store it can reach, the most sensitive first, and its risk score part by part. Below them, Access lists every grant from outside your accounts.
+
+| What adds to an identity's risk | Points |
+| --- | --- |
+| The most sensitive data it reaches | 50 for Restricted, 30 for Confidential, 10 for Internal |
+| It can write to or administer a Confidential or Restricted store | 15 |
+| It is anyone on the internet, or outside your accounts | 20 for anyone, 15 for outside |
+| It has not been used in 90 days, and reaches Internal, Confidential or Restricted data | 10 |
+| How many sensitive stores it reaches | 1 for each, up to 5 |
+
+The score is at most 100. A role of an account outside that can change one store of card numbers scores 50 + 15 + 15 + 1 = 81.
 
 ## Residency rules
 

@@ -4,7 +4,7 @@ At vide, hvad et datalager indeholder, er kun halvdelen. Datasikkerhed finder og
 
 :::cards
 - [Datastrømme](#datastrømme): Tjenester, AI-udbydere, eksterne værter og kopier.
-- [Hvem kan nå et datalager](#hvem-kan-nå-et-datalager): Hver tildeling, din cloud rapporterer, og hvor eksponeret datalageret er.
+- [Hvem kan nå et datalager](#hvem-kan-nå-et-datalager): Hver identitet og tildeling, hvad hver identitet når, og hvor eksponeret datalageret er.
 - [Residensregler](#residensregler): De regioner, hver slags data må ligge i.
 :::
 
@@ -39,18 +39,18 @@ En kopi findes uden nogen af de to datalagres værdier. For hver datatype, en sc
 
 ## Hvem kan nå et datalager
 
-Konfigurationslæsningen gør hver clouds egne adgangsindstillinger - bucket-politikker og ACL'er, rolletildelinger i Azure, IAM-bindinger i Google Cloud, snapshot-delinger - til én liste over, hvem der kan nå datalageret, på dets side **Hvem kan nå det**:
+Konfigurationslæsningen gør hver clouds egne adgangsindstillinger - bucket-politikker og ACL'er, rolletildelinger i Azure, IAM-bindinger i Google Cloud, snapshot-delinger og på AWS hver rolles og hver brugers egne IAM-politikker - til én liste over, hvem der kan nå datalageret, på dets side **Hvem kan nå det**. De tjenester, som tjenestekortet viser kalde datalageret, er også på den:
 
 | Kolonne | Hvad den siger |
 | --- | --- |
-| **Principal** | Hvem eller hvad der har adgang, som cloud'en navngiver det: `*`, et konto-id, en ARN, en e-mail, en tjenestekonto. |
-| **Principaltype** | Public, Konto, Rolle, Bruger, Gruppe, Service Principal, Tjenestekonto eller Tjeneste. |
+| **Hvem** | Hvem eller hvad der har adgang, som cloud'en navngiver det: `*`, et konto-id, en ARN, en e-mail, en tjenestekonto, en tjeneste. En identitet, der ikke er brugt i 90 dage, er markeret som sådan. |
+| **Type** | Public, Konto, Rolle, Bruger, Gruppe, Service Principal, Tjenestekonto eller Tjeneste. |
 | **Adgangsniveau** | Læsning, Skrivning eller Administrator. |
-| **Tildelt via** | Hvad der giver adgangen: en bucket-politik, en ACL, en rolletildeling, en IAM-binding eller en snapshot-deling. |
-| **Ekstern** | Principalen er uden for de konti, abonnementer og projekter, der er forbundet til OneUptime. |
-| **Offentlig** | Principalen er hvem som helst på internettet. |
+| **Tildelt via** | Hvad der giver adgangen: en bucket-politik, en ACL, en IAM-politik, en rolle, den må påtage sig, en rolletildeling, en IAM-binding eller en snapshot-deling - eller, for en tjeneste, at spor så den bruge datalageret. |
+| **Rækkevidde** | Hvem som helst på internettet, uden for dine konti - de konti, abonnementer og projekter, der er forbundet til OneUptime - eller dine konti. |
+| **Sidst brugt** | Hvornår identiteten sidst brugte sin adgang, som cloud'en oplyser det, eller hvornår tjenestekortet sidst så tjenesten kalde datalageret. |
 
-Listen læses igen ved hver konfigurationslæsning, og en tildeling, som cloud'en ikke længere rapporterer, fjernes. [Mere end 25 identiteter kan læse Begrænsede data](/docs/data-security/checks-and-issues#adgang) tæller læserne på den. De tjenester, der bruger et datalager, er dets datastrømme af typen **Bruger**.
+Listen læses igen ved hver konfigurationslæsning, og en tildeling, som cloud'en ikke længere rapporterer, fjernes. [Mere end 25 identiteter kan læse Begrænsede data](/docs/data-security/checks-and-issues#adgang) tæller læserne på den, og [Identiteter, der ikke er brugt i 90 dage, kan stadig nå det](/docs/data-security/checks-and-issues#adgang) fejler, så længe en identitet, der ikke er brugt i 90 dage, kan nå dets følsomme data. De tjenester, der bruger et datalager, er dets datastrømme af typen **Bruger**.
 
 Ud fra det, den læser, får hvert datalager en eksponering:
 
@@ -63,6 +63,22 @@ Ud fra det, den læser, får hvert datalager en eksponering:
 | **Ukendt** | OneUptime kunne ikke læse nok af dets konfiguration til at afgøre det. |
 
 Public slår delt, og delt slår nåbar: en offentlig bucket, der også er delt med en anden konto, er Public. Eksponering lægges til et problems [risikoscore](/docs/data-security/checks-and-issues#risikoscore).
+
+### Hver identitet, og hvad den kan nå
+
+På AWS lister læsningen kontoens brugere og roller én gang og afgør, som IAM gør, hvilke af dem der når hver bucket og hver DynamoDB-tabel, og hvordan: hvad deres politikker tillader minus hvad de nægter, tilladelsesgrænser, og en tildeling, der kun gælder under betingelser, siger det. En konto uden for dine forbundne konti, der må påtage sig en rolle, når det, rollen når. Hver identitets seneste brug kommer fra IAM for roller og fra kontoens legitimationsrapport for brugere.
+
+**Datasikkerhed → Adgang** viser hver identitet, der kan nå dine datalagre, den mest risikable først: hvad den når, og hvor følsomt det er, det meste, den må gøre, og hvornår den sidst blev brugt, med filtre for **Uden for dine konti**, **Ikke brugt i 90 dage** og **Kan ændre følsomme data**. Hver åbner sin egen side: hvert datalager, den kan nå, det mest følsomme først, og dens risikoscore del for del. Under dem viser Adgang hver tildeling udefra dine konti.
+
+| Hvad der lægges til en identitets risiko | Point |
+| --- | --- |
+| De mest følsomme data, den når | 50 for Begrænset, 30 for Fortrolig, 10 for Intern |
+| Den må skrive til eller administrere et Fortroligt eller Begrænset datalager | 15 |
+| Den er hvem som helst på internettet, eller uden for dine konti | 20 for hvem som helst, 15 for uden for |
+| Den er ikke brugt i 90 dage og når Interne, Fortrolige eller Begrænsede data | 10 |
+| Hvor mange følsomme datalagre den når | 1 for hvert, op til 5 |
+
+Scoren er højst 100. En rolle fra en konto udefra, der kan ændre ét datalager med kortnumre, får 50 + 15 + 15 + 1 = 81.
 
 ## Residensregler
 

@@ -8,7 +8,7 @@ Datasäkerhet har ingen egen personsökning eller säkerhetskö. Den lämnar det
 - [Incidenter](#incidenter): Deklarera en incident för ett intrång som din incidentprocess ska hantera.
 - [Ägare](#ägare): Vem som äger varje datalager, angivet för hand eller via regler, och e-postmeddelandet de får.
 - [OneUptime AI](#oneuptime-ai): Förklara ett problem, öppna en pull request som åtgärdar det, eller ställ frågor om dina data till Fråga AI.
-- [Stäng en exponering](#stäng-en-exponering): Blockera offentlig åtkomst eller sluta dela, från ett problem eller en playbook.
+- [Stäng en exponering](#stäng-en-exponering): Blockera offentlig åtkomst eller sluta dela, från ett problem eller en playbook, och slå på ett skydd som saknas från ett problem.
 :::
 
 ## Så fungerar det
@@ -43,6 +43,8 @@ Varje datalager är en egen entitet i Security Operations, av typen **Datalager*
 - den grupperas efter datalagret: ett andra kritiskt problem på samma datalager läggs till i det öppna ärendet om det i stället för att öppna ett nytt.
 
 Därifrån hanteras ärendet som vilket annat som helst: det tilldelas, får anteckningar, stängs och besvaras av projektets playbooks. Datalagrets detektioner räknas in i dess risk under [Entitetsrisk](/docs/telemetry/security-entity-risk), precis som för alla andra entiteter. Se [Säkerhetsärenden och playbooks](/docs/telemetry/security-cases).
+
+Varje säkerhetsärende, oavsett vad som öppnade det, visar data i riskzonen under **Påverkan**: de datalager med känsliga data som ärendet gäller, och varje datalager som dess användare och roller kan nå, det känsligaste först, med vad vart och ett innehåller, ungefär hur många poster, hur exponerat det är och hur många identiteter som kan nå det. En antagen rollsession som ärendet nämner räknas som sin roll, och en e-postadress som de molnanvändare den hör till. Det läses med läsarens egna behörigheter, så en roll som inte får läsa Datasäkerhet ser att den här delen är utelämnad.
 
 ## Larm och jour
 
@@ -106,12 +108,15 @@ De läser datatyper, platser och antal, aldrig ett fynds prov, maskerade eller i
 
 ## Stäng en exponering
 
-Två ändringar stänger ett molndatalagers exponering, var och en via datalagrets molnanslutning med **Datasäkerhetsrespons** påslaget (se [Konfigurera Datasäkerhet](/docs/data-security/setup#låt-datasäkerhet-stänga-en-exponering)):
+Två ändringar stänger ett molndatalagers exponering, var och en via datalagrets molnanslutning med **Datasäkerhetsrespons** påslaget (se [Konfigurera Datasäkerhet](/docs/data-security/setup#låt-datasäkerhet-stänga-en-exponering)), och sex till slår på en inställning som skyddar ett datalager, bara från dess problem:
 
 - **Blockera offentlig åtkomst**, på en S3-bucket, ett Azure-lagringskonto eller en Cloud Storage-bucket.
 - **Återkalla delning**, på en RDS-ögonblicksbild, eller på de delade manuella ögonblicksbilderna av en RDS-databas, ett Aurora-kluster eller ett DocumentDB-kluster.
+- **Slå på versionshantering**, **Slå på mjuk borttagning**, **Stäng av objekt-ACL:er**, **Slå på enhetlig åtkomst**, **Kräv säker överföring** och **Slå på återställning till en tidpunkt**, på de datalager som [Åtgärda härifrån](/docs/data-security/checks-and-issues#åtgärda-härifrån) listar.
 
 En person kör en av dem från ett öppet problem som den åtgärdar, med **Åtgärda härifrån** (se [Kontroller och problem i Datasäkerhet](/docs/data-security/checks-and-issues#åtgärda-härifrån)). En playbook i Security Operations kör dem som steg i kategorin **Begränsa**, **Blockera offentlig åtkomst till datalager** och **Återkalla delning av datalager**: på varje datalager som ärendet gäller, högst 10, vart och ett ett steg som börjar med **Kräver godkännande** påslaget. Ett datalager som är markerat **Offentlig avsiktligt** blockeras aldrig. I båda fallen anger datalagrets tidslinje vad som gjordes, och datalagret kontrolleras igen direkt, så problemet löses när ändringen har fått effekt.
+
+Playbook-mallen **Stäng en dataexponering** besvarar de ärenden som Datasäkerhet öppnar: den skickar e-post till datalagrets ägare, blockerar offentlig åtkomst och återkallar delning när en person har godkänt varje steg, och lägger till responsens checklista i ärendet som uppgifter – vem som läste data medan de var exponerade, om det är ett intrång som du måste anmäla, vilka hemligheter som ska roteras och vad som ska skrivas när ärendet stängs. Lägg till den från **Skapa från mall** bland projektets playbooks.
 
 ## API, Terraform och MCP
 
@@ -119,7 +124,7 @@ Allt som Datasäkerhet sparar är en post i OneUptimes API, som läses med samma
 
 | Poster | API-sökväg |
 | --- | --- |
-| Datalager, deras tidslinjer, deras fynd och vem som kan nå dem | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| Datalager, deras tidslinjer, deras fynd, vem som kan nå dem och varje identitet som kan det | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problem, deras tidslinjer och dataflöden | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Skanningar | `/data-security-scan` |
 | Anpassade datatyper, kontrollinställningar och hemvistregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 | `/data-security-issue/<id>/explain` | **Förklara med AI** på ett problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Åtgärda med AI** på ett problem |
 | `/data-store/<id>/response-actions` | Vilka responsåtgärder datalagret kan utföra nu, och varför inte |
-| `/data-store/<id>/respond` | **Blockera offentlig åtkomst** eller **Återkalla delning** på datalagret, med problemet som det kördes från |
+| `/data-store/<id>/respond` | En responsåtgärd på datalagret, till exempel **Blockera offentlig åtkomst** eller **Slå på versionshantering**, med problemet som den kördes från |
 
 [Terraform-providern](/docs/terraform/index) har en resurs för varje sorts post som du skapar – datalager som du lägger till själv, anpassade datatyper, kontrollinställningar, hemvistregler, ägar- och etikettregler – uppkallad efter posten, till exempel `oneuptime_residency_rule`.
 
-[MCP-servern](/docs/ai/mcp-server) har verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för de här posterna: Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule och Data Security Setting. En AI-assistent kan då fråga vilka datalager som innehåller kortnummer, eller vad som är öppet på en bucket, med dina behörigheter.
+[MCP-servern](/docs/ai/mcp-server) har verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för de här posterna: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule och Data Security Setting. En AI-assistent kan då fråga vilka datalager som innehåller kortnummer, eller vad som är öppet på en bucket, med dina behörigheter.
 
 ## Nästa steg
 

@@ -35,7 +35,7 @@ Cada escaneo (una línea de registro, una celda de CSV, una fila de base de dato
 | **Media** | El valor superó su validador sin nada alrededor que lo confirme, o el nombre del campo dice qué contiene y algunos valores lo confirman. |
 | **Baja** | La forma coincide, pero nada lo confirma. |
 
-Solo cuentan los hallazgos de confianza Alta y Media: hacen que un almacén sea sensible y pueden abrir un problema. Los hallazgos de confianza Baja se listan en el almacén, plegados, para que una persona los juzgue.
+Solo cuentan los hallazgos de confianza Alta y Media: hacen que un almacén sea sensible y pueden abrir un problema. Los hallazgos de confianza Baja se listan en el almacén, plegados, para que una persona los juzgue: **Confirmar** en uno correcto lo convierte en Alta, y sigue siendo Alta en los escaneos siguientes.
 
 Cuando dos tipos de datos reclaman los mismos caracteres, gana el hallazgo más seguro: el de mayor confianza, después el detector cuyas propias reglas prueban más, y después la coincidencia más larga.
 
@@ -58,6 +58,12 @@ El nombre de un campo se divide en palabras (`customerEmail`, `customer_email` y
 Algunos tipos de datos no se pueden distinguir por sus valores: ningún patrón distingue el nombre de una persona del de una calle, ni una religión de cualquier otra palabra. Estos se encuentran solo por el nombre del campo, cuando el campo tiene valores: Nombre de persona, Nombre de usuario, Género, Nacionalidad, Información de salud, Origen racial o étnico, Creencia religiosa, Orientación sexual, Opinión política, Afiliación sindical, Datos biométricos, Datos genéticos y Antecedentes penales. Un nombre, un nombre de usuario, un género o una nacionalidad tiene entonces confianza Alta cuando el 60% o más de los valores lo parecen, y Media en otro caso.
 
 Un campo cuyo nombre dice que contiene una contraseña (`password`, `passwordHash`, `pwd`, no `password_changed_at`) debería contener un hash: bcrypt, argon2, scrypt, PBKDF2 u otro esquema que probablemente use un almacén. Los valores vacíos, los marcadores de posición como `********` y los valores cifrados se dejan aparte. Cuando entre los demás hay más valores que no son hashes que hashes, el campo contiene las propias contraseñas, que ningún patrón puede ver, y el almacén no supera [Las contraseñas se guardan en texto plano](/docs/data-security/checks-and-issues#higiene-de-los-datos).
+
+### Campos que ningún detector pudo ubicar
+
+Una columna o un campo cuyo nombre no apunta a ningún tipo de datos, y cuyos valores no coinciden con ningún detector, no se sabe que sea seguro: puede ser tu propio número de cliente, o una columna con nombre en otro idioma. Con **Habilitar IA** activado en el proyecto, un escaneo de contenido guarda esos campos, como máximo 200 por escaneo, y se pregunta a OneUptime AI qué tipo de datos del proyecto contiene cada uno, como máximo 40 campos de un almacén a la vez. Se le dice el nombre del campo, los nombres de los campos de al lado y las formas de sus valores (cada letra escrita como `a` o `A` y cada dígito como `9`, así que `AB-1234` es `AA-9999`), nunca un valor. No se pregunta por texto libre, campos con menos de 5 valores, números enteros pequeños ni campos con nombre de identificador, fecha o estado.
+
+Cada tipo que nombra OneUptime AI es un hallazgo de confianza Baja, marcado como **Sugerido por OneUptime AI** con su motivo. Como cualquier hallazgo de confianza Baja, no cuenta para nada hasta que una persona elige **Confirmar** en la página **Contenido** del almacén; **Marcar como no sensible** lo rechaza. No se vuelve a preguntar por un campo ya respondido durante 30 días, y nunca más por un campo que una persona haya juzgado.
 
 ## Sensibilidad
 
