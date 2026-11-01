@@ -109,6 +109,26 @@ const SECOND_RULE_FORMS: Record<string, SecondRuleForm> = {
   },
 };
 
+/*
+ * One rule model, two products' pages: the cloud owner and label rules are
+ * Cloud's (the resources in its accounts) and App Platforms' (the
+ * environments its apps run in), each listed and created on its product's
+ * Settings pages. The model's one engine evaluates both; each page offers
+ * the fields of its own rows - an environment has no cloud tags - so the
+ * product's form is held to a share of what the engine reads, and the two
+ * between them to every field the model registers.
+ */
+const PRODUCT_RULE_FORMS: Record<string, string> = {
+  CloudResourceLabelRule: path.join(
+    DASHBOARD_SOURCE_ROOT,
+    "Pages/AppPlatforms/Settings/LabelRules.tsx",
+  ),
+  CloudResourceOwnerRule: path.join(
+    DASHBOARD_SOURCE_ROOT,
+    "Pages/AppPlatforms/Settings/OwnerRules.tsx",
+  ),
+};
+
 function listTypescriptReactFiles(directoryPath: string): Array<string> {
   const result: Array<string> = [];
 
@@ -196,6 +216,7 @@ function discoverStaticRuleForms(): {
   formFiles: Array<string>;
   formsByModel: Map<string, FormCoverage>;
   secondFormsByModel: Map<string, FormCoverage>;
+  productFormsByModel: Map<string, FormCoverage>;
   metricPipelineFile: string;
 } {
   const formFiles: Array<string> = listTypescriptReactFiles(
@@ -211,6 +232,7 @@ function discoverStaticRuleForms(): {
   );
   const formsByModel: Map<string, FormCoverage> = new Map();
   const secondFormsByModel: Map<string, FormCoverage> = new Map();
+  const productFormsByModel: Map<string, FormCoverage> = new Map();
   const modelTypePattern: RegExp = /modelType=\{([A-Za-z][A-Za-z0-9]*Rule)\}/g;
 
   for (const filePath of formFiles) {
@@ -241,6 +263,12 @@ function discoverStaticRuleForms(): {
         continue;
       }
 
+      if (PRODUCT_RULE_FORMS[modelName] === filePath) {
+        expect(productFormsByModel.has(modelName)).toBe(false);
+        productFormsByModel.set(modelName, { fields, filePath });
+        continue;
+      }
+
       expect(formsByModel.has(modelName)).toBe(false);
       formsByModel.set(modelName, { fields, filePath });
     }
@@ -250,6 +278,7 @@ function discoverStaticRuleForms(): {
     formFiles,
     formsByModel,
     secondFormsByModel,
+    productFormsByModel,
     metricPipelineFile,
   };
 }
@@ -298,21 +327,30 @@ function getInheritedRuleModelNames(): Array<string> {
 }
 
 describe("static rule criteria runtime coverage", () => {
-  const { formFiles, formsByModel, secondFormsByModel, metricPipelineFile } =
-    discoverStaticRuleForms();
+  const {
+    formFiles,
+    formsByModel,
+    secondFormsByModel,
+    productFormsByModel,
+    metricPipelineFile,
+  } = discoverStaticRuleForms();
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
   /*
-   * 74 forms and 85 models: the investigation rules' form and model went
+   * 76 forms and 85 models: the investigation rules' form and model went
    * when they became AI rules - AiRulesTable for incidents and alerts, and
    * TelemetryAiRulesTable for the telemetry products, for the one model -
-   * and Data Security's label and owner rules for data stores came.
+   * Data Security's label and owner rules for data stores came, and App
+   * Platforms' pages for the cloud rules' environments.
    */
-  test("all 74 static match-criteria forms route their 85 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(74);
+  test("all 76 static match-criteria forms route their 85 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(76);
     expect(formsByModel.size).toBe(85);
     expect([...secondFormsByModel.keys()]).toEqual(
       Object.keys(SECOND_RULE_FORMS),
+    );
+    expect([...productFormsByModel.keys()].sort()).toEqual(
+      Object.keys(PRODUCT_RULE_FORMS).sort(),
     );
     expect([...formsByModel.keys()].sort()).toEqual(inheritedRuleModelNames);
     expect(Object.keys(RULE_CRITERIA_FIELDS_BY_MODEL).sort()).toEqual(
@@ -341,7 +379,14 @@ describe("static rule criteria runtime coverage", () => {
         ].sort(),
       );
 
-      for (const coverage of secondForm ? [form, secondForm] : [form]) {
+      const productForm: FormCoverage | undefined =
+        productFormsByModel.get(modelName);
+
+      for (const coverage of [form, secondForm, productForm].filter(
+        (candidate: FormCoverage | undefined): candidate is FormCoverage => {
+          return candidate !== undefined;
+        },
+      )) {
         const source: string = fs.readFileSync(coverage.filePath, "utf8");
         const modelTypeOffset: number = source.indexOf(
           `modelType={${modelName}}`,
@@ -466,6 +511,32 @@ describe("static rule criteria runtime coverage", () => {
       expect([...extractLegacyFields(evaluatorSource)].sort()).toEqual(
         [...form.fields].sort(),
       );
+    },
+  );
+
+  test.each(Object.entries(PRODUCT_RULE_FORMS))(
+    "%s's other product's form offers a share of what the model's own engine reads",
+    (modelName: string, formFile: string) => {
+      const form: FormCoverage | undefined = productFormsByModel.get(modelName);
+
+      expect(form).toBeDefined();
+      expect(form!.filePath).toBe(formFile);
+
+      const evaluatorSource: string = fs.readFileSync(
+        path.join(SERVICES_ROOT, getEvaluatorFileName(modelName)),
+        "utf8",
+      );
+      const evaluatedFields: Set<string> = extractLegacyFields(evaluatorSource);
+      const firstForm: FormCoverage | undefined = formsByModel.get(modelName);
+
+      expect(firstForm).toBeDefined();
+      expect(form!.fields.size).toBeGreaterThan(0);
+
+      // Every field it offers is one the engine reads, and Cloud's form offers.
+      for (const field of form!.fields) {
+        expect(evaluatedFields.has(field)).toBe(true);
+        expect(firstForm!.fields.has(field)).toBe(true);
+      }
     },
   );
 
