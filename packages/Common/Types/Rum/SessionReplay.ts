@@ -734,16 +734,18 @@ export interface SessionReplayChunkEnvelope {
   url: string;
 
   /*
-   * Distinct scrubbed URLs the page was on while this chunk was open, in
-   * chronological order. Optional so an older recorder posting to a newer
-   * server is still accepted - the server then falls back to `url` alone,
-   * which is what it did before this field existed.
+   * Scrubbed URLs the page was on while this chunk was open, in the order
+   * they were visited: a page the user came back to appears again, and only
+   * a back-to-back repeat is left out. An older recorder sends each page
+   * once. Optional so an older recorder posting to a newer server is still
+   * accepted - the server then falls back to `url` alone, which is what it
+   * did before this field existed.
    *
    * `url` says where the chunk was FLUSHED from; this says where the user
    * went while it was filling. The session header's routes[] column is the
    * union of these, and the "sessions that hit /checkout" filter reads it,
    * so without this a navigation that both starts and ends inside one flush
-   * window is invisible.
+   * window is invisible. User Flows reads a journey from the order.
    */
   routes?: Array<string>;
 
