@@ -1165,6 +1165,23 @@ Usage: {{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "ve
 {{- end -}}
 
 {{/*
+The type the cumulative-to-delta processor goes by on the collector this
+renders for. Collector 0.157.0 renamed it cumulative_to_delta and keeps
+cumulativetodelta as a deprecated alias; a collector before 0.157.0 knows only
+cumulativetodelta and refuses the whole config for the new name ("unknown type"),
+and 0.96.0 is what `helm upgrade --reuse-values` keeps (_stale-defaults.tpl).
+Both names were validated on 0.96.0, 0.156.0, 0.157.0 and 0.161.0.
+Usage: {{ include "kubernetes-agent.cumulativeToDeltaProcessor" . }}/restarts-increase
+*/}}
+{{- define "kubernetes-agent.cumulativeToDeltaProcessor" -}}
+{{- if eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.157.0")) "true" -}}
+cumulative_to_delta
+{{- else -}}
+cumulativetodelta
+{{- end -}}
+{{- end -}}
+
+{{/*
 Platform capabilities, derived from the preset.
 
 hostPath is what separates the presets: GKE Autopilot and EKS Fargate reject it,

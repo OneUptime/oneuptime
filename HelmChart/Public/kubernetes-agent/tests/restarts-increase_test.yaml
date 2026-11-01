@@ -163,7 +163,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n  transform/restarts-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"container\\.id\"\\)\\n      - context: metric\\n        statements:\\n          - set\\(name, \"k8s\\.container\\.restarts\\.increase\"\\) where name == \"k8s\\.container\\.restarts\"\\n          - set\\(description, \"Times the container restarted since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n(?:      #[^\\n]*\\n)*      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.container\\.restarts\\.increase\"\\n  cumulative_to_delta/restarts-increase:\\n"
+          pattern: "\\n  transform/restarts-increase:\\n    error_mode: ignore\\n    metric_statements:\\n      - context: resource\\n        statements:\\n          - delete_key\\(attributes, \"container\\.id\"\\)\\n      - context: metric\\n        statements:\\n          - set\\(name, \"k8s\\.container\\.restarts\\.increase\"\\) where name == \"k8s\\.container\\.restarts\"\\n          - set\\(description, \"Times the container restarted since the agent's previous sample of it\\.\"\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n(?:      #[^\\n]*\\n)*      - context: datapoint\\n        statements:\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where metric\\.name == \"k8s\\.container\\.restarts\\.increase\"\\n  cumulativetodelta/restarts-increase:\\n"
       # Exactly once: never in metric context there too. (The Job
       # failures copy has a convert_gauge_to_sum of its own,
       # tests/job-failures-increase_test.yaml.)
@@ -185,7 +185,7 @@ tests:
     asserts:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n  cumulative_to_delta/restarts-increase:\\n"
+          pattern: "\\n          - convert_gauge_to_sum\\(\"cumulative\", true\\) where name == \"k8s\\.container\\.restarts\\.increase\"\\n  cumulativetodelta/restarts-increase:\\n"
       - notMatchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "context: datapoint"
@@ -228,7 +228,7 @@ tests:
       # service.connectors gate went in 0.81.0).
       - matchRegex:
           path: data["otel-collector-config.yaml"]
-          pattern: "\\n        - cumulative_to_delta/restarts-increase\\n      exporters:\\n        - forward/restarts-increase\\n"
+          pattern: "\\n        - cumulativetodelta/restarts-increase\\n      exporters:\\n        - forward/restarts-increase\\n"
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n    metrics:\\n      receivers:\\n        - k8s_cluster\\n(?:        #[^\\n]*\\n)*        - forward/restarts-increase\\n"
@@ -318,3 +318,36 @@ tests:
       - matchRegex:
           path: data["otel-collector-config.yaml"]
           pattern: "\\n  forward/restarts-increase: \\{\\}\\n"
+
+  # Collector 0.157.0 renamed the processor cumulative_to_delta and keeps
+  # cumulativetodelta as a deprecated alias; a collector before 0.157.0 knows
+  # only cumulativetodelta and refuses a whole config that names the new type
+  # (kubernetes-agent.cumulativeToDeltaProcessor). Tests/Ops'
+  # validate-collector-configs.sh runs both renders in the collector.
+  - it: names the processor cumulativetodelta for a collector before 0.157.0, where it is defined and where it runs
+    set:
+      image.tag: "0.156.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  cumulativetodelta/restarts-increase:\\n    include:\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - cumulativetodelta/restarts-increase\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n(?:  |        - )cumulative_to_delta/"
+
+  - it: and cumulative_to_delta from 0.157.0, which renamed it
+    set:
+      image.tag: "0.157.0"
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  cumulative_to_delta/restarts-increase:\\n    include:\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n        - cumulative_to_delta/restarts-increase\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n(?:  |        - )cumulativetodelta/"
