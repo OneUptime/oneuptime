@@ -383,13 +383,20 @@ describe("cluster overview: node pressure, summary cards and sections", () => {
         record: CLUSTER_RECORD,
       }),
     ).toEqual([
-      ["Cluster Health", "clusterHealth"],
+      // Which of the two rules applies, pinned just below.
+      ["Cluster Health", null],
       ["Nodes", "nodes"],
       ["Pods", "pods"],
       ["Namespaces", "namespaces"],
       ["Agent Status", "agentStatus"],
     ]);
     expect(countOf(OVERVIEW, "<InfoCard")).toBe(5);
+
+    // On OpenShift the health rule has more to say, so its text says that too.
+    expectCode(
+      cards,
+      `tooltip={openShiftHealth ? ${CLUSTER_RECORD}.clusterHealthOpenShift : ${CLUSTER_RECORD}.clusterHealth}`,
+    );
 
     /*
      * The sixth card, beside Agent Status, is the Kubernetes AI agent's own

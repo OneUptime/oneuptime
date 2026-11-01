@@ -42,6 +42,8 @@ export interface ComponentProps {
   source: KubernetesMetricsSource;
   // The cluster's name, as its telemetry reports it (k8s.cluster.name).
   clusterName: string;
+  // The cluster's KubernetesCluster.provider: some hints read otherwise there.
+  clusterProvider?: string | null | undefined;
   // The charts are running their queries again.
   isChecking: boolean;
   onCheckAgain: () => void;
@@ -58,8 +60,14 @@ function getCodeElement(text: string): ReactElement {
 const KubernetesMetricsSetupEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const setup: KubernetesMetricsSetup = getKubernetesMetricsSetup(props.source);
-  const command: string | null = getKubernetesMetricsSetupCommand(props.source);
+  const setup: KubernetesMetricsSetup = getKubernetesMetricsSetup(
+    props.source,
+    props.clusterProvider,
+  );
+  const command: string | null = getKubernetesMetricsSetupCommand(
+    props.source,
+    props.clusterProvider,
+  );
 
   /*
    * Exactly the placeholders the sentence has: TranslatedSentence falls back

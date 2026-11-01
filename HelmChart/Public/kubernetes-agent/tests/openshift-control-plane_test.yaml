@@ -1,0 +1,471 @@
+# Control-plane scraping on OpenShift.
+#
+# The chart scrapes fixed addresses, and OpenShift's Services front several
+# replicas of the scheduler, the controller manager and etcd, so a fixed address
+# would reach whichever one the Service picks. On both OpenShift presets each
+# replica is found instead, in the Service's EndpointSlices, kept by the
+# Service's name and the port's, and scraped on its own: the way OpenShift's own
+# ServiceMonitors do, and the way the chart's service mesh jobs find their pods.
+#
+# Sources, from Red Hat's operators:
+#   scheduler                Service scheduler in openshift-kube-scheduler,
+#                            port https (10259)
+#   controller manager       Service kube-controller-manager in
+#                            openshift-kube-controller-manager, port https (10257)
+#   etcd                     Service etcd in openshift-etcd, port etcd-metrics
+#                            (9979), with a client certificate
+#
+# The patterns read the job with the ConfigMap's own indent stripped: `- job_name:`
+# at 8 spaces, its keys at 10. Each spells out the whole job, from `job_name` to
+# the first line past it, so a key that should not be there fails the match.
+suite: on OpenShift the control plane is found through service discovery, one replica at a time
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-deployment.yaml
+  - templates/deployment.yaml
+  - templates/rbac.yaml
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  # --- The scheduler and the controller manager --------------------------------
+  - it: finds each scheduler in its Service's EndpointSlices, with the service account's token
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-scheduler\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: true\n          bearer_token_file: /var/run/secrets/kubernetes\.io/serviceaccount/token\n          kubernetes_sd_configs:\n            - role: endpointslice\n              namespaces:\n                names:\n                  - openshift-kube-scheduler\n          relabel_configs:\n            - source_labels: \[__meta_kubernetes_service_name\]\n              action: keep\n              regex: scheduler\n            - source_labels: \[__meta_kubernetes_endpointslice_port_name\]\n              action: keep\n              regex: https\n(?: {0,8}\S|\n)'
+
+  - it: finds each controller manager the same way
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-controller-manager\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: true\n          bearer_token_file: /var/run/secrets/kubernetes\.io/serviceaccount/token\n          kubernetes_sd_configs:\n            - role: endpointslice\n              namespaces:\n                names:\n                  - openshift-kube-controller-manager\n          relabel_configs:\n            - source_labels: \[__meta_kubernetes_service_name\]\n              action: keep\n              regex: kube-controller-manager\n            - source_labels: \[__meta_kubernetes_endpointslice_port_name\]\n              action: keep\n              regex: https\n(?: {0,8}\S|\n)'
+
+  - it: does the same on openshift-restricted
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift-restricted
+      controlPlane.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-scheduler\n          scheme: https\n(?:.*\n)*?          kubernetes_sd_configs:\n            - role: endpointslice\n              namespaces:\n                names:\n                  - openshift-kube-scheduler\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-controller-manager\n          scheme: https\n(?:.*\n)*?          kubernetes_sd_configs:\n            - role: endpointslice\n              namespaces:\n                names:\n                  - openshift-kube-controller-manager\n'
+
+  - it: keeps the API server as it is
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-apiserver\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: true\n(?:            # [^\n]*\n)*            ca_file: /var/run/secrets/kubernetes\.io/serviceaccount/ca\.crt\n          bearer_token_file: /var/run/secrets/kubernetes\.io/serviceaccount/token\n          static_configs:\n            - targets:\n                - "kubernetes\.default\.svc:443"\n(?: {0,8}\S|\n)'
+
+  # --- TLS -----------------------------------------------------------------------
+  - it: leaves the service CA out while certificates are not checked, as the file must exist for the collector to start
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'service-ca\.crt|server_name'
+
+  - it: checks a scheduler's certificate against the service CA, as the Service's name, when asked
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.scheduler.insecureSkipVerify: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-scheduler\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: false\n(?:            # [^\n]*\n)*            ca_file: /var/run/secrets/kubernetes\.io/serviceaccount/service-ca\.crt\n            server_name: scheduler\.openshift-kube-scheduler\.svc\n          bearer_token_file: /var/run/secrets/kubernetes\.io/serviceaccount/token\n          kubernetes_sd_configs:\n'
+      # One component's setting is that component's.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-controller-manager\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: true\n          bearer_token_file: '
+
+  - it: checks a controller manager's the same way
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift-restricted
+      controlPlane.enabled: true
+      controlPlane.controllerManager.insecureSkipVerify: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-controller-manager\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: false\n(?:            # [^\n]*\n)*            ca_file: /var/run/secrets/kubernetes\.io/serviceaccount/service-ca\.crt\n            server_name: kube-controller-manager\.openshift-kube-controller-manager\.svc\n          bearer_token_file: /var/run/secrets/kubernetes\.io/serviceaccount/token\n          kubernetes_sd_configs:\n'
+
+  # --- etcd ----------------------------------------------------------------------
+  - it: has no etcd job until a Secret holds its client certificate
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'job_name: etcd\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'openshift-etcd'
+
+  - it: finds each etcd member, on its metrics port and no other, with that client certificate
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: etcd\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: true\n            ca_file: /etc/oneuptime/etcd-client-cert/ca\.crt\n            cert_file: /etc/oneuptime/etcd-client-cert/tls\.crt\n            key_file: /etc/oneuptime/etcd-client-cert/tls\.key\n          kubernetes_sd_configs:\n            - role: endpointslice\n              namespaces:\n                names:\n                  - openshift-etcd\n          relabel_configs:\n            - source_labels: \[__meta_kubernetes_service_name\]\n              action: keep\n              regex: etcd\n            - source_labels: \[__meta_kubernetes_endpointslice_port_name\]\n              action: keep\n              regex: etcd-metrics\n(?: {0,8}\S|\n)'
+
+  - it: sends etcd no token, which only a certificate satisfies
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'job_name: etcd\n(?:.*\n)*?          bearer_token_file:(?:.*\n)*?        - job_name: kube-apiserver'
+
+  - it: takes etcd's insecureSkipVerify from its own setting
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift-restricted
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+      controlPlane.etcd.insecureSkipVerify: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: etcd\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: false\n            ca_file: /etc/oneuptime/etcd-client-cert/ca\.crt\n'
+
+  - it: mounts the Secret where the job reads it
+    template: templates/deployment.yaml
+    set:
+      preset: openshift-restricted
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: etcd-client-cert
+            secret:
+              secretName: etcd-client-cert
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: etcd-client-cert
+            mountPath: /etc/oneuptime/etcd-client-cert
+            readOnly: true
+
+  # --- Your endpoints win --------------------------------------------------------
+  - it: scrapes the scheduler at the endpoints you list, in the same job, and finds nothing
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.scheduler.endpoints:
+        - https://10.0.0.10:10259/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-scheduler\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: true\n          bearer_token_file: /var/run/secrets/kubernetes\.io/serviceaccount/token\n          static_configs:\n            - targets:\n                - "10\.0\.0\.10:10259"\n(?: {0,8}\S|\n)'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'openshift-kube-scheduler'
+      # The other component is still found.
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '- openshift-kube-controller-manager\n'
+
+  - it: scrapes the controller manager at the endpoints you list
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.controllerManager.endpoints:
+        - https://10.0.0.10:10257/metrics
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: kube-controller-manager\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: true\n          bearer_token_file: /var/run/secrets/kubernetes\.io/serviceaccount/token\n          static_configs:\n            - targets:\n                - "10\.0\.0\.10:10257"\n(?: {0,8}\S|\n)'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'openshift-kube-controller-manager'
+
+  - it: scrapes etcd at the endpoints you list, Secret or none
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.etcd.endpoints:
+        - https://10.0.0.10:9979
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - job_name: etcd\n          scheme: https\n          metrics_path: /metrics\n          tls_config:\n            insecure_skip_verify: true\n(?:            # [^\n]*\n)*            ca_file: /etc/oneuptime/etcd-client-cert/ca\.crt\n            cert_file: /etc/oneuptime/etcd-client-cert/tls\.crt\n            key_file: /etc/oneuptime/etcd-client-cert/tls\.key\n          static_configs:\n            - targets:\n                - "10\.0\.0\.10:9979"\n(?: {0,8}\S|\n)'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'openshift-etcd'
+
+  # --- One job per component, and a receiver only with jobs ------------------------
+  - it: renders each job once, listed or found
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+      controlPlane.scheduler.endpoints:
+        - https://10.0.0.10:10259
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'job_name: etcd\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?s)job_name: etcd\n.*job_name: etcd\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?s)job_name: kube-scheduler\n.*job_name: kube-scheduler\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '(?s)job_name: kube-controller-manager\n.*job_name: kube-controller-manager\n'
+
+  - it: keeps the prometheus receiver when only found jobs exist, which a receiver with no job would refuse
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.apiServer.endpoints: []
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  prometheus:\n    config:\n      scrape_configs:\n'
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - prometheus\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'job_name: kube-apiserver\n'
+
+  - it: renders no job and no receiver while the control plane is off, a Secret or not
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'job_name: (etcd|kube-apiserver|kube-scheduler|kube-controller-manager)\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  prometheus:\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n        - prometheus\n'
+
+  - it: renders none on openshift-restricted either
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: openshift-restricted
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'kubernetes_sd_configs'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  prometheus:\n'
+
+  # --- RBAC ----------------------------------------------------------------------
+  - it: lets the agent read EndpointSlices, and only read them, when a job finds its targets
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["discovery.k8s.io"]
+            resources:
+              - endpointslices
+            verbs: ["get", "list", "watch"]
+
+  - it: lets it on openshift-restricted too
+    template: templates/rbac.yaml
+    set:
+      preset: openshift-restricted
+      controlPlane.enabled: true
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["discovery.k8s.io"]
+            resources:
+              - endpointslices
+            verbs: ["get", "list", "watch"]
+
+  - it: keeps the rest of what discovery reads, Services and pods, and GET on /metrics
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules[0].resources
+          content: services
+      - contains:
+          path: rules[0].resources
+          content: pods
+      - contains:
+          path: rules
+          content:
+            nonResourceURLs:
+              - /metrics
+              - /metrics/cadvisor
+            verbs: ["get"]
+
+  - it: grants nothing of EndpointSlices while the control plane is off
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["discovery.k8s.io"]
+          any: true
+
+  - it: grants nothing of them when every component is listed, as no job finds anything
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.scheduler.endpoints:
+        - https://10.0.0.10:10259
+      controlPlane.controllerManager.endpoints:
+        - https://10.0.0.10:10257
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["discovery.k8s.io"]
+          any: true
+
+  - it: grants them while etcd alone is found
+    template: templates/rbac.yaml
+    set:
+      preset: openshift
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+      controlPlane.scheduler.endpoints:
+        - https://10.0.0.10:10259
+      controlPlane.controllerManager.endpoints:
+        - https://10.0.0.10:10257
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups: ["discovery.k8s.io"]
+            resources:
+              - endpointslices
+            verbs: ["get", "list", "watch"]
+
+  # --- Every other preset ----------------------------------------------------------
+  - it: gives the standard preset no job for a component with no endpoints, as before
+    template: templates/configmap-deployment.yaml
+    set:
+      controlPlane.enabled: true
+      controlPlane.etcd.clientCertSecret: etcd-client-cert
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'job_name: (etcd|kube-scheduler|kube-controller-manager)\n'
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'kubernetes_sd_configs|openshift-'
+
+  - it: adds no prometheus receiver on the standard preset with no endpoints, as before
+    template: templates/configmap-deployment.yaml
+    set:
+      controlPlane.enabled: true
+      controlPlane.apiServer.endpoints: []
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: '\n  prometheus:\n'
+
+  - it: grants the standard preset nothing of EndpointSlices
+    template: templates/rbac.yaml
+    set:
+      controlPlane.enabled: true
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["discovery.k8s.io"]
+          any: true
+
+  - it: finds nothing on GKE Autopilot either
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: gke-autopilot
+      controlPlane.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'job_name: (etcd|kube-scheduler|kube-controller-manager)\n'
+
+  - it: finds nothing on EKS Fargate either
+    template: templates/configmap-deployment.yaml
+    set:
+      preset: eks-fargate
+      controlPlane.enabled: true
+    asserts:
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: 'job_name: (etcd|kube-scheduler|kube-controller-manager)\n'

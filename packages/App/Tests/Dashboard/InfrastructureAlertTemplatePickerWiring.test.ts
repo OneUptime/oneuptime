@@ -672,6 +672,14 @@ describe("a resource's Recommendations use the picker's category names", () => {
         catalogOrder,
       ),
     ).toEqual([...pickerOrder, "Events"]);
+
+    // On an OpenShift cluster, its own heading comes after those.
+    expect(
+      orderAlertTemplateCategories(
+        MonitorRecommendationResourceType.Kubernetes,
+        ["OpenShift", ...catalogOrder],
+      ),
+    ).toEqual([...pickerOrder, "Events", "OpenShift"]);
   });
 
   test("Kubernetes Recommendations name Quick Setup's headings, then Events, and Quick Setup never lists Events", () => {
@@ -688,6 +696,7 @@ describe("a resource's Recommendations use the picker's category names", () => {
         },
       ),
       "Events",
+      "OpenShift",
     ]);
     expect(
       ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE[

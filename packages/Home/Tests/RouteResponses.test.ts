@@ -924,6 +924,37 @@ describe("the route table over HTTP", () => {
     });
   });
 
+  describe("the OpenShift page", () => {
+    function lastRender(): RenderedView {
+      return home.renders[home.renders.length - 1]!;
+    }
+
+    test("/product/openshift renders its page with its SEO data", async () => {
+      const answer: Answer = await home.request("GET", "/product/openshift");
+
+      expect(answer.status).toBe(200);
+      expect(lastRender().view).toBe("openshift.ejs");
+      expect(
+        (lastRender().locals["seo"] as { canonicalPath: string }).canonicalPath,
+      ).toBe("/product/openshift");
+    });
+
+    test("/product/openshift.md answers for machines, as a marketing page's Markdown does", async () => {
+      const answer: Answer = await home.request("GET", "/product/openshift.md");
+
+      expect(answer.status).toBe(200);
+      expect(answer.body).toContain("# OpenShift Monitoring");
+    });
+
+    test("/data/products.json leaves it to the Kubernetes product", async () => {
+      const answer: Answer = await home.request("GET", "/data/products.json");
+
+      expect(answer.status).toBe(200);
+      expect(answer.body).toContain("https://oneuptime.com/product/kubernetes");
+      expect(answer.body).not.toContain("/product/openshift");
+    });
+  });
+
   describe("the integrations", () => {
     function lastRender(): RenderedView {
       return home.renders[home.renders.length - 1]!;

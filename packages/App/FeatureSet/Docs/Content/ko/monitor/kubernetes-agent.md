@@ -32,7 +32,7 @@ flowchart LR
 | 노드 컬렉터 | DaemonSet | `/var/log/pods` 의 파드 로그, kubelet 및 cAdvisor 메트릭, 노드의 OS 메트릭. | 예 |
 | eBPF 계측(OBI) | DaemonSet | 모든 파드의 HTTP, gRPC, SQL, Redis 트레이스와 요청 메트릭, 그리고 서비스 맵. | 예 |
 | Kubernetes AI 에이전트 | Deployment | OneUptime AI가 이 클러스터의 인시던트나 알림을 조사하는 동안 읽기 전용 `kubectl` 을 실행할 수 있게 합니다. | 예 |
-| 로그 테일러 | Deployment | 노드 컬렉터가 읽을 수 없는 곳에서 Kubernetes API를 통해 파드 로그를 가져옵니다. | `gke-autopilot` 및 `eks-fargate` 프리셋에서 |
+| 로그 테일러 | Deployment | 노드 컬렉터가 읽을 수 없는 곳에서 Kubernetes API를 통해 파드 로그를 가져옵니다. | `gke-autopilot`, `eks-fargate` 및 `openshift-restricted` 프리셋에서 |
 | eBPF 프로파일러 | DaemonSet | 모든 프로세스의 지속적인 CPU 플레임 그래프. | 아니요 |
 | kube-state-metrics | Deployment | 파드 단계, 컨테이너 대기 사유, 리소스 쿼터. | 아니요 |
 
@@ -93,6 +93,7 @@ kubectl get pods -n oneuptime-agent
 | `gke-autopilot` | **GKE Autopilot** | 로그 테일러가 Kubernetes API를 통해 읽음 | `hostPath` 없이 kubelet 및 cAdvisor 메트릭 |
 | `eks-fargate` | **EKS Fargate** | 로그 테일러가 Kubernetes API를 통해 읽음 | 없음: Fargate는 DaemonSet을 실행하지 않음 |
 | `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | 노드 컬렉터가 `/var/log/pods` 를 읽음 | kubelet, cAdvisor, OS 메트릭 |
+| `openshift-restricted` | **OpenShift**(관리자가 SCC를 추가하지 않는 경우) | 로그 테일러가 Kubernetes API를 통해 읽음 | `hostPath` 없이 kubelet 및 cAdvisor 메트릭 |
 
 잘 모르겠다면 `preset` 을 비워 두어 `standard` 를 쓰세요. 설치가 `hostPath` 를 언급하는 Pod Security 오류로 실패하면 `gke-autopilot` 으로, EKS Fargate에서는 `eks-fargate` 로 다시 설치하세요.
 
@@ -137,6 +138,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set preset=openshift
 ```
 :::
+
+관리자가 SCC를 추가하지 않는 경우 대신 `--set preset=openshift-restricted` 로 설치하세요. 그러면 차트는 SCC를 만들지 않고 모든 파드가 `restricted-v2` 에서 실행되므로, 파드 로그는 Kubernetes API를 통해 들어오고 OS 메트릭, eBPF 트레이스, 프로파일은 없습니다. [OpenShift](/docs/telemetry/kubernetes-agent#openshift)를 참고하세요.
 
 ## 클러스터에 레이블 붙이기
 
@@ -367,7 +370,7 @@ eBPF 계측도 켜져 있으면(기본값), 각 샘플이 속한 트레이스를
 | `oneuptime.url` | (필수) | 내 OneUptime URL. |
 | `oneuptime.apiKey` | (필수) | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키** 에서 만든 수집 키. `x-oneuptime-token` 헤더로 보내며, 프로젝트 API 키는 쓸 수 없습니다. |
 | `clusterName` | (필수) | 프로젝트 안에서 고유한 클러스터 이름. 모든 레코드가 이를 `k8s.cluster.name` 으로 담습니다. |
-| `preset` | (비어 있음: `standard`) | `standard`, `gke-autopilot`, `eks-fargate`, `openshift` 중 하나. [프리셋 선택](#프리셋-선택)을 참고하세요. |
+| `preset` | (비어 있음: `standard`) | `standard`, `gke-autopilot`, `eks-fargate`, `openshift`, `openshift-restricted` 중 하나. [프리셋 선택](#프리셋-선택)을 참고하세요. |
 | `oneuptime.labels` | `{}` | 이 에이전트가 보내는 모든 레코드에 붙는 레이블. [클러스터에 레이블 붙이기](#클러스터에-레이블-붙이기)를 참고하세요. |
 | `namespaceFilters.rules` | `kube-system` 을 `podLogs` 와 `ebpfDiscovery` 에서 제외 | `podLogs`, `ebpfDiscovery`, `metrics`, `traces` 에 대해 네임스페이스를 포함하거나 제외하는 규칙. 패턴에 `*` 를 쓸 수 있고, 제외가 항상 우선합니다. |
 | `filters.logs.minSeverity` | `""` | 이 수준보다 낮은 파드 로그 줄을 버립니다: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. |

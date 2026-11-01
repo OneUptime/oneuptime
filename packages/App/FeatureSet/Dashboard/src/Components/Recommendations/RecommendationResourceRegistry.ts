@@ -165,6 +165,21 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     modelType: KubernetesCluster,
     identifierFieldName: "clusterIdentifier",
     displayNameFieldName: "name",
+    /*
+     * An OpenShift cluster is offered OpenShift's alerts too: ingest writes
+     * `provider` from the cluster's telemetry, and every other cluster is
+     * offered what it always was.
+     */
+    contextFieldNames: ["provider"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      const provider: unknown = (model as unknown as Record<string, unknown>)[
+        "provider"
+      ];
+
+      return {
+        kubernetesProvider: typeof provider === "string" ? provider : null,
+      };
+    },
   },
   {
     resourceType: MonitorRecommendationResourceType.Host,

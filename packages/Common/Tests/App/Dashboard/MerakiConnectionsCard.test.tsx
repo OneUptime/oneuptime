@@ -375,6 +375,87 @@ describe("the list", () => {
     );
   });
 
+  test("what a read did for the map is said, and what is missing is the one to act on (#5379)", async () => {
+    connections = [
+      connection(FIRST_ID, {
+        lastPullResult: {
+          status: "success",
+          organizationName: "Acme Retail",
+          networkCount: 312,
+          applianceCount: 287,
+          placedClientCount: 4812,
+          linkedDeviceCount: 900,
+          unplacedDeviceCount: 3,
+          requestCount: 245,
+          warnings: [],
+        },
+      }),
+    ];
+
+    await renderCard();
+
+    const notes: Array<string | null> = within(rows()[0]!)
+      .getAllByTestId("meraki-connection-note")
+      .map((note: HTMLElement) => {
+        return note.textContent;
+      });
+
+    expect(notes).toEqual(
+      expect.arrayContaining([
+        "Puts 4,812 clients on their switch ports on the map.",
+        "Draws the links of 900 network devices on the map.",
+        "3 Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them.",
+      ]),
+    );
+  });
+
+  test("one of each is said in the singular; a summary from before says nothing", async () => {
+    connections = [
+      connection(FIRST_ID, {
+        lastPullResult: {
+          status: "success",
+          organizationName: "Acme Retail",
+          networkCount: 1,
+          applianceCount: 1,
+          placedClientCount: 1,
+          linkedDeviceCount: 1,
+          unplacedDeviceCount: 1,
+          requestCount: 5,
+          warnings: [],
+        },
+      }),
+      connection(SECOND_ID, {
+        lastPullResult: {
+          status: "success",
+          organizationName: "Older",
+          networkCount: 1,
+          applianceCount: 1,
+          requestCount: 5,
+          warnings: [],
+        },
+      }),
+    ];
+
+    await renderCard();
+
+    const notes: Array<string | null> = within(rows()[0]!)
+      .getAllByTestId("meraki-connection-note")
+      .map((note: HTMLElement) => {
+        return note.textContent;
+      });
+
+    expect(notes).toEqual(
+      expect.arrayContaining([
+        "Puts 1 client on its switch port on the map.",
+        "Draws the links of 1 network device on the map.",
+        "1 Meraki device with wired clients is not a network device here, so its clients are not on the map. Add it to place them.",
+      ]),
+    );
+    expect(
+      within(rows()[1]!).queryByTestId("meraki-connection-note"),
+    ).toBeNull();
+  });
+
   test("one such device is said in the singular; none is not said at all", async () => {
     connections = [
       connection(FIRST_ID, {

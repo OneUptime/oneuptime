@@ -143,6 +143,11 @@ import {
   getNetworkDeviceLocation,
   getNetworkDeviceManufacturer,
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
+import {
+  SnmpVendorIdentityRead,
+  getSnmpVendorIdentity,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpVendorIdentity";
+import { pickDeviceOwnMac } from "Common/Utils/NetworkDevice/DeviceOwnMacUtil";
 import { parseSystemDescription } from "Common/Utils/NetworkDevice/SystemDescriptionUtil";
 import { inferRelationshipType } from "Common/Utils/Telemetry/EntityRelationship";
 import { beforeAll, describe, expect, it } from "@jest/globals";
@@ -1325,10 +1330,103 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
     expect(parseSystemDescription("Meraki MX85")).toEqual({
       manufacturer: "Cisco Meraki",
       model: "MX85",
+      operatingSystem: "Meraki MX firmware",
     });
     expect(parseSystemDescription("Acme Widget OS 1.2 on a box")).toEqual({});
     expect(networkSection()).toContain(
-      "a Cisco Meraki MX reports `Meraki MX85`, which fills in the make and model. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.",
+      "a Cisco Meraki MX reports `Meraki MX85`, which fills in the make, the model and the operating system. A platform whose `sysDescr` has no known shape adds nothing, rather than a guess.",
+    );
+  });
+
+  /*
+   * Issue #5384: the vendors the page names are the ones the poll asks, for
+   * the fields the page says it asks them for, and an MX is not one of them.
+   */
+  it("names the vendors whose own MIB is read, for what each one fills", () => {
+    function fieldsOf(sysObjectId: string): Array<string> {
+      return Array.from(
+        new Set<string>(
+          (getSnmpVendorIdentity(sysObjectId)?.reads || []).map(
+            (read: SnmpVendorIdentityRead): string => {
+              return read.field;
+            },
+          ),
+        ),
+      );
+    }
+
+    const FORTIGATE: string = "1.3.6.1.4.1.12356.101.1.644";
+    const JUNIPER: string = "1.3.6.1.4.1.2636.1.1.1.2.57";
+    const MIKROTIK: string = "1.3.6.1.4.1.14988.1";
+    const SOPHOS: string = "1.3.6.1.4.1.2604.5";
+
+    for (const sysObjectId of [FORTIGATE, JUNIPER, MIKROTIK, SOPHOS]) {
+      expect(fieldsOf(sysObjectId)).toContain("serialNumber");
+    }
+
+    expect(sourceOf("host.serial_number")).toBe(
+      "ENTITY-MIB `entPhysicalSerialNum`, else the vendor's own MIB on FortiGate, Juniper, MikroTik and Sophos devices",
+    );
+
+    // Juniper's sysDescr names its release; the others' firmware is the MIB's.
+    expect(fieldsOf(JUNIPER)).not.toContain("firmwareVersion");
+
+    for (const sysObjectId of [FORTIGATE, MIKROTIK, SOPHOS]) {
+      expect(fieldsOf(sysObjectId)).toContain("firmwareVersion");
+    }
+
+    expect(getSnmpVendorIdentity("1.3.6.1.4.1.29671.2.111")).toBeUndefined();
+    expect(networkSection()).toContain(
+      "unless its vendor keeps them in a MIB of its own that OneUptime reads: FortiGate, Juniper, MikroTik and Sophos.",
+    );
+  });
+
+  it("fills a MAC nothing else names from the device's first Ethernet port, after what was typed or learned", () => {
+    const ownPort: Record<string, unknown> = {
+      ownMacAddress: {
+        value: pickDeviceOwnMac([
+          {
+            interfaceIndex: 2,
+            macAddress: "aa:bb:cc:06:25:ee",
+            interfaceType: 6,
+          },
+          {
+            interfaceIndex: 1,
+            macAddress: "aa:bb:cc:06:25:ed",
+            interfaceType: 6,
+          },
+        ]),
+        method: "snmp",
+        readBy: { type: "probe", id: "probe-1" },
+        readAt: "2026-10-23T09:00:00.000Z",
+      },
+    };
+
+    expect(
+      getNetworkDeviceAssetFacts({ discoveredDetails: ownPort }).macAddress,
+    ).toBe("AA-BB-CC-06-25-ED");
+    expect(
+      getNetworkDeviceAssetFacts({
+        macAddress: "00:1b:54:c2:7a:01",
+        discoveredDetails: ownPort,
+      }).macAddress,
+    ).toBe("00-1B-54-C2-7A-01");
+    expect(sourceOf("host.mac")).toBe(
+      "Typed on the device, or learned from a walked router's ARP table. Otherwise the MAC of its first Ethernet port, as its SNMP walk reads it",
+    );
+  });
+
+  it("names the operating system a platform always runs, whatever its sysDescr says", () => {
+    expect(
+      getNetworkDeviceAssetFacts({
+        sysObjectId: "1.3.6.1.4.1.12356.101.1.644",
+      }).operatingSystem,
+    ).toBe("FortiOS");
+    expect(
+      getNetworkDeviceAssetFacts({ sysDescr: "Meraki MX85" }).operatingSystem,
+    ).toBe("Meraki MX firmware");
+    expect(sourceOf("os.name")).toBe(
+      "The operating system `sysDescr` names, or the one the platform always runs: FortiOS on a FortiGate, Meraki's MX firmware on an MX",
     );
   });
 
@@ -1418,7 +1516,7 @@ describe("Exporting to a CMDB: what a network device's record gives", () => {
       }).firmwareVersion,
     ).toBe("1.2.3");
     expect(sourceOf("device.firmware.version")).toBe(
-      "ENTITY-MIB `entPhysicalFirmwareRev`, else the firmware `sysDescr` names on Ubiquiti, HPE and Aruba devices",
+      "ENTITY-MIB `entPhysicalFirmwareRev`, else the vendor's own MIB on FortiGate, MikroTik and Sophos devices, else the firmware `sysDescr` names on Ubiquiti, HPE and Aruba devices",
     );
   });
 

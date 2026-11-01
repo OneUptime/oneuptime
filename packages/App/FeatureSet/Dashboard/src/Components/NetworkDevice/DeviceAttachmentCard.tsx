@@ -10,6 +10,7 @@ import {
 import {
   DeviceNeighbour,
   NEIGHBOURS_SHOWN,
+  NeighbourProtocol,
   getDeviceNeighbours,
   isPortNamedAsPort,
 } from "./DeviceNeighbours";
@@ -19,6 +20,10 @@ import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import {
+  getCurrentControllerLinks,
+  readNetworkDeviceDiscoveredDetails,
+} from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
@@ -47,7 +52,8 @@ export interface ComponentProps {
  * matching rules), and when it has nothing to say it explains what would
  * give it something: the device needs a MAC address, or an IP hostname
  * plus a router at its site that collects endpoints; and the switch it
- * hangs off needs Collect Connected Endpoints turned on.
+ * hangs off needs Collect Connected Endpoints turned on, or its Meraki
+ * dashboard has to be a connection here.
  */
 const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -98,6 +104,11 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
       const found: Array<DeviceNeighbour> = getDeviceNeighbours({
         lldpNeighbors: result.device.lldpNeighbors,
         cdpNeighbors: result.device.cdpNeighbors,
+        controllerLinks: getCurrentControllerLinks(
+          readNetworkDeviceDiscoveredDetails(result.device.discoveredDetails)
+            .controllerLinks,
+          OneUptimeDate.getCurrentDate(),
+        ),
       });
 
       setAttachment(result.attachment);
@@ -191,6 +202,11 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
               : "There is nothing to look this device up by yet. Give it a MAC address, or an IP address as its hostname, and its switch port appears here once a switch at its site with Collect Connected Endpoints turned on sees it.",
           )}
         </p>
+        <p className="mt-1 text-sm text-gray-500">
+          {translator.translateText(
+            "A Meraki connection places it too, once Meraki lists it as a client of a switch that is a device here.",
+          )}
+        </p>
         <div className="mt-3">
           <AppLink
             to={settingsRoute}
@@ -223,10 +239,12 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
                   translator.translateTemplate("ifIndex {{index}}", {
                     index: neighbour.localInterfaceIndex,
                   })
-                : undefined;
-            const neighbourId: string | undefined = neighbour.hasAdvertisedName
-              ? neighbourDeviceIds.get(neighbour.name.toLowerCase())
-              : undefined;
+                : neighbour.localPortName;
+            const neighbourId: string | undefined =
+              neighbour.deviceId ||
+              (neighbour.hasAdvertisedName
+                ? neighbourDeviceIds.get(neighbour.name.toLowerCase())
+                : undefined);
 
             /*
              * One cable a row: this device's port, then the neighbour and
@@ -287,6 +305,11 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
                 hidden,
               )
             : translator.translateText("Reported over LLDP or CDP.")}{" "}
+          {neighbours.some((neighbour: DeviceNeighbour): boolean => {
+            return neighbour.protocol === NeighbourProtocol.Controller;
+          })
+            ? `${translator.translateText("Some are reported by Meraki.")} `
+            : ""}
           <AppLink
             to={RouteUtil.populateRouteParams(
               RouteMap[PageMap.NETWORK_DEVICE_TOPOLOGY] as Route,
@@ -366,7 +389,21 @@ const DeviceAttachmentCard: FunctionComponent<ComponentProps> = (
             </dd>
           </div>
         </dl>
-        <p className="mt-4 text-xs text-gray-500">
+        {attachment.reportedBy ? (
+          <p
+            className="mt-4 text-xs text-gray-500"
+            data-testid="device-attachment-reported-by"
+          >
+            {translator.translateText("Reported by Meraki")}
+          </p>
+        ) : (
+          <></>
+        )}
+        <p
+          className={`${
+            attachment.reportedBy ? "mt-1" : "mt-4"
+          } text-xs text-gray-500`}
+        >
           {attachment.lastSeenAt
             ? translator.translateTemplate(
                 attachment.matchedBy === "mac"

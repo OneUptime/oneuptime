@@ -28,7 +28,7 @@ flowchart TB
 | Collecteur de nœud | DaemonSet | Journaux de pods depuis `/var/log/pods`, métriques kubelet et cAdvisor, et métriques système du nœud. | Partout sauf sur EKS Fargate |
 | Instrumentation eBPF (OBI) | DaemonSet | Traces et métriques de requêtes HTTP, gRPC, SQL et Redis de chaque pod, et la carte des services. | Par défaut, sauf sur GKE Autopilot et EKS Fargate |
 | Agent IA Kubernetes | Deployment | `kubectl` en lecture seule pour OneUptime AI pendant qu'elle enquête sur un incident ou une alerte. | Par défaut |
-| Lecteur de journaux | Deployment | Journaux de pods via l'API Kubernetes, là où le collecteur de nœud ne peut pas les lire. | Avec les presets `gke-autopilot` et `eks-fargate` |
+| Lecteur de journaux | Deployment | Journaux de pods via l'API Kubernetes, là où le collecteur de nœud ne peut pas les lire. | Avec les presets `gke-autopilot`, `eks-fargate` et `openshift-restricted` |
 | Moteur de coûts et collecteur de coûts | Deployments | Dépenses par namespace, charge de travail et pod. | Avec `cost.enabled=true` |
 
 Toutes les images de l'agent sont réservées à Linux : chaque charge de travail est donc épinglée sur des nœuds Linux.
@@ -215,8 +215,9 @@ Une mise à jour remplace toute la configuration : une valeur que vous omettez r
 | `gke-autopilot` | **GKE Autopilot** | Le lecteur de journaux les lit via l'API Kubernetes (sans `hostPath`, sans accès à l'hôte) | Kubelet et cAdvisor, sans `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Le lecteur de journaux les lit via l'API Kubernetes (sans `hostPath`, sans accès à l'hôte) | Aucune : Fargate n'exécute aucun DaemonSet |
 | `openshift` | **OpenShift** : OpenShift Container Platform, ROSA, ARO, OKD | Le collecteur de nœud lit `/var/log/pods` via `hostPath`, sous une contrainte de contexte de sécurité que le chart crée pour lui | Kubelet, cAdvisor et les métriques système du nœud |
+| `openshift-restricted` | **OpenShift**, si un administrateur refuse d'ajouter une SCC | Le lecteur de journaux les lit via l'API Kubernetes (sans `hostPath`, sans accès à l'hôte) | Kubelet et cAdvisor, sans `hostPath` |
 
-En cas de doute, commencez par `standard`. Si l'installation échoue avec une erreur Pod Security qui mentionne `hostPath`, réinstallez avec `preset=gke-autopilot` (ou `eks-fargate` sur Fargate). GKE Autopilot et EKS Fargate refusent aussi les pods privilégiés, dont eBPF et le profileur ont besoin : ces deux presets les omettent donc tous les deux. Sur OpenShift, utilisez `openshift` : voir [OpenShift](#openshift).
+En cas de doute, commencez par `standard`. Si l'installation échoue avec une erreur Pod Security qui mentionne `hostPath`, réinstallez avec `preset=gke-autopilot` (ou `eks-fargate` sur Fargate). GKE Autopilot et EKS Fargate refusent aussi les pods privilégiés, dont eBPF et le profileur ont besoin : ces deux presets les omettent donc tous les deux. Sur OpenShift, utilisez `openshift`, ou `openshift-restricted` si un administrateur refuse d'ajouter une SCC : voir [OpenShift](#openshift).
 
 ## OpenShift
 
@@ -229,6 +230,15 @@ Installez avec `--set preset=openshift`, comme le fait l'onglet **OpenShift** ci
 - Marque la télémétrie de l'agent avec `oneuptime.kubernetes.distribution=openshift`, si bien que la **Plateforme** du cluster indique **OpenShift**, et ajoute le cloud sur lequel tourne le cluster (`cloud.provider`, `cloud.platform`) quand il y en a un.
 
 Créer les SCC nécessite les droits cluster-admin. Sans le preset, la release s'installe, mais OpenShift ne démarre jamais les pods du collecteur de nœud et d'eBPF de l'agent, et les notes d'installation le signalent.
+
+**Si un administrateur refuse d'ajouter une SCC,** installez plutôt avec `--set preset=openshift-restricted`. Le chart ne crée alors aucune SCC et chaque pod s'exécute sous `restricted-v2`, comme avec `gke-autopilot`. Le cluster reste affiché comme OpenShift. En contrepartie, vous renoncez à :
+
+- Les journaux de pods depuis les nœuds : le lecteur de journaux les lit via l'API Kubernetes, avec une connexion de longue durée par conteneur.
+- Les métriques système du nœud. Les métriques de nœud, de pod et de conteneur restent : le collecteur de nœud lit le kubelet et cAdvisor par le réseau.
+- Les traces eBPF et le profileur, quoi que disent `ebpf.enabled` et `profiling.enabled`. Pour tracer vos services, envoyez leurs traces avec un SDK OpenTelemetry.
+- Les journaux d'audit, qui sont lus sur le nœud.
+
+Pour les retrouver, passez à `openshift` avec `--set preset=openshift` lors d'une mise à niveau, en tant que cluster-admin.
 
 **Les alertes propres à OpenShift.** OpenShift embarque Prometheus et Alertmanager, avec des alertes pour ses opérateurs, etcd et les nœuds. Pour ouvrir un incident dans OneUptime pour chacune, ajoutez dans la console web un récepteur webhook pour OneUptime sous **Administration → Cluster Settings → Configuration → Alertmanager**, comme le décrit [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager).
 
@@ -517,6 +527,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**Sur OpenShift,** `--set controlPlane.enabled=true` suffit pour le scheduler et le controller manager, sur les deux presets OpenShift. OpenShift exécute plusieurs réplicas de chacun derrière un Service : l'agent trouve donc chaque réplica dans les EndpointSlices du Service et le scrape séparément, avec le jeton de son compte de service. `controlPlane.scheduler.endpoints` et `controlPlane.controllerManager.endpoints` restent prioritaires quand vous les définissez. etcd demande un certificat client : il n'est donc scrapé qu'une fois que `controlPlane.etcd.clientCertSecret` nomme un Secret qui en contient un. La supervision d'OpenShift en possède un : copiez-le, en tant que cluster-admin, dans un Secret avec les trois clés que lit le chart :
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+La copie ne suit pas la rotation de ce certificat par OpenShift : relancez donc ces commandes quand les métriques d'etcd s'arrêtent. Un plan de contrôle hébergé (ROSA avec HCP, HyperShift) exécute ces composants hors du cluster : l'agent n'en trouve aucun, et ces onglets y restent vides.
+
 Les services Kubernetes managés (EKS, GKE, AKS) n'exposent ni etcd, ni le scheduler, ni le controller manager : ces onglets y restent donc vides. Tant que les métriques d'un onglet n'arrivent pas, la page **Plan de contrôle** affiche à la place de ses graphiques ce qu'il faut définir, avec la commande à copier.
 
 ### Activer les métriques CoreDNS
@@ -629,7 +659,7 @@ Si une application exporte déjà des traces avec un SDK OpenTelemetry, OBI le r
 
 Désactivez eBPF lorsque :
 
-- Vous installez sur **GKE Autopilot** ou **EKS Fargate** : ces plateformes refusent les pods privilégiés, si bien que `preset=gke-autopilot` et `preset=eks-fargate` omettent déjà eBPF pour vous, et le profileur avec lui.
+- Vous installez sur **GKE Autopilot** ou **EKS Fargate** : ces plateformes refusent les pods privilégiés, si bien que `preset=gke-autopilot` et `preset=eks-fargate` omettent déjà eBPF pour vous, et le profileur avec lui. `preset=openshift-restricted` fait de même sur OpenShift.
 - Les nœuds exécutent un noyau antérieur à 5.8 sans rétroportages BTF.
 - Vous envoyez déjà des traces depuis des SDK OpenTelemetry dans chaque application et ne voulez pas non plus des métriques eBPF. (Pour les traces seules, ce n'est pas nécessaire : OBI cesse d'envoyer des traces eBPF pour une application qu'il voit exporter les siennes, comme indiqué plus haut.)
 

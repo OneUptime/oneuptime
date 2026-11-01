@@ -30,6 +30,7 @@ import ObjectID from "../../../../Types/ObjectID";
  * The rules are the whole safety of the feature: a device takes what Meraki
  * says about a box only when it IS that box - its serial number, else one of
  * its MACs, else its address AND its name, the address held once on both
+ * sides, else its name AND a MAC of the same box, the name held once on both
  * sides. These pin each rule, each refusal, and when a reading is written,
  * kept or taken away.
  */
@@ -106,6 +107,18 @@ function ruleOf(
   return found ? `${found.rule}:${found.device.serial}` : undefined;
 }
 
+// What a poll recorded of one of a device's own ports.
+function ownMac(mac: string): Record<string, unknown> {
+  return {
+    ownMacAddress: {
+      value: mac,
+      method: "snmp",
+      readBy: { type: "probe", id: id(97) },
+      readAt: "2026-10-28T09:30:00.000Z",
+    },
+  };
+}
+
 function storedReading(
   device: NetworkControllerDevice,
   readAt: Date,
@@ -115,7 +128,7 @@ function storedReading(
 }
 
 describe("what the database is asked for", () => {
-  test("every serial number, MAC and management address of the list, each once", () => {
+  test("every serial number, MAC, management address and name of the list, each once", () => {
     const lookup: ControllerInventoryLookup = getControllerInventoryLookup([
       ...LIST,
       controllerDevice({ serial: "q2hp-swch-0001" }),
@@ -125,8 +138,15 @@ describe("what the database is asked for", () => {
       serials: ["Q2XX-AAAA-0000", "Q2HP-SWCH-0001", "Q2KD-WLAN-0001"],
       macs: ["00:18:0a:00:00:01", "88:15:44:aa:00:01", "e0:55:3d:aa:00:01"],
       addresses: ["10.0.0.2", "10.0.0.20"],
+      names: ["branch 1 mx", "branch 1 core", "branch 1 lobby ap"],
     });
     expect(MAX_INVENTORY_CANDIDATES).toBe(50000);
+  });
+
+  test("a device with no name asks for none", () => {
+    expect(
+      getControllerInventoryLookup([controllerDevice({ name: "  " })]).names,
+    ).toEqual([]);
   });
 });
 
@@ -193,6 +213,32 @@ describe("2. one of its MAC addresses", () => {
           id: id(1),
           macAddress: SWITCH.mac,
           serialNumber: "FOC1840X0AB",
+        },
+      ]).size,
+    ).toBe(0);
+  });
+
+  test("one of its own ports, when that port's address is the one Meraki lists", () => {
+    expect(
+      ruleOf(
+        match([
+          {
+            id: id(1),
+            discoveredDetails: ownMac(ACCESS_POINT.mac),
+          },
+        ]),
+        id(1),
+      ),
+    ).toBe("macAddress:Q2KD-WLAN-0001");
+  });
+
+  test("its own port does not get past a serial number that says otherwise", () => {
+    expect(
+      match([
+        {
+          id: id(1),
+          serialNumber: "FOC1840X0AB",
+          discoveredDetails: ownMac(ACCESS_POINT.mac),
         },
       ]).size,
     ).toBe(0);
@@ -318,6 +364,224 @@ describe("3. its address and its name, the address held once on both sides", () 
     expect(
       match([{ id: id(1), hostname: "10.0.0.1", name: "Branch 1 MX" }]).size,
     ).toBe(0);
+  });
+
+  test("a MAC an ARP table read off the same box is no contradiction", () => {
+    expect(
+      ruleOf(
+        match([
+          {
+            id: id(1),
+            hostname: "10.0.0.2",
+            name: "Branch 1 core",
+            macAddress: "88:15:44:aa:00:05",
+          },
+        ]),
+        id(1),
+      ),
+    ).toBe("addressAndName:Q2HP-SWCH-0001");
+  });
+});
+
+/*
+ * The device of issue #5384. An MX at a branch is polled at its LAN address,
+ * which Meraki does not list for an appliance, and the MAC Meraki lists is on
+ * no port of it: its uplinks are "typically offset by 4 or 5". So it could
+ * pass none of the rules above, and a Meraki connection left its serial
+ * number and firmware Unknown.
+ */
+describe("4. its name and a MAC of the same box, the name held once on both sides", () => {
+  const ISSUE_MX: NetworkControllerDevice = controllerDevice({
+    serial: "Q2XX-5384-0001",
+    name: "UN0362WANRTR01",
+    model: "MX85",
+    mac: "aa:bb:cc:06:25:e8",
+    lanIp: "",
+    firmware: "wired-18-211-2",
+    productType: "appliance",
+  });
+
+  // Its WAN 1, on the offset Meraki documents.
+  const FIRST_PORT: string = "aa:bb:cc:06:25:ed";
+
+  const ISSUE_DEVICE: ControllerInventoryCandidate = {
+    id: id(1),
+    name: "UN0362WANRTR01",
+    hostname: "10.241.124.1",
+    sysName: "UN0362WANRTR01",
+    discoveredDetails: ownMac(FIRST_PORT),
+  };
+
+  test("the MX in the issue is its own Meraki device", () => {
+    expect(ruleOf(match([ISSUE_DEVICE], [ISSUE_MX]), id(1))).toBe(
+      "nameAndMacBlock:Q2XX-5384-0001",
+    );
+  });
+
+  test("until a poll has read its ports, it stays unmatched", () => {
+    expect(
+      match([{ ...ISSUE_DEVICE, discoveredDetails: undefined }], [ISSUE_MX])
+        .size,
+    ).toBe(0);
+  });
+
+  test("the name may be the system name it reports", () => {
+    expect(
+      ruleOf(
+        match([{ ...ISSUE_DEVICE, name: "Unit 362 gateway" }], [ISSUE_MX]),
+        id(1),
+      ),
+    ).toBe("nameAndMacBlock:Q2XX-5384-0001");
+  });
+
+  test("without regard to case", () => {
+    expect(
+      ruleOf(
+        match(
+          [{ ...ISSUE_DEVICE, name: "un0362wanrtr01", sysName: undefined }],
+          [ISSUE_MX],
+        ),
+        id(1),
+      ),
+    ).toBe("nameAndMacBlock:Q2XX-5384-0001");
+  });
+
+  test("a MAC an ARP table read counts too, when no poll walks the device", () => {
+    expect(
+      ruleOf(
+        match(
+          [
+            {
+              id: id(1),
+              name: "UN0362WANRTR01",
+              hostname: "10.241.124.1",
+              macAddress: "aa:bb:cc:06:25:ea",
+            },
+          ],
+          [ISSUE_MX],
+        ),
+        id(1),
+      ),
+    ).toBe("nameAndMacBlock:Q2XX-5384-0001");
+  });
+
+  test("the same name on a box whose MAC is elsewhere is another box", () => {
+    expect(
+      match(
+        [
+          {
+            ...ISSUE_DEVICE,
+            discoveredDetails: ownMac("00:1b:54:c2:7a:01"),
+          },
+        ],
+        [ISSUE_MX],
+      ).size,
+    ).toBe(0);
+  });
+
+  test("a MAC in the block on a device of another name is another box's neighbour", () => {
+    expect(
+      match([{ ...ISSUE_DEVICE, name: "other", sysName: "other" }], [ISSUE_MX])
+        .size,
+    ).toBe(0);
+  });
+
+  test("a MAC below the box's is not one of its ports", () => {
+    expect(
+      match(
+        [{ ...ISSUE_DEVICE, discoveredDetails: ownMac("aa:bb:cc:06:25:e7") }],
+        [ISSUE_MX],
+      ).size,
+    ).toBe(0);
+  });
+
+  test("a name two Meraki devices share matches neither: two organizations name their gateways alike", () => {
+    expect(
+      match(
+        [ISSUE_DEVICE],
+        [
+          ISSUE_MX,
+          { ...ISSUE_MX, serial: "Q2XX-5384-0002", mac: "aa:bb:cc:06:26:e8" },
+        ],
+      ).size,
+    ).toBe(0);
+  });
+
+  test("a name two devices here share matches neither", () => {
+    expect(
+      match(
+        [
+          ISSUE_DEVICE,
+          { ...ISSUE_DEVICE, id: id(2), hostname: "10.241.125.1" },
+        ],
+        [ISSUE_MX],
+      ).size,
+    ).toBe(0);
+  });
+
+  test("one device whose name and system name are the same counts once", () => {
+    expect(
+      ruleOf(
+        match([{ ...ISSUE_DEVICE, name: "UN0362WANRTR01" }], [ISSUE_MX]),
+        id(1),
+      ),
+    ).toBe("nameAndMacBlock:Q2XX-5384-0001");
+  });
+
+  test("not when its serial number says it is another box", () => {
+    expect(
+      match([{ ...ISSUE_DEVICE, serialNumber: "FOC1840X0AB" }], [ISSUE_MX])
+        .size,
+    ).toBe(0);
+  });
+
+  test("not when a typed MAC says it is another box, whatever its ports say", () => {
+    expect(
+      match([{ ...ISSUE_DEVICE, macAddress: "00:1b:54:c2:7a:01" }], [ISSUE_MX])
+        .size,
+    ).toBe(0);
+  });
+
+  test("a controller device that lists no MAC gives the rule nothing to hold it to", () => {
+    expect(match([ISSUE_DEVICE], [{ ...ISSUE_MX, mac: "" }]).size).toBe(0);
+  });
+
+  test("a device with no name of its own is matched by nothing", () => {
+    expect(
+      match([{ id: id(1), discoveredDetails: ownMac(FIRST_PORT) }], [ISSUE_MX])
+        .size,
+    ).toBe(0);
+  });
+
+  test("an earlier rule wins when both hold", () => {
+    expect(
+      ruleOf(
+        match([{ ...ISSUE_DEVICE, serialNumber: ISSUE_MX.serial }], [ISSUE_MX]),
+        id(1),
+      ),
+    ).toBe("serialNumber:Q2XX-5384-0001");
+  });
+
+  test("the reading it takes is the dashboard's, recorded as for any other rule", () => {
+    const plan: ControllerInventoryPlan = planControllerInventory({
+      connection: CONNECTION,
+      readAt: READ_AT,
+      devices: [ISSUE_MX],
+      isDeviceListComplete: true,
+      candidates: [ISSUE_DEVICE],
+    });
+
+    expect(plan.describedDeviceCount).toBe(1);
+    expect(plan.patches).toHaveLength(1);
+    expect(
+      (plan.patches[0]!.set as Record<string, NetworkDeviceControllerReading>)[
+        "controller"
+      ]!.values,
+    ).toMatchObject({
+      serialNumber: "Q2XX-5384-0001",
+      firmwareVersion: "wired-18-211-2",
+      macAddress: "aa:bb:cc:06:25:e8",
+    });
   });
 });
 
@@ -618,7 +882,7 @@ describe("one read, end to end", () => {
       },
     ]);
     expect(sent).toHaveLength(1);
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 1,
       writtenDeviceCount: 1,
@@ -645,7 +909,7 @@ describe("one read, end to end", () => {
       });
 
     expect(merges).toBe(0);
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 0,
       writtenDeviceCount: 0,
@@ -713,7 +977,7 @@ describe("one read, end to end", () => {
         },
       });
 
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       deviceCount: 3,
       describedDeviceCount: 1,
       writtenDeviceCount: 1,

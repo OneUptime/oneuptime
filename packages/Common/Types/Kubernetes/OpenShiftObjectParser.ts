@@ -447,24 +447,24 @@ export enum OpenShiftClusterOperatorState {
 }
 
 /*
- * An operator is Degraded when it says so, whatever else it says; then
- * Unavailable when it says it is not available; then Progressing while it
- * rolls out; otherwise Available when it says so. As `oc get
- * clusteroperators` reads its columns.
+ * An operator is Unavailable when it says it is not available, whatever else
+ * it says: an operator that is down nearly always says Degraded too, and down
+ * is the worse of the two. Then Degraded when it says so; then Progressing
+ * while it rolls out; otherwise Available when it says so.
  */
 export function getClusterOperatorState(
   conditions: ReadonlyArray<KubernetesCondition>,
 ): OpenShiftClusterOperatorState {
   if (
-    getConditionStatus(conditions, "Degraded") === OpenShiftConditionStatus.True
-  ) {
-    return OpenShiftClusterOperatorState.Degraded;
-  }
-  if (
     getConditionStatus(conditions, "Available") ===
     OpenShiftConditionStatus.False
   ) {
     return OpenShiftClusterOperatorState.Unavailable;
+  }
+  if (
+    getConditionStatus(conditions, "Degraded") === OpenShiftConditionStatus.True
+  ) {
+    return OpenShiftClusterOperatorState.Degraded;
   }
   if (
     getConditionStatus(conditions, "Progressing") ===
