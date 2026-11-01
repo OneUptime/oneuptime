@@ -30,10 +30,10 @@ import SlackActionAuthorization from "./Authorization";
  * with everything the fix runs and Approve and run; Dismiss dismisses it.
  * Who may press, what each does and what it answers is
  * WorkspaceRemediationActions', the same in Microsoft Teams; this reads the
- * press and answers it where it was made (SlackActionAnswer): a refusal,
- * or a press that came too late, in a message only the presser sees. An
- * approval needs no answer of its own: the record's feed says who approved
- * the fix, from Slack, in the channel.
+ * press and answers it where it was made (SlackActionAnswer): an approval,
+ * a dismissal, a refusal or a press that came too late, in a message only
+ * the presser sees. The record's feed says who approved or dismissed the
+ * fix, from Slack, in its channels.
  */
 export default class SlackRemediationActions {
   public static isRemediationAction(data: { actionType: string }): boolean {
@@ -156,21 +156,22 @@ export default class SlackRemediationActions {
     }
 
     if (actionType === SlackActionType.SubmitApproveRemediation) {
-      const approved: boolean | null =
+      const approved: WorkspaceAnswer | null =
         await SlackActionAuthorization.runForRequester({
           requester: slackRequest,
           action: "approve the fix",
-          run: async (): Promise<boolean> => {
-            await WorkspaceRemediationActions.approve({
+          run: async (): Promise<WorkspaceAnswer> => {
+            return await WorkspaceRemediationActions.approve({
               props,
               value,
               from: WorkspaceType.Slack,
             });
-            return true;
           },
         });
 
       if (approved) {
+        // Told where they pressed, only to them; the feed says the rest.
+        await SlackRemediationActions.answer(slackRequest, approved);
         await SlackRemediationActions.logPress({
           slackRequest,
           buttonAction: "approve_remediation",

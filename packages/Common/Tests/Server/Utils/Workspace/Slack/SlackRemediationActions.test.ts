@@ -162,7 +162,10 @@ beforeEach(() => {
     } as never);
   approve = jest
     .spyOn(WorkspaceRemediationActions, "approve")
-    .mockResolvedValue(undefined as never) as AnySpy;
+    .mockResolvedValue({
+      markdown: "✅ You approved this fix.",
+      text: "You approved this fix",
+    } as never) as AnySpy;
   dismiss = jest
     .spyOn(WorkspaceRemediationActions, "dismiss")
     .mockResolvedValue({
@@ -318,8 +321,8 @@ describe("Approve and run", () => {
     ).toBe(SUGGESTION_ID.toString());
     expect(args["from"]).toBe(WorkspaceType.Slack);
 
-    // The record's feed says who approved it, in the channel: no answer of its own.
-    expect(answers()).toEqual([]);
+    // Told only them, where they pressed; the record's feed says the rest.
+    expect(answers()).toEqual(["✅ You approved this fix."]);
     expect(logPress).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: PROJECT_ID,
