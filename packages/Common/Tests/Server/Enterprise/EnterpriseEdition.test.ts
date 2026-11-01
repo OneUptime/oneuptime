@@ -503,17 +503,18 @@ describe("EnterpriseEdition unavailable messages", () => {
     );
   });
 
-  test("the license message points at the edition label, the only place a license is activated", () => {
+  test("the license message points at Settings > License, the only place a license is activated", () => {
     /*
-     * The Admin Dashboard has no "Settings > License" page. Licenses are
-     * activated from the edition label in its header (the dialog the
-     * GlobalConfig license-column guard also names).
+     * Licenses are activated on Settings > License in the Admin Dashboard
+     * (the page the GlobalConfig license-column guard also names). The
+     * edition label only shows the license: a message that sent somebody
+     * there to change it would point at nothing.
      */
     expect(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE).toContain(
-      "edition label in the Admin Dashboard header",
+      "Settings > License in the Admin Dashboard",
     );
     expect(EnterpriseEdition.LICENSE_REQUIRED_MESSAGE).not.toMatch(
-      /Settings\s*(?:>|→|->)\s*License/i,
+      /edition (?:label|dialog)/i,
     );
   });
 

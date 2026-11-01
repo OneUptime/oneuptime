@@ -266,7 +266,7 @@ describe("the Community admin plugin door (what this jest config resolves)", () 
         "HealthQueues",
         "HealthRedis",
         "HealthTelemetry",
-        "LicenseManager",
+        "LicenseDetails",
         "SettingsPages",
         "SettingsSideMenuItems",
         "SettingsNotificationSideMenuItems",

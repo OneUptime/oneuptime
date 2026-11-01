@@ -6,11 +6,11 @@ import path from "path";
  * The edition dialog in core only READS the license. Activating it (with a
  * key or an offline token) and refreshing it are POSTs to routes that exist
  * only in the Enterprise server (ee/Server/License/API/LicenseClientAPI.ts),
- * and their UI is the Enterprise plugin's license manager
+ * and their UI is the Admin Dashboard's Settings > License page
  * (ee/AdminDashboard/License). This guard keeps that code from drifting back
  * into the Apache-2.0 component, where it would ship in every Community
- * bundle: EditionLabel's branches key on a runtime flag, so the bundler
- * cannot drop them.
+ * bundle and put the license back in everybody's footer: EditionLabel's
+ * branches key on a runtime flag, so the bundler cannot drop them.
  *
  * It scans every source file in the EditionLabel directory, so a new file
  * next to EditionLabel.tsx cannot bring the code back either.
@@ -84,7 +84,7 @@ const listSourceFiles: () => Array<string> = (): Array<string> => {
 };
 
 describe("the core edition dialog never writes the license", () => {
-  it("scans EditionLabel.tsx and the license manager contract", () => {
+  it("scans EditionLabel.tsx and the license details contract", () => {
     const names: Array<string> = listSourceFiles().map(
       (file: string): string => {
         return path.basename(file);
@@ -92,7 +92,13 @@ describe("the core edition dialog never writes the license", () => {
     );
 
     expect(names).toEqual(
-      expect.arrayContaining(["EditionLabel.tsx", "LicenseManager.ts"]),
+      expect.arrayContaining([
+        "EditionLabel.tsx",
+        "LicenseDetails.ts",
+        "LicenseEvents.ts",
+        "LicenseSeatUsage.ts",
+        "LicenseSettingsPage.ts",
+      ]),
     );
   });
 

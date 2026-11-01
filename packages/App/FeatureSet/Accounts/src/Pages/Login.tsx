@@ -934,7 +934,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
          * Which OneUptime edition this is, and its license: not on an
          * installation that goes by a name of its own (ProductBranding),
          * whose sign-in page is its own. Its master admins still find the
-         * license in the Admin Dashboard header.
+         * license in the Admin Dashboard, on Settings > License.
          */}
         {!isProductRenamed() && (
           <div className="mt-4 flex justify-center">

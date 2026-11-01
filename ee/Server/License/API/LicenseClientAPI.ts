@@ -40,8 +40,8 @@ export const LICENSE_REFRESH_ROUTE: string = "/global-config/license/refresh";
 
 /*
  * The answer to a successful write: the same body the GET gives a master
- * admin, read fresh after the write, so the dialog can show the new terms
- * without trusting two sources that could disagree.
+ * admin, read fresh after the write, so the license page can show the new
+ * terms without trusting two sources that could disagree.
  */
 export const buildLicenseWriteResponse: () => Promise<JSONObject> =
   async (): Promise<JSONObject> => {

@@ -116,18 +116,18 @@ Filen [`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) i 
 
 En ny installation af Enterprise Edition kører som en **prøveperiode på 14 dage**, regnet fra første gang installationen starter Enterprise Edition. Prøveperioden er til evaluering: brug af Enterprise Edition i produktion kræver et abonnement under OneUptime Enterprise License. Aktivér en licens, før prøveperioden slutter: derefter stopper SCIM, auditlogning og tilsidesættelser af opbevaring, og enterprise-konfigurationen bliver skrivebeskyttet (se [Når en licens udløber eller mangler](#når-en-licens-udløber-eller-mangler)). Kontakt [sales@oneuptime.com](mailto:sales@oneuptime.com) for at få en licens.
 
-Licensen administreres fra **udgavemærket**, som masteradministratorer ser i headeren på Admin-dashboardet og i bunden af Dashboardet. Det viser licensstatus, brugen af pladser og, for masteradministratorer, instans-ID'et.
+Licensen administreres på **Admin Dashboard > Indstillinger > Licens**: Der tilføjer, opdaterer og erstatter masteradministratorer den, og ingen andre kan ændre den. **Udgavemærket**, i headeren på Admin-dashboardet og i bunden af Dashboardet, viser kun status: licensstatus og, for masteradministratorer, brugen af pladser og knappen **Administrer licens**, der fører til den side.
 
 OneUptime Enterprise købt på AWS Marketplace, Microsoft Marketplace eller Google Cloud Marketplace kræver ingen licensnøgle: abonnementet på markedspladsen giver licensen og fakturerer hver bruger pr. time. Se [Cloud-markedspladser](/docs/installation/cloud-marketplaces).
 
 ### Onlineaktivering (licensnøgle)
 
 :::steps
-1. Log ind som masteradministrator, og åbn udgavemærket.
+1. Log ind som masteradministrator, og åbn **Admin Dashboard > Indstillinger > Licens**.
 2. Indtast din licensnøgle, og validér den.
 :::
 
-Installationen kontrollerer nøglen hos OneUptime og gemmer den licens, den modtager. Derefter holder den licensen opdateret med en daglig synkronisering. Brug **Refresh license** på udgavemærket til at hente ændringer, såsom ekstra pladser eller en fornyelse, med det samme.
+Installationen kontrollerer nøglen hos OneUptime og gemmer den licens, den modtager. Derefter holder den licensen opdateret med en daglig synkronisering. Brug **Refresh license** på samme side til at hente ændringer, såsom ekstra pladser eller en fornyelse, med det samme.
 
 Onlineaktivering kræver udgående HTTPS fra OneUptime-serveren til `https://oneuptime.com`. Hvis serveren kun når internettet gennem et relæ, skal du angive `ENTERPRISE_LICENSE_SERVER_URL` til relæets `https://`-adresse. Relæet skal videresende `/api/enterprise-license/` til oneuptime.com.
 
@@ -136,9 +136,9 @@ Onlineaktivering kræver udgående HTTPS fra OneUptime-serveren til `https://one
 En installation uden rute til internettet kan bruge et **signeret licenstoken** i stedet for en nøgle:
 
 :::steps
-1. Log ind som masteradministrator, åbn udgavemærket, og notér **instans-ID'et**.
+1. Log ind som masteradministrator, åbn **Admin Dashboard > Indstillinger > Licens**, skift til offlineaktivering, og notér **instans-ID'et**.
 2. Bed OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) om et offline-licenstoken til det instans-ID.
-3. Indsæt tokenet i udgavemærkets tokenfelt, og aktivér det.
+3. Indsæt tokenet i tokenfeltet, og aktivér det.
 :::
 
 Installationen verificerer selv tokenet, mod de OneUptime-signeringsnøgler, der er indbygget i din release. Den kontakter aldrig OneUptime. Et token udstedt til ét instans-ID afvises af alle andre installationer, og et token udstedt uden instans-ID (såsom det token, en onlineaktiveret installation modtager) afvises også. For at forny eller tilføje pladser skal du aktivere et nyt token, før det nuværende udløber.

@@ -15,15 +15,13 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * What EditionLabel on its own still does around the license GET and the seat
- * figures, with no license manager (the login page, a build without the
+ * figures, with no license details (the login page, a build without the
  * Enterprise plugin). This suite must pass with ee/ deleted.
  *
- * The "Refresh license" button this suite used to cover - offered only to a
- * master admin, sending no key, showing the new limit, reporting a failure -
- * is the Enterprise plugin's license manager now, together with the seat
- * card. ee/Tests/UI/License/LicenseManagerRefresh.test.tsx runs every one of
- * this suite's original tests against EditionLabel with that manager. What
- * stays here:
+ * The "Refresh license" button this suite used to cover - sending no key,
+ * showing the new limit, reporting a failure - is on the Admin Dashboard's
+ * Settings > License page now, and the seat card is the Enterprise plugin's
+ * license details: ee/Tests/UI/License holds both. What stays here:
  *
  *   - the signedIn flag on the license GET;
  *   - a non-admin is told who can activate the license;
@@ -252,11 +250,11 @@ describe("EditionLabel - telling the license route we expect to be signed in", (
 });
 
 /*
- * Refreshing the license, changing its key and the seat card are the
- * Enterprise plugin's license manager now (ee/Tests/UI/License runs this
- * suite's original refresh and seat tests against it). What EditionLabel
- * still owns is below: telling a non-admin who can act, reading the seat
- * figures for the pill, and never writing the license itself.
+ * Refreshing the license and changing its key are the Admin Dashboard's
+ * Settings > License page now, and the seat card the Enterprise plugin's
+ * license details (ee/Tests/UI/License). What EditionLabel still owns is
+ * below: telling a non-admin who can act, reading the seat figures for the
+ * pill, and never writing the license itself.
  */
 describe("EditionLabel - the license, read-only", () => {
   beforeEach(() => {

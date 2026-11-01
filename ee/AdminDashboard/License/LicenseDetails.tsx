@@ -1,66 +1,37 @@
 import {
-  LicenseManagerProps,
+  LicenseDetailsProps,
   LicenseSnapshot,
-  SeatTone,
-} from "Common/UI/Components/EditionLabel/LicenseManager";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+} from "Common/UI/Components/EditionLabel/LicenseDetails";
+import { SeatTone } from "Common/UI/Components/EditionLabel/LicenseSeatUsage";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Input from "Common/UI/Components/Input/Input";
-import TextArea from "Common/UI/Components/TextArea/TextArea";
-import { APP_API_URL } from "Common/UI/Config";
-import API from "Common/UI/Utils/API/API";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPMethod from "Common/Types/API/HTTPMethod";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
 import OneUptimeDate from "Common/Types/Date";
 import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import VersionUtil from "Common/Utils/VersionUtil";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 
 /*
- * The Enterprise license manager: everything in the edition dialog that
- * changes the license, for a master admin.
+ * The Enterprise license details: the seat usage card and the instances on
+ * the license, for a master admin. Nothing here changes the license.
  *
- *   - activating it with a license key (POST /global-config/license
- *     { licenseKey }) or, for an installation that cannot reach
- *     oneuptime.com, with a signed token ({ licenseToken });
- *   - refreshing the stored license from oneuptime.com
- *     (POST /global-config/license/refresh);
- *   - replacing it ("Change license key" / "Replace license");
- *   - the seat usage card and the instances on the license.
- *
- * Those routes exist only in the Enterprise server
- * (ee/Server/License/API/LicenseClientAPI.ts), so this UI ships only in the
- * Enterprise image. The core EditionLabel (Common/UI/Components/EditionLabel)
- * keeps the edition pill and the read-only license status, and renders this
- * component through the LicenseManager plugin key of the Dashboard and the
- * Admin Dashboard. Common/UI/Components/EditionLabel/LicenseManager.ts is the
- * contract.
+ * Drawn in two places. In the edition dialog (the pill in the Dashboard's
+ * footer and the Admin Dashboard's header), where EditionLabel renders it
+ * through the LicenseDetails plugin key of both frontends, and on the Admin
+ * Dashboard's Settings > License page (./LicenseSettingsView.tsx), which is
+ * where a master admin activates, refreshes and replaces the license.
+ * Common/UI/Components/EditionLabel/LicenseDetails.ts is the contract.
  *
  * One implementation for both frontends: ee/Dashboard/License/Plugins.ts
  * imports it from here. It may therefore import only what both bundles
  * resolve - Common/... and react, never "@oneuptime/admin-dashboard/..." -
- * and ee/Dashboard/tsconfig.json includes this directory so the Dashboard's
- * type check proves it.
+ * and ee/Dashboard/tsconfig.json includes this file so the Dashboard's type
+ * check proves it.
  */
 
 const SALES_EMAIL: string = "sales@oneuptime.com";
 const SALES_MAILTO_URL: string = "mailto:sales@oneuptime.com";
-
-type ActivationInputMode = "key" | "token";
 
 type ParseLicenseInstancesFunction = (
   value: unknown,
@@ -113,67 +84,6 @@ const parseLicenseInstances: ParseLicenseInstancesFunction = (
   return instances;
 };
 
-/*
- * What to tell a master admin after a license write the server ACCEPTED.
- *
- * A 200 means the license was stored, not that it licenses anything. The
- * server deliberately stores a license it cannot date - a token with no expiry
- * beside it - because a token is better than nothing and the daily sync may
- * complete it (LicenseClient.validateWithLicenseServer refuses only a license
- * this installation cannot use at all). But such an install is on the
- * unlicensed trial, and past that trial SCIM provisioning and audit logging
- * are OFF. A green "License validated successfully." there tells the admin who
- * came to fix exactly that lapse that they have fixed it.
- *
- * Green only while the stored license is genuinely licensing this
- * installation: status "valid", or a grace period that belongs to a LICENSE
- * (graceReason anything but "unlicensed"). Otherwise the classification's own
- * message - which says what is missing and what to do - is shown as a warning,
- * with the license still stored.
- *
- * A response that says nothing about the status is treated as a success, as it
- * always was: that is an older server or a build that does not report one, and
- * inventing a warning out of silence would be its own lie.
- */
-interface LicenseWriteOutcome {
-  isLicensed: boolean;
-  message: string;
-}
-
-const LICENSE_STORED_BUT_NOT_LICENSING: string =
-  "The license was stored, but this installation cannot confirm that it is current, so enterprise features are not being licensed by it. Refresh the license, or check it on oneuptime.com.";
-
-type DescribeLicenseWriteOutcomeFunction = (
-  payload: JSONObject,
-  successMessage: string,
-) => LicenseWriteOutcome;
-
-const describeLicenseWriteOutcome: DescribeLicenseWriteOutcomeFunction = (
-  payload: JSONObject,
-  successMessage: string,
-): LicenseWriteOutcome => {
-  const status: string =
-    typeof payload["status"] === "string" ? payload["status"] : "";
-  const graceReason: string =
-    typeof payload["graceReason"] === "string" ? payload["graceReason"] : "";
-
-  const isLicensed: boolean =
-    status === "" ||
-    status === "valid" ||
-    (status === "grace" && graceReason !== "unlicensed");
-
-  if (isLicensed) {
-    return { isLicensed: true, message: successMessage };
-  }
-
-  return {
-    isLicensed: false,
-    message:
-      (typeof payload["message"] === "string" && payload["message"]) ||
-      LICENSE_STORED_BUT_NOT_LICENSING,
-  };
-};
-
 type FormatInstanceReportedAtFunction = (
   lastReportedAt: string | null,
 ) => string;
@@ -194,23 +104,12 @@ const formatInstanceReportedAt: FormatInstanceReportedAtFunction = (
   return `Last reported ${reportedAt.toLocaleString()}.`;
 };
 
-const LicenseManager: FunctionComponent<LicenseManagerProps> = (
-  props: LicenseManagerProps,
+const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
+  props: LicenseDetailsProps,
 ): ReactElement => {
   const license: LicenseSnapshot = props.license;
-  const reloadLicense: () => Promise<void> = props.reloadLicense;
-  const applySeatEnforcement: (payload: JSONObject) => void =
-    props.applySeatEnforcement;
 
-  /*
-   * What EditionLabel read from the license GET, under the names the dialog
-   * has always used for them.
-   */
-  const configError: string = license.loadError;
-  const isConfigLoading: boolean = license.isLoading;
   const canManageLicense: boolean = license.canManageLicense;
-  const licenseValid: boolean = license.licenseValid;
-  const isUnlicensedTrial: boolean = license.isUnlicensedTrial;
   const showLicenseDetails: boolean = license.showLicenseDetails;
   const userLimit: number | null = license.userLimit;
   const currentUserCount: number | null = license.currentUserCount;
@@ -224,28 +123,8 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
   const latestVersion: string = license.latestVersion;
   const hasComparableVersion: boolean = license.hasComparableVersion;
 
-  const [licenseKeyInput, setLicenseKeyInput] = useState<string>("");
-  const [validationError, setValidationError] = useState<string>("");
-  const [successMessage, setSuccessMessage] = useState<string>("");
   /*
-   * A write the server accepted that did not leave this installation licensed
-   * (see describeLicenseWriteOutcome). Its own state, not successMessage, so
-   * the alert can be a warning rather than a green tick.
-   */
-  const [licenseWarning, setLicenseWarning] = useState<string>("");
-  const [isValidating, setIsValidating] = useState<boolean>(false);
-  const [isRefreshingLicense, setIsRefreshingLicense] =
-    useState<boolean>(false);
-  const [isChangingLicense, setIsChangingLicense] = useState<boolean>(false);
-  // Which activation the input section offers: a license key, or a token.
-  const [activationInputMode, setActivationInputMode] =
-    useState<ActivationInputMode>("key");
-  const [licenseTokenInput, setLicenseTokenInput] = useState<string>("");
-  const licenseInputEditedRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
-
-  /*
-   * The fields only this manager shows, read from the same license GET. The
+   * The fields only these details show, read from the same license GET. The
    * server sends them to a master admin only; anybody else gets none.
    */
   const payload: JSONObject = useMemo(() => {
@@ -274,6 +153,13 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
       ? payload["activationMode"]
       : "";
 
+  /*
+   * An installation activated offline, or licensed by a marketplace, has no
+   * key to refresh with, so it is not told to refresh.
+   */
+  const canRefreshLicense: boolean =
+    activationMode !== "offline" && !isMarketplaceLicense;
+
   const userCountUpdatedAtText: string | null = useMemo(() => {
     if (!payload["userCountUpdatedAt"]) {
       return null;
@@ -289,40 +175,6 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
 
     return reportedAt.toLocaleString();
   }, [payload]);
-
-  /*
-   * Every time the license (re)loads, the key input shows the stored key -
-   * unless the admin has started typing a new one. A failed load leaves the
-   * input alone.
-   *
-   * Both effects here are layout effects: before the split this happened in
-   * the same state update as the load (or the dialog opening), so the dialog
-   * never painted the in-between state, and it still must not.
-   */
-  useLayoutEffect(() => {
-    if (!license.payload) {
-      return;
-    }
-
-    if (!licenseInputEditedRef.current) {
-      setLicenseKeyInput(license.licenseKey);
-    }
-  }, [license.payload, license.licenseKey]);
-
-  /*
-   * Opening or closing the dialog clears the outcome of the last action, and
-   * closing it abandons a license change in progress. What was typed, and
-   * whether the key or the token input is showing, stays.
-   */
-  useLayoutEffect(() => {
-    setValidationError("");
-    setSuccessMessage("");
-    setLicenseWarning("");
-
-    if (!props.isDialogOpen) {
-      setIsChangingLicense(false);
-    }
-  }, [props.isDialogOpen]);
 
   /*
    * The displayed percent clamped to 0-100. Drives the bar width and
@@ -478,39 +330,6 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
     } counted above.`;
   }, [licenseInstances.length, currentUserCount]);
 
-  const licenseKeyHelperText: string = useMemo(() => {
-    if (isChangingLicense) {
-      return "Enter the new enterprise license key and validate it to replace the current one. Your existing license stays active until the new key is validated.";
-    }
-
-    return "You have installed Enterprise Edition of OneUptime. Validate your license key with OneUptime to activate it. Need a license key? Contact our sales team at";
-  }, [isChangingLicense]);
-
-  const handleStartChangingLicense: () => void = () => {
-    setIsChangingLicense(true);
-    setValidationError("");
-    setSuccessMessage("");
-    setLicenseKeyInput("");
-    setLicenseTokenInput("");
-    setActivationInputMode(activationMode === "offline" ? "token" : "key");
-    licenseInputEditedRef.current = true;
-  };
-
-  const handleCancelChangingLicense: () => void = () => {
-    setIsChangingLicense(false);
-    setValidationError("");
-    setLicenseTokenInput("");
-    setActivationInputMode("key");
-    licenseInputEditedRef.current = false;
-    setLicenseKeyInput(license.licenseKey);
-  };
-
-  const handleSwitchActivationInputMode: () => void = () => {
-    setActivationInputMode(activationInputMode === "key" ? "token" : "key");
-    setValidationError("");
-    setSuccessMessage("");
-  };
-
   type BuildSeatExpansionMailtoFunction = () => string;
 
   const buildSeatExpansionMailto: BuildSeatExpansionMailtoFunction =
@@ -543,222 +362,14 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
     }
   };
 
-  const runLicenseValidation: (
-    key: string,
-    setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  ) => Promise<void> = useCallback(
-    async (
-      key: string,
-      setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-    ): Promise<void> => {
-      const trimmedKey: string = key.trim();
-
-      if (!trimmedKey) {
-        setValidationError("Please enter a license key before validating.");
-        setSuccessMessage("");
-        setLicenseWarning("");
-        return;
-      }
-
-      setValidationError("");
-      setSuccessMessage("");
-      setLicenseWarning("");
-      setLoading(true);
-
-      try {
-        const validationUrl: URL = URL.fromURL(APP_API_URL).addRoute(
-          new Route("/global-config/license"),
-        );
-
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.fetch<JSONObject>({
-            method: HTTPMethod.POST,
-            url: validationUrl,
-            data: {
-              licenseKey: trimmedKey,
-            },
-          });
-
-        if (!response.isSuccess()) {
-          throw response;
-        }
-
-        const payload: JSONObject = response.data as JSONObject;
-
-        licenseInputEditedRef.current = false;
-        setLicenseKeyInput((payload["licenseKey"] as string) || trimmedKey);
-        /*
-         * Stored, but not necessarily licensing anything: the server keeps a
-         * license it cannot date rather than refusing it outright.
-         */
-        const outcome: LicenseWriteOutcome = describeLicenseWriteOutcome(
-          payload,
-          "License validated successfully.",
-        );
-
-        setSuccessMessage(outcome.isLicensed ? outcome.message : "");
-        setLicenseWarning(outcome.isLicensed ? "" : outcome.message);
-        setIsChangingLicense(false);
-
-        await reloadLicense();
-      } catch (err) {
-        setValidationError(API.getFriendlyMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [reloadLicense],
-  );
-
-  /*
-   * Offline activation: a signed license token, for an installation that
-   * cannot reach oneuptime.com. The server accepts only a token signed by a
-   * key this OneUptime release trusts, and says so when it does not.
-   */
-  const runOfflineActivation: (token: string) => Promise<void> = useCallback(
-    async (token: string): Promise<void> => {
-      const trimmedToken: string = token.trim();
-
-      if (!trimmedToken) {
-        setValidationError("Please paste a license token before activating.");
-        setSuccessMessage("");
-        setLicenseWarning("");
-        return;
-      }
-
-      setValidationError("");
-      setSuccessMessage("");
-      setLicenseWarning("");
-      setIsValidating(true);
-
-      try {
-        const activationUrl: URL = URL.fromURL(APP_API_URL).addRoute(
-          new Route("/global-config/license"),
-        );
-
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.fetch<JSONObject>({
-            method: HTTPMethod.POST,
-            url: activationUrl,
-            data: {
-              licenseToken: trimmedToken,
-            },
-          });
-
-        if (!response.isSuccess()) {
-          throw response;
-        }
-
-        setLicenseTokenInput("");
-
-        const outcome: LicenseWriteOutcome = describeLicenseWriteOutcome(
-          (response.data as JSONObject) || {},
-          "License activated offline.",
-        );
-
-        setSuccessMessage(outcome.isLicensed ? outcome.message : "");
-        setLicenseWarning(outcome.isLicensed ? "" : outcome.message);
-        setIsChangingLicense(false);
-        setActivationInputMode("key");
-
-        await reloadLicense();
-      } catch (err) {
-        setValidationError(API.getFriendlyMessage(err));
-      } finally {
-        setIsValidating(false);
-      }
-    },
-    [reloadLicense],
-  );
-
-  const handleValidateClick: () => void = () => {
-    if (isValidating) {
-      return;
-    }
-
-    if (activationInputMode === "token") {
-      void runOfflineActivation(licenseTokenInput);
-      return;
-    }
-
-    void runLicenseValidation(licenseKeyInput, setIsValidating);
-  };
-
-  /*
-   * Re-ask oneuptime.com about the license this installation already holds.
-   *
-   * The seat limit and the expiry are changed on oneuptime.com, and the daily
-   * report job is what normally carries them here - so without this, an
-   * administrator who has just bought seats waits up to a day before the
-   * installation stops refusing invitations. Deliberately sends no key: the
-   * server refreshes the stored one.
-   */
-  const handleRefreshLicense: () => void = useCallback((): void => {
-    if (isRefreshingLicense) {
-      return;
-    }
-
-    const refresh: () => Promise<void> = async (): Promise<void> => {
-      setValidationError("");
-      setSuccessMessage("");
-      setLicenseWarning("");
-      setIsRefreshingLicense(true);
-
-      try {
-        const refreshUrl: URL = URL.fromURL(APP_API_URL).addRoute(
-          new Route("/global-config/license/refresh"),
-        );
-
-        const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-          await API.fetch<JSONObject>({
-            method: HTTPMethod.POST,
-            url: refreshUrl,
-          });
-
-        if (!response.isSuccess()) {
-          throw response;
-        }
-
-        applySeatEnforcement(response.data as JSONObject);
-
-        const outcome: LicenseWriteOutcome = describeLicenseWriteOutcome(
-          (response.data as JSONObject) || {},
-          "License refreshed from OneUptime.",
-        );
-
-        setSuccessMessage(outcome.isLicensed ? outcome.message : "");
-        setLicenseWarning(outcome.isLicensed ? "" : outcome.message);
-
-        /*
-         * The POST already returned the new terms, but the modal renders from
-         * what the GET reports - re-reading keeps one source of truth for the
-         * whole dialog instead of two that can disagree.
-         */
-        await reloadLicense();
-      } catch (err) {
-        setValidationError(API.getFriendlyMessage(err));
-      } finally {
-        setIsRefreshingLicense(false);
-      }
-    };
-
-    void refresh();
-  }, [isRefreshingLicense, reloadLicense, applySeatEnforcement]);
-
-  /*
-   * The trial counts as "no license yet" here: an administrator trying the
-   * Enterprise Edition should be able to add the license from the same place
-   * as one whose license lapsed.
-   */
-  const showLicenseKeyInput: boolean =
-    canManageLicense &&
-    (!licenseValid || isUnlicensedTrial || isChangingLicense);
-
   /*
    * The seat and instance cards are built from figures the server gives a
-   * master admin only; anybody else would see an empty "unlimited" card.
+   * master admin only; anybody else would see an empty "unlimited" card. So
+   * would a marketplace license, which has no seat limit at all: every user
+   * is billed by the hour, and nothing is reported to OneUptime.
    */
-  const showSeatDetails: boolean = showLicenseDetails && canManageLicense;
+  const showSeatDetails: boolean =
+    showLicenseDetails && canManageLicense && !isMarketplaceLicense;
 
   /*
    * GlobalConfigAPI returns userLimit and currentUserCount to anonymous callers
@@ -769,81 +380,6 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
    */
   const canSeeLicenseAdmin: boolean = Boolean(license.licenseKey);
 
-  const leftFooterElement: ReactElement | undefined =
-    showLicenseDetails && !isChangingLicense && canManageLicense ? (
-      <div className="flex flex-wrap items-center gap-2">
-        {/*
-         * The seat limit and the expiry are changed on oneuptime.com and reach
-         * this installation through the daily report job. This is the button
-         * for the administrator who has just bought seats and would rather not
-         * wait a day for the installation to stop refusing invitations.
-         */}
-        {/*
-         * An installation activated offline has no key to refresh with; a new
-         * token replaces the license instead.
-         */}
-        {activationMode !== "offline" && !isMarketplaceLicense && (
-          <Button
-            title="Refresh license"
-            icon={IconProp.Refresh}
-            buttonStyle={ButtonStyleType.NORMAL}
-            onClick={handleRefreshLicense}
-            isLoading={isRefreshingLicense}
-            disabled={isRefreshingLicense || isConfigLoading}
-            tooltip="Fetch the latest seat limit and expiry for this license from OneUptime."
-            dataTestId="refresh-enterprise-license"
-            className="!mt-0 md:!ml-0"
-          />
-        )}
-        <Button
-          title={
-            activationMode === "offline"
-              ? "Replace license"
-              : "Change license key"
-          }
-          icon={IconProp.Edit}
-          buttonStyle={ButtonStyleType.NORMAL}
-          onClick={handleStartChangingLicense}
-          disabled={isRefreshingLicense}
-          className="!mt-0 md:!ml-0"
-        />
-      </div>
-    ) : undefined;
-
-  // Top of the dialog body.
-  const messages: ReactElement = (
-    <>
-                {!configError && successMessage && (
-                  <Alert type={AlertType.SUCCESS} title={successMessage} />
-                )}
-
-                {/*
-                 * The server stored the license and still says it is not
-                 * licensing this installation (describeLicenseWriteOutcome).
-                 * Same place as the success alert, because it answers the same
-                 * question - "did that work?" - and the answer is "not yet".
-                 */}
-                {!configError && licenseWarning && (
-                  <Alert
-                    type={AlertType.WARNING}
-                    title={licenseWarning}
-                    dataTestId="enterprise-license-stored-warning"
-                  />
-                )}
-
-                {/*
-                 * A failed refresh has nowhere else to go: the license key
-                 * section carries its own copy of this alert, but that
-                 * section is not rendered at all while the license is valid,
-                 * which is exactly when refreshing is worth doing.
-                 */}
-                {!configError && validationError && !showLicenseKeyInput && (
-                  <Alert type={AlertType.DANGER} title={validationError} />
-                )}
-    </>
-  );
-
-  // After the version card.
   const usage: ReactElement = (
     <>
                 {showSeatDetails && (
@@ -1049,19 +585,22 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
                           </>
                         )}
                         {/*
-                         * Only pointed at somebody who can actually press it.
-                         * The refresh button is master-admin only, so telling
-                         * everyone else to use it would be an instruction they
-                         * cannot follow.
+                         * Only pointed at somebody who can actually do it.
+                         * Refreshing is a master admin's, on the license page,
+                         * so telling anybody else would be an instruction they
+                         * cannot follow. No place in the sentence: the page
+                         * has the button, and the dialog leads to the page.
                          */}
-                        {isSeatLimitEnforced && canManageLicense && (
-                          <>
-                            {" "}
-                            Bought more seats? Use &quot;Refresh license&quot;
-                            below to apply the new limit without waiting for the
-                            next daily report.
-                          </>
-                        )}
+                        {isSeatLimitEnforced &&
+                          canManageLicense &&
+                          canRefreshLicense && (
+                            <>
+                              {" "}
+                              Bought more seats? Refresh the license to apply
+                              the new limit without waiting for the next daily
+                              report.
+                            </>
+                          )}
                       </p>
                     </div>
                   </section>
@@ -1210,125 +749,7 @@ const LicenseManager: FunctionComponent<LicenseManagerProps> = (
     </>
   );
 
-  // After the notice for somebody who cannot manage the license.
-  const activation: ReactElement = (
-    <>
-                {!configError && showLicenseKeyInput && (
-                  <section className="rounded-xl border border-gray-200 bg-white p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <label
-                          htmlFor={
-                            activationInputMode === "token"
-                              ? "enterprise-license-token"
-                              : "enterprise-license-key"
-                          }
-                          className="text-sm font-semibold text-gray-900"
-                        >
-                          {activationInputMode === "token"
-                            ? "License token (offline activation)"
-                            : isChangingLicense
-                              ? "New license key"
-                              : "License key"}
-                        </label>
-                        <p className="mt-0.5 text-xs leading-relaxed text-gray-500">
-                          {activationInputMode === "token"
-                            ? "For an installation that cannot reach oneuptime.com. Paste the signed license token OneUptime issued for this installation. Only tokens signed by a key this OneUptime release trusts are accepted."
-                            : licenseKeyHelperText}
-                          {!isChangingLicense &&
-                            activationInputMode === "key" && (
-                              <>
-                                {" "}
-                                <a
-                                  href={SALES_MAILTO_URL}
-                                  className="font-medium text-indigo-600 hover:text-indigo-700"
-                                >
-                                  {SALES_EMAIL}
-                                </a>
-                                .
-                              </>
-                            )}
-                        </p>
-                      </div>
-                      {isChangingLicense && (
-                        <Button
-                          title="Cancel"
-                          buttonStyle={ButtonStyleType.NORMAL}
-                          onClick={handleCancelChangingLicense}
-                          className="!mt-0 shrink-0 md:!ml-0"
-                        />
-                      )}
-                    </div>
-                    <div className="mt-3">
-                      {activationInputMode === "token" ? (
-                        <TextArea
-                          id="enterprise-license-token"
-                          value={licenseTokenInput}
-                          onChange={(value: string) => {
-                            setLicenseTokenInput(value);
-                          }}
-                          placeholder="Paste the signed license token"
-                          disableSpellCheck={true}
-                          dataTestId="enterprise-license-token-input"
-                        />
-                      ) : (
-                        <Input
-                          id="enterprise-license-key"
-                          value={licenseKeyInput}
-                          onChange={(value: string) => {
-                            setLicenseKeyInput(value);
-                            licenseInputEditedRef.current = true;
-                          }}
-                          placeholder="Enter your enterprise license key"
-                          disableSpellCheck={true}
-                        />
-                      )}
-                    </div>
-                    <div className="mt-2">
-                      <button
-                        type="button"
-                        onClick={handleSwitchActivationInputMode}
-                        data-testid="switch-license-activation-mode"
-                        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
-                      >
-                        {activationInputMode === "token"
-                          ? "Use a license key instead"
-                          : "No internet access? Activate offline with a license token"}
-                      </button>
-                    </div>
-                    {validationError && (
-                      <div className="mt-3">
-                        <Alert
-                          type={AlertType.DANGER}
-                          title={validationError}
-                        />
-                      </div>
-                    )}
-                  </section>
-                )}
-    </>
-  );
-
-  return props.renderDialog({
-    messages: messages,
-    usage: usage,
-    activation: activation,
-    submitButtonText: showLicenseKeyInput
-      ? activationInputMode === "token"
-        ? "Activate License"
-        : "Validate License"
-      : undefined,
-    onSubmit: showLicenseKeyInput ? handleValidateClick : undefined,
-    isSubmitting: showLicenseKeyInput ? isValidating : false,
-    disableSubmitButton: showLicenseKeyInput
-      ? !(
-          activationInputMode === "token" ? licenseTokenInput : licenseKeyInput
-        ).trim() ||
-        isValidating ||
-        isConfigLoading
-      : undefined,
-    leftFooterElement: leftFooterElement,
-  });
+  return usage;
 };
 
-export default LicenseManager;
+export default LicenseDetails;
