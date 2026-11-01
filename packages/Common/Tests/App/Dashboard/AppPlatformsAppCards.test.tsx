@@ -610,9 +610,9 @@ describe("an app's header", () => {
       "cloud-app-fact-group",
     ]);
     // One dot between two facts, none before the first.
-    expect(within(where).getAllByTestId("cloud-app-fact-separator")).toHaveLength(
-      2,
-    );
+    expect(
+      within(where).getAllByTestId("cloud-app-fact-separator"),
+    ).toHaveLength(2);
     expect(
       within(whereFacts[0]!).queryByTestId("cloud-app-fact-separator"),
     ).toBeNull();

@@ -70,8 +70,8 @@ import {
  * when there are two (#5511's UI review: the card's description said it on
  * every app). Its Details card is laid out as every resource Overview's is
  * (ResourceOverview): each attribute named as the app's telemetry chips
- * name it, its key beside it - "Cluster (aws.ecs.cluster.arn)" - and the
- * revision it runs under the attribute it is read from.
+ * name it, its key under it - "Cluster" over "aws.ecs.cluster.arn" - and
+ * the revision it runs under the attribute it is read from.
  */
 
 export const DEPLOY_MARKER_LABEL: string = translationKey(
@@ -565,25 +565,40 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
                   data-testid="cloud-app-detail-row"
                   data-detail={row.key}
                 >
-                  <dt className="text-sm font-medium text-gray-500 [overflow-wrap:anywhere]">
-                    {row.label}
+                  {/*
+                   * The label, and under it the attribute it is read from,
+                   * quieter and on a line of its own: put beside the label
+                   * in brackets it wrapped into the label's words ("Task
+                   * definition revision (aws.ecs.task." over "revision)"),
+                   * and on a Persian page into the label's Persian words.
+                   */}
+                  <dt className="text-sm font-medium text-gray-500">
+                    <span
+                      className="block [overflow-wrap:anywhere]"
+                      data-testid="cloud-app-detail-label"
+                    >
+                      {row.label}
+                    </span>
                     {row.attribute ? (
-                      <>
-                        {" "}
-                        <bdi>
-                          (<AttributeKey name={row.attribute} />)
+                      <span
+                        className="mt-0.5 block text-xs font-normal text-gray-500 [overflow-wrap:anywhere]"
+                        data-testid="cloud-app-detail-attribute"
+                      >
+                        {/*
+                         * The font on the <bdi> itself: the Dashboard gives
+                         * every element its sans font (index.ejs's * rule),
+                         * so a bdi inside a font-mono box was drawn sans.
+                         */}
+                        <bdi className="font-mono">
+                          <AttributeKey name={row.attribute} />
                         </bdi>
-                      </>
+                      </span>
                     ) : (
                       <></>
                     )}
                   </dt>
-                  <dd
-                    className={`${RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME} ${
-                      row.mono ? "font-mono" : ""
-                    }`}
-                  >
-                    <bdi>
+                  <dd className={RESOURCE_OVERVIEW_DETAIL_VALUE_CLASS_NAME}>
+                    <bdi className={row.mono ? "font-mono" : undefined}>
                       <BreakableName text={row.value} />
                     </bdi>
                   </dd>

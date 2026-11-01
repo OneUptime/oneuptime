@@ -189,8 +189,13 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
       ]),
     ]);
 
-  const [total, connected, liveInstances, neverSeen, ...providerCounts]: Array<number> =
-    environmentCounts;
+  const [
+    total,
+    connected,
+    liveInstances,
+    neverSeen,
+    ...providerCounts
+  ]: Array<number> = environmentCounts;
 
   /*
    * No environment, no app to count: the strip is not drawn then, and an

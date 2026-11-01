@@ -154,12 +154,13 @@ describe("CloudAppService.recordApp", () => {
     jest
       .spyOn(CloudAppService, "findOneBy")
       .mockResolvedValue(appRow(APP_ID) as never);
-    const create: SpyInstance<typeof CloudAppService.create> =
-      jest.spyOn(CloudAppService, "create");
-    const update: SpyInstance<typeof CloudAppService.updateOneById> =
-      jest
-        .spyOn(CloudAppService, "updateOneById")
-        .mockResolvedValue(undefined as never);
+    const create: SpyInstance<typeof CloudAppService.create> = jest.spyOn(
+      CloudAppService,
+      "create",
+    );
+    const update: SpyInstance<typeof CloudAppService.updateOneById> = jest
+      .spyOn(CloudAppService, "updateOneById")
+      .mockResolvedValue(undefined as never);
 
     const id: ObjectID = await CloudAppService.recordApp({
       projectId: PROJECT_ID,
@@ -189,10 +190,9 @@ describe("CloudAppService.recordApp", () => {
     jest
       .spyOn(CloudAppService, "findOneBy")
       .mockResolvedValue(appRow(APP_ID) as never);
-    const update: SpyInstance<typeof CloudAppService.updateOneById> =
-      jest
-        .spyOn(CloudAppService, "updateOneById")
-        .mockResolvedValue(undefined as never);
+    const update: SpyInstance<typeof CloudAppService.updateOneById> = jest
+      .spyOn(CloudAppService, "updateOneById")
+      .mockResolvedValue(undefined as never);
 
     await CloudAppService.recordApp({
       projectId: PROJECT_ID,

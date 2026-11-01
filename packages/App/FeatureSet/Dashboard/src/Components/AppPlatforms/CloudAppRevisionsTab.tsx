@@ -361,9 +361,7 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
               return <span className="text-sm text-gray-400">—</span>;
             }
 
-            const deployedAt: Date = OneUptimeDate.fromString(
-              row.firstSeenAt,
-            );
+            const deployedAt: Date = OneUptimeDate.fromString(row.firstSeenAt);
 
             /*
              * "25 minutes ago", with the date and time it was under the

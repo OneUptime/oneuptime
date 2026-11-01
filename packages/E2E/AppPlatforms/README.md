@@ -65,11 +65,11 @@ modelled" stub (`data-testid="stub-page"`).
 
 Query parameters on any page:
 
-| Parameter | Values                                                       |
-| --------- | ------------------------------------------------------------ |
+| Parameter | Values                                                                                                                                          |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `state`   | `empty`: no environment yet (the Overview's first-run guide); `connected`: every environment connected (the strip breaks them down by provider) |
-| `lang`    | `de` or `fa` (Persian, laid out right to left)               |
-| `theme`   | `dark` adds `html.dark` (server.js)                          |
+| `lang`    | `de` or `fa` (Persian, laid out right to left)                                                                                                  |
+| `theme`   | `dark` adds `html.dark` (server.js)                                                                                                             |
 
 ## What the fixture records
 

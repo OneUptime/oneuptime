@@ -1143,9 +1143,9 @@ test.describe("apps and their deploys", () => {
       "43Current2 instances",
       "42Running1 instance",
     ]);
-    await expect(
-      page.getByTestId("cloud-app-running-now-split"),
-    ).toContainText("a deploy in progress, or traffic split between them");
+    await expect(page.getByTestId("cloud-app-running-now-split")).toContainText(
+      "a deploy in progress, or traffic split between them",
+    );
     // The deploy 25 minutes ago, marked on both charts.
     await expect(page.getByTestId("chart-annotation-marker")).toHaveCount(2);
     /*
@@ -1153,12 +1153,17 @@ test.describe("apps and their deploys", () => {
      * the revision under the attribute it is read from.
      */
     const details: Locator = page.getByTestId("cloud-app-detail-row");
-    await expect(details.locator("dt")).toHaveText([
-      "App (aws.ecs.task.family)",
-      "Cluster (aws.ecs.cluster.arn)",
-      "Task definition revision (aws.ecs.task.revision)",
+    await expect(details.getByTestId("cloud-app-detail-label")).toHaveText([
+      "App",
+      "Cluster",
+      "Task definition revision",
       "Image",
       "First Seen",
+    ]);
+    await expect(details.getByTestId("cloud-app-detail-attribute")).toHaveText([
+      "aws.ecs.task.family",
+      "aws.ecs.cluster.arn",
+      "aws.ecs.task.revision",
     ]);
     await expect(details.nth(2).locator("dd")).toHaveText("43");
     await screenshot(page, "app-platforms-app-overview-1280");
@@ -1478,9 +1483,13 @@ test.describe("apps and their deploys", () => {
 
     await expect(
       page.getByText("replaced", { exact: false }).first(),
-    ).toContainText("Deployed production/checkout-api: revision 43 replaced 42.");
+    ).toContainText(
+      "Deployed production/checkout-api: revision 43 replaced 42.",
+    );
     await expect(
-      page.getByRole("link", { name: "production/checkout-api" }),
+      page
+        .getByTestId("feed-entry-body")
+        .getByRole("link", { name: "production/checkout-api", exact: true }),
     ).toHaveAttribute("href", CHECKOUT_APP);
     await screenshot(page, "app-platforms-environment-feed-1280");
 
@@ -1491,10 +1500,11 @@ test.describe("apps and their deploys", () => {
     ).toContainText(
       "Rolled back reports to revision v11def: revision v12abc stopped reporting.",
     );
-    await expect(page.getByRole("link", { name: "reports" })).toHaveAttribute(
-      "href",
-      REPORTS_APP,
-    );
+    await expect(
+      page
+        .getByTestId("feed-entry-body")
+        .getByRole("link", { name: "reports", exact: true }),
+    ).toHaveAttribute("href", REPORTS_APP);
     await expectNoSidewaysScroll(page);
     await screenshot(page, "app-platforms-environment-feed-390");
   });

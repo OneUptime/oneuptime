@@ -13,11 +13,10 @@ import * as React from "react";
  *     mean, and says what two revisions at once mean only when there are
  *     two (its description said it on every app);
  *   - Details is drawn as every resource Overview's is: each attribute
- *     named as the app's telemetry chips name it, its key beside it ("App
- *     (aws.ecs.task.family)", "Cluster (aws.ecs.cluster.arn)") where it read
- *     a raw key on one row and "Revision Attribute" on the next; the
- *     revision the app runs under the attribute it is read from; the image
- *     whole.
+ *     named as the app's telemetry chips name it, its key on a quieter line
+ *     under it ("App" over "aws.ecs.task.family") where it read a raw key on
+ *     one row and "Revision Attribute" on the next; the revision the app
+ *     runs under the attribute it is read from; the image whole.
  */
 
 jest.mock("react-i18next", () => {
@@ -107,7 +106,10 @@ function ecsApp(fields: CloudAppFields = {}): CloudApp {
   });
 }
 
-function instance(revision: string, seenMinutesAgo: number = 1): CloudResourceInstance {
+function instance(
+  revision: string,
+  seenMinutesAgo: number = 1,
+): CloudResourceInstance {
   return Object.assign(new CloudResourceInstance(), {
     cloudAppId: APP_ID,
     revision,
@@ -135,13 +137,26 @@ async function renderTab(data: {
   });
 }
 
+/*
+ * Each Details row as "Label (attribute)": the label and the attribute it is
+ * read from, which the card draws on two lines.
+ */
 function detailRows(): Array<{ key: string; label: string; value: string }> {
   return screen
     .getAllByTestId("cloud-app-detail-row")
     .map((row: HTMLElement): { key: string; label: string; value: string } => {
+      const label: string = (
+        row.querySelector("[data-testid='cloud-app-detail-label']")
+          ?.textContent || ""
+      ).trim();
+      const attribute: string = (
+        row.querySelector("[data-testid='cloud-app-detail-attribute']")
+          ?.textContent || ""
+      ).trim();
+
       return {
         key: row.getAttribute("data-detail") || "",
-        label: (row.querySelector("dt")?.textContent || "").trim(),
+        label: attribute ? `${label} (${attribute})` : label,
         value: (row.querySelector("dd")?.textContent || "").trim(),
       };
     });
@@ -234,14 +249,23 @@ describe("Details", () => {
       expect.objectContaining({ key: "first-seen", label: "First Seen" }),
     ]);
 
-    // Identifiers in the Details font, the date in the page's.
+    /*
+     * Identifiers in the Details font, the date in the page's - on the
+     * element that holds the text: the Dashboard gives every element its
+     * sans font, so a font-mono box's <bdi> was drawn sans.
+     */
     const rows: Array<HTMLElement> = screen.getAllByTestId(
       "cloud-app-detail-row",
     );
-    expect(rows[0]!.querySelector("dd")).toHaveClass("font-mono");
-    expect(rows[rows.length - 1]!.querySelector("dd")).not.toHaveClass(
+    expect(rows[0]!.querySelector("dd bdi")).toHaveClass("font-mono");
+    expect(rows[rows.length - 1]!.querySelector("dd bdi")).not.toHaveClass(
       "font-mono",
     );
+    expect(
+      within(rows[0]!)
+        .getByTestId("cloud-app-detail-attribute")
+        .querySelector("bdi"),
+    ).toHaveClass("font-mono");
     // A long ARN breaks after its own colons and slashes first.
     expect(rows[1]!.querySelector("dd wbr")).not.toBeNull();
     /*
@@ -252,6 +276,13 @@ describe("Details", () => {
     expect(rows[2]!.querySelectorAll("dt wbr")).toHaveLength(3);
     // Never the old "Revision Attribute" row.
     expect(screen.queryByText("Revision Attribute")).toBeNull();
+    // The key on its own line, isolated, never in brackets beside the label.
+    const keyLine: HTMLElement = within(rows[2]!).getByTestId(
+      "cloud-app-detail-attribute",
+    );
+    expect(keyLine).toHaveClass("block");
+    expect(keyLine.querySelector("bdi")).not.toBeNull();
+    expect(keyLine.textContent).toBe("aws.ecs.task.revision");
   });
 
   test("a Cloud Run app reads its revision under faas.version, and leaves out what it does not report", async () => {

@@ -6,7 +6,6 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
@@ -258,7 +257,8 @@ describe("fetchCloudAppSignals", () => {
 
 describe("fetchCloudAppInstances", () => {
   test("reads the apps' live instances only, with the app and revision each runs", async () => {
-    const getList: SpyInstance<typeof ModelAPI.getList> = jest
+    // ModelAPI.getList is generic: its spy is typed as jest.spyOn makes it.
+    const getList: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ModelAPI, "getList")
       .mockResolvedValue({ data: [], count: 0, skip: 0, limit: 0 } as never);
 
@@ -296,7 +296,7 @@ describe("fetchCloudAppInstances", () => {
   });
 
   test("no app, or only empty ids, no read", async () => {
-    const getList: SpyInstance<typeof ModelAPI.getList> = jest.spyOn(
+    const getList: ReturnType<typeof jest.spyOn> = jest.spyOn(
       ModelAPI,
       "getList",
     );

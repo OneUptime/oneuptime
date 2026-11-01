@@ -432,9 +432,7 @@ describe("CloudAppRevisionService.deleteUnseenForResource", () => {
     jest
       .spyOn(CloudAppService, "findBy")
       .mockResolvedValue([withCurrent, withoutCurrent] as never);
-    const deleteBy: SpyInstance<
-      typeof CloudAppRevisionService.deleteBy
-    > = jest
+    const deleteBy: SpyInstance<typeof CloudAppRevisionService.deleteBy> = jest
       .spyOn(CloudAppRevisionService, "deleteBy")
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(1);
