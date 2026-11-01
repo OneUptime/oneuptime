@@ -326,21 +326,22 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesPartOverview
-          clusterId={modelId}
-          clusterIdentifier={clusterIdentifier}
-          kind="StatefulSet"
-          read={partState.read}
-          error={partState.error}
-          routes={routes}
-        >
+        <>
+          <KubernetesPartOverview
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+            kind="StatefulSet"
+            read={partState.read}
+            error={partState.error}
+            routes={routes}
+          />
           <KubernetesOverviewTab
             summaryFields={summaryFields}
             labels={objectData?.metadata.labels || {}}
             annotations={objectData?.metadata.annotations || {}}
             isLoading={isLoadingObject}
           />
-        </KubernetesPartOverview>
+        </>
       ),
     },
     getKubernetesPodsTab({

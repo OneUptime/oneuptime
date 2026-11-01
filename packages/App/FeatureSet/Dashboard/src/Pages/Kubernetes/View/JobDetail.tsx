@@ -356,14 +356,15 @@ const KubernetesClusterJobDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesPartOverview
-          clusterId={modelId}
-          clusterIdentifier={clusterIdentifier}
-          kind="Job"
-          read={partState.read}
-          error={partState.error}
-          routes={routes}
-        >
+        <>
+          <KubernetesPartOverview
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+            kind="Job"
+            read={partState.read}
+            error={partState.error}
+            routes={routes}
+          />
           <KubernetesOverviewTab
             summaryFields={summaryFields}
             labels={jobObject?.metadata.labels || {}}
@@ -371,7 +372,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
             conditions={jobObject?.status.conditions}
             isLoading={isLoadingObject}
           />
-        </KubernetesPartOverview>
+        </>
       ),
     },
     getKubernetesPodsTab({ kind: "Job", part: partState, routes: routes }),

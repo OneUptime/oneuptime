@@ -429,14 +429,15 @@ const KubernetesClusterPodDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesPartOverview
-          clusterId={modelId}
-          clusterIdentifier={clusterIdentifier}
-          kind="Pod"
-          read={partState.read}
-          error={partState.error}
-          routes={routes}
-        >
+        <>
+          <KubernetesPartOverview
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+            kind="Pod"
+            read={partState.read}
+            error={partState.error}
+            routes={routes}
+          />
           <KubernetesOverviewTab
             summaryFields={summaryFields}
             labels={podObject?.metadata.labels || {}}
@@ -449,7 +450,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
             modelId={modelId}
             isLoading={isLoadingObject}
           />
-        </KubernetesPartOverview>
+        </>
       ),
     },
     {

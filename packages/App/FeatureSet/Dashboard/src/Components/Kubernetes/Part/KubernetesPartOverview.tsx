@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import { kubernetesObjectKey } from "Common/Types/Kubernetes/KubernetesHealth";
@@ -20,12 +20,14 @@ import {
 import { KubernetesPartRoutes } from "../../../Pages/Kubernetes/Utils/KubernetesPartRoutes";
 
 /*
- * A Kubernetes object's Overview tab: what about it and the pods it runs
- * is broken or needs a look (the most urgent first, its own row first
- * among equals, each pod a step from that pod's page), what is open on it, whether the cluster's alerts watch
- * it with one step to turn on the rest, and then its details - labels,
- * annotations, conditions - as the page showed them before (children).
- * The Proxmox node page's story, for a pod, a workload or a node.
+ * The top of a Kubernetes object's Overview tab: what about it and the
+ * pods it runs is broken or needs a look (the most urgent first, its own
+ * row first among equals, each pod a step from that pod's page), what is
+ * open on it, and whether the cluster's alerts watch it, with one step to
+ * turn on the rest. The page draws its details - labels, annotations,
+ * conditions - below it, beside it in the tab rather than inside it, so no
+ * card sits in another. The Proxmox node page's story, for a pod, a
+ * workload or a node.
  */
 
 export interface ComponentProps {
@@ -38,7 +40,6 @@ export interface ComponentProps {
   error: string;
   routes: KubernetesPartRoutes;
   refreshToken?: number | undefined;
-  children?: ReactNode | undefined;
 }
 
 const KubernetesPartOverview: FunctionComponent<ComponentProps> = (
@@ -134,8 +135,6 @@ const KubernetesPartOverview: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-
-      {props.children}
     </div>
   );
 };

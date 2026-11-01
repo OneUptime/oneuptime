@@ -415,14 +415,15 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     {
       name: "Overview",
       children: (
-        <KubernetesPartOverview
-          clusterId={modelId}
-          clusterIdentifier={clusterIdentifier}
-          kind="Node"
-          read={partState.read}
-          error={partState.error}
-          routes={routes}
-        >
+        <>
+          <KubernetesPartOverview
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+            kind="Node"
+            read={partState.read}
+            error={partState.error}
+            routes={routes}
+          />
           <KubernetesOverviewTab
             summaryFields={summaryFields}
             labels={nodeObject?.metadata.labels || {}}
@@ -430,7 +431,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
             conditions={nodeObject?.status.conditions}
             isLoading={isLoadingObject}
           />
-        </KubernetesPartOverview>
+        </>
       ),
     },
     getKubernetesPodsTab({ kind: "Node", part: partState, routes: routes }),

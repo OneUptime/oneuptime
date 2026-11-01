@@ -498,7 +498,7 @@ describe("a workload's Overview", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("a read that failed says why, and keeps the details below", () => {
+  test("a read that failed says why, and guesses nothing", () => {
     render(
       <KubernetesPartOverview
         clusterId={CLUSTER_ID}
@@ -507,15 +507,16 @@ describe("a workload's Overview", () => {
         read={null}
         error="The cluster could not be read."
         routes={ROUTES}
-      >
-        <div data-testid="details" />
-      </KubernetesPartOverview>,
+      />,
     );
 
     expect(
       screen.getByTestId("kubernetes-deployment-part-error"),
     ).toHaveTextContent("The cluster could not be read.");
-    expect(screen.getByTestId("details")).toBeInTheDocument();
+    // No all-clear while the read is missing.
+    expect(
+      screen.queryByTestId("kubernetes-deployment-attention"),
+    ).not.toBeInTheDocument();
   });
 });
 

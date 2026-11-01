@@ -959,7 +959,7 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
     ).toHaveText("Turn on 3 alerts");
     // When it was created reads as an age, as kubectl says it.
     await expect(
-      page.getByTestId("kubernetes-statefulset-overview"),
+      page.getByRole("tabpanel", { name: "Overview" }),
     ).not.toContainText(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
 
     await screenshot(page, "statefulset-postgres");
@@ -1030,7 +1030,7 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
       page.getByTestId("kubernetes-cronjob-alerts-turn-on"),
     ).toHaveText("Turn on 1 alert");
     // When it last ran, in words; never an ISO string.
-    const overview: Locator = page.getByTestId("kubernetes-cronjob-overview");
+    const overview: Locator = page.getByRole("tabpanel", { name: "Overview" });
     await expect(overview).toContainText("an hour ago");
     await expect(overview).not.toContainText(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
 
@@ -1078,7 +1078,7 @@ test.describe("a StatefulSet's, a DaemonSet's, a CronJob's and a Job's page", ()
     await expect(
       page.getByTestId("kubernetes-job-attention-reason"),
     ).toHaveText(["Failed", "BackoffLimitExceeded"]);
-    const overview: Locator = page.getByTestId("kubernetes-job-overview");
+    const overview: Locator = page.getByRole("tabpanel", { name: "Overview" });
     await expect(overview).not.toContainText(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
     await expect(overview).toContainText(
       /Start Time\s*[A-Z][a-z]{2} \d{2} \d{4}, \d{2}:\d{2}/,
