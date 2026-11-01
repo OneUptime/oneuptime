@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "फ़ॉर्म भरने के लिए एक टेम्पलेट चुनें। सबमिट करने से पहले आप कोई भी उत्तर बदल सकते हैं।",
   "Delete Template": "टेम्पलेट हटाएँ",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "यह टेम्पलेट हटाएँ? जो लिंक इसका नाम लेते हैं, वे फ़ॉर्म को बिना टेम्पलेट के खोलते हैं। इससे पहले से किए गए सबमिशन नहीं बदलते।",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "कॉपी में इस फ़ॉर्म के कस्टम डोमेन को छोड़कर हर चीज़ होती है, अपने लिंक के साथ। यह बंद रहकर शुरू होती है: तैयार होने पर इसके साझा करें पृष्ठ से इसे चालू करें।",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "कॉपी में इस फ़ॉर्म के कस्टम डोमेन को छोड़कर हर चीज़ होती है, अपने लिंक के साथ। यह बंद रहकर शुरू होती है: तैयार होने पर इसके साझा करें पृष्ठ से इसे चालू करें।",
   "Duplicate Form": "फ़ॉर्म डुप्लिकेट करें",
   "Short Answer": "छोटा उत्तर",
   "One line of text.": "टेक्स्ट की एक पंक्ति।",

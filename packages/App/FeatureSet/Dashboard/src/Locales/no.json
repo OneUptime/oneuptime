@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "Velg en mal for å fylle ut skjemaet. Du kan endre hvert svar før du sender inn.",
   "Delete Template": "Slett mal",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "Slette denne malen? Lenker som nevner den, åpner skjemaet uten mal. Innsendinger som allerede er gjort fra den, endres ikke.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "Kopien har alt dette skjemaet har unntatt de egendefinerte domenene, med en egen lenke. Den starter avslått: slå den på fra Del-siden når den er klar.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "Kopien har alt dette skjemaet har unntatt de egendefinerte domenene, med en egen lenke. Den starter avslått: slå den på fra Del-siden når den er klar.",
   "Duplicate Form": "Dupliser skjema",
   "Short Answer": "Kort svar",
   "One line of text.": "Én tekstlinje.",

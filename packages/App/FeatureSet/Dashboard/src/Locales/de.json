@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "Wählen Sie eine Vorlage, um das Formular auszufüllen. Sie können jede Antwort vor dem Absenden ändern.",
   "Delete Template": "Vorlage löschen",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "Diese Vorlage löschen? Links, die sie nennen, öffnen das Formular ohne Vorlage. Bereits damit erstellte Einreichungen bleiben unverändert.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "Die Kopie hat alles, was dieses Formular hat, außer seinen benutzerdefinierten Domains, und einen eigenen Link. Sie startet ausgeschaltet: Schalten Sie sie auf ihrer Seite Teilen ein, wenn sie bereit ist.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "Die Kopie hat alles, was dieses Formular hat, außer seinen benutzerdefinierten Domains, und einen eigenen Link. Sie startet ausgeschaltet: Schalten Sie sie auf ihrer Seite Teilen ein, wenn sie bereit ist.",
   "Duplicate Form": "Formular duplizieren",
   "Short Answer": "Kurze Antwort",
   "One line of text.": "Eine Textzeile.",

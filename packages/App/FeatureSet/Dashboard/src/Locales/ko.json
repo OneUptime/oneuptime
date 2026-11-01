@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "템플릿을 고르면 양식이 채워집니다. 제출하기 전에 어떤 답변이든 바꿀 수 있습니다.",
   "Delete Template": "템플릿 삭제",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "이 템플릿을 삭제할까요? 이 템플릿을 지정한 링크는 템플릿 없이 양식을 엽니다. 이미 이 템플릿으로 한 제출은 바뀌지 않습니다.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "복사본에는 사용자 정의 도메인을 제외한 이 양식의 모든 내용과 별도 링크가 있습니다. 처음에는 꺼져 있으니 준비되면 공유 페이지에서 켜세요.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "복사본에는 사용자 정의 도메인을 제외한 이 양식의 모든 내용과 별도 링크가 있습니다. 처음에는 꺼져 있으니 준비되면 공유 페이지에서 켜세요.",
   "Duplicate Form": "양식 복제",
   "Short Answer": "짧은 답변",
   "One line of text.": "한 줄 텍스트.",

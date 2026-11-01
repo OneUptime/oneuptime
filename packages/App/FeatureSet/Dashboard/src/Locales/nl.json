@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "Kies een sjabloon om het formulier in te vullen. U kunt elk antwoord wijzigen voordat u verzendt.",
   "Delete Template": "Sjabloon verwijderen",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "Dit sjabloon verwijderen? Links die het noemen, openen het formulier zonder sjabloon. Inzendingen die er al mee zijn gedaan, veranderen niet.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "De kopie heeft alles wat dit formulier heeft behalve de aangepaste domeinen, met een eigen link. Hij begint uitgeschakeld: zet hem aan op zijn pagina Delen als hij klaar is.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "De kopie heeft alles wat dit formulier heeft behalve de aangepaste domeinen, met een eigen link. Hij begint uitgeschakeld: zet hem aan op zijn pagina Delen als hij klaar is.",
   "Duplicate Form": "Formulier dupliceren",
   "Short Answer": "Kort antwoord",
   "One line of text.": "Eén regel tekst.",

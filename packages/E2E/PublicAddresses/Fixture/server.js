@@ -69,7 +69,7 @@ const font = path.join(
  * boundary is stubbed in the page and the spec aborts any request that
  * leaves this server.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Public addresses preview</title><script>var q=new URLSearchParams(window.location.search);var cname=q.get("cname")!=="0";window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development",STATUS_PAGE_CNAME_RECORD:cname?"statuspage.oneuptime.com":"",DASHBOARD_CNAME_RECORD:cname?"dashboards.oneuptime.com":""}};window.global=window;if(q.get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script src="/reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}html.dark,html.dark body{background-color:#0f172a}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Public addresses preview</title><script>var q=new URLSearchParams(window.location.search);var cname=q.get("cname")!=="0";window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development",STATUS_PAGE_CNAME_RECORD:cname?"statuspage.oneuptime.com":"",DASHBOARD_CNAME_RECORD:cname?"dashboards.oneuptime.com":""}};window.global=window;if(q.get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}html.dark,html.dark body{background-color:#0f172a}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -97,7 +97,7 @@ async function main() {
       fs.createReadStream(tailwind).pipe(response);
       return;
     }
-    if (url.pathname === "/reading-direction.js") {
+    if (url.pathname === "/tailwind-reading-direction.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(readingDirection).pipe(response);
       return;

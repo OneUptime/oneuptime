@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "یک قالب انتخاب کنید تا فرم پر شود. پیش از ارسال می‌توانید هر پاسخی را تغییر دهید.",
   "Delete Template": "حذف قالب",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "این قالب حذف شود؟ پیوندهایی که به آن اشاره می‌کنند فرم را بدون قالب باز می‌کنند. ارسال‌هایی که پیش‌تر از آن انجام شده‌اند تغییر نمی‌کنند.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "نسخه کپی همه چیزهای این فرم را به‌جز دامنه‌های سفارشی‌اش دارد، با پیوندی مخصوص خودش. خاموش شروع می‌شود: هر وقت آماده شد از صفحه اشتراک‌گذاری آن را روشن کنید.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "نسخه کپی همه چیزهای این فرم را به‌جز دامنه‌های سفارشی‌اش دارد، با پیوندی مخصوص خودش. خاموش شروع می‌شود: هر وقت آماده شد از صفحه اشتراک‌گذاری آن را روشن کنید.",
   "Duplicate Form": "تکثیر فرم",
   "Short Answer": "پاسخ کوتاه",
   "One line of text.": "یک خط متن.",

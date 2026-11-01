@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "Choose a template to fill in the form. You can change any answer before you submit.",
   "Delete Template": "Delete Template",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.",
   "Duplicate Form": "Duplicate Form",
   "Short Answer": "Short Answer",
   "One line of text.": "One line of text.",

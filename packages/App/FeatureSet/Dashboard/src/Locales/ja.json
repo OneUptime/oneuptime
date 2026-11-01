@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "テンプレートを選ぶとフォームに入力されます。送信前にどの回答も変更できます。",
   "Delete Template": "テンプレートを削除",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "このテンプレートを削除しますか？このテンプレートを指定したリンクでは、テンプレートなしでフォームが開きます。このテンプレートからすでに行われた送信は変更されません。",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "コピーにはこのフォームのカスタムドメイン以外の内容がすべて入り、専用のリンクが付きます。最初はオフなので、準備ができたら共有ページでオンにしてください。",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "コピーにはこのフォームのカスタムドメイン以外の内容がすべて入り、専用のリンクが付きます。最初はオフなので、準備ができたら共有ページでオンにしてください。",
   "Duplicate Form": "フォームを複製",
   "Short Answer": "短い回答",
   "One line of text.": "1 行のテキスト。",

@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "选择一个模板来填写表单。提交前你可以修改任何回答。",
   "Delete Template": "删除模板",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "删除此模板？指向它的链接将打开不带模板的表单。已经基于它完成的提交不会改变。",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "副本包含此表单除自定义域名外的全部内容，并有自己的链接。它初始为关闭状态：准备好后在其“分享”页面开启。",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "副本包含此表单除自定义域名外的全部内容，并有自己的链接。它初始为关闭状态：准备好后在其“分享”页面开启。",
   "Duplicate Form": "复制表单",
   "Short Answer": "简短回答",
   "One line of text.": "一行文本。",

@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "Välj en mall för att fylla i formuläret. Du kan ändra varje svar innan du skickar in.",
   "Delete Template": "Ta bort mall",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "Ta bort den här mallen? Länkar som anger den öppnar formuläret utan mall. Inlämningar som redan gjorts från den ändras inte.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "Kopian har allt det här formuläret har utom dess anpassade domäner, med en egen länk. Den börjar avstängd: slå på den från sidan Dela när den är redo.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "Kopian har allt det här formuläret har utom dess anpassade domäner, med en egen länk. Den börjar avstängd: slå på den från sidan Dela när den är redo.",
   "Duplicate Form": "Duplicera formulär",
   "Short Answer": "Kort svar",
   "One line of text.": "En rad text.",

@@ -470,6 +470,11 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
             description: CustomDomainCopy.domainFieldDescription,
             // A domain that stopped being verified while the dialog was open.
             ownsServerError: isDomainServerError,
+            /*
+             * Fixed once the domain is added, as the subdomain is: its
+             * column takes no update, so Edit never offered it.
+             */
+            doNotShowWhenEditing: true,
             sideLink: {
               text: CustomDomainCopy.domainFieldSideLink,
               url: RouteUtil.populateRouteParams(

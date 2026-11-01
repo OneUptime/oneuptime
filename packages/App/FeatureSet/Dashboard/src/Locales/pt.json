@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "Escolha um modelo para preencher o formulário. Pode alterar qualquer resposta antes de enviar.",
   "Delete Template": "Eliminar modelo",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "Eliminar este modelo? Os links que o indicam abrem o formulário sem modelo. Os envios já feitos a partir dele não são alterados.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "A cópia tem tudo o que este formulário tem, exceto os seus domínios personalizados, com um link próprio. Ela começa desativada: ative-a na página Partilhar quando estiver pronta.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "A cópia tem tudo o que este formulário tem, exceto os seus domínios personalizados, com um link próprio. Ela começa desativada: ative-a na página Partilhar quando estiver pronta.",
   "Duplicate Form": "Duplicar formulário",
   "Short Answer": "Resposta curta",
   "One line of text.": "Uma linha de texto.",

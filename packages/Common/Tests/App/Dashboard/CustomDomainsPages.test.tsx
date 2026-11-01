@@ -1312,19 +1312,19 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
     });
 
     /*
-     * The name is fixed once the domain is added (the domain's column takes
-     * no update, so the form leaves it off too), so the certificate is all
-     * an edit can change.
+     * The name is fixed once the domain is added - the subdomain and the
+     * domain's columns take no update - so the certificate is all an edit
+     * can change.
      */
     test("Edit asks only for the certificate options", () => {
       renderPage();
 
       expect(formKeys(ModalType.Edit)).toEqual([
-        "domain",
         "isCustomCertificate",
         "customCertificate",
         "customCertificateKey",
       ]);
+      expect(fieldOf("domain").doNotShowWhenEditing).toBe(true);
     });
 
     /*
@@ -1336,9 +1336,7 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
 
       const onEdit: Array<ModelField<CustomDomainModel>> = formFieldsOn(
         ModalType.Edit,
-      ).filter((field: ModelField<CustomDomainModel>) => {
-        return Object.keys(field.field || {})[0] !== "domain";
-      });
+      );
 
       expect(onEdit).toHaveLength(3);
 

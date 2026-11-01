@@ -576,10 +576,11 @@ export const FormsCopy: {
 
   /*
    * A custom domain shows one form, so the copy gets none of this form's:
-   * "everything this form has" would promise them.
+   * "everything this form has" promised them. At most 150 characters, as
+   * every dialog description (ShortDescriptionsGuard).
    */
   duplicateFormNote:
-    "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.",
+    "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.",
 
   // The picture of a file question on its card.
   inputFile: "Drop a file here or choose one",

@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "Vælg en skabelon for at udfylde formularen. Du kan ændre ethvert svar, før du indsender.",
   "Delete Template": "Slet skabelon",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "Slet denne skabelon? Links, der nævner den, åbner formularen uden skabelon. Indsendelser, der allerede er lavet ud fra den, ændres ikke.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "Kopien har alt det, denne formular har, undtagen dens brugerdefinerede domæner, med sit eget link. Den starter slået fra: slå den til fra dens Del-side, når den er klar.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "Kopien har alt det, denne formular har, undtagen dens brugerdefinerede domæner, med sit eget link. Den starter slået fra: slå den til fra dens Del-side, når den er klar.",
   "Duplicate Form": "Duplikér formular",
   "Short Answer": "Kort svar",
   "One line of text.": "Én linje tekst.",

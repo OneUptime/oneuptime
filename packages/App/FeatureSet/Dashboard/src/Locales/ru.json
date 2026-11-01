@@ -6930,7 +6930,7 @@
   "Choose a template to fill in the form. You can change any answer before you submit.": "Выберите шаблон, чтобы заполнить форму. Любой ответ можно изменить перед отправкой.",
   "Delete Template": "Удалить шаблон",
   "Delete this template? Links that name it open the form without a template. Submissions already made from it are not changed.": "Удалить этот шаблон? Ссылки, которые его указывают, открывают форму без шаблона. Уже сделанные по нему отправки не изменятся.",
-  "The copy has everything this form has except its custom domains, with a link of its own. It starts turned off: turn it on from its Share page when ready.": "Копия содержит всё, что есть в этой форме, кроме её пользовательских доменов, и получает свою ссылку. Она создаётся выключенной: включите её на странице «Поделиться», когда будете готовы.",
+  "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.": "Копия содержит всё, что есть в этой форме, кроме её пользовательских доменов, и получает свою ссылку. Она создаётся выключенной: включите её на странице «Поделиться», когда будете готовы.",
   "Duplicate Form": "Дублировать форму",
   "Short Answer": "Краткий ответ",
   "One line of text.": "Одна строка текста.",
