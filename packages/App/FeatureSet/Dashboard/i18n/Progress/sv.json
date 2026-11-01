@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39489,
-    "untranslated": 13010
+    "keys": 39750,
+    "untranslated": 13042
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -120,6 +120,7 @@
     "Red Hat OpenShift",
     "Region",
     "Revision",
+    "Revision {{revision}}",
     "Risk",
     "Runbook",
     "Runbook: {{name}}",
@@ -182,6 +183,7 @@
     "median",
     "message",
     "name",
+    "p95 {{latency}}",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

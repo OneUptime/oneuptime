@@ -700,6 +700,41 @@ describe("what the result says about the store", () => {
     expect(result.estimatedRecords).toBeLessThan(2500);
   });
 
+  test("describes a pattern's fields no detector placed once, at the pattern", async () => {
+    const objects: Array<FakeObject> = [1, 2, 3].map((day: number) => {
+      const rows: Array<string> = ["kundennr,email"];
+
+      for (let index: number = 0; index < 8; index++) {
+        rows.push(
+          `KD-${String(400000 + day * 100 + index)},customer${index}.lee@acme-corp.com`,
+        );
+      }
+
+      return {
+        key: `exports/2026-10-0${day}/kunden.csv`,
+        body: Buffer.from(rows.join("\n") + "\n"),
+        lastModified: daysAgo(10 - day),
+        etag: `"kunden-${day}"`,
+      };
+    });
+
+    const result: ContentScanResult = await sampleObjectStore(
+      new FakeBucket(objects),
+      options(),
+    );
+
+    expect(result.unplacedFields).toEqual([
+      {
+        location: "exports/*/kunden.csv › kundennr",
+        locationKind: DataStoreLocationKind.Field,
+        neighbours: ["email"],
+        shapes: [{ shape: "AA-999999", share: 1 }],
+        valueCount: 8,
+        averageLength: 9,
+      },
+    ]);
+  });
+
   test("carries fingerprints and passwords kept as they are, by pattern", async () => {
     const result: ContentScanResult = await sampleObjectStore(
       new FakeBucket([

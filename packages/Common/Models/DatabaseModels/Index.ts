@@ -105,6 +105,8 @@ import RumApplicationLabelRule from "./RumApplicationLabelRule";
 import RumApplicationOwnerRule from "./RumApplicationOwnerRule";
 import ServerlessFunctionInstance from "./ServerlessFunctionInstance";
 import CloudResourceInstance from "./CloudResourceInstance";
+import CloudApp from "./CloudApp";
+import CloudAppRevision from "./CloudAppRevision";
 import RumApplicationClient from "./RumApplicationClient";
 import RumSessionReplayView from "./RumSessionReplayView";
 import RumSessionErasureRequest from "./RumSessionErasureRequest";
@@ -184,6 +186,7 @@ import SecurityPlaybookRun from "./SecurityPlaybookRun";
 import DataStore from "./DataStore";
 import DataStoreFinding from "./DataStoreFinding";
 import DataStoreAccess from "./DataStoreAccess";
+import DataSecurityIdentity from "./DataSecurityIdentity";
 import DataStoreFeed from "./DataStoreFeed";
 import DataStoreOwnerUser from "./DataStoreOwnerUser";
 import DataStoreOwnerTeam from "./DataStoreOwnerTeam";
@@ -647,6 +650,7 @@ const AllModelTypes: Array<{
   DataStore,
   DataStoreFinding,
   DataStoreAccess,
+  DataSecurityIdentity,
   DataStoreFeed,
   DataStoreOwnerUser,
   DataStoreOwnerTeam,
@@ -1191,6 +1195,8 @@ const AllModelTypes: Array<{
   RumApplicationOwnerRule,
   ServerlessFunctionInstance,
   CloudResourceInstance,
+  CloudApp,
+  CloudAppRevision,
   RumApplicationClient,
   RumSessionReplayView,
   RumSessionErasureRequest,

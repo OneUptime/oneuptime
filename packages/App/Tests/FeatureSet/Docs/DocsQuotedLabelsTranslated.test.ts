@@ -84,6 +84,12 @@ interface SentenceNamingALabel {
  */
 const SENTENCES_NAMING_A_LABEL: ReadonlyArray<SentenceNamingALabel> = [
   { sentence: INSTANCES_DESCRIPTION, label: "Stale" },
+  // The same description on an App Platforms app's Instances tab.
+  {
+    sentence:
+      "Running tasks and instances of this app, as last reported. Those not seen in the last {{minutes}} minutes are Stale.",
+    label: "Stale",
+  },
   {
     sentence:
       "Monitors show In Quorum when they agree with the majority on the cluster map, and Out of Quorum when they do not. Other daemons show Reporting if seen in the last 15 minutes; any daemon silent for longer shows Stale.",

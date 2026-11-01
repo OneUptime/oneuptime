@@ -42,6 +42,8 @@ export interface DataSecurityMenuItem {
   title: string;
   icon: IconProp;
   badge?: DataSecurityMenuBadge | undefined;
+  // A page under it that keeps it lit: one identity's, under Access.
+  activePage?: PageMap | undefined;
 }
 
 export interface DataSecurityMenuSection {
@@ -93,6 +95,7 @@ export const DATA_SECURITY_MENU: Array<DataSecurityMenuSection> = [
         page: PageMap.DATA_SECURITY_ACCESS,
         title: "Access",
         icon: IconProp.Key,
+        activePage: PageMap.DATA_SECURITY_IDENTITY_VIEW,
       },
       {
         page: PageMap.DATA_SECURITY_COMPLIANCE,

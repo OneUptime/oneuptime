@@ -124,7 +124,7 @@ A detecção de anomalias por linha de base não precisa de limite. Escolha uma 
 | **Anomalously Low** | Cai abaixo da faixa esperada |
 | **Anomalous** | Sai da faixa esperada em qualquer direção |
 
-Cada amostra é comparada com uma linha de base da mesma hora da semana construída a partir da **Janela de linha de base** (14 dias por padrão; 28, 60 ou 90 dias). **Sensibilidade** define a largura da faixa esperada: **Baixo (4σ — apenas desvios graves)**, **Médio (3σ — recomendado)**, o padrão, ou **Alto (2σ — mais ruidoso, serviços muito estáveis)**. As condições de anomalia ficam em um estado "Learning" e não produzem alertas até existir pelo menos a janela de linha de base escolhida de histórico da métrica.
+Cada amostra é comparada com uma linha de base da mesma hora da semana construída a partir da **Janela de linha de base** (14 dias por padrão; 28, 60 ou 90 dias). **Sensibilidade** define a largura da faixa esperada: **Baixo (4σ — apenas desvios graves)**, **Médio (3σ — recomendado)**, o padrão, ou **Alto (2σ — mais ruidoso, serviços muito estáveis)**. As condições de anomalia ficam em um estado "Learning" e não produzem alertas até essa hora da semana ter duas semanas de histórico.
 
 **Se não houver dados**, em **Mais campos**, decide o que acontece quando a consulta não retorna nada na janela: **Ignore** (o padrão) não corresponde, **Gatilho** trata o silêncio como o problema e **Treat As Zero** compara um zero. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 

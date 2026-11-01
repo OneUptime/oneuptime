@@ -4,7 +4,7 @@ Saber qué contiene un almacén es la mitad del trabajo. Seguridad de datos tamb
 
 :::cards
 - [Flujos de datos](#flujos-de-datos): Servicios, proveedores de IA, hosts externos y copias.
-- [Quién puede acceder a un almacén](#quién-puede-acceder-a-un-almacén): Cada concesión que indica tu nube, y lo expuesto que está el almacén.
+- [Quién puede acceder a un almacén](#quién-puede-acceder-a-un-almacén): Cada identidad y cada concesión, a qué llega cada identidad, y lo expuesto que está el almacén.
 - [Reglas de residencia](#reglas-de-residencia): Las regiones en las que puede estar cada clase de datos.
 :::
 
@@ -39,18 +39,18 @@ Una copia se encuentra sin los valores de ninguno de los dos almacenes. Por cada
 
 ## Quién puede acceder a un almacén
 
-La lectura de la configuración convierte los propios ajustes de acceso de cada nube (políticas y ACL de buckets, asignaciones de roles de Azure, vinculaciones de IAM de Google Cloud, instantáneas compartidas) en una sola lista de quién puede acceder al almacén, en su página **Quién puede acceder**:
+La lectura de la configuración convierte los propios ajustes de acceso de cada nube (políticas y ACL de buckets, asignaciones de roles de Azure, vinculaciones de IAM de Google Cloud, instantáneas compartidas y, en AWS, las propias políticas de IAM de cada rol y cada usuario) en una sola lista de quién puede acceder al almacén, en su página **Quién puede acceder**. Los servicios que el mapa de servicios muestra llamando al almacén también aparecen en ella:
 
 | Columna | Qué indica |
 | --- | --- |
-| **Entidad principal** | Quién o qué tiene acceso, tal como lo nombra la nube: `*`, un ID de cuenta, un ARN, un correo electrónico, una cuenta de servicio. |
-| **Tipo de entidad principal** | Público, Cuenta, Rol, Usuario, Grupo, Entidad de servicio, Cuenta de servicio o Servicio. |
+| **Quién** | Quién o qué tiene acceso, tal como lo nombra la nube: `*`, un ID de cuenta, un ARN, un correo electrónico, una cuenta de servicio, un servicio. Una identidad sin usar en 90 días aparece marcada como tal. |
+| **Tipo** | Público, Cuenta, Rol, Usuario, Grupo, Entidad de servicio, Cuenta de servicio o Servicio. |
 | **Nivel de acceso** | Lectura, Escritura o Administrador. |
-| **Concedido mediante** | Qué lo concede: una política de bucket, una ACL, una asignación de rol, una vinculación de IAM o una instantánea compartida. |
-| **Externo** | La entidad principal está fuera de las cuentas, suscripciones y proyectos conectados a OneUptime. |
-| **Público** | La entidad principal es cualquiera en internet. |
+| **Concedido mediante** | Qué lo concede: una política de bucket, una ACL, una política de IAM, un rol que puede asumir, una asignación de rol, una vinculación de IAM o una instantánea compartida, o, para un servicio, que las trazas lo vieron usar el almacén. |
+| **Alcance** | Cualquiera en internet, fuera de tus cuentas (las cuentas, suscripciones y proyectos conectados a OneUptime) o tus cuentas. |
+| **Último uso** | Cuándo usó la identidad su acceso por última vez, según la nube, o cuándo vio el mapa de servicios por última vez al servicio llamar al almacén. |
 
-La lista se vuelve a leer con cada lectura de la configuración, y una concesión que la nube ya no indica se elimina. [Más de 25 identidades pueden leer datos restringidos](/docs/data-security/checks-and-issues#acceso) cuenta los lectores de la lista. Los servicios que usan un almacén son sus flujos **Usa**.
+La lista se vuelve a leer con cada lectura de la configuración, y una concesión que la nube ya no indica se elimina. [Más de 25 identidades pueden leer datos restringidos](/docs/data-security/checks-and-issues#acceso) cuenta los lectores de la lista, e [Identidades sin usar en 90 días todavía pueden acceder a él](/docs/data-security/checks-and-issues#acceso) falla mientras una sin usar en 90 días pueda llegar a sus datos sensibles. Los servicios que usan un almacén son sus flujos **Usa**.
 
 A partir de lo que lee, cada almacén recibe una exposición:
 
@@ -63,6 +63,22 @@ A partir de lo que lee, cada almacén recibe una exposición:
 | **Desconocido** | OneUptime no pudo leer lo suficiente de su configuración para saberlo. |
 
 Público prevalece sobre compartido, y compartido sobre accesible: un bucket público que además se comparte con otra cuenta es Público. La exposición suma a la [puntuación de riesgo](/docs/data-security/checks-and-issues#puntuación-de-riesgo) de un problema.
+
+### Cada identidad y a qué puede llegar
+
+En AWS, la lectura lista una vez los usuarios y roles de la cuenta, y decide como lo hace IAM cuáles llegan a cada bucket y cada tabla de DynamoDB, y cómo: lo que sus políticas permiten menos lo que deniegan, los límites de permisos, y una concesión que solo vale bajo condiciones lo indica. Una cuenta ajena a tus cuentas conectadas que puede asumir un rol llega a lo que llega el rol. El último uso de cada identidad viene de IAM, para los roles, y del informe de credenciales de la cuenta, para los usuarios.
+
+**Seguridad de datos → Acceso** lista cada identidad que puede llegar a tus almacenes, la más arriesgada primero: a qué llega y lo sensible que es, lo máximo que puede hacer y cuándo se usó por última vez, con filtros para **Fuera de tus cuentas**, **Sin usar en 90 días** y **Puede cambiar datos sensibles**. Cada una abre su propia página: cada almacén al que puede llegar, el más sensible primero, y su puntuación de riesgo parte por parte. Debajo, Acceso lista cada concesión desde fuera de tus cuentas.
+
+| Lo que suma al riesgo de una identidad | Puntos |
+| --- | --- |
+| Los datos más sensibles a los que llega | 50 para Restringido, 30 para Confidencial, 10 para Interno |
+| Puede escribir en un almacén Confidencial o Restringido, o administrarlo | 15 |
+| Es cualquiera en internet, o está fuera de tus cuentas | 20 para cualquiera, 15 para fuera |
+| No se ha usado en 90 días y llega a datos Internos, Confidenciales o Restringidos | 10 |
+| A cuántos almacenes sensibles llega | 1 por cada uno, hasta 5 |
+
+La puntuación es como máximo 100. Un rol de una cuenta ajena que puede cambiar un almacén de números de tarjeta obtiene 50 + 15 + 15 + 1 = 81.
 
 ## Reglas de residencia
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39489,
-    "untranslated": 13076
+    "keys": 39750,
+    "untranslated": 13108
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -285,6 +285,7 @@
     "main",
     "message",
     "name",
+    "p95 {{latency}}",
     "probe",
     "prod, staging",
     "prod-.*",

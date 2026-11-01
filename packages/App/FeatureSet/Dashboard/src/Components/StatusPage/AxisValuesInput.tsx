@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -181,12 +182,12 @@ const AxisValuesInput: FunctionComponent<ComponentProps> = (
         />
       </div>
       {props.error ? (
-        <p
+        <FieldError
+          message={props.error}
           className="text-sm text-red-600"
-          data-testid="axis-values-input-error"
-        >
-          {props.error}
-        </p>
+          announce="none"
+          dataTestId="axis-values-input-error"
+        />
       ) : null}
     </div>
   );

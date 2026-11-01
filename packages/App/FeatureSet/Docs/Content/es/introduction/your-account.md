@@ -129,7 +129,7 @@ Los **Ajustes de usuario**, a la derecha de la barra bajo la barra superior, son
 
 ## Idioma y tema
 
-Ambos se guardan en tu navegador, no en tu cuenta, así que vuelve a configurarlos en otro navegador o dispositivo.
+Ambos se guardan en tu navegador, no en tu cuenta, así que vuelve a configurarlos en otro navegador o dispositivo. Se conservan al cerrar sesión, así que en un ordenador compartido la siguiente persona empieza con los tuyos.
 
 - **Idioma**: el panel empieza en el idioma de tu navegador. Para cambiarlo, usa el menú de idiomas al pie de cualquier página. Esta documentación tiene su propio menú de idiomas, arriba.
 - **Tema**: elige **Claro**, **Oscuro** o **Sistema** en el menú de usuario. **Sistema** es claro u oscuro según cómo esté configurado tu dispositivo, y cambia con él; todos los navegadores empiezan con él. Las páginas de inicio de sesión usan el mismo tema.

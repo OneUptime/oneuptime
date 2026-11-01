@@ -13,6 +13,7 @@ import ReactMarkdown, { Components } from "react-markdown";
 // https://github.com/remarkjs/remark-gfm
 import remarkGfm from "remark-gfm";
 import { sanitizeDiagramSvg } from "./DiagramSanitizer";
+import { setDiagramLabelDirections } from "./DiagramLabelDirection";
 /*
  * @types/react-syntax-highlighter declares every deep subpath below as ambient
  * `declare module` blocks inside its single index.d.ts, and that file only enters the
@@ -274,6 +275,8 @@ export const MermaidDiagram: FunctionComponent<{ chart: string }> = ({
         if (containerRef.current && !isCancelled) {
           // SVG, plus the MathML KaTeX writes for a $$...$$ label.
           containerRef.current.innerHTML = sanitizeDiagramSvg(svg);
+          // Each label reads the way it is written (DiagramLabelDirection).
+          setDiagramLabelDirections(containerRef.current);
         }
       } catch (error) {
         if (containerRef.current && !isCancelled) {

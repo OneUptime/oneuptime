@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39489,
-    "untranslated": 1138
+    "keys": 39750,
+    "untranslated": 1181
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -272,6 +272,7 @@
     "orders",
     "orders-prod",
     "p95",
+    "p95 {{latency}}",
     "payment-.*",
     "prod, staging",
     "prod-.*",

@@ -244,6 +244,10 @@ import { AddNetworkEndpointHostnameAndAttachmentSource1808720000000 } from "./18
 import { AddCloudRuleKind1808760000000 } from "./1808760000000-AddCloudRuleKind";
 import { AddProxmoxInventoryFactsAndBackups1808770000000 } from "./1808770000000-AddProxmoxInventoryFactsAndBackups";
 import { AddStatusPageSubscriberLanguage1808780000000 } from "./1808780000000-AddStatusPageSubscriberLanguage";
+import { AddDataSecurityIdentities1808791000000 } from "./1808791000000-AddDataSecurityIdentities";
+import { AddDataSecurityFieldSuggestions1808792000000 } from "./1808792000000-AddDataSecurityFieldSuggestions";
+import { AddCloudApps1808795310000 } from "./1808795310000-AddCloudApps";
+import { AddCloudResourceInstanceAppIndexAndKey1808795320000 } from "./1808795320000-AddCloudResourceInstanceAppIndexAndKey";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1690,4 +1694,8 @@ export default [
   AddCloudRuleKind1808760000000,
   AddProxmoxInventoryFactsAndBackups1808770000000,
   AddStatusPageSubscriberLanguage1808780000000,
+  AddDataSecurityIdentities1808791000000,
+  AddDataSecurityFieldSuggestions1808792000000,
+  AddCloudApps1808795310000,
+  AddCloudResourceInstanceAppIndexAndKey1808795320000,
 ];

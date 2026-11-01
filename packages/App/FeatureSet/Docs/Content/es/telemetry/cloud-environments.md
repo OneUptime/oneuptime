@@ -2,7 +2,7 @@
 
 Un **Entorno en la nube** es el lugar donde se ejecutan sus contenedores en una plataforma en la nube gestionada: la cuenta y la región de un clúster de ECS, el proyecto y la región de Cloud Run, la suscripción y la región de Container Apps. OneUptime lo crea la primera vez que su telemetría llega con los atributos de recurso adecuados, y agrupa cada carga de trabajo que se ejecuta allí. No hay nada que registrar a mano.
 
-Los entornos aparecen en Plataformas de aplicaciones, un producto propio: **Plataformas de aplicaciones → Vista general** los agrupa por plataforma y muestra primero los que han dejado de informar, y **Plataformas de aplicaciones → Todos los entornos** los enumera todos. Los recursos de sus cuentas en la nube, como máquinas virtuales, buckets y bases de datos gestionadas, están en Nube: consulte [Recursos en la nube](/docs/telemetry/cloud-resources).
+Los entornos aparecen en Plataformas de aplicaciones, un producto propio: **Plataformas de aplicaciones → Vista general** los agrupa por plataforma y muestra primero los que han dejado de informar, **Plataformas de aplicaciones → Todas las aplicaciones** enumera cada aplicación que ejecutan, y **Plataformas de aplicaciones → Todos los entornos** los enumera todos. Los recursos de sus cuentas en la nube, como máquinas virtuales, buckets y bases de datos gestionadas, están en Nube: consulte [Recursos en la nube](/docs/telemetry/cloud-resources).
 
 :::cards
 - [AWS ECS / Fargate](/docs/telemetry/cloud-aws-ecs): Tareas en Fargate o EC2, con la CPU y la memoria de cada tarea.
@@ -31,6 +31,7 @@ flowchart TB
 - **Un detector de recursos indica dónde se ejecuta la carga de trabajo.** Un detector de recursos de OpenTelemetry, en el SDK o en un colector, lee los metadatos de la plataforma y pone `cloud.platform`, `cloud.account.id` y `cloud.region` en todo lo que envía la carga de trabajo. Donde no existe un detector, los define usted.
 - **El entorno lo agrupa todo.** Cada carga de trabajo con la misma plataforma, la misma cuenta y la misma región llega a un mismo entorno. Los servicios conservan sus propias filas en **Servicios**.
 - **Cada tarea en ejecución es una instancia.** La pestaña **Instancias** del entorno lista sus tareas, instancias o réplicas en ejecución, con CPU y memoria en vivo cuando la plataforma puede proporcionarlas.
+- **Cada servicio es una aplicación.** Un servicio de ECS, un servicio de Cloud Run o una Container App es una aplicación de su entorno, y OneUptime guarda las revisiones que ejecuta: consulte [Aplicaciones y despliegues](#aplicaciones-y-despliegues).
 
 ## Antes de empezar
 
@@ -94,6 +95,32 @@ La identidad propia de la plataforma va primero a propósito. Un colector sideca
 ### Añadir un entorno
 
 La ingesta crea los entornos por usted, así que no hay nada que escribir. Abra **Plataformas de aplicaciones → Todos los entornos** y haga clic en **Añadir entorno en la nube**: elija dónde se ejecuta su aplicación, y la guía muestra los ajustes de OpenTelemetry de esa plataforma, con su URL de OneUptime y su clave de ingesta ya incluidas. Su último paso, **Esperar a que se conecte**, indica cuándo han llegado los primeros datos del entorno y enlaza con él. Para mostrar otro nombre, elija **Editar detalles** en la tarjeta **Detalles del entorno** de la página **Ajustes** del entorno y escríbalo en **Nombre para mostrar**.
+
+## Aplicaciones y despliegues
+
+Cada servicio que ejecuta un entorno es una aplicación suya, con el nombre que le da la consola de la plataforma. **Plataformas de aplicaciones → Todas las aplicaciones** enumera cada aplicación con la revisión que ejecuta y sus solicitudes, su tasa de errores y su latencia p95 de la última hora, y la pestaña **Aplicaciones** de un entorno enumera las suyas.
+
+| Plataforma | Aplicación | Separada por | Revisión |
+| --- | --- | --- | --- |
+| AWS ECS / Fargate | `aws.ecs.task.family`, si no `service.name` | `aws.ecs.cluster.arn` | `aws.ecs.task.revision`, si no `service.version` o `container.image.tag` |
+| AWS Elastic Beanstalk | `service.name` | `deployment.environment.name` | `service.version` |
+| AWS App Runner | `service.name` | — | `service.version`, si no `container.image.tag` |
+| Google Cloud Run | `faas.name`, si no `service.name` | — | `faas.version`, si no `service.version` |
+| Google App Engine | `faas.name`, si no `service.name` | — | `faas.version`, si no `service.version` |
+| Azure Container Apps | `service.name` | — | `service.version`, si no `container.image.tag` |
+| Azure Container Instances | `service.name` | — | `service.version`, si no `container.image.tag` |
+| Azure App Service | `service.name` | `deployment.environment.name` | `service.version` |
+
+El primer atributo que lleva la telemetría da nombre a la aplicación, así que una aplicación en una plataforma sin detector de recursos sigue siéndolo, por su `service.name`. El `unknown_service` que informa un SDK cuando no se define ningún `service.name` no da nombre a ninguna aplicación.
+
+- **Una revisión que la aplicación nunca ejecutó es un despliegue.** OneUptime registra qué revisión reemplazó y cuándo. La primera revisión que ve OneUptime es donde empieza el historial de la aplicación, no un despliegue.
+- **Volver atrás es una reversión.** Cuando la revisión que ejecuta una aplicación no informa nada durante 15 minutos mientras una que ejecutó antes sigue en marcha, OneUptime registra una reversión a esa.
+- **Ambos son cambios.** Cada uno es una línea discontinua en los gráficos de la aplicación y del entorno, una línea en el **Feed** del entorno y un [evento de cambio](/docs/telemetry/change-events) que OneUptime AI lee cuando investiga un incidente en el entorno. **Despliegues recientes** en **Plataformas de aplicaciones → Vista general** enumera los más nuevos.
+- **Como máximo se registran 12 revisiones nuevas de una aplicación por hora.** De lo contrario, una `service.version` que cambia con cada compilación sería un despliegue por minuto.
+
+La página de una aplicación tiene una **Vista general** con sus solicitudes, errores, latencia, instancias y las revisiones que se ejecutan ahora, una pestaña **Revisiones** con las cifras de cada revisión, y las pestañas **Instancias**, **Registros** y **Trazas** filtradas a la aplicación. **Configurar alertas** abre los monitores recomendados del servicio de la aplicación, en **Servicios**.
+
+Una aplicación que no envía nada durante 30 días se elimina con sus revisiones, igual que una revisión que ninguna instancia informa durante 30 días, salvo que la aplicación todavía la ejecute. En un OneUptime autoalojado, `CLOUD_APP_RETENTION_DAYS` fija esos 30.
 
 ## Qué no es un entorno en la nube
 
@@ -182,12 +209,13 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 La **Vista general** de un entorno muestra:
 
-- **Solicitudes**, **Tasa de errores** y **latencia p95**, de sus trazas, con gráficos de solicitudes, errores y memoria en el intervalo de tiempo que elija.
+- **Solicitudes**, **Tasa de errores** y **latencia p95**, de los spans donde las solicitudes entran en sus servicios, con gráficos de solicitudes, errores y memoria en el intervalo de tiempo que elija y una línea discontinua en cada despliegue.
 - **CPU** y **Memoria** de las instancias activas, y una lista **Principales instancias por CPU**. Proceden de métricas `container.cpu.utilization` y `container.memory.usage` que llevan la identidad de la instancia; en ECS, de `ecs.task.cpu.utilized` y `ecs.task.memory.utilized` del receptor `awsecscontainermetrics`.
 - **Instancias**: cuántas han informado en los últimos 15 minutos. La pestaña **Instancias** tiene una fila por cada una.
+- **Aplicaciones**: las aplicaciones que ejecuta el entorno, primero las que necesitan un vistazo, con sus solicitudes y errores de la última hora.
 - Las pestañas **Registros**, **Trazas** y **Métricas**, filtradas al entorno.
 
-Un entorno cuya telemetría se detiene durante 15 minutos muestra **Desconectado**, y el siguiente span, registro o métrica lo devuelve a **Conectado**. El tiempo en que el propio OneUptime estuvo caído o poniéndose al día no cuenta para esos 15 minutos.
+Un entorno que aún no ha enviado nada muestra **Esperando**. Uno cuya telemetría se detiene durante 15 minutos muestra **Desconectado**, y el siguiente span, registro o métrica lo devuelve a **Conectado**. El tiempo en que el propio OneUptime estuvo caído o poniéndose al día no cuenta para esos 15 minutos.
 
 ### Etiquetas y propietarios
 

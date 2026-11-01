@@ -1,4 +1,5 @@
 import IconProp from "../../../Types/Icon/IconProp";
+import FieldError from "../Forms/Fields/FieldError";
 import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import Icon, { SizeProp } from "../Icon/Icon";
 import ProviderLogoImage, {
@@ -1083,9 +1084,11 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <p id={errorId} className="mt-2 text-sm text-red-600" role="alert">
-        {props.error}
-      </p>
+      <FieldError
+        id={errorId}
+        message={props.error}
+        className="mt-2 text-sm text-red-600"
+      />
     );
   };
 

@@ -1,7 +1,10 @@
 import crypto from "crypto";
 import { EncryptionSecret } from "../../EnvironmentConfig";
 import ObjectID from "../../../Types/ObjectID";
-import { SESSION_REPLAY_MAX_USER_REF_LENGTH } from "../../../Types/Rum/SessionReplay";
+import {
+  SESSION_REPLAY_MAX_USER_REF_LENGTH,
+  SESSION_REPLAY_USER_KEY_PATTERN,
+} from "../../../Types/Rum/SessionReplay";
 
 /*
  * "Whose session is this?"
@@ -53,6 +56,17 @@ export default class SessionReplayIdentity {
       typeof userRef === "string" &&
       userRef.trim().length > 0 &&
       userRef.length <= SESSION_REPLAY_MAX_USER_REF_LENGTH
+    );
+  }
+
+  /*
+   * A digest buildUserKey could have written. A value of any other shape can
+   * match no stored session, so a filter holding one is a mistake to report
+   * rather than a query to run.
+   */
+  public static isUserKey(value: unknown): value is string {
+    return (
+      typeof value === "string" && SESSION_REPLAY_USER_KEY_PATTERN.test(value)
     );
   }
 

@@ -690,6 +690,9 @@ import DataStoreLabelRuleService, {
 import DataSecurityFlowService, {
   Service as DataSecurityFlowServiceType,
 } from "Common/Server/Services/DataSecurityFlowService";
+import DataSecurityIdentityService, {
+  Service as DataSecurityIdentityServiceType,
+} from "Common/Server/Services/DataSecurityIdentityService";
 import DataSecurityIssueService, {
   Service as DataSecurityIssueServiceType,
 } from "Common/Server/Services/DataSecurityIssueService";
@@ -846,6 +849,12 @@ import ServerlessFunctionInstanceService, {
 import CloudResourceInstanceService, {
   Service as CloudResourceInstanceServiceType,
 } from "Common/Server/Services/CloudResourceInstanceService";
+import CloudAppService, {
+  Service as CloudAppServiceType,
+} from "Common/Server/Services/CloudAppService";
+import CloudAppRevisionService, {
+  Service as CloudAppRevisionServiceType,
+} from "Common/Server/Services/CloudAppRevisionService";
 import RumApplicationClientService, {
   Service as RumApplicationClientServiceType,
 } from "Common/Server/Services/RumApplicationClientService";
@@ -1542,6 +1551,8 @@ import RumApplicationLabelRule from "Common/Models/DatabaseModels/RumApplication
 import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplicationOwnerRule";
 import ServerlessFunctionInstance from "Common/Models/DatabaseModels/ServerlessFunctionInstance";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import CloudApp from "Common/Models/DatabaseModels/CloudApp";
+import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
@@ -1751,6 +1762,7 @@ import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam"
 import DataStoreOwnerRule from "Common/Models/DatabaseModels/DataStoreOwnerRule";
 import DataStoreLabelRule from "Common/Models/DatabaseModels/DataStoreLabelRule";
 import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
+import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssueFeed";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
@@ -4384,6 +4396,14 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityIdentity, DataSecurityIdentityServiceType>(
+        DataSecurityIdentity,
+        DataSecurityIdentityService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
       new BaseAPI<DataSecurityIssue, DataSecurityIssueServiceType>(
         DataSecurityIssue,
         DataSecurityIssueService,
@@ -5262,6 +5282,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudResourceInstance, CloudResourceInstanceServiceType>(
         CloudResourceInstance,
         CloudResourceInstanceService,
+      ).getRouter(),
+    );
+
+    // An App Platforms environment's apps and their revisions: read-only.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudApp, CloudAppServiceType>(
+        CloudApp,
+        CloudAppService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudAppRevision, CloudAppRevisionServiceType>(
+        CloudAppRevision,
+        CloudAppRevisionService,
       ).getRouter(),
     );
 

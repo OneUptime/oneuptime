@@ -1,13 +1,13 @@
 # Data Security Checks and Issues
 
-Data Security runs 32 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
+Data Security runs 33 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life.
 
 :::cards
 - [How a check decides](#how-a-check-decides): Pass, fail or cannot tell, and how bad a failure is.
-- [Every check](#every-check): All 32, with what each one checks and how to fix it.
+- [Every check](#every-check): All 33, with what each one checks and how to fix it.
 - [Risk score](#risk-score): How issues are ordered inside a severity.
 - [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue.
-- [Fix it from here](#fix-it-from-here): Block a public bucket, or stop sharing a snapshot, in one click.
+- [Fix it from here](#fix-it-from-here): Close an exposure, or turn on a missing protection, in one click.
 :::
 
 ## How a check decides
@@ -75,6 +75,7 @@ Severity is given for Restricted, Confidential, Internal and Public data, in tha
 | Anyone with the account key can read everything (`shared-key-access`) | Azure Storage Account | The storage account allows shared key access, which bypasses Microsoft Entra ID and leaves no per-person audit trail. | Medium / Low / — / — | Move applications to Microsoft Entra ID, then turn off storage account key access. |
 | Objects can carry their own access rules (`object-acls-enabled`) | AWS S3 Bucket, Google Cloud Storage Bucket | Object ACLs are on, so one object can be made public while the bucket looks private. | Low / Low / — / — | On S3, set Object Ownership to Bucket owner enforced. On Cloud Storage, turn on uniform bucket-level access. |
 | More than 25 identities can read Restricted data (`many-readers`) | Every store but telemetry | More identities than most teams can review hold read access to the store. | Medium / — / — / — | Open the store's **Who Can Reach It** page, and remove the access that is unused or broader than needed. |
+| Identities unused for 90 days can still reach it (`unused-access`) | Every store but telemetry | Roles and users that have not been used in 90 days still hold access to the store's sensitive data. | Medium / Low / — / — | Open the store's **Who Can Reach It** page, where they are marked **Not used in 90 days**, and remove the access each one no longer needs. |
 
 ### Data hygiene
 
@@ -160,14 +161,20 @@ An issue that opens again keeps its history. Accepted risks are looked at again 
 
 ## Fix it from here
 
-An open issue about a public bucket or a shared snapshot can be fixed from its page. Above the console steps, **Fix it from here** offers the change that fixes it:
+An open issue that one change to a store's settings fixes - a public bucket, a shared snapshot, a bucket whose deleted files cannot be recovered - can be fixed from its page. Above the console steps, **Fix it from here** offers the change that fixes it:
 
 | The issue | Its store | The button | What it changes |
 | --- | --- | --- | --- |
 | `public-read`, `public-write` or `public-access-not-blocked` | An S3 bucket, an Azure storage account or a Cloud Storage bucket | **Block Public Access** | Turns on the bucket's four Block Public Access settings, turns off the storage account's anonymous blob access, or enforces the bucket's public access prevention |
 | `snapshot-public` or `snapshot-shared-externally` | An RDS snapshot, an RDS database, or an Aurora or DocumentDB cluster | **Revoke Sharing** | Stops sharing the snapshot, or each shared manual snapshot of the database, with everyone and with accounts outside the ones you connected |
+| `deleted-data-not-recoverable` | An S3 bucket or a Cloud Storage bucket | **Turn On Versioning** | Keeps the earlier version of each object that is overwritten or deleted, until a lifecycle rule removes it |
+| `deleted-data-not-recoverable` | An Azure storage account | **Turn On Soft Delete** | Keeps deleted blobs and containers for 14 days, so they can be restored |
+| `object-acls-enabled` | An S3 bucket | **Turn Off Object ACLs** | Sets Object Ownership to Bucket owner enforced, so the bucket's policy alone decides who reads it |
+| `object-acls-enabled` | A Cloud Storage bucket | **Turn On Uniform Access** | Turns on uniform bucket-level access, so the bucket's IAM policy alone decides who reads it |
+| `encryption-in-transit-not-enforced` or `weak-tls` | An Azure storage account | **Require Secure Transfer** | Turns on secure transfer and sets the minimum TLS version to 1.2, so the account takes HTTPS with TLS 1.2 or later only |
+| `no-point-in-time-recovery` | A DynamoDB table | **Turn On Point-in-Time Recovery** | Lets the table be restored to any second of the last 35 days |
 
-It asks first, saying what changes and what stops working. It changes how the store is shared, never its data, and changes nothing that is already closed. A store marked **Public By Design** is never blocked.
+It asks first, saying what changes, what stops working and what it costs. It changes the store's settings, never its data, and changes nothing that is already as it should be. A store marked **Public By Design** is never blocked.
 
 It acts through the store's cloud connection, so the connection needs **Data security response** turned on and its setup command run again (see [Set Up Data Security](/docs/data-security/setup#let-data-security-close-an-exposure)). Until then the panel says what to turn on. The store is checked again right after, and the issue resolves on its own once its check passes. The issue's **Timeline** and the store's **Timeline** say what was done, and who did it.
 

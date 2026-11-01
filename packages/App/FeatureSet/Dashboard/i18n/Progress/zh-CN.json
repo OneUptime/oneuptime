@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39489,
-    "untranslated": 12645
+    "keys": 39750,
+    "untranslated": 12672
   },
   "sameAsEnglish": [
     "2xx",
@@ -83,6 +83,7 @@
     "main",
     "message",
     "name",
+    "p95 {{latency}}",
     "prod, staging",
     "prod-.*",
     "prod-vcenter",

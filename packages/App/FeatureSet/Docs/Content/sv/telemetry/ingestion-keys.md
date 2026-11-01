@@ -52,7 +52,7 @@ Välj typ efter var nyckeln ska finnas. Typen kan inte ändras efter att nyckeln
 :::steps
 ### Öppna intagningsnycklar
 
-Gå till **Projektinställningar → Telemetri och APM → Intagningsnycklar**. **Telemetri och APM** är först hopfälld i sidomenyn: klicka på den för att öppna den. Listan visar för varje nyckel kolumnerna **Namn**, **Typ**, **Last Used** och **Beskrivning**.
+Gå till **Projektinställningar → Telemetri och APM → Intagningsnycklar**. **Telemetri och APM** är först hopfälld i sidomenyn: klicka på den för att öppna den. Listan visar för varje nyckel kolumnerna **Namn**, **Typ**, **Senast använd** och **Beskrivning**.
 
 ### Namnge nyckeln och välj dess typ
 

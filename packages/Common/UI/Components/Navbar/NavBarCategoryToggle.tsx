@@ -1,4 +1,5 @@
 import Icon from "../Icon/Icon";
+import { getListSeparator } from "../../Utils/ListSeparator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -101,7 +102,14 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const summaryId: string = `navbar-category-summary-${useId()}`;
   const count: number = props.itemTitles.length;
-  const names: string = props.itemTitles.join(", ");
+  /*
+   * In the commas of the script the names are written in (ListSeparator):
+   * "حوادث، هشدارها، مانیتورها" on a Persian page, where a Latin comma
+   * stood between Persian names.
+   */
+  const names: string = props.itemTitles.join(
+    getListSeparator(props.itemTitles),
+  );
   const isColumns: boolean =
     props.layout === NavBarCategoryToggleLayout.Columns;
   const isActive: boolean = Boolean(props.isActive);
@@ -176,7 +184,13 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
     </span>
   );
 
-  // Icon draws an <svg> inside a <div>: the wrapper is the grid or flex item.
+  /*
+   * Icon draws an <svg> inside a <div>: the wrapper is the grid or flex item.
+   * Folded, the chevron points along the line - right, and left on a page
+   * read right to left, as a side menu's folded section's does: the down
+   * chevron turned a quarter, then mirrored with the line
+   * (isMirroredRightToLeft). Open, it points down either way.
+   */
   const chevron: ReactElement = (
     <div
       className={`flex flex-shrink-0 items-center ${
@@ -185,6 +199,7 @@ const NavBarCategoryToggle: FunctionComponent<ComponentProps> = (
     >
       <Icon
         icon={IconProp.ChevronDown}
+        isMirroredRightToLeft={true}
         className={`h-4 w-4 transition-transform duration-200 ${
           props.isOpen ? "rotate-0" : "-rotate-90"
         } ${isActive ? "text-indigo-500" : "text-gray-400"}`}

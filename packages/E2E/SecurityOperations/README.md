@@ -195,7 +195,7 @@ that list is not empty.
   action, the case read once for them all; the Impact of the known-bad domain case - reachable from
   the internet on the public address build-runner-07 reports, the record it names, what that calls
   and is called by, its monitor and status page, its owners and the release before the attack,
-  the record itself behind Show what is at risk, also on a phone in the dark - and the spray's,
+  the record itself behind Show the records at risk, also on a phone in the dark - and the spray's,
   not known to be reachable, never a guess; the spray's Story, oldest first - its detections, its
   failed sign-ins told as one run of 413, its playbook runs, notes and milestones - narrowed to the
   attack or the response, a detection opening the case's Detections; a link straight to any page

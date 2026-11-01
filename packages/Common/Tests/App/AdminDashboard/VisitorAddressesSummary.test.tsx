@@ -74,6 +74,8 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import URL from "../../../Types/API/URL";
 import { JSONObject } from "../../../Types/JSON";
 import { SHARED_VISITOR_ADDRESS_WINDOW_DAYS } from "../../../Server/Utils/InstanceHealth/SharedVisitorAddresses";
+import { isRightToLeftLanguage } from "../../../Types/ReadingDirection";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -462,7 +464,18 @@ describe("the card in every language", () => {
 
       const entries: Locale = readLocale(locale);
       const card: HTMLElement = (await renderIn(locale)) as HTMLElement;
-      const text: string = card.textContent || "";
+      const drawn: string = card.textContent || "";
+      /*
+       * The words as read. In a language read right to left each setting
+       * is also set apart from the words around it, whole, so a setting in
+       * Latin letters keeps its place in the sentence.
+       */
+      const text: string = withoutIsolateMarks(drawn);
+
+      expect({
+        locale,
+        isSetApart: drawn.includes(isolated("docker-compose.override.yml")),
+      }).toEqual({ locale, isSetApart: isRightToLeftLanguage(locale) });
 
       expect(
         screen.getByText(String(entries[VISITOR_ADDRESSES_COPY.title])),

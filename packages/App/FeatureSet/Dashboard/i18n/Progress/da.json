@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39489,
-    "untranslated": 13026
+    "keys": 39750,
+    "untranslated": 13058
   },
   "sameAsEnglish": [
     "0 (kiss-o'-death {{kissCode}})",
@@ -148,6 +148,7 @@
     "Reference",
     "Region",
     "Revision",
+    "Revision {{revision}}",
     "Runbook",
     "Runbook: {{name}}",
     "Runbooks",
@@ -229,6 +230,7 @@
     "message",
     "name",
     "over budget",
+    "p95 {{latency}}",
     "port {{port}}",
     "prod, staging",
     "prod-.*",

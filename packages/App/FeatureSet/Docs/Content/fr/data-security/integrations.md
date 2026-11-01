@@ -8,7 +8,7 @@ Sécurité des données n'a pas son propre système d'astreinte ni sa propre fil
 - [Incidents](#incidents): Déclarer un incident pour une violation de données que votre processus de gestion des incidents doit prendre en charge.
 - [Propriétaires](#propriétaires): Qui possède chaque magasin de données, défini à la main ou par des règles, et l'e-mail qu'ils reçoivent.
 - [OneUptime AI](#oneuptime-ai): Expliquer un problème, ouvrir une pull request qui le corrige, ou interroger Demander à l'IA sur vos données.
-- [Fermer une exposition](#fermer-une-exposition): Bloquer l'accès public ou cesser le partage, depuis un problème ou un playbook.
+- [Fermer une exposition](#fermer-une-exposition): Bloquer l'accès public ou cesser le partage, depuis un problème ou un playbook, et activer une protection manquante depuis un problème.
 :::
 
 ## Fonctionnement
@@ -43,6 +43,8 @@ Chaque magasin de données est une entité à part entière dans Opérations de 
 - elle est regroupée par magasin de données : un deuxième problème Critique sur le même magasin de données rejoint le dossier ouvert qui le concerne au lieu d'en ouvrir un autre.
 
 Le dossier est ensuite traité comme n'importe quel autre : attribué, annoté, fermé, et pris en charge par les playbooks du projet. Les détections du magasin de données comptent dans son risque sur [Risque des entités](/docs/telemetry/security-entity-risk), comme celles de toute entité. Voir [Dossiers de sécurité et playbooks](/docs/telemetry/security-cases).
+
+Tout dossier de sécurité, quelle que soit son origine, montre les données à risque dans son **Impact** : les magasins de données contenant des données sensibles que concerne le dossier, et chaque magasin de données que ses utilisateurs et rôles peuvent atteindre, le plus sensible en premier, avec ce que chacun contient, à peu près combien d'enregistrements, à quel point il est exposé et combien d'identités peuvent l'atteindre. Une session de rôle assumé que nomme le dossier compte comme son rôle, et une adresse e-mail comme les utilisateurs cloud auxquels elle appartient. La lecture se fait avec les propres autorisations du lecteur, donc un rôle qui ne peut pas lire Sécurité des données voit que cette partie est omise.
 
 ## Alertes et astreinte
 
@@ -106,12 +108,15 @@ Ils lisent des types de données, des emplacements et des comptages, jamais les 
 
 ## Fermer une exposition
 
-Deux modifications ferment l'exposition d'un magasin de données cloud, chacune via la connexion cloud du magasin de données avec **Réponse de sécurité des données** activé (voir [Configurer la Sécurité des données](/docs/data-security/setup#laisser-sécurité-des-données-fermer-une-exposition)) :
+Deux modifications ferment l'exposition d'un magasin de données cloud, chacune via la connexion cloud du magasin de données avec **Réponse de sécurité des données** activé (voir [Configurer la Sécurité des données](/docs/data-security/setup#laisser-sécurité-des-données-fermer-une-exposition)), et six autres activent un paramètre qui protège un magasin de données, depuis son problème uniquement :
 
 - **Bloquer l'accès public**, sur un bucket S3, un compte de stockage Azure ou un bucket Cloud Storage.
 - **Révoquer le partage**, sur un instantané RDS, ou sur les instantanés manuels partagés d'une base de données RDS, d'un cluster Aurora ou d'un cluster DocumentDB.
+- **Activer le versioning**, **Activer la suppression réversible**, **Désactiver les ACL d'objet**, **Activer l'accès uniforme**, **Exiger le transfert sécurisé** et **Activer la restauration à un instant donné**, sur les magasins de données que liste [Corriger d'ici](/docs/data-security/checks-and-issues#corriger-dici).
 
 Une personne en exécute une depuis un problème ouvert qu'elle corrige, avec **Corriger d'ici** (voir [Contrôles et problèmes de Sécurité des données](/docs/data-security/checks-and-issues#corriger-dici)). Un playbook d'Opérations de sécurité les exécute comme étapes de la catégorie **Confinement**, **Bloquer l'accès public aux magasins de données** et **Révoquer le partage des magasins de données** : sur chaque magasin de données que concerne le dossier, 10 au plus, chacune étant une étape qui commence avec **Approbation requise** activé. Un magasin de données marqué **Public par conception** n'est jamais bloqué. Dans les deux cas, le fil d'activité du magasin de données indique ce qui a été fait, et le magasin de données est aussitôt contrôlé à nouveau, donc le problème se résout quand la modification a pris effet.
+
+Le modèle de playbook **Fermer une exposition de données** répond aux dossiers qu'ouvre Sécurité des données : il envoie un e-mail aux propriétaires du magasin de données, bloque l'accès public et révoque le partage une fois qu'une personne a approuvé chaque étape, et ajoute au dossier la liste de contrôle de la réponse sous forme de tâches - qui a lu les données pendant leur exposition, s'il s'agit d'une violation que vous devez déclarer, quels secrets renouveler, et quoi écrire à la clôture du dossier. Ajoutez-le depuis **Créer à partir d'un modèle** dans les playbooks du projet.
 
 ## API, Terraform et MCP
 
@@ -119,7 +124,7 @@ Tout ce que conserve Sécurité des données est un enregistrement de l'API OneU
 
 | Enregistrements | Chemin d'API |
 | --- | --- |
-| Les magasins de données, leurs chronologies, leurs détections et qui peut y accéder | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| Les magasins de données, leurs chronologies, leurs détections, qui peut y accéder et chaque identité qui le peut | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Les problèmes, leurs chronologies et les flux de données | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Les analyses | `/data-security-scan` |
 | Les types de données personnalisés, les paramètres des contrôles et les règles de résidence | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ Quelques réponses sont calculées à la demande plutôt que stockées. Chacune 
 | `/data-security-issue/<id>/explain` | **Expliquer avec l'IA** sur un problème |
 | `/data-security-issue/<id>/fix-with-ai` | **Corriger avec l'IA** sur un problème |
 | `/data-store/<id>/response-actions` | Les actions de réponse que le magasin de données peut effectuer maintenant, et la raison quand il ne le peut pas |
-| `/data-store/<id>/respond` | **Bloquer l'accès public** ou **Révoquer le partage** sur le magasin de données, avec le problème depuis lequel l'action a été lancée |
+| `/data-store/<id>/respond` | Une action de réponse sur le magasin de données, comme **Bloquer l'accès public** ou **Activer le versioning**, avec le problème depuis lequel l'action a été lancée |
 
 Le [fournisseur Terraform](/docs/terraform/index) a une ressource pour chaque sorte d'enregistrement que vous créez - les magasins de données que vous ajoutez vous-même, les types de données personnalisés, les paramètres des contrôles, les règles de résidence, les règles de propriétaire et d'étiquettes - nommée d'après l'enregistrement, comme `oneuptime_residency_rule`.
 
-Le [serveur MCP](/docs/ai/mcp-server) a des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour ces enregistrements : Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule et Data Security Setting. Un assistant IA peut alors demander quels magasins de données contiennent des numéros de carte, ou ce qui est ouvert sur un bucket, avec vos autorisations.
+Le [serveur MCP](/docs/ai/mcp-server) a des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour ces enregistrements : Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule et Data Security Setting. Un assistant IA peut alors demander quels magasins de données contiennent des numéros de carte, ou ce qui est ouvert sur un bucket, avec vos autorisations.
 
 ## Prochaines étapes
 

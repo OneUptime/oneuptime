@@ -1092,6 +1092,21 @@ export default class DataStore extends BaseModel {
   })
   public contentScanState?: JSONObject = undefined;
 
+  @ColumnAccessControl(hiddenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Field Suggestion State",
+    description:
+      "The fields the last content scan could not place, described by their names and the shapes of their values, and OneUptime AI's answers about them, so a field is asked about at most once a month.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public fieldSuggestionState?: JSONObject = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     type: TableColumnType.Number,

@@ -8,7 +8,7 @@ Datensicherheit betreibt keinen eigenen Pager und keine eigene Sicherheitswartes
 - [Vorfälle](#vorfälle): Einen Vorfall für eine Datenpanne melden, die Ihren Vorfallsprozess durchlaufen soll.
 - [Eigentümer](#eigentümer): Wem jeder Datenspeicher gehört, von Hand oder per Regel festgelegt, und die E-Mail, die die Eigentümer erhalten.
 - [OneUptime AI](#oneuptime-ai): Ein Problem erklären, einen Pull Request öffnen, der es behebt, oder „KI fragen“ nach Ihren Daten fragen.
-- [Eine Exponierung schließen](#eine-exponierung-schließen): Öffentlichen Zugriff sperren oder eine Freigabe beenden, aus einem Problem oder einem Playbook.
+- [Eine Exponierung schließen](#eine-exponierung-schließen): Öffentlichen Zugriff sperren oder eine Freigabe beenden, aus einem Problem oder einem Playbook, und einen fehlenden Schutz aus einem Problem einschalten.
 :::
 
 ## So funktioniert es
@@ -43,6 +43,8 @@ Jeder Datenspeicher ist in Security Operations eine eigene Entität vom Typ **Da
 - sie wird nach Datenspeicher gruppiert: Ein zweites kritisches Problem am selben Datenspeicher kommt zum offenen Fall dazu, statt einen weiteren zu eröffnen.
 
 Von da an wird der Fall wie jeder andere bearbeitet: zugewiesen, kommentiert, geschlossen und von den Playbooks des Projekts beantwortet. Die Erkennungen des Datenspeichers zählen zu seinem Risiko unter [Entitätsrisiko](/docs/telemetry/security-entity-risk), wie bei jeder Entität. Siehe [Sicherheitsfälle und Playbooks](/docs/telemetry/security-cases).
+
+Jeder Sicherheitsfall, gleich was ihn eröffnet hat, zeigt unter **Auswirkungen** die gefährdeten Daten: die Datenspeicher mit sensiblen Daten, um die es im Fall geht, und jeden Datenspeicher, den seine Benutzer und Rollen erreichen können, den sensibelsten zuerst, mit dem, was jeder enthält, etwa wie vielen Einträgen, wie exponiert er ist und wie viele Identitäten ihn erreichen können. Eine übernommene Rollensitzung, die der Fall nennt, zählt als ihre Rolle, und eine E-Mail-Adresse als die Cloud-Benutzer, zu denen sie gehört. Gelesen wird mit den eigenen Berechtigungen des Lesers, sodass eine Rolle, die Datensicherheit nicht lesen darf, sieht, dass dieser Teil fehlt.
 
 ## Warnungen und Bereitschaft
 
@@ -106,12 +108,15 @@ Sie lesen Datentypen, Orte und Zählungen, nie die Stichproben eines Funds, ob m
 
 ## Eine Exponierung schließen
 
-Zwei Änderungen schließen die Exponierung eines Cloud-Datenspeichers, jede über die Cloud-Verbindung des Datenspeichers, an der **Datensicherheitsreaktion** eingeschaltet ist (siehe [Datensicherheit einrichten](/docs/data-security/setup#datensicherheit-eine-exponierung-schließen-lassen)):
+Zwei Änderungen schließen die Exponierung eines Cloud-Datenspeichers, jede über die Cloud-Verbindung des Datenspeichers, an der **Datensicherheitsreaktion** eingeschaltet ist (siehe [Datensicherheit einrichten](/docs/data-security/setup#datensicherheit-eine-exponierung-schließen-lassen)), und sechs weitere schalten eine Einstellung ein, die einen Datenspeicher schützt, nur aus seinem Problem:
 
 - **Öffentlichen Zugriff sperren**, an einem S3-Bucket, einem Azure-Speicherkonto oder einem Cloud-Storage-Bucket.
 - **Freigabe widerrufen**, an einem RDS-Snapshot oder an den geteilten manuellen Snapshots einer RDS-Datenbank, eines Aurora-Clusters oder eines DocumentDB-Clusters.
+- **Versionierung einschalten**, **Vorläufiges Löschen einschalten**, **Objekt-ACLs ausschalten**, **Einheitlichen Zugriff einschalten**, **Sichere Übertragung vorschreiben** und **Point-in-Time-Wiederherstellung einschalten**, an den Datenspeichern, die [Hier beheben](/docs/data-security/checks-and-issues#hier-beheben) auflistet.
 
 Eine Person führt eine davon aus einem offenen Problem aus, das sie behebt, mit **Hier beheben** (siehe [Prüfungen und Probleme der Datensicherheit](/docs/data-security/checks-and-issues#hier-beheben)). Ein Playbook von Security Operations führt sie als Schritte der Kategorie **Eindämmen** aus, **Öffentlichen Zugriff auf Datenspeicher sperren** und **Freigabe von Datenspeichern widerrufen**: an jedem Datenspeicher, um den es im Fall geht, höchstens 10, jeder ein Schritt, bei dem **Genehmigung erforderlich** zu Beginn eingeschaltet ist. Ein als **Absichtlich öffentlich** markierter Datenspeicher wird nie gesperrt. So oder so sagt die Zeitachse des Datenspeichers, was getan wurde, und der Datenspeicher wird sofort erneut geprüft, sodass das Problem behoben wird, sobald die Änderung gegriffen hat.
+
+Die Playbook-Vorlage **Eine Datenpanne schließen** beantwortet die Fälle, die Datensicherheit eröffnet: Sie schickt den Eigentümern des Datenspeichers eine E-Mail, sperrt den öffentlichen Zugriff und widerruft die Freigabe, sobald ein Mensch den jeweiligen Schritt genehmigt, und fügt dem Fall die Checkliste der Reaktion als Aufgaben hinzu - wer die Daten gelesen hat, während sie exponiert waren, ob es eine meldepflichtige Datenpanne ist, welche Geheimnisse zu rotieren sind und was beim Schließen des Falls festzuhalten ist. Fügen Sie sie über **Aus Vorlage erstellen** bei den Playbooks des Projekts hinzu.
 
 ## API, Terraform und MCP
 
@@ -119,7 +124,7 @@ Alles, was Datensicherheit aufbewahrt, ist ein Datensatz der OneUptime-API, gele
 
 | Datensätze | API-Pfad |
 | --- | --- |
-| Datenspeicher, ihre Zeitachsen, ihre Funde und wer sie erreichen kann | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| Datenspeicher, ihre Zeitachsen, ihre Funde, wer sie erreichen kann und jede Identität, die das tut | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Probleme, ihre Zeitachsen und Datenflüsse | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
 | Benutzerdefinierte Datentypen, Prüfungseinstellungen und Residenzregeln | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ Einige Antworten werden auf Anfrage berechnet, statt gespeichert zu werden. Jede
 | `/data-security-issue/<id>/explain` | **Mit KI erklären** an einem Problem |
 | `/data-security-issue/<id>/fix-with-ai` | **Mit KI beheben** an einem Problem |
 | `/data-store/<id>/response-actions` | Welche Reaktionsaktionen am Datenspeicher jetzt möglich sind, und warum nicht |
-| `/data-store/<id>/respond` | **Öffentlichen Zugriff sperren** oder **Freigabe widerrufen** am Datenspeicher, mit dem Problem, aus dem es ausgeführt wurde |
+| `/data-store/<id>/respond` | Eine Reaktionsaktion am Datenspeicher, etwa **Öffentlichen Zugriff sperren** oder **Versionierung einschalten**, mit dem Problem, aus dem sie ausgeführt wurde |
 
 Der [Terraform-Provider](/docs/terraform/index) hat eine Ressource für jede Art von Datensatz, die Sie erstellen - Datenspeicher, die Sie selbst hinzufügen, benutzerdefinierte Datentypen, Prüfungseinstellungen, Residenzregeln, Eigentümer- und Beschriftungsregeln -, benannt nach dem Datensatz, etwa `oneuptime_residency_rule`.
 
-Der [MCP-Server](/docs/ai/mcp-server) hat Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für diese Datensätze: Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule und Data Security Setting. Ein KI-Assistent kann dann mit Ihren Berechtigungen fragen, welche Datenspeicher Kartennummern enthalten oder was an einem Bucket offen ist.
+Der [MCP-Server](/docs/ai/mcp-server) hat Tools zum Anlegen, Abrufen, Auflisten, Aktualisieren, Löschen und Zählen für diese Datensätze: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule und Data Security Setting. Ein KI-Assistent kann dann mit Ihren Berechtigungen fragen, welche Datenspeicher Kartennummern enthalten oder was an einem Bucket offen ist.
 
 ## Nächste Schritte
 

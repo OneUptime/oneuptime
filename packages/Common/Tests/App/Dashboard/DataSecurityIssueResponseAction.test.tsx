@@ -249,6 +249,11 @@ describe("when it cannot run from here", () => {
     expect(reason).toHaveTextContent(
       "To do this from here, turn on Data security response on this store's cloud connection and run its updated setup command.",
     );
+    // The setting grants every fix's write now, not the one it once did.
+    expect(reason).toHaveTextContent(
+      "It grants only the narrow writes these fixes need.",
+    );
+    expect(reason).not.toHaveTextContent("this one narrow write");
     expect(
       within(reason).getByTestId(`${ISSUE_RESPONSE_TEST_ID}-connections`),
     ).toHaveTextContent("Open cloud connections");

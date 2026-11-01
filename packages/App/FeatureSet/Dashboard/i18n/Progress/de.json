@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 39489,
-    "untranslated": 3940
+    "keys": 39750,
+    "untranslated": 3976
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -419,6 +419,7 @@
     "Repository",
     "Resolver",
     "Revision",
+    "Revision {{revision}}",
     "Rollback: {{command}}",
     "Rotation",
     "Router",
@@ -635,6 +636,7 @@
     "orders-prod",
     "out",
     "p95",
+    "p95 {{latency}}",
     "payment-.*",
     "prod, staging",
     "prod-.*",

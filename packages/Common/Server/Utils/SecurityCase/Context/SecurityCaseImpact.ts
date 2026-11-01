@@ -19,6 +19,7 @@ import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   SECURITY_CASE_IMPACT_DEPENDENCY_WINDOW_IN_DAYS,
+  SecurityCaseDataAtRiskJson,
   SECURITY_CASE_IMPACT_MAX_FLOW_ADDRESSES,
   SECURITY_CASE_IMPACT_MAX_FLOW_PEERS,
   SECURITY_CASE_IMPACT_MAX_OWNERS,
@@ -99,6 +100,7 @@ import {
   SecurityCaseSourceTracker,
   readSecurityCaseContextScope,
 } from "./SecurityCaseContextScope";
+import SecurityCaseDataAtRisk from "./SecurityCaseDataAtRisk";
 
 /*
  * WHAT A SECURITY CASE PUTS AT RISK (Types/SecurityCase/SecurityCaseContext.ts
@@ -116,7 +118,10 @@ import {
  *   network flows  the machines the case's addresses exchanged traffic with;
  *   internet       whether OneUptime has seen the records reached from the
  *                  internet - only on evidence (Utils/SecurityCase/
- *                  SecurityCaseImpactFacts.ts), "unknown" otherwise.
+ *                  SecurityCaseImpactFacts.ts), "unknown" otherwise;
+ *   data at risk   the data stores the case names, and every store the
+ *                  identities it names can reach, the most sensitive
+ *                  first (SecurityCaseDataAtRisk.ts).
  *
  * With the reader's own permissions, each source on its own: one their role
  * cannot read is said to be, one that fails is said to have, and the rest
@@ -373,6 +378,7 @@ export default class SecurityCaseImpact {
       flowPeers,
       reached,
       recordAddresses,
+      dataAtRisk,
     ]: [
       Map<string, DependencyFacts> | null,
       Map<string, SecurityCaseImpactOwnersJson> | null,
@@ -381,6 +387,7 @@ export default class SecurityCaseImpact {
       Array<SecurityCaseFlowPeerJson> | null,
       Array<ReachedRequest> | null,
       Array<RecordAddress>,
+      SecurityCaseDataAtRiskJson | null,
     ] = await Promise.all([
       tracker.read(
         SecurityCaseImpactSource.Dependencies,
@@ -455,6 +462,16 @@ export default class SecurityCaseImpact {
         resources,
         props: data.props,
       }),
+      tracker.read(
+        SecurityCaseImpactSource.DataStores,
+        (): Promise<SecurityCaseDataAtRiskJson> => {
+          return SecurityCaseDataAtRisk.read({
+            projectId: data.projectId,
+            entities: scope.entities,
+            props: data.props,
+          });
+        },
+      ),
     ]);
 
     const records: Array<SecurityCaseImpactRecordJson> = resources.map(
@@ -502,6 +519,7 @@ export default class SecurityCaseImpact {
         requests: reached || [],
         recordAddresses,
       }),
+      dataAtRisk,
       unreadableSources: tracker.getUnreadable(),
       failedSources: tracker.getFailed(),
     };

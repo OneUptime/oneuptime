@@ -44,6 +44,7 @@ import {
   DataStoreLocationKind,
   emptyContentScanResult,
   LocationFindings,
+  MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "./DataSecurityScanTypes";
 import { buildFingerprint, deriveFingerprintKey } from "./Fingerprint";
 import { scanProjectTelemetry } from "./Telemetry/TelemetryDataScanner";
@@ -94,6 +95,11 @@ import {
 } from "../../../Utils/DataSecurity/FieldClassifier";
 import { BUILT_IN_DETECTORS } from "../../../Utils/DataSecurity/Detectors/Index";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
+import {
+  describeUnplacedField,
+  MAX_UNPLACED_LOCATION_LENGTH,
+  UnplacedField,
+} from "../../../Utils/DataSecurity/UnplacedFields";
 import { ResponseJSON } from "@clickhouse/client";
 
 /*
@@ -790,6 +796,22 @@ export default class DataSecurityRunner {
       });
     }
 
+    const unplacedFields: Array<UnplacedField> = target.unplacedFields || [];
+
+    for (const unplaced of part.unplacedFields || []) {
+      if (unplacedFields.length >= MAX_UNPLACED_FIELDS_PER_SCAN) {
+        break;
+      }
+
+      const location: string = prefix + unplaced.location;
+
+      if (location.length <= MAX_UNPLACED_LOCATION_LENGTH) {
+        unplacedFields.push({ ...unplaced, location });
+      }
+    }
+
+    target.unplacedFields = unplacedFields;
+
     target.readLog.push(
       ...part.readLog.map((entry: string) => {
         return prefix + entry;
@@ -839,6 +861,7 @@ export default class DataSecurityRunner {
     });
     const result: ContentScanResult = emptyContentScanResult();
     const highConfidence: Map<string, Array<string>> = new Map();
+    const unplacedFields: Array<UnplacedField> = [];
 
     for (const table of sample.tables) {
       const collector: FieldCollector = new FieldCollector();
@@ -874,6 +897,20 @@ export default class DataSecurityRunner {
             locationKind: DataStoreLocationKind.Column,
             classifications,
           });
+        } else if (unplacedFields.length < MAX_UNPLACED_FIELDS_PER_SCAN) {
+          // Not placed, nor known to be safe: described for OneUptime AI, never its values.
+          const unplaced: UnplacedField | null = describeUnplacedField({
+            path: `${table.table}.${field.path}`,
+            values: field.values,
+            neighbours: table.columns.map((column: string): string => {
+              return `${table.table}.${column}`;
+            }),
+            locationKind: DataStoreLocationKind.Column,
+          });
+
+          if (unplaced) {
+            unplacedFields.push(unplaced);
+          }
         }
 
         this.collectForFingerprint(field, classifications, highConfidence);
@@ -881,6 +918,8 @@ export default class DataSecurityRunner {
 
       result.locations.push(...locations);
     }
+
+    result.unplacedFields = unplacedFields;
 
     for (const [dataTypeId, values] of highConfidence) {
       result.fingerprints[dataTypeId] = buildFingerprint(

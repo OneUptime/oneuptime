@@ -31,7 +31,10 @@ import {
   DataSecurityResponseAvailability,
   DataSecurityResponseUnavailableReason,
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
-import { DataSecurityResponseAction } from "../../../Types/DataSecurity/DataSecurityResponseAction";
+import {
+  ALL_DATA_SECURITY_RESPONSE_ACTIONS,
+  DataSecurityResponseAction,
+} from "../../../Types/DataSecurity/DataSecurityResponseAction";
 import {
   afterEach,
   beforeAll,
@@ -66,10 +69,12 @@ jest.mock("../../../Server/Utils/Response", () => {
  *   POST /data-store/:id/response-actions   which actions the store can take
  *                                           now, and why not - for anyone
  *                                           who may read Data Security
- *   POST /data-store/:id/respond            Block public access or Revoke
- *                                           sharing, { action,
- *                                           dataSecurityIssueId? } - for
- *                                           anyone who may edit the store
+ *   POST /data-store/:id/respond            one of the response actions -
+ *                                           Block public access, Revoke
+ *                                           sharing, Turn on versioning...
+ *                                           { action, dataSecurityIssueId? }
+ *                                           - for anyone who may edit the
+ *                                           store
  *
  * Both refuse whoever is not a member of the project, or lacks the route's
  * permissions, before they read anything; both read only the caller's
@@ -365,7 +370,7 @@ describe("which store, which action, which issue", () => {
   });
 
   test.each([undefined, "", "Delete the bucket", 7])(
-    "an action that is not one of the two (%p) is refused, and nothing runs",
+    "an action that is not one of the eight (%p) is refused, and nothing runs",
     async (action: unknown) => {
       const result: RouteCall = await call(
         RESPOND,
@@ -374,21 +379,23 @@ describe("which store, which action, which issue", () => {
 
       expect(result.thrown).toBeInstanceOf(BadDataException);
       expect((result.thrown as Exception).message).toBe(
-        'Choose "Block public access" or "Revoke sharing".',
+        'Choose one of the response actions: "Block public access", "Revoke sharing", "Turn on versioning", "Turn on soft delete", "Turn off object ACLs", "Turn on uniform access", "Require secure transfer", "Turn on point-in-time recovery".',
       );
       expect(runSpy).not.toHaveBeenCalled();
     },
   );
 
-  test("Revoke sharing runs as asked", async () => {
-    await call(RESPOND, { action: DataSecurityResponseAction.RevokeSharing });
+  test.each(ALL_DATA_SECURITY_RESPONSE_ACTIONS)(
+    "%s runs as asked",
+    async (action: DataSecurityResponseAction) => {
+      const result: RouteCall = await call(RESPOND, { action });
 
-    expect(runSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: DataSecurityResponseAction.RevokeSharing,
-      }),
-    );
-  });
+      expect(result.thrown).toBeUndefined();
+      expect(runSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ action, dataStoreId: STORE_ID }),
+      );
+    },
+  );
 
   test("run from one of the store's issues, its timeline is told", async () => {
     const result: RouteCall = await call(RESPOND, {

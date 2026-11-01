@@ -5,6 +5,7 @@ import RuleCriteria, {
   RuleCriteriaValue,
 } from "../../../Types/Rules/RuleCriteria";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
+import FieldError from "../Forms/Fields/FieldError";
 import { isFilterConditionNeeded } from "../../../Types/Filter/FilterConditionUtil";
 import IconProp from "../../../Types/Icon/IconProp";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
@@ -732,13 +733,11 @@ const RuleCriteriaBuilder: <TEntity>(
       )}
 
       {props.error && !hasRowProblem && (
-        <p
+        <FieldError
+          message={props.error}
           className="text-sm text-red-600"
-          role="alert"
-          data-testid="rule-criteria-error"
-        >
-          {props.error}
-        </p>
+          dataTestId="rule-criteria-error"
+        />
       )}
     </div>
   );

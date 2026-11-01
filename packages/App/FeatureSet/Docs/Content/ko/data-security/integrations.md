@@ -8,7 +8,7 @@
 - [인시던트](#인시던트): 인시던트 프로세스로 처리해야 할 침해에 대해 인시던트를 선언합니다.
 - [소유자](#소유자): 직접 또는 규칙으로 정하는 각 저장소의 소유자와, 소유자가 받는 이메일.
 - [OneUptime AI](#oneuptime-ai): 이슈를 설명하거나, 이슈를 해결하는 풀 리퀘스트를 열거나, AI에게 질문 기능으로 데이터에 대해 물어봅니다.
-- [노출 차단하기](#노출-차단하기): 이슈나 플레이북에서 공개 액세스를 차단하거나 공유를 중지합니다.
+- [노출 차단하기](#노출-차단하기): 이슈나 플레이북에서 공개 액세스를 차단하거나 공유를 중지하고, 이슈에서 빠진 보호를 켭니다.
 :::
 
 ## 작동 방식
@@ -43,6 +43,8 @@ flowchart TB
 - 저장소별로 묶입니다. 같은 저장소의 두 번째 심각 이슈는 다른 케이스를 열지 않고 그 저장소에 관한 열린 케이스에 합류합니다.
 
 그다음부터 케이스는 다른 케이스와 똑같이 처리됩니다. 할당되고, 노트가 추가되고, 닫히며, 프로젝트의 플레이북이 대응합니다. 저장소의 탐지는 다른 엔티티와 마찬가지로 [엔티티 위험](/docs/telemetry/security-entity-risk)에서 저장소의 위험에 반영됩니다. [보안 케이스 및 플레이북](/docs/telemetry/security-cases)을 참고하세요.
+
+어떤 보안 케이스든, 무엇이 열었든 상관없이 **영향** 에 위험에 처한 데이터를 보여 줍니다. 케이스가 다루는 민감한 데이터가 있는 저장소와, 케이스의 사용자와 역할이 도달할 수 있는 모든 저장소를 가장 민감한 것부터 보여 주며, 각 저장소에 담긴 것, 대략적인 레코드 수, 노출 정도, 도달할 수 있는 ID 수를 함께 표시합니다. 케이스가 지목한, 맡은 역할의 세션은 그 역할로, 이메일 주소는 그것이 속한 클라우드 사용자로 셉니다. 읽기는 보는 사람 자신의 권한으로 하므로, 데이터 보안을 읽을 수 없는 역할에는 이 부분이 빠졌다고 표시됩니다.
 
 ## 경고 및 온콜
 
@@ -106,12 +108,15 @@ flowchart TB
 
 ## 노출 차단하기
 
-두 가지 변경으로 클라우드 저장소의 노출을 차단하며, 각각 **데이터 보안 대응** 이 켜진 저장소의 클라우드 연결을 통해 이루어집니다([데이터 보안 설정하기](/docs/data-security/setup#데이터-보안이-노출을-차단하도록-허용하기) 참고).
+두 가지 변경으로 클라우드 저장소의 노출을 차단하며, 각각 **데이터 보안 대응** 이 켜진 저장소의 클라우드 연결을 통해 이루어집니다([데이터 보안 설정하기](/docs/data-security/setup#데이터-보안이-노출을-차단하도록-허용하기) 참고). 여섯 가지 변경은 저장소를 보호하는 설정을 켜며, 저장소의 이슈에서만 할 수 있습니다.
 
 - **공개 액세스 차단**: S3 버킷, Azure 스토리지 계정 또는 Cloud Storage 버킷에 적용됩니다.
 - **공유 취소**: RDS 스냅샷, 또는 RDS 데이터베이스, Aurora 클러스터, DocumentDB 클러스터의 공유된 수동 스냅샷에 적용됩니다.
+- **버전 관리 켜기**, **일시 삭제 켜기**, **객체 ACL 끄기**, **균일한 접근 켜기**, **보안 전송 필수**, **특정 시점 복구 켜기**: [여기서 수정](/docs/data-security/checks-and-issues#여기서-수정)에 나열된 저장소에 적용됩니다.
 
 사람은 그 변경으로 해결되는 열린 이슈에서 **여기서 수정** 으로 실행합니다([데이터 보안 검사 및 이슈](/docs/data-security/checks-and-issues#여기서-수정) 참고). 보안 운영 플레이북은 이를 **봉쇄** 범주의 단계인 **데이터 저장소에 대한 공개 액세스 차단** 과 **데이터 저장소 공유 취소** 로 실행합니다. 케이스가 다루는 모든 데이터 저장소에 대해 최대 10개까지 실행되며, 각 단계는 **승인 필요** 가 켜진 상태로 시작합니다. **의도적 공개** 로 표시된 저장소는 절대 차단되지 않습니다. 어느 쪽이든 저장소의 피드에 무엇을 했는지 남고 저장소를 즉시 다시 검사하므로, 변경이 적용되면 이슈가 해결됩니다.
+
+플레이북 템플릿 **데이터 노출 차단** 은 데이터 보안이 연 케이스에 대응합니다. 저장소의 소유자에게 이메일을 보내고, 사람이 각 단계를 승인하면 공개 액세스를 차단하고 공유를 취소하며, 대응 체크리스트를 케이스의 작업으로 추가합니다. 체크리스트는 노출된 동안 누가 데이터를 읽었는지, 신고해야 하는 침해인지, 어떤 시크릿을 교체할지, 케이스를 닫을 때 무엇을 쓸지입니다. 프로젝트 플레이북의 **템플릿에서 생성** 에서 추가하세요.
 
 ## API, Terraform 및 MCP
 
@@ -119,7 +124,7 @@ flowchart TB
 
 | 레코드 | API 경로 |
 | --- | --- |
-| 데이터 저장소, 그 타임라인과 발견 사항, 접근할 수 있는 대상 | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| 데이터 저장소, 그 타임라인과 발견 사항, 접근할 수 있는 대상과 각 ID | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | 이슈, 그 타임라인, 데이터 흐름 | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | 스캔 | `/data-security-scan` |
 | 사용자 지정 데이터 유형, 검사 설정, 데이터 상주 규칙 | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ flowchart TB
 | `/data-security-issue/<id>/explain` | 이슈의 **AI로 설명** |
 | `/data-security-issue/<id>/fix-with-ai` | 이슈의 **AI로 수정** |
 | `/data-store/<id>/response-actions` | 저장소가 지금 취할 수 있는 대응 작업과, 취할 수 없는 경우 그 이유 |
-| `/data-store/<id>/respond` | 실행한 이슈와 함께, 저장소에 대한 **공개 액세스 차단** 또는 **공유 취소** |
+| `/data-store/<id>/respond` | 실행한 이슈와 함께, 저장소에 대한 대응 작업 하나(예: **공개 액세스 차단** 또는 **버전 관리 켜기**) |
 
 [Terraform 프로바이더](/docs/terraform/index)에는 직접 만드는 레코드의 종류마다 리소스가 있으며(직접 추가하는 데이터 저장소, 사용자 지정 데이터 유형, 검사 설정, 데이터 상주 규칙, 소유자 규칙과 레이블 규칙), 리소스 이름은 `oneuptime_residency_rule` 처럼 레코드의 이름을 따릅니다.
 
-[MCP 서버](/docs/ai/mcp-server)에는 다음 데이터 보안 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구가 있습니다: Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule, Data Security Setting. 그러면 AI 어시스턴트가 사용자의 권한으로 어떤 저장소에 카드 번호가 있는지, 버킷에 무엇이 열려 있는지 물어볼 수 있습니다.
+[MCP 서버](/docs/ai/mcp-server)에는 다음 데이터 보안 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구가 있습니다: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule, Data Security Setting. 그러면 AI 어시스턴트가 사용자의 권한으로 어떤 저장소에 카드 번호가 있는지, 버킷에 무엇이 열려 있는지 물어볼 수 있습니다.
 
 ## 다음 단계
 

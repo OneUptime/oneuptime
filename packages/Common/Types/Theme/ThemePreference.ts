@@ -10,7 +10,8 @@
  *     page is open.
  *   - The pick is kept in the browser under THEME_STORAGE_KEY. Every page on
  *     this address reads the same key, so a pick made in the Dashboard is the
- *     sign-in page's too.
+ *     sign-in page's too, and signing out leaves it there (UI/Utils/
+ *     KeptAfterSignOut.ts).
  *   - A browser where nobody has picked - a first visit, a new device, storage
  *     cleared or blocked - is System: the page follows the device. Light and
  *     Dark picks saved before System existed are kept as they are.

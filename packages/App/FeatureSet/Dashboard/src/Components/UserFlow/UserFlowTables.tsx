@@ -32,6 +32,7 @@ import {
   formatUserFlowCount,
   formatUserFlowDuration,
   formatUserFlowShare,
+  pluralizeSessions,
 } from "./UserFlowFormat";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
@@ -644,7 +645,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-gray-700">
-                          {formatUserFlowCount(loop.sessions)} sessions
+                          {pluralizeSessions(loop.sessions)}
                         </span>
                         <ShareBar share={loop.share} />
                         <WatchLink

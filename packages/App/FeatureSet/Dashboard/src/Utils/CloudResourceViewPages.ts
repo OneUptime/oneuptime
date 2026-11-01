@@ -31,6 +31,7 @@ import { isCloudResourceKindResource } from "Common/Types/Cloud/CloudResourceKin
 // The tabs of a row's page; not every kind has every tab.
 export enum CloudResourceViewTab {
   Overview = "overview",
+  Apps = "apps",
   Metrics = "metrics",
   Logs = "logs",
   Traces = "traces",
@@ -57,6 +58,7 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
   Record<CloudResourceViewTab, string>
 > = {
   [CloudResourceViewTab.Overview]: "",
+  [CloudResourceViewTab.Apps]: "apps",
   [CloudResourceViewTab.Metrics]: "metrics",
   [CloudResourceViewTab.Logs]: "logs",
   [CloudResourceViewTab.Traces]: "traces",
@@ -75,14 +77,16 @@ export const CLOUD_RESOURCE_VIEW_TAB_PATHS: Readonly<
 };
 
 /*
- * An environment's pages, in App Platforms. It has the telemetry its apps
- * send - logs, traces and the running instances - and no Changes: those are
- * what a cloud account's activity log records about its resources.
+ * An environment's pages, in App Platforms. It has the apps that run in it,
+ * the telemetry they send - logs, traces and the running instances - and no
+ * Changes: those are what a cloud account's activity log records about its
+ * resources.
  */
 export const ENVIRONMENT_VIEW_PAGES: Readonly<
   Partial<Record<CloudResourceViewTab, string>>
 > = {
   [CloudResourceViewTab.Overview]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW,
+  [CloudResourceViewTab.Apps]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_APPS,
   [CloudResourceViewTab.Metrics]:
     PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_METRICS,
   [CloudResourceViewTab.Logs]: PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_LOGS,

@@ -2,6 +2,7 @@ import { CloudConnectionAuthMethod } from "../../../../../Types/CloudConnection/
 import { CloudConnectionFailureKind } from "../../../../../Types/CloudConnection/CloudConnectionTest";
 import Dictionary from "../../../../../Types/Dictionary";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
   AwsCredentials,
@@ -25,11 +26,11 @@ import { isAccountId, isS3BucketName } from "./AwsDataSecurityReader";
 import { DataSecurityResponseOutcome } from "../DataSecurityCloudTypes";
 
 /*
- * CLOSING A DATA STORE'S EXPOSURE ON AWS: the two writes Security
- * Operations playbooks make through a connection's opt-in response policy
- * (CloudConnectionSetupCommands: OneUptimeDataSecurityResponse, granted
- * only when the connection's Data security response is "block"), each run
- * approved by a person unless the playbook says otherwise.
+ * FIXING A DATA STORE ON AWS: the writes a person makes from an issue - and
+ * Security Operations playbooks make, for the first two - through a
+ * connection's opt-in response policy (CloudConnectionSetupCommands:
+ * OneUptimeDataSecurityResponse, granted only when the connection's Data
+ * security response is "block").
  *
  *   blockS3BucketPublicAccess  turns on all four of a bucket's Block Public
  *                              Access settings (PutPublicAccessBlock): no
@@ -39,6 +40,13 @@ import { DataSecurityResponseOutcome } from "../DataSecurityCloudTypes";
  *                              by everyone ("all") and by every account
  *                              outside the connected ones; its shares with
  *                              connected accounts stay.
+ *   turnOnS3BucketVersioning   turns a bucket's versioning on
+ *                              (PutBucketVersioning).
+ *   enforceS3BucketOwnership   sets a bucket's Object Ownership to Bucket
+ *                              owner enforced: ACLs grant nothing.
+ *   turnOnDynamoDbPointInTimeRecovery
+ *                              turns a table's point-in-time recovery on
+ *                              (UpdateContinuousBackups).
  *
  * Each reads first and writes only what is not so already: run twice, the
  * second run changes nothing and says so. Each answers with a sentence the
@@ -512,5 +520,401 @@ export async function revokeRdsSnapshotSharing(
   return {
     changed: true,
     summary: `Stopped sharing snapshot ${identifier} with ${sayList(removed)}.${stays}`,
+  };
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Hardening a store: versioning, object ownership, point-in-time recovery
+ * ---------------------------------------------------------------------------
+ */
+
+// PutBucketVersioning's body: versioning on.
+export const S3_VERSIONING_ENABLED_XML: string =
+  '<?xml version="1.0" encoding="UTF-8"?>\n<VersioningConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Status>Enabled</Status></VersioningConfiguration>';
+
+// PutBucketOwnershipControls's body: the bucket owner owns every object, and ACLs grant nothing.
+export const S3_BUCKET_OWNER_ENFORCED_XML: string =
+  '<?xml version="1.0" encoding="UTF-8"?>\n<OwnershipControls xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><Rule><ObjectOwnership>BucketOwnerEnforced</ObjectOwnership></Rule></OwnershipControls>';
+
+const BUCKET_OWNER_ENFORCED: string = "BucketOwnerEnforced";
+
+// DynamoDB's table names: letters, digits, "_", "-" and ".", 3 to 255 of them.
+export function isDynamoDbTableName(name: string): boolean {
+  if (name.length < 3 || name.length > 255) {
+    return false;
+  }
+
+  for (const character of name) {
+    const allowed: boolean =
+      (character >= "a" && character <= "z") ||
+      (character >= "A" && character <= "Z") ||
+      (character >= "0" && character <= "9") ||
+      character === "_" ||
+      character === "-" ||
+      character === ".";
+
+    if (!allowed) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+interface BucketTarget {
+  bucket: string;
+  region: string;
+  accountNumber: string;
+}
+
+interface BucketWriteOptions {
+  connectionId: ObjectID;
+  bucket: string;
+  region: string;
+  accountNumber: string;
+  transport?: CloudConnectorTransport | undefined;
+  now?: (() => Date) | undefined;
+  sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+  budget?: CloudReadBudget | undefined;
+}
+
+// A bucket's name, Region and account, each checked: what every S3 write needs.
+function readBucketTarget(options: BucketWriteOptions): BucketTarget {
+  const bucket: string = options.bucket.trim();
+  const region: string = options.region.trim().toLowerCase();
+  const accountNumber: string = options.accountNumber.trim();
+
+  if (!isS3BucketName(bucket)) {
+    throw new BadDataException(
+      `"${bucket.slice(0, 70)}" is not an S3 bucket name.`,
+    );
+  }
+
+  if (!isAwsRegion(region)) {
+    throw new BadDataException(
+      `"${region.slice(0, 40)}" is not an AWS Region.`,
+    );
+  }
+
+  if (!isAccountId(accountNumber)) {
+    throw new BadDataException(
+      "The bucket's account must be a 12-digit AWS account id.",
+    );
+  }
+
+  return { bucket, region, accountNumber };
+}
+
+/*
+ * One subresource of a bucket - ?versioning, ?ownershipControls - read or
+ * written, always naming the account the bucket must belong to.
+ */
+function bucketSubresource(
+  call: ResponseCall,
+  target: BucketTarget,
+  subresource: string,
+): (data: {
+  method: "GET" | "PUT";
+  body?: string | undefined;
+  step: string;
+}) => Promise<AwsRestResponse> {
+  return async (data: {
+    method: "GET" | "PUT";
+    body?: string | undefined;
+    step: string;
+  }): Promise<AwsRestResponse> => {
+    return await sendAwsRestRequest({
+      transport: call.transport,
+      credentials: call.credentials,
+      service: "s3",
+      region: target.region,
+      method: data.method,
+      path: `/${target.bucket}`,
+      query: { [subresource]: "" },
+      headers: { "x-amz-expected-bucket-owner": target.accountNumber },
+      body: data.body,
+      step: data.step,
+      providerTitle: S3_TITLE,
+      now: call.now,
+      sleep: call.sleep,
+      budget: call.budget,
+    });
+  };
+}
+
+/*
+ * Turns a bucket's versioning on - or back on, when it was suspended -
+ * unless it is on already: an object overwritten or deleted from then on
+ * can be restored from its earlier version.
+ */
+export async function turnOnS3BucketVersioning(
+  settings: CloudConnectionSettings,
+  options: BucketWriteOptions,
+): Promise<DataSecurityResponseOutcome> {
+  const target: BucketTarget = readBucketTarget(options);
+  const call: ResponseCall = await signIn(settings, {
+    ...options,
+    accountNumber: target.accountNumber,
+  });
+  const send: ReturnType<typeof bucketSubresource> = bucketSubresource(
+    call,
+    target,
+    "versioning",
+  );
+  const what: string = `bucket ${target.bucket}`;
+  let status: string = "";
+
+  try {
+    status =
+      readXmlTags(
+        (await send({ method: "GET", step: "bucket versioning request" })).text,
+        "Status",
+      )[0] || "";
+  } catch (error) {
+    throw explainRefusal(error, {
+      subject: call.subject,
+      action: "s3:GetBucketVersioning",
+      what,
+    });
+  }
+
+  if (status === "Enabled") {
+    return {
+      changed: false,
+      summary: `Versioning was already on for bucket ${target.bucket}; nothing changed.`,
+    };
+  }
+
+  try {
+    await send({
+      method: "PUT",
+      body: S3_VERSIONING_ENABLED_XML,
+      step: "bucket versioning update",
+    });
+  } catch (error) {
+    throw explainRefusal(error, {
+      subject: call.subject,
+      action: "s3:PutBucketVersioning",
+      what,
+    });
+  }
+
+  return {
+    changed: true,
+    summary:
+      status === "Suspended"
+        ? `Turned versioning back on for bucket ${target.bucket}: it was suspended. An object overwritten or deleted from now on can be restored from its earlier version.`
+        : `Turned on versioning for bucket ${target.bucket}: an object overwritten or deleted from now on can be restored from its earlier version.`,
+  };
+}
+
+/*
+ * Sets a bucket's Object Ownership to Bucket owner enforced, unless it is
+ * already: object ACLs grant nothing from then on, and the bucket's policy
+ * alone decides who reads it. S3 refuses while the bucket's own ACL grants
+ * access to anyone else - that access has to move to the policy first, and
+ * the refusal says so.
+ */
+export async function enforceS3BucketOwnership(
+  settings: CloudConnectionSettings,
+  options: BucketWriteOptions,
+): Promise<DataSecurityResponseOutcome> {
+  const target: BucketTarget = readBucketTarget(options);
+  const call: ResponseCall = await signIn(settings, {
+    ...options,
+    accountNumber: target.accountNumber,
+  });
+  const send: ReturnType<typeof bucketSubresource> = bucketSubresource(
+    call,
+    target,
+    "ownershipControls",
+  );
+  const what: string = `bucket ${target.bucket}`;
+  // A bucket with no ownership controls lets its objects' ACLs grant access.
+  let ownership: string = "";
+
+  try {
+    ownership =
+      readXmlTags(
+        (await send({ method: "GET", step: "bucket ownership request" })).text,
+        "ObjectOwnership",
+      )[0] || "";
+  } catch (error) {
+    if (
+      !(error instanceof LlmProviderError) ||
+      awsErrorCodeOf(error.responseBody || "") !==
+        "OwnershipControlsNotFoundError"
+    ) {
+      throw explainRefusal(error, {
+        subject: call.subject,
+        action: "s3:GetBucketOwnershipControls",
+        what,
+      });
+    }
+  }
+
+  if (ownership === BUCKET_OWNER_ENFORCED) {
+    return {
+      changed: false,
+      summary: `Object ACLs were already off for bucket ${target.bucket}; nothing changed.`,
+    };
+  }
+
+  try {
+    await send({
+      method: "PUT",
+      body: S3_BUCKET_OWNER_ENFORCED_XML,
+      step: "bucket ownership update",
+    });
+  } catch (error) {
+    if (
+      error instanceof LlmProviderError &&
+      awsErrorCodeOf(error.responseBody || "") ===
+        "InvalidBucketAclWithObjectOwnership"
+    ) {
+      throw new BadDataException(
+        `S3 will not turn off object ACLs for bucket ${target.bucket} while the bucket's own ACL grants access to another account or to everyone. Grant that access in the bucket policy instead, remove it from the ACL, then try again.`,
+      );
+    }
+
+    throw explainRefusal(error, {
+      subject: call.subject,
+      action: "s3:PutBucketOwnershipControls",
+      what,
+    });
+  }
+
+  return {
+    changed: true,
+    summary: `Turned off object ACLs for bucket ${target.bucket}${
+      ownership ? ` (its Object Ownership was ${ownership})` : ""
+    }: the bucket's policy alone decides who reads it now.`,
+  };
+}
+
+/*
+ * Turns a DynamoDB table's point-in-time recovery on, unless it is on - or
+ * being turned on - already: the table can then be restored to any second
+ * of the last 35 days.
+ */
+export async function turnOnDynamoDbPointInTimeRecovery(
+  settings: CloudConnectionSettings,
+  options: {
+    connectionId: ObjectID;
+    table: string;
+    region: string;
+    // The account the table is in, for an organization's connection: its own role is used.
+    accountNumber?: string | undefined;
+    transport?: CloudConnectorTransport | undefined;
+    now?: (() => Date) | undefined;
+    sleep?: ((milliseconds: number) => Promise<void>) | undefined;
+    budget?: CloudReadBudget | undefined;
+  },
+): Promise<DataSecurityResponseOutcome> {
+  const table: string = options.table.trim();
+  const region: string = options.region.trim().toLowerCase();
+
+  if (!isDynamoDbTableName(table)) {
+    throw new BadDataException(
+      `"${table.slice(0, 70)}" is not a DynamoDB table name.`,
+    );
+  }
+
+  if (!isAwsRegion(region)) {
+    throw new BadDataException(
+      `"${region.slice(0, 40)}" is not an AWS Region.`,
+    );
+  }
+
+  const call: ResponseCall = await signIn(settings, options);
+  const send: (
+    target: string,
+    body: JSONObject,
+    step: string,
+  ) => Promise<JSONObject> = async (
+    target: string,
+    body: JSONObject,
+    step: string,
+  ): Promise<JSONObject> => {
+    return (
+      await sendAwsRequest({
+        transport: call.transport,
+        credentials: call.credentials,
+        service: "dynamodb",
+        region,
+        target: `DynamoDB_20120810.${target}`,
+        jsonVersion: "1.0",
+        body,
+        step,
+        providerTitle: PROVIDER_TITLE,
+        now: call.now,
+        sleep: call.sleep,
+        budget: call.budget,
+      })
+    ).json;
+  };
+  const what: string = `table ${table}`;
+  let status: string = "";
+
+  try {
+    const described: JSONObject = await send(
+      "DescribeContinuousBackups",
+      { TableName: table },
+      "table backup request",
+    );
+    const backups: JSONObject = (described["ContinuousBackupsDescription"] ||
+      {}) as JSONObject;
+    const recovery: JSONObject = (backups["PointInTimeRecoveryDescription"] ||
+      {}) as JSONObject;
+
+    status = String(recovery["PointInTimeRecoveryStatus"] || "");
+  } catch (error) {
+    throw explainRefusal(error, {
+      subject: call.subject,
+      action: "dynamodb:DescribeContinuousBackups",
+      what,
+    });
+  }
+
+  if (status === "ENABLED" || status === "ENABLING") {
+    return {
+      changed: false,
+      summary: `Point-in-time recovery was already ${
+        status === "ENABLED" ? "on" : "being turned on"
+      } for table ${table}; nothing changed.`,
+    };
+  }
+
+  try {
+    await send(
+      "UpdateContinuousBackups",
+      {
+        TableName: table,
+        PointInTimeRecoverySpecification: { PointInTimeRecoveryEnabled: true },
+      },
+      "table backup update",
+    );
+  } catch (error) {
+    if (
+      error instanceof LlmProviderError &&
+      awsErrorCodeOf(error.responseBody || "") ===
+        "ContinuousBackupsUnavailableException"
+    ) {
+      throw new BadDataException(
+        `DynamoDB cannot turn on point-in-time recovery for table ${table} yet: its backups are still being set up. Try again in a few minutes.`,
+      );
+    }
+
+    throw explainRefusal(error, {
+      subject: call.subject,
+      action: "dynamodb:UpdateContinuousBackups",
+      what,
+    });
+  }
+
+  return {
+    changed: true,
+    summary: `Turned on point-in-time recovery for table ${table}: it can be restored to any second of the last 35 days.`,
   };
 }

@@ -45,6 +45,7 @@ import {
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import LogMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/LogMonitorCriteria";
+import { METRIC_BASELINE_MINIMUM_WEEKS } from "Common/Server/Utils/Monitor/MetricHourBaseline";
 import MetricWindowCoverage, {
   MetricEvaluationWindow,
 } from "Common/Server/Utils/Monitor/Criteria/MetricWindowCoverage";
@@ -1422,6 +1423,28 @@ describe("criteria", () => {
 
     expect(METRICS).toContain(
       "**When to alert** shows **Sensitivity** — Low, Medium (the default) or High — instead, and the custom criteria a **Baseline Window** too — 14 days (the default), 28, 60 or 90 —",
+    );
+  });
+
+  it("a metric's anomaly condition is judged by the days before it, and learns until its hour has two weeks", () => {
+    const service: string = oneLine(
+      readSource("Common/Server/Services/MetricBaselineService.ts"),
+    );
+
+    expect(service).toContain("AND day < toDate('${data.judgedDay}')");
+    expect(METRIC_BASELINE_MINIMUM_WEEKS).toBe(2);
+
+    expect(METRICS).toContain(
+      "each data point is compared with the same hour of the week on earlier days, as far back as that window goes. What is happening now is never part of that comparison, so a change that lasts keeps alerting until, a week later, it has entered those earlier days.",
+    );
+    expect(METRICS).toContain(
+      "Until that hour of the week has two weeks of history, the criteria is still learning and produces no alerts.",
+    );
+    expect(METRICS).toContain(
+      "It is still learning: the hour of the week it compares against does not have two weeks of history yet.",
+    );
+    expect(readPage("en", "monitor/kubernetes-monitor")).toContain(
+      'Anomaly conditions stay in a "Learning" state and produce no alerts until that hour of the week has two weeks of history.',
     );
   });
 

@@ -286,8 +286,9 @@ test.describe("header", () => {
       expect(read.select).not.toHaveProperty("stackTrace");
     }
     /*
-     * Besides it, only the security events above the overview read the
-     * exception, for its fingerprint alone.
+     * Besides it, nothing reads the exception: the security events above the
+     * overview ask once for the fingerprints its occurrences carry, its own
+     * and those merged into it (#5468).
      */
     expect(
       exceptionReads
@@ -297,7 +298,18 @@ test.describe("header", () => {
         .map((request: { select: Record<string, unknown> }) => {
           return request.select;
         }),
-    ).toEqual([{ fingerprint: true }]);
+    ).toEqual([]);
+    expect(
+      state.apiRequests
+        .filter((request: RecordedApiRequest) => {
+          return request.url.includes(
+            "/telemetry-exception/group-fingerprints",
+          );
+        })
+        .map((request: RecordedApiRequest) => {
+          return request.body;
+        }),
+    ).toEqual([{ telemetryExceptionIds: [EXCEPTION_ID] }]);
   });
 
   test("a long message is clamped until expanded", async ({

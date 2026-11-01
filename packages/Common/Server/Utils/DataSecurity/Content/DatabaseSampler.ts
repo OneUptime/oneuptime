@@ -6,6 +6,7 @@ import {
 } from "mysql2/promise";
 import * as mssql from "mssql";
 import { CollectedField } from "../../../../Utils/DataSecurity/FieldCollector";
+import { UnplacedField } from "../../../../Utils/DataSecurity/UnplacedFields";
 import {
   ContentScanOptions,
   ContentScanResult,
@@ -13,6 +14,7 @@ import {
   emptyContentScanResult,
   LocationFindings,
   MAX_READ_LOG_ENTRIES,
+  MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
 import {
@@ -971,6 +973,7 @@ export async function sampleDatabase(
   );
   const locations: Array<LocationFindings> = [];
   const plaintextPasswordFields: Array<string> = [];
+  const unplacedFields: Array<UnplacedField> = [];
   const excluded: Set<string> = readExclusions(options.exclusions);
   let isComplete: boolean = true;
   let estimatedRecords: number = 0;
@@ -1131,6 +1134,12 @@ export async function sampleDatabase(
 
         locations.push(...classified.locations);
 
+        for (const unplaced of classified.unplacedFields) {
+          if (unplacedFields.length < MAX_UNPLACED_FIELDS_PER_SCAN) {
+            unplacedFields.push(unplaced);
+          }
+        }
+
         for (const field of classified.plaintextPasswordFields) {
           if (plaintextPasswordFields.length < MAX_PLAINTEXT_PASSWORD_FIELDS) {
             plaintextPasswordFields.push(field);
@@ -1161,6 +1170,7 @@ export async function sampleDatabase(
   result.isComplete = isComplete;
   result.estimatedRecords =
     result.objectsRead > 0 ? Math.round(estimatedRecords) : undefined;
+  result.unplacedFields = unplacedFields;
 
   return result;
 }

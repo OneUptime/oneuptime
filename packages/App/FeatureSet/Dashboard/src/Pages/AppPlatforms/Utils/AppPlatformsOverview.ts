@@ -42,8 +42,13 @@ export enum AppPlatformGroupTone {
   Healthy = "healthy",
   // Some are, some are not.
   Partial = "partial",
-  // None is connected.
+  // None is connected, and some were heard from before.
   Silent = "silent",
+  /*
+   * None has sent anything yet: a platform just connected, waiting for its
+   * first data. Nothing broke, so it is grey, not red.
+   */
+  Waiting = "waiting",
 }
 
 /*
@@ -171,7 +176,17 @@ export function getAppPlatformGroupTone(
     return AppPlatformGroupTone.Healthy;
   }
 
-  return group.connected === 0
+  if (group.connected > 0) {
+    return AppPlatformGroupTone.Partial;
+  }
+
+  const wasHeardFrom: boolean = group.environments.some(
+    (row: AppPlatformEnvironmentRow): boolean => {
+      return Boolean(row.lastSeenAt);
+    },
+  );
+
+  return wasHeardFrom
     ? AppPlatformGroupTone.Silent
-    : AppPlatformGroupTone.Partial;
+    : AppPlatformGroupTone.Waiting;
 }

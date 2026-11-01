@@ -1,13 +1,13 @@
 # Prüfungen und Probleme der Datensicherheit
 
-Datensicherheit führt an jedem Datenspeicher 32 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht.
+Datensicherheit führt an jedem Datenspeicher 33 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht.
 
 :::cards
 - [Wie eine Prüfung entscheidet](#wie-eine-prüfung-entscheidet): Bestanden, fehlgeschlagen oder nicht feststellbar, und wie schlimm ein Fehlschlag ist.
-- [Jede Prüfung](#jede-prüfung): Alle 32, mit dem, was jede prüft, und wie Sie den Mangel beheben.
+- [Jede Prüfung](#jede-prüfung): Alle 33, mit dem, was jede prüft, und wie Sie den Mangel beheben.
 - [Risikowert](#risikowert): Wie Probleme innerhalb eines Schweregrads geordnet werden.
 - [Was mit einem Problem geschieht](#was-mit-einem-problem-geschieht): Offen, behoben, akzeptiert, kein Problem.
-- [Hier beheben](#hier-beheben): Einen öffentlichen Bucket sperren oder die Freigabe eines Snapshots beenden, mit einem Klick.
+- [Hier beheben](#hier-beheben): Eine Exponierung schließen oder einen fehlenden Schutz einschalten, mit einem Klick.
 :::
 
 ## Wie eine Prüfung entscheidet
@@ -75,6 +75,7 @@ Der Schweregrad wird für eingeschränkte, vertrauliche, interne und öffentlich
 | Jeder mit dem Kontoschlüssel kann alles lesen (`shared-key-access`) | Azure Storage Account | Das Speicherkonto erlaubt den Zugriff per gemeinsam genutztem Schlüssel, der Microsoft Entra ID umgeht und keinen Audit-Trail pro Person hinterlässt. | Mittel / Niedrig / — / — | Stellen Sie Anwendungen auf Microsoft Entra ID um, und schalten Sie dann den Zugriff per Speicherkontoschlüssel aus. |
 | Objekte können eigene Zugriffsregeln tragen (`object-acls-enabled`) | AWS S3 Bucket, Google Cloud Storage Bucket | Objekt-ACLs sind eingeschaltet, sodass ein einzelnes Objekt öffentlich gemacht werden kann, während der Bucket privat aussieht. | Niedrig / Niedrig / — / — | Setzen Sie bei S3 Object Ownership auf Bucket owner enforced. Schalten Sie bei Cloud Storage den einheitlichen Zugriff auf Bucket-Ebene ein. |
 | Mehr als 25 Identitäten können eingeschränkte Daten lesen (`many-readers`) | Jeder Datenspeicher außer Telemetrie | Mehr Identitäten, als die meisten Teams überprüfen können, haben Lesezugriff auf den Datenspeicher. | Mittel / — / — / — | Öffnen Sie die Seite **Wer ihn erreichen kann** des Datenspeichers, und entfernen Sie den Zugriff, der ungenutzt oder breiter als nötig ist. |
+| Identitäten, die seit 90 Tagen nicht verwendet wurden, können ihn noch erreichen (`unused-access`) | Jeder Datenspeicher außer Telemetrie | Rollen und Benutzer, die seit 90 Tagen nicht verwendet wurden, haben noch Zugriff auf die sensiblen Daten des Datenspeichers. | Mittel / Niedrig / — / — | Öffnen Sie die Seite **Wer ihn erreichen kann** des Datenspeichers, wo sie als **Seit 90 Tagen nicht verwendet** markiert sind, und entfernen Sie den Zugriff, den jede nicht mehr braucht. |
 
 ### Datenhygiene
 
@@ -160,14 +161,20 @@ Ein Problem, das sich wieder öffnet, behält seinen Verlauf. Akzeptierte Risike
 
 ## Hier beheben
 
-Ein offenes Problem zu einem öffentlichen Bucket oder einem geteilten Snapshot lässt sich von seiner Seite aus beheben. Über den Schritten für die Konsole bietet **Hier beheben** die Änderung an, die es behebt:
+Ein offenes Problem, das eine einzige Änderung an den Einstellungen eines Datenspeichers behebt - ein öffentlicher Bucket, ein geteilter Snapshot, ein Bucket, dessen gelöschte Dateien sich nicht wiederherstellen lassen -, lässt sich von seiner Seite aus beheben. Über den Schritten für die Konsole bietet **Hier beheben** die Änderung an, die es behebt:
 
 | Das Problem | Sein Datenspeicher | Die Schaltfläche | Was sie ändert |
 | --- | --- | --- | --- |
 | `public-read`, `public-write` oder `public-access-not-blocked` | Ein S3-Bucket, ein Azure-Speicherkonto oder ein Cloud-Storage-Bucket | **Öffentlichen Zugriff sperren** | Schaltet die vier Einstellungen von Block Public Access des Buckets ein, schaltet den anonymen Blobzugriff des Speicherkontos aus oder erzwingt die Verhinderung des öffentlichen Zugriffs für den Bucket |
 | `snapshot-public` oder `snapshot-shared-externally` | Ein RDS-Snapshot, eine RDS-Datenbank oder ein Aurora- oder DocumentDB-Cluster | **Freigabe widerrufen** | Beendet die Freigabe des Snapshots, oder jedes geteilten manuellen Snapshots der Datenbank, für alle und für Konten außerhalb der von Ihnen verbundenen |
+| `deleted-data-not-recoverable` | Ein S3-Bucket oder ein Cloud-Storage-Bucket | **Versionierung einschalten** | Behält die frühere Version jedes Objekts, das überschrieben oder gelöscht wird, bis eine Lebenszyklusregel sie entfernt |
+| `deleted-data-not-recoverable` | Ein Azure-Speicherkonto | **Vorläufiges Löschen einschalten** | Behält gelöschte Blobs und Container 14 Tage lang, sodass sie wiederhergestellt werden können |
+| `object-acls-enabled` | Ein S3-Bucket | **Objekt-ACLs ausschalten** | Setzt Object Ownership auf Bucket owner enforced, sodass allein die Richtlinie des Buckets entscheidet, wer ihn liest |
+| `object-acls-enabled` | Ein Cloud-Storage-Bucket | **Einheitlichen Zugriff einschalten** | Schaltet den einheitlichen Zugriff auf Bucket-Ebene ein, sodass allein die IAM-Richtlinie des Buckets entscheidet, wer ihn liest |
+| `encryption-in-transit-not-enforced` oder `weak-tls` | Ein Azure-Speicherkonto | **Sichere Übertragung vorschreiben** | Schaltet die sichere Übertragung ein und setzt die minimale TLS-Version auf 1.2, sodass das Konto nur noch HTTPS mit TLS 1.2 oder neuer annimmt |
+| `no-point-in-time-recovery` | Eine DynamoDB-Tabelle | **Point-in-Time-Wiederherstellung einschalten** | Lässt die Tabelle auf jede Sekunde der letzten 35 Tage wiederherstellen |
 
-Es fragt zuerst und sagt, was sich ändert und was dann nicht mehr funktioniert. Es ändert, wie der Datenspeicher geteilt wird, nie seine Daten, und ändert nichts, was schon geschlossen ist. Ein als **Absichtlich öffentlich** markierter Datenspeicher wird nie gesperrt.
+Es fragt zuerst und sagt, was sich ändert, was dann nicht mehr funktioniert und was es kostet. Es ändert die Einstellungen des Datenspeichers, nie seine Daten, und ändert nichts, was schon so ist, wie es sein soll. Ein als **Absichtlich öffentlich** markierter Datenspeicher wird nie gesperrt.
 
 Es handelt über die Cloud-Verbindung des Datenspeichers, also muss an der Verbindung **Datensicherheitsreaktion** eingeschaltet und ihr Einrichtungsbefehl erneut ausgeführt sein (siehe [Datensicherheit einrichten](/docs/data-security/setup#datensicherheit-eine-exponierung-schließen-lassen)). Bis dahin sagt das Panel, was einzuschalten ist. Der Datenspeicher wird direkt danach erneut geprüft, und das Problem wird von selbst behoben, sobald seine Prüfung besteht. Die **Zeitachse** des Problems und die **Zeitachse** des Datenspeichers sagen, was getan wurde und wer es getan hat.
 

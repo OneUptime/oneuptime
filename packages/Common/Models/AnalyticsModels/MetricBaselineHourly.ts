@@ -21,9 +21,9 @@ import TableColumnType from "../../Types/AnalyticsDatabase/TableColumnType";
  * 168 hour-of-week buckets capture both daily and weekly seasonality
  * (Mon 09:00 → 8, Sun 23:00 → 167) using ISO week numbering.
  *
- * Cold start: the evaluator refuses to fire when a baseline cell has
- * fewer than `minSamples` samples (default 5). New projects therefore
- * see a "Learning" state for ~14 days after first ingest.
+ * Cold start: the evaluator refuses to fire until a baseline cell has two
+ * earlier weeks of history and `minSamples` samples (default 5). New
+ * projects therefore see a "Learning" state for ~14 days after first ingest.
  *
  * Schema notes:
  *   - `median`, `p95`, `min`, `max` states are emitted from day one so

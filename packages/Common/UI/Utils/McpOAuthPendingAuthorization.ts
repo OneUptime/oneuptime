@@ -27,9 +27,10 @@ import UniversalCookies from "universal-cookie";
  * Being sent to the sign-in page wipes nearly everything a page can leave
  * behind, twice over:
  *
- *   - in the browser, UserUtil.logout clears local storage, session storage
- *     and every cookie named in the CookieName enum - which is why this name
- *     is NOT in it;
+ *   - in the browser, UserUtil.logout clears local storage (all but the
+ *     browser's own few picks, KeptAfterSignOut.ts), session storage and every
+ *     cookie named in the CookieName enum - which is why this name is NOT in
+ *     it;
  *   - on the server, the failed session refresh and the logout call that
  *     precede the redirect each clear EVERY cookie the request carried
  *     (CookieUtil.removeAllCookies), whatever it is called.

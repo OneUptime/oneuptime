@@ -96,6 +96,9 @@ const TABLES: string = read(
 const DETAIL_PANEL: string = read(
   `${DASHBOARD}/Components/UserFlow/UserFlowDetailPanel.tsx`,
 );
+const JOURNEYS: string = read(
+  `${DASHBOARD}/Components/UserFlow/UserFlowJourneys.tsx`,
+);
 const USER_FLOW_MAP: string = read(
   `${DASHBOARD}/Components/UserFlow/UserFlowMap.tsx`,
 );
@@ -337,7 +340,7 @@ describe("User Flows tables carry their own text", () => {
     );
   });
 
-  test("the text keys are split between the three files with nothing left over", () => {
+  test("the text keys are split between the four files with nothing left over", () => {
     const keys: Array<string> = Object.keys(RUM_USER_FLOW_METRIC_DESCRIPTIONS);
     const usedIn: (source: string) => Array<string> = (
       source: string,
@@ -351,11 +354,12 @@ describe("User Flows tables carry their own text", () => {
     const inOverview: Array<string> = usedIn(OVERVIEW);
     const inTables: Array<string> = usedIn(TABLES);
     const inDetail: Array<string> = usedIn(DETAIL_PANEL);
+    const inJourneys: Array<string> = usedIn(JOURNEYS);
 
     // Every key in exactly one file.
-    expect([...inOverview, ...inTables, ...inDetail].sort()).toEqual(
-      [...keys].sort(),
-    );
+    expect(
+      [...inOverview, ...inTables, ...inDetail, ...inJourneys].sort(),
+    ).toEqual([...keys].sort());
     // The detail panel's texts, and only those, say so in their key.
     expect(
       inDetail.every((key: string): boolean => {
@@ -583,10 +587,12 @@ describe("User Flows texts match what the page computes", () => {
     );
   });
 
-  test("a page is listed once per recording chunk, and repeats back to back are collapsed", () => {
+  test("a chunk from an older recorder lists a page once, and repeats back to back are collapsed", () => {
     expect(SESSION_REPLAY_FLUSH_INTERVAL_MS).toBe(15 * 1000);
-    // The chunk's route list is a set: a return inside one chunk is lost.
-    expect(squash(CHUNKER)).toContain("if (this.routes.has(url)) { return; }");
+    // The chunk's route list keeps a return; only an older recorder's lost it.
+    expect(squash(CHUNKER)).toContain(
+      "if (this.routes[this.routes.length - 1] === url) { return; }",
+    );
     // Back-to-back repeats: on the server and again in the engine.
     expect(USER_FLOW_READ).toContain(
       "flowAt = 1 OR flowRoute != flowRawRoutes[flowAt - 1]",
@@ -602,7 +608,7 @@ describe("User Flows texts match what the page computes", () => {
       RUM_USER_FLOW_METRIC_DESCRIPTIONS.pageVisits,
     ]) {
       expect(text).toContain("recording chunk (about 15 seconds)");
-      expect(text).toContain("is missed");
+      expect(text).toContain("is missed on recordings from an older recorder");
     }
 
     // Only BACK-TO-BACK repeats go, so A -> B -> A stays three pages long.

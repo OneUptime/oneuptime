@@ -3,12 +3,13 @@
 /**
  * A suite App Test runs in halves runs every half, once.
  *
- * Event Overview (since 2026-10-22) and the Workflow Builder suite (since
- * 2026-10-27) each took a Dashboard Offline UI group past the minutes a
- * group is kept to on its own, so each runs in halves: a group's matrix sets
- * <suite>_shard ("1/2" or "2/2"), the job's env hands it to the suite's
- * Playwright config as a variable of its own (EVENT_OVERVIEW_SHARD,
- * WORKFLOW_BUILDER_SHARD), and the config passes it to Playwright's shard.
+ * Event Overview (since 2026-10-22), the Workflow Builder suite (since
+ * 2026-10-27) and Model Tables (since 2026-11-01) each took a Dashboard
+ * Offline UI group past the minutes a group is kept to on its own, so each
+ * runs in halves: a group's matrix sets <suite>_shard ("1/2" or "2/2"), the
+ * job's env hands it to the suite's Playwright config as a variable of its
+ * own (EVENT_OVERVIEW_SHARD, WORKFLOW_BUILDER_SHARD, MODEL_TABLES_SHARD), and
+ * the config passes it to Playwright's shard.
  * A half that no group runs never fails; a half two groups run costs a
  * group's minutes twice; a group that sets the key but runs another suite,
  * or a config that reads another variable, runs the whole suite there - or
@@ -39,6 +40,10 @@ const SPLIT_SUITES = {
   workflow_builder_shard: {
     suite: "test-workflow-builder-ui",
     variable: "WORKFLOW_BUILDER_SHARD",
+  },
+  model_tables_shard: {
+    suite: "test-model-tables-ui",
+    variable: "MODEL_TABLES_SHARD",
   },
 };
 

@@ -12,9 +12,13 @@
  *     DESC in Postgres, which puts NULLs first, so a task with no CPU reading
  *     can lead the list - the text says so;
  *   - Requests, Error rate, p95 latency and both charts follow the selected
- *     range. The p95 tile is the average of the per-interval p95s, and the
- *     Memory chart adds up every container.memory.usage reading in an
- *     interval, so a container that reports more often weighs more.
+ *     range. They count requests: entry spans, where work enters a service
+ *     (a root span, or a SERVER or CONSUMER span), not every span under
+ *     them - an app's page counts its own the same way, so an environment's
+ *     requests are its apps' added up. The p95 tile is the average of the
+ *     per-interval p95s, and the Memory chart adds up every
+ *     container.memory.usage reading in an interval, so a container that
+ *     reports more often weighs more.
  * Change the fetch, change the words.
  */
 
@@ -42,16 +46,16 @@ export const CLOUD_METRIC_DESCRIPTIONS: Record<CloudMetric, string> = {
     "Running tasks, replicas or instances in this environment that sent telemetry in the last 15 minutes. It is a live count, so it ignores the selected time range.",
   ),
   requests: translationKey(
-    "Every span reported from this environment (matched by its cloud platform, account and region) in the selected range, across all its services. One user request often produces several spans, so this is usually higher than the request count.",
+    "Requests to the apps in this environment (matched by its cloud platform, account and region) in the selected range: the spans where work enters a service, not every database call and step under them.",
   ),
   errorRate: translationKey(
-    "The share of this environment's spans in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
+    "The share of this environment's requests in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
   ),
   p95Latency: translationKey(
-    "p95 means the 95th percentile: 95% of the spans from this environment finished faster than this and the slowest 5% took longer. Worked out for each interval, then averaged over the selected range, so quiet and busy intervals count equally.",
+    "p95 means the 95th percentile: 95% of the requests to this environment's apps finished faster than this and the slowest 5% took longer. Worked out for each interval, then averaged over the selected range, so quiet and busy intervals count equally.",
   ),
   requestsChart: translationKey(
-    "Spans reported from this environment in each interval, with the ones whose status was Error as a second line. Every service running in the environment counts.",
+    "Requests to this environment's apps in each interval, with the ones whose status was Error as a second line. Every app in the environment counts.",
   ),
   memoryChart: translationKey(
     "Container memory (container.memory.usage) in this environment for each interval. Every reading in an interval is added up, so a container that reports more than once per interval counts more than once - read it as a trend, not a total.",
@@ -62,26 +66,75 @@ export const CLOUD_METRIC_DESCRIPTIONS: Record<CloudMetric, string> = {
 };
 
 /*
+ * What each number on an app's page means (Pages/AppPlatforms/View/App).
+ * The app's requests, error rate, p95 and both charts follow the selected
+ * range and count its requests - entry spans carrying the app's own
+ * attributes and its environment's; instances, CPU and memory are the live
+ * snapshot of its instances seen in the last 15 minutes. A deploy is drawn
+ * on both charts as a dashed line.
+ */
+export type CloudAppMetric =
+  | "requests"
+  | "errorRate"
+  | "p95Latency"
+  | "instances"
+  | "cpu"
+  | "memory"
+  | "requestsChart"
+  | "latencyChart"
+  | "rollout";
+
+export const CLOUD_APP_METRIC_DESCRIPTIONS: Record<CloudAppMetric, string> = {
+  requests: translationKey(
+    "Requests to this app in the selected range: the spans where work enters it (a root span, or a SERVER or CONSUMER span), not every database call and step under them.",
+  ),
+  errorRate: translationKey(
+    "The share of this app's requests in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
+  ),
+  p95Latency: translationKey(
+    "95% of this app's requests finished faster than this and the slowest 5% took longer. Worked out for each interval, then averaged over the selected range.",
+  ),
+  instances: translationKey(
+    "Tasks, replicas or instances running this app that sent telemetry in the last 15 minutes. It is a live count, so it ignores the selected time range.",
+  ),
+  cpu: translationKey(
+    "Average of the latest CPU reading of each of this app's instances seen in the last 15 minutes; it ignores the selected time range. Depending on the platform, 100% is one full CPU core or all the CPU the task was given.",
+  ),
+  memory: translationKey(
+    "Memory in use, added up across this app's instances seen in the last 15 minutes, from each one's latest reading. It is a live snapshot, so it ignores the selected time range.",
+  ),
+  requestsChart: translationKey(
+    "This app's requests in each interval, with the ones whose status was Error as a second line. A dashed line marks each deploy.",
+  ),
+  latencyChart: translationKey(
+    "The 95th percentile of this app's request durations in each interval. A dashed line marks each deploy, so a slower release shows where it started.",
+  ),
+  rollout: translationKey(
+    "Which revision each live instance runs: the instances seen in the last 15 minutes.",
+  ),
+};
+
+/*
  * The stat strip above the Cloud Environments list (Pages/Cloud/Utils/
  * CloudFleetSummary.ts). Counts of rows, not telemetry, so none of them has
  * a time range.
  */
 export type CloudFleetMetric =
+  | "apps"
   | "environments"
-  | "connected"
-  | "disconnected"
+  | "deploys"
   | "liveInstances";
 
 export const CLOUD_FLEET_METRIC_DESCRIPTIONS: Record<CloudFleetMetric, string> =
   {
+    apps: translationKey(
+      "Apps on your platforms - an ECS service, a Cloud Run service, a Container App - in every environment. The line below says how many have not reported in the last 15 minutes.",
+    ),
     environments: translationKey(
-      "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below breaks them down by provider.",
+      "Cloud environments in this project - one per cloud platform, account and region - not counting archived ones. The line below says how many are disconnected, else how many wait for their first data, else which providers they are on.",
     ),
-    connected: translationKey(
-      "Environments currently marked as sending telemetry. One switches to disconnected after about 15 to 20 minutes with no logs, metrics or traces, and back as soon as telemetry returns.",
-    ),
-    disconnected: translationKey(
-      "Environments not currently sending telemetry: ones silent for about 15 minutes or more, and ones added by hand that have never reported. Check that the OpenTelemetry collector for each is running.",
+    deploys: translationKey(
+      "New revisions your apps started running in the last 24 hours: a new ECS task definition revision, Cloud Run revision or service.version. A rollback is not counted.",
     ),
     liveInstances: translationKey(
       "Running tasks, replicas or instances that sent telemetry in the last 15 minutes, across every cloud environment in this project, archived ones included.",

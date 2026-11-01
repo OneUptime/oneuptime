@@ -92,6 +92,11 @@ export interface DataStoreCheckInput {
   lastActivityAt?: Date | null | undefined;
   // How many identities can read the store, when access was read.
   readerCount?: number | null | undefined;
+  /*
+   * The identities that can reach the store and have not been used in
+   * UNUSED_ACCESS_DAYS days, by name, when access was read.
+   */
+  unusedReaderNames?: ReadonlyArray<string> | null | undefined;
   // A production store this one holds copies of, by fingerprint.
   copiedFromProductionStoreName?: string | null | undefined;
   // Telemetry: confident data types no scrub rule covers.
@@ -282,6 +287,22 @@ const LOGGING_REQUIREMENTS: ReadonlyArray<FrameworkRequirementRef> = [
   r(CF.ISO27001, "A.8.15"),
   r(CF.NISTCSF, "DE.CM-09"),
 ];
+
+/*
+ * Access that is reviewed and taken away once it is no longer needed: what
+ * an identity left unused for months is evidence against.
+ */
+const ACCESS_REVIEW_REQUIREMENTS: ReadonlyArray<FrameworkRequirementRef> = [
+  r(CF.GDPR, "Art. 32"),
+  r(CF.HIPAA, "164.308(a)(4)"),
+  r(CF.PCIDSS, "7.2.4"),
+  r(CF.SOC2, "CC6.2"),
+  r(CF.ISO27001, "A.5.18"),
+  r(CF.NISTCSF, "PR.AA-05"),
+];
+
+// The most unused identities an issue names before it counts the rest.
+const MAX_UNUSED_NAMED: number = 5;
 
 const MINIMISATION_REQUIREMENTS: ReadonlyArray<FrameworkRequirementRef> = [
   r(CF.GDPR, "Art. 5(1)(c)"),
@@ -1069,6 +1090,57 @@ export const DATA_SECURITY_CHECKS: ReadonlyArray<DataSecurityCheckInfo> = [
       return input.readerCount > 25
         ? fail(`${input.readerCount} identities can read it.`)
         : PASS;
+    },
+  },
+  {
+    id: "unused-access",
+    group: G.Access,
+    title: "Identities unused for 90 days can still reach it",
+    description:
+      "Roles and users that have not been used in 90 days still hold access to the store's sensitive data.",
+    whyItMatters:
+      "Access nobody uses is access nobody watches: a forgotten role or an old key is how a leak reaches data years later.",
+    severityBySensitivity: severities(S.Medium, S.Low, null, null),
+    families: STORING_FAMILIES,
+    requirements: ACCESS_REVIEW_REQUIREMENTS,
+    remediation: {
+      [P.Aws]: {
+        steps: [
+          "Open the store's Who can reach it tab: the identities not used in 90 days are marked.",
+          "For each, confirm with its owner that it is no longer needed.",
+          "Detach the policy that grants the access, or delete the role or user if nothing uses it.",
+        ],
+        cli: "aws iam get-role --role-name ROLE_NAME --query Role.RoleLastUsed",
+      },
+      default: {
+        steps: [
+          "Open the store's Who can reach it tab: the identities not used in 90 days are marked.",
+          "Remove the access each one no longer needs.",
+        ],
+      },
+    },
+    evaluate: (input: DataStoreCheckInput): DataSecurityCheckResult => {
+      if (
+        input.unusedReaderNames === undefined ||
+        input.unusedReaderNames === null
+      ) {
+        return UNKNOWN;
+      }
+
+      const names: ReadonlyArray<string> = input.unusedReaderNames;
+
+      if (names.length === 0) {
+        return PASS;
+      }
+
+      const shown: string = names.slice(0, MAX_UNUSED_NAMED).join(", ");
+      const more: number = names.length - MAX_UNUSED_NAMED;
+
+      return fail(
+        `${names.length} ${names.length === 1 ? "identity" : "identities"} not used in 90 days can reach it: ${shown}${
+          more > 0 ? ` and ${more} more` : ""
+        }.`,
+      );
     },
   },
 
