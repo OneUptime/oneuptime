@@ -568,18 +568,29 @@ paragraph between the Span Type title and its three options. It covers:
 Screenshots: `span-type-1440`, `span-type-help-1440`, `span-type-option-1440`,
 `span-type-help-dark-1440` and `span-type-help-390`.
 
-## A host's and a cluster's Security card
+## The Security card of a host, a cluster, a Docker host and a Podman host
 
-`ResourceSecurityCard.spec.ts` (9 tests, same fixture and command) opens the host and the
-cluster Overview with `?security=`, which has `POST /security-case/resource-security` answer
-what Security Events found about them this week: `news` (the host's three open cases of four,
-128 events, 4 findings at High and a risk of 64; the cluster's one case and 37 events) or
-`quiet` (nothing named them). Left out, the project uses no Security Events and the card draws
-nothing, as on every other spec here. It covers: no card in a project that uses no Security
-Events; the host's open cases, each opening its case, the rest counted; its events opening
-Security Events on what names it this week; its findings and risk; a quiet host's one line; the
-cluster's card; and the card whole at 1280 and 390 in both themes, with nothing scrolling
-sideways. Its screenshots are `host-security-card-*` and `cluster-security-card-1280`.
+`ResourceSecurityCard.spec.ts` (15 tests, same fixture and command) opens the host's, the
+cluster's, the Docker host's (`docker-edge-01`, `/docker/67000000-…-000000000001`) and the
+Podman host's (`podman-build-02`, `/podman/68000000-…-000000000001`) Overview with
+`?security=`, which has `POST /security-case/resource-security` answer what Security Events
+found about them this week: `news` (the host's three open cases of four, 128 events, 4
+findings at High and a risk of 64; the cluster's one case and 37 events; the Docker host's
+case, 19 events and a risk of 38; the Podman host's 7 events with no open case and no risk)
+or `quiet` (nothing named them). Left out, the project uses no Security Events and the card
+draws nothing, as on every other spec here. The Docker and Podman hosts are read by their id
+only (`CONTAINER_HOSTS` in the fixture), so the explorers' resource lists stay as their specs
+know them; their containers' CPU, memory, network and processes are series like the host's.
+It covers: no card in a project that uses no Security Events; the host's open cases, each
+opening its case, the rest counted; its events opening Security Events on what names it this
+week; its findings and risk; a quiet host's one line; the cluster's card; the Docker host's
+card, asked about as a Docker host; the Podman host's tiles that say none; and the card whole
+at 1280 and 390 in both themes, with nothing scrolling sideways. Its screenshots are
+`host-security-card-*`, `cluster-security-card-1280`, `docker-host-security-card-*` and
+`podman-host-security-card-1280`.
+
+The fixture draws its pages in Inter, as production does (`server.js` serves
+`InterVariable.woff2` with index.ejs's universal rule; `Tests/Ops/E2EFixtureFonts`).
 
 ## Run it
 

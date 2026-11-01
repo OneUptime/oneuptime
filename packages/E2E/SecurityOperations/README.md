@@ -33,6 +33,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | Case Priorities    | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
 | Case Statuses      | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                       |
 | Response Targets   | `SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS` `.../settings/response-targets`               | `Pages/SecurityEvents/Settings/ResponseTargets`, `SecurityCase/ResponseTargets/*`            |
+| A member's page    | `USER_VIEW` `/dashboard/:projectId/users/:id`, a member Connected Signals names           | `Pages/Users/View/{Layout,Index}` and its Security card (`SecurityConnections/*`)            |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
 the pages with esbuild, serves them with the same Tailwind build, `tailwind.config`, Inter font and
@@ -358,20 +359,27 @@ What a case names in the rest of OneUptime, on its own page and on an entity's, 
 hosts `build-runner-07` (at `198.51.100.23`, its own logs carrying CASE-141's DNS lookups, an alert
 open on it, a monitor and a fix in the hour), `web-03` (two incidents open, three monitors),
 `web-03.staging.acme-commerce.example` and `fin-ws-112.corp.acme-commerce.example`, and the member
-Kai Morgan (`k.morgan@acme-commerce.example`, one of the spray's targets) - and answers
+Kai Morgan (`k.morgan@acme-commerce.example`, one of the spray's targets, on call now for Identity
+on-call, on Checkout primary's rotation, and in the Checkout SRE and Identity teams) - and answers
 `POST /security-case/connections` the way the server works it out, with the server's own rules
 (`Common/Utils/SecurityCase/SecurityConnectionMatch`): a host by the name it reports, a public
 address only it holds or the logs it sent, a member by their email, a short form of a name only
 possibly; the case's window around its detections, an entity's the hour around its last event; and
-nothing said to be not in OneUptime that a kind of record the reader could not read may hold.
+nothing said to be not in OneUptime that a kind of record the reader could not read may hold. A
+member's own page (`USER_VIEW`) is mounted too, where a connected member's name leads: its Security
+card (`POST /security-case/resource-security`) counts the open cases naming their email off the
+fixture's own cases, and their risk off its Entity Risk.
 
-| Parameter       | Values                                                                                                                                                                                                                                                                                        |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `?connections=` | `fail`: the first read fails (a 500), Try again reads it; `partial`: the role cannot read users and the clusters could not be read, Try again reads them; `busy`: a case naming one record of every kind, every fact a record can have, four possible matches and more records than are shown |
-| `?lang=`        | `de`, `ja` or `fa` (right to left): the Dashboard's German, Japanese or Persian words                                                                                                                                                                                                         |
+| Parameter       | Values                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?connections=` | `fail`: the first read fails (a 500), Try again reads it; `partial`: the role cannot read users and the clusters could not be read, Try again reads them; `busy`: a case naming one record of every kind (a monitor with its status, a cloud resource and a serverless function among them, in the server's order), every fact a record can have - a member's schedules and teams too - four possible matches and more records than are shown |
+| `?lang=`        | `de`, `ja` or `fa` (right to left): the Dashboard's German, Japanese or Persian words                                                                                                                                                                                                                                                                                                                                                         |
 
 `ConnectedSignals.spec.ts` covers: the page under Investigation after Entities, its entry lit and
-its trail named for the case; the spray's member, by their email, with what OneUptime does not know;
+its trail named for the case; the spray's member, by their email, with their on-call schedules
+(On call now first) and teams, and what OneUptime does not know; a monitor with its status, a
+cloud resource and a serverless function, each by what named it; a connected member's own page
+and its Security card, on to their entity page;
 the build runner by its name, its address and its logs, its signals opening Logs, Traces, Metrics,
 Topology and Inventory on it and the case's window, the alert, monitor and fix on it; a host only
 possibly the one named, with its pill and why, and nothing open on it; exact connections first; a

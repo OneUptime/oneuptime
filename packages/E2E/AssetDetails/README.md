@@ -86,6 +86,11 @@ Picked with query parameters:
   not edit them, who is offered no **Refresh**.
 - `frame=<pixels>`: the card's width. `lang=ja|de|fa` (Persian is drawn right to left, as the
   Dashboard draws it), `theme=dark`.
+- `security=news|quiet`: what Security Events found about the device this week, on its
+  Overview's Security card (`POST /security-case/resource-security`, named by the device's
+  name): `news` (an open case naming it, 46 events, a finding at Medium and a risk of 27) or
+  `quiet` (nothing named it). Left out, the project uses no Security Events and the card draws
+  nothing.
 
 The page is drawn in Inter, as production draws it (`server.js` serves the font and the Dashboard's
 universal font rule from `index.ejs`), so the widths the specs measure are the real ones.

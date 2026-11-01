@@ -27,6 +27,10 @@ npm run test-resource-overviews-ui
 - The hero's row is every resource hero's (ResourceHeroLayout): the controls
   wrap under the title to the row's end from 768px (to its other end right to
   left), sit beside the title at 1280, and give way to a long name there.
+- A service's Security card (`?security=`): the events and findings read from its own logs,
+  each opening Security Events on its logs, no open cases or risk (a service has no name an
+  event would name it by), a quiet week's one line, and no card in a project that uses no
+  Security Events - at 390, 768 and 1280 pixels, light and dark.
 - Dark, German, and nothing read that the fixture does not model.
 
 ## Dataset
@@ -47,6 +51,7 @@ Query parameters on any page:
 | `lang`     | `de` or `fa` reads the German or Persian locale file                                                                                                                            |
 | `theme`    | `dark` adds `html.dark` (server.js)                                                                                                                                             |
 | `dir`      | `rtl` lays the page out right to left                                                                                                                                           |
+| `security` | `news`: Security Events read 312 events and 3 findings (the worst Critical) from the service's own logs this week; `quiet`: none. Left out, the project uses no Security Events |
 
 ## What the fixture records
 
