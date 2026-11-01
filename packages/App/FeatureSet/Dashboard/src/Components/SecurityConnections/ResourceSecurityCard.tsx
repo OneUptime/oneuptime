@@ -10,7 +10,6 @@ import useEntityRiskSettings, {
 import SecurityEventSeverityPill from "../SecurityEvents/SecurityEventSeverityPill";
 import SecurityCaseSummaryRow from "./SecurityCaseSummaryRow";
 import {
-  RESOURCE_SECURITY_DESCRIPTION,
   RESOURCE_SECURITY_EVENTS,
   RESOURCE_SECURITY_FINDINGS,
   RESOURCE_SECURITY_HIGHEST_SEVERITY,
@@ -18,15 +17,13 @@ import {
   RESOURCE_SECURITY_MORE_CASES,
   RESOURCE_SECURITY_OPEN_CASES,
   RESOURCE_SECURITY_OPEN_IN_SECURITY,
-  RESOURCE_SECURITY_QUIET,
   RESOURCE_SECURITY_RISK,
-  RESOURCE_SECURITY_SERVICE_DESCRIPTION,
-  RESOURCE_SECURITY_SERVICE_QUIET,
   RESOURCE_SECURITY_TITLE,
   SECURITY_CONNECTIONS_TEST_IDS,
 } from "./SecurityConnectionsCopy";
 import {
   getRecordSecurityEventsRoute,
+  getResourceSecurityDescription,
   hasResourceSecurityNews,
 } from "./SecurityConnectionsModel";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
@@ -60,13 +57,16 @@ import React, {
 /*
  * THE WAY BACK: what Security Events says about one of the project's own
  * records, on its page - a host, a Docker or Podman host, a Kubernetes
- * cluster, a network device, a service, a user.
+ * cluster, a network device, a cloud resource, a serverless function, a
+ * service, a monitor, a user.
  *
  * Over the last week (the week an entity's risk is counted over): the open
  * security cases naming it, how many security events and findings named it
  * and the worst of them, and its risk - each opening Security Events on it:
  * the events in the explorer, the risk on the entity's page, a case on its
- * page. A service is told about by the events read from its logs.
+ * page. A service and a serverless function are told about by the events
+ * read from their logs (and so is a cloud resource with no name or address
+ * of its own), a monitor by what named the hosts it checks.
  *
  * Drawn only for whoever may read security events, and only in a project
  * that uses Security Events (any event this week); when nothing named the
@@ -197,7 +197,11 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const isService: boolean = props.kind === SecurityConnectionKind.Service;
+  const description: { news: string; quiet: string } =
+    getResourceSecurityDescription({
+      kind: props.kind,
+      isSearchedByLogs: security.isSearchedByLogs,
+    });
   const eventsRoute: Route | null = getRecordSecurityEventsRoute({
     security,
     now: OneUptimeDate.getCurrentDate(),
@@ -217,11 +221,7 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
       >
         <Card
           title={RESOURCE_SECURITY_TITLE}
-          description={
-            isService
-              ? RESOURCE_SECURITY_SERVICE_QUIET
-              : RESOURCE_SECURITY_QUIET
-          }
+          description={description.quiet}
           buttons={buttons}
         />
       </div>
@@ -340,11 +340,7 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
     >
       <Card
         title={RESOURCE_SECURITY_TITLE}
-        description={
-          isService
-            ? RESOURCE_SECURITY_SERVICE_DESCRIPTION
-            : RESOURCE_SECURITY_DESCRIPTION
-        }
+        description={description.news}
         buttons={buttons}
       >
         <div className="space-y-4">

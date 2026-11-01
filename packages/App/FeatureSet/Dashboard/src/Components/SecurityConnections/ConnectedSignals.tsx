@@ -18,6 +18,8 @@ import {
   CONNECTED_NOTHING_TO_LOOK_UP_DESCRIPTION,
   CONNECTED_NOTHING_TO_LOOK_UP_TITLE,
   CONNECTED_NOT_FOUND_TITLE,
+  CONNECTED_ON_CALL_NOW,
+  CONNECTED_ON_CALL_SCHEDULES,
   CONNECTED_PARTIAL_EMPTY_DESCRIPTION,
   CONNECTED_PARTIAL_EMPTY_TITLE,
   CONNECTED_POSSIBLE_GROUP_DESCRIPTION,
@@ -25,13 +27,13 @@ import {
   CONNECTED_POSSIBLE_PILL,
   CONNECTED_POSSIBLE_TOOLTIP,
   CONNECTED_SIGNALS_TITLE,
+  CONNECTED_TEAMS,
   CONNECTED_TRY_AGAIN,
   CONNECTED_UNREADABLE,
   CONNECTED_WINDOW,
   CONNECTION_KIND_ICONS,
   CONNECTION_KIND_LABELS,
   CONNECTION_KIND_PLURALS,
-  CONNECTION_REASON_TEXT,
   SECURITY_CONNECTIONS_TEST_IDS,
   SIGNAL_LINKS_ARIA_LABEL,
   SIGNAL_LINK_ICONS,
@@ -45,13 +47,16 @@ import {
   getConnectedRecordRoute,
   getConnectedSignalsGroups,
   getConnectedSignalsState,
+  getConnectionReasonTemplate,
   getIncidentRoute,
   getLeadingMatch,
   getMonitorRoute,
+  getOnCallScheduleRoute,
   getSignalLinks,
+  getTeamRoute,
 } from "./SecurityConnectionsModel";
 import Route from "Common/Types/API/Route";
-import { Gray500, Yellow } from "Common/Types/BrandColors";
+import { Gray500, Green, Yellow } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -62,6 +67,8 @@ import {
   SecurityConnectionKind,
   SecurityConnectionRecordJson,
   SecurityConnectionRecordListJson,
+  SecurityConnectionScheduleJson,
+  SecurityConnectionScheduleListJson,
   SecurityConnectionsJson,
 } from "Common/Types/SecurityCase/SecurityConnection";
 import {
@@ -92,13 +99,15 @@ import React, {
  * OneUptime, and what was happening on each around it.
  *
  * One entry per record - a host, a container host, a cluster, a network
- * device, a service, a user - exact connections first: its name, opening its
- * page; why OneUptime connects it, said as a sentence; its signals, each
- * opening its explorer (or its own page) on it and the window; and what is
- * going on there, one fact a row - the incidents and alerts open on it, the
- * monitors watching it, what changed on it in the window - each item on a
- * line of its own, so a long title, another language or a right-to-left page
- * never runs one item into the next. The possible matches follow under a
+ * device, a cloud resource, a serverless function, a service, a monitor, a
+ * user - exact connections first: its name, opening its page (and a
+ * monitor's status beside it); why OneUptime connects it, said as a
+ * sentence; its signals, each opening its explorer (or its own page) on it
+ * and the window; and what is going on there, one fact a row - the
+ * incidents and alerts open on it, the monitors watching it, what changed
+ * on it in the window, a member's on-call schedules and teams - each item on
+ * a line of its own, so a long title, another language or a right-to-left
+ * page never runs one item into the next. The possible matches follow under a
  * heading of their own that says what "possible" means, each still with its
  * pill. Then what OneUptime looked for and did not find, and what the
  * reader's role keeps from them.
@@ -206,6 +215,46 @@ const FactRecordItem: FunctionComponent<{
   );
 };
 
+/*
+ * One on-call schedule a member is on: its name, opening it, and "On call
+ * now" when they are the one on call for it.
+ */
+const ScheduleItem: FunctionComponent<{
+  schedule: SecurityConnectionScheduleJson;
+}> = (props: { schedule: SecurityConnectionScheduleJson }): ReactElement => {
+  const route: Route | null = getOnCallScheduleRoute(props.schedule.id);
+  const name: ReactElement = <bdi>{props.schedule.name}</bdi>;
+
+  return (
+    <li
+      className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5"
+      data-testid={SECURITY_CONNECTIONS_TEST_IDS.factItem}
+    >
+      {route ? (
+        <AppLink to={route} className={FACT_LINK_CLASS_NAME}>
+          {name}
+        </AppLink>
+      ) : (
+        <span className="min-w-0 text-gray-900 [overflow-wrap:anywhere]">
+          {name}
+        </span>
+      )}
+      {props.schedule.isOnCallNow ? (
+        <span data-testid={SECURITY_CONNECTIONS_TEST_IDS.onCallNow}>
+          {/* The pill says its words in the reader's language. */}
+          <Pill
+            text={CONNECTED_ON_CALL_NOW}
+            color={Green}
+            size={PillSize.Small}
+          />
+        </span>
+      ) : (
+        <></>
+      )}
+    </li>
+  );
+};
+
 // "+2 more", after the items a fact lists.
 const MoreItems: FunctionComponent<{ count: number }> = (props: {
   count: number;
@@ -288,6 +337,10 @@ const ConnectedRecord: FunctionComponent<{
     resource.kind,
     resource.id,
   );
+  // A member's: null when they could not be read, left out for anyone else.
+  const schedules: SecurityConnectionScheduleListJson | null =
+    resource.onCallSchedules || null;
+  const teams: SecurityConnectionRecordListJson | null = resource.teams || null;
   const match: SecurityConnectedResourceJson["matches"][number] | null =
     getLeadingMatch(resource);
   const links: Array<SignalLink> = getSignalLinks({
@@ -315,7 +368,9 @@ const ConnectedRecord: FunctionComponent<{
     Boolean(incidents && incidents.count > 0) ||
     Boolean(alerts && alerts.count > 0) ||
     Boolean(monitors && monitors.count > 0) ||
-    changes.length > 0;
+    changes.length > 0 ||
+    Boolean(schedules && schedules.count > 0) ||
+    Boolean(teams && teams.count > 0);
 
   return (
     <li
@@ -352,6 +407,18 @@ const ConnectedRecord: FunctionComponent<{
             <span className="text-xs font-medium text-gray-500">
               {translator.translateText(CONNECTION_KIND_LABELS[resource.kind])}
             </span>
+            {/* A monitor's status now, as the project names it. */}
+            {resource.status ? (
+              <span data-testid={SECURITY_CONNECTIONS_TEST_IDS.monitorStatus}>
+                <Pill
+                  text={resource.status.name}
+                  color={readColor(resource.status.color)}
+                  size={PillSize.Small}
+                />
+              </span>
+            ) : (
+              <></>
+            )}
             {isPossible ? (
               <span data-testid={SECURITY_CONNECTIONS_TEST_IDS.possiblePill}>
                 <Pill
@@ -371,7 +438,7 @@ const ConnectedRecord: FunctionComponent<{
               data-testid={SECURITY_CONNECTIONS_TEST_IDS.recordReason}
             >
               {translator.translateTemplate(
-                CONNECTION_REASON_TEXT[match.reason],
+                getConnectionReasonTemplate({ kind: resource.kind, match }),
                 {
                   value: match.entityValue,
                   matched: match.matchedValue,
@@ -528,6 +595,50 @@ const ConnectedRecord: FunctionComponent<{
                         },
                       )}
                     </ul>
+                  </FactRow>
+                ) : (
+                  <></>
+                )}
+                {schedules && schedules.count > 0 ? (
+                  <FactRow
+                    testId={SECURITY_CONNECTIONS_TEST_IDS.schedules}
+                    label={translator.translatePlural(
+                      CONNECTED_ON_CALL_SCHEDULES,
+                      schedules.count,
+                    )}
+                    labelClassName="text-gray-700"
+                  >
+                    <ul className="space-y-1">
+                      {schedules.items.map(
+                        (
+                          schedule: SecurityConnectionScheduleJson,
+                        ): ReactElement => {
+                          return (
+                            <ScheduleItem
+                              key={schedule.id}
+                              schedule={schedule}
+                            />
+                          );
+                        },
+                      )}
+                      <MoreItems
+                        count={schedules.count - schedules.items.length}
+                      />
+                    </ul>
+                  </FactRow>
+                ) : (
+                  <></>
+                )}
+                {teams && teams.count > 0 ? (
+                  <FactRow
+                    testId={SECURITY_CONNECTIONS_TEST_IDS.teams}
+                    label={translator.translatePlural(
+                      CONNECTED_TEAMS,
+                      teams.count,
+                    )}
+                    labelClassName="text-gray-700"
+                  >
+                    <FactRecordList list={teams} getRoute={getTeamRoute} />
                   </FactRow>
                 ) : (
                   <></>
