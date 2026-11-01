@@ -159,7 +159,7 @@ describe.each(CASES)("$name.getBaseline", (serviceCase: ServiceCase) => {
 
     expect(sql).toContain(`FROM ${serviceCase.table}`);
     expect(sql).toContain(`projectId = '${projectId.toString()}'`);
-    expect(sql).toContain("hourOfWeek IN (8, 9, 10, 11)");
+    expect(sql).toContain("hourOfWeek IN (9, 10)");
     expect(sql).toContain("day >= toDate('2026-10-19')");
     expect(sql).toContain("day <= toDate('2026-10-26')");
     expect(sql).toContain("GROUP BY windowIndex");

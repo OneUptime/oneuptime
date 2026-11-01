@@ -70,7 +70,7 @@ const LEVEL: number = COUNT_BASELINE_LEVEL_SPREAD;
 const SOME_WINDOW_END: number = MONDAY + 9 * HOUR + 40 * MINUTE;
 
 describe("CountWindowBaseline.getPlan", () => {
-  test("a window reads three hours around the same time of each earlier week", () => {
+  test("a window reads an hour around the same time of each earlier week", () => {
     const plan: CountBaselinePlan = planFor({
       windowEnd: SOME_WINDOW_END,
       windowSeconds: 60,
@@ -78,7 +78,6 @@ describe("CountWindowBaseline.getPlan", () => {
 
     expect(plan.windowDays).toBe(14);
     expect(plan.windowMinutes).toBe(1);
-    expect(COUNT_BASELINE_REACH_IN_WINDOWS).toBe(3);
 
     expect(
       plan.weeks.map((week: CountBaselineWeek): number => {
@@ -91,19 +90,34 @@ describe("CountWindowBaseline.getPlan", () => {
       const middle: number =
         SOME_WINDOW_END - 30 * 1000 - week.weeksBack * WEEK;
 
-      expect(start).toBeLessThanOrEqual(middle - 90 * MINUTE);
-      expect(end).toBeGreaterThanOrEqual(middle + 90 * MINUTE);
-      expect(end - start).toBeLessThanOrEqual(182 * MINUTE);
+      expect(start).toBeLessThanOrEqual(middle - 30 * MINUTE);
+      expect(end).toBeGreaterThanOrEqual(middle + 30 * MINUTE);
+      expect(end - start).toBeLessThanOrEqual(62 * MINUTE);
+    }
+  });
+
+  test("a long window reads three of its own, so it has some to compare with", () => {
+    const plan: CountBaselinePlan = planFor({
+      windowEnd: SOME_WINDOW_END,
+      windowSeconds: 21600,
+    });
+
+    expect(COUNT_BASELINE_REACH_IN_WINDOWS).toBe(3);
+
+    for (const week of plan.weeks) {
+      const { start, end } = reachOf(plan, week);
+
+      expect(end - start).toBeGreaterThanOrEqual(18 * HOUR);
     }
   });
 
   test.each([
-    [5, 1, 180],
-    [60, 1, 180],
-    [90, 2, 90],
-    [300, 5, 36],
-    [900, 15, 12],
-    [1800, 30, 6],
+    [5, 1, 60],
+    [60, 1, 60],
+    [90, 2, 30],
+    [300, 5, 12],
+    [900, 15, 4],
+    [1800, 30, 3],
     [3600, 60, 3],
     [21600, 360, 3],
     [86400, 1440, 3],
@@ -127,7 +141,7 @@ describe("CountWindowBaseline.getPlan", () => {
   test("the cells read are the hours of the week the windows fall in", () => {
     expect(
       planFor({ windowEnd: SOME_WINDOW_END, windowSeconds: 60 }).hoursOfWeek,
-    ).toEqual([8, 9, 10, 11]);
+    ).toEqual([9, 10]);
   });
 
   test("a read across the end of the week reads both ends of it", () => {
@@ -138,7 +152,7 @@ describe("CountWindowBaseline.getPlan", () => {
       }).hoursOfWeek.sort((a: number, b: number) => {
         return a - b;
       }),
-    ).toEqual([0, 1, 166, 167]);
+    ).toEqual([0, 167]);
   });
 
   test("the days read run from the oldest window to the newest", () => {
@@ -1078,6 +1092,60 @@ describe("what a busy monitor catches", () => {
     expect(now).toBeGreaterThan(0.6);
   });
 
+  /*
+   * What a wider read would cost. Three hours of a daily rhythm widen the
+   * range with the rhythm itself, and a rise of a third in its first minutes
+   * goes from caught two times in three to one in four.
+   */
+  test("a change in its first minutes is caught about as often as it was", () => {
+    const fresh: Array<{ before: boolean; now: boolean }> = checks.map(
+      (windowEnd: number): { before: boolean; now: boolean } => {
+        return withChange({
+          traffic,
+          windowEnd,
+          minutes: 3,
+          factor: 1.3,
+          read: () => {
+            const count: number = windowCount({
+              traffic,
+              windowEnd,
+              minutes: 1,
+            });
+
+            return {
+              before: breachBefore({
+                stats: baselineBefore({ traffic, windowEnd }),
+                observed: count,
+                filterType: FilterType.AnomalouslyHigh,
+              }),
+              now: Boolean(
+                breachNow({
+                  traffic,
+                  windowEnd,
+                  windowSeconds: 60,
+                  count,
+                  filterType: FilterType.AnomalouslyHigh,
+                }),
+              ),
+            };
+          },
+        });
+      },
+    );
+
+    const share: (key: "before" | "now") => number = (
+      key: "before" | "now",
+    ): number => {
+      return shareOf(
+        fresh.map((check: { before: boolean; now: boolean }): boolean => {
+          return check[key];
+        }),
+      );
+    };
+
+    expect(Math.abs(share("now") - share("before"))).toBeLessThan(0.15);
+  });
+
   test("a change does not raise the baseline it is judged against", () => {
     const windowEnd: number = checks[0]!;
     const quiet: CountBaselineSummary = baselineNow({
@@ -1153,8 +1221,8 @@ describe("how often a busy monitor alerts", () => {
   /*
    * The cost of the fix, measured. Taking this hour out of its baseline
    * would, alone, roughly triple a busy monitor's alerts: its blindness was
-   * what kept it quiet. Reading three hours is what keeps them where they
-   * were.
+   * what kept it quiet. Adding the level two weeks cannot see is what keeps
+   * them where they were.
    */
   const scopes: Array<{ perMinute: number; seed: number }> = [
     { perMinute: 2000, seed: 2718 },

@@ -23,16 +23,12 @@ import CountAnomaly, {
  *     at a tenth. So on a 14-day baseline a change of any size stopped firing
  *     at its 14th minute, and a doubling that had lasted half an hour was
  *     caught about one time in five.
- *   - Three hours, not one (COUNT_BASELINE_REACH_IN_WINDOWS). That blindness
- *     was also what kept busy monitors quiet: one hour of two weeks barely
- *     samples how far a rate moves within a day, and read on its own gave a
- *     range narrow enough to alert about three times as often. An hour either
- *     side keeps alerts near what they were and loses little of what they
- *     catch. Exceptions do not need this: a sparse count's range is chance.
- *   - A level that moves (COUNT_BASELINE_LEVEL_SPREAD). Two weeks cannot
- *     measure how far a rate moves from one day to the next, and today's
- *     level is not in them, so that is added to the spread they measured:
- *     without it, simulated flat traffic went from 2 alerts a day to 30.
+ *   - A level that moves (COUNT_BASELINE_LEVEL_SPREAD). That blindness was
+ *     also what kept a busy monitor quiet: taking this hour out alone would
+ *     about triple its alerts. Two weeks cannot measure how far a rate moves
+ *     from one day to the next, and today's level is not in them, so that is
+ *     added to the spread they measured. Exceptions do not need this: a
+ *     sparse count's range is chance.
  *   - One sample per window, in the window's own unit. A long window's average
  *     varies less than one minute does, and a short window's more. A window
  *     of a minute reads the minutes it always read, and a busy scope's spread
@@ -61,8 +57,9 @@ const HOUR_IN_MS: number = 60 * MINUTE_IN_MS;
 const WEEK_IN_MS: number = 7 * 24 * HOUR_IN_MS;
 
 /*
- * How much of each earlier week is read: this many windows, a window counting
- * as an hour if it is shorter, centred on the time of the window judged.
+ * How much of each earlier week is read, centred on the time of the window
+ * judged: this many windows, so a long one has some around it to compare with,
+ * and an hour at the least.
  */
 export const COUNT_BASELINE_REACH_IN_WINDOWS: number = 3;
 
@@ -127,7 +124,7 @@ export default class CountWindowBaseline {
     const windowMinutes: number = Math.ceil(windowSeconds / 60);
     const sampleInMs: number = windowMinutes * MINUTE_IN_MS;
     const reachInMs: number = Math.min(
-      COUNT_BASELINE_REACH_IN_WINDOWS * Math.max(windowInMs, HOUR_IN_MS),
+      Math.max(COUNT_BASELINE_REACH_IN_WINDOWS * windowInMs, HOUR_IN_MS),
       WEEK_IN_MS,
     );
     const middle: number = data.windowEnd.getTime() - windowInMs / 2;
