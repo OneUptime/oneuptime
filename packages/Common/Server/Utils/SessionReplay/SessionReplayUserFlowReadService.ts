@@ -407,24 +407,30 @@ export default class SessionReplayUserFlowReadService {
     const clauses: Array<Statement> = [];
 
     if (identifiedUserKey) {
-      clauses.push(SQL`argMax(identifiedUserKey, version) = ${{
-        type: TableColumnType.Text,
-        value: identifiedUserKey,
-      }}`);
+      clauses.push(
+        SQL`argMax(identifiedUserKey, version) = ${{
+          type: TableColumnType.Text,
+          value: identifiedUserKey,
+        }}`,
+      );
     }
 
     if (visitorId) {
-      clauses.push(SQL`argMax(visitorId, version) = ${{
-        type: TableColumnType.Text,
-        value: visitorId,
-      }}`);
+      clauses.push(
+        SQL`argMax(visitorId, version) = ${{
+          type: TableColumnType.Text,
+          value: visitorId,
+        }}`,
+      );
     }
 
     if (sessionId) {
-      clauses.push(SQL`sessionId = ${{
-        type: TableColumnType.Text,
-        value: sessionId,
-      }}`);
+      clauses.push(
+        SQL`sessionId = ${{
+          type: TableColumnType.Text,
+          value: sessionId,
+        }}`,
+      );
     }
 
     if (clauses.length === 0) {

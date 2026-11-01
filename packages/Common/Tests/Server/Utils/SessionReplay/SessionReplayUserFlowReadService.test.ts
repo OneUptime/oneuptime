@@ -411,7 +411,10 @@ describe("readUserFlowPersonFilter", () => {
 
     const statement: Statement =
       SessionReplayUserFlowReadService.buildHeaderStatement(
-        { ...REQUEST, person: { identifiedUserKey: person?.identifiedUserKey } },
+        {
+          ...REQUEST,
+          person: { identifiedUserKey: person?.identifiedUserKey },
+        },
         10,
       );
 

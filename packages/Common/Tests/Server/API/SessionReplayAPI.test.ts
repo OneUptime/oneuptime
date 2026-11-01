@@ -174,6 +174,7 @@ const INGEST_STATUS_ROUTE: string =
   "/telemetry/rum/session-replay/ingest-status";
 const VIEWS_ROUTE: string = "/telemetry/rum/session-replay/views";
 const USERS_ROUTE: string = "/telemetry/rum/session-replay/users";
+const USER_FLOW_ROUTE: string = "/telemetry/rum/session-replay/user-flow";
 const RESOLVE_ROUTE: string = "/telemetry/rum/session-replay/resolve";
 
 /* A visitor id as the recorder mints it: 32 lowercase hex characters. */
@@ -708,6 +709,8 @@ describe("Session replay playback API", () => {
       expect(findRoute(FOR_EXCEPTION_ROUTE).handlers[2]).toBe(listGuard);
       /* The rollup projects nothing the list does not: same guard instance. */
       expect(findRoute(USERS_ROUTE).handlers[2]).toBe(listGuard);
+      /* One person's journeys are no more than the list knows about them. */
+      expect(findRoute(USER_FLOW_ROUTE).handlers[2]).toBe(listGuard);
       /*
        * Audit summaries admit audit-only roles so optional enrichment cannot
        * redirect them, but the handler exposes metadata only after a separate
@@ -7197,6 +7200,273 @@ describe("Session replay playback API", () => {
         "click-events",
         "tags",
       ]);
+    });
+  });
+
+  /*
+   * Issue #5375: one person's journeys. The route is where three promises
+   * meet, so they are held here through the real middleware and handler,
+   * with only ClickHouse stubbed: a reference is never looked up for a role
+   * that may not read identity, a request that names a person is never
+   * answered with everyone, and a person filter widens nobody's access.
+   */
+  describe("user flow", () => {
+    const REFERENCE: string = "jane@example.com";
+
+    function principalWith(permissions: Array<Permission>): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: permissions,
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      return principal;
+    }
+
+    function callFlow(
+      principal: { request: JSONObject },
+      filters?: JSONObject,
+    ): Promise<CallResult> {
+      return callRoute({
+        uri: USER_FLOW_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          ...(filters ? { filters: filters } : {}),
+        },
+      });
+    }
+
+    function statements(): Array<Statement> {
+      return [...headerQuerySpy.mock.calls, ...chunkQuerySpy.mock.calls].map(
+        (call: Array<unknown>): Statement => {
+          return call[0] as Statement;
+        },
+      );
+    }
+
+    function everythingSentToClickHouse(): string {
+      return JSON.stringify(
+        statements().map((statement: Statement): Array<unknown> => {
+          return [statement.query, statement.query_params];
+        }),
+      );
+    }
+
+    function digestOf(reference: string): string {
+      return SessionReplayIdentity.buildUserKey({
+        projectId: projectId,
+        userRef: reference,
+      });
+    }
+
+    test("everyone's flows name nobody, and say no filter was ignored", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const result: CallResult = await callFlow(principal);
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
+      expect(statements()).toHaveLength(3);
+      expect(everythingSentToClickHouse()).not.toMatch(
+        /identifiedUser|visitorId|HAVING/,
+      );
+    });
+
+    test("a role that may read identity finds someone by what they typed", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const result: CallResult = await callFlow(principal, {
+        identifier: REFERENCE,
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
+
+      /* All three statements ask for the same digest, none for the email. */
+      for (const statement of statements()) {
+        expect(statement.query).toContain("HAVING (");
+        expect(Object.values(statement.query_params)).toContain(
+          digestOf(REFERENCE),
+        );
+      }
+
+      expect(everythingSentToClickHouse()).toContain(
+        "argMax(identifiedUserLabel, version) AS flowUserLabel",
+      );
+    });
+
+    /*
+     * The dictionary attack the list's gate closes: a caller denied the label
+     * must not be able to ask "does this address have sessions here".
+     */
+    test("a role that may not read identity is never answered about a reference", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.TelemetryAdmin]);
+
+      const result: CallResult = await callFlow(principal, {
+        identifier: REFERENCE,
+      });
+
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([
+        "identifiedUserRef",
+      ]);
+
+      const sent: string = everythingSentToClickHouse();
+
+      expect(sent).not.toContain(digestOf(REFERENCE));
+      expect(sent).not.toContain("identifiedUserLabel");
+
+      /* Still one person's question: never everyone's journeys. */
+      for (const statement of statements()) {
+        expect(statement.query).toContain("HAVING (");
+      }
+    });
+
+    test("identity scoped to other labels does not reach this application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelAId],
+      });
+
+      grantUnscopedListPermission(principal.databaseProps, projectId);
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+
+      const result: CallResult = await callRoute({
+        uri: USER_FLOW_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationBId.toString(),
+          filters: { identifier: REFERENCE },
+        },
+      });
+
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([
+        "identifiedUserRef",
+      ]);
+      expect(everythingSentToClickHouse()).not.toContain(digestOf(REFERENCE));
+    });
+
+    test("a role that may not read identity can follow a link, and gets no name", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.TelemetryAdmin]);
+
+      const result: CallResult = await callFlow(principal, {
+        identifiedUserKey: "a".repeat(64),
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody?.["ignoredFilters"]).toEqual([]);
+      expect(everythingSentToClickHouse()).toContain("a".repeat(64));
+      expect(everythingSentToClickHouse()).not.toContain("identifiedUserLabel");
+    });
+
+    test("a browser and a session are links too", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay]);
+
+      await callFlow(principal, { visitorId: VISITOR_ID });
+      expect(everythingSentToClickHouse()).toContain(VISITOR_ID);
+
+      jest.clearAllMocks();
+
+      await callFlow(principal, { sessionId: "session-1" });
+      expect(everythingSentToClickHouse()).toContain("session-1");
+    });
+
+    /* Without its filter this read is everyone's journeys, with a 200. */
+    test.each([
+      ["a malformed visitor id", { visitorId: "not-a-visitor" }],
+      ["an empty identifier", { identifier: "   " }],
+      ["two people at once", { identifiedUserKey: "k", sessionId: "s" }],
+    ])(
+      "refuses %s before anything is read",
+      async (_name: string, filters: JSONObject) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([Permission.ProjectOwner]);
+
+        const result: CallResult = await callFlow(principal, filters);
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect(statements()).toHaveLength(0);
+      },
+    );
+
+    test("a person filter widens nobody's access to an application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+        labelIds: [labelAId],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+
+      const result: CallResult = await callRoute({
+        uri: USER_FLOW_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationBId.toString(),
+          filters: { identifiedUserKey: "a".repeat(64) },
+        },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(statements()).toHaveLength(0);
+    });
+
+    test("every read is held to the caller's project and application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      await callFlow(principal, { identifier: REFERENCE });
+
+      for (const statement of statements()) {
+        const values: Array<string> = Object.values(statement.query_params).map(
+          (value: unknown): string => {
+            return String(value);
+          },
+        );
+
+        expect(values).toContain(projectId.toString());
+        expect(values).toContain(applicationAId.toString());
+      }
     });
   });
 });

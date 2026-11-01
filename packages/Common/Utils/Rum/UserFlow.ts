@@ -1444,13 +1444,18 @@ export function buildUserFlowInsights(
     });
   }
 
-  const entry: UserFlowPageStats | undefined = [...pages].sort(
+  const byEntries: Array<UserFlowPageStats> = [...pages].sort(
     (a: UserFlowPageStats, b: UserFlowPageStats): number => {
       return b.entries - a.entries;
     },
-  )[0];
+  );
+  const entry: UserFlowPageStats | undefined = byEntries[0];
 
-  if (entry && entry.entries > 0) {
+  /*
+   * "Most sessions start on" is untrue of a tie, which is what one person's
+   * few sessions, each landing somewhere else, usually are.
+   */
+  if (entry && entry.entries > 0 && byEntries[1]?.entries !== entry.entries) {
     const share: number = ratio(entry.entries, total);
 
     insights.push({

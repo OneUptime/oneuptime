@@ -985,6 +985,36 @@ describe("summary and findings", () => {
       }),
     ).toEqual(["top-entry"]);
   });
+
+  test("a tie for the landing page names neither: nothing is the most", () => {
+    const insights: Array<UserFlowInsight> = analyzeUserFlow(
+      response([
+        { id: "1", pages: ["/a"] },
+        { id: "2", pages: ["/b"] },
+        { id: "3", pages: ["/c"] },
+      ]),
+      {},
+    ).insights;
+
+    expect(insights).toEqual([]);
+  });
+
+  test("a clear lead is still named, whatever the sample", () => {
+    const insights: Array<UserFlowInsight> = analyzeUserFlow(
+      response([
+        { id: "1", pages: ["/a"] },
+        { id: "2", pages: ["/a"] },
+        { id: "3", pages: ["/b"] },
+      ]),
+      {},
+    ).insights;
+
+    expect(
+      insights.map((insight: UserFlowInsight): string => {
+        return `${insight.kind} ${insight.page}`;
+      }),
+    ).toEqual(["top-entry /a"]);
+  });
 });
 
 describe("options", () => {
@@ -1256,7 +1286,10 @@ describe("buildUserFlowSessionJourneys", () => {
 
   test("a session with no page to show is left out", () => {
     expect(
-      buildUserFlowSessionJourneys(response([{ id: "s", pages: [] }]), NO_FILTERS),
+      buildUserFlowSessionJourneys(
+        response([{ id: "s", pages: [] }]),
+        NO_FILTERS,
+      ),
     ).toEqual([]);
   });
 
