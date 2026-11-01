@@ -428,6 +428,36 @@ describe("every page's head: organization, breadcrumbs, web page and software", 
       }
     }
   });
+
+  test("the OpenShift page is a web page with a trail through Kubernetes, not software", async () => {
+    const seo: PageSEOData & { fullCanonicalUrl: string } =
+      seoFor("/product/openshift");
+    const html: string = await renderHead(
+      seo as unknown as Record<string, unknown>,
+    );
+
+    expectReadableStructuredData(html, "/product/openshift");
+
+    const data: Array<StructuredData> = structuredDataIn(html);
+
+    expect(
+      data.map((item: StructuredData): unknown => {
+        return item["@type"];
+      }),
+    ).toEqual(["Organization", "BreadcrumbList", "WebPage"]);
+
+    const trail: Array<StructuredData> = data.find(
+      (item: StructuredData): boolean => {
+        return item["@type"] === "BreadcrumbList";
+      },
+    )!["itemListElement"] as Array<StructuredData>;
+
+    expect(
+      trail.map((crumb: StructuredData): unknown => {
+        return crumb["name"];
+      }),
+    ).toEqual(["Home", "Products", "Kubernetes", "OpenShift"]);
+  });
 });
 
 /*

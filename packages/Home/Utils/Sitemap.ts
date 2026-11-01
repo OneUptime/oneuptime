@@ -75,6 +75,9 @@ const PAGE_CONFIG: Record<string, SitemapPageConfig> = {
   "/solutions/platform": { priority: 0.8, changefreq: "weekly" },
   "/solutions/developers": { priority: 0.8, changefreq: "weekly" },
 
+  // A solution, not a product: the page leads into /product/kubernetes.
+  "/product/openshift": { priority: 0.8, changefreq: "weekly" },
+
   // Industry pages
   "/industries/fintech": { priority: 0.8, changefreq: "weekly" },
   "/industries/saas": { priority: 0.8, changefreq: "weekly" },

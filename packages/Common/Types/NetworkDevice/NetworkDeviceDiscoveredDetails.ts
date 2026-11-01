@@ -40,9 +40,10 @@ import { normalizeReverseDnsName } from "../../Utils/NetworkDiscovery/ReverseDns
  *
  * FLAT, ON PURPOSE. Each entry is a top-level key of the jsonb column, so the
  * four writers - the discovery engine (scan results), the ARP learner (MACs),
- * the poll pipeline (resolved addresses) and a network controller connection
- * (what the device's controller says it is, under one key of its own) - each
- * merge their own keys with jsonb `||` in one statement
+ * the poll pipeline (resolved addresses and the device's own MAC) and a
+ * network controller connection (what the device's controller says it is and
+ * what it says it is cabled to, under one key each) - each merge their own
+ * keys with jsonb `||` in one statement
  * (NetworkDeviceService.mergeDiscoveredDetails) and never overwrite one
  * another's.
  *
@@ -69,6 +70,15 @@ export enum NetworkDeviceDiscoveredField {
   MacAddress = "macAddress",
   // The address the device's probe resolved the DNS name it is polled at to.
   IpAddress = "ipAddress",
+  /*
+   * The MAC of one of the device's own ports, out of the interface table its
+   * SNMP poll read (DeviceOwnMacUtil, issue #5384). Apart from the ARP
+   * reading above because it says something else: that is the MAC behind the
+   * address the device is polled at, as seen from outside; this is a MAC the
+   * device owns. A device holds many, so one that differs from a typed or an
+   * ARP table's MAC contradicts neither.
+   */
+  OwnMacAddress = "ownMacAddress",
 }
 
 // How a value was read.
@@ -78,6 +88,11 @@ export enum NetworkDeviceDiscoveryMethod {
   Netbios = "netbios",
   ArpTable = "arpTable",
   Dns = "dns",
+  /*
+   * A network controller's list of its clients, which binds the address a
+   * device is registered at to a MAC the way a router's ARP table does.
+   */
+  ControllerClientList = "controllerClientList",
 }
 
 // What read it.
@@ -222,6 +237,67 @@ export interface NetworkDeviceControllerReading {
   values: Partial<Record<NetworkDeviceControllerField, string>>;
 }
 
+/*
+ * What a device's network controller says it is cabled to: the LLDP and CDP
+ * neighbours the controller's own devices report (Meraki's link layer
+ * topology), one reading of one controller network, recorded whole by the
+ * connection that read it and replaced whole by the next (OneUptime issue
+ * #5379).
+ *
+ * It sits beside the device's own lldpNeighbors and cdpNeighbors rather than
+ * in them, because a poll overwrites those: a Meraki appliance a probe only
+ * pings has no walk to report its switch, and the controller still knows.
+ *
+ * `peerDeviceId` is set when the far end is a device of the project, known by
+ * its serial number when the reading was made. Otherwise the peer's name, MAC
+ * and address are what the map recognises it by, as it would a neighbour a
+ * walk reported.
+ */
+export type NetworkDeviceControllerLinkProtocol = "lldp" | "cdp";
+
+export interface NetworkDeviceControllerLink {
+  // This device's port, as the controller names it.
+  port?: string | undefined;
+  peerDeviceId?: string | undefined;
+  peerName?: string | undefined;
+  // The peer's port.
+  peerPort?: string | undefined;
+  peerMac?: string | undefined;
+  peerIp?: string | undefined;
+  // Its model, or the platform it advertises.
+  peerPlatform?: string | undefined;
+  // Empty when the controller reports the link and not how it knows.
+  protocols: Array<NetworkDeviceControllerLinkProtocol>;
+}
+
+export interface NetworkDeviceControllerLinks {
+  provider: NetworkControllerProvider;
+  readBy: NetworkDeviceDiscoveryReader;
+  // ISO-8601, UTC: when the connection read the controller's links.
+  readAt: string;
+  links: Array<NetworkDeviceControllerLink>;
+}
+
+/*
+ * The links one reading keeps for a device. A 48-port switch has one for each
+ * port at the very most; a port with a hub of LLDP speakers behind it can
+ * report several, and this is what one such port can never push past.
+ */
+export const MAX_CONTROLLER_LINKS_PER_DEVICE: number = 256;
+
+// The longest a port, a peer's name or a platform is kept.
+export const MAX_CONTROLLER_LINK_TEXT_LENGTH: number = 100;
+
+/*
+ * How long a reading of a device's links is drawn after it was read. A
+ * connection reads each network's links every six hours (MerakiTrafficReader),
+ * so this rides out a few failed reads; after it the links are not drawn at
+ * all, because a cable the map can no longer vouch for is a guess. A
+ * connection that was deleted takes its readings with it at once
+ * (NetworkDeviceService.forgetControllerReadings).
+ */
+export const CONTROLLER_LINKS_CURRENT_FOR_MS: number = 24 * 60 * 60 * 1000;
+
 export interface NetworkDeviceDiscoveredDetails {
   values: Partial<
     Record<NetworkDeviceDiscoveredField, NetworkDeviceDiscoveredValue>
@@ -229,10 +305,15 @@ export interface NetworkDeviceDiscoveredDetails {
   foundBy?: NetworkDeviceDiscoverySighting | undefined;
   otherMachine?: NetworkDeviceOtherMachineSighting | undefined;
   controller?: NetworkDeviceControllerReading | undefined;
+  controllerLinks?: NetworkDeviceControllerLinks | undefined;
 }
 
 // The jsonb key of the controller reading.
 export const DISCOVERED_DETAILS_CONTROLLER_KEY: string = "controller";
+
+// The jsonb key of the controller's reading of the device's links.
+export const DISCOVERED_DETAILS_CONTROLLER_LINKS_KEY: string =
+  "controllerLinks";
 
 // The jsonb keys of the two address notes.
 export const DISCOVERED_DETAILS_FOUND_BY_KEY: string = "foundBy";
@@ -249,6 +330,7 @@ export const NETWORK_DEVICE_DISCOVERED_FIELDS: ReadonlyArray<NetworkDeviceDiscov
     NetworkDeviceDiscoveredField.NetbiosName,
     NetworkDeviceDiscoveredField.MacAddress,
     NetworkDeviceDiscoveredField.IpAddress,
+    NetworkDeviceDiscoveredField.OwnMacAddress,
   ];
 
 // The SNMP system group: the fields a discovery scan's SNMP query reads.
@@ -285,6 +367,8 @@ const METHOD_BY_FIELD: Readonly<
   [NetworkDeviceDiscoveredField.MacAddress]:
     NetworkDeviceDiscoveryMethod.ArpTable,
   [NetworkDeviceDiscoveredField.IpAddress]: NetworkDeviceDiscoveryMethod.Dns,
+  [NetworkDeviceDiscoveredField.OwnMacAddress]:
+    NetworkDeviceDiscoveryMethod.Snmp,
 };
 
 const READER_TYPE_BY_FIELD: Readonly<
@@ -308,6 +392,8 @@ const READER_TYPE_BY_FIELD: Readonly<
     NetworkDeviceDiscoveryReaderType.NetworkDevice,
   [NetworkDeviceDiscoveredField.IpAddress]:
     NetworkDeviceDiscoveryReaderType.Probe,
+  [NetworkDeviceDiscoveredField.OwnMacAddress]:
+    NetworkDeviceDiscoveryReaderType.Probe,
 };
 
 /*
@@ -329,6 +415,7 @@ export const MAX_DISCOVERED_VALUE_LENGTH: Readonly<
   [NetworkDeviceDiscoveredField.NetbiosName]: 15,
   [NetworkDeviceDiscoveredField.MacAddress]: 17,
   [NetworkDeviceDiscoveredField.IpAddress]: 45,
+  [NetworkDeviceDiscoveredField.OwnMacAddress]: 17,
 };
 
 // A reader's id and name, cut to these.
@@ -358,15 +445,16 @@ export function isNetworkDeviceDiscoveredField(
 
 /*
  * True for a top-level key of the jsonb column: a field, one of the two
- * address notes, or the controller reading. A writer may set or drop only
- * these.
+ * address notes, the controller reading or the controller's links. A writer
+ * may set or drop only these.
  */
 export function isDiscoveredDetailsKey(value: unknown): value is string {
   return (
     isNetworkDeviceDiscoveredField(value) ||
     value === DISCOVERED_DETAILS_FOUND_BY_KEY ||
     value === DISCOVERED_DETAILS_OTHER_MACHINE_KEY ||
-    value === DISCOVERED_DETAILS_CONTROLLER_KEY
+    value === DISCOVERED_DETAILS_CONTROLLER_KEY ||
+    value === DISCOVERED_DETAILS_CONTROLLER_LINKS_KEY
   );
 }
 
@@ -380,6 +468,27 @@ export function getDiscoveryReaderTypeForField(
   field: NetworkDeviceDiscoveredField,
 ): NetworkDeviceDiscoveryReaderType {
   return READER_TYPE_BY_FIELD[field];
+}
+
+/*
+ * The method this reader reads this field by, or undefined when it does not
+ * read the field at all. One field has two readers: a MAC comes from a walked
+ * router's ARP table, or from a network controller's list of its clients.
+ */
+function getMethodOfReader(
+  field: NetworkDeviceDiscoveredField,
+  readBy: NetworkDeviceDiscoveryReader,
+): NetworkDeviceDiscoveryMethod | undefined {
+  if (
+    field === NetworkDeviceDiscoveredField.MacAddress &&
+    readBy.type === NetworkDeviceDiscoveryReaderType.NetworkController
+  ) {
+    return NetworkDeviceDiscoveryMethod.ControllerClientList;
+  }
+
+  return readBy.type === READER_TYPE_BY_FIELD[field]
+    ? METHOD_BY_FIELD[field]
+    : undefined;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -490,6 +599,7 @@ export function normalizeDiscoveredValue(
     case NetworkDeviceDiscoveredField.NetbiosName:
       return normalizeNetbiosName(value);
     case NetworkDeviceDiscoveredField.MacAddress:
+    case NetworkDeviceDiscoveredField.OwnMacAddress:
       return typeof value === "string" ? normalizeMac(value) : undefined;
     case NetworkDeviceDiscoveredField.IpAddress: {
       const text: string | undefined = cleanDiscoveredText(
@@ -581,7 +691,16 @@ export function buildDiscoveredValue(data: {
     data.readBy,
   );
 
-  if (!readBy || readBy.type !== READER_TYPE_BY_FIELD[data.field]) {
+  if (!readBy) {
+    return undefined;
+  }
+
+  const method: NetworkDeviceDiscoveryMethod | undefined = getMethodOfReader(
+    data.field,
+    readBy,
+  );
+
+  if (!method) {
     return undefined;
   }
 
@@ -597,7 +716,7 @@ export function buildDiscoveredValue(data: {
 
   return {
     value: value,
-    method: METHOD_BY_FIELD[data.field],
+    method: method,
     readBy: readBy,
     readAt: readAt,
   };
@@ -615,16 +734,14 @@ function readDiscoveredValue(
     return undefined;
   }
 
-  if (value["method"] !== METHOD_BY_FIELD[field]) {
-    return undefined;
-  }
-
-  return buildDiscoveredValue({
+  const entry: NetworkDeviceDiscoveredValue | undefined = buildDiscoveredValue({
     field: field,
     value: value["value"],
     readBy: value["readBy"],
     readAt: value["readAt"],
   });
+
+  return entry && entry.method === value["method"] ? entry : undefined;
 }
 
 /**
@@ -805,6 +922,160 @@ export function buildControllerReading(data: {
   };
 }
 
+function readControllerLinkProtocols(
+  value: unknown,
+): Array<NetworkDeviceControllerLinkProtocol> {
+  const protocols: Array<NetworkDeviceControllerLinkProtocol> = [];
+
+  if (Array.isArray(value)) {
+    for (const protocol of value) {
+      if (
+        (protocol === "lldp" || protocol === "cdp") &&
+        !protocols.includes(protocol)
+      ) {
+        protocols.push(protocol);
+      }
+    }
+  }
+
+  return protocols;
+}
+
+/*
+ * One link as it may be stored, or undefined when it names nobody at the far
+ * end. Everything in it is what a device advertised, or the controller's
+ * answer, so it is all read as outside text.
+ */
+function readControllerLink(
+  value: unknown,
+): NetworkDeviceControllerLink | undefined {
+  if (!isPlainObject(value)) {
+    return undefined;
+  }
+
+  const readLinkText: (key: string) => string | undefined = (
+    key: string,
+  ): string | undefined => {
+    return cleanDiscoveredText(value[key], MAX_CONTROLLER_LINK_TEXT_LENGTH);
+  };
+
+  const link: NetworkDeviceControllerLink = {
+    protocols: readControllerLinkProtocols(value["protocols"]),
+  };
+  const port: string | undefined = readLinkText("port");
+  const peerDeviceId: string | undefined = readLinkText("peerDeviceId");
+  const peerName: string | undefined = readLinkText("peerName");
+  const peerPort: string | undefined = readLinkText("peerPort");
+  const peerPlatform: string | undefined = readLinkText("peerPlatform");
+  const peerMac: string | undefined = normalizeControllerValue(
+    NetworkDeviceControllerField.MacAddress,
+    value["peerMac"],
+  );
+  const peerIp: string | undefined = normalizeControllerValue(
+    NetworkDeviceControllerField.IpAddress,
+    value["peerIp"],
+  );
+
+  if (!peerDeviceId && !peerName && !peerMac && !peerIp) {
+    return undefined;
+  }
+
+  if (port) {
+    link.port = port;
+  }
+  if (peerDeviceId) {
+    link.peerDeviceId = peerDeviceId;
+  }
+  if (peerName) {
+    link.peerName = peerName;
+  }
+  if (peerPort) {
+    link.peerPort = peerPort;
+  }
+  if (peerMac) {
+    link.peerMac = peerMac;
+  }
+  if (peerIp) {
+    link.peerIp = peerIp;
+  }
+  if (peerPlatform) {
+    link.peerPlatform = peerPlatform;
+  }
+
+  return link;
+}
+
+/**
+ * A controller's reading of a device's links, ready to store - or undefined
+ * when the controller is not one OneUptime reads, the reader is not a network
+ * controller connection, the time does not parse, or it holds no usable link.
+ * The stored form passes through here on the way out too.
+ */
+export function buildControllerLinks(data: {
+  provider: unknown;
+  // A NetworkDeviceDiscoveryReader; read defensively all the same.
+  readBy: unknown;
+  readAt: unknown;
+  links: unknown;
+}): NetworkDeviceControllerLinks | undefined {
+  if (!isNetworkControllerProvider(data.provider)) {
+    return undefined;
+  }
+
+  const readBy: NetworkDeviceDiscoveryReader | undefined = readDiscoveryReader(
+    data.readBy,
+  );
+  const readAt: string | undefined = readDiscoveryTime(data.readAt);
+
+  if (
+    !readBy ||
+    readBy.type !== NetworkDeviceDiscoveryReaderType.NetworkController ||
+    !readAt ||
+    !Array.isArray(data.links)
+  ) {
+    return undefined;
+  }
+
+  const links: Array<NetworkDeviceControllerLink> = [];
+
+  for (const value of data.links.slice(0, MAX_CONTROLLER_LINKS_PER_DEVICE)) {
+    const link: NetworkDeviceControllerLink | undefined =
+      readControllerLink(value);
+
+    if (link) {
+      links.push(link);
+    }
+  }
+
+  if (links.length === 0) {
+    return undefined;
+  }
+
+  return {
+    provider: data.provider,
+    readBy: readBy,
+    readAt: readAt,
+    links: links,
+  };
+}
+
+/**
+ * The links a reading says are current at `now`: all of them inside
+ * CONTROLLER_LINKS_CURRENT_FOR_MS of when it was read, and none after it.
+ */
+export function getCurrentControllerLinks(
+  reading: NetworkDeviceControllerLinks | undefined,
+  now: Date,
+): Array<NetworkDeviceControllerLink> {
+  if (!reading) {
+    return [];
+  }
+
+  const ageMs: number = now.getTime() - new Date(reading.readAt).getTime();
+
+  return ageMs <= CONTROLLER_LINKS_CURRENT_FOR_MS ? reading.links : [];
+}
+
 /**
  * A device's discovered details, read defensively out of its jsonb column:
  * every entry that is not exactly what OneUptime writes - an unknown key, a
@@ -880,6 +1151,22 @@ export function readNetworkDeviceDiscoveredDetails(
     }
   }
 
+  const controllerLinks: unknown = raw[DISCOVERED_DETAILS_CONTROLLER_LINKS_KEY];
+
+  if (isPlainObject(controllerLinks)) {
+    const reading: NetworkDeviceControllerLinks | undefined =
+      buildControllerLinks({
+        provider: controllerLinks["provider"],
+        readBy: controllerLinks["readBy"],
+        readAt: controllerLinks["readAt"],
+        links: controllerLinks["links"],
+      });
+
+    if (reading) {
+      details.controllerLinks = reading;
+    }
+  }
+
   return details;
 }
 
@@ -912,6 +1199,10 @@ export function toDiscoveredDetailsJson(
 
   if (details.controller) {
     json[DISCOVERED_DETAILS_CONTROLLER_KEY] = details.controller;
+  }
+
+  if (details.controllerLinks) {
+    json[DISCOVERED_DETAILS_CONTROLLER_LINKS_KEY] = details.controllerLinks;
   }
 
   return json;

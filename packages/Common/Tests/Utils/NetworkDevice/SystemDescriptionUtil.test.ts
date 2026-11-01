@@ -1,6 +1,8 @@
 import {
   MAX_SYSTEM_DESCRIPTION_LENGTH,
   SystemDescriptionFacts,
+  getMerakiFirmwareRelease,
+  getMerakiOperatingSystem,
   parseSystemDescription,
   readSystemDescription,
 } from "../../../Utils/NetworkDevice/SystemDescriptionUtil";
@@ -23,22 +25,79 @@ const PLATFORMS: Array<Case> = [
   [
     "a Meraki MX appliance (the issue's device)",
     "Meraki MX85",
-    { manufacturer: "Cisco Meraki", model: "MX85" },
+    {
+      manufacturer: "Cisco Meraki",
+      model: "MX85",
+      operatingSystem: "Meraki MX firmware",
+    },
+  ],
+  [
+    "a Meraki MX that says what it is",
+    "Meraki MX65W Cloud Managed Router",
+    {
+      manufacturer: "Cisco Meraki",
+      model: "MX65W",
+      operatingSystem: "Meraki MX firmware",
+    },
   ],
   [
     "a Meraki MS switch",
     "Meraki MS220-8P Cloud Managed Switch",
-    { manufacturer: "Cisco Meraki", model: "MS220-8P" },
+    {
+      manufacturer: "Cisco Meraki",
+      model: "MS220-8P",
+      operatingSystem: "Meraki MS firmware",
+    },
   ],
   [
     "a Meraki MR access point",
     "Meraki MR42 Cloud Managed AP",
-    { manufacturer: "Cisco Meraki", model: "MR42" },
+    {
+      manufacturer: "Cisco Meraki",
+      model: "MR42",
+      operatingSystem: "Meraki MR firmware",
+    },
   ],
   [
-    "a Meraki Z teleworker gateway",
+    "a Meraki access point with a = in front of its description, as they send it",
+    "=Meraki MR28 Cloud Managed AP",
+    {
+      manufacturer: "Cisco Meraki",
+      model: "MR28",
+      operatingSystem: "Meraki MR firmware",
+    },
+  ],
+  [
+    "a Meraki Z teleworker gateway, which runs MX firmware",
     "Meraki Z3 Cloud Managed Teleworker Gateway",
-    { manufacturer: "Cisco Meraki", model: "Z3" },
+    {
+      manufacturer: "Cisco Meraki",
+      model: "Z3",
+      operatingSystem: "Meraki MX firmware",
+    },
+  ],
+  [
+    "a Catalyst access point the dashboard calls Meraki",
+    "Meraki CW9166I Cloud Managed AP",
+    {
+      manufacturer: "Cisco Meraki",
+      model: "CW9166I",
+      operatingSystem: "Meraki MR firmware",
+    },
+  ],
+  [
+    "a Catalyst access point in Meraki mode, which calls itself Cisco Wireless",
+    "Cisco Wireless CW9176I Cloud Managed AP",
+    {
+      manufacturer: "Cisco Meraki",
+      model: "CW9176I",
+      operatingSystem: "Meraki MR firmware",
+    },
+  ],
+  [
+    "a Meraki device of a line whose firmware it cannot name",
+    "Meraki GX20 Cloud Managed Router",
+    { manufacturer: "Cisco Meraki", model: "GX20" },
   ],
   [
     "classic Cisco IOS",
@@ -442,6 +501,7 @@ describe("parseSystemDescription reads each platform's sysDescr (issue #4569)", 
     expect(parseSystemDescription("   Meraki MX85  \n")).toEqual({
       manufacturer: "Cisco Meraki",
       model: "MX85",
+      operatingSystem: "Meraki MX firmware",
     });
   });
 });
@@ -490,5 +550,65 @@ describe("parseSystemDescription stays fast on hostile input", () => {
       limitInMs: 1000,
     });
     expect(timed.inMs).toBeLessThan(1000);
+  });
+});
+
+describe("getMerakiOperatingSystem", () => {
+  test.each([
+    ["MX85", "Meraki MX firmware"],
+    ["mx85", "Meraki MX firmware"],
+    [" MX68CW-HW ", "Meraki MX firmware"],
+    ["Z4C", "Meraki MX firmware"],
+    ["MS225-48LP", "Meraki MS firmware"],
+    ["MR46", "Meraki MR firmware"],
+    ["CW9178I", "Meraki MR firmware"],
+    ["MG41", "Meraki MG firmware"],
+    ["MV12W", "Meraki MV firmware"],
+  ])("%s", (model: string, expected: string) => {
+    expect(getMerakiOperatingSystem(model)).toBe(expected);
+  });
+
+  test("a model of no line it knows names none", () => {
+    expect(getMerakiOperatingSystem("MT12")).toBeUndefined();
+    expect(getMerakiOperatingSystem("C9300-48UXM")).toBeUndefined();
+    expect(getMerakiOperatingSystem("")).toBeUndefined();
+    expect(getMerakiOperatingSystem(undefined)).toBeUndefined();
+    expect(getMerakiOperatingSystem("12345")).toBeUndefined();
+  });
+
+  test("a name an object already carries is not a product line", () => {
+    expect(getMerakiOperatingSystem("constructor")).toBeUndefined();
+    expect(getMerakiOperatingSystem("__proto__")).toBeUndefined();
+  });
+});
+
+describe("getMerakiFirmwareRelease", () => {
+  test.each([
+    ["wired-18-211-2", "18.211.2"],
+    ["wired-18-211", "18.211"],
+    ["switch-16-7", "16.7"],
+    ["switch-15-21", "15.21"],
+    ["wireless-29-7", "29.7"],
+    ["wireless-25-14", "25.14"],
+    ["camera-5-2", "5.2"],
+    ["cellular-gateway-1-3", "1.3"],
+    ["  wired-18-211-2  ", "18.211.2"],
+  ])("%s", (firmware: string, expected: string) => {
+    expect(getMerakiFirmwareRelease(firmware)).toBe(expected);
+  });
+
+  test("what holds no release gives none, rather than a guess", () => {
+    for (const firmware of [
+      "Firmware locked. Please contact support.",
+      "Not running configured version",
+      "wired",
+      "wired-",
+      "18-211-2",
+      "wired-18-211-beta",
+      "",
+      undefined,
+    ]) {
+      expect(getMerakiFirmwareRelease(firmware)).toBeUndefined();
+    }
   });
 });

@@ -1,8 +1,10 @@
 import EndpointAttachmentUtil, {
+  CONTROLLER_SIGHTING_CURRENT_FOR_MS,
   ENDPOINT_LAST_SEEN_REFRESH_MS,
   EndpointAttachment,
   EndpointAttachmentResult,
   EndpointExistingRowSnapshot,
+  EndpointIncomingObservation,
   EndpointIpBinding,
   EndpointUpsertContext,
   EndpointUpsertDecision,
@@ -832,5 +834,229 @@ describe("EndpointAttachmentUtil.decideUpsert — unchanged sightings", () => {
       EndpointAttachmentUtil.decideUpsert(null, stableSighting, context);
 
     expect(decision.action).toBe("create");
+  });
+});
+
+describe("a network controller's report against a walk (#5379)", () => {
+  const NOW: Date = new Date("2026-11-01T12:00:00Z");
+  const HOUR: number = 60 * 60 * 1000;
+  const hoursAgo: (hours: number) => Date = (hours: number): Date => {
+    return new Date(NOW.getTime() - hours * HOUR);
+  };
+
+  const controllerRow: (ageInHours: number) => EndpointExistingRowSnapshot = (
+    ageInHours: number,
+  ): EndpointExistingRowSnapshot => {
+    return {
+      attachedNetworkDeviceId: "switch-a",
+      attachedPortName: "Port 7",
+      attachmentSource: "meraki",
+      hostname: "kds-1",
+      firstSeenAt: hoursAgo(100),
+      lastSeenAt: hoursAgo(ageInHours),
+    };
+  };
+
+  const walkOf: (deviceId: string) => EndpointIncomingObservation = (
+    deviceId: string,
+  ): EndpointIncomingObservation => {
+    return {
+      macAddress: "aa:bb:cc:00:00:01",
+      deviceId: deviceId,
+      attachment: { interfaceIndex: 49, portName: "port49" },
+    };
+  };
+
+  const reportOf: (
+    deviceId: string,
+    portName: string,
+    seenAt?: Date,
+  ) => EndpointIncomingObservation = (
+    deviceId: string,
+    portName: string,
+    seenAt: Date = NOW,
+  ): EndpointIncomingObservation => {
+    return {
+      macAddress: "aa:bb:cc:00:00:01",
+      deviceId: deviceId,
+      attachment: { portName: portName },
+      ipBinding: { ipAddress: "10.18.166.51" },
+      controller: { source: "meraki", hostname: "kds-1", seenAt: seenAt },
+    };
+  };
+
+  test("a walk does nothing to a row the controller placed within the window", () => {
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        controllerRow(5.9),
+        walkOf("switch-b"),
+        {
+          now: NOW,
+        },
+      ).action,
+    ).toBe("none");
+  });
+
+  test("an ARP-only sighting does nothing either: it would keep the row current for ever", () => {
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        controllerRow(1),
+        {
+          macAddress: "aa:bb:cc:00:00:01",
+          deviceId: "router",
+          ipBinding: { ipAddress: "10.18.166.99", routerInterfaceIndex: 2 },
+        },
+        { now: NOW },
+      ).action,
+    ).toBe("none");
+  });
+
+  test("past the window the walk takes the row, and it stops being the controller's", () => {
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(
+        controllerRow(6.1),
+        walkOf("switch-b"),
+        { now: NOW },
+      );
+
+    expect(decision.action).toBe("update");
+    expect(decision.setAttachment).toBe(true);
+    expect(decision.attachedInterfaceIndex).toBe(49);
+    expect(decision.attachmentSource).toBeUndefined();
+  });
+
+  test("without a clock the old behaviour stands, so an existing caller is not held", () => {
+    expect(
+      EndpointAttachmentUtil.decideUpsert(controllerRow(1), walkOf("switch-b"))
+        .setAttachment,
+    ).toBe(true);
+  });
+
+  test("a row with no source is a walk's, whatever its age", () => {
+    const row: EndpointExistingRowSnapshot = {
+      ...controllerRow(0.5),
+      attachmentSource: undefined,
+    };
+
+    expect(
+      EndpointAttachmentUtil.decideUpsert(row, walkOf("switch-b"), { now: NOW })
+        .setAttachment,
+    ).toBe(true);
+  });
+
+  test("the controller always takes the row, even from a fresh walk", () => {
+    const decision: EndpointUpsertDecision =
+      EndpointAttachmentUtil.decideUpsert(
+        {
+          attachedNetworkDeviceId: "switch-b",
+          attachedInterfaceIndex: 49,
+          attachedPortName: "port49",
+          firstSeenAt: hoursAgo(100),
+          lastSeenAt: hoursAgo(0.01),
+        },
+        reportOf("switch-a", "Port 7"),
+        { now: NOW },
+      );
+
+    expect(decision.action).toBe("update");
+    expect(decision.setAttachment).toBe(true);
+    expect(decision.attachmentSource).toBe("meraki");
+    expect(decision.attachedPortName).toBe("Port 7");
+    // That ifIndex was the old switch's port.
+    expect(decision.attachedInterfaceIndex).toBeUndefined();
+  });
+
+  test("the same port keeps its ifIndex, which is what its counters are found by", () => {
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        {
+          attachedNetworkDeviceId: "switch-a",
+          attachedInterfaceIndex: 7,
+          attachedPortName: "Port 7",
+          lastSeenAt: hoursAgo(2),
+        },
+        reportOf("switch-a", "Port 7"),
+        { now: NOW },
+      ).attachedInterfaceIndex,
+    ).toBe(7);
+  });
+
+  test("the same port name on another switch is another port", () => {
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        {
+          attachedNetworkDeviceId: "switch-b",
+          attachedInterfaceIndex: 7,
+          attachedPortName: "Port 7",
+          lastSeenAt: hoursAgo(2),
+        },
+        reportOf("switch-a", "Port 7"),
+        { now: NOW },
+      ).attachedInterfaceIndex,
+    ).toBeUndefined();
+  });
+
+  test("lastSeenAt is when the controller saw it, and never earlier than what is stored", () => {
+    const stored: EndpointExistingRowSnapshot = {
+      attachedNetworkDeviceId: "switch-a",
+      lastSeenAt: hoursAgo(1),
+    };
+
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        stored,
+        reportOf("switch-a", "Port 7", hoursAgo(0.5)),
+        { now: NOW },
+      ).lastSeenAt,
+    ).toEqual(hoursAgo(0.5));
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        stored,
+        reportOf("switch-a", "Port 7", hoursAgo(2)),
+        { now: NOW },
+      ).lastSeenAt,
+    ).toEqual(hoursAgo(1));
+  });
+
+  test("a new name is a change worth a write, inside the refresh window too", () => {
+    const stored: EndpointExistingRowSnapshot = {
+      attachedNetworkDeviceId: "switch-a",
+      attachedPortName: "Port 7",
+      ipAddress: "10.18.166.51",
+      attachmentSource: "meraki",
+      hostname: "old-name",
+      firstSeenAt: hoursAgo(100),
+      lastSeenAt: hoursAgo(0.01),
+    };
+
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        stored,
+        reportOf("switch-a", "Port 7", hoursAgo(0.01)),
+        { now: NOW },
+      ).action,
+    ).toBe("update");
+    expect(
+      EndpointAttachmentUtil.decideUpsert(
+        { ...stored, hostname: "kds-1" },
+        reportOf("switch-a", "Port 7", hoursAgo(0.01)),
+        { now: NOW },
+      ).action,
+    ).toBe("none");
+  });
+
+  test("a sighting's window is a walk's unless a controller saw it", () => {
+    const WALK_WINDOW_MS: number = 15 * 60 * 1000;
+
+    expect(
+      EndpointAttachmentUtil.getSightingWindowMs(undefined, WALK_WINDOW_MS),
+    ).toBe(WALK_WINDOW_MS);
+    expect(
+      EndpointAttachmentUtil.getSightingWindowMs("meraki", WALK_WINDOW_MS),
+    ).toBe(CONTROLLER_SIGHTING_CURRENT_FOR_MS);
+    // It is never shorter than a slow walk's own window.
+    expect(
+      EndpointAttachmentUtil.getSightingWindowMs("meraki", 24 * HOUR),
+    ).toBe(24 * HOUR);
   });
 });

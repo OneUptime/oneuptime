@@ -52,7 +52,8 @@ export default interface SnmpMonitorResponse {
   systemInfo?: SnmpSystemInfo | undefined;
   /*
    * ENTITY-MIB hardware identity (manufacturer/model/serial/firmware),
-   * collected alongside the interface walk on devices that implement it.
+   * collected alongside the interface walk on devices that implement it, and
+   * from the vendor's own MIB where a device keeps it there.
    */
   entityInfo?: SnmpEntityInfo | undefined;
   /*

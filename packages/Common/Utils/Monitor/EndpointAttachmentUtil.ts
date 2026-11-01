@@ -64,10 +64,14 @@ export interface EndpointIncomingObservation {
   macAddress: string;
   // The walked device (switch and/or router) that saw this MAC.
   deviceId: string;
-  // Present when the device's FDB learned the MAC on an access port.
+  /*
+   * Present when the device's FDB learned the MAC on an access port, or a
+   * network controller reports the client on one. A controller names a port
+   * and knows no ifIndex.
+   */
   attachment?:
     | {
-        interfaceIndex: number;
+        interfaceIndex?: number | undefined;
         portName?: string | undefined;
         vlanId?: number | undefined;
       }
@@ -76,7 +80,20 @@ export interface EndpointIncomingObservation {
   ipBinding?:
     | {
         ipAddress: string;
-        routerInterfaceIndex: number;
+        routerInterfaceIndex?: number | undefined;
+      }
+    | undefined;
+  /*
+   * Present when a network controller reported this client rather than a
+   * walk finding it: which controller, what it calls the client, and when
+   * it last saw it.
+   */
+  controller?:
+    | {
+        // A NetworkControllerProvider.
+        source: string;
+        hostname?: string | undefined;
+        seenAt: Date;
       }
     | undefined;
 }
@@ -94,6 +111,9 @@ export interface EndpointExistingRowSnapshot {
   vlanId?: number | undefined;
   ipAddress?: string | undefined;
   siteId?: string | undefined;
+  hostname?: string | undefined;
+  // Set when a network controller, not a walk, placed the row where it is.
+  attachmentSource?: string | undefined;
   firstSeenAt?: Date | undefined;
   lastSeenAt?: Date | undefined;
 }
@@ -113,6 +133,18 @@ export interface EndpointExistingRowSnapshot {
  * so the optimisation can never make a device look down.
  */
 export const ENDPOINT_LAST_SEEN_REFRESH_MS: number = 5 * 60 * 1000;
+
+/*
+ * How long a sighting a network controller reported stays current. A walk
+ * sees an endpoint every few minutes; a controller's client list is read
+ * every two hours (MerakiTrafficReader), so a row of one would read as gone
+ * for most of the time between two reads on a walk's window. Three reads'
+ * worth, so one failed read is no cliff.
+ *
+ * It also bounds how long a controller's placement outranks a walk: see
+ * decideUpsert.
+ */
+export const CONTROLLER_SIGHTING_CURRENT_FOR_MS: number = 6 * 60 * 60 * 1000;
 
 /*
  * Caller-supplied context for the "has anything actually changed?"
@@ -139,6 +171,18 @@ export interface EndpointUpsertDecision {
   vlanId?: number | undefined;
   setIpAddress: boolean;
   ipAddress?: string | undefined;
+  /*
+   * What a write leaves in attachmentSource: the controller's, or nothing -
+   * a walk that writes to a row has taken it over.
+   */
+  attachmentSource?: string | undefined;
+  // What a controller calls the client. Undefined never clears a stored name.
+  hostname?: string | undefined;
+  /*
+   * When a controller last saw the client, for the row's lastSeenAt; a walk
+   * saw it just now, which is what undefined means.
+   */
+  lastSeenAt?: Date | undefined;
 }
 
 /*
@@ -361,6 +405,14 @@ export default class EndpointAttachmentUtil {
    *    it must never steal an attachment a switch reported.
    *  - Rows are created for both kinds; every observation counts as a
    *    "touch" (the caller bumps lastSeenAt on any create/update action).
+   *  - A network controller's report outranks a walk: it always takes the
+   *    row, and while its sighting is current a walk changes nothing on it.
+   *    The controller names the access port of a client it manages, where a
+   *    forwarding table cannot tell an access port from an uplink that
+   *    speaks no LLDP - so without this, the next walk of the switch next
+   *    door would move the client back onto its uplink for two hours. Once
+   *    the controller stops reporting the client, the walk takes the row
+   *    over; lastSeenAt is not refreshed meanwhile, or it never could.
    *
    * When `context` is supplied, an update that would write nothing but a
    * lastSeenAt already refreshed within lastSeenRefreshMs collapses to
@@ -373,6 +425,19 @@ export default class EndpointAttachmentUtil {
     context?: EndpointUpsertContext | undefined,
   ): EndpointUpsertDecision {
     if (!incoming.attachment && !incoming.ipBinding) {
+      return {
+        action: "none",
+        setAttachment: false,
+        setIpAddress: false,
+      };
+    }
+
+    if (
+      !incoming.controller &&
+      existing &&
+      context &&
+      EndpointAttachmentUtil.isHeldByController(existing, context.now)
+    ) {
       return {
         action: "none",
         setAttachment: false,
@@ -406,6 +471,32 @@ export default class EndpointAttachmentUtil {
         decision.setAttachment = true;
         decision.attachedInterfaceIndex =
           incoming.ipBinding!.routerInterfaceIndex;
+      }
+    }
+
+    if (incoming.controller) {
+      decision.attachmentSource = incoming.controller.source;
+      decision.hostname = incoming.controller.hostname;
+      /*
+       * Never backwards: a walk may have seen the client since the
+       * controller did, and the list can be two hours old by now.
+       */
+      decision.lastSeenAt =
+        existing?.lastSeenAt &&
+        new Date(existing.lastSeenAt) > incoming.controller.seenAt
+          ? new Date(existing.lastSeenAt)
+          : incoming.controller.seenAt;
+      /*
+       * The port a walk named by its ifIndex is the same port only while it
+       * goes by the same name. Kept then, so the link keeps its counters;
+       * dropped when the client moved, or it would carry the old port's.
+       */
+      if (
+        existing &&
+        existing.attachedNetworkDeviceId === incoming.deviceId &&
+        existing.attachedPortName === incoming.attachment?.portName
+      ) {
+        decision.attachedInterfaceIndex = existing.attachedInterfaceIndex;
       }
     }
 
@@ -464,6 +555,17 @@ export default class EndpointAttachmentUtil {
       return false;
     }
 
+    // A write that hands the row from a controller to a walk, or back.
+    if (
+      (decision.attachmentSource || "") !== (existing.attachmentSource || "")
+    ) {
+      return false;
+    }
+
+    if (decision.hostname && decision.hostname !== existing.hostname) {
+      return false;
+    }
+
     if (decision.setAttachment) {
       if (existing.attachedNetworkDeviceId !== incomingDeviceId) {
         return false;
@@ -496,6 +598,39 @@ export default class EndpointAttachmentUtil {
     }
 
     return true;
+  }
+
+  /*
+   * True while a network controller's placement of this row stands. A row
+   * with no controller behind it, or none current, is a walk's to write.
+   */
+  private static isHeldByController(
+    existing: EndpointExistingRowSnapshot,
+    now: Date,
+  ): boolean {
+    if (!existing.attachmentSource || !existing.lastSeenAt) {
+      return false;
+    }
+
+    const ageMs: number =
+      now.getTime() - new Date(existing.lastSeenAt).getTime();
+
+    return ageMs <= CONTROLLER_SIGHTING_CURRENT_FOR_MS;
+  }
+
+  /*
+   * How long a sighting is evidence, by who saw it: `walkWindowMs` for a walk,
+   * which sees an endpoint every few minutes, and longer for a controller,
+   * which is read every two hours. The map and the "Connected to" card both
+   * ask here, so they cannot disagree about whether a row is current.
+   */
+  public static getSightingWindowMs(
+    attachmentSource: string | undefined,
+    walkWindowMs: number,
+  ): number {
+    return attachmentSource
+      ? Math.max(CONTROLLER_SIGHTING_CURRENT_FOR_MS, walkWindowMs)
+      : walkWindowMs;
   }
 
   private static isGroupMac(normalizedMac: string): boolean {

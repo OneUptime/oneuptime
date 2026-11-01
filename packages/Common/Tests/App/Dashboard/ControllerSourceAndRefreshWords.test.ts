@@ -36,7 +36,20 @@ import {
   CONTROLLER_NETWORK_LINE,
   INVENTORY_CARD_CONTROLLER_DESCRIPTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
-import { NETWORK_DEVICE_CONTROLLER_UNKNOWN } from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetLabels";
+import {
+  CONNECT_MERAKI_DOCS_URL,
+  CONNECT_MERAKI_LINK_TEXT,
+  INVENTORY_ASSET_HELP,
+  InventoryAssetUnknownHelp,
+  NETWORK_DEVICE_CONTROLLER_UNKNOWN,
+  NETWORK_DEVICE_MERAKI_UNKNOWN,
+  NETWORK_DEVICE_SNMP_UNKNOWN,
+  getInventoryAssetUnknownHelp,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Inventory/InventoryAssetLabels";
+import {
+  InventoryAssetKind,
+  NetworkDeviceUnknownReason,
+} from "../../../Utils/Inventory/InventoryAssetDetails";
 import {
   DESCRIBED_DEVICES_NOTE,
   DEVICE_COUNT,
@@ -467,6 +480,9 @@ describe("every new sentence, in every language", () => {
     DESCRIBED_DEVICES_NOTE.other,
     DEVICE_COUNT.other,
     NETWORK_DEVICE_CONTROLLER_UNKNOWN.other,
+    NETWORK_DEVICE_SNMP_UNKNOWN.other,
+    NETWORK_DEVICE_MERAKI_UNKNOWN.other,
+    CONNECT_MERAKI_LINK_TEXT,
     INVENTORY_CARD_CONTROLLER_DESCRIPTION,
     "The Meraki organizations OneUptime reads traffic and device details from, through the Meraki dashboard API.",
   ];
@@ -498,6 +514,8 @@ describe("every new sentence, in every language", () => {
       for (const plural of [
         DESCRIBED_DEVICES_NOTE,
         NETWORK_DEVICE_CONTROLLER_UNKNOWN,
+        NETWORK_DEVICE_SNMP_UNKNOWN,
+        NETWORK_DEVICE_MERAKI_UNKNOWN,
       ]) {
         const one: unknown = locale[`${plural.other}_one`];
         expect(typeof one).toBe("string");
@@ -530,5 +548,66 @@ describe("every new sentence, in every language", () => {
     expect(english.translatePlural(NETWORK_DEVICE_CONTROLLER_UNKNOWN, 1)).toBe(
       "1 detail is unknown: neither this device's SNMP poll, the Meraki dashboard nor a discovery scan has found it.",
     );
+  });
+
+  // Issue #5384: what the card says about unknown details, by why they are.
+  test("the line that says what a Meraki device's poll cannot read, for one detail and for many", () => {
+    expect(english.translatePlural(NETWORK_DEVICE_MERAKI_UNKNOWN, 3)).toBe(
+      "3 details are unknown: a Cisco Meraki device reports them only to the Meraki dashboard, not over SNMP.",
+    );
+    expect(english.translatePlural(NETWORK_DEVICE_MERAKI_UNKNOWN, 1)).toBe(
+      "1 detail is unknown: a Cisco Meraki device reports it only to the Meraki dashboard, not over SNMP.",
+    );
+    expect(
+      translatorFor("de").translatePlural(NETWORK_DEVICE_MERAKI_UNKNOWN, 3),
+    ).toBe(
+      "3 Angaben sind unbekannt: Ein Cisco-Meraki-Gerät meldet sie nur an das Meraki-Dashboard, nicht über SNMP.",
+    );
+  });
+
+  test("the line that says a device reports no more, for one detail and for many", () => {
+    expect(english.translatePlural(NETWORK_DEVICE_SNMP_UNKNOWN, 2)).toBe(
+      "2 details are unknown: this device does not report them over SNMP, and no discovery scan has found them.",
+    );
+    expect(english.translatePlural(NETWORK_DEVICE_SNMP_UNKNOWN, 1)).toBe(
+      "1 detail is unknown: this device does not report it over SNMP, and no discovery scan has found it.",
+    );
+  });
+
+  test("which line each reason gets, and where it leads", () => {
+    const device: InventoryAssetUnknownHelp =
+      INVENTORY_ASSET_HELP[InventoryAssetKind.NetworkDevice];
+    const help: (
+      reason: NetworkDeviceUnknownReason | undefined,
+    ) => InventoryAssetUnknownHelp = (
+      reason: NetworkDeviceUnknownReason | undefined,
+    ): InventoryAssetUnknownHelp => {
+      return getInventoryAssetUnknownHelp(
+        InventoryAssetKind.NetworkDevice,
+        reason,
+      );
+    };
+
+    expect(help(undefined)).toEqual(device);
+    expect(help(NetworkDeviceUnknownReason.NotReadOverSnmp)).toEqual(device);
+    expect(help(NetworkDeviceUnknownReason.NotReportedOverSnmp)).toEqual({
+      ...device,
+      unknown: NETWORK_DEVICE_SNMP_UNKNOWN,
+    });
+    expect(help(NetworkDeviceUnknownReason.NotOnController)).toEqual({
+      ...device,
+      unknown: NETWORK_DEVICE_CONTROLLER_UNKNOWN,
+    });
+    expect(help(NetworkDeviceUnknownReason.OnControllerOnly)).toEqual({
+      docsUrl: CONNECT_MERAKI_DOCS_URL,
+      linkText: CONNECT_MERAKI_LINK_TEXT,
+      unknown: NETWORK_DEVICE_MERAKI_UNKNOWN,
+    });
+  });
+
+  test("a host's line is its collector's, whatever a device's reason would be", () => {
+    expect(
+      getInventoryAssetUnknownHelp(InventoryAssetKind.Host, undefined),
+    ).toEqual(INVENTORY_ASSET_HELP[InventoryAssetKind.Host]);
   });
 });

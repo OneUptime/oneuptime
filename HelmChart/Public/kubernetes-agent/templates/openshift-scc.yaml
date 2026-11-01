@@ -27,8 +27,11 @@ first and admits any pod that restricted-v2 fits under restricted-v2.
 
 The schema requires allowedCapabilities, defaultAddCapabilities and
 priority, null or not, so they are written out.
+
+The openshift-restricted preset creates neither: nothing it runs needs more
+than restricted-v2 (kubernetes-agent.openshiftRestricted).
 */}}
-{{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+{{- if eq (include "kubernetes-agent.openshiftSccs" .) "true" }}
 {{- $fullname := include "kubernetes-agent.fullname" . }}
 {{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
 apiVersion: security.openshift.io/v1

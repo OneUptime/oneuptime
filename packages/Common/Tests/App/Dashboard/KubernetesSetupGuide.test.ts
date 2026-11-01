@@ -1088,6 +1088,44 @@ describe("the OpenShift guide", () => {
     expect(markdown).toContain("`--set ebpf.enabled=false`");
   });
 
+  test("troubleshooting names openshift-restricted, for an admin who will not add SCCs, and what it gives up", () => {
+    const markdown: string = topic(
+      "Agent pods are missing: a security context constraint error",
+    ).markdown;
+
+    expect(markdown).toContain(
+      "- **Your cluster admin will not add SCCs:** use the `openshift-restricted` preset.",
+    );
+    expect(markdown).toContain(
+      "The chart then creates no SCC and every pod runs under `restricted-v2`, so pod logs come through the Kubernetes API, and there are no host metrics, eBPF traces or profiles:",
+    );
+    expect(markdown).toContain(
+      getKubernetesAgentUpgradeCommand(["--set preset=openshift-restricted"]),
+    );
+  });
+
+  test("openshift-restricted is a value the chart takes, and no platform of the guide's", () => {
+    const schema: { properties: { preset: { enum: Array<string> } } } =
+      JSON.parse(
+        fs.readFileSync(path.join(CHART_DIR, "values.schema.json"), "utf8"),
+      );
+
+    expect(schema.properties.preset.enum).toContain("openshift-restricted");
+    expect(PLATFORM_KEYS).not.toContain("openshift-restricted");
+    expect(getKubernetesAgentPreset("openshift")).toBe("openshift");
+    expect(resolveKubernetesPlatform("openshift-restricted")).toBe("standard");
+  });
+
+  test("only OpenShift's troubleshooting names it", () => {
+    for (const platform of PLATFORM_KEYS.filter((key: string): boolean => {
+      return key !== "openshift";
+    })) {
+      expect(getSetupGuideMarkdown(guideFor(platform))).not.toContain(
+        "openshift-restricted",
+      );
+    }
+  });
+
   test("the hostPath topic on every other non-restricted platform points OpenShift here", () => {
     for (const platform of [
       "standard",
