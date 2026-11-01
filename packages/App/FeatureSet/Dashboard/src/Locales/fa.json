@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "ذخیره نمای {{noun}}",
   "See full trace": "دیدن ترِیس کامل",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "نشست {{sessionId}} این اسپن را داشت، اما ضبطی از آن بارگذاری نشد (خارج از نمونه، بدون رضایت یا هنوز دریافت‌نشده).",
-  "Span Status: {{status}}": "وضعیت اسپن: {{status}}",
   "Spans over time": "اسپن‌ها در طول زمان",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "نمودار و شمارش‌های فیلتر بالا با این موارد محدود نشده‌اند: {{filters}}. فهرست محدود شده است.",
   "The traces search cannot filter spans by exception.": "جست‌وجوی ترِیس نمی‌تواند اسپن‌ها را بر اساس استثنا فیلتر کند.",

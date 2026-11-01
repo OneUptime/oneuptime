@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "{{noun}}-weergave opslaan",
   "See full trace": "Volledige trace bekijken",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "Sessie {{sessionId}} bevatte deze span, maar er is geen opname van geüpload (buiten de steekproef, geen toestemming of nog niet ontvangen).",
-  "Span Status: {{status}}": "Span-status: {{status}}",
   "Spans over time": "Spans in de tijd",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "De grafiek en de facettellingen hierboven zijn niet beperkt door: {{filters}}. De lijst wel.",
   "The traces search cannot filter spans by exception.": "De tracezoekopdracht kan spans niet op uitzondering filteren.",

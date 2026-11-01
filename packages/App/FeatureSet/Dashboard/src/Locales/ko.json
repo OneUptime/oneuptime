@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "{{noun}} 보기 저장",
   "See full trace": "전체 트레이스 보기",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "세션 {{sessionId}}에 이 스팬이 포함되어 있지만 녹화가 업로드되지 않았습니다 (샘플링 제외, 동의 거부 또는 아직 수신되지 않음).",
-  "Span Status: {{status}}": "스팬 상태: {{status}}",
   "Spans over time": "시간별 스팬",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "위의 차트와 패싯 개수는 다음으로 좁혀지지 않았습니다: {{filters}}. 목록은 좁혀졌습니다.",
   "The traces search cannot filter spans by exception.": "트레이스 검색은 예외로 스팬을 필터링할 수 없습니다.",

@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "Enregistrer la vue {{noun}}",
   "See full trace": "Voir la trace complète",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "La session {{sessionId}} contenait ce span, mais aucun enregistrement n'a été envoyé (hors échantillon, consentement refusé ou pas encore reçu).",
-  "Span Status: {{status}}": "Statut du span : {{status}}",
   "Spans over time": "Spans dans le temps",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "Le graphique et les décomptes de facettes ci-dessus ne sont pas restreints par : {{filters}}. La liste l'est.",
   "The traces search cannot filter spans by exception.": "La recherche de traces ne peut pas filtrer les spans par exception.",

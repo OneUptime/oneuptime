@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "{{noun}} व्यू सहेजें",
   "See full trace": "पूरा ट्रेस देखें",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "सेशन {{sessionId}} में यह स्पैन था, लेकिन इसकी कोई रिकॉर्डिंग अपलोड नहीं हुई (सैंपल में नहीं आया, सहमति नहीं मिली या अभी तक प्राप्त नहीं हुई)।",
-  "Span Status: {{status}}": "स्पैन स्थिति: {{status}}",
   "Spans over time": "समय के साथ स्पैन",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "ऊपर का चार्ट और फ़ैसेट गिनती इनसे सीमित नहीं हैं: {{filters}}। सूची सीमित है।",
   "The traces search cannot filter spans by exception.": "ट्रेस खोज स्पैन को अपवाद के आधार पर फ़िल्टर नहीं कर सकती।",

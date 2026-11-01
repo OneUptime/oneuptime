@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "Сохранить представление: {{noun}}",
   "See full trace": "Открыть полную трассировку",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "Сеанс {{sessionId}} содержал этот спан, но его запись не была загружена (не вошла в выборку, нет согласия или ещё не получена).",
-  "Span Status: {{status}}": "Статус спана: {{status}}",
   "Spans over time": "Спаны во времени",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "Диаграмма и счётчики фасетов выше не ограничены следующим: {{filters}}. Список ограничен.",
   "The traces search cannot filter spans by exception.": "Поиск трассировок не может фильтровать спаны по исключению.",

@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "儲存{{noun}}檢視",
   "See full trace": "查看完整追蹤",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "工作階段 {{sessionId}} 包含此跨度，但未上傳其錄製（未被取樣、未獲同意或尚未收到）。",
-  "Span Status: {{status}}": "Span 狀態：{{status}}",
   "Spans over time": "跨度隨時間變化",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "上方的圖表和分面計數未依下列條件縮小範圍：{{filters}}。清單已縮小。",
   "The traces search cannot filter spans by exception.": "追蹤搜尋無法依例外篩選跨度。",

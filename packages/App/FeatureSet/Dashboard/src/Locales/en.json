@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "Save {{noun}} View",
   "See full trace": "See full trace",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).",
-  "Span Status: {{status}}": "Span Status: {{status}}",
   "Spans over time": "Spans over time",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "The chart and facet counts above are not narrowed by: {{filters}}. The list is.",
   "The traces search cannot filter spans by exception.": "The traces search cannot filter spans by exception.",

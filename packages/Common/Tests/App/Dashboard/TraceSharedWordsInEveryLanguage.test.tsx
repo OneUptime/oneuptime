@@ -366,9 +366,7 @@ describe.each(LANGUAGES)("the shared words in %s", (language: string) => {
 
     expect(
       screen.getByRole("img", {
-        name: sentence(language, "Span Status: {{status}}", {
-          status: word(language, "Unset (no error)"),
-        }),
+        name: word(language, "Span Status: Unset (no error)"),
       }),
     ).toBeInTheDocument();
   });

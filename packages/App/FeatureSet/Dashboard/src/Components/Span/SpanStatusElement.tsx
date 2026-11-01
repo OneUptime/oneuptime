@@ -9,10 +9,7 @@ import {
   SpanStatusPresentation,
   getSpanStatusPresentation,
 } from "../../Utils/SpanStatusPresentation";
-import {
-  Translator,
-  translatableTerm,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -48,11 +45,9 @@ const SpanStatusElement: FunctionComponent<ComponentProps> = (
         {hasStatus ? (
           <ColorCircle
             color={new Color(status.color)}
-            tooltip={translator.translateTemplate("Span Status: {{status}}", {
-              status: translatableTerm(
-                props.plainLabel ? status.label : status.displayLabel,
-              ),
-            })}
+            tooltip={translator.translateTerm(
+              props.plainLabel ? status.plainDotTooltip : status.dotTooltip,
+            )}
           />
         ) : (
           <></>

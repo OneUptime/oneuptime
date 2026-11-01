@@ -40,6 +40,9 @@ export interface SpanStatusPresentation {
   displayLabel: string;
   // One sentence for tooltips.
   description: string;
+  // The status dot's name: for a row that shows the display label, and the label.
+  dotTooltip: string;
+  plainDotTooltip: string;
   // Six-digit hex for chart series, facet dots and other inline colors.
   color: string;
   /*
@@ -63,6 +66,8 @@ const UNSET: SpanStatusPresentation = {
   description: translationKey(
     "No error status was set. Unset is the OpenTelemetry default for spans that finish without one.",
   ),
+  dotTooltip: translationKey("Span Status: Unset (no error)"),
+  plainDotTooltip: translationKey("Span Status: Unset"),
   color: "#10b981",
   dotClassName: "bg-emerald-500",
   ringClassName: "ring-emerald-200",
@@ -80,6 +85,8 @@ const OK: SpanStatusPresentation = {
   description: translationKey(
     "Explicitly marked successful by the application or a trace pipeline.",
   ),
+  dotTooltip: translationKey("Span Status: Ok"),
+  plainDotTooltip: translationKey("Span Status: Ok"),
   color: "#0891b2",
   dotClassName: "bg-cyan-600",
   ringClassName: "ring-cyan-200",
@@ -97,6 +104,8 @@ const ERROR: SpanStatusPresentation = {
   description: translationKey(
     "The operation failed: the span's status is Error.",
   ),
+  dotTooltip: translationKey("Span Status: Error"),
+  plainDotTooltip: translationKey("Span Status: Error"),
   color: "#ef4444",
   dotClassName: "bg-red-500",
   ringClassName: "ring-red-100",

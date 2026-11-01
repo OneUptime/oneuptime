@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "Spara {{noun}}-vy",
   "See full trace": "Visa hela spåret",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "Session {{sessionId}} innehöll det här spannet, men ingen inspelning laddades upp (utanför urvalet, samtycke nekat eller ännu inte mottagen).",
-  "Span Status: {{status}}": "Spannstatus: {{status}}",
   "Spans over time": "Spann över tid",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "Diagrammet och facettantalen ovan är inte avgränsade av: {{filters}}. Det är listan.",
   "The traces search cannot filter spans by exception.": "Spårsökningen kan inte filtrera spann efter undantag.",

@@ -39291,7 +39291,6 @@
   "Save {{noun}} View": "{{noun}}ビューを保存",
   "See full trace": "トレース全体を表示",
   "Session {{sessionId}} carried this span, but no recording of it was uploaded (sampled out, consent withheld, or not yet received).": "セッション {{sessionId}} にはこのスパンが含まれていますが、録画はアップロードされていません（サンプリング対象外、同意なし、または未受信）。",
-  "Span Status: {{status}}": "スパンのステータス: {{status}}",
   "Spans over time": "スパンの推移",
   "The chart and facet counts above are not narrowed by: {{filters}}. The list is.": "上のグラフとファセットの件数は次の条件で絞り込まれていません: {{filters}}。リストは絞り込まれています。",
   "The traces search cannot filter spans by exception.": "トレース検索では例外でスパンを絞り込めません。",
