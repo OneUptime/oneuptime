@@ -293,7 +293,7 @@ På en skärm som är smalare än 1024 pixlar visar kolumnen **Händelse** även
 
 ### Sök bland händelser och få larm
 
-Varje händelse är också en logg. En varning sparas med allvarlighetsgraden **Warning**, och det händelsen säger står i dess attribut:
+Varje händelse är också en logg. En varning sparas med allvarlighetsgraden **Varning**, och det händelsen säger står i dess attribut:
 
 | Attribut | Exempel |
 | --- | --- |

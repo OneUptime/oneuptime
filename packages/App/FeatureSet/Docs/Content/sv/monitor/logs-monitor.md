@@ -87,7 +87,7 @@ Varje logg lagras med en av sju allvarlighetsgrader. För loggar från OpenTelem
 | **Spår** | 1–4 |
 | **Debug** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Varning** | 13–16 |
 | **Fel** | 17–20 |
 | **Fatal** | 21–24 |
 | **Ospecificerad** | Allt annat |

@@ -87,7 +87,7 @@ Chaque journal est enregistré avec l'une de sept gravités. Pour les journaux O
 | **Trace** | 1–4 |
 | **Débogage** | 5–8 |
 | **Information** | 9–12 |
-| **Warning** | 13–16 |
+| **Avertissement** | 13–16 |
 | **Erreur** | 17–20 |
 | **Fatal** | 21–24 |
 | **Non spécifié** | Tout le reste |

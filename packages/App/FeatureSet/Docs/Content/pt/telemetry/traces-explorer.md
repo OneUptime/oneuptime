@@ -60,7 +60,7 @@ Clique em um valor da barra lateral **Filtros** para adicioná-lo como chip. A b
 
 ### Abrir um span
 
-Clique em uma linha para expandi-la: os atributos dela, e os registros e exceções que ela gravou. Clique em **See full trace** para abrir o traço inteiro.
+Clique em uma linha para expandi-la: os atributos dela, e os registros e exceções que ela gravou. Clique em **Ver traço completo** para abrir o traço inteiro.
 :::
 
 Sua pesquisa, seus chips e o intervalo de tempo ficam no endereço da página, então uma atualização, um favorito ou um link compartilhado abre os mesmos spans.
@@ -97,7 +97,7 @@ Um traço grande carrega 500 spans por vez. Clique no botão no fim do traço pa
 
 O gráfico acima da lista mostra o número de spans ao longo do tempo, dividido por status. Escolha outra medida no cabeçalho do gráfico para mostrar o tempo de resposta médio, mediano (P50) ou P95 deles.
 
-Para ir além, mude a lista de **Spans** para **Analytics**. Escolha uma série temporal, uma lista dos principais ou uma tabela; meça contagens de requisições, contagens de erros ou tempos de resposta (média, P50, P90, P95, P99, mínimo ou máximo); e agrupe por nome de span, serviço, status, tipo de span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra de 5 a 100 grupos.
+Para ir além, mude a lista de **Spans** para **Análises**. Escolha uma série temporal, uma lista dos principais ou uma tabela; meça contagens de requisições, contagens de erros ou tempos de resposta (média, P50, P90, P95, P99, mínimo ou máximo); e agrupe por nome de span, serviço, status, tipo de span ou qualquer atributo, e depois por um segundo campo. Uma lista dos principais ou uma tabela mostra de 5 a 100 grupos.
 
 ## Acompanhar, salvar e compartilhar
 

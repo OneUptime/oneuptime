@@ -117,15 +117,15 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 严重 | `pve_up`，对整个集群取 Count，最近 10 分钟 | 整个窗口内都没有数据 | 数据再次到达 |
 | Node Offline | 严重 | `pve.scope = node` 的 `pve_up`，按 `id` 取 Min | 低于 1 | 等于 1 |
-| Guest Down | Warning | `pve.scope = guest` 的 `pve_up` 和 `pve_onboot_status`，按 `id` 取 Min | `pve_onboot_status` 为 1 时 `pve_up` 低于 1 | `pve_up` 恢复为 1，或关闭开机启动 |
+| Guest Down | 警告 | `pve.scope = guest` 的 `pve_up` 和 `pve_onboot_status`，按 `id` 取 Min | `pve_onboot_status` 为 1 时 `pve_up` 低于 1 | `pve_up` 恢复为 1，或关闭开机启动 |
 | Cluster Quorum at Risk | 严重 | `pve.scope = node` 的 `pve_up` ÷ `pve_node_info` × 100（两者都取总和）：在线节点所占比例 | 50% 或更低 | 高于 55% |
-| High Node CPU Usage | Warning | `pve.scope = node` 的 `pve_cpu_usage_ratio`，按 `id` 取 Avg | 高于 0.9（节点核心的 90%） | 不高于 0.81 |
-| High Node Memory Usage | Warning | `pve.scope = node` 的 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100，按 `id` | 高于 85% | 不高于 76.5% |
-| High Guest CPU Usage | Warning | `pve.scope = guest` 的 `pve_cpu_usage_ratio`，按 `id` 取 Avg，最近 15 分钟 | 整整 15 分钟都高于 0.95（其 vCPU 的 95%） | 不高于 0.855 |
-| Storage Near Full | Warning | `pve.scope = storage` 的 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100，按 `id` | 高于 85% | 不高于 76.5% |
-| Container Root Disk Near Full | Warning | 针对 `pve.type = lxc` 的同一磁盘比率，按 `id` | 高于 90% | 不高于 81% |
+| High Node CPU Usage | 警告 | `pve.scope = node` 的 `pve_cpu_usage_ratio`，按 `id` 取 Avg | 高于 0.9（节点核心的 90%） | 不高于 0.81 |
+| High Node Memory Usage | 警告 | `pve.scope = node` 的 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100，按 `id` | 高于 85% | 不高于 76.5% |
+| High Guest CPU Usage | 警告 | `pve.scope = guest` 的 `pve_cpu_usage_ratio`，按 `id` 取 Avg，最近 15 分钟 | 整整 15 分钟都高于 0.95（其 vCPU 的 95%） | 不高于 0.855 |
+| Storage Near Full | 警告 | `pve.scope = storage` 的 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100，按 `id` | 高于 85% | 不高于 76.5% |
+| Container Root Disk Near Full | 警告 | 针对 `pve.type = lxc` 的同一磁盘比率，按 `id` | 高于 90% | 不高于 81% |
 | HA Resource in Error State | 严重 | `state = error` 的 `pve_ha_state`，按 `id` 取 Max | 高于 0 | 等于 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`，Max（整个集群一个序列） | 高于 0 | 等于 0 |
+| Guest Not Backed Up | 警告 | `pve_not_backed_up_total`，Max（整个集群一个序列） | 高于 0 | 等于 0 |
 | Replication Failing | 严重 | `pve_replication_failed_syncs`，按 `id`（作业 ID）取 Max | 高于 0 | 等于 0 |
 
 **严重程度** 是选择列表中显示的标签。模板创建的事件和警报从项目中最严重的事件和警报严重程度开始；请在条件中更改它们。

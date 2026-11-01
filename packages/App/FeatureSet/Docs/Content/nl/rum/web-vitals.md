@@ -299,8 +299,8 @@ De pagina **Aanbevelingen** van de applicatie biedt voor elke vital een kant-en-
 | **Poor Largest Contentful Paint** | `web_vital.lcp` | 4000 ms | **Kritiek** |
 | **Poor Interaction to Next Paint** | `web_vital.inp` | 500 ms | **Kritiek** |
 | **Poor Cumulative Layout Shift** | `web_vital.cls` | 0,25 | **Kritiek** |
-| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Warning** |
-| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Warning** |
+| **Slow First Contentful Paint** | `web_vital.fcp` | 3000 ms | **Waarschuwing** |
+| **Slow Time to First Byte** | `web_vital.ttfb` | 1800 ms | **Waarschuwing** |
 
 Deze monitors lezen alleen de namen `web_vital.*`. Verstuurt je app een vital onder een andere naam, pas dan de metriek van de aangemaakte monitor aan. Om voor één route te melden, voeg je een filter `app.route` aan de monitor toe. Je kunt ook een eigen monitor bouwen op elk van deze metrieken: zie [Metrics-monitor](/docs/monitor/metrics-monitor).
 

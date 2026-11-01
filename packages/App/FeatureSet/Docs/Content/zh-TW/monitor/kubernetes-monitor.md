@@ -136,22 +136,22 @@ flowchart TB
 | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 可用性 | 10 分鐘內沒有從叢集的代理程式收到任何資料 | 嚴重 |
 | CrashLoopBackOff Detection | 工作負載 | 某個容器在 15 分鐘內重新啟動，且其中不到一半的時間處於就緒狀態 | 嚴重 |
-| Pod Stuck in Pending | 排程中 | 在 15 分鐘視窗的每個樣本中，都有某個 Pod 處於 Pending 階段 | Warning |
+| Pod Stuck in Pending | 排程中 | 在 15 分鐘視窗的每個樣本中，都有某個 Pod 處於 Pending 階段 | 警告 |
 | Node Not Ready | 節點 | 某個節點回報 NotReady，或不再回報其狀態（Unknown） | 嚴重 |
-| High Node CPU Utilization | 節點 | 節點的平均 CPU 使用量超過其可配置 CPU 的 90% | Warning |
-| High Node Memory Utilization | 節點 | 節點的平均記憶體工作集超過其可配置記憶體的 85% | Warning |
-| Deployment Replica Mismatch | 工作負載 | Deployment 的可用複本數在 15 分鐘內一直少於期望值 | Warning |
-| Job Failures | 工作負載 | 某個 Job 的 Pod 在 15 分鐘內失敗 | Warning |
+| High Node CPU Utilization | 節點 | 節點的平均 CPU 使用量超過其可配置 CPU 的 90% | 警告 |
+| High Node Memory Utilization | 節點 | 節點的平均記憶體工作集超過其可配置記憶體的 85% | 警告 |
+| Deployment Replica Mismatch | 工作負載 | Deployment 的可用複本數在 15 分鐘內一直少於期望值 | 警告 |
+| Job Failures | 工作負載 | 某個 Job 的 Pod 在 15 分鐘內失敗 | 警告 |
 | etcd No Leader | 控制平面 | etcd 沒有選出領導者 | 嚴重 |
 | API Server Request Saturation | 控制平面 | API 伺服器在整個視窗內持有 200 個以上正在處理的請求 | 嚴重 |
-| Scheduler Backlog | 排程中 | 排程器的待處理 Pod 佇列在 5 分鐘內一直不是空的 | Warning |
-| High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 90% | Warning |
-| DaemonSet Misscheduled Nodes | 工作負載 | DaemonSet 在不再符合其節點選取器、親和性或容忍度的節點上執行 Pod | Warning |
-| High Node CPU Request Commitment | 節點 | 節點上容器的 CPU 請求總和超過其可配置 CPU 的 90% | Warning |
-| High Node Memory Request Commitment | 節點 | 節點上容器的記憶體請求總和超過其可配置記憶體的 90% | Warning |
+| Scheduler Backlog | 排程中 | 排程器的待處理 Pod 佇列在 5 分鐘內一直不是空的 | 警告 |
+| High Node Disk Usage | 儲存空間 | 節點的檔案系統使用率超過 90% | 警告 |
+| DaemonSet Misscheduled Nodes | 工作負載 | DaemonSet 在不再符合其節點選取器、親和性或容忍度的節點上執行 Pod | 警告 |
+| High Node CPU Request Commitment | 節點 | 節點上容器的 CPU 請求總和超過其可配置 CPU 的 90% | 警告 |
+| High Node Memory Request Commitment | 節點 | 節點上容器的記憶體請求總和超過其可配置記憶體的 90% | 警告 |
 | HPA Saturated at Max Replicas | 工作負載 | 擴展到高於其 `minReplicas` 的 HPA 執行在其 `maxReplicas` 的 90% 以上 | 嚴重 |
 | Pod Memory Saturating Container Limit | 工作負載 | Pod 使用了超過其容器記憶體限制的 90% | 嚴重 |
-| Pod CPU Saturating Container Limit | 工作負載 | Pod 使用了超過其容器 CPU 限制的 90% | Warning |
+| Pod CPU Saturating Container Limit | 工作負載 | Pod 使用了超過其容器 CPU 限制的 90% | 警告 |
 
 以個別物件指標為基礎的範本會分別評估每個節點、Pod、Deployment、Job、DaemonSet 或 HPA，因此有多個不健康 Pod 的叢集會為每個 Pod 建立一個事件，而不是整個叢集只建立一個。
 

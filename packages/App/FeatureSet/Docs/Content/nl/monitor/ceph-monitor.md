@@ -116,42 +116,42 @@ Sjablonen lezen de laatste 5 minuten, tenzij de tabel iets anders zegt. Een crit
 | Sjabloon | Ernst | Bewaakt | Gaat af bij | Herstelt bij |
 | --- | --- | --- | --- | --- |
 | Cluster Health Error | Kritiek | `ceph_health_status`, Max, laatste minuut | 2 of meer: `HEALTH_ERR` | Onder 1,8: `HEALTH_WARN` of beter |
-| Cluster Health Warning | Warning | `ceph_health_status`, Max | 1 of meer: `HEALTH_WARN` of slechter | Onder 0,9: `HEALTH_OK` |
+| Cluster Health Warning | Waarschuwing | `ceph_health_status`, Max | 1 of meer: `HEALTH_WARN` of slechter | Onder 0,9: `HEALTH_OK` |
 | Monitor Quorum Degraded | Kritiek | `ceph_mon_quorum_status`, Min per `ceph_daemon`, laatste minuut | Een monitor zakt onder 1, buiten het quorum. Eén incident per monitor | Weer op 1 |
-| Slow Operations | Warning | `ceph_healthcheck_slow_ops`, Max | Boven 0: de `SLOW_OPS`-check van het cluster is actief | Op 0 |
-| Daemon Slow Operations | Warning | `ceph_daemon_health_metrics` voor `type = SLOW_OPS`, Max per `ceph_daemon` | Boven 0. Eén incident per OSD of monitor | De reeks verdwijnt |
+| Slow Operations | Waarschuwing | `ceph_healthcheck_slow_ops`, Max | Boven 0: de `SLOW_OPS`-check van het cluster is actief | Op 0 |
+| Daemon Slow Operations | Waarschuwing | `ceph_daemon_health_metrics` voor `type = SLOW_OPS`, Max per `ceph_daemon` | Boven 0. Eén incident per OSD of monitor | De reeks verdwijnt |
 | Daemon Crash | Kritiek | `ceph_health_detail` voor `name = RECENT_CRASH`, Max | De check is actief: er zijn niet-gearchiveerde crashes van daemons. De mgr heeft geen `ceph_crash_*`-metric, dus dit is het enige crashsignaal | De crashes zijn gearchiveerd |
-| Monitor Clock Skew | Warning | `ceph_health_detail` voor `name = MON_CLOCK_SKEW`, Max | De check is actief: de klokken van de monitors wijken verder af dan toegestaan (standaard 0,05 s) | De check verdwijnt |
+| Monitor Clock Skew | Waarschuwing | `ceph_health_detail` voor `name = MON_CLOCK_SKEW`, Max | De check is actief: de klokken van de monitors wijken verder af dan toegestaan (standaard 0,05 s) | De check verdwijnt |
 | Monitor Disk Critically Low | Kritiek | `ceph_health_detail` voor `name = MON_DISK_CRIT`, Max | De check is actief: de databaseschijf van een monitor heeft minder dan 5% vrij (standaard) | De check verdwijnt |
-| Monitor Disk Space Low | Warning | `ceph_health_detail` voor `name = MON_DISK_LOW`, Max | De check is actief: minder dan 30% vrij (standaard) | De check verdwijnt |
+| Monitor Disk Space Low | Waarschuwing | `ceph_health_detail` voor `name = MON_DISK_LOW`, Max | De check is actief: minder dan 30% vrij (standaard) | De check verdwijnt |
 
 ### OSD-sjablonen
 
 | Sjabloon | Ernst | Bewaakt | Gaat af bij | Herstelt bij |
 | --- | --- | --- | --- | --- |
 | OSD Down | Kritiek | `ceph_osd_up`, Min per `ceph_daemon` | Een OSD zakt onder 1. Eén incident per OSD | Weer op 1 |
-| OSD Out | Warning | `ceph_osd_in`, Min per `ceph_daemon` | Een OSD zakt onder 1: uit de gegevensverdeling gehaald | Weer op 1 |
-| OSD High Latency | Warning | `ceph_osd_apply_latency_ms`, Avg per `ceph_daemon` | Boven 100 ms. Eén incident per OSD | Op of onder 90 ms |
-| OSD Slow Heartbeats | Warning | `ceph_health_detail` voor `name = OSD_SLOW_PING_TIME_FRONT` en `name = OSD_SLOW_PING_TIME_BACK`, Max | Een van de checks is actief: heartbeats op het publieke of het clusternetwerk zijn traag. De mgr exporteert geen meetwaarde voor pingtijd | Beide checks verdwijnen |
+| OSD Out | Waarschuwing | `ceph_osd_in`, Min per `ceph_daemon` | Een OSD zakt onder 1: uit de gegevensverdeling gehaald | Weer op 1 |
+| OSD High Latency | Waarschuwing | `ceph_osd_apply_latency_ms`, Avg per `ceph_daemon` | Boven 100 ms. Eén incident per OSD | Op of onder 90 ms |
+| OSD Slow Heartbeats | Waarschuwing | `ceph_health_detail` voor `name = OSD_SLOW_PING_TIME_FRONT` en `name = OSD_SLOW_PING_TIME_BACK`, Max | Een van de checks is actief: heartbeats op het publieke of het clusternetwerk zijn traag. De mgr exporteert geen meetwaarde voor pingtijd | Beide checks verdwijnen |
 
 ### Sjablonen voor placement groups
 
 | Sjabloon | Ernst | Bewaakt | Gaat af bij | Herstelt bij |
 | --- | --- | --- | --- | --- |
 | Inactive Placement Groups | Kritiek | `ceph_pg_total` − `ceph_pg_active`, Max per `pool_id` | Boven 0: PG's kunnen geen I/O verwerken, dus clientverzoeken aan die PG's blijven hangen. Eén incident per pool | Op 0 |
-| Degraded Placement Groups | Warning | `ceph_pg_degraded`, Max per `pool_id` | Boven 0: objecten hebben minder replica's dan ingesteld | Op 0 |
-| Undersized Placement Groups | Warning | `ceph_pg_undersized`, Max per `pool_id` | Boven 0: PG's staan op minder OSD's dan hun aantal replica's | Op 0 |
+| Degraded Placement Groups | Waarschuwing | `ceph_pg_degraded`, Max per `pool_id` | Boven 0: objecten hebben minder replica's dan ingesteld | Op 0 |
+| Undersized Placement Groups | Waarschuwing | `ceph_pg_undersized`, Max per `pool_id` | Boven 0: PG's staan op minder OSD's dan hun aantal replica's | Op 0 |
 | Damaged Placement Groups | Kritiek | `ceph_health_detail` voor `name = PG_DAMAGED` en `name = OSD_SCRUB_ERRORS`, Max | Een van de checks is actief: scrubbing heeft schade of leesfouten gevonden | Beide checks verdwijnen |
 
 ### Capaciteitssjablonen
 
 | Sjabloon | Ernst | Bewaakt | Gaat af bij | Herstelt bij |
 | --- | --- | --- | --- | --- |
-| Cluster Near Full | Warning | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Boven 85%, de standaard nearfull-ratio van Ceph | Op of onder 76,5% |
+| Cluster Near Full | Waarschuwing | `ceph_cluster_total_used_bytes` ÷ `ceph_cluster_total_bytes` × 100 | Boven 85%, de standaard nearfull-ratio van Ceph | Op of onder 76,5% |
 | Cluster Full | Kritiek | Dezelfde ratio | Boven 95%, de standaard full-ratio van Ceph, waarbij schrijven in het hele cluster stopt | Op of onder 85,5% |
-| Pool Near Full | Warning | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, per `pool_id` | Boven 85% van wat de pool kan bevatten. Eén incident per pool | Op of onder 76,5% |
-| OSD Nearfull | Warning | `ceph_health_detail` voor `name = OSD_NEARFULL`, Max | De check is actief: een OSD is over de nearfull-drempel gegaan (standaard 85%). Losse OSD's lopen vol lang voordat het clustergemiddelde dat doet | De check verdwijnt |
-| OSD Backfillfull | Warning | `ceph_health_detail` voor `name = OSD_BACKFILLFULL`, Max | De check is actief: backfill naar het OSD wordt geweigerd (standaard 90%), waardoor herstel stokt | De check verdwijnt |
+| Pool Near Full | Waarschuwing | `ceph_pool_stored` ÷ (`ceph_pool_stored` + `ceph_pool_max_avail`) × 100, per `pool_id` | Boven 85% van wat de pool kan bevatten. Eén incident per pool | Op of onder 76,5% |
+| OSD Nearfull | Waarschuwing | `ceph_health_detail` voor `name = OSD_NEARFULL`, Max | De check is actief: een OSD is over de nearfull-drempel gegaan (standaard 85%). Losse OSD's lopen vol lang voordat het clustergemiddelde dat doet | De check verdwijnt |
+| OSD Backfillfull | Waarschuwing | `ceph_health_detail` voor `name = OSD_BACKFILLFULL`, Max | De check is actief: backfill naar het OSD wordt geweigerd (standaard 90%), waardoor herstel stokt | De check verdwijnt |
 | OSD Full | Kritiek | `ceph_health_detail` voor `name = OSD_FULL`, Max, laatste minuut | De check is actief: een OSD heeft de full-drempel bereikt (standaard 95%) en schrijven wordt geweigerd | De check verdwijnt |
 
 - **Sjablonen voor uitval en quorum gebruiken het minimum**, zodat één uitgevallen OSD of één monitor buiten het quorum ze laat afgaan in plaats van verborgen te blijven achter de gezonde meerderheid.

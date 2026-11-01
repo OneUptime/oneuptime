@@ -117,15 +117,15 @@ Os modelos leem os últimos 5 minutos, salvo indicação contrária na tabela. U
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Crítico | `pve_up`, Count sobre o cluster inteiro, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
 | Node Offline | Crítico | `pve_up` para `pve.scope = node`, Min por `id` | Abaixo de 1 | Em 1 |
-| Guest Down | Warning | `pve_up` e `pve_onboot_status` para `pve.scope = guest`, Min por `id` | `pve_up` está abaixo de 1 enquanto `pve_onboot_status` é 1 | `pve_up` volta a 1, ou a inicialização no boot é desativada |
+| Guest Down | Aviso | `pve_up` e `pve_onboot_status` para `pve.scope = guest`, Min por `id` | `pve_up` está abaixo de 1 enquanto `pve_onboot_status` é 1 | `pve_up` volta a 1, ou a inicialização no boot é desativada |
 | Cluster Quorum at Risk | Crítico | `pve_up` ÷ `pve_node_info` × 100 para `pve.scope = node` (ambos Soma): a parcela de nós online | 50% ou menos | Acima de 55% |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` para `pve.scope = node`, Avg por `id` | Acima de 0,9 (90% dos núcleos do nó) | Em 0,81 ou menos |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 para `pve.scope = node`, por `id` | Acima de 85% | Em 76,5% ou menos |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` para `pve.scope = guest`, Avg por `id`, últimos 15 minutos | Acima de 0,95 (95% das suas vCPUs) durante os 15 minutos | Em 0,855 ou menos |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 para `pve.scope = storage`, por `id` | Acima de 85% | Em 76,5% ou menos |
-| Container Root Disk Near Full | Warning | A mesma razão de disco para `pve.type = lxc`, por `id` | Acima de 90% | Em 81% ou menos |
+| High Node CPU Usage | Aviso | `pve_cpu_usage_ratio` para `pve.scope = node`, Avg por `id` | Acima de 0,9 (90% dos núcleos do nó) | Em 0,81 ou menos |
+| High Node Memory Usage | Aviso | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 para `pve.scope = node`, por `id` | Acima de 85% | Em 76,5% ou menos |
+| High Guest CPU Usage | Aviso | `pve_cpu_usage_ratio` para `pve.scope = guest`, Avg por `id`, últimos 15 minutos | Acima de 0,95 (95% das suas vCPUs) durante os 15 minutos | Em 0,855 ou menos |
+| Storage Near Full | Aviso | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 para `pve.scope = storage`, por `id` | Acima de 85% | Em 76,5% ou menos |
+| Container Root Disk Near Full | Aviso | A mesma razão de disco para `pve.type = lxc`, por `id` | Acima de 90% | Em 81% ou menos |
 | HA Resource in Error State | Crítico | `pve_ha_state` para `state = error`, Max por `id` | Acima de 0 | Em 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (uma única série do cluster) | Acima de 0 | Em 0 |
+| Guest Not Backed Up | Aviso | `pve_not_backed_up_total`, Max (uma única série do cluster) | Acima de 0 | Em 0 |
 | Replication Failing | Crítico | `pve_replication_failed_syncs`, Max por `id` (o id do job) | Acima de 0 | Em 0 |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.

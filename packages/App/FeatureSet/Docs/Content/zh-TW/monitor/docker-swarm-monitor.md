@@ -102,9 +102,9 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 嚴重 | `container.memory.percent`，對叢集中所有容器取 Count，最近 10 分鐘 | 整個視窗內都沒有資料 | 資料再次送達 |
 | Task Down (Low Uptime) | 嚴重 | `container.uptime`，依任務取 Min，最近 1 分鐘 | 任一值低於 60 秒 | 每個值都不低於 66 秒 |
-| High Task CPU Usage | Warning | `container.cpu.utilization`，依任務取 Avg，最近 5 分鐘 | 高於 80（單一核心的 %） | 不高於 72 |
-| High Task Memory Usage | Warning | `container.memory.percent`，依任務取 Avg，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
-| High Task Process Count | Warning | `container.pids.count`，依任務取 Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
+| High Task CPU Usage | 警告 | `container.cpu.utilization`，依任務取 Avg，最近 5 分鐘 | 高於 80（單一核心的 %） | 不高於 72 |
+| High Task Memory Usage | 警告 | `container.memory.percent`，依任務取 Avg，最近 5 分鐘 | 高於 85% | 不高於 76.5% |
+| High Task Process Count | 警告 | `container.pids.count`，依任務取 Max，最近 5 分鐘 | 高於 2000 | 不高於 1800 |
 
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。
 

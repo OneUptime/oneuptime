@@ -102,11 +102,11 @@ Een criterium gaat alleen af als de voorwaarde elke minuut van zijn venster geld
 | Sjabloon | Ernst | Bewaakt | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Kritiek | `system.memory.usage`, Count, laatste 10 minuten | Geen gegevens gedurende het hele venster | Er komen weer gegevens binnen |
-| High CPU Utilization | Warning | `system.cpu.utilization` voor de toestanden `user` en `system`, opgeteld en als percentage getoond, laatste 5 minuten | Boven 80% | Op of onder 72% |
-| High Memory Utilization | Warning | `system.memory.utilization` voor de toestand `used`, als percentage, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
+| High CPU Utilization | Waarschuwing | `system.cpu.utilization` voor de toestanden `user` en `system`, opgeteld en als percentage getoond, laatste 5 minuten | Boven 80% | Op of onder 72% |
+| High Memory Utilization | Waarschuwing | `system.memory.utilization` voor de toestand `used`, als percentage, laatste 5 minuten | Boven 85% | Op of onder 76,5% |
 | High Filesystem Usage | Kritiek | `system.filesystem.utilization`, Max per `mountpoint` en `device`, als percentage, laatste 5 minuten | Boven 90% | Op of onder 81% |
-| High Load Average (1m) | Warning | `system.cpu.load_average.1m`, Avg, laatste 5 minuten | Boven 4 | Op of onder 3,6 |
-| High Process Count | Warning | `system.processes.count`, Max, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
+| High Load Average (1m) | Waarschuwing | `system.cpu.load_average.1m`, Avg, laatste 5 minuten | Boven 4 | Op of onder 3,6 |
+| High Process Count | Waarschuwing | `system.processes.count`, Max, laatste 5 minuten | Boven 2000 | Op of onder 1800 |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een sjabloon maakt, beginnen op het zwaarste incident- en waarschuwingsernstniveau van uw project; wijzig ze in de criteria.
 

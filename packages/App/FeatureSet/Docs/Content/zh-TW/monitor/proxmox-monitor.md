@@ -117,15 +117,15 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | 嚴重 | `pve_up`，對整個叢集取 Count，最近 10 分鐘 | 整個視窗內都沒有資料 | 資料再次送達 |
 | Node Offline | 嚴重 | `pve.scope = node` 的 `pve_up`，依 `id` 取 Min | 低於 1 | 等於 1 |
-| Guest Down | Warning | `pve.scope = guest` 的 `pve_up` 和 `pve_onboot_status`，依 `id` 取 Min | `pve_onboot_status` 為 1 時 `pve_up` 低於 1 | `pve_up` 回到 1，或關閉開機時啟動 |
+| Guest Down | 警告 | `pve.scope = guest` 的 `pve_up` 和 `pve_onboot_status`，依 `id` 取 Min | `pve_onboot_status` 為 1 時 `pve_up` 低於 1 | `pve_up` 回到 1，或關閉開機時啟動 |
 | Cluster Quorum at Risk | 嚴重 | `pve.scope = node` 的 `pve_up` ÷ `pve_node_info` × 100（兩者都取總和）：上線節點的比例 | 50% 以下 | 高於 55% |
-| High Node CPU Usage | Warning | `pve.scope = node` 的 `pve_cpu_usage_ratio`，依 `id` 取 Avg | 高於 0.9（節點核心的 90%） | 不高於 0.81 |
-| High Node Memory Usage | Warning | `pve.scope = node` 的 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100，依 `id` | 高於 85% | 不高於 76.5% |
-| High Guest CPU Usage | Warning | `pve.scope = guest` 的 `pve_cpu_usage_ratio`，依 `id` 取 Avg，最近 15 分鐘 | 整整 15 分鐘都高於 0.95（其 vCPU 的 95%） | 不高於 0.855 |
-| Storage Near Full | Warning | `pve.scope = storage` 的 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100，依 `id` | 高於 85% | 不高於 76.5% |
-| Container Root Disk Near Full | Warning | 針對 `pve.type = lxc` 的同一磁碟比率，依 `id` | 高於 90% | 不高於 81% |
+| High Node CPU Usage | 警告 | `pve.scope = node` 的 `pve_cpu_usage_ratio`，依 `id` 取 Avg | 高於 0.9（節點核心的 90%） | 不高於 0.81 |
+| High Node Memory Usage | 警告 | `pve.scope = node` 的 `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100，依 `id` | 高於 85% | 不高於 76.5% |
+| High Guest CPU Usage | 警告 | `pve.scope = guest` 的 `pve_cpu_usage_ratio`，依 `id` 取 Avg，最近 15 分鐘 | 整整 15 分鐘都高於 0.95（其 vCPU 的 95%） | 不高於 0.855 |
+| Storage Near Full | 警告 | `pve.scope = storage` 的 `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100，依 `id` | 高於 85% | 不高於 76.5% |
+| Container Root Disk Near Full | 警告 | 針對 `pve.type = lxc` 的同一磁碟比率，依 `id` | 高於 90% | 不高於 81% |
 | HA Resource in Error State | 嚴重 | `state = error` 的 `pve_ha_state`，依 `id` 取 Max | 高於 0 | 等於 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`，Max（整個叢集一個序列） | 高於 0 | 等於 0 |
+| Guest Not Backed Up | 警告 | `pve_not_backed_up_total`，Max（整個叢集一個序列） | 高於 0 | 等於 0 |
 | Replication Failing | 嚴重 | `pve_replication_failed_syncs`，依 `id`（工作 ID）取 Max | 高於 0 | 等於 0 |
 
 **嚴重程度** 是選擇清單中顯示的標籤。範本建立的事件和警示會從專案中最嚴重的事件和警示嚴重程度開始；請在條件中變更它們。

@@ -117,15 +117,15 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | بحرانی | `pve_up`، Count روی کل خوشه، ۱۰ دقیقه گذشته | در تمام پنجره هیچ داده‌ای نیست | داده دوباره می‌رسد |
 | Node Offline | بحرانی | `pve_up` برای `pve.scope = node`، Min به ازای هر `id` | کمتر از ۱ | برابر ۱ |
-| Guest Down | Warning | `pve_up` و `pve_onboot_status` برای `pve.scope = guest`، Min به ازای هر `id` | `pve_up` کمتر از ۱ است در حالی که `pve_onboot_status` برابر ۱ است | `pve_up` دوباره ۱ شود، یا اجرا هنگام راه‌اندازی خاموش شود |
+| Guest Down | هشدار | `pve_up` و `pve_onboot_status` برای `pve.scope = guest`، Min به ازای هر `id` | `pve_up` کمتر از ۱ است در حالی که `pve_onboot_status` برابر ۱ است | `pve_up` دوباره ۱ شود، یا اجرا هنگام راه‌اندازی خاموش شود |
 | Cluster Quorum at Risk | بحرانی | `pve_up` ÷ `pve_node_info` × ۱۰۰ برای `pve.scope = node` (هر دو جمع): سهم گره‌های آنلاین | ۵۰٪ یا کمتر | بیش از ۵۵٪ |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` برای `pve.scope = node`، Avg به ازای هر `id` | بیش از ۰٫۹ (۹۰٪ هسته‌های گره) | ۰٫۸۱ یا کمتر |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × ۱۰۰ برای `pve.scope = node`، به ازای هر `id` | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` برای `pve.scope = guest`، Avg به ازای هر `id`، ۱۵ دقیقه گذشته | بیش از ۰٫۹۵ (۹۵٪ vCPUهای آن) در تمام ۱۵ دقیقه | ۰٫۸۵۵ یا کمتر |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × ۱۰۰ برای `pve.scope = storage`، به ازای هر `id` | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
-| Container Root Disk Near Full | Warning | همان نسبت دیسک برای `pve.type = lxc`، به ازای هر `id` | بیش از ۹۰٪ | ۸۱٪ یا کمتر |
+| High Node CPU Usage | هشدار | `pve_cpu_usage_ratio` برای `pve.scope = node`، Avg به ازای هر `id` | بیش از ۰٫۹ (۹۰٪ هسته‌های گره) | ۰٫۸۱ یا کمتر |
+| High Node Memory Usage | هشدار | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × ۱۰۰ برای `pve.scope = node`، به ازای هر `id` | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
+| High Guest CPU Usage | هشدار | `pve_cpu_usage_ratio` برای `pve.scope = guest`، Avg به ازای هر `id`، ۱۵ دقیقه گذشته | بیش از ۰٫۹۵ (۹۵٪ vCPUهای آن) در تمام ۱۵ دقیقه | ۰٫۸۵۵ یا کمتر |
+| Storage Near Full | هشدار | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × ۱۰۰ برای `pve.scope = storage`، به ازای هر `id` | بیش از ۸۵٪ | ۷۶٫۵٪ یا کمتر |
+| Container Root Disk Near Full | هشدار | همان نسبت دیسک برای `pve.type = lxc`، به ازای هر `id` | بیش از ۹۰٪ | ۸۱٪ یا کمتر |
 | HA Resource in Error State | بحرانی | `pve_ha_state` برای `state = error`، Max به ازای هر `id` | بیش از ۰ | برابر ۰ |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`، Max (یک سری برای کل خوشه) | بیش از ۰ | برابر ۰ |
+| Guest Not Backed Up | هشدار | `pve_not_backed_up_total`، Max (یک سری برای کل خوشه) | بیش از ۰ | برابر ۰ |
 | Replication Failing | بحرانی | `pve_replication_failed_syncs`، Max به ازای هر `id` (شناسه کار) | بیش از ۰ | برابر ۰ |
 
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک الگو می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.

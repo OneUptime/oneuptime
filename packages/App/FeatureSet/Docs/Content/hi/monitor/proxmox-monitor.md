@@ -117,15 +117,15 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | गंभीर | `pve_up`, पूरे क्लस्टर पर Count, पिछले 10 मिनट | पूरी विंडो में कोई डेटा नहीं | डेटा फिर से आता है |
 | Node Offline | गंभीर | `pve.scope = node` के लिए `pve_up`, प्रति `id` Min | 1 से कम | 1 पर |
-| Guest Down | Warning | `pve.scope = guest` के लिए `pve_up` और `pve_onboot_status`, प्रति `id` Min | `pve_onboot_status` के 1 रहते `pve_up` 1 से कम है | `pve_up` फिर से 1 है, या बूट पर शुरू होना बंद कर दिया गया है |
+| Guest Down | चेतावनी | `pve.scope = guest` के लिए `pve_up` और `pve_onboot_status`, प्रति `id` Min | `pve_onboot_status` के 1 रहते `pve_up` 1 से कम है | `pve_up` फिर से 1 है, या बूट पर शुरू होना बंद कर दिया गया है |
 | Cluster Quorum at Risk | गंभीर | `pve.scope = node` के लिए `pve_up` ÷ `pve_node_info` × 100 (दोनों योग): ऑनलाइन नोड का हिस्सा | 50% या उससे कम | 55% से ऊपर |
-| High Node CPU Usage | Warning | `pve.scope = node` के लिए `pve_cpu_usage_ratio`, प्रति `id` Avg | 0.9 से ऊपर (नोड के कोर का 90%) | 0.81 या उससे कम |
-| High Node Memory Usage | Warning | `pve.scope = node` के लिए `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100, प्रति `id` | 85% से ऊपर | 76.5% या उससे कम |
-| High Guest CPU Usage | Warning | `pve.scope = guest` के लिए `pve_cpu_usage_ratio`, प्रति `id` Avg, पिछले 15 मिनट | पूरे 15 मिनट 0.95 से ऊपर (इसके vCPU का 95%) | 0.855 या उससे कम |
-| Storage Near Full | Warning | `pve.scope = storage` के लिए `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100, प्रति `id` | 85% से ऊपर | 76.5% या उससे कम |
-| Container Root Disk Near Full | Warning | `pve.type = lxc` के लिए वही डिस्क अनुपात, प्रति `id` | 90% से ऊपर | 81% या उससे कम |
+| High Node CPU Usage | चेतावनी | `pve.scope = node` के लिए `pve_cpu_usage_ratio`, प्रति `id` Avg | 0.9 से ऊपर (नोड के कोर का 90%) | 0.81 या उससे कम |
+| High Node Memory Usage | चेतावनी | `pve.scope = node` के लिए `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100, प्रति `id` | 85% से ऊपर | 76.5% या उससे कम |
+| High Guest CPU Usage | चेतावनी | `pve.scope = guest` के लिए `pve_cpu_usage_ratio`, प्रति `id` Avg, पिछले 15 मिनट | पूरे 15 मिनट 0.95 से ऊपर (इसके vCPU का 95%) | 0.855 या उससे कम |
+| Storage Near Full | चेतावनी | `pve.scope = storage` के लिए `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100, प्रति `id` | 85% से ऊपर | 76.5% या उससे कम |
+| Container Root Disk Near Full | चेतावनी | `pve.type = lxc` के लिए वही डिस्क अनुपात, प्रति `id` | 90% से ऊपर | 81% या उससे कम |
 | HA Resource in Error State | गंभीर | `state = error` के लिए `pve_ha_state`, प्रति `id` Max | 0 से ऊपर | 0 पर |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (पूरे क्लस्टर की एक सीरीज़) | 0 से ऊपर | 0 पर |
+| Guest Not Backed Up | चेतावनी | `pve_not_backed_up_total`, Max (पूरे क्लस्टर की एक सीरीज़) | 0 से ऊपर | 0 पर |
 | Replication Failing | गंभीर | `pve_replication_failed_syncs`, प्रति `id` (जॉब id) Max | 0 से ऊपर | 0 पर |
 
 **गंभीरता** वह लेबल है जो चयन सूची दिखाती है। टेम्पलेट जो घटना और अलर्ट बनाता है, वे आपके प्रोजेक्ट की सबसे गंभीर घटना और अलर्ट गंभीरता से शुरू होते हैं; इन्हें मानदंडों में बदलें।

@@ -117,15 +117,15 @@ Skabeloner læser de seneste 5 minutter, medmindre tabellen siger andet. Et krit
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritisk | `pve_up`, Count over hele klyngen, seneste 10 minutter | Ingen data i hele vinduet | Data kommer igen |
 | Node Offline | Kritisk | `pve_up` for `pve.scope = node`, Min pr. `id` | Under 1 | Ved 1 |
-| Guest Down | Warning | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min pr. `id` | `pve_up` er under 1, mens `pve_onboot_status` er 1 | `pve_up` er tilbage på 1, eller start ved opstart er slået fra |
+| Guest Down | Advarsel | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min pr. `id` | `pve_up` er under 1, mens `pve_onboot_status` er 1 | `pve_up` er tilbage på 1, eller start ved opstart er slået fra |
 | Cluster Quorum at Risk | Kritisk | `pve_up` ÷ `pve_node_info` × 100 for `pve.scope = node` (begge Sum): andelen af noder, der er online | 50 % eller mindre | Over 55 % |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg pr. `id` | Over 0,9 (90 % af nodens kerner) | Ved eller under 0,81 |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg pr. `id`, seneste 15 minutter | Over 0,95 (95 % af dens vCPU'er) i alle 15 minutter | Ved eller under 0,855 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
-| Container Root Disk Near Full | Warning | Det samme diskforhold for `pve.type = lxc`, pr. `id` | Over 90 % | Ved eller under 81 % |
+| High Node CPU Usage | Advarsel | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg pr. `id` | Over 0,9 (90 % af nodens kerner) | Ved eller under 0,81 |
+| High Node Memory Usage | Advarsel | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
+| High Guest CPU Usage | Advarsel | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg pr. `id`, seneste 15 minutter | Over 0,95 (95 % af dens vCPU'er) i alle 15 minutter | Ved eller under 0,855 |
+| Storage Near Full | Advarsel | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, pr. `id` | Over 85 % | Ved eller under 76,5 % |
+| Container Root Disk Near Full | Advarsel | Det samme diskforhold for `pve.type = lxc`, pr. `id` | Over 90 % | Ved eller under 81 % |
 | HA Resource in Error State | Kritisk | `pve_ha_state` for `state = error`, Max pr. `id` | Over 0 | Ved 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (én klyngedækkende serie) | Over 0 | Ved 0 |
+| Guest Not Backed Up | Advarsel | `pve_not_backed_up_total`, Max (én klyngedækkende serie) | Over 0 | Ved 0 |
 | Replication Failing | Kritisk | `pve_replication_failed_syncs`, Max pr. `id` (job-id'et) | Over 0 | Ved 0 |
 
 **Alvorlighed** er den etiket, vælgeren viser. Hændelsen og advarslen, som en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; ændr dem i kriterierne.

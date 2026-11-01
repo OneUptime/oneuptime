@@ -91,11 +91,11 @@ Salvo indicação contrária na tabela, um critério só dispara quando a condi�
 | Modelo | Gravidade | Monitora | Dispara quando | Recupera quando |
 | --- | --- | --- | --- | --- |
 | Host Stopped Reporting | Crítico | `container.memory.percent`, Count sobre todos os contêineres do host, últimos 10 minutos | Nenhum dado durante toda a janela | Os dados voltam a chegar |
-| High Container CPU Usage | Warning | `container.cpu.utilization`, Max por contêiner, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
-| High Container Memory Usage | Warning | `container.memory.percent`, Max por contêiner, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
+| High Container CPU Usage | Aviso | `container.cpu.utilization`, Max por contêiner, últimos 5 minutos | Acima de 80 (% de um núcleo) | Em 72 ou menos |
+| High Container Memory Usage | Aviso | `container.memory.percent`, Max por contêiner, últimos 5 minutos | Acima de 85% | Em 76,5% ou menos |
 | Container Restart Loop | Crítico | `container.restarts.increase`, Sum por contêiner, últimos 15 minutos | Mais de 3 reinícios na janela (Soma) | 2,7 ou menos |
-| Container CPU Throttling | Warning | Crescimento de `container.cpu.throttling_data.throttled_time` em ms por contêiner, últimos 5 minutos | Mais de 1000 ms na janela (Soma) | 900 ms ou menos |
-| High Container Process Count | Warning | `container.pids.count`, Max por contêiner, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
+| Container CPU Throttling | Aviso | Crescimento de `container.cpu.throttling_data.throttled_time` em ms por contêiner, últimos 5 minutos | Mais de 1000 ms na janela (Soma) | 900 ms ou menos |
+| High Container Process Count | Aviso | `container.pids.count`, Max por contêiner, últimos 5 minutos | Acima de 2000 | Em 1800 ou menos |
 | Container Restarted (Low Uptime) | Crítico | `container.uptime`, Min por contêiner, último 1 minuto | Menos de 120 segundos | 132 segundos ou mais |
 
 **Gravidade** é o rótulo que o seletor mostra. O incidente e o alerta que um modelo cria começam com a gravidade de incidente e de alerta mais alta do seu projeto; altere-as nos critérios.

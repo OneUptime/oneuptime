@@ -95,10 +95,10 @@ Een criterium gaat alleen af als de voorwaarde geldt voor elke minuut van zijn v
 | Template | Categorie | Ernst | Houdt in de gaten | Gaat af als | Herstelt als |
 | --- | --- | --- | --- | --- | --- |
 | Device Offline | Beschikbaarheid | Kritiek | `iot_device_up`, Min per `device.id`, laatste 30 minuten | Een meting ligt onder 1, of een geregistreerd apparaat stuurt het hele venster niets | Weer op 1 |
-| Low Battery | Power | Warning | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
-| Weak Signal | Connectiviteit | Warning | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
+| Low Battery | Power | Waarschuwing | `iot_battery_percent`, Avg per `device.id`, laatste 5 minuten | Onder 20 % | Op 22 % of hoger |
+| Weak Signal | Connectiviteit | Waarschuwing | `iot_signal_strength_dbm`, Avg per `device.id`, laatste 5 minuten | Onder -100 dBm | Op -90 dBm of hoger |
 | High Temperature | Omgeving | Kritiek | `iot_temperature_celsius`, Max per `device.id`, laatste 5 minuten | Boven 70 °C | Op 63 °C of lager |
-| High CPU Usage | Systeem | Warning | `iot_cpu_usage_ratio`, Avg per `device.id`, laatste 5 minuten | Boven 0.9 (90 % van zijn CPU) | Op 0.81 of lager |
+| High CPU Usage | Systeem | Waarschuwing | `iot_cpu_usage_ratio`, Avg per `device.id`, laatste 5 minuten | Boven 0.9 (90 % van zijn CPU) | Op 0.81 of lager |
 
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een template maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project; wijzig ze in het criterium.
 

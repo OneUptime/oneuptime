@@ -112,7 +112,7 @@ Le viste salvate appartengono al progetto, quindi tutti nel progetto vedono lo s
 
 ## Rappresentare i log in grafici
 
-Passate l'elenco ad **Analytics** per contare i log invece di leggerli. Scegliete una serie temporale, una classifica o una tabella; contate ogni log, o i valori univoci di un campo; e raggruppate per gravità, servizio, traccia, span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra i primi 5, 10, 25 o 50 gruppi.
+Passate l'elenco ad **Analisi** per contare i log invece di leggerli. Scegliete una serie temporale, una classifica o una tabella; contate ogni log, o i valori univoci di un campo; e raggruppate per gravità, servizio, traccia, span o qualsiasi attributo, poi per un secondo campo. Una classifica o una tabella mostra i primi 5, 10, 25 o 50 gruppi.
 
 Fate clic su **Elenco** per tornare alle righe stesse.
 

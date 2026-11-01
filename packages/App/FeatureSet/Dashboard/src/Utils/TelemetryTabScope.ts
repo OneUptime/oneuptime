@@ -352,7 +352,7 @@ export function buildTelemetryScopeFilterTuples(
  * "proxmoxClusterId".
  */
 const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
-  severityText: translationKey("severity"),
+  severityText: translationKey("Severity"),
   body: translationKey("message text"),
   traceId: translationKey("trace id"),
   spanId: translationKey("span id"),

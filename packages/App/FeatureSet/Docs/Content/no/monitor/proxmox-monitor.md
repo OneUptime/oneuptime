@@ -117,15 +117,15 @@ Malene leser de siste 5 minuttene med mindre tabellen sier noe annet. Et kriteri
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Kritisk | `pve_up`, Count over hele klyngen, siste 10 minutter | Ingen data i hele vinduet | Data kommer inn igjen |
 | Node Offline | Kritisk | `pve_up` for `pve.scope = node`, Min per `id` | Under 1 | På 1 |
-| Guest Down | Warning | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min per `id` | `pve_up` er under 1 mens `pve_onboot_status` er 1 | `pve_up` er tilbake på 1, eller start ved oppstart er slått av |
+| Guest Down | Advarsel | `pve_up` og `pve_onboot_status` for `pve.scope = guest`, Min per `id` | `pve_up` er under 1 mens `pve_onboot_status` er 1 | `pve_up` er tilbake på 1, eller start ved oppstart er slått av |
 | Cluster Quorum at Risk | Kritisk | `pve_up` ÷ `pve_node_info` × 100 for `pve.scope = node` (begge Sum): andelen noder som er tilkoblet | 50 % eller mindre | Over 55 % |
-| High Node CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg per `id` | Over 0,9 (90 % av nodens kjerner) | På eller under 0,81 |
-| High Node Memory Usage | Warning | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, per `id` | Over 85 % | På eller under 76,5 % |
-| High Guest CPU Usage | Warning | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg per `id`, siste 15 minutter | Over 0,95 (95 % av dens vCPU-er) i alle 15 minuttene | På eller under 0,855 |
-| Storage Near Full | Warning | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, per `id` | Over 85 % | På eller under 76,5 % |
-| Container Root Disk Near Full | Warning | Det samme diskforholdet for `pve.type = lxc`, per `id` | Over 90 % | På eller under 81 % |
+| High Node CPU Usage | Advarsel | `pve_cpu_usage_ratio` for `pve.scope = node`, Avg per `id` | Over 0,9 (90 % av nodens kjerner) | På eller under 0,81 |
+| High Node Memory Usage | Advarsel | `pve_memory_usage_bytes` ÷ `pve_memory_size_bytes` × 100 for `pve.scope = node`, per `id` | Over 85 % | På eller under 76,5 % |
+| High Guest CPU Usage | Advarsel | `pve_cpu_usage_ratio` for `pve.scope = guest`, Avg per `id`, siste 15 minutter | Over 0,95 (95 % av dens vCPU-er) i alle 15 minuttene | På eller under 0,855 |
+| Storage Near Full | Advarsel | `pve_disk_usage_bytes` ÷ `pve_disk_size_bytes` × 100 for `pve.scope = storage`, per `id` | Over 85 % | På eller under 76,5 % |
+| Container Root Disk Near Full | Advarsel | Det samme diskforholdet for `pve.type = lxc`, per `id` | Over 90 % | På eller under 81 % |
 | HA Resource in Error State | Kritisk | `pve_ha_state` for `state = error`, Max per `id` | Over 0 | På 0 |
-| Guest Not Backed Up | Warning | `pve_not_backed_up_total`, Max (én klyngeomfattende serie) | Over 0 | På 0 |
+| Guest Not Backed Up | Advarsel | `pve_not_backed_up_total`, Max (én klyngeomfattende serie) | Over 0 | På 0 |
 | Replication Failing | Kritisk | `pve_replication_failed_syncs`, Max per `id` (jobb-id-en) | Over 0 | På 0 |
 
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriene.

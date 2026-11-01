@@ -102,9 +102,9 @@ Sauf indication contraire dans le tableau, un critère ne se déclenche que si l
 | --- | --- | --- | --- | --- |
 | Cluster Stopped Reporting | Critique | `container.memory.percent`, Count sur tous les conteneurs du cluster, 10 dernières minutes | Aucune donnée pendant toute la fenêtre | Des données arrivent de nouveau |
 | Task Down (Low Uptime) | Critique | `container.uptime`, Min par tâche, dernière 1 minute | Une valeur quelconque est sous 60 secondes | Chaque valeur est à 66 secondes ou plus |
-| High Task CPU Usage | Warning | `container.cpu.utilization`, Avg par tâche, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
-| High Task Memory Usage | Warning | `container.memory.percent`, Avg par tâche, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
-| High Task Process Count | Warning | `container.pids.count`, Max par tâche, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
+| High Task CPU Usage | Avertissement | `container.cpu.utilization`, Avg par tâche, 5 dernières minutes | Au-dessus de 80 (% d'un cœur) | À 72 ou moins |
+| High Task Memory Usage | Avertissement | `container.memory.percent`, Avg par tâche, 5 dernières minutes | Au-dessus de 85 % | À 76,5 % ou moins |
+| High Task Process Count | Avertissement | `container.pids.count`, Max par tâche, 5 dernières minutes | Au-dessus de 2000 | À 1800 ou moins |
 
 **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent avec la gravité d'incident et d'alerte la plus élevée de votre projet ; changez-les dans les critères.
 
