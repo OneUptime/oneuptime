@@ -2212,16 +2212,29 @@ pre:dir(rtl) {
  * A React Flow canvas - a workflow, the service map, the topology, Correlate
  * - is laid out left to right in every language (React Flow's own
  * .react-flow { direction: ltr }): a node's place is its x and y, and its
- * handles sit on its physical sides, where its lines meet it. What a node,
- * a panel or a line's label says reads the way the page does: a Persian
- * node's words, its icon and its badges run from the right, as every card
- * on a Persian page does, and a Persian sentence in it keeps its full stop
- * at its end. A node's place does not move: it is set by a transform, from
- * the canvas's left.
+ * handles sit on its physical sides, where its lines meet it.
+ *
+ * A node, and a line's label, is a card of what it names: a service, a
+ * host, a workflow's step from the step catalogue, written in English. On
+ * a page read right to left each of its lines reads the way its own words
+ * do (unicode-bidi: plaintext, as typed text reads): an English step's
+ * description keeps its full stop at its end - turned right to left with
+ * the page, it put the full stop first (".Writes its value to the run's
+ * log") - and a Persian node's sentence reads from the right, its full stop
+ * at its left. A node's place does not move. A node that says which way
+ * its card reads (dir, as the resource topology's cards do) is left to read
+ * that way.
+ *
+ * The panels over the canvas - its controls, a legend, a toolbar - are the
+ * page's own words, and read the page's way.
  */
 .react-flow__node:dir(rtl),
-.react-flow__panel:dir(rtl),
-.react-flow__edgelabel-renderer:dir(rtl) {
+.react-flow__node:dir(rtl) :not([dir], .react-flow__node [dir] *),
+.react-flow__edgelabel-renderer:dir(rtl) :not([dir], .react-flow__edgelabel-renderer [dir] *) {
+  unicode-bidi: plaintext;
+}
+
+.react-flow__panel:dir(rtl) {
   direction: rtl;
 }
 

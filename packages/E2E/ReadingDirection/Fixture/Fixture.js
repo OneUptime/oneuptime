@@ -267,10 +267,11 @@ const FLOW_NODES = [
       label: language === "fa" ? "درگاه پرداخت." : "Payments gateway.",
     },
   },
+  // A workflow step's description, from the step catalogue: English.
   {
     id: "checkout",
     position: { x: 300, y: 140 },
-    data: { label: "Checkout API" },
+    data: { label: "Charges the card." },
   },
 ];
 

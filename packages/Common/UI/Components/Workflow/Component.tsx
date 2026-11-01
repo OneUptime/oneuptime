@@ -1,4 +1,5 @@
 import Icon, { ThickProp } from "../Icon/Icon";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import ProviderLogoImage from "../ProviderLogo/ProviderLogoImage";
 import Tooltip from "../Tooltip/Tooltip";
 import { summarizeCondition } from "./Condition/ConditionModel";
@@ -700,7 +701,11 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             WebkitBoxOrient: "vertical",
           }}
         >
-          {props.data.metadata.title}
+          {/*
+           * Read the way its words are written (IsolatedText), as its
+           * description below is.
+           */}
+          <IsolatedText text={props.data.metadata.title} />
         </span>
       </div>
 
@@ -757,7 +762,14 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             overflow: "hidden",
           }}
         >
-          {stepSummary || props.data.metadata.description}
+          {/*
+           * Read the way most of its words are written (IsolatedText): a
+           * step's English description keeps its full stop at its end on a
+           * Persian page, and a Persian summary that starts with a field's
+           * name - "environment را با ۲ حالت مقایسه می‌کند" - still reads
+           * from the right, where a first letter would read it left to right.
+           */}
+          <IsolatedText text={stepSummary || props.data.metadata.description} />
         </p>
 
         {/*

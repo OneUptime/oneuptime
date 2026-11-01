@@ -1359,11 +1359,15 @@ test.describe("a diagram in a note", () => {
 
 /*
  * A React Flow canvas is laid out left to right in every language: a node's
- * place is its x and y. What a node says reads the way the page does.
+ * place is its x and y. A node is a card of what it names - a workflow
+ * step from the step catalogue is English - and each of its lines reads the
+ * way its own words do: an English step's description keeps its full stop
+ * at its end on a Persian page, a Persian node's sentence reads from the
+ * right, its full stop at its left.
  */
 test.describe("a canvas", () => {
   for (const language of LANGUAGES) {
-    test(`${language.lang}: the canvas keeps its places; a node reads ${language.dir === "rtl" ? "right to left" : "left to right"}`, async ({
+    test(`${language.lang}: the canvas keeps its places; each node reads the way its own words do`, async ({
       page,
     }: {
       page: Page;
@@ -1375,11 +1379,35 @@ test.describe("a canvas", () => {
       const node: Locator = canvas.locator(
         '.react-flow__node[data-id="payments"]',
       );
+      const step: Locator = canvas.locator(
+        '.react-flow__node[data-id="checkout"]',
+      );
 
       await expect(node).toBeVisible();
 
       expect(await styleOf(flow, "direction")).toBe("ltr");
-      expect(await styleOf(node, "direction")).toBe(language.dir);
+      /*
+       * Laid out as the canvas is; on a page read right to left its lines
+       * read their own way, and a page read left to right is as it was.
+       */
+      expect(await styleOf(node, "direction")).toBe("ltr");
+      expect((await styleOf(node, "unicode-bidi")) === "plaintext").toBe(
+        language.dir === "rtl",
+      );
+
+      // An English sentence keeps its full stop at its end, in every language.
+      const stepWord: Box = await boxOfText(step, "Charges");
+      const stepStop: Box = await boxOfText(step, ".");
+
+      expect(stepStop.left).toBeGreaterThan(stepWord.right);
+
+      if (language.dir === "rtl") {
+        // A Persian one reads from the right: its full stop is at its left.
+        const word: Box = await boxOfText(node, "درگاه");
+        const stop: Box = await boxOfText(node, ".");
+
+        expect(stop.right).toBeLessThanOrEqual(word.left + 0.5);
+      }
 
       // 40px in from the canvas's left, whatever the language.
       const canvasBox: Box = await boxOf(canvas);
@@ -1388,6 +1416,21 @@ test.describe("a canvas", () => {
       expect(Math.abs(nodeBox.left - (canvasBox.left + 40))).toBeLessThan(1);
     });
   }
+
+  test("fa: the panels over the canvas read the page's way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "lang=fa");
+
+    const panel: Locator = page
+      .getByTestId("canvas")
+      .locator(".react-flow__panel")
+      .first();
+
+    expect(await styleOf(panel, "direction")).toBe("rtl");
+  });
 });
 
 test.describe("chevrons and arrows point the way the line reads", () => {
