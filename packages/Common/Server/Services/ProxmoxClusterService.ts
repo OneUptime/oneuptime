@@ -233,6 +233,7 @@ export class Service extends ProjectReferencesService<Model> {
       guestCount?: number | undefined;
       storageCount?: number | undefined;
       guestsWithoutBackupCount?: number | undefined;
+      isQuorate?: boolean | undefined;
     },
   ): Promise<ResourceHeartbeatResult> {
     const extrasFingerprint: string = crypto
@@ -246,6 +247,7 @@ export class Service extends ProjectReferencesService<Model> {
           guestCount: extra?.guestCount ?? null,
           storageCount: extra?.storageCount ?? null,
           guestsWithoutBackupCount: extra?.guestsWithoutBackupCount ?? null,
+          isQuorate: extra?.isQuorate ?? null,
         }),
       )
       .digest("hex");
@@ -281,6 +283,10 @@ export class Service extends ProjectReferencesService<Model> {
     if (extra?.guestsWithoutBackupCount !== undefined) {
       metadata.guestsWithoutBackupCount = extra.guestsWithoutBackupCount;
     }
+    // false is a reading: gate on undefined, not falsiness.
+    if (extra?.isQuorate !== undefined) {
+      metadata.isQuorate = extra.isQuorate;
+    }
 
     /*
      * One gated, non-blocking heartbeat write. The gates, the fail-open /
@@ -298,6 +304,31 @@ export class Service extends ProjectReferencesService<Model> {
       fingerprint: extrasFingerprint,
       describe: `proxmox cluster ${clusterId.toString()}`,
     });
+  }
+
+  /**
+   * Note that Proxmox VE sent one of its own notifications for this cluster
+   * (Common/Utils/Proxmox/ProxmoxNotifications): the Overview then shows
+   * backup results instead of how to send them. Only moves forward, so a
+   * notification processed late never makes the cluster look quieter.
+   * Notifications are few - a backup job's result per node a night, a
+   * fencing, an update list - so every one is written; no throttle.
+   */
+  @CaptureSpan()
+  public async recordNotificationReceived(data: {
+    proxmoxClusterId: ObjectID;
+    receivedAt: Date;
+  }): Promise<void> {
+    if (isNaN(data.receivedAt.getTime())) {
+      return;
+    }
+    await this.getRepository().manager.query(
+      `UPDATE "ProxmoxCluster"
+       SET "lastNotificationAt" = $2
+       WHERE "_id" = $1 AND "deletedAt" IS NULL
+         AND ("lastNotificationAt" IS NULL OR "lastNotificationAt" < $2)`,
+      [data.proxmoxClusterId.toString(), data.receivedAt],
+    );
   }
 
   /**

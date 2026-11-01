@@ -19,6 +19,12 @@ import {
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PROXMOX_NOTIFICATION_TARGET_NAME,
+  buildProxmoxNotificationRemoveCommands,
+  buildProxmoxNotificationSetupCommands,
+} from "Common/Utils/Proxmox/ProxmoxNotifications";
 
 /*
  * The in-app guide for connecting a Proxmox VE cluster. Two ways in:
@@ -636,6 +642,92 @@ function getAgentVerifyStep(context: AgentGuideContext): SetupGuideStep {
   };
 }
 
+/*
+ * Proxmox VE's own notifications - each backup job's result, a fenced node,
+ * a failed replication, updates waiting - sent to OneUptime through a
+ * webhook target (Common/Utils/Proxmox/ProxmoxNotifications). The one way
+ * to learn that a backup failed: neither pve-exporter nor the native push
+ * says so. Optional, and the same for both ways of connecting.
+ */
+export const PROXMOX_NOTIFICATIONS_STEP_TITLE: string = translationKey(
+  "Send Proxmox VE's notifications",
+);
+
+/*
+ * The step's place on the guide's page: the Overview's Backups card links
+ * straight to it ("Set up notifications"), rather than to step 1 of an
+ * install the reader has already done.
+ */
+export const PROXMOX_NOTIFICATIONS_STEP_ANCHOR: string = "send-notifications";
+
+/*
+ * Where an unknown cluster's name comes from: the name the agent was given,
+ * or - for the native push - the name the cluster registered under.
+ */
+type ProxmoxNotificationsNameSource = "agent" | "native-push";
+
+function getNotificationsClusterNote(
+  context: GuideContext,
+  source: ProxmoxNotificationsNameSource,
+): string {
+  if (context.isClusterNameKnown) {
+    return ` The command already names **\`${context.clusterName}\`**, so the notifications reach this cluster.`;
+  }
+  if (source === "agent") {
+    return ` Replace \`${context.clusterName}\` with the cluster name you gave the agent, so the notifications reach the same cluster.`;
+  }
+  return ` Replace \`${context.clusterName}\` with the name the cluster appears under in OneUptime: its Proxmox cluster name, or a standalone node's own name.`;
+}
+
+function getNotificationsStep(
+  context: GuideContext,
+  source: ProxmoxNotificationsNameSource,
+): SetupGuideStep {
+  const step: SetupGuideStep = {
+    title: PROXMOX_NOTIFICATIONS_STEP_TITLE,
+    anchor: PROXMOX_NOTIFICATIONS_STEP_ANCHOR,
+    description:
+      "Optional: run these on any node as root. Backup results, fenced nodes and failed replications then reach OneUptime too.",
+  };
+  const results: string =
+    "Each guest's page then shows its last backup, and the cluster's **Recommendations** offer the **Backup Job Failed** and **Node Fenced** alerts.";
+
+  /*
+   * Like the install script, the commands carry only a real key and URL:
+   * Proxmox VE keeps whatever it is given in the target's secrets, and a
+   * placeholder there fails without a word - at the first failed backup.
+   */
+  if (
+    !isPrefilled(context) ||
+    context.oneuptimeUrl === SETUP_GUIDE_URL_PLACEHOLDER
+  ) {
+    return {
+      ...step,
+      markdown: `Needs Proxmox VE 8.3 or later. Pick an ingestion key in step 1 to show the two commands: they carry the key, which Proxmox VE keeps in the webhook target they add.
+
+${results}`,
+    };
+  }
+
+  return {
+    ...step,
+    markdown: `${codeBlock(
+      "bash",
+      buildProxmoxNotificationSetupCommands({
+        oneUptimeUrl: context.oneuptimeUrl,
+        clusterName: context.clusterName,
+        ingestionKey: context.apiKey,
+      }),
+    )}
+
+Needs Proxmox VE 8.3 or later. The first command adds a webhook target named \`${PROXMOX_NOTIFICATION_TARGET_NAME}\`, which sends each notification to OneUptime as a log of this cluster and keeps the key and the cluster's name in its secrets. The second sends every notification to it.${getNotificationsClusterNote(context, source)}
+
+${results} To stop sending them:
+
+${codeBlock("bash", buildProxmoxNotificationRemoveCommands())}`,
+  };
+}
+
 function getEnvironmentVariablesTopic(
   context: AgentGuideContext,
 ): SetupGuideTopic {
@@ -938,6 +1030,7 @@ function getAgentGuide(context: AgentGuideContext): SetupGuideContent {
         ? getInstallScriptStep(context)
         : getDockerComposeStep(context),
       getAgentVerifyStep(context),
+      getNotificationsStep(context, "agent"),
     ],
     advanced: getAgentAdvancedTopics(context),
     troubleshooting: getAgentTroubleshootingTopics(context),
@@ -1074,7 +1167,11 @@ function getNativePushGuide(context: GuideContext): SetupGuideContent {
     keyStep: keyStep,
     intro: getNativePushIntro(),
     prerequisites: getNativePushPrerequisites(target),
-    steps: [getMetricServerStep(context, target), getNativePushVerifyStep()],
+    steps: [
+      getMetricServerStep(context, target),
+      getNativePushVerifyStep(),
+      getNotificationsStep(context, "native-push"),
+    ],
     advanced: getNativePushAdvancedTopics(context),
     troubleshooting: getNativePushTroubleshootingTopics(target),
     links: getLinks(),

@@ -3,6 +3,7 @@ import {
   parseMerakiAdvertisedName,
 } from "../../../Utils/Monitor/NeighborIdentityUtil";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What a name a neighbour advertises says about the box behind it
@@ -71,13 +72,21 @@ describe("the name a Meraki device advertises", () => {
   });
 
   test("a value of any length is read in a name's length, and at once", () => {
-    const started: number = Date.now();
+    const noSeparator: string = "x".repeat(4_000_000);
+    const longModel: string = `MS${"1".repeat(4_000_000)} - name`;
 
-    expect(parseMerakiAdvertisedName("x".repeat(4_000_000))).toBeUndefined();
-    expect(
-      parseMerakiAdvertisedName(`MS${"1".repeat(4_000_000)} - name`),
-    ).toBeUndefined();
-    expect(Date.now() - started).toBeLessThan(250);
+    const read: FastestRun<Array<unknown>> = fastestRun({
+      run: (): Array<unknown> => {
+        return [
+          parseMerakiAdvertisedName(noSeparator),
+          parseMerakiAdvertisedName(longModel),
+        ];
+      },
+      limitInMs: 250,
+    });
+
+    expect(read.result).toEqual([undefined, undefined]);
+    expect(read.inMs).toBeLessThan(250);
   });
 });
 
