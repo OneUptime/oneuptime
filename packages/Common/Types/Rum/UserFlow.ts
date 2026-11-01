@@ -19,6 +19,12 @@ import {
  * Pages travel as a dictionary: `pages` holds each distinct scrubbed URL
  * once and a journey is a list of indexes into it. A few thousand sessions
  * share a few dozen pages, so this is what keeps the response small.
+ *
+ * The read can be narrowed to one person - a user, a browser or a session -
+ * with a filter from USER_FLOW_PERSON_FILTER_KEYS. It has to be the server
+ * that narrows it: the response holds only the newest sessions of the
+ * window, so a person's sessions may not be in the everyone read at all, and
+ * that read names nobody. Only a narrowed read carries a session's `detail`.
  */
 
 /*
@@ -31,9 +37,55 @@ export const USER_FLOW_MAX_SESSIONS: number = 10000;
 
 /*
  * Pages kept per journey. A session that navigates more than this is still
- * counted; its tail is dropped. Far more than any flow map draws.
+ * counted; its tail is dropped, and the page it ended on is kept apart in
+ * `exitPage`. Far more than any flow map draws.
  */
 export const USER_FLOW_MAX_PAGES_PER_JOURNEY: number = 100;
+
+/*
+ * The filters that narrow the read to one person, on the body's `filters`.
+ * One at most: each names a person, and two would be a question with no
+ * single answer.
+ *
+ *   identifier         what someone typed: a user reference, a visitor id or
+ *                      a session id, whichever it turns out to be. Matches
+ *                      exactly. Never written in a URL (see the page's
+ *                      UserFlowUrlState): a reference is typically an email.
+ *   identifiedUserKey  the pseudonymous digest a link carries.
+ *   visitorId          every session from one browser.
+ *   sessionId          one session.
+ */
+export const USER_FLOW_PERSON_FILTER_KEYS: ReadonlyArray<string> = [
+  "identifier",
+  "identifiedUserKey",
+  "visitorId",
+  "sessionId",
+];
+
+/*
+ * Named in `ignoredFilters` when the caller's role may not look people up by
+ * their reference: the identifier was not tried as one. The session list's
+ * name for the same refusal.
+ */
+export const USER_FLOW_IGNORED_USER_REFERENCE: string = "identifiedUserRef";
+
+/*
+ * What only one person's journeys need: who the session belongs to, so a
+ * page can say so, and whether there is footage to send anyone to.
+ */
+export interface UserFlowSessionDetailDto {
+  /* The pseudonymous digest. Empty when the session named nobody. */
+  identifiedUserKey: string;
+  /* Empty from a recorder that predates visitor ids. */
+  visitorId: string;
+  /* Absent unless the caller's role may read end-user identity. */
+  identifiedUserLabel?: string | undefined;
+  isFinalized: boolean;
+  /* Every tab has ended; only the finalizer's counting is pending. */
+  hasRecordingEnded: boolean;
+  sealedReason: string;
+  chunkCount: number;
+}
 
 /* One recorded session, reduced to what the flow map needs. */
 export interface UserFlowSessionDto {
@@ -59,6 +111,13 @@ export interface UserFlowSessionDto {
    * Pages with nothing to report are left out.
    */
   pageSignals: Array<[number, number, number]>;
+  /*
+   * Only when `pages` was cut: the page the session really ended on, as an
+   * index into the response's `pages`.
+   */
+  exitPage?: number | undefined;
+  /* Only on a read narrowed to one person. */
+  detail?: UserFlowSessionDetailDto | undefined;
 }
 
 export interface UserFlowJourneysResponseDto {
@@ -73,6 +132,11 @@ export interface UserFlowJourneysResponseDto {
   maxSessions: number;
   startUnixMs: number;
   endUnixMs: number;
+  /*
+   * Filters understood but not applied for this caller, so "no sessions" can
+   * be told apart from "you may not ask that". Empty when all were applied.
+   */
+  ignoredFilters: Array<string>;
 }
 
 function readIndexArray(value: unknown, pageCount: number): Array<number> {
@@ -126,6 +190,46 @@ function readSignalTriples(
   return triples;
 }
 
+/* An index into the dictionary, or undefined: an optional page never guesses. */
+function readPageIndex(value: unknown, pageCount: number): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const index: number = Number(value);
+
+  return Number.isInteger(index) && index >= 0 && index < pageCount
+    ? index
+    : undefined;
+}
+
+function readSessionDetail(
+  value: unknown,
+): UserFlowSessionDetailDto | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const detail: Record<string, unknown> = value as Record<string, unknown>;
+  const label: unknown = detail["identifiedUserLabel"];
+
+  return {
+    identifiedUserKey: readDtoString(detail, "identifiedUserKey"),
+    visitorId: readDtoString(detail, "visitorId"),
+    /*
+     * Absent stays absent: it means "not for your role", which an empty
+     * label ("nobody was identified") must never read as.
+     */
+    ...(label === undefined || label === null
+      ? {}
+      : { identifiedUserLabel: readDtoString(detail, "identifiedUserLabel") }),
+    isFinalized: readDtoBoolean(detail, "isFinalized"),
+    hasRecordingEnded: readDtoBoolean(detail, "hasRecordingEnded"),
+    sealedReason: readDtoString(detail, "sealedReason"),
+    chunkCount: readDtoNumber(detail, "chunkCount"),
+  };
+}
+
 /*
  * Parses the endpoint's JSON without trusting it: an index outside the
  * dictionary is dropped rather than rendered as "undefined", and every
@@ -160,6 +264,14 @@ export function readUserFlowJourneysResponse(
         continue;
       }
 
+      const exitPage: number | undefined = readPageIndex(
+        session["exitPage"],
+        pages.length,
+      );
+      const detail: UserFlowSessionDetailDto | undefined = readSessionDetail(
+        session["detail"],
+      );
+
       sessions.push({
         sessionId: sessionId,
         startUnixMs: readDtoNumber(session, "startUnixMs"),
@@ -171,6 +283,8 @@ export function readUserFlowJourneysResponse(
         frustrationCount: readDtoNumber(session, "frustrationCount"),
         pages: readIndexArray(session["pages"], pages.length),
         pageSignals: readSignalTriples(session["pageSignals"], pages.length),
+        ...(exitPage === undefined ? {} : { exitPage: exitPage }),
+        ...(detail ? { detail: detail } : {}),
       });
     }
   }
@@ -183,5 +297,12 @@ export function readUserFlowJourneysResponse(
     maxSessions: readDtoNumber(row, "maxSessions"),
     startUnixMs: readDtoNumber(row, "startUnixMs"),
     endUnixMs: readDtoNumber(row, "endUnixMs"),
+    ignoredFilters: Array.isArray(row["ignoredFilters"])
+      ? (row["ignoredFilters"] as Array<unknown>).filter(
+          (filter: unknown): filter is string => {
+            return typeof filter === "string";
+          },
+        )
+      : [],
   };
 }

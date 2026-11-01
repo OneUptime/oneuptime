@@ -2826,7 +2826,7 @@ export default class SessionReplayReadService {
    *
    * Best-effort, like the read: a failure answers "nothing has ended".
    */
-  private static async readRecordingEndedSessionIds(data: {
+  public static async readRecordingEndedSessionIds(data: {
     projectId: ObjectID;
     rumApplicationId: ObjectID;
     sessionIds: Array<string>;

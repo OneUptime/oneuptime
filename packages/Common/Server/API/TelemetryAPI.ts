@@ -218,7 +218,11 @@ import SessionReplayReadService, {
   SessionReplayUsersCursor,
   SessionReplayUsersResult,
 } from "../Utils/SessionReplay/SessionReplayReadService";
-import SessionReplayUserFlowReadService from "../Utils/SessionReplay/SessionReplayUserFlowReadService";
+import SessionReplayUserFlowReadService, {
+  hasUserFlowPersonFilter,
+  readUserFlowPersonFilter,
+  UserFlowPersonFilterResult,
+} from "../Utils/SessionReplay/SessionReplayUserFlowReadService";
 import {
   USER_FLOW_DEFAULT_MAX_SESSIONS,
   USER_FLOW_MAX_SESSIONS,
@@ -6891,8 +6895,15 @@ router.post(
  *
  * Same guard, plan gate and label-scoped application check as /users: it
  * projects only manifest-level columns the session list already shows -
- * pages, device facts and signal counts - never a payload, and no
- * identity column at all.
+ * pages, device facts and signal counts - never a payload, and for everyone's
+ * flows no identity column at all.
+ *
+ * `filters` narrows the read to one person, on the server because the read
+ * holds only the newest sessions of the window (see
+ * readUserFlowPersonFilter). A narrowed read says whose each session is, as
+ * /list does: the identity decision is the same one, made against the
+ * application the access check loaded, and the label is only named for a
+ * role that passes it.
  */
 router.post(
   "/telemetry/rum/session-replay/user-flow",
@@ -6924,12 +6935,13 @@ router.post(
         "rumApplicationId",
       );
 
-      await assertSessionReplayApplicationAccess({
-        projectId: projectId,
-        rumApplicationId: rumApplicationId,
-        databaseProps: databaseProps,
-        permissions: SESSION_REPLAY_LIST_PERMISSIONS,
-      });
+      const application: RumApplication =
+        await assertSessionReplayApplicationAccess({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        });
 
       const startTime: Date =
         readOptionalDateFromBody(body, "startTime") ||
@@ -6954,6 +6966,23 @@ router.post(
         USER_FLOW_MAX_SESSIONS,
       );
 
+      const rawFilters: JSONObject = (body["filters"] as JSONObject) || {};
+
+      const includeIdentifiedUserLabel: boolean =
+        hasUserFlowPersonFilter(rawFilters) &&
+        (await canReadIdentifiedUserLabel({
+          databaseProps: databaseProps,
+          application: application,
+        }));
+
+      const personFilter: UserFlowPersonFilterResult = readUserFlowPersonFilter(
+        {
+          filters: rawFilters,
+          projectId: projectId,
+          canReadIdentity: includeIdentifiedUserLabel,
+        },
+      );
+
       const result: UserFlowJourneysResponseDto =
         await SessionReplayUserFlowReadService.readJourneys({
           projectId: projectId,
@@ -6961,13 +6990,14 @@ router.post(
           startTime: startTime,
           endTime: endTime,
           maxSessions: maxSessions,
+          person: personFilter.person,
+          includeIdentifiedUserLabel: includeIdentifiedUserLabel,
         });
 
-      return Response.sendJsonObjectResponse(
-        req,
-        res,
-        result as unknown as JSONObject,
-      );
+      return Response.sendJsonObjectResponse(req, res, {
+        ...result,
+        ignoredFilters: personFilter.ignoredFilters,
+      } as unknown as JSONObject);
     } catch (err: unknown) {
       next(err);
     }
