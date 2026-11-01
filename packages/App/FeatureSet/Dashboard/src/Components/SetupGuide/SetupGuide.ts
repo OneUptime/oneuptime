@@ -65,6 +65,14 @@ export interface SetupGuideStep {
    * note down past them.
    */
   details?: string | undefined;
+  /*
+   * The step's place on the guide's page (Common/UI/Utils/PageAnchor): a
+   * link elsewhere in the product that names it after its "#" opens the
+   * guide on this step, not on step 1 - the Proxmox Overview's "Set up
+   * notifications" lands on the step that sends them. A plain name, unique
+   * in the guide ("send-notifications").
+   */
+  anchor?: string | undefined;
 }
 
 // A folded topic under Advanced or Troubleshooting.

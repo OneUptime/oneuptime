@@ -1049,9 +1049,13 @@ describe("Proxmox cluster overview: the descriptions match what the page compute
         return `${stat.getAttribute("data-key")}=${stat.querySelector("dd")?.textContent}`;
       });
     expect(stats).toEqual(["not-in-job=1"]);
+    // Straight to the guide's step that sends them, not to its step 1.
     expect(
       within(card).getByTestId("proxmox-backups-card-setup-link"),
-    ).toHaveAttribute("href", `${CLUSTER_PATH}/documentation`);
+    ).toHaveAttribute(
+      "href",
+      `${CLUSTER_PATH}/documentation#send-notifications`,
+    );
   });
 
   test("with the notifications, the Backups card counts how the last backups went", async () => {

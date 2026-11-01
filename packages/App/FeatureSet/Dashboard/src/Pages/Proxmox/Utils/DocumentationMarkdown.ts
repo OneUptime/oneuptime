@@ -654,6 +654,13 @@ export const PROXMOX_NOTIFICATIONS_STEP_TITLE: string = translationKey(
 );
 
 /*
+ * The step's place on the guide's page: the Overview's Backups card links
+ * straight to it ("Set up notifications"), rather than to step 1 of an
+ * install the reader has already done.
+ */
+export const PROXMOX_NOTIFICATIONS_STEP_ANCHOR: string = "send-notifications";
+
+/*
  * Where an unknown cluster's name comes from: the name the agent was given,
  * or - for the native push - the name the cluster registered under.
  */
@@ -678,6 +685,7 @@ function getNotificationsStep(
 ): SetupGuideStep {
   const step: SetupGuideStep = {
     title: PROXMOX_NOTIFICATIONS_STEP_TITLE,
+    anchor: PROXMOX_NOTIFICATIONS_STEP_ANCHOR,
     description:
       "Optional: run these on any node as root. Backup results, fenced nodes and failed replications then reach OneUptime too.",
   };

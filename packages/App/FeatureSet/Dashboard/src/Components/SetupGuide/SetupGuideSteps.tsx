@@ -1,23 +1,54 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  RefObject,
+  useEffect,
   useId,
   useRef,
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PAGE_ANCHOR_SCROLL_MARGIN_TOP,
+  bringPageAnchorIntoView,
+  getPageAnchor,
+  markPageAnchorLanded,
+} from "Common/UI/Utils/PageAnchor";
 
 /*
  * The numbered steps of a guide, joined by a line down the left — the same
  * layout as the telemetry ingestion guides, so every "get this connected"
  * page in the product reads the same way.
+ *
+ * A step with a place of its own (`anchor`) is where a link that names it
+ * lands: opened at ".../documentation#send-notifications", the page brings
+ * that step under its sticky header - and keeps it there while step 1's key
+ * picker loads above it - marks it for a moment and hands it the keyboard's
+ * focus, as a link to a settings card does (Common/UI/Utils/PageAnchor).
  */
 
 export interface SetupGuideStepView {
   title: string;
+  // The step's place on the page: a plain name, unique in the guide.
+  anchor?: string | undefined;
   description?: string | undefined;
   content: ReactElement;
+}
+
+// The step the page's address names, if this guide has it; else "".
+export function getAnchoredSetupGuideStep(
+  steps: Array<SetupGuideStepView>,
+  anchor: string,
+): string {
+  if (!anchor) {
+    return "";
+  }
+  return steps.some((step: SetupGuideStepView): boolean => {
+    return step.anchor === anchor;
+  })
+    ? anchor
+    : "";
 }
 
 export interface ComponentProps {
@@ -28,9 +59,48 @@ const SetupGuideSteps: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const listRef: RefObject<HTMLOListElement> = useRef<HTMLOListElement>(null);
+
+  const anchoredStep: string = getAnchoredSetupGuideStep(
+    props.steps,
+    getPageAnchor(),
+  );
+
+  /*
+   * Opened at one of its steps: bring it into view and keep it there while
+   * the guide above it settles, and mark it. The anchor is a plain name
+   * (getPageAnchor reads no other), so it is safe in the selector as it is.
+   */
+  useEffect(() => {
+    const list: HTMLOListElement | null = listRef.current;
+
+    if (!anchoredStep || !list) {
+      return undefined;
+    }
+
+    const step: HTMLElement | null = list.querySelector<HTMLElement>(
+      `[id="${anchoredStep}"]`,
+    );
+
+    if (!step) {
+      return undefined;
+    }
+
+    const stopBringingIntoView: () => void = bringPageAnchorIntoView(step);
+    const unmark: () => void = markPageAnchorLanded(step);
+
+    return (): void => {
+      stopBringingIntoView();
+      unmark();
+    };
+  }, [anchoredStep]);
 
   return (
-    <ol className="list-none p-0 m-0" data-testid="setup-guide-steps">
+    <ol
+      ref={listRef}
+      className="list-none p-0 m-0"
+      data-testid="setup-guide-steps"
+    >
       {props.steps.map((step: SetupGuideStepView, index: number) => {
         const isLast: boolean = index === props.steps.length - 1;
         const stepNumber: number = index + 1;
@@ -38,7 +108,14 @@ const SetupGuideSteps: FunctionComponent<ComponentProps> = (
         return (
           <li
             key={`${stepNumber}-${step.title}`}
-            className="relative flex gap-4 sm:gap-5"
+            id={step.anchor}
+            // Its top lands under the page's sticky header, not behind it.
+            style={
+              step.anchor
+                ? { scrollMarginTop: PAGE_ANCHOR_SCROLL_MARGIN_TOP }
+                : undefined
+            }
+            className="relative flex gap-4 rounded-lg sm:gap-5"
             data-testid={`setup-guide-step-${stepNumber}`}
           >
             <div className="flex flex-shrink-0 flex-col items-center">

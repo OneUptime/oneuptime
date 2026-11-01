@@ -6,6 +6,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatRelativeTime } from "../Home/HomeRelativeTime";
@@ -14,6 +15,7 @@ import {
   ProxmoxBackupSummary,
   summarizeProxmoxBackups,
 } from "../../Pages/Proxmox/Utils/ProxmoxPartFacts";
+import { PROXMOX_NOTIFICATIONS_STEP_ANCHOR } from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
 
 /*
  * A cluster's backups on its Overview: how each guest's last backup went
@@ -30,7 +32,10 @@ export interface ComponentProps {
   rows: Array<ProxmoxResource>;
   // When the cluster last sent a notification; null when it never has.
   lastNotificationAt: Date | null;
-  // The setup guide, whose last step sends the notifications.
+  /*
+   * The setup guide, whose last step sends the notifications: the card's
+   * link opens it on that step (PROXMOX_NOTIFICATIONS_STEP_ANCHOR).
+   */
   setupRoute: Route;
   guestsRoute: Route;
   now: Date;
@@ -185,7 +190,10 @@ const ProxmoxBackupsCard: FunctionComponent<ComponentProps> = (
                 </span>
               </div>
               <Link
-                to={props.setupRoute}
+                to={getRouteToPageAnchor(
+                  props.setupRoute,
+                  PROXMOX_NOTIFICATIONS_STEP_ANCHOR,
+                )}
                 className="inline-flex flex-shrink-0 items-center justify-center gap-1.5 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 shadow-sm hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 dataTestId="proxmox-backups-card-setup-link"
               >

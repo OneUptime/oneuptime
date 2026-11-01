@@ -413,14 +413,19 @@ test.describe("the cluster's Overview", () => {
 
     await page.getByTestId("proxmox-backups-card-setup-link").click();
     await expect(page).toHaveURL((url: URL): boolean => {
-      return url.pathname === `${CLUSTER_PATH}/documentation`;
+      return (
+        url.pathname === `${CLUSTER_PATH}/documentation` &&
+        url.hash === "#send-notifications"
+      );
     });
-    // The guide's last step.
+    // The guide opens on its last step, not on step 1 of an install done.
     await expect(
       page.getByRole("heading", {
         name: "Step 5: Send Proxmox VE's notifications",
       }),
     ).toBeVisible();
+    await expect(page.getByTestId("setup-guide-step-5")).toBeInViewport();
+    await expect(page.getByTestId("setup-guide-step-1")).not.toBeInViewport();
     await expect(
       page.getByText(/Needs Proxmox VE 8\.3 or later\./),
     ).toBeVisible();

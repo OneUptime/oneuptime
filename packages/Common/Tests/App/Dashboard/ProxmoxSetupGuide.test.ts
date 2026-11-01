@@ -26,6 +26,7 @@ import {
   getProxmoxAgentUpgradeCommand,
   getProxmoxInstallScriptCommand,
   getProxmoxPushTarget,
+  PROXMOX_NOTIFICATIONS_STEP_ANCHOR,
   PROXMOX_NOTIFICATIONS_STEP_TITLE,
   getProxmoxSetupGuide,
   resolveProxmoxConnectMethod,
@@ -56,6 +57,7 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { INSTALL_SCRIPT_READ_FIRST_NOTE } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/AgentInstallCommands";
+import { isPageAnchorName } from "../../../UI/Utils/PageAnchor";
 import {
   InstallScriptEntry,
   InstallScriptName,
@@ -1271,6 +1273,27 @@ describe("the step that sends Proxmox VE's notifications", () => {
       expect(step.markdown).toContain(
         "The command already names **`pve-prod`**",
       );
+    },
+  );
+
+  /*
+   * The Overview's "Set up notifications" links here, not to step 1 of an
+   * install the reader has already done.
+   */
+  test.each(METHOD_KEYS)(
+    "has a place of its own on the %s guide's page, for a link to land on",
+    (method: ProxmoxConnectMethod) => {
+      const guide: SetupGuideContent = guideFor(method);
+      expect(notificationsStep(guide).anchor).toBe(
+        PROXMOX_NOTIFICATIONS_STEP_ANCHOR,
+      );
+      expect(isPageAnchorName(PROXMOX_NOTIFICATIONS_STEP_ANCHOR)).toBe(true);
+      // The only step that has one.
+      expect(
+        guide.steps.filter((step: SetupGuideStep): boolean => {
+          return Boolean(step.anchor);
+        }),
+      ).toHaveLength(1);
     },
   );
 
