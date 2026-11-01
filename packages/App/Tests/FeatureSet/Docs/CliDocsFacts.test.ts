@@ -439,9 +439,10 @@ describe("the command reference", () => {
      * postmortem-status, the 28th, came with the Postmortems list;
      * security-case-priority and security-case-status with Security Events >
      * Settings; security-case-task and security-case-evidence with a case's
-     * Tasks and Evidence pages; and Data Security's ten records with it.
+     * Tasks and Evidence pages; Data Security's ten records with it, and
+     * data-security-identity, the identities that reach its stores, after.
      */
-    expect(recordCommands()).toHaveLength(42);
+    expect(recordCommands()).toHaveLength(43);
     expect(telemetryCommands()).toHaveLength(9);
     expect(commandsInResourcesTable(0)).toEqual(recordCommands());
     expect(commandsInResourcesTable(1)).toEqual(telemetryCommands());

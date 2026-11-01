@@ -8,7 +8,7 @@ Seguridad de datos no tiene un sistema de avisos ni una cola de seguridad propio
 - [Incidentes](#incidentes): Declara un incidente para una brecha de seguridad que deba gestionar tu proceso de incidentes.
 - [Propietarios](#propietarios): Quién es el propietario de cada almacén, fijado a mano o con reglas, y el correo que recibe.
 - [OneUptime AI](#oneuptime-ai): Explica un problema, abre una pull request que lo corrige o consulta tus datos con Preguntar a la IA.
-- [Cerrar una exposición](#cerrar-una-exposición): Bloquea el acceso público o deja de compartir, desde un problema o un playbook.
+- [Cerrar una exposición](#cerrar-una-exposición): Bloquea el acceso público o deja de compartir, desde un problema o un playbook, y activa una protección que falta desde un problema.
 :::
 
 ## Cómo funciona
@@ -43,6 +43,8 @@ Cada almacén es una entidad propia en Operaciones de seguridad, del tipo **Alma
 - se agrupa por el almacén: un segundo problema crítico en el mismo almacén se suma al caso abierto sobre él en lugar de abrir otro.
 
 A partir de ahí, el caso se gestiona como cualquier otro: se asigna, se anota, se cierra y los playbooks del proyecto responden a él. Las detecciones del almacén cuentan para su riesgo en [Riesgo de entidades](/docs/telemetry/security-entity-risk), como las de cualquier entidad. Consulta [Casos de seguridad y playbooks](/docs/telemetry/security-cases).
+
+Cualquier caso de seguridad, lo haya abierto lo que lo haya abierto, muestra los datos en riesgo en su **Impacto**: los almacenes con datos sensibles de los que trata el caso, y cada almacén al que pueden llegar sus usuarios y roles, el más sensible primero, con lo que contiene cada uno, cuántos registros aproximadamente, lo expuesto que está y cuántas identidades pueden llegar a él. Una sesión de rol asumido que nombra el caso cuenta como su rol, y una dirección de correo como los usuarios de la nube a los que pertenece. Se lee con los propios permisos del lector, así que un rol que no puede leer Seguridad de datos ve que esa parte queda fuera.
 
 ## Alertas y guardia
 
@@ -106,12 +108,15 @@ Leen tipos de datos, ubicaciones y recuentos, nunca las muestras de un hallazgo,
 
 ## Cerrar una exposición
 
-Dos cambios cierran la exposición de un almacén en la nube, cada uno a través de la conexión a la nube del almacén con **Respuesta de seguridad de datos** activada (consulta [Configurar Seguridad de datos](/docs/data-security/setup#dejar-que-seguridad-de-datos-cierre-una-exposición)):
+Dos cambios cierran la exposición de un almacén en la nube, cada uno a través de la conexión a la nube del almacén con **Respuesta de seguridad de datos** activada (consulta [Configurar Seguridad de datos](/docs/data-security/setup#dejar-que-seguridad-de-datos-cierre-una-exposición)), y otros seis activan un ajuste que protege un almacén, solo desde su problema:
 
 - **Bloquear el acceso público**, en un bucket de S3, una cuenta de almacenamiento de Azure o un bucket de Cloud Storage.
 - **Revocar el uso compartido**, en una instantánea de RDS, o en las instantáneas manuales compartidas de una base de datos RDS, un clúster de Aurora o un clúster de DocumentDB.
+- **Activar el control de versiones**, **Activar la eliminación temporal**, **Desactivar las ACL de objetos**, **Activar el acceso uniforme**, **Exigir transferencia segura** y **Activar la recuperación a un momento dado**, en los almacenes que lista [Corrígelo desde aquí](/docs/data-security/checks-and-issues#corrígelo-desde-aquí).
 
 Una persona ejecuta uno desde un problema abierto que corrige, con **Corrígelo desde aquí** (consulta [Comprobaciones y problemas de Seguridad de datos](/docs/data-security/checks-and-issues#corrígelo-desde-aquí)). Un playbook de Operaciones de seguridad los ejecuta como pasos de la categoría **Contener**, **Bloquear el acceso público a los almacenes de datos** y **Revocar el uso compartido de almacenes de datos**: en cada almacén de datos del que trata el caso, como máximo 10, cada uno en un paso que empieza con **Requiere aprobación** activado. Un almacén marcado como **Público por diseño** nunca se bloquea. En ambos casos, la cronología del almacén dice qué se hizo, y el almacén se vuelve a comprobar al momento, así que el problema se resuelve cuando el cambio surte efecto.
+
+La plantilla de playbook **Cerrar una exposición de datos** responde a los casos que abre Seguridad de datos: envía un correo a los propietarios del almacén, bloquea el acceso público y revoca el uso compartido cuando una persona aprueba cada paso, y añade al caso la lista de comprobación de la respuesta como tareas: quién leyó los datos mientras estaban expuestos, si es una brecha que debes notificar, qué secretos rotar y qué escribir al cerrar el caso. Añádela desde **Crear desde plantilla** en los playbooks del proyecto.
 
 ## API, Terraform y MCP
 
@@ -119,7 +124,7 @@ Todo lo que guarda Seguridad de datos es un registro de la API de OneUptime, que
 
 | Registros | Ruta de la API |
 | --- | --- |
-| Los almacenes de datos, sus cronologías, sus hallazgos y quién puede acceder a ellos | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| Los almacenes de datos, sus cronologías, sus hallazgos, quién puede acceder a ellos y cada identidad que puede | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Los problemas, sus cronologías y los flujos de datos | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Los escaneos | `/data-security-scan` |
 | Los tipos de datos personalizados, los ajustes de las comprobaciones y las reglas de residencia | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ Algunas respuestas se calculan bajo demanda en lugar de guardarse. Cada una es u
 | `/data-security-issue/<id>/explain` | **Explicar con IA** en un problema |
 | `/data-security-issue/<id>/fix-with-ai` | **Corregir con IA** en un problema |
 | `/data-store/<id>/response-actions` | Qué acciones de respuesta admite el almacén ahora, y por qué no |
-| `/data-store/<id>/respond` | **Bloquear el acceso público** o **Revocar el uso compartido** en el almacén, con el problema desde el que se ejecutó |
+| `/data-store/<id>/respond` | Una acción de respuesta en el almacén, como **Bloquear el acceso público** o **Activar el control de versiones**, con el problema desde el que se ejecutó |
 
 El [proveedor de Terraform](/docs/terraform/index) tiene un recurso para cada tipo de registro que creas (los almacenes de datos que añades tú mismo, los tipos de datos personalizados, los ajustes de las comprobaciones, las reglas de residencia, las reglas del propietario y las de etiquetas) con el nombre del registro, como `oneuptime_residency_rule`.
 
-El [servidor MCP](/docs/ai/mcp-server) tiene herramientas para crear, obtener, listar, actualizar, eliminar y contar estos registros: Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule y Data Security Setting. Un asistente de IA puede entonces preguntar qué almacenes contienen números de tarjeta, o qué hay abierto en un bucket, con tus permisos.
+El [servidor MCP](/docs/ai/mcp-server) tiene herramientas para crear, obtener, listar, actualizar, eliminar y contar estos registros: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule y Data Security Setting. Un asistente de IA puede entonces preguntar qué almacenes contienen números de tarjeta, o qué hay abierto en un bucket, con tus permisos.
 
 ## Próximos pasos
 

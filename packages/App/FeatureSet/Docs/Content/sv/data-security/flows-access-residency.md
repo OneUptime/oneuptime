@@ -4,7 +4,7 @@ Att veta vad ett datalager innehåller är bara halva saken. Datasäkerhet räkn
 
 :::cards
 - [Dataflöden](#dataflöden): Tjänster, AI-leverantörer, externa värdar och kopior.
-- [Vem som kan nå ett datalager](#vem-som-kan-nå-ett-datalager): Varje behörighet som ditt moln rapporterar, och hur exponerat datalagret är.
+- [Vem som kan nå ett datalager](#vem-som-kan-nå-ett-datalager): Varje identitet och behörighet, vad varje identitet når, och hur exponerat datalagret är.
 - [Hemvistregler](#hemvistregler): De regioner som varje sorts data får ligga i.
 :::
 
@@ -39,18 +39,18 @@ En kopia hittas utan något av datalagrens värden. För varje datatyp som en sk
 
 ## Vem som kan nå ett datalager
 
-Konfigurationsläsningen gör om varje molns egna åtkomstinställningar – bucket-policyer och ACL:er, rolltilldelningar i Azure, IAM-bindningar i Google Cloud, delningar av ögonblicksbilder – till en enda lista över vem som kan nå datalagret, på dess sida **Vem kan nå det**:
+Konfigurationsläsningen gör om varje molns egna åtkomstinställningar – bucket-policyer och ACL:er, rolltilldelningar i Azure, IAM-bindningar i Google Cloud, delningar av ögonblicksbilder och på AWS varje rolls och varje användares egna IAM-policyer – till en enda lista över vem som kan nå datalagret, på dess sida **Vem kan nå det**. Tjänsterna som tjänstekartan visar anropa datalagret finns också med:
 
 | Kolumn | Vad den anger |
 | --- | --- |
-| **Huvudkonto** | Vem eller vad som har åtkomst, så som molnet namnger det: `*`, ett konto-ID, en ARN, en e-postadress, ett tjänstkonto. |
-| **Typ av huvudkonto** | Public, Konto, Roll, Användare, Grupp, Tjänsthuvudkonto, Tjänstkonto eller Tjänst. |
+| **Vem** | Vem eller vad som har åtkomst, så som molnet namnger det: `*`, ett konto-ID, en ARN, en e-postadress, ett tjänstkonto, en tjänst. En identitet som inte har använts på 90 dagar är markerad så. |
+| **Typ** | Public, Konto, Roll, Användare, Grupp, Tjänsthuvudkonto, Tjänstkonto eller Tjänst. |
 | **Åtkomstnivå** | Läsning, Skrivning eller Administratör. |
-| **Beviljad via** | Det som ger åtkomsten: en bucket-policy, en ACL, en rolltilldelning, en IAM-bindning eller en delning av en ögonblicksbild. |
-| **Extern** | Huvudkontot finns utanför de konton, prenumerationer och projekt som är anslutna till OneUptime. |
-| **Offentlig** | Huvudkontot är vem som helst på internet. |
+| **Beviljad via** | Det som ger åtkomsten: en bucket-policy, en ACL, en IAM-policy, en roll som den får anta, en rolltilldelning, en IAM-bindning eller en delning av en ögonblicksbild – eller, för en tjänst, att spårningar såg den använda datalagret. |
+| **Räckvidd** | Vem som helst på internet, utanför dina konton – de konton, prenumerationer och projekt som är anslutna till OneUptime – eller dina konton. |
+| **Senast använd** | När identiteten senast använde sin åtkomst, så som molnet uppger det, eller när tjänstekartan senast såg tjänsten anropa datalagret. |
 
-Listan läses på nytt vid varje konfigurationsläsning, och en behörighet som molnet inte längre rapporterar tas bort. [Fler än 25 identiteter kan läsa data med känsligheten Begränsad](/docs/data-security/checks-and-issues#åtkomst) räknar läsarna i den. Tjänsterna som använder ett datalager är dess flöden av typen **Använder**.
+Listan läses på nytt vid varje konfigurationsläsning, och en behörighet som molnet inte längre rapporterar tas bort. [Fler än 25 identiteter kan läsa data med känsligheten Begränsad](/docs/data-security/checks-and-issues#åtkomst) räknar läsarna i den, och [Identiteter som inte använts på 90 dagar kan fortfarande nå det](/docs/data-security/checks-and-issues#åtkomst) misslyckas så länge en identitet som inte använts på 90 dagar kan nå dess känsliga data. Tjänsterna som använder ett datalager är dess flöden av typen **Använder**.
 
 Utifrån det som läses får varje datalager en exponering:
 
@@ -63,6 +63,22 @@ Utifrån det som läses får varje datalager en exponering:
 | **Okänd** | OneUptime kunde inte läsa tillräckligt av dess konfiguration för att avgöra det. |
 
 Public går före delad, och delad går före nåbar: en offentlig bucket som också delas med ett annat konto får exponeringen Public. Exponeringen höjer ett problems [riskpoäng](/docs/data-security/checks-and-issues#riskpoäng).
+
+### Varje identitet, och vad den kan nå
+
+På AWS listar läsningen kontots användare och roller en gång och avgör, så som IAM gör, vilka av dem som når varje bucket och varje DynamoDB-tabell, och hur: vad deras policyer tillåter minus vad de nekar, behörighetsgränser, och en behörighet som bara gäller under villkor säger det. Ett konto utanför dina anslutna konton som får anta en roll når det som rollen når. Varje identitets senaste användning kommer från IAM för roller och från kontots rapport över autentiseringsuppgifter för användare.
+
+**Datasäkerhet → Åtkomst** listar varje identitet som kan nå dina datalager, den mest riskfyllda först: vad den når och hur känsligt det är, det mesta den får göra och när den senast användes, med filter för **Utanför dina konton**, **Inte använd på 90 dagar** och **Kan ändra känsliga data**. Var och en öppnar sin egen sida: varje datalager den kan nå, det känsligaste först, och dess riskpoäng del för del. Under dem listar Åtkomst varje behörighet från utanför dina konton.
+
+| Vad som läggs till en identitets risk | Poäng |
+| --- | --- |
+| De känsligaste data den når | 50 för Begränsad, 30 för Konfidentiell, 10 för Intern |
+| Den får skriva till eller administrera ett Konfidentiellt eller Begränsat datalager | 15 |
+| Den är vem som helst på internet, eller utanför dina konton | 20 för vem som helst, 15 för utanför |
+| Den har inte använts på 90 dagar och når interna, konfidentiella eller begränsade data | 10 |
+| Hur många känsliga datalager den når | 1 för vart och ett, upp till 5 |
+
+Poängen är högst 100. En roll i ett konto utanför som kan ändra ett datalager med kortnummer får 50 + 15 + 15 + 1 = 81.
 
 ## Hemvistregler
 

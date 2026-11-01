@@ -7,6 +7,9 @@ import {
   estimateOverlap,
   FINGERPRINT_SLOTS,
 } from "../../../../Server/Utils/DataSecurity/Fingerprint";
+import DataSecurityTracedAccess, {
+  TracedUse,
+} from "../../../../Server/Utils/DataSecurity/DataSecurityTracedAccess";
 import { Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import CloudResourceService from "../../../../Server/Services/CloudResourceService";
 import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
@@ -71,6 +74,7 @@ let serversSpy: jest.SpyInstance;
 let resourcesSpy: jest.SpyInstance;
 let edgesSpy: jest.SpyInstance;
 let errorSpy: jest.SpyInstance;
+let tracedSpy: jest.SpyInstance;
 
 beforeEach(() => {
   edges = [];
@@ -165,6 +169,9 @@ beforeEach(() => {
   errorSpy = jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined as never;
   });
+  tracedSpy = jest
+    .spyOn(DataSecurityTracedAccess, "sync")
+    .mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -258,13 +265,22 @@ function itemOf(data: {
   return item;
 }
 
-function edgeOf(from: string, to: string, callCount?: number): void {
+function edgeOf(
+  from: string,
+  to: string,
+  callCount?: number,
+  lastSeenAt?: Date,
+): void {
   const edge: InventoryItemRelationship = new InventoryItemRelationship();
   edge.fromEntityKey = from;
   edge.toEntityKey = to;
 
   if (callCount !== undefined) {
     edge.callCount = callCount;
+  }
+
+  if (lastSeenAt) {
+    edge.lastSeenAt = lastSeenAt;
   }
 
   edges.push(edge);
@@ -792,6 +808,114 @@ describe("computeProjectFlows: the service map", () => {
     await compute([]);
 
     expect(InventoryItemService.findBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("computeProjectFlows: the services seen using each store, as who can reach it", () => {
+  function ordersStore(): DataStore {
+    const tracedKey: string = tracedDatabaseDataStoreKey({
+      system: "postgresql",
+      address: "db.internal",
+      namespace: "orders",
+    });
+
+    itemOf({
+      entityKey: "database:orders",
+      entityType: EntityType.Database,
+      attributes: {
+        "db.system.name": "postgresql",
+        "server.address": "db.internal",
+        "db.namespace": "orders",
+      },
+    });
+
+    return storeOf({ name: "orders", storeKey: tracedKey });
+  }
+
+  test("each service the map shows calling a store is handed on, with when the map last saw the call", async () => {
+    const store: DataStore = ordersStore();
+    const seen: Date = new Date(NOW.getTime() - 2 * 3600 * 1000);
+    checkoutService();
+    itemOf({
+      entityKey: "service:billing",
+      entityType: EntityType.Service,
+      displayName: "billing",
+    });
+    edgeOf("service:checkout", "database:orders", 4200, seen);
+    edgeOf("service:billing", "database:orders", 7);
+    // A call out to a host is a flow, not someone reaching a store.
+    itemOf({
+      entityKey: "remote:api.stripe.com",
+      entityType: EntityType.RemoteService,
+      attributes: { "server.address": "api.stripe.com" },
+    });
+    edgeOf("service:checkout", "remote:api.stripe.com", 10);
+
+    await compute([store]);
+
+    expect(tracedSpy).toHaveBeenCalledTimes(1);
+
+    const call: {
+      projectId: ObjectID;
+      uses: Array<TracedUse>;
+      now: Date;
+    } = tracedSpy.mock.calls[0]![0];
+
+    expect(call.projectId).toBe(PROJECT_ID);
+    expect(call.now).toEqual(NOW);
+    expect(
+      call.uses
+        .map((use: TracedUse): Array<unknown> => {
+          return [
+            use.dataStoreId.toString(),
+            use.serviceId?.toString() || null,
+            use.serviceName,
+            use.seenAt.toISOString(),
+          ];
+        })
+        .sort(),
+    ).toEqual(
+      [
+        [store.id!.toString(), null, "billing", NOW.toISOString()],
+        [
+          store.id!.toString(),
+          SERVICE_ID.toString(),
+          "checkout",
+          seen.toISOString(),
+        ],
+      ].sort(),
+    );
+  });
+
+  test("a service map that cannot be read takes nobody away", async () => {
+    edgesSpy.mockRejectedValue(new Error("Postgres went away"));
+
+    await compute([ordersStore()]);
+
+    expect(tracedSpy).not.toHaveBeenCalled();
+  });
+
+  test("a map without edges hands on nobody, so the services that stopped are taken away", async () => {
+    await compute([ordersStore()]);
+
+    expect(tracedSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (tracedSpy.mock.calls[0]![0] as { uses: Array<TracedUse> }).uses,
+    ).toEqual([]);
+  });
+
+  test("who reaches a store that cannot be recorded is logged; the flows are written", async () => {
+    const store: DataStore = ordersStore();
+    checkoutService();
+    edgeOf("service:checkout", "database:orders", 3);
+    tracedSpy.mockRejectedValue(new Error("Postgres went away"));
+
+    await compute([store]);
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      `DataSecurity: could not record the services using the stores of project ${PROJECT_ID.toString()}:`,
+    );
+    expect(flowTable).toHaveLength(1);
   });
 });
 

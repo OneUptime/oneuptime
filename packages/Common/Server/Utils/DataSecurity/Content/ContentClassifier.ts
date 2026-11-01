@@ -25,9 +25,14 @@ import {
   TextScanOptions,
 } from "../../../../Utils/DataSecurity/TextScanner";
 import {
+  describeUnplacedField,
+  UnplacedField,
+} from "../../../../Utils/DataSecurity/UnplacedFields";
+import {
   ContentScanOptions,
   DataStoreLocationKind,
   LocationFindings,
+  MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
 import { findPlaintextPasswordFields } from "../PasswordHashes";
@@ -257,6 +262,8 @@ export interface ContentClassification {
   // Fields named for passwords whose values are not hashes.
   plaintextPasswordFields: Array<string>;
   warnings: Array<string>;
+  // Fields no detector placed, described without their values.
+  unplacedFields?: Array<UnplacedField> | undefined;
 }
 
 interface ScanSettings {
@@ -344,6 +351,8 @@ export interface FieldsClassification {
    * at the least.
    */
   sensitiveShare: number;
+  // The fields no detector placed, described without their values.
+  unplacedFields: Array<UnplacedField>;
 }
 
 /*
@@ -403,6 +412,16 @@ export function classifyCollectedFields(data: {
     data.options,
   );
   const locations: Array<LocationFindings> = [];
+  const unplacedFields: Array<UnplacedField> = [];
+  const names: Array<string> = data.fields.map(
+    (field: CollectedField): string => {
+      return field.path;
+    },
+  );
+  // Passwords kept as they are have their own check: not asked about.
+  const plaintextPasswordFields: Array<string> = findPlaintextPasswordFields(
+    data.fields,
+  );
   let sensitiveShare: number = 0;
 
   for (const field of data.fields) {
@@ -417,6 +436,22 @@ export function classifyCollectedFields(data: {
     );
 
     if (classifications.length === 0) {
+      if (plaintextPasswordFields.includes(field.path)) {
+        continue;
+      }
+
+      // Not known to be safe either: described for OneUptime AI, never its values.
+      const unplaced: UnplacedField | null = describeUnplacedField({
+        path: field.path,
+        values: field.values,
+        neighbours: names,
+        locationKind: data.locationKind,
+      });
+
+      if (unplaced && unplacedFields.length < MAX_UNPLACED_FIELDS_PER_SCAN) {
+        unplacedFields.push(unplaced);
+      }
+
       continue;
     }
 
@@ -460,8 +495,9 @@ export function classifyCollectedFields(data: {
 
   return {
     locations,
-    plaintextPasswordFields: findPlaintextPasswordFields(data.fields),
+    plaintextPasswordFields,
     sensitiveShare,
+    unplacedFields,
   };
 }
 
@@ -922,6 +958,7 @@ function structuredClassification(data: {
     recordsWithSensitive,
     plaintextPasswordFields: fields.plaintextPasswordFields,
     warnings: data.warnings,
+    unplacedFields: fields.unplacedFields,
   };
 }
 

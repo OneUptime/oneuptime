@@ -52,7 +52,7 @@ Alle andre steder avviser OneUptime en nettlesernøkkel, for eksempel over gRPC 
 :::steps
 ### Åpne inntaksnøkler
 
-Gå til **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. **Telemetri og APM** starter sammenslått i sidemenyen: klikk på den for å åpne den. Listen viser for hver nøkkel kolonnene **Navn**, **Type**, **Last Used** og **Beskrivelse**.
+Gå til **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. **Telemetri og APM** starter sammenslått i sidemenyen: klikk på den for å åpne den. Listen viser for hver nøkkel kolonnene **Navn**, **Type**, **Sist brukt** og **Beskrivelse**.
 
 ### Gi nøkkelen et navn, og velg type
 

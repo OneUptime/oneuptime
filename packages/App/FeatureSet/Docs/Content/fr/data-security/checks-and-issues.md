@@ -1,13 +1,13 @@
 # Contrôles et problèmes de Sécurité des données
 
-Sécurité des données exécute 32 contrôles sur chaque magasin de données, en neuf groupes. Un contrôle lit ce que l'on sait d'un magasin de données - sa configuration, ce qui y a été trouvé, qui peut y accéder, où il se trouve - et réussit, échoue ou ne peut pas trancher. Un contrôle en échec ouvre un problème sur ce magasin de données, et le problème se ferme de lui-même dès que le contrôle réussit. Cette page liste chaque contrôle, la façon dont la gravité et le score de risque d'un problème sont calculés, et ce qu'il advient d'un problème au cours de sa vie.
+Sécurité des données exécute 33 contrôles sur chaque magasin de données, en neuf groupes. Un contrôle lit ce que l'on sait d'un magasin de données - sa configuration, ce qui y a été trouvé, qui peut y accéder, où il se trouve - et réussit, échoue ou ne peut pas trancher. Un contrôle en échec ouvre un problème sur ce magasin de données, et le problème se ferme de lui-même dès que le contrôle réussit. Cette page liste chaque contrôle, la façon dont la gravité et le score de risque d'un problème sont calculés, et ce qu'il advient d'un problème au cours de sa vie.
 
 :::cards
 - [Comment un contrôle décide](#comment-un-contrôle-décide): Réussit, échoue ou ne peut pas trancher, et la gravité d'un échec.
-- [Chaque contrôle](#chaque-contrôle): Les 32, avec ce que chacun contrôle et comment corriger.
+- [Chaque contrôle](#chaque-contrôle): Les 33, avec ce que chacun contrôle et comment corriger.
 - [Score de risque](#score-de-risque): Comment les problèmes sont ordonnés au sein d'une même gravité.
 - [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème.
-- [Corriger d'ici](#corriger-dici): Bloquer un bucket public, ou cesser de partager un instantané, en un clic.
+- [Corriger d'ici](#corriger-dici): Fermer une exposition, ou activer une protection manquante, en un clic.
 :::
 
 ## Comment un contrôle décide
@@ -75,6 +75,7 @@ La gravité est donnée pour les données de niveau Restreint, Confidentiel, Int
 | N'importe qui ayant la clé du compte peut tout lire (`shared-key-access`) | Azure Storage Account | Le compte de stockage autorise l'accès par clé partagée, qui contourne Microsoft Entra ID et ne laisse aucune piste d'audit par personne. | Moyen / Faible / — / — | Faites passer les applications à Microsoft Entra ID, puis désactivez l'accès par clé du compte de stockage. |
 | Les objets peuvent porter leurs propres règles d'accès (`object-acls-enabled`) | AWS S3 Bucket, Google Cloud Storage Bucket | Les ACL d'objet sont activées, donc un objet peut être rendu public alors que le bucket semble privé. | Faible / Faible / — / — | Sur S3, réglez Object Ownership sur Bucket owner enforced. Sur Cloud Storage, activez l'accès uniforme au niveau du bucket. |
 | Plus de 25 identités peuvent lire des données de niveau Restreint (`many-readers`) | Tous les magasins de données sauf la télémétrie | Plus d'identités que la plupart des équipes ne peuvent en examiner ont un accès en lecture au magasin de données. | Moyen / — / — / — | Ouvrez la page **Qui peut y accéder** du magasin de données, et retirez les accès inutilisés ou plus larges que nécessaire. |
+| Des identités inutilisées depuis 90 jours peuvent encore y accéder (`unused-access`) | Tous les magasins de données sauf la télémétrie | Des rôles et des utilisateurs qui n'ont pas été utilisés depuis 90 jours ont encore accès aux données sensibles du magasin de données. | Moyen / Faible / — / — | Ouvrez la page **Qui peut y accéder** du magasin de données, où ils sont marqués **Non utilisée depuis 90 jours**, et retirez l'accès dont chacun n'a plus besoin. |
 
 ### Hygiène des données
 
@@ -160,14 +161,20 @@ Un problème qui s'ouvre à nouveau garde son historique. Les risques acceptés 
 
 ## Corriger d'ici
 
-Un problème ouvert concernant un bucket public ou un instantané partagé peut être corrigé depuis sa page. Au-dessus des étapes dans la console, **Corriger d'ici** propose la modification qui le corrige :
+Un problème ouvert qu'une seule modification des paramètres d'un magasin de données corrige - un bucket public, un instantané partagé, un bucket dont les fichiers supprimés ne peuvent pas être récupérés - peut être corrigé depuis sa page. Au-dessus des étapes dans la console, **Corriger d'ici** propose la modification qui le corrige :
 
 | Le problème | Son magasin de données | Le bouton | Ce qu'il modifie |
 | --- | --- | --- | --- |
 | `public-read`, `public-write` ou `public-access-not-blocked` | Un bucket S3, un compte de stockage Azure ou un bucket Cloud Storage | **Bloquer l'accès public** | Active les quatre paramètres Block Public Access du bucket, désactive l'accès anonyme aux blobs du compte de stockage, ou impose la prévention de l'accès public du bucket |
 | `snapshot-public` ou `snapshot-shared-externally` | Un instantané RDS, une base de données RDS, ou un cluster Aurora ou DocumentDB | **Révoquer le partage** | Cesse de partager l'instantané, ou chaque instantané manuel partagé de la base de données, avec tout le monde et avec les comptes extérieurs à ceux que vous avez connectés |
+| `deleted-data-not-recoverable` | Un bucket S3 ou un bucket Cloud Storage | **Activer le versioning** | Conserve la version précédente de chaque objet écrasé ou supprimé, jusqu'à ce qu'une règle de cycle de vie la retire |
+| `deleted-data-not-recoverable` | Un compte de stockage Azure | **Activer la suppression réversible** | Conserve les blobs et conteneurs supprimés pendant 14 jours, pour qu'ils puissent être restaurés |
+| `object-acls-enabled` | Un bucket S3 | **Désactiver les ACL d'objet** | Règle Object Ownership sur Bucket owner enforced, pour que la stratégie du bucket décide seule qui le lit |
+| `object-acls-enabled` | Un bucket Cloud Storage | **Activer l'accès uniforme** | Active l'accès uniforme au niveau du bucket, pour que la stratégie IAM du bucket décide seule qui le lit |
+| `encryption-in-transit-not-enforced` ou `weak-tls` | Un compte de stockage Azure | **Exiger le transfert sécurisé** | Active le transfert sécurisé et fixe la version TLS minimale à 1.2, pour que le compte n'accepte plus que HTTPS avec TLS 1.2 ou ultérieur |
+| `no-point-in-time-recovery` | Une table DynamoDB | **Activer la restauration à un instant donné** | Permet de restaurer la table à n'importe quelle seconde des 35 derniers jours |
 
-Il demande d'abord confirmation, en indiquant ce qui change et ce qui cesse de fonctionner. Il modifie la façon dont le magasin de données est partagé, jamais ses données, et ne modifie rien de ce qui est déjà fermé. Un magasin de données marqué **Public par conception** n'est jamais bloqué.
+Il demande d'abord confirmation, en indiquant ce qui change, ce qui cesse de fonctionner et ce que cela coûte. Il modifie les paramètres du magasin de données, jamais ses données, et ne modifie rien de ce qui est déjà comme il faut. Un magasin de données marqué **Public par conception** n'est jamais bloqué.
 
 Il agit via la connexion cloud du magasin de données, donc la connexion doit avoir **Réponse de sécurité des données** activé et sa commande de configuration exécutée à nouveau (voir [Configurer la Sécurité des données](/docs/data-security/setup#laisser-sécurité-des-données-fermer-une-exposition)). D'ici là, le panneau indique ce qu'il faut activer. Le magasin de données est contrôlé à nouveau juste après, et le problème se résout de lui-même dès que son contrôle réussit. La **Chronologie** du problème et la **Chronologie** du magasin de données indiquent ce qui a été fait, et par qui.
 

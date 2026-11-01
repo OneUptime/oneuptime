@@ -16,6 +16,7 @@ import SideMenu, {
   SideMenuItemProps,
   SideMenuSectionProps,
 } from "Common/UI/Components/SideMenu/SideMenu";
+import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -66,12 +67,21 @@ const DataSecuritySideMenu: FunctionComponent = (): ReactElement => {
         items: section.items.map(
           (item: DataSecurityMenuItem): SideMenuItemProps => {
             const count: MenuBadgeCount | undefined = getBadgeCount(item.badge);
+            // A page under the entry keeps it lit: an identity's, under Access.
+            const activeRoute: Route | undefined = item.activePage
+              ? RouteUtil.populateRouteParams(
+                  RouteMap[item.activePage] as Route,
+                )
+              : undefined;
 
             return {
               link: {
                 title: item.title,
                 to: RouteUtil.populateRouteParams(RouteMap[item.page] as Route),
               },
+              ...(activeRoute && Navigation.isOnThisPage(activeRoute)
+                ? { activeRoute }
+                : {}),
               icon: item.icon,
               ...(count
                 ? {

@@ -1,13 +1,13 @@
 # Comprobaciones y problemas de Seguridad de datos
 
-Seguridad de datos ejecuta 32 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida.
+Seguridad de datos ejecuta 33 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida.
 
 :::cards
 - [Cómo decide una comprobación](#cómo-decide-una-comprobación): Se supera, falla o no se puede saber, y lo grave que es un fallo.
-- [Cada comprobación](#cada-comprobación): Las 32, con lo que comprueba cada una y cómo corregirlo.
+- [Cada comprobación](#cada-comprobación): Las 33, con lo que comprueba cada una y cómo corregirlo.
 - [Puntuación de riesgo](#puntuación-de-riesgo): Cómo se ordenan los problemas dentro de una gravedad.
 - [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema.
-- [Corrígelo desde aquí](#corrígelo-desde-aquí): Bloquea un bucket público, o deja de compartir una instantánea, con un clic.
+- [Corrígelo desde aquí](#corrígelo-desde-aquí): Cierra una exposición, o activa una protección que falta, con un clic.
 :::
 
 ## Cómo decide una comprobación
@@ -75,6 +75,7 @@ La gravedad se da para datos Restringidos, Confidenciales, Internos y Públicos,
 | Cualquiera con la clave de la cuenta puede leerlo todo (`shared-key-access`) | Azure Storage Account | La cuenta de almacenamiento permite el acceso con clave compartida, que omite Microsoft Entra ID y no deja un registro de auditoría por persona. | Media / Baja / — / — | Pasa las aplicaciones a Microsoft Entra ID y después desactiva el acceso con clave de la cuenta de almacenamiento. |
 | Los objetos pueden llevar sus propias reglas de acceso (`object-acls-enabled`) | AWS S3 Bucket, Google Cloud Storage Bucket | Las ACL de objetos están activadas, así que un objeto puede hacerse público mientras el bucket parece privado. | Baja / Baja / — / — | En S3, pon Object Ownership en Bucket owner enforced. En Cloud Storage, activa el acceso uniforme a nivel de bucket. |
 | Más de 25 identidades pueden leer datos restringidos (`many-readers`) | Todos los almacenes salvo la telemetría | Más identidades de las que la mayoría de los equipos pueden revisar tienen acceso de lectura al almacén. | Media / — / — / — | Abre la página **Quién puede acceder** del almacén y quita el acceso que no se usa o es más amplio de lo necesario. |
+| Identidades sin usar en 90 días todavía pueden acceder a él (`unused-access`) | Todos los almacenes salvo la telemetría | Roles y usuarios que no se han usado en 90 días todavía tienen acceso a los datos sensibles del almacén. | Media / Baja / — / — | Abre la página **Quién puede acceder** del almacén, donde aparecen marcados como **Sin usar en 90 días**, y quita el acceso que cada uno ya no necesita. |
 
 ### Higiene de los datos
 
@@ -160,14 +161,20 @@ Un problema que se vuelve a abrir conserva su historial. Los riesgos aceptados s
 
 ## Corrígelo desde aquí
 
-Un problema abierto sobre un bucket público o una instantánea compartida se puede corregir desde su página. Encima de los pasos en la consola, **Corrígelo desde aquí** ofrece el cambio que lo corrige:
+Un problema abierto que corrige un solo cambio en los ajustes de un almacén (un bucket público, una instantánea compartida, un bucket cuyos archivos eliminados no se pueden recuperar) se puede corregir desde su página. Encima de los pasos en la consola, **Corrígelo desde aquí** ofrece el cambio que lo corrige:
 
 | El problema | Su almacén | El botón | Qué cambia |
 | --- | --- | --- | --- |
 | `public-read`, `public-write` o `public-access-not-blocked` | Un bucket de S3, una cuenta de almacenamiento de Azure o un bucket de Cloud Storage | **Bloquear el acceso público** | Activa los cuatro ajustes de Block Public Access del bucket, desactiva el acceso anónimo a blobs de la cuenta de almacenamiento, o impone la prevención del acceso público del bucket |
 | `snapshot-public` o `snapshot-shared-externally` | Una instantánea de RDS, una base de datos RDS, o un clúster de Aurora o DocumentDB | **Revocar el uso compartido** | Deja de compartir la instantánea, o cada instantánea manual compartida de la base de datos, con todo el mundo y con las cuentas ajenas a las que conectaste |
+| `deleted-data-not-recoverable` | Un bucket de S3 o un bucket de Cloud Storage | **Activar el control de versiones** | Guarda la versión anterior de cada objeto que se sobrescribe o se elimina, hasta que una regla de ciclo de vida la quita |
+| `deleted-data-not-recoverable` | Una cuenta de almacenamiento de Azure | **Activar la eliminación temporal** | Guarda los blobs y contenedores eliminados durante 14 días, para que se puedan restaurar |
+| `object-acls-enabled` | Un bucket de S3 | **Desactivar las ACL de objetos** | Pone Object Ownership en Bucket owner enforced, así que solo la política del bucket decide quién lo lee |
+| `object-acls-enabled` | Un bucket de Cloud Storage | **Activar el acceso uniforme** | Activa el acceso uniforme a nivel de bucket, así que solo la política de IAM del bucket decide quién lo lee |
+| `encryption-in-transit-not-enforced` o `weak-tls` | Una cuenta de almacenamiento de Azure | **Exigir transferencia segura** | Activa la transferencia segura y fija la versión mínima de TLS en 1.2, así que la cuenta solo acepta HTTPS con TLS 1.2 o posterior |
+| `no-point-in-time-recovery` | Una tabla de DynamoDB | **Activar la recuperación a un momento dado** | Permite restaurar la tabla a cualquier segundo de los últimos 35 días |
 
-Primero pregunta, y dice qué cambia y qué deja de funcionar. Cambia cómo se comparte el almacén, nunca sus datos, y no cambia nada que ya esté cerrado. Un almacén marcado como **Público por diseño** nunca se bloquea.
+Primero pregunta, y dice qué cambia, qué deja de funcionar y qué cuesta. Cambia los ajustes del almacén, nunca sus datos, y no cambia nada que ya esté como debe. Un almacén marcado como **Público por diseño** nunca se bloquea.
 
 Actúa a través de la conexión a la nube del almacén, así que la conexión necesita **Respuesta de seguridad de datos** activada y su comando de configuración ejecutado de nuevo (consulta [Configurar Seguridad de datos](/docs/data-security/setup#dejar-que-seguridad-de-datos-cierre-una-exposición)). Hasta entonces, el panel dice qué hay que activar. El almacén se vuelve a comprobar justo después, y el problema se resuelve solo en cuanto su comprobación se supera. La **Cronología** del problema y la **Cronología** del almacén dicen qué se hizo y quién lo hizo.
 

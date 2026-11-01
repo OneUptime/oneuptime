@@ -62,7 +62,7 @@ flowchart TB
 | Art. 25 | حفاظت از داده در طراحی و به‌طور پیش‌فرض | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | Art. 28 | پردازشگران | `sensitive-data-to-ai` |
 | Art. 30 | سوابق فعالیت‌های پردازش | با خود امنیت داده برآورده می‌شود |
-| Art. 32 | امنیت پردازش | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `encryption-in-transit-not-enforced`، `weak-tls`، `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable`، `access-not-logged`، `shared-key-access`، `object-acls-enabled`، `many-readers`، `secrets-stored`، `plaintext-passwords`، `secrets-in-telemetry` |
+| Art. 32 | امنیت پردازش | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `encryption-in-transit-not-enforced`، `weak-tls`، `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable`، `access-not-logged`، `shared-key-access`، `object-acls-enabled`، `many-readers`، `unused-access`، `secrets-stored`، `plaintext-passwords`، `secrets-in-telemetry` |
 | Arts. 44-49 | انتقال به کشورهای ثالث | `residency-violation` |
 
 ### CCPA
@@ -76,6 +76,7 @@ flowchart TB
 
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
+| 164.308(a)(4) | مدیریت دسترسی به اطلاعات | `unused-access` |
 | 164.308(a)(7) | برنامهٔ اضطراری | `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable` |
 | 164.312(a)(1) | کنترل دسترسی | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
 | 164.312(a)(2)(iv) | رمزگذاری و رمزگشایی | `not-encrypted-at-rest`، `no-customer-managed-key` |
@@ -91,6 +92,7 @@ flowchart TB
 | 3.5.1 | شماره‌های کارت هر جا ذخیره شوند ناخوانا هستند | `not-encrypted-at-rest`، `no-customer-managed-key`، `card-numbers-readable` |
 | 4.2.1 | رمزنگاری قوی از دادهٔ کارت در حین انتقال محافظت می‌کند | `encryption-in-transit-not-enforced`، `weak-tls` |
 | 7.2 | دسترسی بر پایهٔ نیاز تعریف و واگذار می‌شود | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
+| 7.2.4 | حساب‌ها و دسترسی‌هایشان بازبینی می‌شوند | `unused-access` |
 | 8.3.2 | عامل‌های احراز هویت هنگام ذخیره ناخوانا هستند | `plaintext-passwords` |
 | 10.2 | لاگ‌های ممیزی دسترسی به دادهٔ کارت را ثبت می‌کنند | `access-not-logged` |
 
@@ -100,6 +102,7 @@ flowchart TB
 | --- | --- | --- |
 | A1.2 | پشتیبان‌گیری و بازیابی | `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable` |
 | CC6.1 | امنیت دسترسی منطقی | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `not-encrypted-at-rest`، `no-customer-managed-key`، `shared-key-access`، `object-acls-enabled`، `many-readers`، `secrets-stored`، `plaintext-passwords`، `secrets-in-telemetry` |
+| CC6.2 | دسترسی وقتی دیگر لازم نیست برداشته می‌شود | `unused-access` |
 | CC6.7 | انتقال اطلاعات | `encryption-in-transit-not-enforced`، `weak-tls` |
 | CC7.2 | پایش اجزای سیستم | `access-not-logged` |
 
@@ -110,6 +113,7 @@ flowchart TB
 | A.5.9 | فهرست دارایی‌های اطلاعاتی و دیگر دارایی‌های مرتبط | `no-owner` |
 | A.5.12 | طبقه‌بندی اطلاعات | با خود امنیت داده برآورده می‌شود |
 | A.5.15 | کنترل دسترسی | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
+| A.5.18 | حقوق دسترسی | `unused-access` |
 | A.5.34 | حریم خصوصی و حفاظت از PII | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | A.8.11 | پوشاندن داده | `production-data-in-non-production`، `stale-sensitive-data`، `sensitive-data-in-telemetry`، `sensitive-data-to-ai`، `sensitive-data-in-ai-store` |
 | A.8.12 | پیشگیری از نشت داده | `secrets-stored`، `secrets-in-telemetry` |
@@ -122,7 +126,7 @@ flowchart TB
 | الزام | چه می‌خواهد | بررسی‌ها |
 | --- | --- | --- |
 | ID.AM-07 | فهرست‌هایی از داده و فراداده نگهداری می‌شوند | `no-owner` |
-| PR.AA-05 | مجوزهای دسترسی مدیریت می‌شوند | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers` |
+| PR.AA-05 | مجوزهای دسترسی مدیریت می‌شوند | `public-read`، `public-write`، `public-access-not-blocked`، `internet-reachable`، `open-to-all-addresses`، `snapshot-public`، `snapshot-shared-externally`، `shared-with-external-accounts`، `shared-key-access`، `object-acls-enabled`، `many-readers`، `unused-access` |
 | PR.DS-01 | دادهٔ در حال سکون محافظت می‌شود | `not-encrypted-at-rest`، `no-customer-managed-key`، `secrets-stored`، `secrets-in-telemetry` |
 | PR.DS-02 | دادهٔ در حال انتقال محافظت می‌شود | `encryption-in-transit-not-enforced`، `weak-tls` |
 | PR.DS-11 | از داده‌ها پشتیبان نگه داشته و آزموده می‌شود | `no-backups`، `no-point-in-time-recovery`، `deletion-protection-off`، `deleted-data-not-recoverable` |

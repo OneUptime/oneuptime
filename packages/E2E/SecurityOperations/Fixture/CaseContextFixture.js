@@ -840,6 +840,61 @@ export function createCaseContextFixture(options) {
       .slice(0, SECURITY_CASE_IMPACT_MAX_STATUS_PAGES);
   }
 
+  /*
+   * The data a case puts at risk, as Data Security answers it
+   * (Common/Server/Utils/SecurityCase/Context/SecurityCaseDataAtRisk): the
+   * spray names k.morgan@acme-commerce.example, a Google Cloud member who
+   * can read two stores with sensitive data, neither named by the case - the
+   * card numbers' bucket shared with an account outside, the most sensitive
+   * first. No other case names an identity Data Security knows.
+   */
+  const NOTHING_AT_RISK = { stores: [], identities: [], hasMoreStores: false };
+  const DATA_AT_RISK = {
+    [ids.case(142)]: {
+      stores: [
+        {
+          id: "40000000-0000-4000-8000-000000000001",
+          name: "finance-exports",
+          kind: "Google Cloud Storage Bucket",
+          sensitivity: "Restricted",
+          dataTypeIds: ["credit-card-number", "email-address"],
+          estimatedRecords: 2400000,
+          exposure: "Other accounts",
+          isNamedByCase: false,
+          reachedThrough: ["k.morgan@acme-commerce.example"],
+          identityCount: 9,
+          externalIdentityCount: 2,
+        },
+        {
+          id: "40000000-0000-4000-8000-000000000002",
+          name: "analytics",
+          kind: "Google BigQuery Dataset",
+          sensitivity: "Confidential",
+          dataTypeIds: ["email-address", "person-name"],
+          estimatedRecords: 1200000,
+          exposure: "Private",
+          isNamedByCase: false,
+          reachedThrough: ["k.morgan@acme-commerce.example"],
+          identityCount: 4,
+          externalIdentityCount: 0,
+        },
+      ],
+      identities: [
+        {
+          id: "41000000-0000-4000-8000-000000000001",
+          name: "k.morgan@acme-commerce.example",
+          principal: "user:k.morgan@acme-commerce.example",
+          principalType: "User",
+          storeCount: 2,
+          sensitiveStoreCount: 2,
+          highestSensitivity: "Restricted",
+          riskScore: 57,
+        },
+      ],
+      hasMoreStores: false,
+    },
+  };
+
   function impact(body) {
     const read = readCase(body);
     if (read.error) {
@@ -898,6 +953,7 @@ export function createCaseContextFixture(options) {
           requests: reachedRequests(eventsOf(securityCase, window), addresses),
           recordAddresses: recordAddresses(resources),
         }),
+        dataAtRisk: DATA_AT_RISK[String(securityCase._id)] || NOTHING_AT_RISK,
         unreadableSources:
           (records.unreadableKinds || []).length > 0
             ? [SecurityCaseImpactSource.Records]

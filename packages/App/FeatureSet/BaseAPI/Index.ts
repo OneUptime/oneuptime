@@ -690,6 +690,9 @@ import DataStoreLabelRuleService, {
 import DataSecurityFlowService, {
   Service as DataSecurityFlowServiceType,
 } from "Common/Server/Services/DataSecurityFlowService";
+import DataSecurityIdentityService, {
+  Service as DataSecurityIdentityServiceType,
+} from "Common/Server/Services/DataSecurityIdentityService";
 import DataSecurityIssueService, {
   Service as DataSecurityIssueServiceType,
 } from "Common/Server/Services/DataSecurityIssueService";
@@ -1751,6 +1754,7 @@ import DataStoreOwnerTeam from "Common/Models/DatabaseModels/DataStoreOwnerTeam"
 import DataStoreOwnerRule from "Common/Models/DatabaseModels/DataStoreOwnerRule";
 import DataStoreLabelRule from "Common/Models/DatabaseModels/DataStoreLabelRule";
 import DataSecurityFlow from "Common/Models/DatabaseModels/DataSecurityFlow";
+import DataSecurityIdentity from "Common/Models/DatabaseModels/DataSecurityIdentity";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
 import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssueFeed";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
@@ -4379,6 +4383,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<DataSecurityFlow, DataSecurityFlowServiceType>(
         DataSecurityFlow,
         DataSecurityFlowService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DataSecurityIdentity, DataSecurityIdentityServiceType>(
+        DataSecurityIdentity,
+        DataSecurityIdentityService,
       ).getRouter(),
     );
 

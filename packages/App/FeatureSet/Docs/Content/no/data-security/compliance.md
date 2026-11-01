@@ -62,7 +62,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 | Art. 25 | Innebygd personvern og personvern som standard | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 28 | Databehandlere | `sensitive-data-to-ai` |
 | Art. 30 | Protokoll over behandlingsaktiviteter | Oppfylt av Datasikkerhet selv |
-| Art. 32 | Sikkerhet ved behandlingen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| Art. 32 | Sikkerhet ved behandlingen | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | Art. 44-49 | Overføringer til tredjeland | `residency-violation` |
 
 ### CCPA
@@ -76,6 +76,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 
 | Krav | Hva det krever | Kontroller |
 | --- | --- | --- |
+| 164.308(a)(4) | Styring av tilgang til informasjon | `unused-access` |
 | 164.308(a)(7) | Beredskapsplan | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | 164.312(a)(1) | Tilgangskontroll | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 164.312(a)(2)(iv) | Kryptering og dekryptering | `not-encrypted-at-rest`, `no-customer-managed-key` |
@@ -91,6 +92,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 | 3.5.1 | Kortnumre er uleselige overalt der de lagres | `not-encrypted-at-rest`, `no-customer-managed-key`, `card-numbers-readable` |
 | 4.2.1 | Sterk kryptografi beskytter kortdata under overføring | `encryption-in-transit-not-enforced`, `weak-tls` |
 | 7.2 | Tilgang defineres og tildeles etter behov | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 7.2.4 | Kontoer og tilgangen deres gjennomgås | `unused-access` |
 | 8.3.2 | Autentiseringsfaktorer er uleselige når de lagres | `plaintext-passwords` |
 | 10.2 | Revisjonslogger registrerer tilgang til kortdata | `access-not-logged` |
 
@@ -100,6 +102,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 | --- | --- | --- |
 | A1.2 | Sikkerhetskopiering og gjenoppretting | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
 | CC6.1 | Logisk tilgangssikkerhet | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| CC6.2 | Tilgang fjernes når den ikke lenger trengs | `unused-access` |
 | CC6.7 | Overføring av informasjon | `encryption-in-transit-not-enforced`, `weak-tls` |
 | CC7.2 | Overvåking av systemkomponenter | `access-not-logged` |
 
@@ -110,6 +113,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 | A.5.9 | Fortegnelse over informasjon og andre tilknyttede aktiva | `no-owner` |
 | A.5.12 | Klassifisering av informasjon | Oppfylt av Datasikkerhet selv |
 | A.5.15 | Tilgangskontroll | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| A.5.18 | Tilgangsrettigheter | `unused-access` |
 | A.5.34 | Personvern og beskyttelse av PII | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.11 | Datamaskering | `production-data-in-non-production`, `stale-sensitive-data`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.12 | Forebygging av datalekkasje | `secrets-stored`, `secrets-in-telemetry` |
@@ -122,7 +126,7 @@ Bare åpne problemer teller. Et problem der risikoen er godtatt, eller som ikke 
 | Krav | Hva det krever | Kontroller |
 | --- | --- | --- |
 | ID.AM-07 | Oversikter over data og metadata vedlikeholdes | `no-owner` |
-| PR.AA-05 | Tilgangstillatelser forvaltes | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| PR.AA-05 | Tilgangstillatelser forvaltes | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
 | PR.DS-01 | Data i ro er beskyttet | `not-encrypted-at-rest`, `no-customer-managed-key`, `secrets-stored`, `secrets-in-telemetry` |
 | PR.DS-02 | Data under overføring er beskyttet | `encryption-in-transit-not-enforced`, `weak-tls` |
 | PR.DS-11 | Sikkerhetskopier av data tas vare på og testes | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |

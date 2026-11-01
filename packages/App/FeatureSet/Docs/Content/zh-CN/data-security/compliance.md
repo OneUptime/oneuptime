@@ -62,7 +62,7 @@ flowchart TB
 | 第 25 条 | 通过设计和默认设置实现数据保护 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | 第 28 条 | 处理者 | `sensitive-data-to-ai` |
 | 第 30 条 | 处理活动记录 | 由数据安全本身满足 |
-| 第 32 条 | 处理的安全性 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`encryption-in-transit-not-enforced`、`weak-tls`、`no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable`、`access-not-logged`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
+| 第 32 条 | 处理的安全性 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`encryption-in-transit-not-enforced`、`weak-tls`、`no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable`、`access-not-logged`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
 | 第 44-49 条 | 向第三国传输 | `residency-violation` |
 
 ### CCPA
@@ -76,6 +76,7 @@ flowchart TB
 
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
+| 164.308(a)(4) | 信息访问管理 | `unused-access` |
 | 164.308(a)(7) | 应急计划 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
 | 164.312(a)(1) | 访问控制 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
 | 164.312(a)(2)(iv) | 加密和解密 | `not-encrypted-at-rest`、`no-customer-managed-key` |
@@ -91,6 +92,7 @@ flowchart TB
 | 3.5.1 | 卡号无论存储在何处都不可读 | `not-encrypted-at-rest`、`no-customer-managed-key`、`card-numbers-readable` |
 | 4.2.1 | 用强加密保护传输中的卡数据 | `encryption-in-transit-not-enforced`、`weak-tls` |
 | 7.2 | 按需定义和分配访问权限 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| 7.2.4 | 审查账户及其访问权限 | `unused-access` |
 | 8.3.2 | 身份验证因素在存储时不可读 | `plaintext-passwords` |
 | 10.2 | 审计日志记录对卡数据的访问 | `access-not-logged` |
 
@@ -100,6 +102,7 @@ flowchart TB
 | --- | --- | --- |
 | A1.2 | 备份和恢复 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |
 | CC6.1 | 逻辑访问安全 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`not-encrypted-at-rest`、`no-customer-managed-key`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`secrets-stored`、`plaintext-passwords`、`secrets-in-telemetry` |
+| CC6.2 | 不再需要的访问权限会被移除 | `unused-access` |
 | CC6.7 | 信息传输 | `encryption-in-transit-not-enforced`、`weak-tls` |
 | CC7.2 | 系统组件的监控 | `access-not-logged` |
 
@@ -110,6 +113,7 @@ flowchart TB
 | A.5.9 | 信息及其他相关资产的清单 | `no-owner` |
 | A.5.12 | 信息分类 | 由数据安全本身满足 |
 | A.5.15 | 访问控制 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| A.5.18 | 访问权限 | `unused-access` |
 | A.5.34 | 隐私和 PII 保护 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | A.8.11 | 数据脱敏 | `production-data-in-non-production`、`stale-sensitive-data`、`sensitive-data-in-telemetry`、`sensitive-data-to-ai`、`sensitive-data-in-ai-store` |
 | A.8.12 | 数据泄露防护 | `secrets-stored`、`secrets-in-telemetry` |
@@ -122,7 +126,7 @@ flowchart TB
 | 要求 | 要求内容 | 检查 |
 | --- | --- | --- |
 | ID.AM-07 | 维护数据和元数据清单 | `no-owner` |
-| PR.AA-05 | 管理访问权限 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers` |
+| PR.AA-05 | 管理访问权限 | `public-read`、`public-write`、`public-access-not-blocked`、`internet-reachable`、`open-to-all-addresses`、`snapshot-public`、`snapshot-shared-externally`、`shared-with-external-accounts`、`shared-key-access`、`object-acls-enabled`、`many-readers`、`unused-access` |
 | PR.DS-01 | 保护静态数据 | `not-encrypted-at-rest`、`no-customer-managed-key`、`secrets-stored`、`secrets-in-telemetry` |
 | PR.DS-02 | 保护传输中的数据 | `encryption-in-transit-not-enforced`、`weak-tls` |
 | PR.DS-11 | 保留并测试数据备份 | `no-backups`、`no-point-in-time-recovery`、`deletion-protection-off`、`deleted-data-not-recoverable` |

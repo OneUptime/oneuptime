@@ -866,8 +866,18 @@ describePostgres("merging exceptions against Postgres", () => {
   });
 
   test("an unmerge gives the survivor back its own first and last seen", async () => {
+    /*
+     * Days of the last four weeks, from a UTC midnight. An occurrence more
+     * than 30 days old is counted at the time the worker reads it
+     * (MAX_OCCURRENCE_AGE_MS), so the fixed October days this used stopped
+     * being their own as the calendar passed them: on 1 November 2026, day 1
+     * was 30 days and 17 hours old and read as that afternoon.
+     */
+    const dayInMs: number = 24 * 60 * 60 * 1000;
+    const firstDay: number =
+      Math.floor((Date.now() - 27 * dayInMs) / dayInMs) * dayInMs;
     const day: (n: number) => Date = (n: number): Date => {
-      return new Date(Date.UTC(2026, 9, 1 + n));
+      return new Date(firstDay + n * dayInMs);
     };
 
     // a was seen on days 5 and 20, b on days 1 and 25.
