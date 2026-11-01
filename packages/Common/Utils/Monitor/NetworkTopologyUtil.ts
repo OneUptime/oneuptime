@@ -8,7 +8,12 @@ import NetworkTopology, {
 } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
 import LldpNeighbor from "../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../Types/Monitor/SnmpMonitor/CdpNeighbor";
-import { normalizeMac } from "./EndpointAttachmentUtil";
+import EndpointAttachmentUtil, { normalizeMac } from "./EndpointAttachmentUtil";
+import {
+  MerakiAdvertisedName,
+  getCiscoPhoneMac,
+  parseMerakiAdvertisedName,
+} from "./NeighborIdentityUtil";
 import {
   classifyDeviceRole,
   classifyEndpointRole,
@@ -21,9 +26,11 @@ import {
   roleKeyForNode,
   stampForRoleKey,
 } from "./NetworkDeviceRoleCatalog";
+import { siteKeyOf } from "./DeviceMacLearningUtil";
 import DeviceReachabilityUtil, {
   NetworkDeviceReachability,
 } from "../NetworkDevice/DeviceReachabilityUtil";
+import { NetworkDeviceControllerLink } from "../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 
 export interface TopologyDeviceInput {
   id: string;
@@ -130,6 +137,25 @@ export interface TopologyDeviceInput {
   siteId?: string | undefined;
   lldpNeighbors?: Array<LldpNeighbor> | undefined;
   cdpNeighbors?: Array<CdpNeighbor> | undefined;
+  /*
+   * What a network controller says this device is cabled to: Meraki's link
+   * layer topology, the caller having dropped a reading too old to vouch for
+   * (getCurrentControllerLinks). The same claims a walk's neighbours make, so
+   * they resolve and merge the same way - one cable reported by a walk and by
+   * Meraki is one line.
+   */
+  controllerLinks?: Array<NetworkDeviceControllerLink> | undefined;
+  // The controller that reported them: a NetworkControllerProvider.
+  controllerProvider?: string | undefined;
+  /*
+   * Read only by the diagnostics. Whether this device's walk collects the ARP
+   * and forwarding tables (Collect Connected Endpoints), and whether a
+   * network controller describes it: the two things that can place a
+   * ping-only device at the same site, so they are what its drawer has to
+   * name when nothing did.
+   */
+  isEndpointCollectionEnabled?: boolean | undefined;
+  isDescribedByController?: boolean | undefined;
 }
 
 /*
@@ -171,6 +197,14 @@ export interface TopologyEndpointInput {
    * TopologyDeviceInput.siteId is one.
    */
   siteId?: string | undefined;
+  // What a network controller calls it. See NetworkEndpoint.hostname.
+  hostname?: string | undefined;
+  /*
+   * The controller that reported where it is, when one did. Decides how long
+   * lastSeenAt counts as current: a controller is read far less often than a
+   * switch is walked.
+   */
+  attachmentSource?: string | undefined;
 }
 
 /*
@@ -212,6 +246,8 @@ export interface TopologyBuildResult extends NetworkTopology {
    * that device's own node rather than as a node of their own. Reported so
    * the count of what the switches learned still adds up: rendered +
    * dropped + adopted is every row the caller passed in (less truncation).
+   * A row that turned out to be a peer a neighbour protocol already drew is
+   * counted here too: it is the same box, and it mints no node either.
    */
   adoptedEndpointCount?: number | undefined;
   /*
@@ -228,7 +264,12 @@ export interface TopologyBuildResult extends NetworkTopology {
  * CDP entries flow through the same match/dedupe/enrich pipeline.
  */
 interface NeighborClaim {
-  protocol: NetworkTopologyLinkProtocol;
+  /*
+   * Which protocols reported it: one for a walk's neighbour entry. A
+   * controller says both, one or - when it says nothing about how it knows -
+   * neither, which readers take to mean a discovered link all the same.
+   */
+  protocols: Array<NetworkTopologyLinkProtocol>;
   /*
    * Every identifier this report offers for the peer, strongest source
    * first — LLDP's remoteSysName ahead of its remoteChassisId, CDP's
@@ -240,7 +281,15 @@ interface NeighborClaim {
   displayName: string | undefined;
   // True when displayName came from an advertised name, not a chassis id.
   hasAdvertisedName: boolean;
+  /*
+   * The name as it was advertised, when displayName is a reading of it.
+   * Unmanaged node ids are built from this, so reading a Meraki name does not
+   * move the peers that were pinned or hidden under the name as it arrives.
+   */
+  advertisedName: string | undefined;
   localInterfaceIndex: number | undefined;
+  // A controller names this end's port rather than giving its ifIndex.
+  localPortName: string | undefined;
   remotePortId: string | undefined;
   // CDP-only: the platform string the neighbor advertises about itself.
   remotePlatform: string | undefined;
@@ -251,6 +300,13 @@ interface NeighborClaim {
    * interchangeable evidence — see MatchKeyKind "ip".
    */
   remoteIpAddress: string | undefined;
+  /*
+   * The device at the far end, when whoever reported this already knows:
+   * a controller, which matched it by serial number when it was read.
+   */
+  peerDeviceId: string | undefined;
+  // The controller that reported it, when one did.
+  reportedBy: string | undefined;
 }
 
 /*
@@ -351,6 +407,15 @@ interface EndpointAdoptionPlan {
  * `wrap-regex` and Prettier cannot agree on.
  */
 const IPV4_PATTERN: RegExp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+
+/*
+ * A port's number, however a switch spells it: "Port 3", "port3", "3" or
+ * "port 03" are one port. Meraki's dashboard names a port by its number
+ * while its SNMP agent says "port3", and without this a link it reports
+ * cannot find the interface row that holds the port's state. Anything with
+ * more structure ("Gi0/3") stays what it is.
+ */
+const NUMBERED_PORT_PATTERN: RegExp = /^(?:port)?\s?0*(\d{1,6})$/;
 
 /*
  * Whether a string really is a v4 address, octet bounds included.
@@ -481,6 +546,31 @@ export default class NetworkTopologyUtil {
       }
     }
 
+    /*
+     * The same rows by port number, for an end that was named rather than
+     * indexed. A number two interfaces of one device answer to is nobody's:
+     * a port's state drawn on the wrong port is worse than none.
+     */
+    const interfaceByDeviceAndPort: Map<string, TopologyInterfaceInput> =
+      new Map();
+    const ambiguousPortKeys: Set<string> = new Set<string>();
+    for (const row of interfaces) {
+      const portNumber: string | undefined = NetworkTopologyUtil.portNumberOf(
+        row.name,
+      );
+      if (!portNumber) {
+        continue;
+      }
+      const portKey: string = `${row.networkDeviceId}::${portNumber}`;
+      if (interfaceByDeviceAndPort.has(portKey)) {
+        ambiguousPortKeys.add(portKey);
+      }
+      interfaceByDeviceAndPort.set(portKey, row);
+    }
+    for (const portKey of ambiguousPortKeys) {
+      interfaceByDeviceAndPort.delete(portKey);
+    }
+
     // Kept aside so the diagnostics pass below can read it back per node.
     const isNeighborDiscoveryEnabledById: Map<string, boolean | undefined> =
       new Map<string, boolean | undefined>();
@@ -553,6 +643,14 @@ export default class NetworkTopologyUtil {
 
     const edgeByKey: Map<string, NetworkTopologyEdge> = new Map();
 
+    const deviceById: Map<string, TopologyDeviceInput> = new Map<
+      string,
+      TopologyDeviceInput
+    >();
+    for (const device of devices) {
+      deviceById.set(device.id, device);
+    }
+
     /*
      * Resolve every neighbor report before drawing anything.
      *
@@ -566,19 +664,24 @@ export default class NetworkTopologyUtil {
       for (const claim of NetworkTopologyUtil.neighborClaimsForDevice(device)) {
         const candidates: Array<MatchKey> =
           NetworkTopologyUtil.candidateKeysForClaim(claim);
-        if (candidates.length === 0) {
+
+        // Whoever knows the far end for certain outranks any key.
+        let matched: TopologyDeviceInput | undefined = claim.peerDeviceId
+          ? deviceById.get(claim.peerDeviceId)
+          : undefined;
+
+        if (!matched && candidates.length === 0) {
           continue;
         }
 
         // Candidates arrive strongest-first, so the first hit is the best one.
-        let matched: TopologyDeviceInput | undefined = undefined;
         for (const candidate of candidates) {
-          matched = deviceByMatchKey.get(
-            NetworkTopologyUtil.matchKeyId(candidate),
-          );
           if (matched) {
             break;
           }
+          matched = deviceByMatchKey.get(
+            NetworkTopologyUtil.matchKeyId(candidate),
+          );
         }
 
         if (matched && matched.id === device.id) {
@@ -646,6 +749,17 @@ export default class NetworkTopologyUtil {
         };
         localPortLabel =
           localInterface?.name || `if${claim.localInterfaceIndex}`;
+      } else if (claim.localPortName) {
+        // A controller's end: named, and a walk may know that port's state.
+        localEndpoint = NetworkTopologyUtil.endpointOfInterface(
+          NetworkTopologyUtil.interfaceForPortLabel(
+            device.id,
+            claim.localPortName,
+            interfaceByDeviceAndName,
+            interfaceByDeviceAndPort,
+          ),
+        );
+        localPortLabel = localEndpoint?.interfaceName || claim.localPortName;
       }
 
       /*
@@ -656,24 +770,14 @@ export default class NetworkTopologyUtil {
        */
       let remoteEndpoint: NetworkTopologyEdgeEndpoint | undefined = undefined;
       if (matchedId && claim.remotePortId) {
-        const remotePortKey: string | undefined =
-          NetworkTopologyUtil.normalizeKey(claim.remotePortId);
-        const remoteInterface: TopologyInterfaceInput | undefined =
-          remotePortKey
-            ? interfaceByDeviceAndName.get(`${matchedId}::${remotePortKey}`)
-            : undefined;
-        if (remoteInterface) {
-          remoteEndpoint = {
-            interfaceIndex: remoteInterface.interfaceIndex,
-            interfaceName: remoteInterface.name,
-            isOperationallyUp: remoteInterface.isOperationallyUp,
-            isAdministrativelyUp: remoteInterface.isAdministrativelyUp,
-            utilizationPercent: remoteInterface.utilizationPercent,
-            inRateMbps: remoteInterface.inRateMbps,
-            outRateMbps: remoteInterface.outRateMbps,
-            errorsPerSecond: remoteInterface.errorsPerSecond,
-          };
-        }
+        remoteEndpoint = NetworkTopologyUtil.endpointOfInterface(
+          NetworkTopologyUtil.interfaceForPortLabel(
+            matchedId,
+            claim.remotePortId,
+            interfaceByDeviceAndName,
+            interfaceByDeviceAndPort,
+          ),
+        );
       }
 
       // Undirected dedupe: canonicalize the endpoint pair.
@@ -686,9 +790,10 @@ export default class NetworkTopologyUtil {
           toNodeId: toNodeId,
           fromPort: localPortLabel,
           toPort: claim.remotePortId,
-          protocols: [claim.protocol],
+          protocols: [...claim.protocols],
           fromInterface: localEndpoint,
           toInterface: remoteEndpoint,
+          reportedBy: claim.reportedBy,
         });
         continue;
       }
@@ -698,9 +803,12 @@ export default class NetworkTopologyUtil {
        * protocol. Merge instead of dropping so both ends keep the best
        * data anyone reported about them.
        */
-      if (existing.protocols && !existing.protocols.includes(claim.protocol)) {
-        existing.protocols.push(claim.protocol);
+      for (const protocol of claim.protocols) {
+        if (existing.protocols && !existing.protocols.includes(protocol)) {
+          existing.protocols.push(protocol);
+        }
       }
+      existing.reportedBy = existing.reportedBy || claim.reportedBy;
 
       if (existing.fromNodeId === device.id) {
         existing.fromPort = existing.fromPort || localPortLabel;
@@ -873,16 +981,53 @@ export default class NetworkTopologyUtil {
       }
     }
 
+    /*
+     * What could have placed a device that reports nobody, site by site. An
+     * explanation has to be about the device's own site: a project-wide count
+     * would tell a store with no collector that everything is in order
+     * because a store across the country has one.
+     */
+    const collectorCountBySite: Map<string, number> = new Map<string, number>();
+    const controllerCountBySite: Map<string, number> = new Map<
+      string,
+      number
+    >();
+    for (const device of devices) {
+      const siteKey: string = siteKeyOf(device.siteId);
+      if (device.isEndpointCollectionEnabled) {
+        collectorCountBySite.set(
+          siteKey,
+          (collectorCountBySite.get(siteKey) || 0) + 1,
+        );
+      }
+      if (device.isDescribedByController) {
+        controllerCountBySite.set(
+          siteKey,
+          (controllerCountBySite.get(siteKey) || 0) + 1,
+        );
+      }
+    }
+
     for (const node of nodes) {
       if (node.kind !== "device") {
         continue;
       }
+      const device: TopologyDeviceInput | undefined = deviceById.get(node.id);
+      const siteKey: string = siteKeyOf(device?.siteId);
       node.diagnostics = {
         isNeighborDiscoveryEnabled: isNeighborDiscoveryEnabledById.get(node.id),
         reportedNeighborCount:
           reportedNeighborCountByDeviceId.get(node.id) || 0,
         unmatchedNeighborIdentifiers:
           unmatchedIdentifiersByDeviceId.get(node.id) || [],
+        placement: {
+          hasMacAddress: Boolean(normalizeMac(device?.macAddress)),
+          hasAddressKey: isIpv4Address(
+            NetworkTopologyUtil.normalizeKey(device?.hostname),
+          ),
+          siteEndpointCollectorCount: collectorCountBySite.get(siteKey) || 0,
+          siteControllerDeviceCount: controllerCountBySite.get(siteKey) || 0,
+        },
       };
     }
 
@@ -927,6 +1072,18 @@ export default class NetworkTopologyUtil {
         now,
       );
 
+    /*
+     * --- Endpoints that ARE a peer already on the map ---
+     *
+     * A desk phone speaks LLDP, so its switch reports it as a neighbour; and
+     * it is a client on a port, so Meraki lists it too. Those two sources are
+     * one handset, and left alone the map draws it twice, on one port. The
+     * neighbour keeps its node - it says more about the link - and takes
+     * what the endpoint row knows.
+     */
+    const peerNodeByMac: Map<string, NetworkTopologyNode> =
+      NetworkTopologyUtil.indexPeerNodesByMac(peerNodeIdByClaim, nodes);
+
     for (const endpoint of sortedEndpoints) {
       if (
         !endpoint.attachedNetworkDeviceId ||
@@ -955,8 +1112,20 @@ export default class NetworkTopologyUtil {
             edgeByKey: edgeByKey,
             edges: edges,
             interfaceByDeviceAndIndex: interfaceByDeviceAndIndex,
+            interfaceByDeviceAndName: interfaceByDeviceAndName,
+            interfaceByDeviceAndPort: interfaceByDeviceAndPort,
           });
         }
+        continue;
+      }
+
+      const peerNode: NetworkTopologyNode | undefined = peerNodeByMac.get(
+        normalizeMac(endpoint.macAddress) || endpoint.macAddress,
+      );
+
+      if (peerNode) {
+        adoptedEndpointCount++;
+        NetworkTopologyUtil.stampPeerIdentity(peerNode, endpoint);
         continue;
       }
 
@@ -967,8 +1136,14 @@ export default class NetworkTopologyUtil {
       renderedEndpointCount++;
 
       const nodeId: string = `endpoint:${endpoint.id}`;
+      /*
+       * What somebody called it, then what it can be told by: a person's
+       * classification, then the name it has in its controller, ahead of a
+       * maker's name, which every register in a store shares.
+       */
       const endpointName: string =
         endpoint.classification ||
+        endpoint.hostname ||
         endpoint.vendor ||
         endpoint.ipAddress ||
         endpoint.macAddress;
@@ -987,12 +1162,14 @@ export default class NetworkTopologyUtil {
         status: NetworkTopologyUtil.statusFromLastSeen(
           endpoint.lastSeenAt,
           now,
+          endpoint.attachmentSource,
         ),
         vendor: endpoint.vendor,
         macAddress: endpoint.macAddress,
         ipAddress: endpoint.ipAddress,
         classification: endpoint.classification,
         vlanId: endpoint.vlanId,
+        hostname: endpoint.hostname,
       };
 
       /*
@@ -1010,12 +1187,13 @@ export default class NetworkTopologyUtil {
       nodes.push(endpointNode);
 
       // Port label + interface state on the switch end, when identifiable.
-      let switchInterface: TopologyInterfaceInput | undefined = undefined;
-      if (endpoint.attachedInterfaceIndex !== undefined) {
-        switchInterface = interfaceByDeviceAndIndex.get(
-          `${endpoint.attachedNetworkDeviceId}::${endpoint.attachedInterfaceIndex}`,
+      const switchInterface: TopologyInterfaceInput | undefined =
+        NetworkTopologyUtil.interfaceOfAttachment(
+          endpoint,
+          interfaceByDeviceAndIndex,
+          interfaceByDeviceAndName,
+          interfaceByDeviceAndPort,
         );
-      }
       let fromPort: string | undefined =
         endpoint.attachedPortName || switchInterface?.name;
       if (!fromPort && endpoint.attachedInterfaceIndex !== undefined) {
@@ -1028,18 +1206,8 @@ export default class NetworkTopologyUtil {
         fromPort: fromPort,
         protocols: ["fdb"],
         learnedByNodeId: endpoint.attachedNetworkDeviceId,
-        fromInterface: switchInterface
-          ? {
-              interfaceIndex: switchInterface.interfaceIndex,
-              interfaceName: switchInterface.name,
-              isOperationallyUp: switchInterface.isOperationallyUp,
-              isAdministrativelyUp: switchInterface.isAdministrativelyUp,
-              utilizationPercent: switchInterface.utilizationPercent,
-              inRateMbps: switchInterface.inRateMbps,
-              outRateMbps: switchInterface.outRateMbps,
-              errorsPerSecond: switchInterface.errorsPerSecond,
-            }
-          : undefined,
+        fromInterface: NetworkTopologyUtil.endpointOfInterface(switchInterface),
+        reportedBy: endpoint.attachmentSource,
       });
     }
 
@@ -1200,7 +1368,13 @@ export default class NetworkTopologyUtil {
     }
     const ageMs: number =
       now.getTime() - new Date(endpoint.lastSeenAt).getTime();
-    return ageMs <= ENDPOINT_FRESH_WINDOW_MS;
+    return (
+      ageMs <=
+      EndpointAttachmentUtil.getSightingWindowMs(
+        endpoint.attachmentSource,
+        ENDPOINT_FRESH_WINDOW_MS,
+      )
+    );
   }
 
   /*
@@ -1395,6 +1569,8 @@ export default class NetworkTopologyUtil {
     edgeByKey: Map<string, NetworkTopologyEdge>;
     edges: Array<NetworkTopologyEdge>;
     interfaceByDeviceAndIndex: Map<string, TopologyInterfaceInput>;
+    interfaceByDeviceAndName: Map<string, TopologyInterfaceInput>;
+    interfaceByDeviceAndPort: Map<string, TopologyInterfaceInput>;
   }): void {
     const switchId: string = data.endpoint.attachedNetworkDeviceId!;
     const deviceId: string = data.device.id;
@@ -1408,30 +1584,20 @@ export default class NetworkTopologyUtil {
     }
 
     // Port label + interface state on the switch end, when identifiable.
-    let switchInterface: TopologyInterfaceInput | undefined = undefined;
-    if (data.endpoint.attachedInterfaceIndex !== undefined) {
-      switchInterface = data.interfaceByDeviceAndIndex.get(
-        `${switchId}::${data.endpoint.attachedInterfaceIndex}`,
+    const switchInterface: TopologyInterfaceInput | undefined =
+      NetworkTopologyUtil.interfaceOfAttachment(
+        data.endpoint,
+        data.interfaceByDeviceAndIndex,
+        data.interfaceByDeviceAndName,
+        data.interfaceByDeviceAndPort,
       );
-    }
     let switchPort: string | undefined =
       data.endpoint.attachedPortName || switchInterface?.name;
     if (!switchPort && data.endpoint.attachedInterfaceIndex !== undefined) {
       switchPort = `if${data.endpoint.attachedInterfaceIndex}`;
     }
     const switchEndpoint: NetworkTopologyEdgeEndpoint | undefined =
-      switchInterface
-        ? {
-            interfaceIndex: switchInterface.interfaceIndex,
-            interfaceName: switchInterface.name,
-            isOperationallyUp: switchInterface.isOperationallyUp,
-            isAdministrativelyUp: switchInterface.isAdministrativelyUp,
-            utilizationPercent: switchInterface.utilizationPercent,
-            inRateMbps: switchInterface.inRateMbps,
-            outRateMbps: switchInterface.outRateMbps,
-            errorsPerSecond: switchInterface.errorsPerSecond,
-          }
-        : undefined;
+      NetworkTopologyUtil.endpointOfInterface(switchInterface);
 
     /*
      * Which end is up. A forwarding table is not symmetric the way a
@@ -1461,6 +1627,7 @@ export default class NetworkTopologyUtil {
         fromInterface: switchEndpoint,
         parentNodeId: declaredParentId,
         learnedByNodeId: switchId,
+        reportedBy: data.endpoint.attachmentSource,
       };
       data.edgeByKey.set(edgeKey, edge);
       data.edges.push(edge);
@@ -1482,6 +1649,7 @@ export default class NetworkTopologyUtil {
      * move it.
      */
     existing.learnedByNodeId = existing.learnedByNodeId || switchId;
+    existing.reportedBy = existing.reportedBy || data.endpoint.attachmentSource;
 
     /*
      * The switch-end port. Measured beats typed: against a hand-drawn
@@ -1611,6 +1779,156 @@ export default class NetworkTopologyUtil {
     if (typeof endpoint.vlanId === "number" && node.vlanId === undefined) {
       node.vlanId = endpoint.vlanId;
     }
+    if (
+      endpoint.hostname &&
+      !node.hostname &&
+      endpoint.hostname !== node.name
+    ) {
+      node.hostname = endpoint.hostname;
+    }
+  }
+
+  /*
+   * A peer a neighbour protocol drew, by every MAC it is known by. Only the
+   * peers that ended up as nodes: a claim that matched a device has none.
+   */
+  private static indexPeerNodesByMac(
+    peerNodeIdByClaim: Map<ResolvedClaim, string>,
+    nodes: Array<NetworkTopologyNode>,
+  ): Map<string, NetworkTopologyNode> {
+    const peerNodeByMac: Map<string, NetworkTopologyNode> = new Map<
+      string,
+      NetworkTopologyNode
+    >();
+
+    if (peerNodeIdByClaim.size === 0) {
+      return peerNodeByMac;
+    }
+
+    const nodeById: Map<string, NetworkTopologyNode> = new Map<
+      string,
+      NetworkTopologyNode
+    >();
+    for (const node of nodes) {
+      nodeById.set(node.id, node);
+    }
+
+    for (const [resolved, nodeId] of peerNodeIdByClaim) {
+      const node: NetworkTopologyNode | undefined = nodeById.get(nodeId);
+      if (!node) {
+        continue;
+      }
+      for (const alias of resolved.peerAliases) {
+        if (alias.kind === "mac") {
+          peerNodeByMac.set(alias.value, node);
+        }
+      }
+    }
+
+    return peerNodeByMac;
+  }
+
+  /*
+   * What an endpoint row knows, onto the peer it turned out to be. A name a
+   * controller has for it wins the label: it is the name its operators gave
+   * it, where a phone's own is its MAC with SEP in front. What the peer
+   * advertised stays, as its system name.
+   */
+  private static stampPeerIdentity(
+    node: NetworkTopologyNode,
+    endpoint: TopologyEndpointInput,
+  ): void {
+    NetworkTopologyUtil.stampAdoptedIdentity(node, endpoint);
+
+    if (endpoint.hostname && endpoint.hostname !== node.name) {
+      node.sysName = node.sysName || node.name;
+      node.name = endpoint.hostname;
+    }
+
+    if (endpoint.vendor && !node.vendor) {
+      node.vendor = endpoint.vendor;
+    }
+  }
+
+  // The interface row a port label names on a device, when one does.
+  private static interfaceForPortLabel(
+    deviceId: string,
+    portLabel: string | undefined,
+    interfaceByDeviceAndName: Map<string, TopologyInterfaceInput>,
+    interfaceByDeviceAndPort: Map<string, TopologyInterfaceInput>,
+  ): TopologyInterfaceInput | undefined {
+    const nameKey: string | undefined =
+      NetworkTopologyUtil.normalizeKey(portLabel);
+    if (!nameKey) {
+      return undefined;
+    }
+
+    const named: TopologyInterfaceInput | undefined =
+      interfaceByDeviceAndName.get(`${deviceId}::${nameKey}`);
+    if (named) {
+      return named;
+    }
+
+    const portNumber: string | undefined =
+      NetworkTopologyUtil.portNumberOf(portLabel);
+    return portNumber
+      ? interfaceByDeviceAndPort.get(`${deviceId}::${portNumber}`)
+      : undefined;
+  }
+
+  /*
+   * The interface row of the port an endpoint is attached to: by the ifIndex
+   * a walk left on it, else by the port a controller named. An ifIndex that
+   * finds no row is not then looked up by name: a walk that gave one was
+   * specific, and its port label is that same interface's.
+   */
+  private static interfaceOfAttachment(
+    endpoint: TopologyEndpointInput,
+    interfaceByDeviceAndIndex: Map<string, TopologyInterfaceInput>,
+    interfaceByDeviceAndName: Map<string, TopologyInterfaceInput>,
+    interfaceByDeviceAndPort: Map<string, TopologyInterfaceInput>,
+  ): TopologyInterfaceInput | undefined {
+    const deviceId: string = endpoint.attachedNetworkDeviceId || "";
+
+    if (endpoint.attachedInterfaceIndex !== undefined) {
+      return interfaceByDeviceAndIndex.get(
+        `${deviceId}::${endpoint.attachedInterfaceIndex}`,
+      );
+    }
+
+    return NetworkTopologyUtil.interfaceForPortLabel(
+      deviceId,
+      endpoint.attachedPortName,
+      interfaceByDeviceAndName,
+      interfaceByDeviceAndPort,
+    );
+  }
+
+  private static endpointOfInterface(
+    row: TopologyInterfaceInput | undefined,
+  ): NetworkTopologyEdgeEndpoint | undefined {
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      interfaceIndex: row.interfaceIndex,
+      interfaceName: row.name,
+      isOperationallyUp: row.isOperationallyUp,
+      isAdministrativelyUp: row.isAdministrativelyUp,
+      utilizationPercent: row.utilizationPercent,
+      inRateMbps: row.inRateMbps,
+      outRateMbps: row.outRateMbps,
+      errorsPerSecond: row.errorsPerSecond,
+    };
+  }
+
+  // A port's number, however it is spelled. See NUMBERED_PORT_PATTERN.
+  private static portNumberOf(name: string | undefined): string | undefined {
+    const key: string | undefined = NetworkTopologyUtil.normalizeKey(
+      name?.substring(0, 32),
+    );
+    return key ? NUMBERED_PORT_PATTERN.exec(key)?.[1] : undefined;
   }
 
   /*
@@ -1660,40 +1978,105 @@ export default class NetworkTopologyUtil {
        * right — a MAC or a serial — and the device it names is very often
        * one we already manage.
        */
+      const advertised: MerakiAdvertisedName | undefined =
+        parseMerakiAdvertisedName(neighbor.remoteSysName);
       const identifiers: Array<string> = [];
       if (neighbor.remoteSysName) {
         identifiers.push(neighbor.remoteSysName);
+      }
+      if (advertised) {
+        identifiers.push(advertised.name);
       }
       if (neighbor.remoteChassisId) {
         identifiers.push(neighbor.remoteChassisId);
       }
 
       claims.push({
-        protocol: "lldp",
+        protocols: ["lldp"],
         identifiers: identifiers,
-        displayName: neighbor.remoteSysName || neighbor.remoteChassisId,
+        displayName:
+          advertised?.name ||
+          neighbor.remoteSysName ||
+          neighbor.remoteChassisId,
         hasAdvertisedName: Boolean(neighbor.remoteSysName),
+        advertisedName: neighbor.remoteSysName,
         localInterfaceIndex: neighbor.localInterfaceIndex,
+        localPortName: undefined,
         remotePortId: neighbor.remotePortId,
-        remotePlatform: undefined,
+        remotePlatform: advertised ? `Meraki ${advertised.model}` : undefined,
         remoteIpAddress: NetworkTopologyUtil.normalizeKey(
           neighbor.remoteIpAddress,
         ),
+        peerDeviceId: undefined,
+        reportedBy: undefined,
       });
     }
 
     for (const neighbor of device.cdpNeighbors || []) {
+      const advertised: MerakiAdvertisedName | undefined =
+        parseMerakiAdvertisedName(neighbor.remoteDeviceId);
+      const identifiers: Array<string> = [];
+      if (neighbor.remoteDeviceId) {
+        identifiers.push(neighbor.remoteDeviceId);
+      }
+      if (advertised) {
+        identifiers.push(advertised.name);
+      }
+
       claims.push({
-        protocol: "cdp",
-        identifiers: neighbor.remoteDeviceId ? [neighbor.remoteDeviceId] : [],
-        displayName: neighbor.remoteDeviceId,
+        protocols: ["cdp"],
+        identifiers: identifiers,
+        displayName: advertised?.name || neighbor.remoteDeviceId,
         hasAdvertisedName: Boolean(neighbor.remoteDeviceId),
+        advertisedName: neighbor.remoteDeviceId,
         localInterfaceIndex: neighbor.localInterfaceIndex,
+        localPortName: undefined,
         remotePortId: neighbor.remotePortId,
-        remotePlatform: neighbor.remotePlatform,
+        remotePlatform:
+          neighbor.remotePlatform ||
+          (advertised ? `Meraki ${advertised.model}` : undefined),
         remoteIpAddress: NetworkTopologyUtil.normalizeKey(
           neighbor.remoteIpAddress,
         ),
+        peerDeviceId: undefined,
+        reportedBy: undefined,
+      });
+    }
+
+    /*
+     * Last, so what the device's own walk said fills every first-report slot
+     * and the controller fills in what it left - a reading hours old should
+     * not name a port over one read a minute ago.
+     */
+    for (const link of device.controllerLinks || []) {
+      const advertised: MerakiAdvertisedName | undefined =
+        parseMerakiAdvertisedName(link.peerName);
+      const identifiers: Array<string> = [];
+      if (link.peerName) {
+        identifiers.push(link.peerName);
+      }
+      if (advertised) {
+        identifiers.push(advertised.name);
+      }
+      if (link.peerMac) {
+        identifiers.push(link.peerMac);
+      }
+
+      claims.push({
+        protocols: link.protocols,
+        identifiers: identifiers,
+        displayName: advertised?.name || link.peerName || link.peerMac,
+        hasAdvertisedName: Boolean(link.peerName),
+        advertisedName: link.peerName,
+        localInterfaceIndex: undefined,
+        localPortName: link.port,
+        remotePortId: link.peerPort,
+        remotePlatform:
+          link.peerPlatform ||
+          (advertised ? `Meraki ${advertised.model}` : undefined),
+        remoteIpAddress: NetworkTopologyUtil.normalizeKey(link.peerIp),
+        peerDeviceId: link.peerDeviceId,
+        reportedBy: device.controllerProvider,
       });
     }
 
@@ -1776,7 +2159,13 @@ export default class NetworkTopologyUtil {
       { kind: "serial", value: normalized },
     ];
 
-    const mac: string | undefined = normalizeMac(normalized);
+    /*
+     * A Cisco phone's name IS its MAC, so "SEP002F5C7BF3E4" is a MAC key as
+     * much as a name: it is what recognises the phone from a device that
+     * declares that MAC, and from an endpoint row a client list wrote.
+     */
+    const mac: string | undefined =
+      normalizeMac(normalized) || getCiscoPhoneMac(normalized);
     if (mac) {
       keys.push({ kind: "mac", value: mac });
     }
@@ -2084,6 +2473,7 @@ export default class NetworkTopologyUtil {
        * itself beats a bare chassis id, whichever report arrived first.
        */
       let displayName: string | undefined = undefined;
+      let advertisedName: string | undefined = undefined;
       let platform: string | undefined = undefined;
       /*
        * The peer's own management address, when any report carried one.
@@ -2095,6 +2485,7 @@ export default class NetworkTopologyUtil {
       for (const resolved of groupClaims) {
         if (!displayName && resolved.claim.hasAdvertisedName) {
           displayName = resolved.claim.displayName;
+          advertisedName = resolved.claim.advertisedName;
         }
         if (!platform && resolved.claim.remotePlatform) {
           platform = resolved.claim.remotePlatform;
@@ -2130,7 +2521,7 @@ export default class NetworkTopologyUtil {
       const nodeId: string = NetworkTopologyUtil.uniqueNodeId(
         `unmanaged:${NetworkTopologyUtil.canonicalPeerValue(
           groupClaims,
-          displayName,
+          advertisedName || displayName,
         )}`,
         usedNodeIds,
       );
@@ -2350,6 +2741,7 @@ export default class NetworkTopologyUtil {
   private static statusFromLastSeen(
     lastSeenAt: Date | undefined,
     now: Date,
+    attachmentSource?: string | undefined,
   ): NetworkTopologyNodeStatus {
     if (!lastSeenAt) {
       return "unknown";
@@ -2357,7 +2749,13 @@ export default class NetworkTopologyUtil {
 
     const ageMs: number = now.getTime() - new Date(lastSeenAt).getTime();
 
-    return ageMs > ENDPOINT_FRESH_WINDOW_MS ? "down" : "up";
+    return ageMs >
+      EndpointAttachmentUtil.getSightingWindowMs(
+        attachmentSource,
+        ENDPOINT_FRESH_WINDOW_MS,
+      )
+      ? "down"
+      : "up";
   }
 
   /*

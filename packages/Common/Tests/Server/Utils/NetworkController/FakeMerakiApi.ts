@@ -20,8 +20,9 @@ import { NetworkControllerTransport } from "../../../../Server/Utils/NetworkCont
  *     /devices (productTypes[] filters), the organization-wide uplink usage
  *     (/appliance/uplinks/usage/byNetwork, t0 and t1, in bytes), each
  *     network's traffic analytics (/networks/{id}/traffic, t0, "kb" - in
- *     kibibytes) and clients (/networks/{id}/clients, t0, perPage, usage in
- *     kibibytes);
+ *     kibibytes), clients (/networks/{id}/clients, t0, perPage, usage in
+ *     kibibytes) and link layer topology (/networks/{id}/topology/linkLayer,
+ *     nodes and links, empty for a network nothing has been cabled in);
  *   - a network with traffic analysis off answers its traffic analytics 400
  *     {"errors": ["Traffic Analysis with Hostname Visibility must be
  *     enabled on the network"]}.
@@ -48,6 +49,8 @@ export interface FakeMerakiNetwork {
   productTypes?: Array<string> | undefined;
   // Traffic analysis off: its traffic analytics answer 400.
   isTrafficAnalysisOff?: boolean | undefined;
+  // The answer to its link layer topology, as Meraki shapes it.
+  topology?: JSONObject | undefined;
   // Bytes a second of each application row, per direction.
   applications?:
     | Array<{
@@ -70,6 +73,14 @@ export interface FakeMerakiNetwork {
         manufacturer?: string | undefined;
         sentPerSecond: number;
         receivedPerSecond: number;
+        // Where it is, as the listing says, when a test cares.
+        recentDeviceSerial?: string | undefined;
+        recentDeviceConnection?: "Wired" | "Wireless" | undefined;
+        switchport?: string | undefined;
+        ssid?: string | undefined;
+        vlan?: string | undefined;
+        lastSeen?: number | undefined;
+        status?: "Online" | "Offline" | undefined;
       }>
     | undefined;
 }
@@ -472,6 +483,13 @@ export function createFakeMerakiApi(options: FakeMerakiOptions): FakeMerakiApi {
                 ip: client.ip || "",
                 description: client.description || null,
                 manufacturer: client.manufacturer || "",
+                recentDeviceSerial: client.recentDeviceSerial ?? null,
+                recentDeviceConnection: client.recentDeviceConnection ?? null,
+                switchport: client.switchport ?? null,
+                ssid: client.ssid ?? null,
+                vlan: client.vlan ?? null,
+                lastSeen: client.lastSeen ?? null,
+                status: client.status ?? null,
                 usage: {
                   sent: (client.sentPerSecond * seconds) / 1024,
                   recv: (client.receivedPerSecond * seconds) / 1024,
@@ -481,6 +499,13 @@ export function createFakeMerakiApi(options: FakeMerakiOptions): FakeMerakiApi {
           ),
           maxPerPage: options.maxPerPage,
         });
+      }
+
+      if (rest.slice(2).join("/") === "topology/linkLayer") {
+        return {
+          status: 200,
+          body: network.topology || { nodes: [], links: [], errors: [] },
+        };
       }
     }
 

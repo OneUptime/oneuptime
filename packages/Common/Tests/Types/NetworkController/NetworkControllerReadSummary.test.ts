@@ -11,6 +11,51 @@ import { describe, expect, test } from "@jest/globals";
  * trusting it: the row and the page draw only what this returns.
  */
 
+describe("what a read did for the map", () => {
+  const base: Record<string, unknown> = {
+    status: "success",
+    organizationName: "Acme",
+    warnings: [],
+  };
+
+  test("a summary from before the map read Meraki says nothing about it", () => {
+    const summary: NetworkControllerReadSummary | undefined =
+      readNetworkControllerReadSummary(base);
+
+    expect(summary?.placedClientCount).toBeUndefined();
+    expect(summary?.unplacedDeviceCount).toBeUndefined();
+    expect(summary?.linkedDeviceCount).toBeUndefined();
+    expect(summary?.linkNetworksWaiting).toBeUndefined();
+  });
+
+  test("the counts are read back, and zero stays a count", () => {
+    expect(
+      readNetworkControllerReadSummary({
+        ...base,
+        placedClientCount: 41,
+        unplacedDeviceCount: 0,
+        linkedDeviceCount: 3,
+        linkNetworksWaiting: 2,
+      }),
+    ).toMatchObject({
+      placedClientCount: 41,
+      unplacedDeviceCount: 0,
+      linkedDeviceCount: 3,
+      linkNetworksWaiting: 2,
+    });
+  });
+
+  test("a count that is not one reads as none of it", () => {
+    expect(
+      readNetworkControllerReadSummary({
+        ...base,
+        placedClientCount: "many",
+        linkedDeviceCount: -3,
+      }),
+    ).toMatchObject({ placedClientCount: 0, linkedDeviceCount: 0 });
+  });
+});
+
 describe("reading a stored read summary", () => {
   test("a connection never read has none", () => {
     expect(readNetworkControllerReadSummary(undefined)).toBeUndefined();

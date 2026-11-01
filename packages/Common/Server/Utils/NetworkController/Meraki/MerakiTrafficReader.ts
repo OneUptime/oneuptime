@@ -9,7 +9,9 @@ import { NetworkTrafficUsageKind } from "../../../../Types/NetFlow/NetworkTraffi
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import {
   NetworkControllerAppliance,
+  NetworkControllerClient,
   NetworkControllerDevice,
+  NetworkControllerLink,
   NetworkControllerPullState,
   NetworkControllerReadOptions,
   NetworkControllerReadResult,
@@ -17,7 +19,9 @@ import {
   NetworkTrafficUsageRecord,
   NetworkTrafficUsageWindowKey,
 } from "../NetworkControllerTypes";
+import { readMerakiClients } from "./MerakiClientList";
 import { getMerakiAppliances, readMerakiDevices } from "./MerakiDeviceList";
+import { readMerakiLinks } from "./MerakiLinkLayer";
 import MerakiApiClient, {
   MerakiBudgetSpent,
   MerakiList,
@@ -55,7 +59,16 @@ import {
  *      clients - Meraki's own aggregates, two hours at least, only where
  *      traffic analysis is turned on) and client usage (networks/{id}/
  *      clients, 5,000 a page). A window starts where the network's last one
- *      ended and ends when it is asked for.
+ *      ended and ends when it is asked for. The same client listing says
+ *      which device and port each client is on (MerakiClientList), so the
+ *      map's use of it costs no call;
+ *   4. per network with an MX or an MS, every six hours: its link layer
+ *      topology (networks/{id}/topology/linkLayer, MerakiLinkLayer), the
+ *      cables the dashboard draws. Cables move rarely and each network costs
+ *      a call, so a read asks at most MAX_TOPOLOGY_NETWORKS_PER_READ networks,
+ *      the longest-waiting first. Those are asked before the analytics, so a
+ *      large organization's links are read over several reads and neither
+ *      kind of read can starve the other.
  *
  * None of it is flow records: the API never says who talked to whom.
  *
@@ -81,6 +94,10 @@ export const BACKFILL_MS: number = 24 * HOUR_MS;
 export const MAX_UPLINK_WINDOWS_PER_READ: number = 60;
 // Meraki's traffic analytics cover at least this long.
 export const ANALYTICS_WINDOW_MS: number = 2 * HOUR_MS;
+// A network's links are read again after this.
+export const TOPOLOGY_WINDOW_MS: number = 6 * HOUR_MS;
+// Networks one read asks for their links at most.
+export const MAX_TOPOLOGY_NETWORKS_PER_READ: number = 300;
 // A network whose traffic analysis is off is asked again after this.
 export const TRAFFIC_ANALYSIS_RETRY_MS: number = 24 * HOUR_MS;
 export const LIST_PAGE_SIZE: number = 1000;
@@ -112,10 +129,20 @@ const TRAFFIC_PRODUCT_TYPES: ReadonlySet<string> = new Set<string>([
   "campusGateway",
 ]);
 
+/*
+ * The product types Meraki builds a network's topology from: "at least one
+ * MX or MS device must be in the network" (getNetworkTopologyLinkLayer).
+ */
+const TOPOLOGY_PRODUCT_TYPES: ReadonlySet<string> = new Set<string>([
+  "appliance",
+  "switch",
+]);
+
 export interface MerakiNetwork {
   id: string;
   name: string;
   hasTraffic: boolean;
+  hasTopology: boolean;
 }
 
 function asObject(value: unknown): JSONObject | null {
@@ -160,14 +187,21 @@ export function readNetworks(values: Array<unknown>): Array<MerakiNetwork> {
 
     const productTypes: unknown = network["productTypes"];
 
+    const hasProductTypeIn: (types: ReadonlySet<string>) => boolean = (
+      types: ReadonlySet<string>,
+    ): boolean => {
+      return Array.isArray(productTypes)
+        ? productTypes.some((type: unknown): boolean => {
+            return typeof type === "string" && types.has(type);
+          })
+        : true;
+    };
+
     networks.push({
       id: id,
       name: cleanText(network["name"], TEXT_LIMITS.networkName),
-      hasTraffic: Array.isArray(productTypes)
-        ? productTypes.some((type: unknown): boolean => {
-            return typeof type === "string" && TRAFFIC_PRODUCT_TYPES.has(type);
-          })
-        : true,
+      hasTraffic: hasProductTypeIn(TRAFFIC_PRODUCT_TYPES),
+      hasTopology: hasProductTypeIn(TOPOLOGY_PRODUCT_TYPES),
     });
   }
 
@@ -248,6 +282,51 @@ export function getAnalyticsStart(data: {
 }
 
 /*
+ * The networks whose links are due, the longest-waiting first: one that has
+ * never been asked, then the oldest. Ties go by id, so the order is the same
+ * on every read.
+ */
+export function getTopologyDueNetworks(data: {
+  networks: Array<MerakiNetwork>;
+  cursors: Record<string, string> | undefined;
+  now: Date;
+}): Array<MerakiNetwork> {
+  const due: Array<{ network: MerakiNetwork; askedAt: number }> = [];
+
+  for (const network of data.networks) {
+    if (!network.hasTopology) {
+      continue;
+    }
+
+    const askedAt: number | null = toTime(data.cursors?.[network.id]);
+
+    if (
+      askedAt === null ||
+      data.now.getTime() - askedAt >= TOPOLOGY_WINDOW_MS
+    ) {
+      due.push({ network, askedAt: askedAt === null ? 0 : askedAt });
+    }
+  }
+
+  return due
+    .sort(
+      (
+        a: { network: MerakiNetwork; askedAt: number },
+        b: { network: MerakiNetwork; askedAt: number },
+      ): number => {
+        return (
+          a.askedAt - b.askedAt || a.network.id.localeCompare(b.network.id)
+        );
+      },
+    )
+    .map(
+      (entry: { network: MerakiNetwork; askedAt: number }): MerakiNetwork => {
+        return entry.network;
+      },
+    );
+}
+
+/*
  * Whether an answer to a network's traffic analytics means "traffic
  * analysis is off on this network": Meraki answers such a network with an
  * error naming traffic analysis.
@@ -319,6 +398,10 @@ interface ReadProgress {
   warnings: Warnings;
   records: Array<NetworkTrafficUsageRecord>;
   windows: Array<NetworkTrafficUsageWindowKey>;
+  clients: Array<NetworkControllerClient>;
+  links: Array<NetworkControllerLink>;
+  linkNetworkIds: Array<string>;
+  linkNetworksWaiting: number;
   complete: boolean;
   uplinkWindows: number;
   newestUplinkAt: Date | undefined;
@@ -370,10 +453,15 @@ export default class MerakiTrafficReader {
           : {}),
         analyticsCursors: { ...(options.state.analyticsCursors || {}) },
         trafficAnalysisOff: { ...(options.state.trafficAnalysisOff || {}) },
+        topologyCursors: { ...(options.state.topologyCursors || {}) },
       },
       warnings: new Warnings(),
       records: [],
       windows: [],
+      clients: [],
+      links: [],
+      linkNetworkIds: [],
+      linkNetworksWaiting: 0,
       complete: true,
       uplinkWindows: 0,
       newestUplinkAt: undefined,
@@ -461,7 +549,10 @@ export default class MerakiTrafficReader {
         networkNames,
       });
 
-      // 3. Applications, destinations and clients, network by network.
+      // 3. The links of the networks whose turn it is.
+      await MerakiTrafficReader.readTopology(progress, networks);
+
+      // 4. Applications, destinations and clients, network by network.
       await MerakiTrafficReader.readAnalytics(progress, networks);
     } catch (error) {
       if (!(error instanceof MerakiBudgetSpent)) {
@@ -506,6 +597,10 @@ export default class MerakiTrafficReader {
       appliances,
       devices,
       isDeviceListComplete: !deviceList.isTruncated,
+      clients: progress.clients,
+      links: progress.links,
+      linkNetworkIds: progress.linkNetworkIds,
+      linkNetworksWaiting: progress.linkNetworksWaiting,
       records: progress.records,
       windows: progress.windows,
       uplinkWindows: progress.uplinkWindows,
@@ -631,6 +726,108 @@ export default class MerakiTrafficReader {
     ) {
       progress.complete = false;
     }
+  }
+
+  /*
+   * The links of the networks that are due, at most
+   * MAX_TOPOLOGY_NETWORKS_PER_READ of them. A network that answers with
+   * anything but its links is asked again next window rather than next read:
+   * a network Meraki cannot build a topology for says so every time. A rate
+   * limit stops here, and the analytics after it find out for themselves.
+   * Failures are said once, with a count: a read's warnings are few, and one
+   * per network would crowd out everything else there is to say.
+   */
+  private static async readTopology(
+    progress: ReadProgress,
+    networks: Array<MerakiNetwork>,
+  ): Promise<void> {
+    const due: Array<MerakiNetwork> = getTopologyDueNetworks({
+      networks,
+      cursors: progress.state.topologyCursors,
+      now: progress.now,
+    });
+    const asked: Array<MerakiNetwork> = due.slice(
+      0,
+      MAX_TOPOLOGY_NETWORKS_PER_READ,
+    );
+
+    progress.linkNetworksWaiting = due.length;
+
+    if (due.length > asked.length) {
+      progress.complete = false;
+    }
+
+    let unavailableInARow: number = 0;
+    let failedNetworks: number = 0;
+    let firstFailure: string = "";
+
+    const sayFailures: () => void = (): void => {
+      if (failedNetworks > 0) {
+        progress.warnings.add(
+          `Couldn't read the links of ${failedNetworks} ${
+            failedNetworks === 1 ? "network" : "networks"
+          }: ${firstFailure}`,
+        );
+      }
+    };
+
+    for (const network of asked) {
+      const label: string = network.name || network.id;
+
+      try {
+        const topology: MerakiPage = await progress.client.get(
+          `/networks/${encodeURIComponent(network.id)}/topology/linkLayer`,
+          "",
+          `links of network "${label}"`,
+        );
+
+        progress.links.push(...readMerakiLinks(topology.body, network.id));
+        progress.linkNetworkIds.push(network.id);
+        unavailableInARow = 0;
+      } catch (error) {
+        if (error instanceof MerakiBudgetSpent) {
+          sayFailures();
+          throw error;
+        }
+
+        const failure: LlmProviderError = asProviderError(error, "links");
+
+        if (failure.kind === LlmConnectionFailureKind.Authentication) {
+          throw failure;
+        }
+
+        if (failure.kind === LlmConnectionFailureKind.RateLimited) {
+          sayFailures();
+          progress.warnings.add(RATE_LIMITED_WARNING);
+          progress.complete = false;
+          return;
+        }
+
+        failedNetworks++;
+        firstFailure = firstFailure || failure.message;
+
+        if (failure.kind === LlmConnectionFailureKind.Unavailable) {
+          unavailableInARow++;
+
+          if (unavailableInARow >= MAX_UNAVAILABLE_NETWORKS_IN_A_ROW) {
+            sayFailures();
+            progress.warnings.add(STOPPED_ANSWERING_WARNING);
+            progress.complete = false;
+            return;
+          }
+
+          continue;
+        }
+      }
+
+      progress.state.topologyCursors = {
+        ...(progress.state.topologyCursors || {}),
+        [network.id]: iso(progress.now),
+      };
+      progress.linkNetworksWaiting--;
+    }
+
+    sayFailures();
   }
 
   // The networks whose analytics window is due, the longest-waiting first.
@@ -769,6 +966,15 @@ export default class MerakiTrafficReader {
           }),
         );
 
+        /*
+         * The same rows say where each client is. Kept whether or not the
+         * window turns out to be stored: this is the last step of it, and
+         * where a client is does not depend on its usage being recorded.
+         */
+        progress.clients.push(
+          ...readMerakiClients(clients.items, progress.now),
+        );
+
         return true;
       } catch (error) {
         if (error instanceof MerakiBudgetSpent) {
@@ -859,7 +1065,11 @@ export default class MerakiTrafficReader {
       }),
     );
 
-    for (const key of ["analyticsCursors", "trafficAnalysisOff"] as const) {
+    for (const key of [
+      "analyticsCursors",
+      "trafficAnalysisOff",
+      "topologyCursors",
+    ] as const) {
       const map: Record<string, string> | undefined = state[key];
 
       if (!map) {

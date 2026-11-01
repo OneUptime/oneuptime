@@ -28,6 +28,12 @@ import NetworkControllerInventory, {
   MirrorRefreshedDeviceFunction,
 } from "./NetworkControllerInventory";
 import NetworkControllerScheduler from "./NetworkControllerScheduler";
+import NetworkControllerTopology, {
+  ControllerTopologyOutcome,
+  FindClientCandidatesFunction,
+  LearnClientMacsFunction,
+  UpsertControllerClientsFunction,
+} from "./NetworkControllerTopology";
 import {
   NetworkControllerPullState,
   NetworkControllerReadResult,
@@ -65,7 +71,11 @@ import { BACKFILL_MS } from "./Meraki/MerakiTrafficReader";
  *      firmware and the rest - so Inventory fills in what they do not
  *      report themselves (NetworkControllerInventory). A failure there is a
  *      warning on the read, never its failure;
- *   6. records the outcome on the connection: when it read, what it found,
+ *   6. records what the read says is plugged into what, from what was just
+ *      worked out about which device is which: the clients on their switch
+ *      ports and the devices' links (NetworkControllerTopology). A failure
+ *      there is a warning too;
+ *   7. records the outcome on the connection: when it read, what it found,
  *      the error with the key removed, where it got to and when it reads
  *      next. The cursor moves only once the rows are stored.
  *
@@ -90,6 +100,8 @@ const RETRY_AFTER_PLAN_MS: number = 24 * 60 * 60 * 1000;
 
 export const INVENTORY_NOT_RECORDED_WARNING: string =
   "The devices' details could not be filled in from Meraki this time: the next read tries again.";
+export const TOPOLOGY_NOT_RECORDED_WARNING: string =
+  "The map could not be updated from Meraki this time: the next read tries again.";
 
 export type NetworkTrafficUsageInserter = (
   rows: Array<JSONObject>,
@@ -183,6 +195,10 @@ export interface NetworkControllerReadDependencies {
   findControllerCandidates?: FindControllerCandidatesFunction | undefined;
   mergeControllerReadings?: MergeControllerReadingsFunction | undefined;
   mirrorRefreshedDevice?: MirrorRefreshedDeviceFunction | undefined;
+  // Test seams for the clients and links the map takes from a read.
+  findClientCandidates?: FindClientCandidatesFunction | undefined;
+  upsertControllerClients?: UpsertControllerClientsFunction | undefined;
+  learnClientMacs?: LearnClientMacsFunction | undefined;
   transport?: NetworkControllerTransport | undefined;
   now?: (() => Date) | undefined;
   sleep?: ((milliseconds: number) => Promise<void>) | undefined;
@@ -414,6 +430,47 @@ export default class NetworkControllerReadRunner {
         warnings.push(INVENTORY_NOT_RECORDED_WARNING);
       }
 
+      /*
+       * What is plugged into what. Asked only once Inventory has said which
+       * device is which: without that, nothing here can hang from anything.
+       */
+      let topology: ControllerTopologyOutcome | undefined = undefined;
+
+      if (inventory) {
+        try {
+          topology = await NetworkControllerTopology.record({
+            projectId: connection.projectId,
+            connection: {
+              id: connection.id!.toString(),
+              name:
+                connection.name ||
+                read.organizationName ||
+                readNetworkControllerConfig(connection.config).organizationName,
+              provider: settings.provider,
+            },
+            readAt: now,
+            clients: read.clients,
+            links: read.links,
+            linkNetworkIds: read.linkNetworkIds,
+            devices: read.devices,
+            isDeviceListComplete: read.isDeviceListComplete,
+            matches: inventory.matches,
+            candidates: inventory.candidates,
+            findClientCandidates: dependencies.findClientCandidates,
+            upsertClients: dependencies.upsertControllerClients,
+            learnClientMacs: dependencies.learnClientMacs,
+            merge: dependencies.mergeControllerReadings,
+          });
+        } catch (error) {
+          logger.error(
+            `Network controller connection ${connection.id!.toString()}: what is plugged into what could not be recorded: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+          warnings.push(TOPOLOGY_NOT_RECORDED_WARNING);
+        }
+      }
+
       const status: NetworkControllerReadStatus = read.complete
         ? "success"
         : "partial";
@@ -435,6 +492,28 @@ export default class NetworkControllerReadRunner {
                 describedDeviceCount: previous.describedDeviceCount || 0,
               }
             : {}),
+        /*
+         * A read between two client windows has nothing to say about them,
+         * and neither does one between two readings of the links: both keep
+         * what the last one that did said.
+         */
+        ...(topology && read.clients.length > 0
+          ? {
+              placedClientCount: topology.placedClientCount,
+              unplacedDeviceCount: topology.unplacedDeviceCount,
+            }
+          : previous?.placedClientCount !== undefined
+            ? {
+                placedClientCount: previous.placedClientCount,
+                unplacedDeviceCount: previous.unplacedDeviceCount || 0,
+              }
+            : {}),
+        ...(topology && read.linkNetworkIds.length > 0
+          ? { linkedDeviceCount: topology.linkedDeviceCount }
+          : previous?.linkedDeviceCount !== undefined
+            ? { linkedDeviceCount: previous.linkedDeviceCount }
+            : {}),
+        linkNetworksWaiting: read.linkNetworksWaiting,
         uplinkWindows: read.uplinkWindows,
         ...(read.newestUplinkAt
           ? { newestUplinkAt: read.newestUplinkAt.toISOString() }
@@ -498,6 +577,15 @@ export default class NetworkControllerReadRunner {
               deviceCount: previous.deviceCount,
               describedDeviceCount: previous.describedDeviceCount || 0,
             }
+          : {}),
+        ...(previous?.placedClientCount !== undefined
+          ? {
+              placedClientCount: previous.placedClientCount,
+              unplacedDeviceCount: previous.unplacedDeviceCount || 0,
+            }
+          : {}),
+        ...(previous?.linkedDeviceCount !== undefined
+          ? { linkedDeviceCount: previous.linkedDeviceCount }
           : {}),
         uplinkWindows: 0,
         ...(previous?.newestUplinkAt

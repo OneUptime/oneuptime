@@ -95,6 +95,11 @@ export interface ControllerInventoryCandidate {
   isArchived?: boolean | null | undefined;
   discoveredDetails?: unknown;
   refreshRequestedAt?: Date | string | null | undefined;
+  /*
+   * Its site: not a matching rule, but what the clients and links this device
+   * turns out to have are filed under (NetworkControllerTopology).
+   */
+  siteId?: string | null | undefined;
 }
 
 export interface ControllerInventoryConnection {
@@ -619,6 +624,13 @@ export interface ControllerInventoryOutcome {
   describedDeviceCount: number;
   // Devices whose details this read wrote (set or cleared).
   writtenDeviceCount: number;
+  /*
+   * Which device each Meraki device is, and the rows that was worked out
+   * from: the topology the same read recorded next hangs from these
+   * (NetworkControllerTopology) rather than matching everything again.
+   */
+  matches: Map<string, ControllerInventoryMatch>;
+  candidates: Array<ControllerInventoryCandidate>;
 }
 
 export default class NetworkControllerInventory {
@@ -708,6 +720,8 @@ export default class NetworkControllerInventory {
       deviceCount: data.devices.length,
       describedDeviceCount: plan.describedDeviceCount,
       writtenDeviceCount: written,
+      matches: plan.matches,
+      candidates,
     };
   }
 }

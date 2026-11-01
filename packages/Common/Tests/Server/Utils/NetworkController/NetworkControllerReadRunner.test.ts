@@ -1,5 +1,6 @@
 import NetworkControllerReadRunner, {
   INVENTORY_NOT_RECORDED_WARNING,
+  TOPOLOGY_NOT_RECORDED_WARNING,
   NETWORK_CONTROLLER_READ_MAX_REQUESTS,
   NetworkControllerReadDependencies,
   NetworkControllerReadOutcome,
@@ -13,6 +14,7 @@ import {
   ControllerInventoryLookup,
 } from "../../../../Server/Utils/NetworkController/NetworkControllerInventory";
 import { DiscoveredDetailsMerge } from "../../../../Server/Services/NetworkDeviceService";
+import { EndpointControllerClient } from "../../../../Server/Services/NetworkEndpointService";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import NetworkControllerConnection from "../../../../Models/DatabaseModels/NetworkControllerConnection";
 import NetworkControllerConnectionService from "../../../../Server/Services/NetworkControllerConnectionService";
@@ -28,6 +30,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import {
   FAKE_API_KEY,
   FakeMerakiApi,
+  FakeMerakiOrganization,
   FakeMerakiOptions,
   TestClock,
   buildBranchOrganization,
@@ -345,7 +348,7 @@ describe("a read that works", () => {
       analyticsNetworksWaiting: 0,
       trafficAnalysisOffNetworks: 0,
       rowsWritten: table.length,
-      requestCount: 3 + 34 + 10,
+      requestCount: 3 + 34 + 15,
       wasRateLimited: false,
       warnings: [],
     });
@@ -515,16 +518,23 @@ describe("no window written twice", () => {
   });
 
   test("an insert that fails part way: the next read writes exactly what is missing", async () => {
-    // 300 MXs on two uplinks: 600 rows a window, eight windows an insert.
-    setApi({
-      organizations: [
-        buildBranchOrganization({
-          id: "549236",
-          name: "Acme Retail",
-          count: 300,
-        }),
-      ],
+    /*
+     * 300 MXs on two uplinks: 600 rows a window, eight windows an insert. On
+     * networks with no topology to read, because this is about windows: the
+     * links of 300 networks would take the read's budget, and the time they
+     * take would move the hour the next read's windows are cut at.
+     */
+    const organization: FakeMerakiOrganization = buildBranchOrganization({
+      id: "549236",
+      name: "Acme Retail",
+      count: 300,
     });
+
+    for (const network of organization.networks) {
+      network.productTypes = ["wireless"];
+    }
+
+    setApi({ organizations: [organization] });
     failInsertAfterRows = 1;
     const failed: NetworkControllerReadOutcome = await run();
 
@@ -755,7 +765,7 @@ describe("the devices' details the device list fills in", () => {
       warnings: [],
     });
     // The device list is the read's third call, as the appliance list was.
-    expect(outcome.summary?.requestCount).toBe(3 + 34 + 10);
+    expect(outcome.summary?.requestCount).toBe(3 + 34 + 15);
   });
 
   test("a device list that cannot be recorded is a warning on a read that otherwise worked", async () => {
@@ -886,5 +896,224 @@ describe("when the next read comes", () => {
         failureKind: LlmConnectionFailureKind.Unavailable,
       }).getTime() - START.getTime(),
     ).toBe(60 * MINUTE);
+  });
+});
+
+describe("what a read tells the map (#5379)", () => {
+  const SWITCH_DEVICE: string = "40000000-0000-4000-8000-0000000000aa";
+  const SITE: string = "50000000-0000-4000-8000-000000000001";
+
+  let upserted: Array<EndpointControllerClient>;
+  let learned: Array<{ siteId: string | undefined; macs: Array<string> }>;
+
+  const storeOrganization: () => FakeMerakiOrganization =
+    (): FakeMerakiOrganization => {
+      const organization: FakeMerakiOrganization = buildBranchOrganization({
+        id: "549236",
+        name: "Acme Retail",
+        count: 1,
+      });
+
+      organization.devices = [
+        {
+          serial: "Q2SW-0000-0001",
+          name: "UN0660LANSWI01",
+          model: "MS130-48P",
+          mac: "e0:55:3d:00:00:01",
+          networkId: organization.networks[0]!.id,
+          productType: "switch",
+          lanIp: "10.242.166.220",
+        },
+      ];
+      organization.networks[0]!.clients = [
+        {
+          id: "k1",
+          description: "wb-0660-kds01",
+          ip: "10.18.166.51",
+          mac: "aa:bb:cc:00:00:51",
+          sentPerSecond: 1,
+          receivedPerSecond: 1,
+          recentDeviceSerial: "Q2SW-0000-0001",
+          recentDeviceConnection: "Wired",
+          switchport: "7",
+          vlan: "18",
+        },
+        {
+          id: "k2",
+          description: "printer",
+          ip: "10.18.166.70",
+          mac: "aa:bb:cc:00:00:70",
+          sentPerSecond: 1,
+          receivedPerSecond: 1,
+          recentDeviceSerial: "Q2SW-MISSING",
+          recentDeviceConnection: "Wired",
+          switchport: "3",
+        },
+      ];
+      organization.networks[0]!.topology = {
+        nodes: [
+          {
+            derivedId: "sw",
+            type: "device",
+            device: { serial: "Q2SW-0000-0001", name: "UN0660LANSWI01" },
+          },
+          {
+            derivedId: "mx",
+            type: "device",
+            device: { serial: "Q2XX-AAAA-0000", name: "UN0660WANRTR01" },
+          },
+        ],
+        links: [
+          {
+            ends: [
+              {
+                node: { derivedId: "sw" },
+                device: { serial: "Q2SW-0000-0001" },
+                discovered: { lldp: { portId: "49" } },
+              },
+              {
+                node: { derivedId: "mx" },
+                device: { serial: "Q2XX-AAAA-0000" },
+                discovered: { lldp: { portId: "3" } },
+              },
+            ],
+          },
+        ],
+        errors: [],
+      };
+
+      return organization;
+    };
+
+  const runStore: (
+    overrides?: Partial<NetworkControllerReadDependencies>,
+  ) => Promise<NetworkControllerReadOutcome> = (
+    overrides: Partial<NetworkControllerReadDependencies> = {},
+  ): Promise<NetworkControllerReadOutcome> => {
+    return run({
+      upsertControllerClients: async (data: {
+        clients: Array<EndpointControllerClient>;
+      }): Promise<number> => {
+        upserted.push(...data.clients);
+        return data.clients.length;
+      },
+      learnClientMacs: async (data: {
+        siteId: string | undefined;
+        bindings: Array<{ macAddress: string }>;
+      }): Promise<void> => {
+        learned.push({
+          siteId: data.siteId,
+          macs: data.bindings.map((binding: { macAddress: string }): string => {
+            return binding.macAddress;
+          }),
+        });
+      },
+      ...overrides,
+    });
+  };
+
+  beforeEach(() => {
+    upserted = [];
+    learned = [];
+    setApi({ organizations: [storeOrganization()] });
+    candidates = [
+      {
+        id: SWITCH_DEVICE,
+        name: "UN0660LANSWI01",
+        hostname: "10.242.166.220",
+        siteId: SITE,
+      },
+    ];
+  });
+
+  test("the switch's clients, its links and the MACs reach the map, and the read says so", async () => {
+    const outcome: NetworkControllerReadOutcome = await runStore();
+
+    expect(outcome.status).toBe("success");
+    expect(upserted).toHaveLength(1);
+    expect(upserted[0]).toMatchObject({
+      macAddress: "aa:bb:cc:00:00:51",
+      hostname: "wb-0660-kds01",
+      portName: "Port 7",
+    });
+    expect(upserted[0]!.deviceId.toString()).toBe(SWITCH_DEVICE);
+    expect(learned).toEqual([{ siteId: SITE, macs: ["aa:bb:cc:00:00:51"] }]);
+
+    const linkPatch: DiscoveredDetailsMerge | undefined = merged.find(
+      (patch: DiscoveredDetailsMerge): boolean => {
+        return Boolean(patch.set?.["controllerLinks"]);
+      },
+    );
+
+    expect(linkPatch?.deviceId).toBe(SWITCH_DEVICE);
+    expect(outcome.summary).toMatchObject({
+      placedClientCount: 1,
+      // The printer's switch is no device here.
+      unplacedDeviceCount: 1,
+      linkedDeviceCount: 1,
+      linkNetworksWaiting: 0,
+    });
+  });
+
+  test("a failure recording them is a warning on a read that otherwise worked", async () => {
+    const outcome: NetworkControllerReadOutcome = await runStore({
+      upsertControllerClients: async (): Promise<number> => {
+        throw new Error("Postgres is not answering");
+      },
+    });
+
+    expect(outcome.status).toBe("success");
+    expect(outcome.summary?.warnings).toEqual([TOPOLOGY_NOT_RECORDED_WARNING]);
+    expect(outcome.summary?.rowsWritten).toBeGreaterThan(0);
+  });
+
+  test("with no answer from Inventory there is nothing to hang anything from", async () => {
+    const outcome: NetworkControllerReadOutcome = await runStore({
+      findControllerCandidates: async () => {
+        throw new Error("Postgres is not answering");
+      },
+    });
+
+    expect(outcome.status).toBe("success");
+    expect(upserted).toEqual([]);
+    expect(outcome.summary?.warnings).toEqual([INVENTORY_NOT_RECORDED_WARNING]);
+  });
+
+  test("a read between two client windows keeps what the last one said", async () => {
+    await runStore();
+    clock.advance(5 * MINUTE);
+
+    const next: NetworkControllerReadOutcome = await runStore();
+
+    expect(next.summary).toMatchObject({
+      placedClientCount: 1,
+      unplacedDeviceCount: 1,
+      linkedDeviceCount: 1,
+    });
+    // It wrote nothing again, though: it read nothing.
+    expect(upserted).toHaveLength(1);
+  });
+
+  test("a read that fails keeps them too", async () => {
+    await runStore();
+    clock.advance(5 * MINUTE);
+    setApi({
+      organizations: [storeOrganization()],
+      scripted: {
+        "/api/v1/organizations/549236": [
+          merakiError(500, "Down"),
+          merakiError(500, "Down"),
+          merakiError(500, "Down"),
+        ],
+      },
+    });
+
+    const failed: NetworkControllerReadOutcome = await runStore();
+
+    expect(failed.status).toBe("failed");
+    expect(failed.summary).toMatchObject({
+      placedClientCount: 1,
+      linkedDeviceCount: 1,
+    });
   });
 });

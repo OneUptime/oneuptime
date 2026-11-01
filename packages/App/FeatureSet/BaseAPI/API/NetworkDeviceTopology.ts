@@ -19,6 +19,12 @@ import Select from "Common/Server/Types/Database/Select";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
 import {
+  NetworkDeviceControllerLink,
+  NetworkDeviceDiscoveredDetails,
+  getCurrentControllerLinks,
+  readNetworkDeviceDiscoveredDetails,
+} from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
+import {
   NetworkDeviceEffectiveInputs,
   getNetworkDeviceEffectiveInputs,
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
@@ -242,6 +248,7 @@ export default class NetworkDeviceTopologyAPI {
             throw new BadDataException("Project not found in request");
           }
 
+          const requestedAt: Date = OneUptimeDate.getCurrentDate();
           const body: JSONObject = (req.body || {}) as JSONObject;
           const siteIdRaw: unknown = body["siteId"];
           if (
@@ -335,7 +342,9 @@ export default class NetworkDeviceTopologyAPI {
                  * so the map draws it as what Inventory says it is. Read
                  * only by the role classifier, through the device's asset
                  * facts; neighbour matching keeps to the device's own
-                 * columns.
+                 * columns - and to the controller's reading, which names a
+                 * box by its serial number and which the links below come
+                 * from.
                  */
                 discoveredDetails: true,
                 lastSnmpSeenAt: true,
@@ -391,6 +400,11 @@ export default class NetworkDeviceTopologyAPI {
                 walkInterfaces: true,
                 lldpNeighbors: true,
                 cdpNeighbors: true,
+                /*
+                 * What a floating device at the same site could have been
+                 * placed by, for the drawer to name what is missing.
+                 */
+                collectEndpoints: true,
               },
               limit: LIMIT_PER_PROJECT,
               skip: 0,
@@ -512,6 +526,12 @@ export default class NetworkDeviceTopologyAPI {
             attachedPortName: true,
             lastSeenAt: true,
             /*
+             * What a controller calls it, and whether one placed it: the
+             * second decides how long its lastSeenAt stands.
+             */
+            hostname: true,
+            attachmentSource: true,
+            /*
              * The site of the switch that learned the MAC. Read only by the
              * builder's by-address match, which is scoped to it: every
              * branch has a 10.0.0.5, and without the site an endpoint at
@@ -630,6 +650,8 @@ export default class NetworkDeviceTopologyAPI {
               attachedInterfaceIndex: endpoint.attachedInterfaceIndex,
               attachedPortName: endpoint.attachedPortName,
               lastSeenAt: endpoint.lastSeenAt,
+              hostname: endpoint.hostname,
+              attachmentSource: endpoint.attachmentSource,
               /*
                * .toString() is load-bearing, as for the link rules above:
                * the builder keys a Map on it.
@@ -740,6 +762,20 @@ export default class NetworkDeviceTopologyAPI {
               const classifierInputs: NetworkDeviceEffectiveInputs =
                 getNetworkDeviceEffectiveInputs(device);
 
+              /*
+               * What the device's controller says. A Meraki box implements no
+               * ENTITY-MIB, so this is the only serial number it has, and its
+               * MAC is the chassis id its neighbours advertise for it.
+               */
+              const details: NetworkDeviceDiscoveredDetails =
+                readNetworkDeviceDiscoveredDetails(device.discoveredDetails);
+              const controllerMac: string | undefined =
+                details.controller?.values.macAddress;
+              const interfaceMacs: Array<string> | undefined =
+                macAddressesByDeviceId.get(device.id!.toString());
+              const controllerLinks: Array<NetworkDeviceControllerLink> =
+                getCurrentControllerLinks(details.controllerLinks, requestedAt);
+
               return {
                 id: device.id!.toString(),
                 name: device.name || device.hostname || "Unnamed device",
@@ -777,9 +813,13 @@ export default class NetworkDeviceTopologyAPI {
                 sysDescr: classifierInputs.sysDescr.value,
                 sysObjectId: classifierInputs.sysObjectId.value,
                 deviceRole: device.networkDeviceRole?.key || device.deviceRole,
-                serialNumber: device.serialNumber,
+                serialNumber:
+                  device.serialNumber ||
+                  details.controller?.values.serialNumber,
                 isNeighborDiscoveryEnabled: device.walkInterfaces,
-                macAddresses: macAddressesByDeviceId.get(device.id!.toString()),
+                macAddresses: controllerMac
+                  ? [...(interfaceMacs || []), controllerMac]
+                  : interfaceMacs,
                 macAddress: device.macAddress,
                 /*
                  * .toString() is load-bearing here too - the endpoint
@@ -788,6 +828,10 @@ export default class NetworkDeviceTopologyAPI {
                 siteId: device.siteId?.toString(),
                 lldpNeighbors: device.lldpNeighbors,
                 cdpNeighbors: device.cdpNeighbors,
+                controllerLinks: controllerLinks,
+                controllerProvider: details.controllerLinks?.provider,
+                isEndpointCollectionEnabled: device.collectEndpoints,
+                isDescribedByController: Boolean(details.controller),
               };
             },
           );
@@ -1005,7 +1049,7 @@ export default class NetworkDeviceTopologyAPI {
           const topology: TopologyBuildResult =
             NetworkTopologyUtil.buildTopology(
               topologyInput,
-              OneUptimeDate.getCurrentDate(),
+              requestedAt,
               interfaceInput,
               endpointInput,
               manualLinkInput,
