@@ -1289,9 +1289,8 @@ describe("the playbook templates", () => {
     ).toEqual([false, true, true, false]);
 
     // The response's checklist, as the case's own tasks.
-    const tasks: Array<string> = (
-      built[3]!.config as { tasks: Array<string> }
-    ).tasks;
+    const tasks: Array<string> = (built[3]!.config as { tasks: Array<string> })
+      .tasks;
 
     expect(tasks).toHaveLength(4);
     expect(tasks[0]).toContain("Who Can Reach It");

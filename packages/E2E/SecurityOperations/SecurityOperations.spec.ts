@@ -4054,11 +4054,78 @@ test.describe("a case", () => {
      */
     await open(page, SPRAY_CASE_PATH);
     await expect(summary.getByRole("listitem")).toHaveText(
-      ["Not known to be reachable from the internet", "Names 1 record"],
+      [
+        "Not known to be reachable from the internet",
+        "Names 1 record",
+        "2 stores with sensitive data",
+      ],
       { timeout: 30000 },
     );
     await expect(impact).toContainText(
       "Nothing OneUptime holds shows it is: no request from a public address reached the app, and no record reports a public address.",
+    );
+  });
+
+  /*
+   * The data a case puts at risk (Fixture/CaseContextFixture.js): the spray
+   * names k.morgan@acme-commerce.example, whom Data Security knows can read
+   * two stores with sensitive data. Each says what it holds and how the case
+   * reaches it, the most sensitive first, and opens in Data Security.
+   */
+  test("its Impact names the data the case's people can reach, the most sensitive first, each opening in Data Security", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, SPRAY_CASE_PATH);
+    const impact: Locator = cardTitled(page, "Impact");
+    const data: Locator = impact.getByTestId("security-case-impact-data");
+
+    await expect(data).toBeVisible({ timeout: 30000 });
+    await expect(data).toContainText("Data at risk");
+
+    const stores: Locator = data.getByTestId("security-case-impact-data-store");
+
+    await expect(stores).toHaveCount(2);
+    await expect(stores.nth(0)).toContainText("finance-exports");
+    await expect(stores.nth(0)).toContainText("Restricted");
+    await expect(stores.nth(0)).toContainText("About 2,400,000 records");
+    await expect(stores.nth(0)).toContainText(
+      "Reachable through k.morgan@acme-commerce.example",
+    );
+    await expect(stores.nth(0)).toContainText("9 identities can reach it");
+    await expect(stores.nth(0)).toContainText(
+      "2 of them outside your accounts",
+    );
+    await expect(stores.nth(1)).toContainText("analytics");
+    await expect(
+      stores.nth(0).getByRole("link", { name: "finance-exports" }),
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/data-security/stores/40000000-0000-4000-8000-000000000001`,
+    );
+
+    const identity: Locator = data.getByTestId(
+      "security-case-impact-data-identity",
+    );
+
+    await expect(identity).toHaveText(
+      "k.morgan@acme-commerce.example can reach 2 stores",
+    );
+    await expect(identity.getByRole("link")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/data-security/access/41000000-0000-4000-8000-000000000001`,
+    );
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-data-at-risk-desktop");
+
+    // A case whose people reach no data says nothing of it.
+    await open(page, DOMAIN_CASE_PATH);
+    await expect(
+      impact.getByTestId("security-case-impact-summary"),
+    ).toBeVisible({ timeout: 30000 });
+    await expect(impact.getByTestId("security-case-impact-data")).toHaveCount(
+      0,
     );
   });
 
@@ -4761,6 +4828,17 @@ test.describe("playbooks", () => {
         dialog.getByTestId(`security-playbook-template-${key}`),
       ).toHaveCount(0);
     }
+    // One it has not, offered: Close a Data Exposure, for the cases Data Security opens.
+    const dataExposure: Locator = dialog.getByTestId(
+      "security-playbook-template-tile-data-exposure",
+    );
+    await expect(dataExposure).toContainText("Close a Data Exposure");
+    await expect(dataExposure).toContainText("4 steps");
+    await expect(
+      dataExposure.getByRole("button", {
+        name: "Add Playbook: Close a Data Exposure",
+      }),
+    ).toBeVisible();
     await pageAtRest(page);
     // The tiles fill the dialog, not a column in its middle.
     const dialogBox: Box = await boxOf(dialog);
