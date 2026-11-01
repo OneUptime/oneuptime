@@ -526,3 +526,651 @@ test.describe("User Flows", () => {
     });
   });
 });
+
+test.describe("One person or one session", () => {
+  const janeKey: string = "a".repeat(64);
+  const visitorId: string = "0123456789abcdef0123456789abcdef";
+  const janeSession: string = "c0000000000000000000000000000001";
+  const janeSecondSession: string = "c0000000000000000000000000000002";
+  const janeUnrecordedSession: string = "c0000000000000000000000000000003";
+  const orphanSession: string = "c0000000000000000000000000000005";
+  const longSession: string = "c0000000000000000000000000000006";
+
+  const journey: (page: Page, sessionId: string) => Locator = (
+    page: Page,
+    sessionId: string,
+  ): Locator => {
+    return page.locator(
+      `[data-testid="user-flow-journey"][data-session-id="${sessionId}"]`,
+    );
+  };
+
+  const step: (row: Locator, pageKey: string) => Locator = (
+    row: Locator,
+    pageKey: string,
+  ): Locator => {
+    return row.locator(
+      `[data-testid="user-flow-journey-step"][data-page="${pageKey}"]`,
+    );
+  };
+
+  const filterRequests: (page: Page) => Promise<Array<unknown>> = async (
+    page: Page,
+  ): Promise<Array<unknown>> => {
+    return (await flowRequests(page)).map(
+      (request: FixtureRequest): unknown => {
+        return request.data["filters"];
+      },
+    );
+  };
+
+  test("picking a person shows their journeys, and nobody else's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+    await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
+      "200",
+    );
+    await expect(page.getByTestId("user-flow-journeys")).toHaveCount(0);
+
+    await page.getByTestId("user-flow-scope-input").click();
+
+    const options: Locator = page.getByTestId("user-flow-scope-option");
+
+    /* The unlinked bucket is on the Users page, but nothing selects it. */
+    await expect(options).toHaveCount(2);
+    await expect(options.first()).toContainText("jane@example.com");
+    await expect(options.first()).toContainText("3 sessions");
+    await expect(options.nth(1)).toContainText("Visitor 012345");
+    await expect(options.nth(1)).toContainText("1 session");
+
+    await options.first().click();
+
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "jane@example.com",
+    );
+    await expect(page.getByTestId("user-flow-scope-detail")).toHaveText(
+      "Identified user · 3 sessions in this range",
+    );
+
+    /* The filter went to the server: these sessions are not in the 200. */
+    expect(await filterRequests(page)).toEqual([
+      undefined,
+      { identifiedUserKey: janeKey },
+    ]);
+
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+    await expect(page.getByTestId("user-flow-journeys-count")).toHaveText(
+      "3 sessions",
+    );
+
+    /* Everything else on the page is about her too. */
+    await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
+      "3",
+    );
+    await expect(node(page, "/", 0)).toHaveAttribute("data-sessions", "2");
+    await expect(node(page, "/login", 0)).toHaveAttribute("data-sessions", "1");
+
+    await page.screenshot({
+      path: path.join(artifacts, "user-flows-one-person.png"),
+      fullPage: true,
+    });
+  });
+
+  test("a journey reads page by page, from landing to exit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?userKey=${janeKey}`);
+
+    const first: Locator = journey(page, janeSession);
+
+    /* Ids are shown for one person: which product is what they looked at. */
+    await expect(first).toHaveAttribute(
+      "data-path",
+      "/ > /collections > /products/1001 > /collections > /products/1002 > /cart > /checkout/payment",
+    );
+
+    const steps: Locator = first.getByTestId("user-flow-journey-step");
+
+    await expect(steps).toHaveCount(7);
+    await expect(steps.first()).toHaveAttribute("data-landing", "true");
+    await expect(steps.first()).toContainText("Landing page");
+    await expect(steps.last()).toHaveAttribute("data-exit", "true");
+    await expect(steps.last()).toContainText("Exit page");
+    await expect(
+      first.locator('[data-testid="user-flow-journey-step"][data-exit="true"]'),
+    ).toHaveCount(1);
+
+    /* The second /collections is the return, the first is not. */
+    await expect(steps.nth(1)).toHaveAttribute("data-visit", "1");
+    await expect(steps.nth(3)).toHaveAttribute("data-page", "/collections");
+    await expect(steps.nth(3)).toHaveAttribute("data-visit", "2");
+
+    /* Where it went wrong, on the page it went wrong. */
+    await expect(
+      step(first, "/checkout/payment").getByTestId(
+        "user-flow-journey-step-error",
+      ),
+    ).toBeVisible();
+    await expect(first.getByTestId("user-flow-journey-step-error")).toHaveCount(
+      1,
+    );
+    await expect(first.getByTestId("user-flow-journey-errors")).toHaveText(
+      "2 errors",
+    );
+    await expect(first.getByTestId("user-flow-journey-summary")).toHaveText(
+      "7 pages · 1 return to an earlier page",
+    );
+    await expect(first.getByTestId("user-flow-journey-facts")).toContainText(
+      "Chrome · desktop · DK",
+    );
+
+    const second: Locator = journey(page, janeSecondSession);
+
+    await expect(
+      step(second, "/account").getByTestId(
+        "user-flow-journey-step-frustration",
+      ),
+    ).toBeVisible();
+    await expect(
+      second.getByTestId("user-flow-journey-frustration"),
+    ).toHaveText("3 frustration signals");
+    await expect(second.getByTestId("user-flow-journey-summary")).toHaveText(
+      "2 pages",
+    );
+
+    /* One page seen is both the landing and the exit. */
+    const third: Locator = journey(page, janeUnrecordedSession);
+
+    await expect(third.getByTestId("user-flow-journey-step")).toHaveAttribute(
+      "data-landing",
+      "true",
+    );
+    await expect(third.getByTestId("user-flow-journey-step")).toHaveAttribute(
+      "data-exit",
+      "true",
+    );
+    await expect(third.getByTestId("user-flow-journey-summary")).toHaveText(
+      "Left without navigating",
+    );
+  });
+
+  test("a journey links to its recording, when there is one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?userKey=${janeKey}`);
+
+    await expect(
+      journey(page, janeSession).getByTestId("user-flow-journey-watch"),
+    ).toHaveAttribute("href", new RegExp(`/session-replay/${janeSession}$`));
+
+    const unrecorded: Locator = journey(page, janeUnrecordedSession);
+
+    await expect(unrecorded.getByTestId("user-flow-journey-watch")).toHaveCount(
+      0,
+    );
+    await expect(
+      unrecorded.getByTestId("user-flow-journey-no-recording"),
+    ).toHaveText("No recording");
+  });
+
+  test("a link names the person by key, and survives a reload", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+    await page.getByTestId("user-flow-scope-input").click();
+    await page.getByTestId("user-flow-scope-option").first().click();
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+
+    await expect(page).toHaveURL(new RegExp(`userKey=${janeKey}`));
+    expect(page.url()).not.toContain("jane");
+
+    await page.reload();
+
+    /* The link holds the key: the label comes back from the server. */
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "jane@example.com",
+    );
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+    expect(await filterRequests(page)).toEqual([
+      { identifiedUserKey: janeKey },
+    ]);
+  });
+
+  test("a typed reference goes in the body, and only its key reaches the URL", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+
+    /* Carol is not in the list of people: only her reference finds her. */
+    await page.getByTestId("user-flow-scope-input").fill("carol@example.com");
+    await page.getByTestId("user-flow-scope-input").press("Enter");
+
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "carol@example.com",
+    );
+    expect(await filterRequests(page)).toEqual([
+      undefined,
+      { identifiedUserRef: "carol@example.com" },
+    ]);
+
+    await expect(page).toHaveURL(new RegExp(`userKey=${"e".repeat(64)}`));
+    expect(decodeURIComponent(page.url())).not.toContain("carol");
+    /* Writing the key into the URL is not a second read. */
+    expect(await flowRequests(page)).toHaveLength(2);
+  });
+
+  test("a name typed exactly as listed is that person, asked for by their key", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+
+    const input: Locator = page.getByTestId("user-flow-scope-input");
+
+    await input.click();
+    await expect(page.getByTestId("user-flow-scope-option")).toHaveCount(2);
+    await input.fill("jane@example.com");
+    await expect(page.getByTestId("user-flow-scope-option")).toHaveCount(1);
+    await input.press("Enter");
+
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+    expect(await filterRequests(page)).toEqual([
+      undefined,
+      { identifiedUserKey: janeKey },
+    ]);
+  });
+
+  test("Show all users goes back to the map of everyone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?userKey=${janeKey}`);
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+    await expect(page.getByTestId("user-flow-group-ids")).not.toBeChecked();
+
+    await page.getByTestId("user-flow-scope-clear").click();
+
+    await expect(page.getByTestId("user-flow-scope")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-journeys")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
+      "200",
+    );
+    await expect(page.getByTestId("user-flow-group-ids")).toBeChecked();
+    expect(new URL(page.url()).search).toBe("");
+  });
+
+  test("the time range, device and session filters narrow one person too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?userKey=${janeKey}&range=Past+1+Hour`);
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+
+    const requests: Array<FixtureRequest> = await flowRequests(page);
+    const windowMs: number =
+      Date.parse(String(requests[0]!.data["endTime"])) -
+      Date.parse(String(requests[0]!.data["startTime"]));
+
+    expect(Math.round(windowMs / 60000)).toBe(60);
+
+    await page.getByTestId("user-flow-device-filter").selectOption("mobile");
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
+    await expect(journey(page, janeUnrecordedSession)).toBeVisible();
+
+    await page.getByTestId("user-flow-device-filter").selectOption("");
+    await page.getByTestId("user-flow-session-filter").selectOption("errors");
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
+    await expect(journey(page, janeSession)).toBeVisible();
+
+    /* Filters that leave nothing say so, and keep the rest of the page. */
+    await page.getByTestId("user-flow-device-filter").selectOption("mobile");
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-journeys-empty")).toBeVisible();
+
+    /* All of that re-folded what it had. */
+    expect(await flowRequests(page)).toHaveLength(1);
+  });
+
+  test("a device someone else used stays a choice, so the page says what narrows it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?userKey=${janeKey}&device=tablet`);
+    await expect(page.getByTestId("user-flow-journeys-empty")).toBeVisible();
+    await expect(page.getByTestId("user-flow-device-filter")).toHaveValue(
+      "tablet",
+    );
+  });
+
+  test("Group IDs in URLs folds one person's records together again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?userKey=${janeKey}`);
+
+    await expect(
+      step(journey(page, janeSession), "/products/1001"),
+    ).toHaveCount(1);
+
+    await page.getByTestId("user-flow-group-ids").check();
+
+    await expect(journey(page, janeSession)).toHaveAttribute(
+      "data-path",
+      "/ > /collections > /products/:id > /collections > /products/:id > /cart > /checkout/payment",
+    );
+    await expect(page).toHaveURL(/group=1/);
+    expect(await flowRequests(page)).toHaveLength(1);
+  });
+
+  test("a pasted session id opens that session, and widens to its owner", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+
+    await page.getByTestId("user-flow-scope-input").fill(janeSession);
+    await expect(page.getByTestId("user-flow-scope-option")).toContainText(
+      "Find session c0000000",
+    );
+    await page.getByTestId("user-flow-scope-input").press("Enter");
+
+    await expect(page.getByTestId("user-flow-scope")).toHaveAttribute(
+      "data-kind",
+      "session",
+    );
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "Session c0000000",
+    );
+    await expect(page.getByTestId("user-flow-scope-detail")).toHaveText(
+      "One session from jane@example.com",
+    );
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
+    await expect(page).toHaveURL(new RegExp(`sessionId=${janeSession}`));
+
+    await page.getByTestId("user-flow-scope-owner").click();
+
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "jane@example.com",
+    );
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+    await expect(page).toHaveURL(new RegExp(`userKey=${janeKey}`));
+    await expect(page).not.toHaveURL(/sessionId=/);
+  });
+
+  test("a session linked to nobody has no one to widen to", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?sessionId=${orphanSession}`);
+
+    await expect(page.getByTestId("user-flow-scope-detail")).toHaveText(
+      "One session",
+    );
+    await expect(page.getByTestId("user-flow-scope-owner")).toHaveCount(0);
+  });
+
+  test("an anonymous visitor reads as one, by the same words as the Users page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?visitor=${visitorId}`);
+
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "Visitor 012345",
+    );
+    await expect(page.getByTestId("user-flow-scope-detail")).toHaveText(
+      "Anonymous visitor · 1 session in this range",
+    );
+    expect(await filterRequests(page)).toEqual([{ visitorId: visitorId }]);
+  });
+
+  test("a role that may not read the label sees Hidden, and the journeys", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?userKey=${"b".repeat(64)}`);
+
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText("Hidden");
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
+  });
+
+  test("nobody in the range says so, and is not taken for a missing install", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+
+    await page.getByTestId("user-flow-scope-input").fill("nobody@example.com");
+    await page.getByTestId("user-flow-scope-input").press("Enter");
+
+    await expect(
+      page.getByText("No recorded sessions for this user in this range"),
+    ).toBeVisible();
+    await expect(page.getByText("How to install Session Replay")).toHaveCount(
+      0,
+    );
+
+    /* The banner still names who was asked for. */
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "nobody@example.com",
+    );
+
+    await page.getByTestId("user-flow-scope-empty-clear").click();
+    await waitForMap(page);
+    await expect(page.getByTestId("user-flow-tile-sessions-value")).toHaveText(
+      "200",
+    );
+  });
+
+  test("a session nobody recorded here says how to reach a reference of that shape", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?sessionId=${"d".repeat(32)}`);
+
+    await expect(
+      page.getByText("No session with this ID in this range"),
+    ).toBeVisible();
+    await expect(page.getByText("search for user:")).toBeVisible();
+  });
+
+  test("a reference a role may not use is explained, and can be left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+
+    await page.getByTestId("user-flow-scope-input").fill("denied@example.com");
+    await page.getByTestId("user-flow-scope-input").press("Enter");
+
+    await expect(
+      page.getByText("Your role cannot read end-user identity"),
+    ).toBeVisible();
+    await expect(page.getByTestId("user-flow-map")).toHaveCount(0);
+
+    await page.getByTestId("user-flow-scope-clear").click();
+    await waitForMap(page);
+  });
+
+  /*
+   * What a server older than the page does with a filter it does not know:
+   * it answers with everyone. Drawn, that would be two hundred strangers
+   * under one person's name.
+   */
+  test("an answer the server did not narrow is never drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?fixture=unfiltered&userKey=${janeKey}`);
+
+    await expect(
+      page.getByText("The server did not narrow this read"),
+    ).toBeVisible();
+    await expect(page.getByTestId("user-flow-journeys")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-map")).toHaveCount(0);
+    await expect(page.getByTestId("user-flow-tile-sessions")).toHaveCount(0);
+  });
+
+  test("a journey cut short names no exit", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?sessionId=${longSession}`);
+
+    const row: Locator = journey(page, longSession);
+
+    await expect(row.getByTestId("user-flow-journey-step")).toHaveCount(100);
+    await expect(
+      row.locator('[data-testid="user-flow-journey-step"][data-exit="true"]'),
+    ).toHaveCount(0);
+    await expect(row.getByTestId("user-flow-journey-summary")).toContainText(
+      "the session went on past these pages",
+    );
+  });
+
+  test("the filter works from the keyboard", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+
+    const input: Locator = page.getByTestId("user-flow-scope-input");
+
+    await input.focus();
+    await expect(page.getByTestId("user-flow-scope-option")).toHaveCount(2);
+    await expect(input).toHaveAttribute("aria-expanded", "true");
+
+    await input.press("ArrowDown");
+    await expect(
+      page.getByTestId("user-flow-scope-option").nth(1),
+    ).toHaveAttribute("aria-selected", "true");
+
+    await input.press("Escape");
+    await expect(page.getByTestId("user-flow-scope-menu")).toHaveCount(0);
+
+    await input.focus();
+    await input.press("ArrowDown");
+    await input.press("Enter");
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "Visitor 012345",
+    );
+  });
+
+  test("text that cannot be asked offers help rather than a dead end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page);
+    await waitForMap(page);
+
+    await page.getByTestId("user-flow-scope-input").fill("visitor:abc");
+    await expect(page.getByTestId("user-flow-scope-hint")).toBeVisible();
+    await page.getByTestId("user-flow-scope-input").press("Enter");
+
+    await expect(page.getByTestId("user-flow-scope")).toHaveCount(0);
+    expect(await flowRequests(page)).toHaveLength(1);
+  });
+
+  test("moving straight to another person never shows the last one's journeys", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openFlows(page, `?userKey=${janeKey}`);
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+
+    await page.getByTestId("user-flow-scope-input").click();
+    await page.getByTestId("user-flow-scope-option").nth(1).click();
+
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "Visitor 012345",
+    );
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(1);
+    await expect(journey(page, janeSession)).toHaveCount(0);
+    await expect(page).not.toHaveURL(/userKey=/);
+  });
+
+  test("View journey on the Users page opens that person over the same window", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${applicationRoute}/session-replay-users?range=Past+1+Hour`,
+    );
+
+    const row: Locator = page.locator(
+      `[data-testid="session-user-row"][data-group-key="u:${janeKey}"]`,
+    );
+
+    await row.getByRole("button", { name: "More actions" }).click();
+    await page.getByRole("menuitem", { name: "View journey" }).click();
+
+    await expect(page).toHaveURL(/\/user-flows\?/);
+    await expect(page).toHaveURL(new RegExp(`userKey=${janeKey}`));
+    await expect(page).toHaveURL(/range=Past\+1\+Hour/);
+    await expect(page.getByTestId("user-flow-scope-name")).toHaveText(
+      "jane@example.com",
+    );
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+  });
+
+  test("on a phone one person's journeys wrap inside the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openFlows(page, `?userKey=${janeKey}`);
+    await expect(page.getByTestId("user-flow-journey")).toHaveCount(3);
+
+    const pageOverflow: number = await page.evaluate((): number => {
+      return (
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth
+      );
+    });
+
+    expect(pageOverflow).toBeLessThanOrEqual(1);
+    await page.screenshot({
+      path: path.join(artifacts, "user-flows-one-person-mobile.png"),
+      fullPage: true,
+    });
+  });
+});

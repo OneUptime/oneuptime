@@ -100,6 +100,7 @@ function response(specs: Array<SessionSpec>): UserFlowJourneysResponseDto {
     maxSessions: 5000,
     startUnixMs: 0,
     endUnixMs: 1,
+    scope: null,
   };
 }
 

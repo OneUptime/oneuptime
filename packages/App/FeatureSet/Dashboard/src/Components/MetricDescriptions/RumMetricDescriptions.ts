@@ -104,7 +104,9 @@ export const RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS: Record<
  * Components/UserFlow/UserFlowTables.tsx and the figures in the panel a
  * click on the map opens, Components/UserFlow/UserFlowDetailPanel.tsx (the
  * detail* keys). The map itself (UserFlowMap.tsx) is an SVG of clickable
- * nodes and bands with its own hover text and legend, so it has no (i).
+ * nodes and bands with its own hover text and legend, so it has no (i). The
+ * journeys key is the list of one person's sessions,
+ * Components/UserFlow/UserFlowJourneys.tsx.
  *
  * Every number is a fold of Common/Utils/Rum/UserFlow.ts over the journeys
  * Common/Server/Utils/SessionReplay/SessionReplayUserFlowReadService.ts
@@ -173,7 +175,8 @@ export type RumUserFlowMetric =
   | "detailErrorsHere"
   | "detailCameFrom"
   | "detailWentNext"
-  | "detailFoldedPages";
+  | "detailFoldedPages"
+  | "journeys";
 
 export const RUM_USER_FLOW_METRIC_DESCRIPTIONS: Record<
   RumUserFlowMetric,
@@ -262,6 +265,9 @@ export const RUM_USER_FLOW_METRIC_DESCRIPTIONS: Record<
   ),
   detailFoldedPages: translationKey(
     "The less visited pages this step folds into Other pages, each with the sessions that were on it at this step and their share of the sessions in Other pages. The busiest pages keep their own place, as many as Pages per step allows; at most 50 are listed here.",
+  ),
+  journeys: translationKey(
+    "One line per session, newest first, with its pages in order. A reload counts once, and a return within one recording chunk (about 15 seconds) is missed. The arrow marks a return to a page already seen; a red dot a page with an error, an amber dot one with a frustration signal, both placed on pages as in the Pages table.",
   ),
 };
 

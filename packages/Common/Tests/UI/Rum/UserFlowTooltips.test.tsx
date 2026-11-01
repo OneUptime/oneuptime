@@ -122,6 +122,7 @@ function response(specs: Array<SessionSpec>): UserFlowJourneysResponseDto {
     maxSessions: 5000,
     startUnixMs: 1_799_990_000_000,
     endUnixMs: 1_800_000_000_000,
+    scope: null,
   };
 }
 

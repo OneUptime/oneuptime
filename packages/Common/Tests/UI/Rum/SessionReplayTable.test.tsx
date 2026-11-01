@@ -17,6 +17,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import TimeRange from "../../../Types/Time/TimeRange";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -740,7 +741,7 @@ describe("SessionReplayTable rendering", () => {
     expect(screen.queryByTestId("session-row-watch")).toBeNull();
     /*
      * Both rows have errors, but no footage to jump into: no first-error
-     * action. Their ⋯ holds Show ID alone.
+     * action. Their ⋯ holds the rest.
      */
     for (const more of screen.getAllByTestId("row-actions-more-button")) {
       fireEvent.click(more);
@@ -1608,7 +1609,11 @@ describe("SessionReplayTable row actions", () => {
 
     const menu: HTMLElement = openMenuOf(row as HTMLElement);
 
-    expect(menuItemNames(menu)).toEqual(["Watch from first error", "Show ID"]);
+    expect(menuItemNames(menu)).toEqual([
+      "Watch from first error",
+      "View journey",
+      "Show ID",
+    ]);
     /* Portalled out of the row, so the table's overflow cannot clip it. */
     expect(row).not.toContainElement(menu);
 
@@ -1616,7 +1621,7 @@ describe("SessionReplayTable row actions", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it("a watchable row without an error shows Watch, and its ⋯ holds Show ID alone", async () => {
+  it("a watchable row without an error shows Watch, and its ⋯ holds View journey and Show ID", async () => {
     mockApi(() => {
       return listResponse([
         wireRow({ errorCount: 0, hasError: 0, firstErrorOffsetMs: 0 }),
@@ -1630,10 +1635,13 @@ describe("SessionReplayTable row actions", () => {
     expect(
       within(row as HTMLElement).getByTestId("session-row-watch"),
     ).toBeInTheDocument();
-    expect(menuItemNames(openMenuOf(row as HTMLElement))).toEqual(["Show ID"]);
+    expect(menuItemNames(openMenuOf(row as HTMLElement))).toEqual([
+      "View journey",
+      "Show ID",
+    ]);
   });
 
-  it("an unplayable row with errors shows Signals only, and its ⋯ holds Show ID alone", async () => {
+  it("an unplayable row with errors shows Signals only, and its ⋯ holds View journey and Show ID", async () => {
     mockApi(() => {
       return listResponse([wireRow({ sealedReason: "recording-lost" })]);
     });
@@ -1645,7 +1653,42 @@ describe("SessionReplayTable row actions", () => {
     expect(
       within(row as HTMLElement).getByTestId("session-row-signals-only"),
     ).toBeInTheDocument();
-    expect(menuItemNames(openMenuOf(row as HTMLElement))).toEqual(["Show ID"]);
+    expect(menuItemNames(openMenuOf(row as HTMLElement))).toEqual([
+      "View journey",
+      "Show ID",
+    ]);
+  });
+
+  /* A session's pages in order: the row's own route list is sorted. */
+  it("View journey opens THAT session on User Flows, from a row that cannot be watched too", async () => {
+    mockApi(() => {
+      return listResponse([
+        wireRow(),
+        wireRow({ sessionId: SESSION_B, sealedReason: "recording-lost" }),
+      ]);
+    });
+
+    renderTable();
+
+    const rows: Array<HTMLElement> = await waitForRows(2);
+
+    fireEvent.click(
+      within(openMenuOf(rows[1] as HTMLElement)).getByRole("menuitem", {
+        name: "View journey",
+      }),
+    );
+
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+
+    const url: URL = new URL(
+      (navigateMock.mock.calls[0]![0] as { toString: () => string }).toString(),
+      "https://oneuptime.example.com",
+    );
+
+    expect(url.pathname).toContain("/user-flows");
+    expect(url.searchParams.get("sessionId")).toBe(SESSION_B);
+    /* The list's window is a day, which this page must not read as a week. */
+    expect(url.searchParams.get("range")).toBe(TimeRange.PAST_ONE_DAY);
   });
 
   /*
