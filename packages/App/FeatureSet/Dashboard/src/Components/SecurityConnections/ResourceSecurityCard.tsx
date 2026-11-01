@@ -38,7 +38,7 @@ import {
 } from "Common/Types/SecurityCase/SecurityConnection";
 import { ocsfSeverityFromId } from "Common/Types/SecurityEvent/OcsfSeverity";
 import { getEntityRiskLevel } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardHeaderLayout } from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { PillSize } from "Common/UI/Components/Pill/Pill";
 import PermissionGate, {
@@ -78,6 +78,12 @@ export interface ComponentProps {
   modelId: ObjectID;
   // Change it to read again (a page's own refresh).
   refreshToken?: number | undefined;
+  /*
+   * "stacked" in an overview's one-third side column (a monitor's), where
+   * Open in Security Events beside the title would squeeze the title and
+   * the description into a column a word wide (Card's header layouts).
+   */
+  headerLayout?: CardHeaderLayout | undefined;
 }
 
 /*
@@ -223,6 +229,7 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
           title={RESOURCE_SECURITY_TITLE}
           description={description.quiet}
           buttons={buttons}
+          headerLayout={props.headerLayout}
         />
       </div>
     );
@@ -342,6 +349,7 @@ const ResourceSecurityCard: FunctionComponent<ComponentProps> = (
         title={RESOURCE_SECURITY_TITLE}
         description={description.news}
         buttons={buttons}
+        headerLayout={props.headerLayout}
       >
         <div className="space-y-4">
           {/*

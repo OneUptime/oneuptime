@@ -1127,15 +1127,71 @@ describe("a record's Security card", () => {
   async function drawCard(
     kind: SecurityConnectionKind = SecurityConnectionKind.Host,
     id: string = HOST_ID,
+    headerLayout?: "stacked" | undefined,
   ): Promise<void> {
     await act(async () => {
       render(
         <MemoryRouter>
-          <ResourceSecurityCard kind={kind} modelId={new ObjectID(id)} />
+          <ResourceSecurityCard
+            kind={kind}
+            modelId={new ObjectID(id)}
+            headerLayout={headerLayout}
+          />
         </MemoryRouter>,
       );
     });
   }
+
+  test("its header is stacked where its page asks - an overview's one-third side column - and the default everywhere else", async () => {
+    getResourceSecurityMock.mockResolvedValue(security() as never);
+
+    await drawCard();
+
+    // A record's page as wide as its content: the default header.
+    expect(
+      within(await screen.findByTestId(IDS.resourceSecurity)).getByTestId(
+        "card-header",
+      ),
+    ).toHaveAttribute("data-header-layout", "default");
+
+    // A monitor's side column: stacked, news or quiet.
+    for (const overrides of [
+      {},
+      {
+        eventCount: 0,
+        findingCount: 0,
+        openCases: { count: 0, items: [] },
+        risk: null,
+        lastSeen: null,
+      },
+    ]) {
+      cleanup();
+      getResourceSecurityMock.mockResolvedValue(
+        security({
+          kind: SecurityConnectionKind.Monitor,
+          id: MONITOR_ID,
+          values: ["shop.acme.example"],
+          entity: { type: SecurityEntityType.Host, value: "shop.acme.example" },
+          ...overrides,
+        }) as never,
+      );
+
+      await drawCard(SecurityConnectionKind.Monitor, MONITOR_ID, "stacked");
+
+      const card: HTMLElement = await screen.findByTestId(IDS.resourceSecurity);
+
+      expect(within(card).getByTestId("card-header")).toHaveAttribute(
+        "data-header-layout",
+        "stacked",
+      );
+      // Open in Security Events stays in the header, at its right edge.
+      expect(
+        within(within(card).getByTestId("card-header")).getByRole("link", {
+          name: "Open in Security Events",
+        }),
+      ).toBeInTheDocument();
+    }
+  });
 
   test("is not drawn, nor read, for a reader who may not read security events", async () => {
     isAllowed = false;

@@ -466,13 +466,15 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
            * week, for whoever may read it - only for a monitor that checks
            * a host (a website, an API, a ping, a port, a certificate, a DNS
            * name or a domain): a heartbeat or a script has nothing to be
-           * named by. Read again on a Refresh, not on every poll.
+           * named by. Read again on a Refresh, not on every poll. Stacked,
+           * as every card of this one-third column is.
            */}
           {getMonitorTargetHosts(monitor.monitorSteps).length > 0 ? (
             <ResourceSecurityCard
               kind={SecurityConnectionKind.Monitor}
               modelId={modelId}
               refreshToken={data.manualRefreshCount}
+              headerLayout="stacked"
             />
           ) : (
             <></>

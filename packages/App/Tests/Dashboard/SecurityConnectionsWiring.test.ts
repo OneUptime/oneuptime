@@ -126,14 +126,18 @@ describe("the way back: a Security card on each record's page", () => {
     },
   );
 
-  test("a monitor's page draws it only for a monitor that checks a host, read again on a Refresh rather than every poll", () => {
+  test("a monitor's page draws it only for a monitor that checks a host, read again on a Refresh rather than every poll, its header stacked as the side column's cards are", () => {
     const page: string = source("Pages", "Monitor", "View", "Index.tsx");
 
     expect(page).toContain(
       'import { getMonitorTargetHosts } from "Common/Utils/SecurityCase/SecurityConnectionMatch";',
     );
+    /*
+     * Stacked: beside Open in Security Events, the one-third column would
+     * squeeze its title and description into a column a word wide.
+     */
     expect(page).toContain(
-      "{getMonitorTargetHosts(monitor.monitorSteps).length > 0 ? ( <ResourceSecurityCard kind={SecurityConnectionKind.Monitor} modelId={modelId} refreshToken={data.manualRefreshCount} />",
+      '{getMonitorTargetHosts(monitor.monitorSteps).length > 0 ? ( <ResourceSecurityCard kind={SecurityConnectionKind.Monitor} modelId={modelId} refreshToken={data.manualRefreshCount} headerLayout="stacked" />',
     );
     // In the side column, right after what is open on the monitor.
     expect(
