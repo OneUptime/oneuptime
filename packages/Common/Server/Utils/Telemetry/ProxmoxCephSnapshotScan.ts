@@ -51,9 +51,18 @@ export const PVE_SNAPSHOT_METRIC_NAMES: ReadonlySet<string> = new Set([
   "pve_version_info",
   "pve_ha_state",
   "pve_onboot_status",
+  /*
+   * The lock Proxmox holds on a guest (backup, migrate, snapshot...): an
+   * enum series per state, 1 for the current one.
+   */
+  "pve_lock_state",
+  // Whether every node can use a storage.
+  "pve_storage_shared",
   // Latest-metric mirror (WI-6 inventory columns)
   "pve_uptime_seconds",
   "pve_cpu_usage_ratio",
+  // A node's cores, a guest's vCPUs.
+  "pve_cpu_usage_limit",
   "pve_memory_usage_bytes",
   "pve_memory_size_bytes",
   "pve_disk_usage_bytes",
@@ -127,6 +136,23 @@ export interface ProxmoxResourceBufferEntry {
   maxMemoryBytes: number | null;
   latestDiskBytes: number | null;
   maxDiskBytes: number | null;
+  /*
+   * From the info series' labels and the series below. Unlike the identity
+   * labels above they can change while the resource lives (a VM turned into
+   * a template, a tag edited, a storage's content changed), so they fold
+   * newest-observedAt-wins. An empty string is a reading ("no tags", "no
+   * lock", "no subscription"); null is "not reported".
+   */
+  isTemplate: boolean | null;
+  tags: string | null;
+  lockState: string | null;
+  // When lockState was read: see foldProxmoxResourceSnapshot.
+  lockObservedAt: Date | null;
+  cpuCount: number | null;
+  storageType: string | null;
+  storageContent: string | null;
+  isShared: boolean | null;
+  subscriptionLevel: string | null;
   observedAt: Date;
 }
 
@@ -160,6 +186,13 @@ export interface ProxmoxClusterSnapshotBufferEntry {
    * the stored inventory instead (proxmoxClusterCountsFromInventory).
    */
   countsFromInventory: boolean;
+  /*
+   * Whether the cluster is quorate, as pve-exporter reports it: pve_up for
+   * the cluster itself (id cluster/<name>). Null when the batch carried no
+   * such series (the native push, a standalone node, a node-only scrape).
+   */
+  isQuorate: boolean | null;
+  isQuorateObservedAt: Date | null;
 }
 
 /*
@@ -211,6 +244,7 @@ export interface ProxmoxClusterSnapshotExtras {
   guestCount?: number | undefined;
   storageCount?: number | undefined;
   guestsWithoutBackupCount?: number | undefined;
+  isQuorate?: boolean | undefined;
 }
 
 // The CephCluster snapshot columns derived from one folded batch.
@@ -281,6 +315,43 @@ function parseUnixNanoToDate(
   return OneUptimeDate.getCurrentDate();
 }
 
+/*
+ * A label's value as sent, where an empty value is a reading of its own:
+ * pve-exporter writes `tags=""` for a guest without tags and `level=""` for
+ * a node without a subscription. Trimmed; null only when the label is
+ * absent (an older exporter that does not send it).
+ */
+function getLabelAllowingEmpty(
+  attributes: JSONArray,
+  key: string,
+): string | null {
+  for (const attribute of attributes) {
+    if (attribute["key"] !== key || !attribute["value"]) {
+      continue;
+    }
+    const value: JSONValue = (attribute["value"] as JSONObject)["stringValue"];
+    if (typeof value === "string") {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+/*
+ * pve-exporter writes a guest's `template` label from the API's 0/1 flag.
+ * Anything else (absent, empty, a future spelling) reads as not reported.
+ */
+function readTemplateLabel(attributes: JSONArray): boolean | null {
+  const value: string | null = getLabelAllowingEmpty(attributes, "template");
+  if (value === "1" || value === "true") {
+    return true;
+  }
+  if (value === "0" || value === "false") {
+    return false;
+  }
+  return null;
+}
+
 // Same trim-or-null read contract as OtelIngestBaseService.getStringAttribute.
 function getStringAttribute(attributes: JSONArray, key: string): string | null {
   for (const attribute of attributes) {
@@ -317,6 +388,8 @@ export function getOrCreateProxmoxClusterSnapshot(
       guestsWithoutBackupCount: null,
       notBackedUpIds: new Set(),
       countsFromInventory: false,
+      isQuorate: null,
+      isQuorateObservedAt: null,
     };
     buffer.set(clusterIdStr, entry);
   }
@@ -419,6 +492,21 @@ export function bufferProxmoxSnapshotMetric(data: {
     scope = idPrefix === "qemu" || idPrefix === "lxc" ? "guest" : idPrefix;
   }
 
+  /*
+   * The cluster's own pve_up (id cluster/<name>) is its quorum: 1 while
+   * corosync is quorate. Not an inventory row; the newest reading wins.
+   */
+  if (scope === "cluster" && data.metricName === "pve_up") {
+    if (
+      cluster.isQuorateObservedAt === null ||
+      observedAt >= cluster.isQuorateObservedAt
+    ) {
+      cluster.isQuorate = rawValue >= 1;
+      cluster.isQuorateObservedAt = observedAt;
+    }
+    return;
+  }
+
   let kind: string;
   if (scope === "node") {
     kind = "Node";
@@ -447,6 +535,15 @@ export function bufferProxmoxSnapshotMetric(data: {
     maxMemoryBytes: null,
     latestDiskBytes: null,
     maxDiskBytes: null,
+    isTemplate: null,
+    tags: null,
+    lockState: null,
+    lockObservedAt: null,
+    cpuCount: null,
+    storageType: null,
+    storageContent: null,
+    isShared: null,
+    subscriptionLevel: null,
     observedAt,
   };
 
@@ -476,17 +573,49 @@ export function bufferProxmoxSnapshotMetric(data: {
     }
     case "pve_node_info": {
       patch.name = getStringAttribute(dpAttributes, "name");
+      // c, b, s or p; empty for a node without a subscription.
+      patch.subscriptionLevel = getLabelAllowingEmpty(dpAttributes, "level");
       cluster.sawNodeIdentity = true;
       break;
     }
     case "pve_guest_info": {
       patch.name = getStringAttribute(dpAttributes, "name");
+      patch.isTemplate = readTemplateLabel(dpAttributes);
+      patch.tags = getLabelAllowingEmpty(dpAttributes, "tags");
       cluster.sawGuestIdentity = true;
       break;
     }
     case "pve_storage_info": {
       patch.name = getStringAttribute(dpAttributes, "storage");
+      patch.storageType = getStringAttribute(dpAttributes, "plugintype");
+      patch.storageContent = getLabelAllowingEmpty(dpAttributes, "content");
       cluster.sawStorageIdentity = true;
+      break;
+    }
+    case "pve_storage_shared": {
+      if (kind !== "Storage") {
+        return;
+      }
+      patch.isShared = rawValue >= 1;
+      break;
+    }
+    case "pve_lock_state": {
+      /*
+       * Enum-series like pve_ha_state: one series per lock Proxmox can
+       * hold, 1 for the one it holds now. A 0 says "not this lock", so the
+       * fold reads a scrape whose series are all 0 as "no lock" ("") and
+       * lets a held lock win over the empty readings of the same scrape.
+       */
+      if (kind !== "Guest") {
+        return;
+      }
+      patch.lockState =
+        rawValue >= 1 ? getStringAttribute(dpAttributes, "state") || "" : "";
+      patch.lockObservedAt = observedAt;
+      break;
+    }
+    case "pve_cpu_usage_limit": {
+      patch.cpuCount = Math.max(0, Math.round(rawValue));
       break;
     }
     case "pve_ha_state": {
@@ -614,6 +743,46 @@ export function foldProxmoxResourceSnapshot(data: {
   if (patch.maxDiskBytes !== null && newer) {
     existing.maxDiskBytes = patch.maxDiskBytes;
   }
+  if (patch.isTemplate !== null && newer) {
+    existing.isTemplate = patch.isTemplate;
+  }
+  if (patch.tags !== null && newer) {
+    existing.tags = patch.tags;
+  }
+  if (patch.cpuCount !== null && newer) {
+    existing.cpuCount = patch.cpuCount;
+  }
+  if (patch.storageType !== null && newer) {
+    existing.storageType = patch.storageType;
+  }
+  if (patch.storageContent !== null && newer) {
+    existing.storageContent = patch.storageContent;
+  }
+  if (patch.isShared !== null && newer) {
+    existing.isShared = patch.isShared;
+  }
+  if (patch.subscriptionLevel !== null && newer) {
+    existing.subscriptionLevel = patch.subscriptionLevel;
+  }
+  /*
+   * The lock: a newer scrape always wins; within one scrape (the same
+   * time) the lock that is held wins over the states that are not, so the
+   * order its series arrive in never matters.
+   */
+  if (patch.lockState !== null && patch.lockObservedAt !== null) {
+    const isNewerLock: boolean =
+      existing.lockObservedAt === null ||
+      existing.lockState === null ||
+      patch.lockObservedAt > existing.lockObservedAt;
+    const isSameScrapeHeldLock: boolean =
+      existing.lockObservedAt !== null &&
+      patch.lockObservedAt.getTime() === existing.lockObservedAt.getTime() &&
+      patch.lockState !== "";
+    if (isNewerLock || isSameScrapeHeldLock) {
+      existing.lockState = patch.lockState;
+      existing.lockObservedAt = patch.lockObservedAt;
+    }
+  }
   if (patch.observedAt > existing.observedAt) {
     existing.observedAt = patch.observedAt;
   }
@@ -700,6 +869,10 @@ export function deriveProxmoxClusterSnapshotExtras(
     snap.guestsWithoutBackupCount !== undefined
   ) {
     extras.guestsWithoutBackupCount = snap.guestsWithoutBackupCount;
+  }
+  // Only when the batch carried the cluster's own pve_up.
+  if (snap && snap.isQuorate !== null) {
+    extras.isQuorate = snap.isQuorate;
   }
 
   return extras;

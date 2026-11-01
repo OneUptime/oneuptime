@@ -275,7 +275,7 @@ const KEYED_PAGES: Array<[string, KeyedPage]> = [
   [
     "Cloud environment overview",
     {
-      file: "Cloud/View/Overview.tsx",
+      file: "AppPlatforms/View/Overview.tsx",
       scope:
         'const metricsScope: string = cloudResource?.resourceIdentifier ? JSON.stringify(getCloudResourceAttributeFilters(cloudResource)) : "";',
       deps: "}, [metricsScope, timeRange, metricsRefreshCount]);",
@@ -400,7 +400,7 @@ describe.each(KEYED_PAGES)(
 describe.each([
   [
     "Cloud environment overview",
-    "Cloud/View/Overview.tsx",
+    "AppPlatforms/View/Overview.tsx",
     "if (!isCloudResourceScoped(item)) {",
     "metricsInFlightRef",
   ],

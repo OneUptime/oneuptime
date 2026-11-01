@@ -21,6 +21,7 @@ import {
   MAX_DESCRIPTION_LENGTH,
 } from "./MetricDescriptionRules";
 import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
+import { getMountBarClassName } from "../../../../App/FeatureSet/Dashboard/src/Components/Host/HostFilesystemsTable";
 
 /*
  * The (i) texts on the Host pages: the overview, one process, one Windows
@@ -383,12 +384,14 @@ describe("denominators, units and caps", () => {
   });
 
   test("the filesystem utilization bar colours match the table", () => {
-    const overview: string = readPage("Overview.tsx");
-
     expect(D.filesystemUtilization).toContain("amber at 75%");
     expect(D.filesystemUtilization).toContain("red at 90%");
-    expect(overview).toContain("pct >= 90");
-    expect(overview).toContain("pct >= 75");
+
+    // The bar the Filesystems table draws (HostFilesystemsTable).
+    expect(getMountBarClassName(74.9)).toBe("bg-emerald-500");
+    expect(getMountBarClassName(75)).toBe("bg-amber-500");
+    expect(getMountBarClassName(89.9)).toBe("bg-amber-500");
+    expect(getMountBarClassName(90)).toBe("bg-red-500");
   });
 
   test("sizes are called out as 1024-based, as formatMemoryBytes renders them", () => {

@@ -310,11 +310,11 @@ const SHARED_OVERVIEW_PAGES: Array<[string, SharedOverviewPageCase]> = [
   [
     "Cloud environment",
     {
-      file: "Pages/Cloud/View/Overview.tsx",
+      file: "Pages/AppPlatforms/View/Overview.tsx",
       resourceVariable: "r",
       identifierColumn: "cloudPlatform",
       builder: "getCloudResourceConnectionGuide",
-      documentationPage: "CLOUD_RESOURCE_VIEW_DOCUMENTATION",
+      documentationPage: "APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION",
     },
   ],
 ];
@@ -411,7 +411,8 @@ const expectCardProps: ExpectCardPropsFunction = (
     return;
   }
 
-  expect(route).toContain(
+  // A key too long for one line is wrapped inside its brackets: RouteMap[ PageMap.X ].
+  expect(route.replace(/\[\s+/g, "[").replace(/\s+\]/g, "]")).toContain(
     `RouteMap[PageMap.${pageCase.documentationPage}] as Route`,
   );
   expect(route).toContain("{ modelId: modelId }");
@@ -520,7 +521,7 @@ describe.each(SHARED_OVERVIEW_PAGES)(
 );
 
 describe("the Cloud environment overview", () => {
-  const source: ts.SourceFile = parse("Pages/Cloud/View/Overview.tsx");
+  const source: ts.SourceFile = parse("Pages/AppPlatforms/View/Overview.tsx");
   const overview: JsxElementLike = collectJsxElements(
     source,
     "ResourceOverview",

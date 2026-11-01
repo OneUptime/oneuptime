@@ -5762,14 +5762,20 @@ test.describe("detections", () => {
    * Beside the side menu at 768px the card is 478px wide, and Rule, Data,
    * Severity and Add needed 566px: Add ran under the sticky last column
    * until about 860px, and in German at 900px, where Data is as wide as
-   * Anmeldeereignisse. Below lg the severity and the events go under the
-   * rule's name, as on a phone's card: a row is the rule and its Add.
+   * Anmeldeereignisse. In a card narrower than 48rem the severity and the
+   * events go under the rule's name, as on a phone's card: a row is the
+   * rule and its Add. By the card's width, not the window's (TableFit): at
+   * 1024-1100px beside the side menu the four columns unfolded into a
+   * cramped card - 1088 here is production's 1024 (the fixture's frame is
+   * 64px narrower).
    */
   for (const [width, lang] of [
     [768, ""],
     [820, ""],
     [900, "de"],
     [1023, ""],
+    [1024, ""],
+    [1088, ""],
   ] as Array<[number, "" | "de"]>) {
     test(`at ${width}px${lang ? ` in German` : ""}, beside the side menu, the rows fit the card: the severity and the events under the rule's name, Add in sight`, async ({
       page,
@@ -5825,12 +5831,12 @@ test.describe("detections", () => {
     });
   }
 
-  test("from 1024px the data and the severity are columns of their own again, and not under the name", async ({
+  test("in a card 48rem or wider the data and the severity are columns of their own again, and not under the name", async ({
     page,
   }: {
     page: Page;
   }) => {
-    await open(page, RULE_LIBRARY_PATH, { width: 1024, height: 900 });
+    await open(page, RULE_LIBRARY_PATH, { width: 1280, height: 900 });
     const brute: Locator = libraryRow(page, BRUTE_FORCE_RULE);
     await expect(brute).toBeVisible({ timeout: 30000 });
 
@@ -6493,12 +6499,18 @@ test.describe("detections", () => {
         /*
          * A word stays whole: the Data column is never narrower than its
          * longest, so Anmeldeereignisse is not cut into Anmeldeereignis
-         * and se.
+         * and se - nor its line under the rule's name, where a card
+         * narrower than 48rem has the data there (TableFit).
          */
-        const dataKind: Locator = page
-          .getByTestId(`rule-library-data-${BRUTE_FORCE_RULE.id}`)
-          .locator("span")
-          .first();
+        const dataColumn: Locator = page.getByTestId(
+          `rule-library-data-${BRUTE_FORCE_RULE.id}`,
+        );
+        const dataKind: Locator =
+          (await dataColumn.count()) > 0
+            ? dataColumn.locator("span").first()
+            : page
+                .getByTestId(`rule-library-card-facts-${BRUTE_FORCE_RULE.id}`)
+                .getByText("Anmeldeereignisse", { exact: true });
         await expect(dataKind).toHaveText("Anmeldeereignisse");
         expect(
           await dataKind.evaluate((element: Element): number => {

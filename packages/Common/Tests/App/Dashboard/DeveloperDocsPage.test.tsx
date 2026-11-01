@@ -20,14 +20,22 @@ import DeveloperDocsPage, {
   getReadableDeveloperDocsLookup,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPage";
 import {
+  DEVELOPER_DOCS_PARENT_PAGES,
   DeveloperDocsPageType,
+  DeveloperDocsParentPage,
   DeveloperDocsScope,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsPages";
-import { getDeveloperDocsResource } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsResources";
+import { getDeveloperDocsRoutes } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsRoutes";
+import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import {
+  DeveloperDocsResource,
+  getDeveloperDocsResource,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsResources";
 import { DEVELOPER_DOCS_NOT_FOUND_MESSAGE } from "../../../../App/FeatureSet/Dashboard/src/Components/DeveloperDocs/DeveloperDocsGuides";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -188,6 +196,25 @@ function team(): Team {
   return item;
 }
 
+// One table, two products: an environment (App Platforms') and a resource (Cloud's).
+const ENVIRONMENT_ID: string = "71000000-0000-4000-8000-000000000001";
+const CLOUD_RESOURCE_ID: string = "72000000-0000-4000-8000-000000000001";
+
+function cloudRows(): Array<CloudResource> {
+  return [
+    Object.assign(new CloudResource(), {
+      _id: ENVIRONMENT_ID,
+      name: "checkout",
+      cloudResourceKind: "environment",
+    }),
+    Object.assign(new CloudResource(), {
+      _id: CLOUD_RESOURCE_ID,
+      name: "orders-db",
+      cloudResourceKind: "resource",
+    }),
+  ];
+}
+
 // What the project has, by table: answered for any list the page asks for.
 const PROJECT: Record<string, () => Array<BaseModel>> = {
   Workflow: () => {
@@ -207,6 +234,9 @@ const PROJECT: Record<string, () => Array<BaseModel>> = {
   },
   Team: () => {
     return [team()];
+  },
+  CloudResource: () => {
+    return cloudRows();
   },
 };
 
@@ -234,6 +264,15 @@ function answerLists(): void {
     if (ids instanceof Includes) {
       data = data.filter((item: BaseModel): boolean => {
         return (ids.values as Array<string>).includes(item._id || "");
+      });
+    }
+
+    // A product's rows, as the server answers the query.
+    const kind: unknown = (call.query || {})["cloudResourceKind"];
+
+    if (typeof kind === "string") {
+      data = data.filter((item: BaseModel): boolean => {
+        return (item as CloudResource).cloudResourceKind === kind;
       });
     }
 
@@ -655,6 +694,162 @@ describe("the Workflows menu's pages", () => {
       await screen.findByText(/get-list\?skip=0&limit=10/),
     ).toBeInTheDocument();
     expect(guide().textContent).not.toContain("It answers with:");
+  });
+});
+
+/*
+ * CloudResource is one table two products show: App Platforms' environments
+ * and the resources in Cloud's accounts. Each product's Developer pages are
+ * about its own rows: App Platforms' Terraform page wrote import blocks for
+ * Cloud's resources too, so following both products' pages gave one row
+ * two Terraform resources.
+ */
+describe("a table two products show", () => {
+  function parentOf(pageKey: PageMap): DeveloperDocsParentPage {
+    return DEVELOPER_DOCS_PARENT_PAGES.find(
+      (parent: DeveloperDocsParentPage): boolean => {
+        return parent.pageKey === pageKey;
+      },
+    )!;
+  }
+
+  function renderProductPage(data: {
+    parentPageKey: PageMap;
+    page: DeveloperDocsPageType;
+  }): void {
+    const parent: DeveloperDocsParentPage = parentOf(data.parentPageKey);
+
+    render(
+      <DeveloperDocsPage
+        pageRoute={new Route("/")}
+        currentProject={null}
+        hasPaymentMethod={false}
+        resource={{
+          ...getDeveloperDocsResource(CloudResource),
+          ...(parent.resourceOptions || {}),
+        }}
+        scope={parent.scope}
+        page={data.page}
+        listQuery={parent.query}
+      />,
+    );
+  }
+
+  test("each product's list pages read its own kind of row, and call them its way", () => {
+    expect(parentOf(PageMap.APP_PLATFORMS_ENVIRONMENTS)).toMatchObject({
+      query: { cloudResourceKind: "environment" },
+      resourceOptions: {
+        singularName: "Cloud Environment",
+        pluralName: "Cloud Environments",
+      },
+    });
+    expect(parentOf(PageMap.CLOUD_MONITORED_RESOURCES)).toMatchObject({
+      query: { cloudResourceKind: "resource" },
+    });
+    // Cloud's rows are the model's own: cloud resources.
+    expect(
+      parentOf(PageMap.CLOUD_MONITORED_RESOURCES).resourceOptions,
+    ).toBeUndefined();
+    // One record's page reads that record: it needs no query.
+    expect(
+      parentOf(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW).query,
+    ).toBeUndefined();
+    expect(
+      parentOf(PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW).resourceOptions,
+    ).toEqual({
+      singularName: "Cloud Environment",
+      pluralName: "Cloud Environments",
+    });
+  });
+
+  test("App Platforms' Terraform page imports its environments, never Cloud's resources", async () => {
+    renderProductPage({
+      parentPageKey: PageMap.APP_PLATFORMS_ENVIRONMENTS,
+      page: DeveloperDocsPageType.Terraform,
+    });
+
+    await screen.findByText(/to = oneuptime_cloud_resource\.checkout/);
+
+    const imports: ListCall = listCalls().find((call: ListCall): boolean => {
+      return call.modelType === CloudResource && call.limit === 100;
+    })!;
+    expect(imports.query).toEqual({ cloudResourceKind: "environment" });
+    expect(guide().textContent).toContain(ENVIRONMENT_ID);
+    expect(guide().textContent).not.toContain(CLOUD_RESOURCE_ID);
+    expect(guide().textContent).toContain(
+      "Bring in the cloud environments you already have",
+    );
+  });
+
+  test("Cloud's Terraform page imports its resources, never App Platforms' environments", async () => {
+    renderProductPage({
+      parentPageKey: PageMap.CLOUD_MONITORED_RESOURCES,
+      page: DeveloperDocsPageType.Terraform,
+    });
+
+    await screen.findByText(/to = oneuptime_cloud_resource\.orders_db/);
+
+    expect(guide().textContent).toContain(CLOUD_RESOURCE_ID);
+    expect(guide().textContent).not.toContain(ENVIRONMENT_ID);
+    expect(guide().textContent).toContain(
+      "Bring in the cloud resources you already have",
+    );
+  });
+
+  test("App Platforms' API page lists and counts its environments", async () => {
+    renderProductPage({
+      parentPageKey: PageMap.APP_PLATFORMS_ENVIRONMENTS,
+      page: DeveloperDocsPageType.Api,
+    });
+
+    expect(
+      await screen.findByText(/get-list\?skip=0&limit=10/),
+    ).toBeInTheDocument();
+
+    const sample: ListCall = listCalls().find((call: ListCall): boolean => {
+      return call.modelType === CloudResource && call.limit === 1;
+    })!;
+    expect(sample.query).toEqual({ cloudResourceKind: "environment" });
+
+    const text: string = guide().textContent || "";
+    expect(text).toContain("List your cloud environments");
+    // The list and count examples ask for the product's rows only.
+    expect(text).toContain('"query": {');
+    expect(text).toContain('"cloudResourceKind": "environment"');
+    expect(text).toContain('"name": "checkout"');
+    expect(text).not.toContain('"name": "orders-db"');
+  });
+
+  test("the route files hand each product's page its rows and its words", () => {
+    const routes: Array<React.ReactElement> = getDeveloperDocsRoutes({
+      modelType: CloudResource,
+      scope: DeveloperDocsScope.List,
+      props: {
+        pageRoute: new Route("/"),
+        currentProject: null,
+        hasPaymentMethod: false,
+      } as never,
+      mountPageKey: PageMap.APP_PLATFORMS_ROOT,
+      parentPageKey: PageMap.APP_PLATFORMS_ENVIRONMENTS,
+    });
+
+    expect(routes.length).toBeGreaterThan(0);
+    for (const route of routes) {
+      const page: React.ReactElement = (
+        route.props as { element: React.ReactElement }
+      ).element;
+      const pageProps: {
+        listQuery: JSONObject;
+        resource: DeveloperDocsResource;
+      } = page.props as never;
+
+      expect(pageProps.listQuery).toEqual({
+        cloudResourceKind: "environment",
+      });
+      expect(pageProps.resource.modelType).toBe(CloudResource);
+      expect(pageProps.resource.singularName).toBe("Cloud Environment");
+      expect(pageProps.resource.pluralName).toBe("Cloud Environments");
+    }
   });
 });
 

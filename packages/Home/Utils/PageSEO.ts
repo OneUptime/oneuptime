@@ -13,6 +13,7 @@
 
 import ProductCompare, { Product } from "./ProductCompare";
 import { getOpenTelemetryGuideSEOEntries } from "./Integrations/OpenTelemetry/OpenTelemetryGuides";
+import { AirGappedTopicPage, AirGappedTopicPages } from "./AirGappedPages";
 
 export interface BreadcrumbItem {
   name: string;
@@ -103,6 +104,38 @@ const legalDocumentSEO: (
       { name, url: canonicalPath },
     ],
   };
+};
+
+/*
+ * The air-gapped page of each product: an "enterprise" page, so llms.txt lists
+ * it with the hub, under Air-Gapped in its breadcrumb trail. Its title and
+ * description are its own data (Utils/AirGappedPages.ts), and its markdown
+ * variant is written from the same entry (AIDiscovery.generateAirGappedTopicMarkdown).
+ */
+const getAirGappedTopicSEOEntries: () => Record<
+  string,
+  PageSEOData
+> = (): Record<string, PageSEOData> => {
+  const entries: Record<string, PageSEOData> = {};
+
+  for (const page of AirGappedTopicPages as Array<AirGappedTopicPage>) {
+    entries[page.path] = {
+      title: page.seo.title,
+      description: page.seo.description,
+      canonicalPath: page.path,
+      twitterCard: "summary_large_image",
+      pageType: "enterprise",
+      breadcrumbs: [
+        { name: "Home", url: "/" },
+        { name: "Enterprise", url: "/enterprise/overview" },
+        { name: "Self-Hosted", url: "/enterprise/self-hosted" },
+        { name: "Air-Gapped", url: "/enterprise/air-gapped" },
+        { name: page.name, url: page.path },
+      ],
+    };
+  }
+
+  return entries;
 };
 
 // Page-specific SEO configurations
@@ -1315,7 +1348,7 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
   "/product/cloud": {
     title: "Cloud Monitoring | AWS, Google Cloud & Azure | OneUptime",
     description:
-      "Monitor AWS, Google Cloud, and Azure with OpenTelemetry. Auto-discovered cloud environments, real-time resource metrics, logs, traces, and alerting across every region and account. Open source.",
+      "Connect AWS, Google Cloud, and Azure accounts read-only and monitor every resource in them: provider metrics, changes, health events, a topology map, and alerting across every region and account. Open source.",
     canonicalPath: "/product/cloud",
     twitterCard: "summary_large_image",
     pageType: "product",
@@ -1329,18 +1362,53 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
       applicationCategory: "DeveloperApplication",
       operatingSystem: "Web, Cloud",
       description:
-        "Unified multi-cloud monitoring for AWS, Google Cloud, and Azure with OpenTelemetry — auto-discovered environments, real-time resource metrics, logs, traces, and alerting across regions and accounts.",
+        "Unified multi-cloud monitoring for AWS, Google Cloud, and Azure — connect accounts read-only and see every resource in them, with the metrics their provider publishes, what changed, and alerting across regions and accounts.",
       features: [
         "Multi-cloud unified dashboard",
         "AWS, Google Cloud, and Azure",
-        "Auto-discovered cloud environments",
-        "EC2, GCP, and Azure resource detectors",
-        "cloud.platform / account / region metadata",
-        "Real-time CPU and memory utilization",
+        "Read-only account connections",
+        "Every resource in every account",
+        "CloudWatch, Azure Monitor, and Cloud Monitoring metrics",
+        "Changes from each account's activity log",
+        "Provider health events",
+        "A topology map of every account",
         "Multi-account and multi-region rollups",
-        "Correlated logs, metrics, and traces",
-        "Linked hosts, Docker, and Kubernetes",
+        "Linked incidents and alerts",
         "Resource saturation alerting",
+        "Open source",
+      ],
+    },
+  },
+
+  "/product/app-platforms": {
+    title: "App Platform Monitoring | ECS, Cloud Run | OneUptime",
+    description:
+      "Monitor the apps you run on AWS ECS and Fargate, Google Cloud Run, Azure App Service and other managed platforms with OpenTelemetry: environments by platform, running instances, logs, traces, and alerting. Open source.",
+    canonicalPath: "/product/app-platforms",
+    twitterCard: "summary_large_image",
+    pageType: "product",
+    breadcrumbs: [
+      { name: "Home", url: "/" },
+      { name: "Products", url: "/#products" },
+      { name: "App Platforms", url: "/product/app-platforms" },
+    ],
+    softwareApplication: {
+      name: "OneUptime App Platforms",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web, Cloud",
+      description:
+        "Monitoring for the apps on managed app and container platforms — AWS ECS and Fargate, App Runner, Elastic Beanstalk, Google Cloud Run and App Engine, Azure Container Apps, Container Instances and App Service — by their own OpenTelemetry.",
+      features: [
+        "AWS ECS, Fargate, App Runner, and Elastic Beanstalk",
+        "Google Cloud Run and App Engine",
+        "Azure Container Apps, Container Instances, and App Service",
+        "Environments created from cloud.platform, account, and region",
+        "An Overview grouped by platform",
+        "Running instances per environment",
+        "Requests, error rate, and p95 latency",
+        "Correlated logs, metrics, and traces",
+        "Owners and labels by rule",
+        "Linked incidents and alerts",
         "OpenTelemetry native",
         "Open source",
       ],
@@ -1974,6 +2042,8 @@ export const PageSEOConfig: Record<string, PageSEOData> = {
    * (Utils/Integrations/OpenTelemetry/Guides).
    */
   ...getOpenTelemetryGuideSEOEntries(),
+
+  ...getAirGappedTopicSEOEntries(),
 };
 
 /*

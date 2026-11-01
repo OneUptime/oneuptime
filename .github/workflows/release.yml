@@ -2386,57 +2386,37 @@ jobs:
     if: github.ref == 'refs/heads/release'
     permissions:
       contents: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
       - run: echo "${{needs.generate-build-number.outputs.build_number}}"
-      - name: "Build Changelog"
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v4.2.0
-        with:
-          configuration: "./Scripts/Release/ChangelogConfig.json"
-      - run: echo "Changelog:"
-      - name: Print changelog
+      # The notes are written by a script of ours, not worked out by an action
+      # from the repository's tags, because a draft has no tag. The action took
+      # the newest tag as the end of the range, which is the release before
+      # this one, so every release's page listed the release before it:
+      # 14.0.98's named #5369 to #5397, which shipped in 14.0.97, and none of
+      # the six pull requests it shipped. It only read labels, too, and nobody
+      # applies them, so all of it landed in one folded list.
+      #
+      # The range is named here instead: from the newest published release to
+      # the commit this run built. --fallback-on-error because a release is
+      # not held back for its notes: if GitHub cannot be read after the
+      # script's retries, the draft links to the changes, the step warns, and
+      # the header of Scripts/Release/GenerateReleaseNotes.js says how to write
+      # them again once it is published. Tests/Ops/ReleaseNotes.test.js holds
+      # all of this.
+      - name: Write the release notes
         env:
-          CHANGELOG_CONTENT: ${{steps.build_changelog.outputs.changelog}}
-        run: printf '%s\n' "$CHANGELOG_CONTENT"
-      - name: Fallback to commit messages if changelog empty
-        id: fallback_changelog
-        shell: bash
-        env:
-          CHANGELOG_CONTENT: ${{steps.build_changelog.outputs.changelog}}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ needs.read-version.outputs.major_minor }}
         run: |
-          set -euo pipefail
-          OLD_PLACEHOLDER="No significant changes were made. We have just fixed minor bugs for this release. You can find the detailed information in the commit history."
-          NEW_PLACEHOLDER="(auto) No categorized pull requests. Fallback will list raw commit messages."
-          if echo "$CHANGELOG_CONTENT" | grep -Fq "$OLD_PLACEHOLDER" || echo "$CHANGELOG_CONTENT" | grep -Fq "$NEW_PLACEHOLDER"; then
-            echo "Detected empty placeholder changelog. Building commit list fallback."
-            # Find previous tag (skip the most recent tag which might be for an older release). If none, include all commits.
-            if prev_tag=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null); then
-              echo "Previous tag: $prev_tag"
-              commits=$(git log --pretty=format:'- %s (%h)' "$prev_tag"..HEAD)
-            else
-              echo "No previous tag found; using full commit history on this branch."
-              commits=$(git log --pretty=format:'- %s (%h)')
-            fi
-            # If still empty (e.g., no commits), keep placeholder to avoid empty body.
-            if [ -z "$commits" ]; then
-              commits="(no commits found)"
-            fi
-            {
-              echo "changelog<<EOF"
-              echo "## Commit Messages"
-              echo ""
-              echo "$commits"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-          else
-            # Pass through original changelog
-            {
-              echo "changelog<<EOF"
-              echo "$CHANGELOG_CONTENT"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
-          fi
+          node ./Scripts/Release/GenerateReleaseNotes.js \
+            --version "$VERSION" \
+            --to "$GITHUB_SHA" \
+            --output "$RUNNER_TEMP/release-notes.md" \
+            --fallback-on-error
+          cat "$RUNNER_TEMP/release-notes.md" >> "$GITHUB_STEP_SUMMARY"
+
       # ncipollo/release-action makes one REST call and has no retry of its own,
       # so a momentary GitHub API failure reds a release run that has already
       # spent ~90 minutes building and pushing every image. That is not
@@ -2478,8 +2458,7 @@ jobs:
           draft: true
           allowUpdates: true
           prerelease: false
-          body: |
-            ${{steps.fallback_changelog.outputs.changelog}}
+          bodyFile: ${{ runner.temp }}/release-notes.md
 
       - name: Wait before retrying draft release
         if: steps.draft_release_1.outcome == 'failure'
@@ -2497,8 +2476,7 @@ jobs:
           draft: true
           allowUpdates: true
           prerelease: false
-          body: |
-            ${{steps.fallback_changelog.outputs.changelog}}
+          bodyFile: ${{ runner.temp }}/release-notes.md
 
       - name: Wait before final draft release attempt
         if: steps.draft_release_1.outcome == 'failure' && steps.draft_release_2.outcome == 'failure'
@@ -2514,8 +2492,7 @@ jobs:
           draft: true
           allowUpdates: true
           prerelease: false
-          body: |
-            ${{steps.fallback_changelog.outputs.changelog}}
+          bodyFile: ${{ runner.temp }}/release-notes.md
 
   # ─── What the GitHub release carries, built ahead of it ───────────────
   #

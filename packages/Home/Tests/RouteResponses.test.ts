@@ -25,6 +25,10 @@ import {
 import { SelfHostedContent } from "../Utils/SelfHosted";
 import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
 import { getFeaturedOpenTelemetryGuides } from "Common/Types/Telemetry/OpenTelemetryGuides";
+import {
+  AirGappedTopicPage,
+  AirGappedTopicPages,
+} from "../Utils/AirGappedPages";
 
 /*
  * THE ROUTE TABLE, ANSWERING REAL REQUESTS.
@@ -952,6 +956,79 @@ describe("the route table over HTTP", () => {
       expect(answer.status).toBe(200);
       expect(answer.body).toContain("https://oneuptime.com/product/kubernetes");
       expect(answer.body).not.toContain("/product/openshift");
+    });
+  });
+
+  describe("the air-gapped product pages", () => {
+    function lastRender(): RenderedView {
+      return home.renders[home.renders.length - 1]!;
+    }
+
+    test.each(
+      AirGappedTopicPages.map((page: AirGappedTopicPage) => {
+        return [page.path, page];
+      }) as Array<[string, AirGappedTopicPage]>,
+    )(
+      "%s renders its page, its SEO data and its own entry",
+      async (pagePath: string, page: AirGappedTopicPage) => {
+        const answer: Answer = await home.request("GET", pagePath);
+
+        expect(answer.status).toBe(200);
+        expect(lastRender().view).toBe("air-gapped-topic.ejs");
+        expect(
+          (lastRender().locals["seo"] as { canonicalPath: string })
+            .canonicalPath,
+        ).toBe(pagePath);
+        expect(
+          (lastRender().locals["airGappedTopic"] as { slug: string }).slug,
+        ).toBe(page.slug);
+      },
+    );
+
+    test.each(
+      AirGappedTopicPages.map((page: AirGappedTopicPage) => {
+        return [`${page.path}.md`, page];
+      }) as Array<[string, AirGappedTopicPage]>,
+    )(
+      "%s answers for machines, in the page's own sections",
+      async (pagePath: string, page: AirGappedTopicPage) => {
+        const answer: Answer = await home.request("GET", pagePath);
+
+        expect(answer.status).toBe(200);
+        expect(answer.body).toContain(`# ${page.title}`);
+        expect(answer.body).toContain(`## ${page.changes.title}`);
+      },
+    );
+
+    test("an address under the hub that is no page is not found", async () => {
+      const answer: Answer = await home.request(
+        "GET",
+        "/enterprise/air-gapped/no-such-product",
+      );
+
+      expect(answer.status).toBe(404);
+    });
+
+    test("/enterprise/air-gapped/no-such-product.md has no markdown", async () => {
+      const answer: Answer = await home.request(
+        "GET",
+        "/enterprise/air-gapped/no-such-product.md",
+      );
+
+      expect(answer.status).toBe(404);
+    });
+
+    test("every page has the product links for its enterprise block", async () => {
+      await home.request("GET", "/product/on-call");
+
+      expect(
+        (
+          lastRender().locals["airGappedProductLinks"] as Record<
+            string,
+            { href: string }
+          >
+        )["/product/on-call"]?.href,
+      ).toBe("/enterprise/air-gapped/on-call");
     });
   });
 

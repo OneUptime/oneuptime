@@ -1,5 +1,6 @@
 import PageSEOConfig, { PageSEOData, getPageSEO } from "../Utils/PageSEO";
 import { getProductCompareSlugs } from "../Utils/ProductCompare";
+import { getAirGappedTopicContent } from "../Utils/AirGapped";
 import ejs from "ejs";
 import fs from "fs";
 import path from "path";
@@ -382,6 +383,11 @@ describe("only head-social.ejs writes a page's preview tags", () => {
     ["pricing.ejs", "/pricing", { pricing: [] }],
     ["kubernetes.ejs", "/product/kubernetes", {}],
     ["openshift.ejs", "/product/openshift", {}],
+    [
+      "air-gapped-topic.ejs",
+      "/enterprise/air-gapped/kubernetes",
+      { airGappedTopic: getAirGappedTopicContent("kubernetes") },
+    ],
   ] as Array<[string, string, Record<string, unknown>]>)(
     "%s carries each preview tag once",
     async (

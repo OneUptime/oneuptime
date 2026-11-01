@@ -45,7 +45,7 @@ In **Di cosa deve informarti questo monitor?**, scegliete **Qualsiasi eccezione*
 
 ### Scegliere le eccezioni da contare
 
-In **Eccezioni da osservare**, impostate **Il messaggio contiene**, **Tipi di eccezione** e **Environments**. Un filtro lasciato vuoto corrisponde a tutte le eccezioni. **Eccezioni corrispondenti**, sotto i filtri, mostra le eccezioni a cui corrispondono in questo momento.
+In **Eccezioni da osservare**, impostate **Il messaggio contiene**, **Tipi di eccezione** e **Ambienti**. Un filtro lasciato vuoto corrisponde a tutte le eccezioni. **Eccezioni corrispondenti**, sotto i filtri, mostra le eccezioni a cui corrispondono in questo momento.
 
 ### Restringere il campo (facoltativo)
 
@@ -70,7 +70,7 @@ Fate clic su **Crea monitor**. Il monitor si apre sulla sua pagina **Panoramica*
 | --- | --- | --- |
 | **Il messaggio contiene** | Eccezioni il cui messaggio contiene questo testo, senza distinzione tra maiuscole e minuscole. | Vuoto: tutte le eccezioni |
 | **Tipi di eccezione** | Eccezioni di uno qualsiasi di questi tipi, separati da virgole, come `TypeError, NullReferenceException`. Il nome del tipo deve corrispondere esattamente. | Vuoto: tutti i tipi |
-| **Environments** | Eccezioni di uno qualsiasi di questi ambienti, separati da virgole (vedete [Ambienti](#ambienti)). | Vuoto: tutti gli ambienti |
+| **Ambienti** | Eccezioni di uno qualsiasi di questi ambienti, separati da virgole (vedete [Ambienti](#ambienti)). | Vuoto: tutti gli ambienti |
 | **Finestra temporale** (in **Quando avvisare**) | Eccezioni degli ultimi 5 secondi fino alle ultime 24 ore. | **Ultimi 5 minuti** |
 | **Filtra per servizio di telemetria** (in **Altri campi**) | Eccezioni di uno qualsiasi dei servizi scelti. | Vuoto: tutti i servizi |
 | **Filtra per entità dell'infrastruttura** (in **Altri campi**) | Eccezioni di uno qualsiasi degli host, pod, container e altre entità scelti. | Vuoto: tutte le entità |
@@ -160,7 +160,7 @@ Le eccezioni nuove e tornate sono filtrate per servizio, tipo di eccezione, ambi
 
 ## Esempio pratico: solo le eccezioni di produzione
 
-Volete un incidente ogni volta che l'API lancia un'eccezione in produzione, e niente per lo staging. Scegliete **Qualsiasi eccezione**, impostate **Environments** su `production`, lasciate la **Finestra temporale** su **Ultimi 5 minuti** e scegliete **Dichiara un incidente** in **Cosa succede**. Negli ultimi cinque minuti:
+Volete un incidente ogni volta che l'API lancia un'eccezione in produzione, e niente per lo staging. Scegliete **Qualsiasi eccezione**, impostate **Ambienti** su `production`, lasciate la **Finestra temporale** su **Ultimi 5 minuti** e scegliete **Dichiara un incidente** in **Cosa succede**. Negli ultimi cinque minuti:
 
 | Eccezioni | Ambiente | Stato | Contate? |
 | --- | --- | --- | --- |
@@ -174,7 +174,7 @@ L'**Exception Count** è 3, quindi **Più di** `0` corrisponde: il monitor va of
 ## Risoluzione dei problemi
 
 :::details Le eccezioni compaiono nell'esploratore, ma il monitor conta 0
-Confrontate il valore di **Environments** con il filtro `env:` dell'esploratore: la corrispondenza è esatta e distingue tra maiuscole e minuscole, e le eccezioni senza ambiente vengono escluse quando il filtro è impostato. Controllate poi se quelle eccezioni sono risolte o archiviate. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Edit Monitoring Criteria**: **Eccezioni corrispondenti** mostra a cosa corrispondono i filtri.
+Confrontate il valore di **Ambienti** con il filtro `env:` dell'esploratore: la corrispondenza è esatta e distingue tra maiuscole e minuscole, e le eccezioni senza ambiente vengono escluse quando il filtro è impostato. Controllate poi se quelle eccezioni sono risolte o archiviate. Aprite la pagina **Criteri** del monitor (sotto **Configurazione**) e fate clic su **Edit Monitoring Criteria**: **Eccezioni corrispondenti** mostra a cosa corrispondono i filtri.
 :::
 
 :::details L'incidente si è risolto quando ho risolto l'eccezione

@@ -25,7 +25,7 @@ import CloudAccountAiAgentPage from "../../App/FeatureSet/Dashboard/src/Pages/Cl
 import CloudAccountAiLogsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/AI/Logs";
 import CloudAccountFeedPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/Feed";
 import CloudResourceViewLayout from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Layout";
-import CloudResourceOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Overview";
+import CloudResourceOverviewPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/MonitoredResourceOverview";
 import CloudResourceIncidentsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Incidents";
 import CloudResourceAlertsPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Alerts";
 import CloudResourceChangesPage from "../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Changes";

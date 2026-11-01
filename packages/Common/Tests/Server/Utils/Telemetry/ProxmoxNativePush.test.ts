@@ -2473,6 +2473,10 @@ describe("built-in alert templates on a native push", () => {
     "pve-guest-high-cpu",
     "pve-storage-near-full",
     "pve-lxc-disk-near-full",
+    // pve_up for storage: the push maps proxmox_storage_active onto it.
+    "pve-storage-unavailable",
+    // A live node's own uptime and pve_up, both in its status push.
+    "pve-node-restarted",
     /*
      * Counts pve_up, which every node's status push carries: the cluster
      * stops reporting only when every node is silent.
@@ -2495,6 +2499,7 @@ describe("built-in alert templates on a native push", () => {
     "pve-ha-state-error", // needs pve_ha_state
     "pve-guest-not-backed-up", // needs the backup-info collector
     "pve-replication-failing", // needs the replication collector
+    "pve-backup-running-too-long", // needs pve_lock_state
   ];
 
   const DEAD_NODE_ID: string = "node/pve3";

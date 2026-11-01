@@ -34,7 +34,7 @@ Os recursos de nuvem são um dos vários lugares em que sua nuvem aparece:
 
 | Você roda | Onde aparece | Como |
 | --- | --- | --- |
-| Contêineres no ECS, Cloud Run, Container Apps, App Service, … | **Nuvem → All Environments** | A própria telemetria das suas cargas de trabalho, pelo `cloud.platform` dela. Veja [Ambientes de nuvem](/docs/telemetry/cloud-environments) |
+| Contêineres no ECS, Cloud Run, Container Apps, App Service, … | **Plataformas de aplicativos → Todos os ambientes** | A própria telemetria das suas cargas de trabalho, pelo `cloud.platform` dela. Veja [Ambientes de nuvem](/docs/telemetry/cloud-environments) |
 | Qualquer recurso IaaS ou PaaS que o provedor monitora | **Nuvem → Todos os recursos** | A API de monitoramento do provedor, lida por um coletor: esta página |
 | Máquinas virtuais com um OpenTelemetry Collector instalado | **Hosts** | As próprias métricas e logs do host. Veja [Coletor OpenTelemetry no host](/docs/telemetry/host-otel-collector) |
 | Filas e tópicos que suas aplicações usam | **Queues** | Spans, e as mesmas métricas de nuvem. Veja [Filas](/docs/telemetry/queues) |
@@ -639,7 +639,7 @@ Instalações auto-hospedadas podem mudar esses valores com variáveis de ambien
 ## Inventário e regras
 
 - **Inventário:** os recursos de nuvem aparecem no [Inventário](/docs/inventory/overview) como itens **Recurso de nuvem**, com o ID do provedor como `cloud.resource.id` e o tipo como `cloud.resource.type`. As ferramentas de recursos do agente de IA também os listam.
-- **Regras:** **Nuvem → Configurações → Regras de Rótulos** e **Regras de proprietário** se aplicam a eles como aos ambientes de nuvem.
+- **Regras:** **Nuvem → Configurações → Regras de Rótulos** e **Regras de proprietário** se aplicam a eles. Plataformas de aplicativos tem as próprias para os ambientes de nuvem, e uma regra criada antes da separação dos dois se aplica a ambos.
 
 ## Solução de problemas
 

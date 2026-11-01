@@ -1,5 +1,6 @@
 import {
   RuleRunAction,
+  RuleRunResourceNouns,
   RuleRunResult,
   RuleRunType,
   RuleRunTypeMetadata,
@@ -28,6 +29,12 @@ export interface ComponentProps {
   onClose: () => void;
   // Called once a run has ended, with what it did (null if nothing ran).
   onRunComplete?: ((result: RuleRunResult | null) => void) | undefined;
+  /*
+   * What the page calls the records the rule runs over, when not the
+   * model's word: App Platforms' environments, which the cloud rules call
+   * cloud resources.
+   */
+  nouns?: RuleRunResourceNouns | undefined;
 }
 
 /*
@@ -46,7 +53,10 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
   const [progress, setProgress] = useState<string>("");
   const [notifyOwners, setNotifyOwners] = useState<boolean>(false);
 
-  const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(props.ruleType);
+  const meta: RuleRunTypeMetadata = RuleRunTypeUtil.getMetadata(
+    props.ruleType,
+    props.nouns,
+  );
   const isOwnerRule: boolean = meta.action === RuleRunAction.AddOwners;
 
   const runRule: () => Promise<void> = useCallback(async (): Promise<void> => {
@@ -59,11 +69,13 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
       ruleId: props.ruleId,
       notifyOwners: isOwnerRule && notifyOwners,
       headers: ModelAPI.getCommonHeaders(),
+      nouns: props.nouns,
       onProgress: (result: RuleRunResult): void => {
         setProgress(
           RuleRunSummary.describeProgress({
             ruleType: props.ruleType,
             result: result,
+            nouns: props.nouns,
           }),
         );
       },
@@ -86,6 +98,7 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
     props.ruleType,
     props.ruleId,
     props.onRunComplete,
+    props.nouns,
     isOwnerRule,
     notifyOwners,
   ]);
@@ -112,7 +125,10 @@ const RunRuleNowModal: FunctionComponent<ComponentProps> = (
   return (
     <ConfirmModal
       title={title}
-      description={RuleRunSummary.describeConfirmation(props.ruleType)}
+      description={RuleRunSummary.describeConfirmation(
+        props.ruleType,
+        props.nouns,
+      )}
       error={error || undefined}
       isLoading={isRunning}
       submitButtonText="Run Rule"

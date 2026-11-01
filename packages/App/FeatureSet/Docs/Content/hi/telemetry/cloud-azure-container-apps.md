@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-अपने Azure Container Apps के ट्रेस, लॉग और मेट्रिक्स OneUptime पर भेजें। `cloud.platform=azure_container_apps` रिपोर्ट करने वाली हर रेप्लिका हर Azure सब्सक्रिप्शन और क्षेत्र के लिए एक **Cloud Environment** में आती है, जैसे _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, और चल रही रेप्लिका **इंस्टेंस** में दिखती हैं।
+अपने Azure Container Apps के ट्रेस, लॉग और मेट्रिक्स OneUptime पर भेजें। `cloud.platform=azure_container_apps` रिपोर्ट करने वाली हर रेप्लिका हर Azure सब्सक्रिप्शन और क्षेत्र के लिए एक **क्लाउड परिवेश** में आती है, जैसे _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, और चल रही रेप्लिका **इंस्टेंस** में दिखती हैं।
 
 :::cards
 - [यह कैसे काम करता है](#यह-कैसे-काम-करता-है): डिटेक्टर क्या सेट करते हैं, और वे दो एट्रिब्यूट जो आप खुद सेट करते हैं।
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-`Everything is ready` देखें, और यह कि कोई `401` या `connection refused` न हो। पहला स्पैन, लॉग या मेट्रिक आने के एक मिनट के भीतर परिवेश **क्लाउड → All Environments** में _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ के रूप में दिखता है।
+`Everything is ready` देखें, और यह कि कोई `401` या `connection refused` न हो। पहला स्पैन, लॉग या मेट्रिक आने के एक मिनट के भीतर परिवेश **ऐप प्लेटफ़ॉर्म → सभी परिवेश** में _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_ के रूप में दिखता है।
 :::
 
 ## परिवेश के प्रबंधित OpenTelemetry एजेंट का उपयोग करें

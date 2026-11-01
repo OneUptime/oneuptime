@@ -12,7 +12,6 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
-  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -27,30 +26,34 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import ResourceOverviewTab, {
-  SummaryField,
-} from "../../../Components/Infrastructure/ResourceOverviewTab";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
 import ProxmoxRateChart from "../../../Components/Proxmox/ProxmoxRateChart";
+import ProxmoxPartHero from "../../../Components/Proxmox/Part/ProxmoxPartHero";
+import ProxmoxGuestOverview from "../../../Components/Proxmox/Part/ProxmoxGuestOverview";
+import {
+  ProxmoxPartRoutes,
+  getProxmoxPartRoutes,
+} from "../../../Components/Proxmox/Part/ProxmoxPartRoutes";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import StatusBadge, {
-  StatusBadgeType,
-} from "Common/UI/Components/StatusBadge/StatusBadge";
 import {
   externalIdFromRouteParam,
   fetchProxmoxInventoryRow,
   formatBytes,
-  formatPercent,
-  formatUptime,
   displayNameForResource,
-  displayStatusForResource,
 } from "../Utils/ProxmoxResourceUtils";
-import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * A Proxmox guest - a QEMU VM or an LXC container - inside its cluster: the
+ * hero says which guest it is, where it runs and its state (a lock a task
+ * holds, its HA state, its tags); the Overview what about it needs
+ * attention, its load, its last backup, what is open on it, its alerts and
+ * details; Metrics its charts.
+ */
 
 const ProxmoxClusterGuestDetail: FunctionComponent<
   PageComponentProps
@@ -142,7 +145,7 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
         void findLinkedHost(inventoryRow.name);
       }
     } catch {
-      // Graceful degradation — overview tab shows its empty state.
+      // Graceful degradation — the Overview shows its empty state.
     }
     setIsLoadingRow(false);
   };
@@ -166,11 +169,10 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
   }
 
   const clusterName: string = cluster.name;
+  const routes: ProxmoxPartRoutes = getProxmoxPartRoutes(modelId);
   const guestName: string = row
     ? displayNameForResource(row)
     : externalId.replace(/^(qemu|lxc)\//, "");
-  const isQemu: boolean =
-    row?.guestType === "qemu" || externalId.startsWith("qemu/");
 
   const idAttributes: Record<string, string> = {
     "resource.proxmox.cluster.name": clusterName,
@@ -228,137 +230,6 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
     },
     yAxisValueFormatter: formatBytes,
   };
-
-  // Build overview summary fields from the inventory row.
-  const summaryFields: Array<SummaryField> = [
-    { title: "Guest Name", value: guestName },
-    { title: "Cluster", value: clusterName },
-  ];
-
-  if (row) {
-    const status: string = displayStatusForResource(row);
-    if (status) {
-      summaryFields.push({
-        title: "Status",
-        value: (
-          <StatusBadge
-            text={status}
-            type={row.isUp ? StatusBadgeType.Success : StatusBadgeType.Warning}
-          />
-        ),
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestStatus,
-      });
-    }
-
-    if (row.vmid !== null && row.vmid !== undefined) {
-      summaryFields.push({ title: "VMID", value: String(row.vmid) });
-    }
-    if (row.guestType) {
-      summaryFields.push({
-        title: "Type",
-        value: row.guestType === "qemu" ? "QEMU VM" : "LXC Container",
-      });
-    }
-    if (row.parentNodeName) {
-      summaryFields.push({ title: "Node", value: row.parentNodeName });
-    }
-    if (row.haState) {
-      summaryFields.push({
-        title: "HA State",
-        value: row.haState,
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestHaState,
-      });
-    }
-    if (row.onboot !== null && row.onboot !== undefined) {
-      summaryFields.push({
-        title: "Start on Boot",
-        value: row.onboot ? "Yes" : "No",
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestStartOnBoot,
-      });
-    }
-
-    /*
-     * WI-24: backup-JOB coverage from pve_not_backed_up_info. "In a
-     * backup job" means a vzdump job selects this guest — NOT that
-     * recent backups succeeded (freshness/success need the PVE/PBS
-     * API — v4). Unset = the cluster has not reported the backup-info
-     * series; render nothing rather than implying coverage.
-     */
-    if (row.isBackedUp !== null && row.isBackedUp !== undefined) {
-      summaryFields.push({
-        title: "Backup Job Coverage",
-        value: (
-          <StatusBadge
-            text={row.isBackedUp ? "In a backup job" : "Not in any backup job"}
-            type={
-              row.isBackedUp ? StatusBadgeType.Success : StatusBadgeType.Danger
-            }
-          />
-        ),
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestBackupCoverage,
-      });
-    }
-
-    const uptime: string = formatUptime(row.uptimeSeconds);
-    if (uptime) {
-      summaryFields.push({
-        title: "Uptime",
-        value: uptime,
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestUptime,
-      });
-    }
-
-    if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
-      summaryFields.push({
-        title: "CPU",
-        value: formatPercent(Number(row.latestCpuPercent)),
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestCpu,
-      });
-    }
-
-    if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {
-      summaryFields.push({
-        title: "Memory (Used / Max)",
-        value: `${formatBytes(Number(row.latestMemoryBytes))} / ${formatBytes(
-          row.maxMemoryBytes !== null && row.maxMemoryBytes !== undefined
-            ? Number(row.maxMemoryBytes)
-            : null,
-        )}`,
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestMemory,
-      });
-    }
-
-    /*
-     * latestDiskBytes NULL for a qemu guest means "needs the QEMU
-     * guest agent" — render N/A with a hint, never 0.
-     */
-    if (row.latestDiskBytes !== null && row.latestDiskBytes !== undefined) {
-      summaryFields.push({
-        title: "Disk (Used / Max)",
-        value: `${formatBytes(Number(row.latestDiskBytes))} / ${formatBytes(
-          row.maxDiskBytes !== null && row.maxDiskBytes !== undefined
-            ? Number(row.maxDiskBytes)
-            : null,
-        )}`,
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestDisk,
-      });
-    } else if (isQemu) {
-      summaryFields.push({
-        title: "Disk (Used / Max)",
-        value: "N/A — install the QEMU guest agent for disk usage",
-        description: PROXMOX_METRIC_DESCRIPTIONS.guestDisk,
-      });
-    }
-
-    summaryFields.push({ title: "External ID", value: externalId });
-
-    if (row.lastSeenAt) {
-      summaryFields.push({
-        title: "Last Seen",
-        value: OneUptimeDate.fromNow(new Date(row.lastSeenAt as Date)),
-      });
-    }
-  }
 
   /*
    * WI-17 cross-link card: per-process depth lives on the Host product
@@ -424,17 +295,17 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
   const tabs: Array<Tab> = [
     {
       name: "Overview",
-      children: (
-        <Fragment>
-          <ResourceOverviewTab
-            summaryFields={row ? summaryFields : []}
-            labels={{}}
-            annotations={{}}
-            isLoading={isLoadingRow}
-            emptyMessage="Guest details not reported yet. Make sure the Proxmox agent is sending metrics."
-          />
-          {!isLoadingRow && <div className="mt-6">{renderHostCrossLink()}</div>}
-        </Fragment>
+      children: isLoadingRow ? (
+        <PageLoader isVisible={true} />
+      ) : (
+        <ProxmoxGuestOverview
+          clusterId={modelId}
+          clusterName={clusterName}
+          externalId={externalId}
+          row={row}
+          routes={routes}
+          footer={row?.isTemplate ? undefined : renderHostCrossLink()}
+        />
       ),
     },
     {
@@ -520,7 +391,19 @@ const ProxmoxClusterGuestDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <div data-testid="proxmox-guest-page">
+      <ProxmoxPartHero
+        kind="Guest"
+        row={row}
+        externalId={externalId}
+        clusterName={clusterName}
+        clusterRoute={routes.clusterRoute}
+        getPartRoute={routes.getPartRoute}
+      />
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
+    </div>
+  );
 };
 
 export default ProxmoxClusterGuestDetail;

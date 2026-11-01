@@ -246,8 +246,12 @@ const ENGINES: Array<LabelEngineCase> = [
       namePattern: "nameRegexPattern",
       descriptionPattern: "descriptionRegexPattern",
     },
-    // A rule can match a tag the resource has in its cloud.
-    extraRuleFields: { cloudTagPattern: true },
+    /*
+     * A rule can match a tag the resource has in its cloud, and names the
+     * kind of row it is for (App Platforms' environments or Cloud's
+     * resources).
+     */
+    extraRuleFields: { cloudTagPattern: true, cloudResourceKind: true },
     mockFeed: (): jest.SpyInstance => {
       jest
         .spyOn(CloudResourceService, "getCloudResourceMarkdownLink")

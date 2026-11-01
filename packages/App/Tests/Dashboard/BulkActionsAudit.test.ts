@@ -458,7 +458,7 @@ describe("2. a list of labelled or owned records offers Add and Remove Labels an
 
   test.each([
     ["Dashboard/src/Pages/Rum/RumApplications.tsx", "RumApplication"],
-    ["Dashboard/src/Pages/Cloud/CloudResources.tsx", "CloudResource"],
+    ["Dashboard/src/Pages/AppPlatforms/Environments.tsx", "CloudResource"],
     ["Dashboard/src/Pages/Cloud/MonitoredResources.tsx", "CloudResource"],
     [
       "Dashboard/src/Pages/Serverless/ServerlessFunctions.tsx",

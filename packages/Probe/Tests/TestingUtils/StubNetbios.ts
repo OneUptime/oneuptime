@@ -4,6 +4,7 @@ import {
   DEFAULT_NETBIOS_TOTAL_BUDGET_IN_MS,
   NetbiosNameResolution,
 } from "../../Utils/Discovery/NetbiosNameResolver";
+import { installHardwareIdentityStub } from "./StubHardwareIdentity";
 import { beforeEach, jest } from "@jest/globals";
 
 /*
@@ -58,6 +59,9 @@ export function installNetbiosStub(): void {
         };
       },
     );
+
+  // And the sweep's own read of each host that answers: StubHardwareIdentity.ts.
+  installHardwareIdentityStub();
 }
 
 /**

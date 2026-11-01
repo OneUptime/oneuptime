@@ -275,6 +275,7 @@ const SetupGuideCard: FunctionComponent<ComponentProps> = (
     ...content.steps.map((step: SetupGuideStep): SetupGuideStepView => {
       return {
         title: translate(step.title),
+        anchor: step.anchor,
         description: step.description ? translate(step.description) : undefined,
         content: (
           <div className="space-y-3">

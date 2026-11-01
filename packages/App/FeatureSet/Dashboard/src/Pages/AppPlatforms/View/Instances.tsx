@@ -1,0 +1,172 @@
+import PageComponentProps from "../../PageComponentProps";
+import ObjectID from "Common/Types/ObjectID";
+import Navigation from "Common/UI/Utils/Navigation";
+import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import FieldType from "Common/UI/Components/Types/FieldType";
+import Query from "Common/Types/BaseDatabase/Query";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import Pill from "Common/UI/Components/Pill/Pill";
+import { Gray500, Green } from "Common/Types/BrandColors";
+import {
+  formatBytes,
+  formatPercent,
+} from "../../../Components/TelemetryResource/telemetryMetrics";
+import {
+  CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
+  isCloudInstanceLive,
+} from "../Utils/CloudResourceTelemetryScope";
+import { CLOUD_INSTANCE_IDENTITY_ATTRIBUTES } from "Common/Utils/Telemetry/CloudInstanceIdentity";
+import { CLOUD_INSTANCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * The copy names the identity chain from the same constant ingest walks, so
+ * the page can never list a different set of attributes than the one that
+ * actually names the rows.
+ */
+const IDENTITY_ATTRIBUTE_LIST: string =
+  CLOUD_INSTANCE_IDENTITY_ATTRIBUTES.join(", ");
+
+const CloudResourceInstances: FunctionComponent<
+  PageComponentProps
+> = (): ReactElement => {
+  const translator: Translator = useTranslator();
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const query: Query<CloudResourceInstance> = {
+    cloudResourceId: modelId,
+  } as any;
+
+  return (
+    <Fragment>
+      <ModelTable<CloudResourceInstance>
+        modelType={CloudResourceInstance}
+        id="cloud-resource-instances-table"
+        userPreferencesKey="cloud-resource-instances-table"
+        name="Cloud Environment Instances"
+        // The model's nouns are Cloud's (cloud resource instances).
+        singularName="Instance"
+        pluralName="Instances"
+        isDeleteable={false}
+        isEditable={false}
+        isCreateable={false}
+        isViewable={false}
+        showRefreshButton={true}
+        query={query}
+        sortBy="lastSeenAt"
+        sortOrder={SortOrder.Descending}
+        selectMoreFields={{ latestCpuPercent: true, latestMemoryBytes: true }}
+        cardProps={{
+          title: "Instances",
+          description: translator.translateTemplate(
+            "Running tasks and instances of this environment, as last reported. Those not seen in the last {{minutes}} minutes are Stale.",
+            {
+              attributes: IDENTITY_ATTRIBUTE_LIST,
+              minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES,
+            },
+          ),
+        }}
+        noItemsMessage={translator.translateTemplate(
+          "No instances reported yet. Instances appear when telemetry carries one of these resource attributes: {{attributes}}.",
+          { attributes: IDENTITY_ATTRIBUTE_LIST },
+        )}
+        filters={[
+          {
+            field: { instanceName: true },
+            title: "Instance",
+            type: FieldType.Text,
+          },
+        ]}
+        columns={[
+          {
+            field: { instanceName: true },
+            title: "Instance",
+            type: FieldType.Element,
+            getElement: (item: CloudResourceInstance): ReactElement => {
+              return (
+                <span className="font-mono text-sm text-gray-900">
+                  {(item.instanceName as string) || "—"}
+                </span>
+              );
+            },
+          },
+          {
+            field: { lastSeenAt: true },
+            title: "Status",
+            type: FieldType.Element,
+            /*
+             * Derived from lastSeenAt, which the Last Seen column already
+             * sorts on; without this both headers would claim the sort.
+             */
+            disableSort: true,
+            getElement: (item: CloudResourceInstance): ReactElement => {
+              const isLive: boolean = isCloudInstanceLive(item.lastSeenAt);
+              return (
+                <Pill
+                  text={isLive ? "Running" : "Stale"}
+                  color={isLive ? Green : Gray500}
+                  tooltip={
+                    isLive
+                      ? translator.translateTemplate(
+                          "Seen in the last {{minutes}} minutes",
+                          { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
+                        )
+                      : translator.translateTemplate(
+                          "Not seen for more than {{minutes}} minutes",
+                          { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES },
+                        )
+                  }
+                />
+              );
+            },
+          },
+          {
+            field: { latestCpuPercent: true },
+            title: "CPU",
+            headerTooltip: CLOUD_INSTANCE_METRIC_DESCRIPTIONS.cpu,
+            type: FieldType.Element,
+            getElement: (item: CloudResourceInstance): ReactElement => {
+              return (
+                <span className="text-sm text-gray-700">
+                  {formatPercent(
+                    typeof item.latestCpuPercent === "number"
+                      ? item.latestCpuPercent
+                      : null,
+                  )}
+                </span>
+              );
+            },
+          },
+          {
+            field: { latestMemoryBytes: true },
+            title: "Memory",
+            headerTooltip: CLOUD_INSTANCE_METRIC_DESCRIPTIONS.memory,
+            type: FieldType.Element,
+            getElement: (item: CloudResourceInstance): ReactElement => {
+              return (
+                <span className="text-sm text-gray-700">
+                  {formatBytes(
+                    typeof item.latestMemoryBytes === "number"
+                      ? item.latestMemoryBytes
+                      : null,
+                  )}
+                </span>
+              );
+            },
+          },
+          {
+            field: { lastSeenAt: true },
+            title: "Last Seen",
+            type: FieldType.DateTime,
+          },
+        ]}
+      />
+    </Fragment>
+  );
+};
+
+export default CloudResourceInstances;

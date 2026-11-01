@@ -590,6 +590,70 @@ export default class ProxmoxCluster extends BaseModel {
   })
   public guestsWithoutBackupCount?: number = undefined;
 
+  /*
+   * Quorum as the cluster itself reports it: pve-exporter's pve_up for the
+   * cluster (id cluster/<name>) is 1 while corosync is quorate. NULL until it
+   * reports - the Proxmox VE native push and a standalone node send none -
+   * and then the Overview falls back to counting nodes online.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProxmoxCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Is Quorate",
+    description:
+      "True while the cluster reports corosync quorum (pve_up for cluster/<name>). Null until it reports.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+  })
+  public isQuorate?: boolean = undefined;
+
+  /*
+   * When Proxmox VE last sent this cluster's own notifications (backup jobs,
+   * replication, fencing, updates) to OneUptime through its notification
+   * webhook. NULL until the first one arrives: the Overview then offers the
+   * one-time setup instead of backup results.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadProxmoxCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    title: "Last Notification At",
+    description:
+      "When Proxmox VE last sent one of its notifications (backups, replication, fencing, updates) to OneUptime.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastNotificationAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

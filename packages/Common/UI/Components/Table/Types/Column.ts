@@ -61,16 +61,36 @@ export default interface Column<T extends GenericObject> {
   key?: keyof T | null; //can be null because actions column does not have a key.
   hideOnMobile?: boolean | undefined; // Hide column on mobile devices
   /*
-   * Not drawn below lg (1024px): neither on a phone's card nor in a
-   * tablet's rows. Beside a side menu a card is 430 to 700px wide there,
-   * and a table of four columns ran past it - the Rule Library's Add, a
-   * Kubernetes event's Last seen, under the sticky last column at 768px.
-   * The page shows the column's value in another column's cell instead,
-   * where useAreTableColumnsFolded says to (TableCellContext): a rule's
-   * severity under its name, an event's count and when it was last seen
-   * beside its reason. Its header, and sorting by it, come back from lg up.
+   * Foldable: not drawn as a column of its own while the table's own box is
+   * narrower than 48rem, nor while its rows do not fit the box with
+   * everything given way (TableFit) - nor on a phone's card. Beside a side
+   * menu a card is 430 to 758px wide up to a window of about 1100px, and a
+   * table of four columns ran past it - the Rule Library's Add, a
+   * Kubernetes event's Last seen, under the sticky last column at 768px;
+   * the incidents list at 1280px ran 560px past its card. Another column's
+   * cell shows its value instead: the table does, under the column
+   * foldInto names, or the page's own cells, where
+   * useAreTableColumnsFolded says to (TableCellContext) - a rule's severity
+   * under its name, an event's count and when it was last seen beside its
+   * reason. Its header, and sorting by it, come back where there is room.
    */
   hideBelowLargeScreen?: boolean | undefined;
+  /*
+   * With hideBelowLargeScreen: where the table itself shows this column's
+   * value while it is folded - under the value of the column with this id
+   * (or field), on a line of its own: an incident's labels and owners under
+   * its title, its severity under its state, how long it lasted under when
+   * it was declared. Left out, the page's own cells show it, where
+   * useAreTableColumnsFolded says to. A column the person switched off
+   * (Columns) is shown nowhere.
+   */
+  foldInto?: string | undefined;
+  /*
+   * Folded under another column's value, this one's says its column's name
+   * before it - for a value that does not say what it is by itself, as a
+   * time among times does not ("Last match 2 hours ago").
+   */
+  showTitleWhenFolded?: boolean | undefined;
   /*
    * A phone's card draws this column's value without its name above it.
    * For the one field a card is about, which says what it is by itself -

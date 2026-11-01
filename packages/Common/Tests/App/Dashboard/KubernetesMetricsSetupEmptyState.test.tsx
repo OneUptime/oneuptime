@@ -84,7 +84,7 @@ function renderHint(
   props: {
     isChecking?: boolean;
     onCheckAgain?: () => void;
-    clusterProvider?: string | null;
+    clusterProvider?: string | null | undefined;
   } = {},
 ): HTMLElement {
   render(

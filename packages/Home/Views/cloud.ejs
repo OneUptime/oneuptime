@@ -30,7 +30,7 @@
               Your whole cloud, one pane of glass
             </h1>
             <p class="mt-6 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-              Bring AWS, Google Cloud, and Azure telemetry into OneUptime over OpenTelemetry. Auto-discovered environments, real-time resource metrics, logs, and traces — correlated across every region and account you run.
+              Connect your AWS accounts, Azure subscriptions and Google Cloud projects in a few clicks, read-only. OneUptime lists every resource in them — virtual machines, load balancers, buckets, managed databases and queues — with the metrics their provider publishes, what changed, and a map of how it all fits together.
             </p>
 
             <div class="mt-10 flex items-center justify-center gap-x-6">
@@ -51,7 +51,7 @@
               <span class="max-sm:hidden sm:inline text-gray-300">|</span>
               <span>Azure</span>
               <span class="max-sm:hidden sm:inline text-gray-300">|</span>
-              <span>Multi-account</span>
+              <span>Read-only access</span>
             </div>
           </div>
 
@@ -70,7 +70,7 @@
                       </div>
                       <div class="flex items-center gap-2">
                         <%- include('./Partials/icons/cloud', {iconClass: 'h-4 w-4'}) %>
-                        <span class="text-sm text-gray-700 font-semibold">Cloud Environments</span>
+                        <span class="text-sm text-gray-700 font-semibold">All Resources</span>
                       </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -82,7 +82,7 @@
                       </div>
                       <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 rounded-md text-xs font-medium text-emerald-600 border border-emerald-200">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        3 clouds · 6 regions
+                        3 accounts · 6 regions
                       </span>
                     </div>
                   </div>
@@ -92,14 +92,14 @@
                     <!-- Top stats row -->
                     <div class="grid grid-cols-5 gap-3 mb-5">
                       <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
-                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Environments</div>
-                        <div class="text-xl font-bold text-gray-900">9</div>
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Resources</div>
+                        <div class="text-xl font-bold text-gray-900">1,284</div>
                         <div class="text-[10px] text-gray-500 font-medium mt-1">across 3 clouds</div>
                       </div>
                       <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
-                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Instances</div>
-                        <div class="text-xl font-bold text-gray-900">214</div>
-                        <div class="text-[10px] text-emerald-500 font-medium mt-1">211 healthy</div>
+                        <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Accounts</div>
+                        <div class="text-xl font-bold text-gray-900">3</div>
+                        <div class="text-[10px] text-emerald-500 font-medium mt-1">read 4 min ago</div>
                       </div>
                       <div class="bg-white rounded-lg p-3.5 border border-gray-200 shadow-sm">
                         <div class="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Avg CPU</div>
@@ -127,8 +127,8 @@
                       <div class="col-span-2 bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                         <div class="flex items-center justify-between mb-4">
                           <div>
-                            <div class="text-sm font-semibold text-gray-800">Fleet Resource Usage</div>
-                            <div class="text-[10px] text-gray-400 mt-0.5">CPU and Memory across all clouds</div>
+                            <div class="text-sm font-semibold text-gray-800">Virtual Machine Usage</div>
+                            <div class="text-[10px] text-gray-400 mt-0.5">CPU and memory, from each provider's metrics</div>
                           </div>
                           <div class="flex items-center gap-3">
                             <div class="flex items-center gap-1">
@@ -168,7 +168,7 @@
                       <!-- Region breakdown -->
                       <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4">
                         <div class="text-sm font-semibold text-gray-800 mb-1">By Region</div>
-                        <div class="text-[10px] text-gray-400 mb-4">Instances per region</div>
+                        <div class="text-[10px] text-gray-400 mb-4">Resources per region</div>
                         <div class="space-y-3">
                           <div>
                             <div class="flex items-center justify-between mb-1">
@@ -202,50 +202,50 @@
                       </div>
                     </div>
 
-                    <!-- Environments table -->
+                    <!-- Resources table -->
                     <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
                       <div class="px-4 py-2.5 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                        <span class="text-xs font-semibold text-gray-700">Cloud environments</span>
-                        <span class="text-[10px] text-gray-400">9 total</span>
+                        <span class="text-xs font-semibold text-gray-700">All resources</span>
+                        <span class="text-[10px] text-gray-400">1,284 total</span>
                       </div>
                       <table class="w-full text-xs">
                         <thead class="bg-white border-b border-gray-100">
                           <tr>
-                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Platform</th>
+                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Resource</th>
+                            <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Type</th>
                             <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Account / Project</th>
                             <th class="px-4 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Region</th>
-                            <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">Instances</th>
                             <th class="px-4 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-gray-500">CPU</th>
                           </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                           <tr>
-                            <td class="px-4 py-2 font-medium text-gray-900">AWS</td>
+                            <td class="px-4 py-2 font-medium text-gray-900">web-prod-01</td>
+                            <td class="px-4 py-2 text-gray-500">EC2 instance</td>
                             <td class="px-4 py-2 font-mono text-gray-500">4109-2277-8841</td>
                             <td class="px-4 py-2 font-mono text-gray-500">us-east-1</td>
-                            <td class="px-4 py-2 text-right font-mono text-gray-900">84</td>
                             <td class="px-4 py-2 text-right font-mono text-gray-900">51%</td>
                           </tr>
                           <tr>
-                            <td class="px-4 py-2 font-medium text-gray-900">Google Cloud</td>
+                            <td class="px-4 py-2 font-medium text-gray-900">checkout-db</td>
+                            <td class="px-4 py-2 text-gray-500">Cloud SQL instance</td>
                             <td class="px-4 py-2 font-mono text-gray-500">prod-platform</td>
                             <td class="px-4 py-2 font-mono text-gray-500">us-central1</td>
-                            <td class="px-4 py-2 text-right font-mono text-gray-900">52</td>
                             <td class="px-4 py-2 text-right font-mono text-gray-900">44%</td>
                           </tr>
                           <tr>
-                            <td class="px-4 py-2 font-medium text-gray-900">Azure</td>
+                            <td class="px-4 py-2 font-medium text-gray-900">core-vm-03</td>
+                            <td class="px-4 py-2 text-gray-500">Virtual machine</td>
                             <td class="px-4 py-2 font-mono text-gray-500">core-prod-sub</td>
                             <td class="px-4 py-2 font-mono text-gray-500">westeurope</td>
-                            <td class="px-4 py-2 text-right font-mono text-gray-900">32</td>
                             <td class="px-4 py-2 text-right font-mono text-amber-600">79%</td>
                           </tr>
                           <tr>
-                            <td class="px-4 py-2 font-medium text-gray-900">AWS</td>
+                            <td class="px-4 py-2 font-medium text-gray-900">orders-queue</td>
+                            <td class="px-4 py-2 text-gray-500">SQS queue</td>
                             <td class="px-4 py-2 font-mono text-gray-500">4109-2277-8841</td>
                             <td class="px-4 py-2 font-mono text-gray-500">eu-west-1</td>
-                            <td class="px-4 py-2 text-right font-mono text-gray-900">46</td>
-                            <td class="px-4 py-2 text-right font-mono text-gray-900">38%</td>
+                            <td class="px-4 py-2 text-right font-mono text-gray-400">&mdash;</td>
                           </tr>
                         </tbody>
                       </table>
@@ -265,10 +265,10 @@
         <div class="mx-auto max-w-2xl text-center mb-16">
           <p class="text-sm font-medium text-sky-600 uppercase tracking-wide mb-3">How It Works</p>
           <h2 class="text-3xl font-semibold tracking-tight text-gray-900 sm:text-4xl">
-            One collector. Every cloud you run.
+            One command. Every account you run.
           </h2>
           <p class="mt-4 text-lg text-gray-600">
-            Environments are grouped by the OTel <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.platform</code>, account, and region attributes — captured automatically by resource detectors.
+            Run one command in your cloud's own terminal and paste what it prints. OneUptime reads the account on a schedule with read-only access: no collector to run, nothing to install.
           </p>
         </div>
 
@@ -287,8 +287,8 @@
                 </svg>
                 <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">1</span>
               </div>
-              <h3 class="text-base font-semibold text-gray-900 mb-2">Deploy the collector</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Run the OpenTelemetry Collector or the OneUptime Kubernetes agent in each cloud and account you operate.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Connect an account</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Pick AWS, Azure or Google Cloud, run the command OneUptime writes in your cloud's shell, and paste what it prints.</p>
             </div>
 
             <!-- Step 2 -->
@@ -299,8 +299,8 @@
                 </svg>
                 <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">2</span>
               </div>
-              <h3 class="text-base font-semibold text-gray-900 mb-2">Auto-detect metadata</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Resource detectors read cloud, account, and region straight from EC2, GCP, and Azure instance metadata.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Every resource, listed</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">Virtual machines, disks, load balancers, buckets, managed databases, caches and queues each get a page of their own.</p>
             </div>
 
             <!-- Step 3 -->
@@ -311,8 +311,8 @@
                 </svg>
                 <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">3</span>
               </div>
-              <h3 class="text-base font-semibold text-gray-900 mb-2">Environments appear</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">A cloud environment is created per platform + account + region. No manual setup, no inventory to maintain.</p>
+              <h3 class="text-base font-semibold text-gray-900 mb-2">Metrics and changes</h3>
+              <p class="text-sm text-gray-600 leading-relaxed">The metrics your provider publishes about each resource, and what its activity log records, read every few minutes.</p>
             </div>
 
             <!-- Step 4 -->
@@ -324,7 +324,7 @@
                 <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-sky-600 ring-2 ring-sky-600">4</span>
               </div>
               <h3 class="text-base font-semibold text-gray-900 mb-2">Alert &amp; correlate</h3>
-              <p class="text-sm text-gray-600 leading-relaxed">Alert on resource saturation and jump from a metric straight to the logs and traces behind it.</p>
+              <p class="text-sm text-gray-600 leading-relaxed">Alert on any of those metrics, and see each change on the charts of the resource it touched.</p>
             </div>
           </div>
         </div>
@@ -347,7 +347,7 @@
             Multi-cloud observability without the silos
           </h2>
           <p class="mt-6 text-lg leading-8 text-gray-600">
-            Whether you run one account or a hundred, OneUptime brings every cloud into a single, consistent view — resource metrics, logs, traces, and alerting that don't care which provider you chose.
+            Whether you run one account or a hundred, OneUptime brings every cloud into a single, consistent view — every resource, its metrics, its changes and its alerts, whichever provider you chose.
           </p>
         </div>
 
@@ -366,7 +366,7 @@
                 <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Unified View</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Every cloud, side by side</h3>
-              <p class="mt-4 text-lg text-gray-600">AWS, Google Cloud, and Azure all stream OpenTelemetry to one place. Group environments by provider, account, region, or team and compare them with the same metrics and the same alert rules.</p>
+              <p class="mt-4 text-lg text-gray-600">Your AWS accounts, Azure subscriptions and Google Cloud projects in one place: every resource of every account, by type and region, with the same pages and the same alert rules.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -408,7 +408,7 @@
                         <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
                       </div>
                       <div class="flex-1 text-center">
-                        <span class="text-xs text-gray-400">Environments by provider</span>
+                        <span class="text-xs text-gray-400">Accounts by provider</span>
                       </div>
                     </div>
                     <div class="p-4 space-y-3">
@@ -417,7 +417,7 @@
                           <div class="w-9 h-9 rounded-lg bg-orange-100 flex items-center justify-center text-xs font-bold text-orange-600">AWS</div>
                           <div>
                             <div class="text-sm font-medium text-gray-900">Amazon Web Services</div>
-                            <div class="text-xs text-gray-500">3 regions · 130 instances</div>
+                            <div class="text-xs text-gray-500">3 regions · 642 resources</div>
                           </div>
                         </div>
                         <span class="text-xs text-emerald-600 font-medium">Healthy</span>
@@ -427,7 +427,7 @@
                           <div class="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">GCP</div>
                           <div>
                             <div class="text-sm font-medium text-gray-900">Google Cloud</div>
-                            <div class="text-xs text-gray-500">2 regions · 52 instances</div>
+                            <div class="text-xs text-gray-500">2 regions · 388 resources</div>
                           </div>
                         </div>
                         <span class="text-xs text-emerald-600 font-medium">Healthy</span>
@@ -437,7 +437,7 @@
                           <div class="w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center text-xs font-bold text-sky-600">AZ</div>
                           <div>
                             <div class="text-sm font-medium text-gray-900">Microsoft Azure</div>
-                            <div class="text-xs text-gray-500">1 region · 32 instances</div>
+                            <div class="text-xs text-gray-500">1 region · 254 resources</div>
                           </div>
                         </div>
                         <span class="text-xs text-amber-600 font-medium">1 alert</span>
@@ -476,7 +476,7 @@
                       <div class="w-full bg-gray-200 rounded-full h-2">
                         <div class="bg-sky-500 h-2 rounded-full" style="width: 51%"></div>
                       </div>
-                      <div class="mt-1 text-[10px] text-gray-500">84 instances · avg over fleet</div>
+                      <div class="mt-1 text-[10px] text-gray-500">84 virtual machines · average</div>
                     </div>
                     <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
                       <div class="flex items-center justify-between mb-2">
@@ -490,7 +490,7 @@
                     </div>
                     <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
                       <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs text-gray-600 font-medium">Top instances by CPU</span>
+                        <span class="text-xs text-gray-600 font-medium">Top virtual machines by CPU</span>
                       </div>
                       <div class="space-y-2">
                         <div class="flex items-center justify-between">
@@ -520,26 +520,26 @@
                 </div>
                 <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Resource Utilization</span>
               </div>
-              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Real-time CPU, memory, and instance health</h3>
-              <p class="mt-4 text-lg text-gray-600">See utilization per instance and across the fleet, live instance counts, and the top consumers in every region — collected automatically by the OTel collector, no custom instrumentation required.</p>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Metrics, straight from your provider</h3>
+              <p class="mt-4 text-lg text-gray-600">CloudWatch, Azure Monitor and Cloud Monitoring already measure every resource. OneUptime reads those metrics for each one — CPU, memory, requests, errors, latency, queue depth — with no agent and no instrumentation.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  CPU and memory per instance and fleet-wide
+                  The key metrics of every resource type
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Live instance counts and health status
+                  Read every few minutes, read-only
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Top instances by resource usage
+                  The busiest resources, first
                 </li>
               </ul>
               <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
@@ -551,7 +551,7 @@
             </div>
           </div>
 
-          <!-- Feature 3: Auto-discovered metadata -->
+          <!-- Feature 3: Changes and topology -->
           <div class="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-center">
             <div class="relative">
               <div class="flex items-center gap-4 mb-6">
@@ -560,28 +560,28 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                   </svg>
                 </div>
-                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Auto-Discovery</span>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Changes</span>
               </div>
-              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Cloud metadata, captured for you</h3>
-              <p class="mt-4 text-lg text-gray-600">Resource detectors read <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.platform</code>, <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.account.id</code>, and <code class="text-sm bg-gray-100 px-1.5 py-0.5 rounded">cloud.region</code> directly from instance metadata services — so every signal already knows which environment it belongs to.</p>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">What changed, and how it fits together</h3>
+              <p class="mt-4 text-lg text-gray-600">Each read records what changed since the last one — deployments, scaling, configuration — and your provider's health events, drawn on the charts of the resources they touched. Each account's Topology maps its regions, its networks and what runs in each.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  EC2, GCP, and Azure metadata detectors
+                  The activity log's changes, per resource
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Platform, account, and region per environment
+                  Your provider's health events
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Drill down by environment, region, or account
+                  A topology map of every account
                 </li>
               </ul>
               <a href="/accounts/register" class="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors mt-8">
@@ -595,7 +595,7 @@
               <div class="relative">
                 <div class="absolute -inset-4 bg-gray-100/50 rounded-3xl blur-2xl"></div>
 
-                <!-- Metadata panel mockup -->
+                <!-- Changes mockup -->
                 <div class="relative bg-white rounded-xl shadow-lg overflow-hidden max-w-md mx-auto border border-gray-200">
                   <div class="bg-gray-50 px-4 py-2.5 flex items-center gap-3 border-b border-gray-100">
                     <div class="flex gap-1.5">
@@ -604,22 +604,20 @@
                       <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
                     </div>
                     <div class="flex-1 text-center">
-                      <span class="text-xs text-gray-400">Resource attributes</span>
+                      <span class="text-xs text-gray-400">web-prod-01 · Changes</span>
                     </div>
                   </div>
                   <div class="p-4">
                     <div class="rounded-lg bg-gray-900 p-4 font-mono text-[11px] leading-relaxed">
-                      <div class="text-gray-400">resource:</div>
-                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.provider</span>: <span class="text-emerald-400">"aws"</span></div>
-                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.platform</span>: <span class="text-emerald-400">"aws_ec2"</span></div>
-                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.account.id</span>: <span class="text-emerald-400">"4109…8841"</span></div>
-                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.region</span>: <span class="text-emerald-400">"us-east-1"</span></div>
-                      <div class="text-gray-300 pl-3"><span class="text-sky-400">cloud.availability_zone</span>: <span class="text-emerald-400">"us-east-1b"</span></div>
-                      <div class="text-gray-300 pl-3"><span class="text-sky-400">host.type</span>: <span class="text-emerald-400">"m6i.2xlarge"</span></div>
+                      <div class="text-gray-300"><span class="text-sky-400">14:02</span> <span class="text-emerald-400">deployment</span> RunInstances</div>
+                      <div class="text-gray-300"><span class="text-sky-400">13:47</span> <span class="text-amber-400">config-change</span> ModifyInstanceAttribute</div>
+                      <div class="text-gray-300"><span class="text-sky-400">13:31</span> <span class="text-emerald-400">scaling</span> SetDesiredCapacity</div>
+                      <div class="text-gray-300"><span class="text-sky-400">12:58</span> <span class="text-rose-400">provider-event</span> AWS Health: EC2 issue</div>
+                      <div class="text-gray-300"><span class="text-sky-400">12:40</span> <span class="text-amber-400">config-change</span> AuthorizeSecurityGroupIngress</div>
                     </div>
                     <div class="mt-3 flex items-center gap-2 text-[10px] text-gray-500">
                       <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      Captured automatically by the resource detector
+                      Read from the account's activity log
                     </div>
                   </div>
                 </div>
@@ -642,43 +640,43 @@
                       <div class="w-2.5 h-2.5 rounded-full bg-gray-300"></div>
                     </div>
                     <div class="flex-1 text-center">
-                      <span class="text-xs text-gray-400">aws · us-east-1 · signals</span>
+                      <span class="text-xs text-gray-400">web-prod-01 · aws · us-east-1</span>
                     </div>
                   </div>
                   <div class="p-4 space-y-3">
-                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-amber-100 bg-amber-50 hover:bg-amber-100 transition-colors">
-                      <div class="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
-                        <%- include('./Partials/icons/logs', {iconClass: 'h-4 w-4'}) %>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-purple-100 bg-purple-50 hover:bg-purple-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/metrics', {iconClass: 'h-4 w-4'}) %>
                       </div>
                       <div class="flex-1">
-                        <div class="text-sm font-semibold text-gray-900">Logs</div>
-                        <div class="text-xs text-gray-500">38,402 entries in the last hour</div>
+                        <div class="text-sm font-semibold text-gray-900">Metrics</div>
+                        <div class="text-xs text-gray-500">CPU 51%, network and disk, read every 5 minutes</div>
                       </div>
-                      <svg class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <svg class="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                     </a>
-                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-yellow-100 bg-yellow-50 hover:bg-yellow-100 transition-colors">
-                      <div class="w-9 h-9 rounded-lg bg-yellow-100 flex items-center justify-center">
-                        <%- include('./Partials/icons/traces', {iconClass: 'h-4 w-4'}) %>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-teal-100 bg-teal-50 hover:bg-teal-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-teal-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/topology', {iconClass: 'h-4 w-4'}) %>
                       </div>
                       <div class="flex-1">
-                        <div class="text-sm font-semibold text-gray-900">Traces</div>
-                        <div class="text-xs text-gray-500">Service map across 12 services</div>
+                        <div class="text-sm font-semibold text-gray-900">Topology</div>
+                        <div class="text-xs text-gray-500">Behind lb-web: 4 virtual machines and orders-db</div>
                       </div>
-                      <svg class="h-4 w-4 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <svg class="h-4 w-4 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                     </a>
-                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-cyan-100 bg-cyan-50 hover:bg-cyan-100 transition-colors">
-                      <div class="w-9 h-9 rounded-lg bg-cyan-100 flex items-center justify-center">
-                        <%- include('./Partials/icons/kubernetes', {iconClass: 'h-4 w-4'}) %>
+                    <a href="#" class="flex items-center gap-3 p-3 rounded-lg border border-rose-100 bg-rose-50 hover:bg-rose-100 transition-colors">
+                      <div class="w-9 h-9 rounded-lg bg-rose-100 flex items-center justify-center">
+                        <%- include('./Partials/icons/incidents', {iconClass: 'h-4 w-4'}) %>
                       </div>
                       <div class="flex-1">
-                        <div class="text-sm font-semibold text-gray-900">Kubernetes</div>
-                        <div class="text-xs text-gray-500">prod-eks · 18 nodes, 240 pods</div>
+                        <div class="text-sm font-semibold text-gray-900">Incidents and alerts</div>
+                        <div class="text-xs text-gray-500">1 open alert: CPU above 90% for 10 minutes</div>
                       </div>
-                      <svg class="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <svg class="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
                     </a>
@@ -693,22 +691,22 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                   </svg>
                 </div>
-                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Correlated Signals</span>
+                <span class="text-sm font-semibold text-sky-600 uppercase tracking-wide">Resource Pages</span>
               </div>
-              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Metrics, logs, and traces in one context</h3>
-              <p class="mt-4 text-lg text-gray-600">A cloud environment isn't just a number on a chart. From any environment, jump straight to its logs, distributed traces, Kubernetes clusters, hosts, and containers — every signal scoped to the same account and region.</p>
+              <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Everything about a resource, in one place</h3>
+              <p class="mt-4 text-lg text-gray-600">A cloud resource isn't just a number on a chart. Its page holds its metrics, its changes, its incidents and alerts, and the resources it connects to — and OneUptime AI reads all of it when it investigates.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Logs, metrics, and traces side by side
+                  Metrics, changes, incidents, and alerts side by side
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  Linked Kubernetes, hosts, and containers
+                  The resources it connects to, mapped
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-sky-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -762,12 +760,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.25 9V5.25A2.25 2.25 0 0110.5 3h6a2.25 2.25 0 012.25 2.25v13.5A2.25 2.25 0 0116.5 21h-6a2.25 2.25 0 01-2.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25" />
                   </svg>
                 </div>
-                <h3 class="mt-6 text-xl font-semibold text-gray-900">OpenTelemetry Native</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">No proprietary agent and no per-cloud integration to maintain. The standard upstream OTel collector is all you need in every account.</p>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">No agent to install</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">A connection reads your account itself. Rather run a collector? The OpenTelemetry Collector can read the same metrics and send them to OneUptime.</p>
               </div>
             </div>
 
-            <!-- Card 2: Resource detectors -->
+            <!-- Card 2: Read-only access -->
             <div class="group relative">
               <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-emerald-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-200">
@@ -775,8 +773,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                   </svg>
                 </div>
-                <h3 class="mt-6 text-xl font-semibold text-gray-900">Resource detectors</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">EC2, GCP, and Azure instance-metadata detectors stamp every signal with its cloud, account, region, and zone automatically.</p>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Read-only access</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">The command creates access that can only read your resources, their metrics, what changed and your provider's health events. Delete it to cut OneUptime off.</p>
               </div>
             </div>
 
@@ -789,7 +787,7 @@
                   </svg>
                 </div>
                 <h3 class="mt-6 text-xl font-semibold text-gray-900">Multi-account &amp; region</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">Run hundreds of accounts and regions and still get one clean inventory. Environments roll up by platform, account, and region.</p>
+                <p class="mt-4 text-gray-600 leading-relaxed">Run hundreds of accounts and regions and still get one clean inventory. Resources roll up by account, type and region.</p>
               </div>
             </div>
 
@@ -801,12 +799,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                   </svg>
                 </div>
-                <h3 class="mt-6 text-xl font-semibold text-gray-900">Correlated logs &amp; traces</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">Logs, metrics, and distributed traces share the same cloud resource attributes, so you can pivot from a saturation alert to the request that caused it.</p>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Incidents and alerts, linked</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">An incident or an alert names the cloud resources it is about, and each resource lists its own, with what changed in it just before.</p>
               </div>
             </div>
 
-            <!-- Card 5: Hosts, Docker & Kubernetes -->
+            <!-- Card 5: Apps on managed platforms -->
             <div class="group relative">
               <div class="relative h-full rounded-2xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:border-cyan-200 hover:shadow-lg">
                 <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 ring-1 ring-cyan-200">
@@ -814,8 +812,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75M21.75 6.75A2.25 2.25 0 0019.5 4.5h-15A2.25 2.25 0 002.25 6.75m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                   </svg>
                 </div>
-                <h3 class="mt-6 text-xl font-semibold text-gray-900">Hosts, Docker &amp; Kubernetes</h3>
-                <p class="mt-4 text-gray-600 leading-relaxed">Whatever runs in your cloud — VMs, containers, or clusters — is covered. Cloud environments link straight to their hosts, Docker, and Kubernetes views.</p>
+                <h3 class="mt-6 text-xl font-semibold text-gray-900">Apps on managed platforms</h3>
+                <p class="mt-4 text-gray-600 leading-relaxed">The apps you run on ECS, Cloud Run and App Service have a product of their own: <a href="/product/app-platforms" class="font-medium text-gray-900 underline decoration-gray-300 hover:decoration-gray-900">App Platforms</a>, by their own OpenTelemetry.</p>
               </div>
             </div>
 
@@ -837,6 +835,27 @@
       </div>
     </div>
 
+    <!-- App Platforms: the apps on managed platforms -->
+    <div class="relative bg-gray-50 py-16 sm:py-20" id="cloud-app-platforms">
+      <div class="mx-auto max-w-5xl px-6 lg:px-8">
+        <div class="rounded-2xl bg-white p-8 ring-1 ring-gray-200 sm:flex sm:items-center sm:justify-between sm:gap-8">
+          <div class="flex items-start gap-4">
+            <div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-blue-50 ring-1 ring-blue-200">
+              <%- include('./Partials/icons/app-platforms', {iconClass: 'h-5 w-5'}) %>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">Running apps on ECS, Cloud Run or App Service?</h2>
+              <p class="mt-2 text-sm leading-6 text-gray-600">App Platforms monitors the apps you run on managed app and container platforms from their own OpenTelemetry: each platform, account and region, with its running instances, logs, traces and metrics.</p>
+            </div>
+          </div>
+          <a href="/product/app-platforms" class="mt-6 inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 sm:mt-0">
+            Explore App Platforms
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
     <!-- Team Notifications Section -->
     <div class="relative overflow-hidden bg-white py-24 sm:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -848,7 +867,7 @@
               Cloud alerts where your team already works
             </h2>
             <p class="mt-4 text-lg text-gray-600 leading-relaxed">
-              Get instant notifications for CPU saturation, memory pressure, disconnected collectors, and unhealthy instances in Slack and Microsoft Teams — tagged with the exact cloud, account, and region.
+              Get instant notifications for CPU saturation, memory pressure, failing health checks and connections that stop reading in Slack and Microsoft Teams — tagged with the exact account, resource and region.
             </p>
 
             <!-- Integration cards -->
@@ -981,7 +1000,7 @@
                             Acknowledge
                           </button>
                           <button class="px-3 py-1.5 rounded text-xs font-semibold bg-sky-600 text-white hover:bg-sky-700 transition-colors">
-                            View Environment
+                            View Resource
                           </button>
                           <button class="px-3 py-1.5 rounded text-xs font-semibold bg-white/10 text-white hover:bg-white/20 transition-colors border border-white/10">
                             Resolve

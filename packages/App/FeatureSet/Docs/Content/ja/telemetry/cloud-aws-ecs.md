@@ -222,7 +222,7 @@ aws ecs execute-command --cluster production --task <task id> \
   --container app --interactive --command "sh"
 ```
 
-Collector の CloudWatch ログストリーム (`otel/otel-collector/...`) に `Everything is ready` と表示され、`401` や `connection refused` の行がないことを確認します。最初のスパン、ログ、メトリクスが届いてから 1 分以内に、環境が **クラウド → すべての環境** に _AWS ECS · us-east-1 · 123456789012_ として表示されます。
+Collector の CloudWatch ログストリーム (`otel/otel-collector/...`) に `Everything is ready` と表示され、`401` や `connection refused` の行がないことを確認します。最初のスパン、ログ、メトリクスが届いてから 1 分以内に、環境が **アプリプラットフォーム → すべての環境** に _AWS ECS · us-east-1 · 123456789012_ として表示されます。
 :::
 
 ## 完全なタスク定義

@@ -510,11 +510,11 @@ After the first successful walk, OneUptime reads the SNMPv2 system group and, wh
 
 A ping-only device keeps the name and address you, or a discovery scan, gave it. What its own poll has not read, it takes from discovery:
 
-- The system name, description, `sysObjectID`, location and contact the last [discovery scan](#discovering-devices-with-a-network-scan) of its address read over SNMP, and the reverse-DNS and NetBIOS names it found.
-- Its MAC address, from the ARP table of a walked router in its site.
+- The system name, description, `sysObjectID`, location, contact, model, serial number, firmware and software version the last [discovery scan](#discovering-devices-with-a-network-scan) of its address read over SNMP, and the reverse-DNS and NetBIOS names it found.
+- Its MAC address, from the ARP table of a walked router in its site, or else from the first Ethernet port that scan read.
 - For a device polled at a DNS name, the address its probe resolved the name to.
 
-These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. The device's Overview and its Inventory item say which scan, router or probe read each value, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
+These are kept beside the device's own fields, never written into them, and each scan, router walk or poll that reads one again brings it up to date. A scan reads a host's MAC address, model, serial number, firmware and software version with a few more requests after its system group, for at most five seconds per host. A host that stops answering them still counts as having answered, and what the scan could not read keeps its last value. The device's Overview and its Inventory item say which scan, router or probe read each value, and when. A value you saved on the device is never replaced. When a scan finds another machine at the device's address, such as a DHCP lease that moved, the Overview says so, and nothing that scan read there is used.
 
 A Meraki switch, access point or appliance reads no serial number or firmware over SNMP: polled directly, it answers the system group and the interface tables, which give its model and its MAC address, and nothing more. When a [Meraki connection](/docs/monitor/network-traffic#cisco-meraki-without-netflow) reads its organization, the device takes those, and whatever else its poll leaves empty, from the Meraki dashboard, and its **Inventory** card names the connection in a **Meraki** row.
 

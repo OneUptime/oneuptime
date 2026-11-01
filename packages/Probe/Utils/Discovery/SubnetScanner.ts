@@ -1,5 +1,6 @@
 import SnmpMonitor from "../Monitors/MonitorTypes/SnmpMonitor";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
+import SnmpHardwareIdentity from "Common/Types/Monitor/SnmpMonitor/SnmpHardwareIdentity";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
@@ -22,7 +23,14 @@ import {
 import logger from "Common/Server/Utils/Logger";
 import DiscoveryPing from "./DiscoveryPing";
 
-export interface DiscoveredHost {
+/*
+ * SnmpHardwareIdentity: the MAC, model, serial number and firmware of a host
+ * that answered SNMP, read by a few more requests right after that answer (see
+ * attachHardwareIdentity). Only those hosts, and only what the read got: every
+ * key is ABSENT, not undefined, for anything else, for the reason netbiosName
+ * below is. A progress snapshot taken while the read runs has none of them yet.
+ */
+export interface DiscoveredHost extends SnmpHardwareIdentity {
   ipAddress: string;
   sysName?: string | undefined;
   sysDescr?: string | undefined;
@@ -871,7 +879,7 @@ export default class SubnetScanner {
             (successCountByConfigId.get(snmpConfig.id) || 0) + 1,
           );
 
-          discoveredHosts.push({
+          const discoveredHost: DiscoveredHost = {
             ipAddress: host,
             sysName: attempt.systemInfo.sysName,
             sysDescr: attempt.systemInfo.sysDescr,
@@ -881,7 +889,20 @@ export default class SubnetScanner {
             sysUpTimeSeconds: attempt.systemInfo.sysUpTimeSeconds,
             snmpReachable: true,
             snmpConfigId: snmpConfig.id,
-          });
+          };
+
+          /*
+           * Recorded BEFORE the follow-up read, so nothing that read does can
+           * lose the host: it has answered, and it is reported as having
+           * answered even if the read hangs until the scan is aborted.
+           */
+          discoveredHosts.push(discoveredHost);
+
+          await SubnetScanner.attachHardwareIdentity(
+            discoveredHost,
+            snmpConfig,
+            config.signal,
+          );
 
           return;
         }
@@ -1287,22 +1308,14 @@ export default class SubnetScanner {
   }
 
   /*
-   * One host, one credential set. Returns the system group if the device
-   * answered, or the reason it did not when that reason is worth reporting.
-   *
-   * Split out of probeHost so the per-config loop stays readable, and so the
-   * "an error escaped as a throw rather than through the callback" case is
-   * handled in exactly one place for every set.
+   * The SNMP query of one host with one credential set: a single attempt with
+   * a short timeout, because in a sweep most addresses never answer.
    */
-  private static async probeHostWithConfig(
+  private static buildMonitorConfig(
     host: string,
     snmpConfig: SubnetScanSnmpConfig,
-    signal?: AbortSignal,
-  ): Promise<{
-    systemInfo: SnmpSystemInfo | null;
-    error?: string | undefined;
-  }> {
-    const monitorConfig: MonitorStepSnmpMonitor = {
+  ): MonitorStepSnmpMonitor {
+    return {
       /*
        * Already parsed by the caller: the stored version is the dropdown key
        * ("V1"/"V2c"/"V3") while SnmpMonitor branches on the enum value
@@ -1318,6 +1331,59 @@ export default class SubnetScanner {
       timeout: 2000,
       retries: 0,
     };
+  }
+
+  /*
+   * Stamps what a host that answered says about its hardware onto its entry
+   * (SnmpMonitor.probeHardwareIdentity), with the credential set that answered.
+   * Runs in the worker that found the host, so the sweep's concurrency bounds
+   * these requests like every other.
+   *
+   * Best-effort. It cannot make the host read as not answering: the caller has
+   * already recorded and counted it, and whatever goes wrong here is neither
+   * reported as an SNMP error nor thrown - except the scan's abort, which every
+   * step of a sweep obeys.
+   */
+  private static async attachHardwareIdentity(
+    host: DiscoveredHost,
+    snmpConfig: SubnetScanSnmpConfig,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    try {
+      const identity: SnmpHardwareIdentity =
+        await SnmpMonitor.probeHardwareIdentity(
+          SubnetScanner.buildMonitorConfig(host.ipAddress, snmpConfig),
+          host.sysObjectId,
+          signal,
+        );
+
+      Object.assign(host, identity);
+    } catch (err) {
+      signal?.throwIfAborted();
+      logger.debug(
+        `Discovery could not read the hardware identity of ${host.ipAddress}: ${err}`,
+      );
+    }
+  }
+
+  /*
+   * One host, one credential set. Returns the system group if the device
+   * answered, or the reason it did not when that reason is worth reporting.
+   *
+   * Split out of probeHost so the per-config loop stays readable, and so the
+   * "an error escaped as a throw rather than through the callback" case is
+   * handled in exactly one place for every set.
+   */
+  private static async probeHostWithConfig(
+    host: string,
+    snmpConfig: SubnetScanSnmpConfig,
+    signal?: AbortSignal,
+  ): Promise<{
+    systemInfo: SnmpSystemInfo | null;
+    error?: string | undefined;
+  }> {
+    const monitorConfig: MonitorStepSnmpMonitor =
+      SubnetScanner.buildMonitorConfig(host, snmpConfig);
 
     /*
      * Anything the SNMP layer failed with that is NOT a timeout. A timeout

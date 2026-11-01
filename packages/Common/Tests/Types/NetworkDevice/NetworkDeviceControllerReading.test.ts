@@ -95,8 +95,8 @@ describe("the controller reading's fields", () => {
     expect(DISCOVERED_DETAILS_CONTROLLER_KEY).toBe("controller");
     expect(isDiscoveredDetailsKey("controller")).toBe(true);
     // Its values are not keys of the column: they live inside the reading.
-    expect(isDiscoveredDetailsKey("model")).toBe(false);
-    expect(isDiscoveredDetailsKey("firmwareVersion")).toBe(false);
+    expect(isDiscoveredDetailsKey("productType")).toBe(false);
+    expect(isDiscoveredDetailsKey("networkName")).toBe(false);
     expect(isDiscoveredDetailsKey("Controller")).toBe(false);
   });
 

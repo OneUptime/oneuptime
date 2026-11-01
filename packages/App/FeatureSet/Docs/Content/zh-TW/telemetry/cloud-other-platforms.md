@@ -1,6 +1,6 @@
 # 其他雲端平台
 
-設定那些沒有專屬頁面的受控平台：AWS Elastic Beanstalk、AWS App Runner、Google App Engine、Azure App Service 與 Azure Container Instances。規則與每個平台都一樣：帶有受控 `cloud.platform`、`cloud.account.id` 與 `cloud.region` 的遙測資料，會依平台、帳戶與區域進入一個 **Cloud Environment**，而執行個體識別會讓每個執行中的執行個體在 **執行個體** 下各占一列。
+設定那些沒有專屬頁面的受控平台：AWS Elastic Beanstalk、AWS App Runner、Google App Engine、Azure App Service 與 Azure Container Instances。規則與每個平台都一樣：帶有受控 `cloud.platform`、`cloud.account.id` 與 `cloud.region` 的遙測資料，會依平台、帳戶與區域進入一個 **雲端環境**，而執行個體識別會讓每個執行中的執行個體在 **執行個體** 下各占一列。
 
 :::cards
 - [AWS Elastic Beanstalk](#aws-elastic-beanstalk): 每個執行個體上的 Collector，搭配 Beanstalk 與 EC2 偵測器。
@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-回傳 `200` 且 `"valid": true` 表示權杖已被接受。`401` 表示權杖未知、已撤銷、已停用或已過期。在第一個 span、日誌或指標送達後的 1 分鐘內，環境就會出現在 **雲端 → All Environments** 中，並以平台、區域與帳戶命名。
+回傳 `200` 且 `"valid": true` 表示權杖已被接受。`401` 表示權杖未知、已撤銷、已停用或已過期。在第一個 span、日誌或指標送達後的 1 分鐘內，環境就會出現在 **應用程式平台 → 所有環境** 中，並以平台、區域與帳戶命名。
 
 ## 疑難排解
 

@@ -33,7 +33,7 @@ const CloudResourceConnectBanner: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const documentationRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.CLOUD_RESOURCE_VIEW_DOCUMENTATION] as Route,
+    RouteMap[PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW_DOCUMENTATION] as Route,
     { modelId: props.modelId },
   );
 

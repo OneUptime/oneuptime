@@ -434,15 +434,16 @@ async function expectExplained(
   }
 }
 
-// A summary field's card, found by its title.
-function fieldCard(title: string): HTMLElement {
-  const label: HTMLElement = screen
-    .getAllByText(title, { selector: "label span" })
-    .find((el: HTMLElement) => {
-      return el.textContent?.trim().startsWith(title);
-    }) as HTMLElement;
-  expect(label).toBeTruthy();
+// A tile of a part's Overview, found by its title in the tiles of `tilesTestId`.
+function tileOf(tilesTestId: string, title: string): HTMLElement {
+  const tiles: HTMLElement = screen.getByTestId(tilesTestId);
+  const label: HTMLElement = within(tiles).getAllByText(title)[0]!;
   return label.closest("div.rounded-xl") as HTMLElement;
+}
+
+// A row of a part's Details card, by its key.
+function detailOf(detailsTestId: string, key: string): HTMLElement {
+  return screen.getByTestId(`${detailsTestId}-${key}`);
 }
 
 function expectNoNestedInfoButtons(): void {
@@ -494,16 +495,24 @@ afterEach(() => {
 
 // ------------------------------------------------------------ node detail
 
+/*
+ * A node's Overview explains its tiles (its latest CPU, memory, root disk
+ * and guests) and the details whose words need it (uptime, HA state); the
+ * plain facts - its name, its cluster, its Proxmox ID, when it last
+ * reported - need none. Its status is explained on the hero's status
+ * itself (a title and words a screen reader reads after it).
+ */
 const NODE_FIELDS: Array<[string, ProxmoxMetric]> = [
-  ["Status", "nodeStatus"],
-  ["Uptime", "nodeUptime"],
   ["CPU", "nodeCpu"],
-  ["Memory (Used / Total)", "nodeMemory"],
-  ["HA State", "nodeHaState"],
+  ["Memory", "nodeMemory"],
+  ["Root Disk", "nodeRootDisk"],
+  ["Guests", "nodeGuests"],
+  ["Uptime", "nodeUptime"],
+  ["HA state", "nodeHaState"],
 ];
 
 describe("Proxmox node detail", () => {
-  test("every metric field has an (i), in order, and metadata has none", async () => {
+  test("every metric has an (i), in order, and the plain facts have none", async () => {
     await renderPage(ProxmoxClusterNodeDetail, "node%2Fpve1", "pve1");
 
     expect(infoLabels()).toEqual(
@@ -511,34 +520,49 @@ describe("Proxmox node detail", () => {
         return title;
       }),
     );
-    for (const title of ["Node Name", "Cluster", "External ID", "Last Seen"]) {
-      expect(fieldCard(title)).toBeTruthy();
-      expect(infoLabels(fieldCard(title))).toEqual([]);
+    for (const key of ["name", "cluster", "id", "last-report"]) {
+      expect(infoLabels(detailOf("proxmox-node-details", key))).toEqual([]);
     }
   });
 
-  test("each field's (i) shows its own description", async () => {
+  test("each (i) shows its own description", async () => {
     await renderPage(ProxmoxClusterNodeDetail, "node%2Fpve1", "pve1");
     await expectExplained(NODE_FIELDS);
     expectNoNestedInfoButtons();
   });
 
-  test("the fields show the latest report: uptime, CPU share and used / total memory", async () => {
+  test("the hero's status carries what it means, for a pointer and a screen reader", async () => {
     await renderPage(ProxmoxClusterNodeDetail, "node%2Fpve1", "pve1");
 
-    expect(fieldCard("Uptime")).toHaveTextContent("1d 2h");
-    expect(fieldCard("CPU")).toHaveTextContent("10.0%");
-    expect(fieldCard("Memory (Used / Total)")).toHaveTextContent(
-      "4.0 GiB / 16.0 GiB",
+    const status: HTMLElement = screen.getByTestId("proxmox-node-hero-status");
+    expect(status).toHaveTextContent("Online");
+    expect(status).toHaveAttribute(
+      "title",
+      PROXMOX_METRIC_DESCRIPTIONS.nodeStatus,
     );
-    expect(fieldCard("HA State")).toHaveTextContent("online");
+    expect(status).toHaveTextContent(PROXMOX_METRIC_DESCRIPTIONS.nodeStatus);
   });
 
-  test("a detail page keeps showing the last value the agent sent, however old", async () => {
+  test("the tiles and details show the latest report: CPU, used / total memory, uptime", async () => {
+    await renderPage(ProxmoxClusterNodeDetail, "node%2Fpve1", "pve1");
+
+    expect(tileOf("proxmox-node-tiles", "CPU")).toHaveTextContent("10.0%");
+    expect(tileOf("proxmox-node-tiles", "Memory")).toHaveTextContent(
+      "25.0%4.0 GiB of 16.0 GiB",
+    );
+    // web runs on pve1: one guest, running.
+    expect(tileOf("proxmox-node-tiles", "Guests")).toHaveTextContent("1/1");
+    expect(detailOf("proxmox-node-details", "uptime")).toHaveTextContent(
+      "1d 2h",
+    );
+    expect(detailOf("proxmox-node-details", "ha")).toHaveTextContent("online");
+  });
+
+  test("a part's page keeps showing the last value the agent sent, however old", async () => {
     // pve2 last reported 20 minutes ago; the list shows N/A, this does not.
     await renderPage(ProxmoxClusterNodeDetail, "node%2Fpve2", "pve2");
 
-    expect(fieldCard("CPU")).toHaveTextContent("42.0%");
+    expect(tileOf("proxmox-node-tiles", "CPU")).toHaveTextContent("42.0%");
     expect(await tooltipTextOf(infoButton("CPU"))).toContain(
       "last value the agent sent",
     );
@@ -561,18 +585,18 @@ describe("Proxmox node detail", () => {
 // ----------------------------------------------------------- guest detail
 
 const GUEST_FIELDS: Array<[string, ProxmoxMetric]> = [
-  ["Status", "guestStatus"],
-  ["HA State", "guestHaState"],
-  ["Start on Boot", "guestStartOnBoot"],
-  ["Backup Job Coverage", "guestBackupCoverage"],
-  ["Uptime", "guestUptime"],
   ["CPU", "guestCpu"],
-  ["Memory (Used / Max)", "guestMemory"],
-  ["Disk (Used / Max)", "guestDisk"],
+  ["Memory", "guestMemory"],
+  ["Disk", "guestDisk"],
+  ["Last Backup", "guestLastBackup"],
+  ["Start on boot", "guestStartOnBoot"],
+  ["HA state", "guestHaState"],
+  ["Backup job", "guestBackupCoverage"],
+  ["Uptime", "guestUptime"],
 ];
 
 describe("Proxmox guest detail", () => {
-  test("every metric field has an (i), in order, and metadata has none", async () => {
+  test("every metric has an (i), in order, and the plain facts have none", async () => {
     await renderPage(ProxmoxClusterGuestDetail, "qemu%2F100", "web");
 
     expect(infoLabels()).toEqual(
@@ -580,20 +604,12 @@ describe("Proxmox guest detail", () => {
         return title;
       }),
     );
-    for (const title of [
-      "Guest Name",
-      "Cluster",
-      "VMID",
-      "Type",
-      "Node",
-      "External ID",
-      "Last Seen",
-    ]) {
-      expect(infoLabels(fieldCard(title))).toEqual([]);
+    for (const key of ["name", "vmid", "type", "node", "id", "last-report"]) {
+      expect(infoLabels(detailOf("proxmox-guest-details", key))).toEqual([]);
     }
   });
 
-  test("each field's (i) shows its own description", async () => {
+  test("each (i) shows its own description", async () => {
     await renderPage(ProxmoxClusterGuestDetail, "qemu%2F100", "web");
     await expectExplained(GUEST_FIELDS);
     expectNoNestedInfoButtons();
@@ -602,10 +618,10 @@ describe("Proxmox guest detail", () => {
   test("a QEMU VM with no disk figure explains why it reads N/A", async () => {
     await renderPage(ProxmoxClusterGuestDetail, "qemu%2F100", "web");
 
-    expect(fieldCard("Disk (Used / Max)")).toHaveTextContent(
-      "N/A — install the QEMU guest agent for disk usage",
+    expect(tileOf("proxmox-guest-tiles", "Disk")).toHaveTextContent(
+      "N/Ainstall the QEMU guest agent for disk usage",
     );
-    expect(await tooltipTextOf(infoButton("Disk (Used / Max)"))).toContain(
+    expect(await tooltipTextOf(infoButton("Disk"))).toContain(
       "QEMU guest agent",
     );
   });
@@ -619,10 +635,10 @@ describe("Proxmox guest detail", () => {
 
     await renderPage(ProxmoxClusterGuestDetail, "qemu%2F100", "web");
 
-    expect(fieldCard("Disk (Used / Max)")).toHaveTextContent(
-      "8.0 GiB / 32.0 GiB",
+    expect(tileOf("proxmox-guest-tiles", "Disk")).toHaveTextContent(
+      "25.0%8.0 GiB of 32.0 GiB",
     );
-    expect(await tooltipTextOf(infoButton("Disk (Used / Max)"))).toBe(
+    expect(await tooltipTextOf(infoButton("Disk"))).toBe(
       PROXMOX_METRIC_DESCRIPTIONS.guestDisk,
     );
   });
@@ -630,11 +646,11 @@ describe("Proxmox guest detail", () => {
   test("CPU and memory are shares of what the guest was assigned", async () => {
     await renderPage(ProxmoxClusterGuestDetail, "qemu%2F100", "web");
 
-    expect(fieldCard("CPU")).toHaveTextContent("75.0%");
-    expect(fieldCard("Memory (Used / Max)")).toHaveTextContent(
-      "3.0 GiB / 4.0 GiB",
+    expect(tileOf("proxmox-guest-tiles", "CPU")).toHaveTextContent("75.0%");
+    expect(tileOf("proxmox-guest-tiles", "Memory")).toHaveTextContent(
+      "75.0%3.0 GiB of 4.0 GiB",
     );
-    expect(fieldCard("Backup Job Coverage")).toHaveTextContent(
+    expect(detailOf("proxmox-guest-details", "backup-job")).toHaveTextContent(
       "In a backup job",
     );
   });
@@ -656,15 +672,13 @@ describe("Proxmox guest detail", () => {
 // --------------------------------------------------------- storage detail
 
 const STORAGE_FIELDS: Array<[string, ProxmoxMetric]> = [
-  ["Status", "storageStatus"],
-  ["Used", "storageUsed"],
-  ["Total", "storageTotal"],
-  ["Used %", "storageUsedPercent"],
+  ["Used", "storageUsedPercent"],
+  ["Free", "storageFree"],
   ["Growth Forecast", "storageGrowthForecast"],
 ];
 
 describe("Proxmox storage detail", () => {
-  test("every metric field has an (i), in order, and metadata has none", async () => {
+  test("every metric has an (i), in order, and the plain facts have none", async () => {
     await renderPage(
       ProxmoxClusterStorageDetail,
       "storage%2Fpve1%2Flocal",
@@ -676,24 +690,38 @@ describe("Proxmox storage detail", () => {
         return title;
       }),
     );
-    for (const title of [
-      "Storage Name",
-      "Cluster",
-      "Node",
-      "External ID",
-      "Last Seen",
-    ]) {
-      expect(infoLabels(fieldCard(title))).toEqual([]);
+    for (const key of ["name", "node", "id", "last-report"]) {
+      expect(infoLabels(detailOf("proxmox-storage-details", key))).toEqual([]);
     }
   });
 
-  test("each field's (i) shows its own description", async () => {
+  test("each (i) shows its own description", async () => {
     await renderPage(
       ProxmoxClusterStorageDetail,
       "storage%2Fpve1%2Flocal",
       "local",
     );
     await expectExplained(STORAGE_FIELDS);
+  });
+
+  test("a shared storage says so, and explains what that means", async () => {
+    inventory = inventory.map((row: Row) => {
+      return row["externalId"] === "storage/pve1/local"
+        ? { ...row, isShared: true }
+        : row;
+    });
+    await renderPage(
+      ProxmoxClusterStorageDetail,
+      "storage%2Fpve1%2Flocal",
+      "local",
+    );
+
+    expect(detailOf("proxmox-storage-details", "shared")).toHaveTextContent(
+      "Shared",
+    );
+    expect(await tooltipTextOf(infoButton("Shared"))).toBe(
+      PROXMOX_METRIC_DESCRIPTIONS.storageShared,
+    );
   });
 
   test("the forecast is a straight line through the last 24 hours", async () => {
@@ -703,11 +731,13 @@ describe("Proxmox storage detail", () => {
       "local",
     );
 
-    expect(fieldCard("Used %")).toHaveTextContent("50.0%");
-    // 10 GiB a day and 50 GiB free: five days.
-    expect(fieldCard("Growth Forecast")).toHaveTextContent(
-      "will be full in ~5 days (linear fit over the last 24 h)",
+    expect(tileOf("proxmox-storage-tiles", "Used")).toHaveTextContent(
+      "50.0%50.0 GiB of 100 GiB",
     );
+    // 10 GiB a day and 50 GiB free: five days.
+    expect(
+      tileOf("proxmox-storage-tiles", "Growth Forecast"),
+    ).toHaveTextContent("~5 daysuntil full, at the last 24 hours' growth");
 
     const window: { startTimestamp: Date; endTimestamp: Date } = (
       analyticsAggregateMock.mock.calls[0]![0] as {
@@ -756,20 +786,29 @@ function rowOf(name: string): HTMLElement {
 }
 
 describe("Proxmox nodes list", () => {
-  test("Status, CPU, Memory and Age headers each explain their column", async () => {
+  test("Status, Guests, CPU, Memory and Age headers each explain their column", async () => {
     await renderPage(ProxmoxClusterNodes, CLUSTER_ID, "pve1");
 
-    expect(infoLabels()).toEqual(["Status", "CPU", "Memory", "Age"]);
+    expect(infoLabels()).toEqual(["Status", "Guests", "CPU", "Memory", "Age"]);
     await expectExplained([
       ["Status", "nodesTableStatus"],
+      ["Guests", "nodesTableGuests"],
       ["CPU", "nodesTableCpu"],
       ["Memory", "nodesTableMemory"],
       ["Age", "nodesTableUptime"],
     ]);
-    for (const title of ["Status", "CPU", "Memory", "Age"]) {
+    for (const title of ["Status", "Guests", "CPU", "Memory", "Age"]) {
       expect(columnHeader(title)).toBeTruthy();
     }
     expectNoNestedInfoButtons();
+  });
+
+  test("each node counts the guests it runs, running out of all", async () => {
+    await renderPage(ProxmoxClusterNodes, CLUSTER_ID, "pve1");
+
+    // pve1 runs web; pve2 runs db (stopped) and cache.
+    expect(rowOf("pve1")).toHaveTextContent("1/1 running");
+    expect(rowOf("pve2")).toHaveTextContent("1/2 running");
   });
 
   test("a node with no update in 15 minutes shows N/A for CPU and memory", async () => {
@@ -819,12 +858,54 @@ describe("Proxmox guests list", () => {
     }
   });
 
-  test("the Backup column shows the three values its (i) spells out", async () => {
+  test("before any notification, the Backup column shows job coverage, or a dash", async () => {
     await renderPage(ProxmoxClusterGuests, CLUSTER_ID, "web");
 
-    expect(rowOf("web")).toHaveTextContent("In job");
-    expect(rowOf("db")).toHaveTextContent("Not backed up");
+    expect(rowOf("web")).toHaveTextContent("In a backup job");
+    expect(rowOf("db")).toHaveTextContent("In no backup job");
     expect(within(rowOf("cache")).getAllByText("-").length).toBeGreaterThan(0);
+  });
+
+  test("with the notifications, the Backup column shows how the last backup went and when", async () => {
+    inventory = inventory.map((row: Row) => {
+      if (row["externalId"] === "qemu/100") {
+        return {
+          ...row,
+          lastBackupStatus: "ok",
+          lastBackupAt: new Date(NOW.getTime() - 7 * HOUR),
+        };
+      }
+      if (row["externalId"] === "lxc/101") {
+        return {
+          ...row,
+          lastBackupStatus: "failed",
+          lastBackupAt: new Date(NOW.getTime() - 2 * HOUR),
+        };
+      }
+      return row;
+    });
+    await renderPage(ProxmoxClusterGuests, CLUSTER_ID, "web");
+
+    expect(rowOf("web")).toHaveTextContent("Backed up 7 hours ago");
+    expect(rowOf("db")).toHaveTextContent("Failed 2 hours ago");
+  });
+
+  test("guests are listed by VMID, and a guest's kind reads as a word", async () => {
+    await renderPage(ProxmoxClusterGuests, CLUSTER_ID, "web");
+
+    const names: Array<string> = ["web", "db", "cache"];
+    const order: Array<number> = names.map((name: string): number => {
+      const row: HTMLElement = rowOf(name);
+      return Array.from(row.parentElement!.children).indexOf(row);
+    });
+    expect(order).toEqual(
+      [...order].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    );
+    expect(rowOf("web")).toHaveTextContent("VM");
+    expect(rowOf("db")).toHaveTextContent("Container");
+    expect(rowOf("web")).not.toHaveTextContent("qemu");
   });
 
   test("HA State shows a dash for a guest HA does not manage", async () => {
@@ -853,14 +934,13 @@ describe("Proxmox guests list", () => {
 });
 
 describe("Proxmox storage list", () => {
-  test("Status, Used / Total and Age explain themselves; there are no CPU or memory columns", async () => {
+  test("Status and Used / Total explain themselves; there are no CPU, memory or Age columns", async () => {
     await renderPage(ProxmoxClusterStorage, CLUSTER_ID, "local");
 
-    expect(infoLabels()).toEqual(["Status", "Used / Total", "Age"]);
+    expect(infoLabels()).toEqual(["Status", "Used / Total"]);
     await expectExplained([
       ["Status", "storageTableStatus"],
       ["Used / Total", "storageTableUsage"],
-      ["Age", "storageTableAge"],
     ]);
     expect(screen.queryByText("CPU")).not.toBeInTheDocument();
   });
@@ -872,15 +952,13 @@ describe("Proxmox storage list", () => {
     expect(rowOf("backup")).toHaveTextContent("N/A");
   });
 
-  test("storage reports no uptime, so Age is a dash", async () => {
+  test("storage reports no uptime, so there is no Age column of dashes", async () => {
     await renderPage(ProxmoxClusterStorage, CLUSTER_ID, "local");
 
-    const ageIndex: number = Array.from(
-      columnHeader("Age").parentElement!.children,
-    ).indexOf(columnHeader("Age"));
-    for (const name of ["local", "backup"]) {
-      expect(rowOf(name).children[ageIndex]).toHaveTextContent("-");
-    }
+    expect(
+      screen.queryByRole("columnheader", { name: /^Age/ }),
+    ).not.toBeInTheDocument();
+    expect(rowOf("local")).not.toHaveTextContent("-");
   });
 });
 

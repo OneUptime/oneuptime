@@ -86,6 +86,24 @@ cluster-backed suites that install the chart on a throwaway KinD cluster. That i
 `helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
 see `HelmChart/README.md` for how to add one.
 
+### Release notes
+
+Each release's notes on GitHub, which the upgrade guide sends self-hosters to and the website links to as the Changelog, are written by `Scripts/Release/GenerateReleaseNotes.js` from what the release ships: the title of every pull request and the subject of every commit pushed straight to master. So a title is a line someone reads on the release page. Write it as `type(area): what changed, for the person using OneUptime`, not what the code does.
+
+- `feat`, `fix`, `perf` and `docs` each have a section. `test`, `ci`, `chore`, `refactor`, `style` and `build` go under Maintenance, which is folded, and so does anything in an area of the repository rather than the product (`fix(ci): ...`; `INTERNAL_AREAS` in the script).
+- The scope is the area the line is filed under: use the product's name (`exceptions`, `on-call`, `status-pages`). A title with no type can open with its area instead (`Workflows: every template in five steps`); it goes under New and improved.
+- A `!` after the type or scope (`feat(helm)!: ...`) puts the change under Breaking changes, at the top. Use it whenever an upgrade asks something of the person upgrading.
+- A label wins over a title (`bug`, `enhancement`, `documentation`, `dependencies`), and `ignore` leaves a pull request out.
+
+To see a release's notes, or write a published release's again:
+
+```bash
+GH_TOKEN=$(gh auth token) node Scripts/Release/GenerateReleaseNotes.js --version 14.0.98 --output notes.md
+gh release edit 14.0.98 --notes-file notes.md
+```
+
+With `--to master` and no `--version`, it shows what the next release will say.
+
 ### Mobile app releases
 
 Before building or publishing the Android or iOS app, read

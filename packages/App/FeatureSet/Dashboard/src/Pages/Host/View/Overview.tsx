@@ -33,6 +33,9 @@ import GoldenMetricTile, {
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
+import HostFilesystemsTable, {
+  HostMount,
+} from "../../../Components/Host/HostFilesystemsTable";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
@@ -101,11 +104,6 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import useResizableColumns, {
-  ResizableColumns,
-} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
-import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
-import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface OverviewStats {
@@ -116,14 +114,8 @@ interface OverviewStats {
   runningProcessCount: number | null;
 }
 
-interface MountInfo {
-  mountpoint: string;
-  device: string | null;
-  type: string | null;
-  totalBytes: number;
-  usedBytes: number;
-  utilizationPercent: number;
-}
+// One mount point the host reports (HostFilesystemsTable).
+type MountInfo = HostMount;
 
 const formatPercent: (value: number | null) => string = (
   value: number | null,
@@ -193,22 +185,6 @@ const HostOverview: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
-
-  /*
-   * The filesystems' columns as wide as a person makes them (Common's
-   * Table/ColumnResize): a mount point and a device give way, a size or a
-   * utilization bar never.
-   */
-  const mountColumns: ResizableColumns = useResizableColumns({
-    tableKey: "host-filesystems-table",
-    columns: [
-      { id: "mount", cellNumber: 1 },
-      { id: "type", cellNumber: 2 },
-      { id: "device", cellNumber: 3 },
-      { id: "usedTotal", cellNumber: 4 },
-      { id: "utilization", cellNumber: 5 },
-    ],
-  });
 
   const [host, setHost] = useState<Host | null>(null);
   const [stats, setStats] = useState<OverviewStats | null>(null);
@@ -1547,147 +1523,10 @@ const HostOverview: FunctionComponent<
 
     return (
       <div className="mb-6">
-        <Card
-          title="Filesystems"
-          description="Mount points reported by the host with capacity and utilization."
-        >
-          <div className="border-t border-gray-200 -m-6 -mt-2">
-            <div className="overflow-x-auto">
-              {mountColumns.styles}
-              <table
-                className={`${mountColumns.getTableWidthClassName("min-w-full")} divide-y divide-gray-200`}
-                {...mountColumns.tableAttributes}
-              >
-                <thead className="bg-gray-50">
-                  <tr>
-                    <ResizableHeaderCell
-                      scope="col"
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      resize={mountColumns.getResize(
-                        "mount",
-                        translator.translateText("Mount") || "Mount",
-                        ColumnWidthKind.Name,
-                      )}
-                    >
-                      <span>{translator.translateText("Mount")}</span>
-                    </ResizableHeaderCell>
-                    <ResizableHeaderCell
-                      scope="col"
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      resize={mountColumns.getResize(
-                        "type",
-                        translator.translateText("Type") || "Type",
-                        ColumnWidthKind.Whole,
-                      )}
-                    >
-                      <span>{translator.translateText("Type")}</span>
-                    </ResizableHeaderCell>
-                    <ResizableHeaderCell
-                      scope="col"
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      resize={mountColumns.getResize(
-                        "device",
-                        translator.translateText("Device") || "Device",
-                        ColumnWidthKind.Text,
-                      )}
-                    >
-                      <span>{translator.translateText("Device")}</span>
-                    </ResizableHeaderCell>
-                    <ResizableHeaderCell
-                      scope="col"
-                      className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap"
-                      resize={mountColumns.getResize(
-                        "usedTotal",
-                        translator.translateText("Used / Total") ||
-                          "Used / Total",
-                        ColumnWidthKind.Whole,
-                      )}
-                    >
-                      <span className="inline-flex items-center justify-end gap-1">
-                        {translator.translateText("Used / Total")}
-                        <InfoTooltip
-                          label="Used / Total"
-                          text={HOST_METRIC_DESCRIPTIONS.filesystemUsedTotal}
-                        />
-                      </span>
-                    </ResizableHeaderCell>
-                    <ResizableHeaderCell
-                      scope="col"
-                      className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3"
-                      resize={mountColumns.getResize(
-                        "utilization",
-                        translator.translateText("Utilization") ||
-                          "Utilization",
-                        ColumnWidthKind.Whole,
-                      )}
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        {translator.translateText("Utilization")}
-                        <InfoTooltip
-                          label="Utilization"
-                          text={HOST_METRIC_DESCRIPTIONS.filesystemUtilization}
-                        />
-                      </span>
-                    </ResizableHeaderCell>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {mountList.map((m: MountInfo): ReactElement => {
-                    const pct: number = Math.min(
-                      100,
-                      Math.max(0, m.utilizationPercent),
-                    );
-                    const barColor: string =
-                      pct >= 90
-                        ? "bg-red-500"
-                        : pct >= 75
-                          ? "bg-amber-500"
-                          : "bg-emerald-500";
-                    return (
-                      <tr key={m.mountpoint}>
-                        <td className="px-4 py-3 text-sm font-mono text-gray-900 break-all">
-                          {m.mountpoint}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">
-                          {m.type ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-xs font-medium ring-1 ring-inset ring-slate-200">
-                              {m.type}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-mono text-gray-700 break-all">
-                          {m.device || <span className="text-gray-400">—</span>}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-700 whitespace-nowrap tabular-nums">
-                          <span className="text-gray-900 font-medium">
-                            {formatMemoryBytes(m.usedBytes)}
-                          </span>
-                          <span className="text-gray-400 mx-1">/</span>
-                          <span>{formatMemoryBytes(m.totalBytes)}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-gray-100 rounded-full h-1.5 min-w-[60px]">
-                              <div
-                                className={`${barColor} h-1.5 rounded-full transition-all`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-gray-600 w-12 text-right tabular-nums">
-                              {pct.toFixed(1)}%
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </Card>
+        <HostFilesystemsTable
+          mounts={mountList}
+          formatBytes={formatMemoryBytes}
+        />
       </div>
     );
   };

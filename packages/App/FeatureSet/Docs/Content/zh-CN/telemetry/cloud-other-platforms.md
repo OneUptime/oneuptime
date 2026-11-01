@@ -1,6 +1,6 @@
 # 其他云平台
 
-设置那些没有单独页面的托管平台：AWS Elastic Beanstalk、AWS App Runner、Google App Engine、Azure App Service 和 Azure Container Instances。规则与每个平台都一样：带有托管 `cloud.platform`、`cloud.account.id` 和 `cloud.region` 的遥测数据，会按平台、账户和区域进入一个 **Cloud Environment**，而实例标识会让每个运行中的实例在 **实例** 下各占一行。
+设置那些没有单独页面的托管平台：AWS Elastic Beanstalk、AWS App Runner、Google App Engine、Azure App Service 和 Azure Container Instances。规则与每个平台都一样：带有托管 `cloud.platform`、`cloud.account.id` 和 `cloud.region` 的遥测数据，会按平台、账户和区域进入一个 **云环境**，而实例标识会让每个运行中的实例在 **实例** 下各占一行。
 
 :::cards
 - [AWS Elastic Beanstalk](#aws-elastic-beanstalk): 每个实例上的 Collector，配合 Beanstalk 和 EC2 检测器。
@@ -221,7 +221,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-返回 `200` 且 `"valid": true` 表示令牌已被接受。`401` 表示令牌未知、已吊销、已停用或已过期。在第一个 span、日志或指标到达后的 1 分钟内，环境就会出现在 **云 → All Environments** 中，并以平台、区域和账户命名。
+返回 `200` 且 `"valid": true` 表示令牌已被接受。`401` 表示令牌未知、已吊销、已停用或已过期。在第一个 span、日志或指标到达后的 1 分钟内，环境就会出现在 **应用平台 → 所有环境** 中，并以平台、区域和账户命名。
 
 ## 故障排除
 

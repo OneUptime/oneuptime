@@ -159,7 +159,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
   -H "x-oneuptime-token: YOUR_TELEMETRY_INGESTION_TOKEN"
 ```
 
-`200` avec `"valid": true` signifie que le jeton est accepté. `401` signifie qu'il est inconnu, révoqué, désactivé ou expiré. Envoyez ensuite une requête au service, et cherchez dans les journaux du collecteur, dans Cloud Logging (filtrés sur le conteneur `otel-collector`), `401`, `connection refused` ou `context deadline exceeded`. Dans la minute, l'environnement apparaît sous **Cloud → Tous les environnements** sous le nom _GCP Cloud Run · us-central1 · my-project_, et le service sous **Fonctions serverless**.
+`200` avec `"valid": true` signifie que le jeton est accepté. `401` signifie qu'il est inconnu, révoqué, désactivé ou expiré. Envoyez ensuite une requête au service, et cherchez dans les journaux du collecteur, dans Cloud Logging (filtrés sur le conteneur `otel-collector`), `401`, `connection refused` ou `context deadline exceeded`. Dans la minute, l'environnement apparaît sous **Plateformes d'applications → Tous les environnements** sous le nom _GCP Cloud Run · us-central1 · my-project_, et le service sous **Fonctions serverless**.
 :::
 
 ## Le YAML du service avec un sidecar

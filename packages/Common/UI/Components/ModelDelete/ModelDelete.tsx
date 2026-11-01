@@ -70,6 +70,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
    * TypeToConfirmDelete. Without a name to type, the dialog asks as usual.
    */
   requireTypedName?: boolean | undefined;
+  /*
+   * What one record of this kind is called, where the page calls it
+   * otherwise than its model does: an App Platforms environment is a
+   * CloudResource row, whose own noun is Cloud's. Names the card, its
+   * button, the dialog and the sentence without a name. Defaults to the
+   * model's singularName.
+   */
+  singularName?: string | undefined;
 }
 
 /*
@@ -194,7 +202,9 @@ const ModelDelete: <TBaseModel extends BaseModel>(
 
   const shownName: string = fullName ? shortenDisplayName(fullName) : "";
 
-  const typeLabel: string = model.singularName || "item";
+  const singularName: string =
+    props.singularName?.trim() || model.singularName || "";
+  const typeLabel: string = singularName || "item";
 
   /*
    * What goes with it (DeleteConsequences), on the card and in the dialog:
@@ -249,7 +259,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
       <Card
         title={translateNamedAction(translator, {
           template: "Delete {{itemName}}",
-          itemName: model.singularName || "",
+          itemName: singularName,
         })}
         description={
           <DeleteConfirmationMessage
@@ -265,7 +275,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           {
             title: translateNamedAction(translator, {
               template: "Delete {{itemName}}",
-              itemName: model.singularName || "",
+              itemName: singularName,
             }),
             buttonStyle: ButtonStyleType.DANGER,
             disabled: !deleteGate.isAllowed,
@@ -297,7 +307,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           }
           title={translateNamedAction(translator, {
             template: "Delete {{itemName}}",
-            itemName: model.singularName || "",
+            itemName: singularName,
           })}
           onSubmit={async () => {
             await confirm();
@@ -308,7 +318,7 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           }}
           submitButtonText={translateNamedAction(translator, {
             template: "Delete {{itemName}}",
-            itemName: model.singularName || "",
+            itemName: singularName,
           })}
           submitButtonType={ButtonStyleType.DANGER}
           disableSubmitButton={!isConfirmed}

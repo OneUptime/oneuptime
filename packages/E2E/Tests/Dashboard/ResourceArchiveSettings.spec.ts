@@ -11,6 +11,12 @@ interface ResourceCase {
   apiPath: string;
   identifierField: string;
   singularName: string;
+  /*
+   * The product's list, where archiving lands, when it is not the product's
+   * own address: App Platforms opens on its Overview and lists its
+   * environments at environments.
+   */
+  listPage?: string;
 }
 
 const resources: Array<ResourceCase> = [
@@ -20,11 +26,16 @@ const resources: Array<ResourceCase> = [
     identifierField: "appIdentifier",
     singularName: "application",
   },
+  /*
+   * A cloud resource made without a kind is an environment, App Platforms'
+   * (Cloud keeps the resources of its connected accounts).
+   */
   {
-    product: "cloud",
+    product: "app-platforms",
     apiPath: "cloud-resource",
     identifierField: "resourceIdentifier",
     singularName: "cloud environment",
+    listPage: "environments",
   },
   {
     product: "serverless",
@@ -102,11 +113,14 @@ test.describe("Resource archive actions live in Settings", () => {
 
         const record: ResourceRecord = await readResource();
         expect(record.isArchived).toBe(false);
-        const listPath: string = `/dashboard/${projectId}/${resource.product}`;
-        const overviewUrl: string = urlFor(`${listPath}/${record._id}`);
+        const productPath: string = `/dashboard/${projectId}/${resource.product}`;
+        const listPath: string = resource.listPage
+          ? `${productPath}/${resource.listPage}`
+          : productPath;
+        const overviewUrl: string = urlFor(`${productPath}/${record._id}`);
         const settingsUrl: string = `${overviewUrl}/settings`;
         const settingsLink: Locator = page.locator(
-          `a[href='${listPath}/${record._id}/settings']`,
+          `a[href='${productPath}/${record._id}/settings']`,
         );
         /*
          * The resource's Settings page sits in a Settings section that

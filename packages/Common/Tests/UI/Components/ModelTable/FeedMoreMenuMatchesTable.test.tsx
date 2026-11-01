@@ -43,12 +43,17 @@ jest.mock("../../../../UI/Utils/Permission", () => {
   };
 });
 
+/*
+ * A viewer who may read the list: a master admin reads every column. One who
+ * may read none of it is told so, and its ⋯ offers no Filter (BaseModelTable's
+ * isNoAccessShown) - nothing to hold the feed's Filter to.
+ */
 jest.mock("../../../../UI/Utils/User", () => {
   return {
     __esModule: true,
     default: {
       isMasterAdmin: (): boolean => {
-        return false;
+        return true;
       },
       getUserId: (): null => {
         return null;

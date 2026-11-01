@@ -1,4 +1,5 @@
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -18,8 +19,12 @@ import {
   CloudFleetCounts,
   CloudFleetSummaryTile,
   summarizeCloudFleet,
-} from "../../Pages/Cloud/Utils/CloudFleetSummary";
-import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../Pages/Cloud/Utils/CloudResourceTelemetryScope";
+} from "../../Pages/AppPlatforms/Utils/CloudFleetSummary";
+import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../Pages/AppPlatforms/Utils/CloudResourceTelemetryScope";
+import { getTileTitleWordsClassName } from "../TelemetryResource/TileTitleWords";
+import { getDrawnLanguage } from "Common/UI/Components/SideMenu/SideMenuEntryState";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The stat strip above the Cloud Environments table: how many environments
@@ -153,6 +158,7 @@ export async function fetchCloudFleetCounts(): Promise<CloudFleetCounts> {
 const CloudFleetSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [counts, setCounts] = useState<CloudFleetCounts | null>(null);
   const [failed, setFailed] = useState<boolean>(false);
 
@@ -190,44 +196,105 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
 
   const tiles: Array<CloudFleetSummaryTile> = summarizeCloudFleet(counts);
 
+  /*
+   * Laid out by the room the strip and each tile have, not the window's:
+   * beside the side menu a 1024px window leaves a quarter of the row too
+   * narrow for a title, its (i) and the icon. Four in a row from 52rem of
+   * strip, two below; a tile under 11rem drops its icon, which only
+   * decorates, so the title and its (i) are never drawn under it.
+   */
   return (
     <div
       data-testid="cloud-fleet-summary"
-      className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4"
+      className="mb-6 [container-type:inline-size]"
     >
-      {tiles.map((tile: CloudFleetSummaryTile, index: number): ReactElement => {
-        const style: TileStyle = TILE_STYLES[index] || FALLBACK_TILE_STYLE;
-        return (
-          <div
-            key={tile.title}
-            data-testid="cloud-fleet-summary-tile"
-            className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex min-w-0 items-center gap-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {tile.title}
-                </span>
-                <InfoTooltip label={tile.title} text={tile.description} />
-              </div>
+      <div className="grid grid-cols-2 gap-4 [@container(min-width:52rem)]:grid-cols-4">
+        {tiles.map(
+          (tile: CloudFleetSummaryTile, index: number): ReactElement => {
+            const style: TileStyle = TILE_STYLES[index] || FALLBACK_TILE_STYLE;
+            /*
+             * In the reader's language, as the golden-metric tiles draw
+             * theirs (ResourceOverview): the title says its language, so a
+             * long word breaks where that language hyphenates it. The (i)
+             * translates its own label and text.
+             */
+            const title: string =
+              translator.translateText(tile.title) || tile.title;
+            const titleLanguage: string | undefined = getDrawnLanguage({
+              english: tile.title,
+              drawn: title,
+              language: translator.language,
+            });
+            const sublabel: string =
+              translator.translateText(tile.sublabel) || tile.sublabel;
+            return (
               <div
-                className={`flex h-7 w-7 items-center justify-center rounded-md ${style.bg} ring-1 ring-inset ${style.ring}`}
+                key={tile.title}
+                data-testid="cloud-fleet-summary-tile"
+                className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm [container-type:inline-size]"
               >
-                <Icon
-                  icon={style.icon}
-                  className={`h-3.5 w-3.5 ${style.text}`}
-                />
+                <div className="mb-3 flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-1">
+                    <span
+                      className={`min-w-0 text-xs font-medium uppercase tracking-wider text-gray-500 ${getTileTitleWordsClassName(
+                        { text: title, lang: titleLanguage },
+                      )}`}
+                      lang={titleLanguage}
+                    >
+                      {title}
+                    </span>
+                    <InfoTooltip label={tile.title} text={tile.description} />
+                  </div>
+                  <div
+                    data-testid="cloud-fleet-summary-tile-icon"
+                    className={`flex h-7 w-7 flex-none items-center justify-center rounded-md ${style.bg} ring-1 ring-inset ${style.ring} [@container(max-width:10.99rem)]:hidden`}
+                  >
+                    <Icon
+                      icon={style.icon}
+                      className={`h-3.5 w-3.5 ${style.text}`}
+                    />
+                  </div>
+                </div>
+                <div className="text-2xl font-semibold leading-none text-gray-900">
+                  {tile.value}
+                </div>
+                {/*
+                 * Wraps rather than cuts: the providers' breakdown (2 AWS · 2
+                 * Azure · 2 Google Cloud) is longer than a quarter of a laptop's
+                 * row, and the row's tiles grow together. It wraps between
+                 * providers, never inside one: "2 Google" over "Cloud" read
+                 * as two things. Isolated (bdi), the breakdown keeps its
+                 * order on a right-to-left page.
+                 */}
+                <div
+                  data-testid="cloud-fleet-summary-tile-sublabel"
+                  className="mt-1 break-words text-xs text-gray-500"
+                >
+                  <bdi>
+                    {tile.sublabelParts && tile.sublabelParts.length > 1
+                      ? tile.sublabelParts.map(
+                          (part: string, partIndex: number): ReactElement => {
+                            return (
+                              <Fragment key={part}>
+                                {partIndex > 0 ? " · " : ""}
+                                <span
+                                  className="whitespace-nowrap"
+                                  data-testid="cloud-fleet-summary-tile-sublabel-part"
+                                >
+                                  {part}
+                                </span>
+                              </Fragment>
+                            );
+                          },
+                        )
+                      : sublabel}
+                  </bdi>
+                </div>
               </div>
-            </div>
-            <div className="text-2xl font-semibold leading-none text-gray-900">
-              {tile.value}
-            </div>
-            <div className="mt-1 truncate text-xs text-gray-500">
-              {tile.sublabel}
-            </div>
-          </div>
-        );
-      })}
+            );
+          },
+        )}
+      </div>
     </div>
   );
 };

@@ -61,7 +61,8 @@ Dokumentationen er opbygget som sidepanelet, i ni afsnit. Vælg den del, du har 
 :::cards
 - [Telemetri](/docs/telemetry/open-telemetry): Send logs, metrikker og traces med OpenTelemetry, og søg i dem.
 - [Infrastrukturagenter](/docs/telemetry/hosts): Tilføj en vært med én kommando, og installér agenterne til Kubernetes, Docker, Proxmox, VMware og meget mere.
-- [Cloud](/docs/telemetry/cloud-environments): Observer ECS, Cloud Run, Azure Container Apps og andre administrerede platforme.
+- [App-platforme](/docs/telemetry/cloud-environments): Overvåg de apps, du kører på ECS og Fargate, Cloud Run, App Service og andre administrerede platforme.
+- [Cloud](/docs/telemetry/cloud-accounts): Forbind dine AWS-, Azure- og Google Cloud-konti, og overvåg hver ressource i dem.
 - [AI-observability](/docs/telemetry/ai-llm-observability): Følg din AI's samtaler, og få besked, når den svarer dårligt.
 - [Sikkerhed](/docs/telemetry/security-events): Indsaml sikkerhedshændelser og trusselsefterretninger.
 - [Datasikkerhed](/docs/data-security/index): Find de følsomme data i dine buckets, databaser og telemetri, og ret måden, de opbevares på.

@@ -160,10 +160,81 @@ const SPLIT_MODELS: Record<string, SplitModel> = {
       "packages/App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiRulesTable.tsx",
     ],
   },
+  /*
+   * A cloud owner or label rule names the kind of row it is for
+   * (cloudResourceKind): App Platforms' rules pages list the environments'
+   * rules, Cloud's the resources'. A rule made before the two products split
+   * names neither and applies to both, so both lists show it - with a pill
+   * that says it also applies in the other (Components/Cloud/CloudRuleKind)
+   * - which is the one way such a rule is listed twice.
+   */
+  CloudResourceOwnerRule: {
+    column: "cloudResourceKind",
+    files: [
+      "packages/App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Settings/OwnerRules.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Cloud/Settings/OwnerRules.tsx",
+    ],
+  },
+  CloudResourceLabelRule: {
+    column: "cloudResourceKind",
+    files: [
+      "packages/App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Settings/LabelRules.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Cloud/Settings/LabelRules.tsx",
+    ],
+  },
 };
+
+/*
+ * A discovered resource whose rows two products show, each row's details
+ * edited on its own product's Settings page: CloudResource's environments
+ * in App Platforms, its resources in Cloud. A row is never edited on both,
+ * because each product's page reads the row's kind before drawing anything
+ * and forwards a row of the other kind to its own product's page (each
+ * Settings page's View/Layout.tsx). Held below: both layouts read the kind
+ * and forward.
+ */
+interface SplitDiscoveredResource {
+  column: string;
+  settingsPages: Array<string>;
+}
+
+const SPLIT_DISCOVERED_RESOURCES: Record<string, SplitDiscoveredResource> = {
+  CloudResource: {
+    column: "cloudResourceKind",
+    settingsPages: [
+      "packages/App/FeatureSet/Dashboard/src/Pages/AppPlatforms/View/Settings.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Pages/Cloud/View/Settings.tsx",
+    ],
+  },
+};
+
+// The Settings pages a discovered resource's details are edited on: one, or one per product.
+function settingsPagesOf(resource: DiscoveredResource): Array<string> {
+  return (
+    SPLIT_DISCOVERED_RESOURCES[resource.model]?.settingsPages || [
+      resource.settingsPage,
+    ]
+  );
+}
 
 // Whether a detail's places are the tables of a split, one each.
 function isOnePlacePerSplit(places: Array<EditPlace>): boolean {
+  const discovered: SplitDiscoveredResource | undefined =
+    SPLIT_DISCOVERED_RESOURCES[places[0]?.model || ""];
+
+  if (discovered) {
+    const files: Array<string> = places.map((place: EditPlace): string => {
+      return place.file;
+    });
+
+    return (
+      new Set(files).size === files.length &&
+      files.every((file: string): boolean => {
+        return discovered.settingsPages.includes(file);
+      })
+    );
+  }
+
   const split: SplitModel | undefined = SPLIT_MODELS[places[0]?.model || ""];
 
   if (!split) {
@@ -587,15 +658,26 @@ export const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     [],
   ),
   /*
-   * Environments and the resources discovered from cloud monitoring share
-   * the card: both are identified by their account and region, and the
-   * rest of what identifies each kind (the platform; the type, provider id
-   * and resource group) is shown read-only below them (detailFields).
+   * Environments and the resources discovered from cloud monitoring are
+   * rows of one table, each kind with its Settings page in its own product
+   * (SPLIT_DISCOVERED_RESOURCES): an environment's in App Platforms, a
+   * resource's in Cloud. Both are identified by their account and region,
+   * and the rest of what identifies each kind (the platform; the type,
+   * provider id and resource group) is shown read-only below them
+   * (detailFields).
    */
   identified(
     "CloudResource",
-    "Cloud",
+    "AppPlatforms",
     "Overview.tsx",
+    "APP_PLATFORMS_ENVIRONMENT_VIEW_SETTINGS",
+    ["cloudAccountId", "cloudRegion"],
+    [],
+  ),
+  identified(
+    "CloudResource",
+    "Cloud",
+    "MonitoredResourceOverview.tsx",
     "CLOUD_RESOURCE_VIEW_SETTINGS",
     ["cloudAccountId", "cloudRegion"],
     [],
@@ -775,6 +857,9 @@ function readCode(file: string): string {
 // A run of whitespace, squashed out of code compared as text.
 const WHITESPACE_RUN: RegExp = /\s+/g;
 
+// A Settings page's file name, swapped for its layout's.
+const SETTINGS_FILE: RegExp = /Settings\.tsx$/;
+
 // Comments out: what the code says, not what a comment says about it.
 function readCodeWithoutComments(file: string): string {
   return readCode(file)
@@ -862,11 +947,16 @@ describe("where a record's details are edited", () => {
 });
 
 describe.each(DISCOVERED_RESOURCES)(
-  "$model's details",
+  "$model's details ($settingsPageKey)",
   (resource: DiscoveredResource) => {
+    // A split resource's card on this page; any other's one card.
     const uses: Array<DetailsCardUse> = DETAILS_CARD_USES.filter(
       (use: DetailsCardUse): boolean => {
-        return use.model === resource.model;
+        return (
+          use.model === resource.model &&
+          (!SPLIT_DISCOVERED_RESOURCES[resource.model] ||
+            use.file === resource.settingsPage)
+        );
       },
     );
 
@@ -883,10 +973,18 @@ describe.each(DISCOVERED_RESOURCES)(
     test("are its name, description and labels, edited there and nowhere else", () => {
       for (const key of ["name", "description", "labels"]) {
         expect(
-          placesOf(resource.model, key).map((place: EditPlace): string => {
-            return `${place.file} ${place.form}`;
-          }),
-        ).toEqual([`${resource.settingsPage} ${DETAILS_CARD}`]);
+          placesOf(resource.model, key)
+            .map((place: EditPlace): string => {
+              return `${place.file} ${place.form}`;
+            })
+            .sort(),
+        ).toEqual(
+          settingsPagesOf(resource)
+            .map((page: string): string => {
+              return `${page} ${DETAILS_CARD}`;
+            })
+            .sort(),
+        );
       }
     });
 
@@ -973,6 +1071,39 @@ function linksToSettings(file: string, pageKey: string): boolean {
 
   return false;
 }
+
+describe.each(Object.entries(SPLIT_DISCOVERED_RESOURCES))(
+  "%s, split between products",
+  (_model: string, split: SplitDiscoveredResource) => {
+    test.each(split.settingsPages)(
+      "%s is drawn only for its own rows: its layout reads the row's kind and forwards the other's",
+      (settingsPage: string) => {
+        const layout: string = readCodeWithoutComments(
+          settingsPage.replace(SETTINGS_FILE, "Layout.tsx"),
+        ).replace(WHITESPACE_RUN, "");
+
+        expect(layout).toContain(`${split.column}:true`);
+        expect(layout).toContain("getCloudResourceForwardRoute(");
+        expect(layout).toContain("<Navigate");
+      },
+    );
+
+    test("each Settings page is its own product's", () => {
+      expect(new Set(split.settingsPages).size).toBe(
+        split.settingsPages.length,
+      );
+      expect(
+        DISCOVERED_RESOURCES.filter((resource: DiscoveredResource): boolean => {
+          return SPLIT_DISCOVERED_RESOURCES[resource.model] === split;
+        })
+          .map((resource: DiscoveredResource): string => {
+            return resource.settingsPage;
+          })
+          .sort(),
+      ).toEqual([...split.settingsPages].sort());
+    });
+  },
+);
 
 describe("the other records whose details had two homes", () => {
   test.each(OTHER_ONE_PLACES)(

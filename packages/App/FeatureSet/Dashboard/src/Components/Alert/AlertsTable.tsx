@@ -778,6 +778,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             name: true,
             _id: true,
             projectId: true,
+            // Opens an environment in App Platforms, a resource in Cloud.
+            cloudResourceKind: true,
           },
           services: {
             name: true,
@@ -891,6 +893,16 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
             title: "Severity",
             type: FieldType.Entity,
+            /*
+             * Where the list does not fit its card - beside the side menu up
+             * to about 1600px - the severity sits under the state, and the
+             * duration under when it was created, the labels and owners
+             * under the title: every value of the row kept, the row's View
+             * in sight (TableFit). A table of nine columns ran 520px past
+             * its card at 1280px.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "currentAlertState",
 
             getElement: (item: Alert): ReactElement => {
               if (item["alertSeverity"]) {
@@ -973,6 +985,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 name: true,
                 _id: true,
                 projectId: true,
+                cloudResourceKind: true,
               },
               services: {
                 name: true,
@@ -1033,6 +1046,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             disableSort: true,
             disableCsvExport: true,
+            // Under when it was created, where the list folds (Severity).
+            hideBelowLargeScreen: true,
+            foldInto: "createdAt",
             getElement: (item: Alert): ReactElement => {
               const alertId: string = item.id?.toString() || "";
               const isResolved: boolean = isAlertResolved(item);
@@ -1066,6 +1082,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             title: "Labels",
             type: FieldType.EntityArray,
             hideOnMobile: true,
+            // Under the title, where the list folds (Severity).
+            hideBelowLargeScreen: true,
+            foldInto: "title",
 
             getElement: (item: Alert): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
@@ -1078,6 +1097,9 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             title: "Owners",
             type: FieldType.Element,
             hideOnMobile: true,
+            // Under the title, where the list folds (Severity).
+            hideBelowLargeScreen: true,
+            foldInto: "title",
             getElement: (item: Alert): ReactElement => {
               return (
                 <OwnersCell

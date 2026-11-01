@@ -510,11 +510,11 @@ Etter det første vellykkede walket leser OneUptime SNMPv2-systemgruppen og, der
 
 En enhet med bare ping beholder navnet og adressen du, eller en discovery-skanning, ga den. Det dens egen polling ikke har lest, henter den fra discovery:
 
-- Systemnavnet, beskrivelsen, `sysObjectID`, plasseringen og kontakten som den siste [discovery-skanningen](#finn-enheter-med-en-nettverksskanning) av adressen leste over SNMP, og revers-DNS- og NetBIOS-navnene den fant.
-- MAC-adressen, fra ARP-tabellen i en gjennomgått ruter på stedet.
+- Systemnavnet, beskrivelsen, `sysObjectID`, plasseringen, kontakten, modellen, serienummeret, fastvaren og programvareversjonen som den siste [discovery-skanningen](#finn-enheter-med-en-nettverksskanning) av adressen leste over SNMP, og revers-DNS- og NetBIOS-navnene den fant.
+- MAC-adressen, fra ARP-tabellen i en gjennomgått ruter på stedet, eller ellers fra den første Ethernet-porten som den skanningen leste.
 - For en enhet som polles på et DNS-navn, adressen sonden slo opp navnet til.
 
-Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver skanning, ruter-walk eller polling som leser en av dem på nytt, oppdaterer den. Enhetens oversikt og elementet i inventaret viser hvilken skanning, ruter eller sonde som leste hver verdi, og når. En verdi du har lagret på enheten, erstattes aldri. Når en skanning finner en annen maskin på enhetens adresse, for eksempel en DHCP-leie som har flyttet seg, sier oversikten det, og ingenting av det den skanningen leste der, brukes.
+Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver skanning, ruter-walk eller polling som leser en av dem på nytt, oppdaterer den. En skanning leser MAC-adressen, modellen, serienummeret, fastvaren og programvareversjonen til en vert med noen få forespørsler til etter systemgruppen, i høyst fem sekunder per vert. En vert som slutter å svare på dem, teller fortsatt som en vert som har svart, og det skanningen ikke kunne lese, beholder sin siste verdi. Enhetens oversikt og elementet i inventaret viser hvilken skanning, ruter eller sonde som leste hver verdi, og når. En verdi du har lagret på enheten, erstattes aldri. Når en skanning finner en annen maskin på enhetens adresse, for eksempel en DHCP-leie som har flyttet seg, sier oversikten det, og ingenting av det den skanningen leste der, brukes.
 
 En Meraki-svitsj, et Meraki-tilgangspunkt eller en Meraki-appliance gir verken serienummer eller fastvare over SNMP: når enheten polles direkte, svarer den på systemgruppen og grensesnittabellene, som gir modellen og MAC-adressen, og ikke noe mer. Når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens, henter enheten disse, og alt annet pollingen lar stå tomt, fra Meraki-dashbordet, og kortet **Inventar** nevner tilkoblingen i en rad **Meraki**.
 
@@ -747,7 +747,7 @@ OneUptime holder deretter én nettverksenhetsmonitor per enhet som passer, laget
 > [!IMPORTANT]
 > Hver monitor en policy oppretter, teller mot abonnementet ditt. En policy over et stort miljø er mange monitorer fra én lagring, så bekreftelsen av den anbefalte policyen oppgir prosjektets antall enheter før den oppretter noe.
 
-Tabellens kolonne **Covered Devices** viser **Ikke telt ennå** frem til policyens første synkronisering, og **Last Sync** sier når den var, eller hvorfor den feilet.
+Tabellens kolonne **Covered Devices** viser **Ikke telt ennå** frem til policyens første synkronisering, og **Siste synkronisering** sier når den var, eller hvorfor den feilet.
 
 Når det ikke finnes noen policyer ennå, tilbyr siden **Create the recommended policy**: en monitormal **Network device alert pack (recommended)**, som bærer den [anbefalte varslingspakken](#anbefalt-varslingspakke), og en policy **Alert on every device** som bruker den på hele prosjektet. Malen finnes igjen via en markør i beskrivelsen, så handlingen oppretter aldri en ekstra kopi, og det er en monitormal du også kan bruke til monitorer du oppretter selv. Snevre inn policyens omfang etterpå hvis hele prosjektet er for mye.
 

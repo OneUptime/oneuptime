@@ -139,7 +139,7 @@ import {
   RESOURCE_SHOWCASE_ADD_BUTTON_TEST_ID,
   RESOURCE_SHOWCASE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceShowcase/ResourceShowcaseCard";
-import CloudEnvironmentsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/CloudResources";
+import CloudEnvironmentsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Environments";
 
 type PageComponent = FunctionComponent<PageComponentProps>;
 
@@ -603,8 +603,8 @@ describe("Cloud Environments: Add Cloud Environment", () => {
     };
   }
 
-  test("waits for an environment, not a resource a cloud's monitoring API reports, and the summary counts the new one", async () => {
-    goTo(`/dashboard/${PROJECT_ID}/cloud`);
+  test("waits for an environment, not a resource a cloud's monitoring API reports, and the list shows the new one", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/app-platforms/environments`);
     rowsOf(CloudResource).push(
       cloudRow({
         id: 10,
@@ -617,15 +617,11 @@ describe("Cloud Environments: Add Cloud Environment", () => {
 
     await renderPage(CloudEnvironmentsPage);
 
-    // The summary's first tile: how many environments, and on which clouds.
-    const environments: () => HTMLElement = (): HTMLElement => {
-      return within(screen.getByTestId("cloud-fleet-summary")).getAllByTestId(
-        "cloud-fleet-summary-tile",
-      )[0]!;
-    };
-
-    expect(environments()).toHaveTextContent("Environments");
-    expect(environments()).toHaveTextContent(/1\s*1 AWS$/);
+    /*
+     * The counts over every environment are App Platforms' Overview's; the
+     * list is the list.
+     */
+    expect(screen.queryByTestId("cloud-fleet-summary")).toBeNull();
 
     await click(
       headerButton(listCard("Cloud Environments"), "Add Cloud Environment"),
@@ -669,9 +665,10 @@ describe("Cloud Environments: Add Cloud Environment", () => {
     ).toHaveTextContent("GCP Cloud Run · europe-west1 · acme-prod");
     expect(
       within(dialog()).getByRole("link", { name: "View environment" }),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/cloud/${idOf(12)}`);
-    // The summary over the list counted again.
-    expect(environments()).toHaveTextContent(/2\s*1 AWS · 1 Google Cloud$/);
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/app-platforms/${idOf(12)}`,
+    );
     expect(
       within(listCard("Cloud Environments")).getAllByText(
         "GCP Cloud Run · europe-west1 · acme-prod",

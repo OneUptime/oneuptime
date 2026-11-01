@@ -61,7 +61,8 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 :::cards
 - [Telemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces with OpenTelemetry, and search them.
 - [Infrastructure agents](/docs/telemetry/hosts): Add a host in one command, and install the agents for Kubernetes, Docker, Proxmox, VMware and more.
-- [Cloud](/docs/telemetry/cloud-environments): Observe ECS, Cloud Run, Azure Container Apps and other managed platforms.
+- [App Platforms](/docs/telemetry/cloud-environments): Monitor the apps you run on ECS and Fargate, Cloud Run, App Service and other managed platforms.
+- [Cloud](/docs/telemetry/cloud-accounts): Connect your AWS, Azure and Google Cloud accounts and monitor every resource in them.
 - [AI observability](/docs/telemetry/ai-llm-observability): Follow your AI's conversations, and get told when it answers badly.
 - [Security](/docs/telemetry/security-events): Collect security events and threat intelligence.
 - [Data security](/docs/data-security/index): Find the sensitive data in your buckets, databases and telemetry, and fix how it is kept.

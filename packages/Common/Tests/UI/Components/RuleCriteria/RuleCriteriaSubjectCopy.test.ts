@@ -28,7 +28,7 @@ describe("RULE_CRITERIA_SUBJECT_COPY", () => {
     expect(Object.keys(RULE_CRITERIA_SUBJECT_COPY).sort()).toEqual(
       [...SUBJECTS].sort(),
     );
-    expect(SUBJECTS.length).toBe(32);
+    expect(SUBJECTS.length).toBe(33);
   });
 
   test.each(SUBJECTS)(
@@ -73,6 +73,26 @@ describe("RULE_CRITERIA_SUBJECT_COPY", () => {
       RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.ServiceLevelObjectives]
         .matching,
     ).toBe("Only SLOs that match conditions");
+  });
+
+  /*
+   * One table of cloud rules serves two products: on Cloud's pages they are
+   * about cloud resources, on App Platforms' about the environments its
+   * apps run in - in the words the rest of App Platforms uses.
+   */
+  test("the cloud rules read as each product calls its records", () => {
+    expect(
+      RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.CloudResources],
+    ).toEqual({
+      all: "All cloud resources",
+      matching: "Only cloud resources that match conditions",
+    });
+    expect(
+      RULE_CRITERIA_SUBJECT_COPY[RuleCriteriaSubject.CloudEnvironments],
+    ).toEqual({
+      all: "All cloud environments",
+      matching: "Only cloud environments that match conditions",
+    });
   });
 });
 

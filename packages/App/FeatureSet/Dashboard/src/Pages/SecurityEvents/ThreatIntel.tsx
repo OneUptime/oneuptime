@@ -854,6 +854,13 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             title: "Last Poll Summary",
             type: FieldType.Text,
             noValueMessage: "-",
+            /*
+             * Under the feed's status, where the list does not fit its card
+             * (TableFit): in German at 1280px, beside the side menu, it ran
+             * past the card under the row's buttons.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "isEnabled",
           },
           /*
            * The rest start hidden (Customize Columns brings them back): the

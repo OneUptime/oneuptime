@@ -510,11 +510,11 @@ Depois do primeiro walk bem-sucedido, o OneUptime lê o grupo de sistema SNMPv2 
 
 Um dispositivo só com ping mantém o nome e o endereço que você, ou uma varredura de descoberta, deu a ele. O que a sua própria consulta não leu, ele obtém da descoberta:
 
-- O nome do sistema, a descrição, o `sysObjectID`, a localização e o contato que a última [varredura de descoberta](#descobrir-dispositivos-com-uma-varredura-de-rede) do seu endereço leu por SNMP, e os nomes DNS reverso e NetBIOS que ela encontrou.
-- O endereço MAC, da tabela ARP de um roteador percorrido do seu site.
+- O nome do sistema, a descrição, o `sysObjectID`, a localização, o contato, o modelo, o número de série, o firmware e a versão do software que a última [varredura de descoberta](#descobrir-dispositivos-com-uma-varredura-de-rede) do seu endereço leu por SNMP, e os nomes DNS reverso e NetBIOS que ela encontrou.
+- O endereço MAC, da tabela ARP de um roteador percorrido do seu site ou, senão, da primeira porta Ethernet que essa varredura leu.
 - Para um dispositivo consultado por um nome DNS, o endereço para o qual a sonda resolveu esse nome.
 
-Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
+Esses valores ficam ao lado dos campos do próprio dispositivo, nunca gravados neles, e cada varredura, walk de roteador ou consulta que lê um deles de novo o atualiza. Uma varredura lê o endereço MAC, o modelo, o número de série, o firmware e a versão do software de um host com mais algumas solicitações depois do grupo de sistema, por no máximo cinco segundos por host. Um host que deixa de responder a elas continua contando como um host que respondeu, e o que a varredura não conseguiu ler mantém o último valor. A visão geral do dispositivo e o seu item no inventário mostram qual varredura, roteador ou sonda leu cada valor, e quando. Um valor que você salvou no dispositivo nunca é substituído. Quando uma varredura encontra outra máquina no endereço do dispositivo, como uma concessão DHCP que mudou, a visão geral avisa, e nada do que essa varredura leu ali é usado.
 
 Um switch, ponto de acesso ou appliance Meraki não informa por SNMP número de série nem firmware: consultado diretamente, responde ao grupo de sistema e às tabelas de interfaces, que dão o modelo e o endereço MAC dele, e nada mais. Quando uma [conexão do Meraki](/docs/monitor/network-traffic#cisco-meraki-sem-netflow) lê a organização dele, o dispositivo obtém esses dados, e tudo o mais que a sua consulta deixa vazio, do painel do Meraki, e o cartão **Inventário** dele nomeia a conexão em uma linha **Meraki**.
 
@@ -747,7 +747,7 @@ O OneUptime então mantém um monitor de dispositivo de rede por dispositivo cor
 > [!IMPORTANT]
 > Cada monitor que uma política provisiona conta para o seu plano. Uma política sobre um parque grande são muitos monitores a partir de um único salvamento, então a confirmação da política recomendada informa a contagem de dispositivos do projeto antes de criar qualquer coisa.
 
-A coluna **Covered Devices** da tabela mostra **Ainda não contado** até a primeira sincronização da política, e **Last Sync** diz quando foi, ou por que falhou.
+A coluna **Covered Devices** da tabela mostra **Ainda não contado** até a primeira sincronização da política, e **Última sincronização** diz quando foi, ou por que falhou.
 
 Sem nenhuma política ainda, a página oferece **Create the recommended policy**: um modelo de monitor **Network device alert pack (recommended)**, que carrega o [pacote de alertas recomendado](#pacote-de-alertas-recomendado), e uma política **Alert on every device** que o aplica ao projeto inteiro. O modelo é reencontrado por um marcador na descrição dele, então a ação nunca cria uma segunda cópia, e ele é um modelo de monitor que você também pode usar para os monitores que cria. Estreite depois o escopo da política se o projeto inteiro for demais.
 

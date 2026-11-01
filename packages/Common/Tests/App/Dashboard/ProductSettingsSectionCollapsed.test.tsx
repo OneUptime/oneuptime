@@ -82,6 +82,8 @@ const PAGES_DIR: string = path.join(
 // Products whose list menu starts with Settings collapsed.
 const COLLAPSED_SETTINGS_PRODUCTS: Array<string> = [
   "Alerts",
+  // Owner Rules and Label Rules, for its environments.
+  "AppPlatforms",
   "Ceph",
   "Cloud",
   "Dashboards",

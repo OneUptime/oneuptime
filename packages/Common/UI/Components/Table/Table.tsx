@@ -28,6 +28,23 @@ import Pagination from "../Pagination/Pagination";
 import TableBody from "./TableBody";
 import { useIsCardSection } from "../Card/CardSurface";
 import TableHeader from "./TableHeader";
+import TableCardsHeader from "./TableCardsHeader";
+import { TableColumnsInView } from "./TableCellContext";
+import {
+  TABLE_DENSITY_ATTRIBUTE,
+  TABLE_DENSITY_MENU_ICON,
+  TABLE_DENSITY_MENU_KEY,
+  TABLE_DENSITY_MENU_TEXT,
+  TABLE_DENSITY_TEST_ID,
+  TableDensity,
+  useTableDensity,
+  writeTableDensity,
+} from "./TableDensity";
+import {
+  CardMenuExtraItem,
+  CardMenuExtras,
+  useCardMenuExtras,
+} from "../Card/CardMenuExtras";
 import TableSkeletonRows from "./TableSkeletonRows";
 import {
   TABLE_CLASS_NAME,
@@ -35,16 +52,19 @@ import {
   getTableFooterClassName,
 } from "./TableLayout";
 import useTableScrollState, {
+  TableCannotFit,
   TableScrollState,
   TableScrollStateHold,
   isTableOverflowing,
 } from "./useTableScrollState";
 import { revealFromStickyEnd } from "./TableStickyEndFocus";
-import {
-  DrawnTableColumns,
-  TABLE_FOLDED_COLUMNS_BELOW_WIDTH_IN_PX,
-  getDrawnTableColumns,
-} from "./FoldedColumns";
+import { DrawnTableColumns, getDrawnTableColumns } from "./FoldedColumns";
+import { TABLE_NARROW_BELOW_WIDTH_IN_PX, TableFitStep } from "./TableFit";
+import useTableFit, { UseTableFitResult } from "./useTableFit";
+import useTableBoxWidth, { TableBoxWidth } from "./useTableBoxWidth";
+import useIsBelowWidth, {
+  PHONE_BELOW_WIDTH_IN_PX,
+} from "../../Utils/UseIsBelowWidth";
 import Column from "./Types/Column";
 import Columns from "./Types/Columns";
 import {
@@ -305,25 +325,63 @@ const Table: TableFunction = <T extends GenericObject>(
   const [dragColumnWidths, setDragColumnWidths] =
     useState<Array<number> | null>(null);
   const [bulkSelectedItems, setBulkSelectedItems] = useState<Array<T>>([]);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  // Below lg: the columns marked hideBelowLargeScreen are left out.
-  const [isBelowLargeScreen, setIsBelowLargeScreen] = useState<boolean>(false);
 
-  useEffect(() => {
-    const checkMobile: () => void = (): void => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
-      setIsBelowLargeScreen(
-        window.innerWidth < TABLE_FOLDED_COLUMNS_BELOW_WIDTH_IN_PX,
-      );
-    };
+  /*
+   * A phone - a window below md - draws every row as a card. Read as the
+   * table is first drawn, not after: a phone never paints the table's rows
+   * for a frame before its cards (a Kubernetes cluster's Events at 390px
+   * drew its Event and Object columns first, and a footer test went flaky
+   * on the reflow).
+   */
+  const isPhone: boolean = useIsBelowWidth(PHONE_BELOW_WIDTH_IN_PX);
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
+  // The box the rows are drawn in: as wide as the card (TableFit).
+  const { boxWidth, windowWidth }: TableBoxWidth =
+    useTableBoxWidth(scrollBoxRef);
 
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-    };
-  }, []);
+  // Each column's id: what its width is kept by, and what a cell asks about.
+  const columnIdByColumn: Map<Column<T>, string> = useMemo(() => {
+    const ids: Array<string> = getTableColumnIds<T>(props.columns);
+    const map: Map<Column<T>, string> = new Map();
+
+    props.columns.forEach((column: Column<T>, index: number) => {
+      map.set(column, ids[index] as string);
+    });
+
+    return map;
+  }, [props.columns]);
+
+  // A drawn column's id: what keeps its cells its own as the table folds.
+  const getDrawnColumnId: (column: Column<T>) => string | undefined = (
+    column: Column<T>,
+  ): string | undefined => {
+    return columnIdByColumn.get(column);
+  };
+
+  const columnsKey: string = useMemo(() => {
+    return Array.from(columnIdByColumn.values()).join("|");
+  }, [columnIdByColumn]);
+
+  /*
+   * How the table fits its box (TableFit): as rows; folded, its foldable
+   * columns' values in other cells (in a box narrower than 48rem, and in
+   * any box the rows do not fit); or as cards - on a phone, and in a box
+   * narrower than 48rem that the rows do not fit even folded.
+   */
+  const fit: UseTableFitResult = useTableFit({
+    isPhone: isPhone,
+    boxWidth: boxWidth,
+    windowWidth: windowWidth,
+    hasFoldableColumns: props.columns.some((column: Column<T>): boolean => {
+      return Boolean(column.hideBelowLargeScreen);
+    }),
+    columnsKey: columnsKey,
+    rememberKey: props.columnWidthsKey || props.id,
+  });
+
+  // Each row a card of its column names over their values.
+  const isMobile: boolean = fit.step === TableFitStep.Cards;
+  const isFolded: boolean = fit.step !== TableFitStep.Rows;
 
   useEffect(() => {
     if (props.bulkSelectedItems) {
@@ -344,12 +402,46 @@ const Table: TableFunction = <T extends GenericObject>(
   }, [props.bulkSelectedItems]);
 
   /*
-   * The columns drawn here: below lg, every one but those marked
+   * The columns drawn here: folded (TableFit), every one but those marked
    * hideBelowLargeScreen, whose values the page's cells show in their own
    * place then (useAreTableColumnsFolded). The CSV export keeps them all.
    */
-  const { columns: drawnColumns, areColumnsFolded }: DrawnTableColumns<T> =
-    getDrawnTableColumns<T>(props.columns, isBelowLargeScreen);
+  const {
+    columns: drawnColumns,
+    areColumnsFolded,
+    foldedColumns,
+  }: DrawnTableColumns<T> = getDrawnTableColumns<T>(
+    props.columns,
+    isFolded,
+    isMobile,
+  );
+
+  /*
+   * What a cell may ask of its table: which columns are drawn as columns
+   * of their own (a phone's card leaves out those marked hideOnMobile), and
+   * which are folded into other cells.
+   */
+  const columnsInView: TableColumnsInView = useMemo(() => {
+    const drawnIds: Set<string> = new Set();
+    const foldedIds: Set<string> = new Set();
+
+    props.columns.forEach((column: Column<T>) => {
+      const columnId: string | undefined = columnIdByColumn.get(column);
+
+      // A phone's card shows nothing of a column marked hideOnMobile.
+      if (!columnId || (isMobile && isPhone && column.hideOnMobile)) {
+        return;
+      }
+
+      if (drawnColumns.includes(column)) {
+        drawnIds.add(columnId);
+      } else {
+        foldedIds.add(columnId);
+      }
+    });
+
+    return { drawnIds: drawnIds, foldedIds: foldedIds };
+  }, [props.columns, columnIdByColumn, drawnColumns, isMobile, isPhone]);
 
   /*
    * ---------------------------------------------------------------------
@@ -364,17 +456,6 @@ const Table: TableFunction = <T extends GenericObject>(
    * person and per table. A phone draws no header row, so nothing to size.
    */
   const isColumnResizeOn: boolean = !props.disableColumnResize;
-
-  const columnIdByColumn: Map<Column<T>, string> = useMemo(() => {
-    const ids: Array<string> = getTableColumnIds<T>(props.columns);
-    const map: Map<Column<T>, string> = new Map();
-
-    props.columns.forEach((column: Column<T>, index: number) => {
-      map.set(column, ids[index] as string);
-    });
-
-    return map;
-  }, [props.columns]);
 
   const columnWidths: UseColumnWidthsResult = useColumnWidths({
     tableKey: isColumnResizeOn ? props.columnWidthsKey || props.id : null,
@@ -441,6 +522,49 @@ const Table: TableFunction = <T extends GenericObject>(
   const columnWidthsScope: string = getColumnWidthsScope(useId());
 
   /*
+   * How tall the rows are: the person's choice for every table
+   * (TableDensity), offered in the ⋯ of the card the table is in while it
+   * draws rows - cards keep their room.
+   */
+  const density: TableDensity = useTableDensity();
+  const cardMenuExtras: CardMenuExtras | null = useCardMenuExtras();
+  const setCardMenuItem:
+    | ((ownerId: string, item: CardMenuExtraItem | null) => void)
+    | undefined = cardMenuExtras?.setItem;
+  const densityOwnerId: string = `${columnWidthsScope}-density`;
+
+  useLayoutEffect(() => {
+    if (!setCardMenuItem || isMobile) {
+      return undefined;
+    }
+
+    /*
+     * The other density than the one the item shows: every table in the
+     * card writes the same one. Turned at the click, each table's would
+     * undo the last - two tables in one card stayed as they were.
+     */
+    const picked: TableDensity =
+      density === TableDensity.Compact
+        ? TableDensity.Comfortable
+        : TableDensity.Compact;
+
+    setCardMenuItem(densityOwnerId, {
+      key: TABLE_DENSITY_MENU_KEY,
+      text: TABLE_DENSITY_MENU_TEXT,
+      icon: TABLE_DENSITY_MENU_ICON,
+      dataTestId: TABLE_DENSITY_TEST_ID,
+      isChecked: density === TableDensity.Compact,
+      onClick: (): void => {
+        writeTableDensity(picked);
+      },
+    });
+
+    return () => {
+      setCardMenuItem(densityOwnerId, null);
+    };
+  }, [setCardMenuItem, isMobile, density, densityOwnerId]);
+
+  /*
    * The rule for the column being dragged, written straight onto the page
    * while it is - in a style of its own that React never draws into.
    */
@@ -457,6 +581,37 @@ const Table: TableFunction = <T extends GenericObject>(
   };
 
   /*
+   * A person's sizing stands: a table one of whose columns they sized keeps
+   * its columns in a card 48rem or wider, its rows scrolling as they always
+   * did - Affected Resources made wider folded Severity, Duration, Labels
+   * and Owners away under other cells, and the keyboard's focus went with
+   * the edge it was on. In a narrower card the table folds, and is drawn as
+   * cards, as any other. The widths kept are read as the table is
+   * measured, from their store: a width kept draws no row again
+   * (ColumnWidthsStore). The measuring calls the latest drawing's own.
+   */
+  const onCannotFit: (cannotFit: TableCannotFit) => void = (
+    cannotFit: TableCannotFit,
+  ): void => {
+    const isSizedByPerson: boolean = Boolean(
+      isColumnResizeOn &&
+        hasDrawnColumnWidths(
+          columnWidths.store.getWidths(),
+          resizableDrawnColumnIds,
+        ),
+    );
+
+    if (
+      isSizedByPerson &&
+      cannotFit.boxWidth >= TABLE_NARROW_BELOW_WIDTH_IN_PX
+    ) {
+      return;
+    }
+
+    fit.onCannotFit(cannotFit);
+  };
+
+  /*
    * Whether the rows are wider than the card (they scroll sideways, and the
    * Actions column sticks at the right edge), and whether the header row
    * can stick under the page's top bar (TableLayout).
@@ -467,6 +622,8 @@ const Table: TableFunction = <T extends GenericObject>(
     // A new page of rows can hold longer names in as many rows.
     watch: [isMobile, props.data, drawnColumns.length],
     hold: scrollStateHold,
+    // Too wide even given way: folded, then as cards (TableFit).
+    onCannotFit: onCannotFit,
   });
 
   const onColumnResizeStart: (
@@ -756,6 +913,7 @@ const Table: TableFunction = <T extends GenericObject>(
           isBulkActionsEnabled={isBulkActionsEnabled}
           itemsOnPage={props.itemsOnPage}
           isMobile={isMobile}
+          isPhone={isPhone}
           isOverflowing={scrollState.isOverflowing}
           hasEndFiller={hasEndFiller}
         />
@@ -783,6 +941,9 @@ const Table: TableFunction = <T extends GenericObject>(
         getRowProps={props.getRowProps}
         columns={drawnColumns}
         areColumnsFolded={areColumnsFolded}
+        columnsInView={columnsInView}
+        foldedColumns={foldedColumns}
+        getColumnId={getDrawnColumnId}
         actionButtons={props.actionButtons}
         enableDragAndDrop={props.enableDragAndDrop}
         dragAndDropScope={`${props.id}-dnd`}
@@ -827,6 +988,7 @@ const Table: TableFunction = <T extends GenericObject>(
         itemNotSelectableReason={props.itemNotSelectableReason}
         bulkItemToString={props.bulkItemToString}
         isMobile={isMobile}
+        isPhone={isPhone}
       />
     );
   };
@@ -866,6 +1028,18 @@ const Table: TableFunction = <T extends GenericObject>(
   const isSomeItemsOnThePageSelected: boolean =
     selectedRowsOnThePageCount > 0 &&
     selectedRowsOnThePageCount < selectableRowsOnThePage.length;
+
+  // The select-all box's two moves, over rows and over cards alike.
+  const onAllItemsDeselected: () => void = (): void => {
+    setIsAllItemsSelected(false);
+    props.onBulkClearAllItems?.();
+  };
+
+  const onAllItemsOnThePageSelected: () => void = (): void => {
+    if (props.onBulkSelectItemsOnCurrentPage) {
+      props.onBulkSelectItemsOnCurrentPage();
+    }
+  };
 
   return (
     <div className={props.className}>
@@ -997,8 +1171,29 @@ const Table: TableFunction = <T extends GenericObject>(
             }
           >
             {isMobile ? (
-              // Mobile view: render as list
-              <div className="min-w-full border-t border-gray-200">
+              /*
+               * Cards: each row a card of its column names over their
+               * values, under a band that does what the header row does -
+               * selects the page, and says and changes the order
+               * (TableCardsHeader). With nothing listed, only its rule.
+               */
+              <div className="min-w-full">
+                {isEmptyResult || isLoadError ? (
+                  <div className="border-t border-gray-200" />
+                ) : (
+                  <TableCardsHeader<T>
+                    columns={drawnColumns}
+                    sortBy={props.sortBy}
+                    sortOrder={props.sortOrder}
+                    onSortChanged={props.onSortChanged}
+                    isBulkActionsEnabled={isBulkActionsEnabled}
+                    hasTableItems={selectableRowsOnThePage.length > 0}
+                    isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
+                    isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
+                    onAllItemsOnThePageSelected={onAllItemsOnThePageSelected}
+                    onAllItemsDeselected={onAllItemsDeselected}
+                  />
+                )}
                 {isEmptyResult ? <></> : getTablebody()}
               </div>
             ) : (
@@ -1022,7 +1217,10 @@ const Table: TableFunction = <T extends GenericObject>(
                 <table
                   ref={tableElementRef}
                   className={TABLE_CLASS_NAME}
-                  {...{ [COLUMN_WIDTHS_SCOPE_ATTRIBUTE]: columnWidthsScope }}
+                  {...{
+                    [COLUMN_WIDTHS_SCOPE_ATTRIBUTE]: columnWidthsScope,
+                    [TABLE_DENSITY_ATTRIBUTE]: density,
+                  }}
                 >
                   <TableHeader
                     id={`${props.id}-header`}
@@ -1060,15 +1258,8 @@ const Table: TableFunction = <T extends GenericObject>(
                         : undefined
                     }
                     hasEndFiller={hasEndFiller}
-                    onAllItemsDeselected={() => {
-                      setIsAllItemsSelected(false);
-                      props.onBulkClearAllItems?.();
-                    }}
-                    onAllItemsOnThePageSelected={() => {
-                      if (props.onBulkSelectItemsOnCurrentPage) {
-                        props.onBulkSelectItemsOnCurrentPage();
-                      }
-                    }}
+                    onAllItemsDeselected={onAllItemsDeselected}
+                    onAllItemsOnThePageSelected={onAllItemsOnThePageSelected}
                     isAllItemsOnThePageSelected={isAllItemsOnThePageSelected}
                     isSomeItemsOnThePageSelected={isSomeItemsOnThePageSelected}
                     hasTableItems={selectableRowsOnThePage.length > 0}

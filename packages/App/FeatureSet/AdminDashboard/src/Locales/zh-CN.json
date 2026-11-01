@@ -1563,5 +1563,12 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "Compact rows": "紧凑行",
+  "Sort by": "排序依据",
+  "Sorted by {{column}}": "按{{column}}排序",
+  "Sort": "排序",
+  "Ascending": "升序",
+  "Descending": "降序",
+  "Select all items": "选择所有项目"
 }

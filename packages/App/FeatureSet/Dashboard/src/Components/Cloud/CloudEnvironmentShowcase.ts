@@ -5,10 +5,14 @@ import {
   ShowcaseStatus,
 } from "../ResourceShowcase/ResourceShowcase";
 
-// What Cloud > All Environments shows while the project has no environment.
+/*
+ * What App Platforms shows - its Overview and All Environments - while the
+ * project has no environment. Its eyebrow names the product the reader is
+ * in: the environments were Cloud's until App Platforms split out of it.
+ */
 const CLOUD_ENVIRONMENT_SHOWCASE: ResourceShowcase = {
   icon: IconProp.Cloud,
-  eyebrow: translationKey("Cloud monitoring"),
+  eyebrow: translationKey("App Platforms"),
   title: translationKey("See every cloud environment your apps run in"),
   description: translationKey(
     "Point your app's OpenTelemetry at OneUptime with a cloud resource detector. Each environment, from ECS to Cloud Run to App Service, shows up with its instances, logs, traces and metrics.",

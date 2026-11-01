@@ -42,6 +42,8 @@ const DISPLAY_HELPERS: ReadonlySet<string> = new Set<string>([
   "getDateAsFormattedString",
   "getDateAsUserFriendlyFormattedString",
   "getDateAsLocalShortDateTimeString",
+  // A list's cell: "Oct 22, 7:25 AM", "22. Okt., 07:25" (TableDate).
+  "getDateAsCompactLocalString",
   "getDateAsLocalDayMonthString",
   "getDateAsLocalDayMonthHourString",
   "getDateAsLocalDayMonthTimeString",

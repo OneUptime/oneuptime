@@ -407,16 +407,22 @@ function renderTable(): void {
 }
 
 /*
- * Boxes for the drawn table, by what each element is: the scroll box 600px
- * wide, the table 1200px (so the rows scroll sideways) or 500px (so they
- * fit), the stuck cells at 480..600 and the pill under them.
+ * Boxes for the drawn table, by what each element is: the scroll box 900px
+ * wide - a card 48rem or wider, where rows too wide for it scroll sideways
+ * (in a narrower one they would be drawn as cards: TableFit) - the table
+ * 1200px (so the rows scroll) or 500px (so they fit), the stuck cells at
+ * 780..900 and the pill under them.
  */
+const DRAWN_BOX: HorizontalBox = { left: 0, right: 900 };
+const DRAWN_STUCK_RIGHT: HorizontalBox = { left: 780, right: 900 };
+const DRAWN_PILL: HorizontalBox = { left: 800, right: 880 };
+
 function layOut(tableWidth: number): void {
   jest
     .spyOn(HTMLElement.prototype, "getBoundingClientRect")
     .mockImplementation(function (this: HTMLElement): DOMRect {
       if (this.getAttribute("data-testid") === "table-scroll") {
-        return rectOf(BOX)();
+        return rectOf(DRAWN_BOX)();
       }
 
       if (this.tagName === "TABLE") {
@@ -424,11 +430,11 @@ function layOut(tableWidth: number): void {
       }
 
       if (this.hasAttribute(TABLE_STICKY_END_ATTRIBUTE)) {
-        return rectOf(STUCK_RIGHT)();
+        return rectOf(DRAWN_STUCK_RIGHT)();
       }
 
       if (this.getAttribute("data-testid") === "never-reminds") {
-        return rectOf({ left: 500, right: 580 })();
+        return rectOf(DRAWN_PILL)();
       }
 
       return rectOf({ left: 0, right: 0 })();
@@ -467,7 +473,9 @@ describe("the Table keeps a focused cell clear of its stuck Actions column", () 
       screen.getByTestId("never-reminds").focus();
     });
 
-    expect(box.scrollLeft).toBe(580 - 480 + GAP);
+    expect(box.scrollLeft).toBe(
+      DRAWN_PILL.right - DRAWN_STUCK_RIGHT.left + GAP,
+    );
   });
 
   test("while the rows fit, nothing scrolls", async () => {

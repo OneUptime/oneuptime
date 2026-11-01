@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-Cherchez `Everything is ready`, et aucun `401` ni `connection refused`. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Cloud → Tous les environnements** sous le nom _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
+Cherchez `Everything is ready`, et aucun `401` ni `connection refused`. Dans la minute qui suit le premier span, log ou métrique, l'environnement apparaît sous **Plateformes d'applications → Tous les environnements** sous le nom _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
 :::
 
 ## Utiliser l'agent OpenTelemetry managé de l'environnement

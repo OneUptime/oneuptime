@@ -110,6 +110,11 @@ export interface ComponentProps extends PageComponentProps {
   resource: DeveloperDocsResource;
   scope: DeveloperDocsScope;
   page: DeveloperDocsPageType;
+  /*
+   * The rows the page is about, when its model's rows are two products'
+   * (DeveloperDocsParentPage `query`): what it imports, samples and lists.
+   */
+  listQuery?: JSONObject | undefined;
 }
 
 /*
@@ -631,7 +636,7 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
 
         const list: ListResult<BaseModel> = await ModelAPI.getList({
           modelType,
-          query: {},
+          query: (props.listQuery || {}) as never,
           select: select as never,
           sort: { createdAt: SortOrder.Ascending } as never,
           limit: DEVELOPER_DOCS_IMPORT_LIMIT,
@@ -666,7 +671,7 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
 
           const list: ListResult<BaseModel> = await ModelAPI.getList({
             modelType,
-            query: {},
+            query: (props.listQuery || {}) as never,
             select: select as never,
             sort: { createdAt: SortOrder.Descending } as never,
             limit: 1,
@@ -764,6 +769,7 @@ const DeveloperDocsPage: FunctionComponent<ComponentProps> = (
     totalCount,
     live,
     sample,
+    listQuery: props.listQuery,
   });
 
   return (

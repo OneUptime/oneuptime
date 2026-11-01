@@ -183,7 +183,7 @@ Où les objectifs apparaissent :
 
 - L'en-tête du dossier nomme le prochain objectif et le temps qui reste, ou depuis combien de temps il est dépassé : en gris tant qu'il reste du temps, en ambre dans son dernier cinquième, en rouge une fois manqué.
 - Sur la **Vue d'ensemble** du dossier, sous **Délai de prise en compte** et **Délai de confinement** : où en est le dossier par rapport à chaque objectif, ou de combien il l'a dépassé.
-- Dans les listes de la file : la ligne sous la priorité de chaque dossier, et une colonne **Échéance** que vous pouvez afficher et utiliser pour trier. Les listes ne les affichent que lorsqu'une priorité du projet a un objectif.
+- Dans les listes de la file : la ligne sous la priorité de chaque dossier, et une colonne **Échéance** que vous pouvez afficher et utiliser pour trier. Tant que la colonne est affichée, la ligne sous la priorité disparaît. Les listes ne les affichent que lorsqu'une priorité du projet a un objectif.
 
 ## Notifications
 

@@ -1,6 +1,4 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
+import { getCloudResourceViewRoute } from "../../Utils/CloudResourceViewPages";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -14,6 +12,10 @@ import AppLink from "../AppLink/AppLink";
  * render for the `cloudResources` relation (DatabaseServerElement's twin).
  * Without an id (a relation row that could not be read) it degrades to the
  * plain name.
+ *
+ * It opens the row in its own product - an environment in App Platforms, a
+ * resource in Cloud - when the relation read the row's kind; otherwise in
+ * Cloud, whose page forwards an environment to App Platforms.
  */
 
 export interface ComponentProps {
@@ -29,12 +31,10 @@ const CloudResourceElement: FunctionComponent<ComponentProps> = (
     return (
       <AppLink
         className="hover:underline"
-        to={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route,
-          {
-            modelId: new ObjectID(props.cloudResource._id as string),
-          },
-        )}
+        to={getCloudResourceViewRoute({
+          cloudResourceKind: props.cloudResource.cloudResourceKind,
+          modelId: new ObjectID(props.cloudResource._id as string),
+        })}
         onNavigateComplete={props.onNavigateComplete}
       >
         <span className="flex">

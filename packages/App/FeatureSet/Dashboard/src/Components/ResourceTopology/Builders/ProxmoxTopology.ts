@@ -22,21 +22,29 @@ import {
   isRecent,
   toFiniteNumber,
 } from "../ResourceTopologyFormat";
+import {
+  PROXMOX_STORAGE_FULL_PERCENT,
+  PROXMOX_STORAGE_NEAR_FULL_PERCENT as STORAGE_NEAR_FULL_PERCENT,
+  isProxmoxTemplate,
+} from "../../../Pages/Proxmox/Utils/ProxmoxHealth";
 
 /*
  * A Proxmox VE cluster's topology: its nodes, and on each node its virtual
  * machines, its containers and its storage; storage shared by every node
  * sits on the cluster itself.
  *
- * Health follows the cluster's Overview ("Needs attention"): an offline
- * node, or an HA resource in error or fenced, is critical; a guest that is
- * stopped although it starts on boot, a guest no backup job covers, and a
+ * Health follows the cluster's Overview ("Needs attention", whose rules
+ * are Pages/Proxmox/Utils/ProxmoxHealth): an offline node, an HA resource
+ * in error or fenced, and a storage that is unavailable or more than 95%
+ * full are critical; a guest that is stopped although it starts on boot, a
+ * guest no backup job covers, a guest whose last backup failed and a
  * storage more than 85% full need attention. A guest stopped on purpose is
- * off, never a problem.
+ * off, never a problem, and a template never runs: it is off too.
  */
 
 export const PROXMOX_ROOT_ID: string = "cluster";
-export const PROXMOX_STORAGE_NEAR_FULL_PERCENT: number = 85;
+export const PROXMOX_STORAGE_NEAR_FULL_PERCENT: number =
+  STORAGE_NEAR_FULL_PERCENT;
 export const PROXMOX_STALE_MS: number = 15 * 60 * 1000;
 
 export interface ProxmoxTopologyInput {
@@ -135,6 +143,17 @@ function assessNode(row: ProxmoxResource, now: Date): Assessment {
 function assessGuest(row: ProxmoxResource, now: Date): Assessment {
   const facts: Array<ResourceTopologyFact> = metricFacts(row, now);
   const reasons: Array<ResourceTopologyText> = [];
+
+  // A template never runs: neither stopped nor a problem.
+  if (isProxmoxTemplate(row)) {
+    return {
+      health: "off",
+      status: text(translationKey("Template")),
+      reasons: [],
+      facts: [],
+    };
+  }
+
   let health: ResourceTopologyHealth =
     row.isUp === true ? "healthy" : row.isUp === false ? "off" : "unknown";
 
@@ -156,6 +175,11 @@ function assessGuest(row: ProxmoxResource, now: Date): Assessment {
     // A coverage gap, not a failed backup: amber, never red.
     health = health === "critical" ? health : "warning";
     reasons.push(text(translationKey("Not covered by any backup job")));
+  }
+
+  if (row.lastBackupStatus === "failed") {
+    health = health === "critical" ? health : "warning";
+    reasons.push(text(translationKey("Last backup failed")));
   }
 
   return {
@@ -189,9 +213,11 @@ function assessStorage(row: ProxmoxResource): Assessment {
 
   const percent: number = (used / total) * 100;
   const full: boolean = percent > PROXMOX_STORAGE_NEAR_FULL_PERCENT;
+  const critical: boolean =
+    row.isUp === false || percent > PROXMOX_STORAGE_FULL_PERCENT;
 
   return {
-    health: row.isUp === false ? "critical" : full ? "warning" : "healthy",
+    health: critical ? "critical" : full ? "warning" : "healthy",
     status: text(translationKey("{{percent}} used"), {
       percent: formatTopologyPercent(percent, 1),
     }),

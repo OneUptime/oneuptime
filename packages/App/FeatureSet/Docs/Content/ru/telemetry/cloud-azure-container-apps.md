@@ -1,6 +1,6 @@
 # Azure Container Apps
 
-Отправляйте трассировки, логи и метрики Azure Container Apps в OneUptime. Каждая реплика, которая сообщает `cloud.platform=azure_container_apps`, попадает в один **Cloud Environment** на подписку Azure и регион, например _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, а работающие реплики перечислены в разделе **Экземпляры**.
+Отправляйте трассировки, логи и метрики Azure Container Apps в OneUptime. Каждая реплика, которая сообщает `cloud.platform=azure_container_apps`, попадает в одну облачную среду (**Облачная среда**) на подписку Azure и регион, например _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_, а работающие реплики перечислены в разделе **Экземпляры**.
 
 :::cards
 - [Как это работает](#как-это-работает): Что задают детекторы и какие два атрибута вы задаёте сами.
@@ -255,7 +255,7 @@ az containerapp logs show --name checkout-api --resource-group my-rg \
   --container otel-collector --follow
 ```
 
-Ищите `Everything is ready` и отсутствие `401` или `connection refused`. В течение минуты после первого спана, лога или метрики среда появляется в разделе **Облако → All Environments** как _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
+Ищите `Everything is ready` и отсутствие `401` или `connection refused`. В течение минуты после первого спана, лога или метрики среда появляется в разделе **Платформы приложений → Все среды** как _Azure Container Apps · eastus · 00000000-0000-0000-0000-000000000000_.
 :::
 
 ## Управляемый агент OpenTelemetry среды

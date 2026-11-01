@@ -29,7 +29,7 @@ OneUptime をセルフホストしている場合は、`https://YOUR-ONEUPTIME-H
 
 ## 環境が表示されない
 
-最初のリクエストから 1 分たっても、**クラウド → すべての環境** に何も表示されない場合です。次の三点を、この順に確認します。
+最初のリクエストから 1 分たっても、**アプリプラットフォーム → すべての環境** に何も表示されない場合です。次の三点を、この順に確認します。
 
 **`cloud.platform` がない、またはマネージドな値ではない。** OneUptime がテレメトリをクラウド環境に記録するのは、リソースが次のいずれかの値を持つ場合だけです: `aws_ecs`、`aws_elastic_beanstalk`、`aws_app_runner`、`gcp_cloud_run`、`gcp_app_engine`、`azure_container_apps`、`azure_container_instances`、`azure_app_service`。よくある原因は次のとおりです:
 
