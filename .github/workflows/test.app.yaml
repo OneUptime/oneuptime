@@ -1062,6 +1062,12 @@ jobs:
           # questions sent with the answers, at 1280 and 390 pixels, dark,
           # German and Persian) joined them on 2026-10-30, the lightest group:
           # about 17.
+          # Proxmox Pages (20 tests, 1.9 minutes locally plus its bundle,
+          # Chromium only: a Proxmox VE cluster's Overview - what needs
+          # attention first, its nodes, its backups - and the pages of a node,
+          # a guest and a storage, Turn on N alerts into Recommendations, the
+          # Guests list, at 1280 and 390 pixels, dark, German and Persian)
+          # joined them on 2026-11-01: about 19.5.
           - group: 14
             suites: >-
               test-value-picker-ui
@@ -1073,6 +1079,7 @@ jobs:
               test-traces-ai-ui
               test-network-traffic-names-ui
               test-custom-field-files-ui
+              test-proxmox-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1326,4 +1333,6 @@ jobs:
             output/playwright/side-by-side-pages-ui/test-results
             output/playwright/resource-overviews-ui/*.png
             output/playwright/resource-overviews-ui/test-results
+            output/playwright/proxmox-pages-ui/*.png
+            output/playwright/proxmox-pages-ui/test-results
           retention-days: 7
