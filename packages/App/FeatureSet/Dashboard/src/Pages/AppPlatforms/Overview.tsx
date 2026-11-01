@@ -37,7 +37,11 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill from "Common/UI/Components/Pill/Pill";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -74,9 +78,15 @@ export const PLATFORMS_CARD_DESCRIPTION: string = translationKey(
  */
 export const ALL_CONNECTED: string = translationKey("All connected");
 export const NONE_CONNECTED: string = translationKey("Disconnected");
-export const SOME_CONNECTED: string = translationKey(
-  "{{connected}} of {{total}} connected",
-);
+/*
+ * How many of a platform's environments went quiet, when some still report.
+ * The noun is written out: "{{count}} disconnected" is the probes' (their
+ * translations agree with "probe").
+ */
+export const SOME_DISCONNECTED: PluralTemplate = {
+  one: "{{count}} environment disconnected",
+  other: "{{count}} environments disconnected",
+};
 export const ENVIRONMENT_CONNECTED: string = translationKey("Connected");
 export const ENVIRONMENT_LAST_SEEN: string = translationKey(
   "Last seen {{time}}",
@@ -87,19 +97,13 @@ export const ENVIRONMENT_NEVER_SEEN: string = translationKey(
 export const UNKNOWN_PLATFORM: string = translationKey(
   "Platform not reported yet",
 );
-export const MORE_ENVIRONMENTS: {
-  one: string;
-  other: string;
-} = {
-  one: translationKey("{{count}} more environment"),
-  other: translationKey("{{count}} more environments"),
+export const MORE_ENVIRONMENTS: PluralTemplate = {
+  one: "{{count}} more environment",
+  other: "{{count}} more environments",
 };
-export const PLATFORM_ENVIRONMENT_COUNT: {
-  one: string;
-  other: string;
-} = {
-  one: translationKey("{{count}} environment"),
-  other: translationKey("{{count}} environments"),
+export const PLATFORM_ENVIRONMENT_COUNT: PluralTemplate = {
+  one: "{{count}} environment",
+  other: "{{count}} environments",
 };
 
 const TONE_COLORS: Readonly<Record<AppPlatformGroupTone, Color>> = {
@@ -140,10 +144,10 @@ const PlatformGroupRows: FunctionComponent<{
       ? translator.translateText(ALL_CONNECTED) || ALL_CONNECTED
       : tone === AppPlatformGroupTone.Silent
         ? translator.translateText(NONE_CONNECTED) || NONE_CONNECTED
-        : translator.translateTemplate(SOME_CONNECTED, {
-            connected: group.connected,
-            total: total,
-          });
+        : translator.translatePlural(
+            SOME_DISCONNECTED,
+            total - group.connected,
+          );
 
   return (
     <li
