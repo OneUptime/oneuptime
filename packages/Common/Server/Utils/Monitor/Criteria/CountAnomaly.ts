@@ -11,13 +11,13 @@ import {
 export const MAD_TO_SIGMA: number = 1.4826;
 
 /**
- * Descriptive statistics of a set of telemetry counts — one hour-of-week
- * baseline cell aggregated over a rolling window, per minute for spans and
- * logs, per monitor window for exceptions.
+ * Descriptive statistics of a set of telemetry counts — one per window of a
+ * monitor's length, around the same time of the earlier weeks of a rolling
+ * window. Spans and logs read them as a per-minute rate of such a window.
  * Computed in app code (not SQL) so the math is pure and unit-testable.
  */
 export interface CountBaselineStats {
-  /** Number of non-empty minute cells that contributed. */
+  /** Number of windows that contributed. */
   sampleCount: number;
   mean: number;
   /** Population standard deviation. */
@@ -44,6 +44,13 @@ export interface CountBaselineSummary extends CountBaselineStats {
   /** Window the baseline was computed over (days). */
   windowDays: number;
   hourOfWeek: number;
+  /**
+   * The same statistics over the windows that held something, when empty
+   * windows are part of what is normal. How high a window can go is read
+   * from these (CountWindowBaseline). Absent when every window held
+   * something, as they do for a busy scope, and the two are the same.
+   */
+  nonEmpty?: CountBaselineStats | undefined;
 }
 
 export interface CountAnomalyEvaluation {
@@ -56,6 +63,11 @@ export interface CountAnomalyEvaluation {
   center: number;
   /** Baseline spread actually compared against (stddev or MAD×1.4826). */
   spread: number;
+}
+
+export interface CountWindowBreach extends CountAnomalyEvaluation {
+  /** How many windows the statistics that were breached hold. */
+  sampleCount: number;
 }
 
 /**
@@ -190,6 +202,62 @@ export default class CountAnomaly {
       center,
       spread,
     };
+  }
+
+  /**
+   * Whether a window of a log or span monitor breaches its baseline, and how,
+   * or null if it does not. Unusually low reads every window, unusually high
+   * those that held something (CountWindowBaseline), and needs the minimum
+   * count: a scope that logs almost nothing has almost no range, and its
+   * first few lines are no reason to wake anyone.
+   */
+  public static findBreach(input: {
+    observed: number;
+    count: number;
+    baseline: CountBaselineSummary;
+    sigmaCount: number;
+    method: AnomalyDetectionMethod;
+    filterType: FilterType | undefined;
+    minimumCount: number;
+  }): CountWindowBreach | null {
+    const compare: (
+      stats: CountBaselineStats,
+      filterType: FilterType,
+    ) => CountWindowBreach | null = (
+      stats: CountBaselineStats,
+      filterType: FilterType,
+    ): CountWindowBreach | null => {
+      const evaluation: CountAnomalyEvaluation | null = CountAnomaly.evaluate({
+        observed: input.observed,
+        stats,
+        sigmaCount: input.sigmaCount,
+        method: input.method,
+        filterType,
+      });
+
+      return evaluation?.breaches
+        ? { ...evaluation, sampleCount: stats.sampleCount }
+        : null;
+    };
+
+    const high: CountWindowBreach | null =
+      (input.filterType === FilterType.AnomalouslyHigh ||
+        input.filterType === FilterType.Anomalous) &&
+      input.count >= input.minimumCount
+        ? compare(
+            input.baseline.nonEmpty || input.baseline,
+            FilterType.AnomalouslyHigh,
+          )
+        : null;
+
+    if (high) {
+      return high;
+    }
+
+    return input.filterType === FilterType.AnomalouslyLow ||
+      input.filterType === FilterType.Anomalous
+      ? compare(input.baseline, FilterType.AnomalouslyLow)
+      : null;
   }
 
   private static medianOf(values: Array<number>): number {
