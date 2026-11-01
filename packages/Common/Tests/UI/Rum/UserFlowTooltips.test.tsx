@@ -617,7 +617,8 @@ describe("User Flows Back and forth", () => {
     // s2 went /home -> /cart -> /home: one session of five.
     const [row] = screen.getAllByTestId("user-flow-loop-row");
 
-    expect(row).toHaveTextContent("1 sessions");
+    expect(row).toHaveTextContent("1 session");
+    expect(row).not.toHaveTextContent("1 sessions");
     expect(row).toHaveTextContent("20%");
   });
 

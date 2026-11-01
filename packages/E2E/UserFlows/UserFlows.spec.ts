@@ -614,6 +614,12 @@ test.describe("One person or one session", () => {
     await expect(node(page, "/", 0)).toHaveAttribute("data-sessions", "2");
     await expect(node(page, "/login", 0)).toHaveAttribute("data-sessions", "1");
 
+    /* One session is the common case now, and the map says it properly. */
+    await expect(page.getByTestId("user-flow-map")).toContainText("1 session");
+    await expect(page.getByTestId("user-flow-map")).not.toContainText(
+      "1 sessions",
+    );
+
     await page.screenshot({
       path: path.join(artifacts, "user-flows-one-person.png"),
       fullPage: true,
