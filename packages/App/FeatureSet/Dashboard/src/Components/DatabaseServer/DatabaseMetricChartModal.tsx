@@ -1,3 +1,4 @@
+import { BUTTON_DISABLED_CLASS_NAME } from "Common/UI/Components/Button/ButtonStates";
 import ChartCard from "../TelemetryResource/ChartCard";
 import {
   DatabaseMetricChartSpec,
@@ -484,7 +485,7 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
                       "Checking whether this metric carries this database's id…",
                     )
                   }
-                  className="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400"
+                  className={`inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 ${BUTTON_DISABLED_CLASS_NAME}`}
                 >
                   {translator.translateText("Create monitor")}
                 </button>

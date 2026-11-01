@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import FixProductionVerdict from "../AI/FixProductionVerdict";
 import CodeApi, { CodeTaskListResponse, CodeTaskListScope } from "./CodeApi";
 import {
@@ -252,7 +253,12 @@ const CodeTaskList: FunctionComponent<ComponentProps> = (
                 // handled inside load
               });
             }}
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+            className={`rounded-md px-3 py-1.5 text-sm font-medium text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+              {
+                isBusy: isLoadingMore,
+                hoverClassName: "hover:bg-indigo-50 hover:text-indigo-700",
+              },
+            )}`}
           >
             {isLoadingMore
               ? translator.translateText("Loading…")

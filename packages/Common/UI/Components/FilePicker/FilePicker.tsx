@@ -11,6 +11,7 @@ import { getFileTypeIcon } from "../../../Types/File/FileTypeIcon";
 import { getMimeTypeLabel } from "../../../Types/File/MimeTypeLabel";
 import IconProp from "../../../Types/Icon/IconProp";
 import { getKnownFileSize, rememberFileSize } from "./KnownFileSizes";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import FileModel from "../../../Models/DatabaseModels/File";
 import React, {
   FunctionComponent,
@@ -615,7 +616,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             {!props.isMultiFilePicker && !props.readOnly ? (
               <button
                 type="button"
-                className="rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className={`rounded-md border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 transition ${getHandDrawnButtonStateClassName(
+                  { isLocked: isLoading, hoverClassName: "hover:bg-gray-50" },
+                )}`}
                 // While a file is uploading there is no chooser to open.
                 disabled={isLoading}
                 onClick={() => {

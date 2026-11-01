@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import {
   GROUPING_RULE_COPY,
   GroupingRuleTranslateFunction,
@@ -173,7 +174,12 @@ const LegacyDefaultAssigneeNote: FunctionComponent<ComponentProps> = (
                 teamId: teamId,
               });
             }}
-            className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`rounded-md border border-gray-300 bg-white px-2.5 py-1 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+              {
+                isLocked: Boolean(props.disabled) || isLookingUp,
+                hoverClassName: "hover:bg-gray-50",
+              },
+            )}`}
           >
             {translate(GROUPING_RULE_COPY.legacyAssigneeAddAsOwners)}
           </button>
@@ -187,7 +193,12 @@ const LegacyDefaultAssigneeNote: FunctionComponent<ComponentProps> = (
           onClick={(): void => {
             props.onChange({ action: LegacyDefaultAssigneeAction.Remove });
           }}
-          className="rounded-md px-2.5 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`rounded-md px-2.5 py-1 text-sm font-medium text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+            {
+              isLocked: props.disabled,
+              hoverClassName: "hover:bg-gray-100",
+            },
+          )}`}
         >
           {translate(GROUPING_RULE_COPY.legacyAssigneeRemove)}
         </button>

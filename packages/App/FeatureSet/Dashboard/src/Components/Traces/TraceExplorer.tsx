@@ -1,3 +1,7 @@
+import {
+  getHandDrawnButtonStateClassName,
+  getHandDrawnLookClassName,
+} from "Common/UI/Components/Button/ButtonStates";
 import FlameGraph from "./FlameGraph";
 import TraceServiceMap from "./TraceServiceMap";
 import TraceHeader from "./TraceDetail/TraceHeader";
@@ -1279,7 +1283,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                       </span>
                       <button
                         type="button"
-                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
+                        className={`rounded p-0.5 text-gray-400 ${getHandDrawnButtonStateClassName(
+                          {
+                            isLocked: matchCount === 0,
+                            hoverClassName:
+                              "hover:bg-gray-100 hover:text-gray-700",
+                          },
+                        )}`}
                         aria-label={translator.translateText("Previous match")}
                         disabled={matchCount === 0}
                         onClick={() => {
@@ -1293,7 +1303,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                       </button>
                       <button
                         type="button"
-                        className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40"
+                        className={`rounded p-0.5 text-gray-400 ${getHandDrawnButtonStateClassName(
+                          {
+                            isLocked: matchCount === 0,
+                            hoverClassName:
+                              "hover:bg-gray-100 hover:text-gray-700",
+                          },
+                        )}`}
                         aria-label={translator.translateText("Next match")}
                         disabled={matchCount === 0}
                         onClick={() => {
@@ -1336,11 +1352,14 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                     ? "No span in this trace has an error status"
                     : "Show only spans with an error status",
                 )}
-                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
-                  errorsOnly
-                    ? "border-red-300 bg-red-50 text-red-700"
-                    : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-sm font-medium ${getHandDrawnLookClassName(
+                  {
+                    className: errorsOnly
+                      ? "border-red-300 bg-red-50 text-red-700"
+                      : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50",
+                    isLocked: summary.errorCount === 0 && !errorsOnly,
+                  },
+                )}`}
                 onClick={() => {
                   setErrorsOnly(!errorsOnly);
                 }}

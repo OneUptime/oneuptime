@@ -52,11 +52,11 @@ A plan change needs a payment method. Without one, **Change Plan** opens **Add a
 
 ### Click Change Plan
 
-On the **Current Plan** card, click **Change Plan**. **Yearly Plan** starts on: turn it off to see the monthly prices.
+On the **Current Plan** card, click **Change Plan**. The plans open at the period the project is billed for; switch between **Monthly** and **Yearly** to see the other prices.
 
 ### Pick the plan
 
-Each plan shows its price per user. The note under the plans says what happens to your trial: **Your free trial carries over** while the project is still on its trial, and **Changing plan does not start a free trial** once it is not.
+Each plan shows its price per user, and **Current plan** marks the one the project is on. The note under the plans says what happens to your trial: **Your free trial carries over** while the project is still on its trial, and **Changing plan does not start a free trial** once it is not.
 
 ### Save the change
 

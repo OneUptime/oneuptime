@@ -319,7 +319,13 @@ describe("ExceptionSegmentedControl rendering", () => {
     );
     expect(radio("7d")).toHaveClass("text-gray-600", "hover:text-gray-900");
     expect(radio("7d")).not.toHaveClass("bg-white");
-    expect(radio("24h")).toHaveClass("cursor-not-allowed", "text-gray-300");
+    // Locked as every button is: its own grey, faded, and no hover.
+    expect(radio("24h")).toHaveClass(
+      "text-gray-600",
+      "cursor-not-allowed",
+      "opacity-50",
+    );
+    expect(radio("24h")).not.toHaveClass("text-gray-300");
     expect(radio("24h")).not.toHaveClass("hover:text-gray-900");
 
     for (const value of VALUES) {

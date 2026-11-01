@@ -233,7 +233,7 @@ const IncidentSlaRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitors (optional)",
+            placeholder: "Select Monitors",
           },
           {
             field: {
@@ -251,7 +251,7 @@ const IncidentSlaRulesPage: FunctionComponent<
               },
             },
             required: false,
-            placeholder: "Select Severities (optional)",
+            placeholder: "Select Severities",
           },
           {
             field: {
@@ -266,7 +266,7 @@ const IncidentSlaRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Incident Labels (optional)",
+            placeholder: "Select Incident Labels",
           },
           {
             field: {
@@ -283,7 +283,7 @@ const IncidentSlaRulesPage: FunctionComponent<
               valueField: "_id",
             },
             required: false,
-            placeholder: "Select Monitor Labels (optional)",
+            placeholder: "Select Monitor Labels",
           },
           {
             field: {

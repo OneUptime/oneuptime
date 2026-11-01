@@ -1191,6 +1191,24 @@ describe("Use It in a Rule", () => {
     expect(screen.queryByTestId(WATCHLISTS_TEST_IDS.readByLine)).toBeNull();
   });
 
+  /*
+   * A selection of a few lines that is copied into a rule: on a phone its
+   * long lines wrap clear of the copy button (CodeBlock's wrapLongLines),
+   * where they scrolled sideways under it.
+   */
+  test("its lines wrap clear of the copy button, as a snippet to copy does", () => {
+    renderSnippet({
+      name: "admin_addresses_seen_on_the_vpn_gateway_last_quarter",
+    });
+
+    const code: HTMLElement | null = screen
+      .getByTestId(WATCHLISTS_TEST_IDS.ruleSnippet)
+      .querySelector("pre code");
+
+    expect(code).not.toBeNull();
+    expect(code).toHaveClass("whitespace-pre-wrap", "break-words", "!pr-14");
+  });
+
   test("a list of a kind with no field of its own is looked for among observables", () => {
     renderSnippet({
       name: "bad_domains",

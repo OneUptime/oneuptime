@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -187,7 +188,12 @@ export const CorrelateResultStats: FunctionComponent<
                 data-testid="correlate-stat-worst-class"
                 title={worstClass.label}
                 disabled={props.isStale}
-                className="min-w-0 truncate rounded-sm font-medium text-indigo-600 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-default"
+                className={`min-w-0 truncate rounded-sm font-medium text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+                  {
+                    isLocked: props.isStale,
+                    hoverClassName: "hover:text-indigo-800",
+                  },
+                )}`}
                 onClick={() => {
                   props.onSelectNode(worstClass.id);
                 }}

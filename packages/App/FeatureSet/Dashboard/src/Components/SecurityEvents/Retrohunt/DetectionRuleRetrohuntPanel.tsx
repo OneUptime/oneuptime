@@ -1,3 +1,4 @@
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import SecurityCaseApi from "../../SecurityCase/SecurityCaseApi";
 import {
   CANDIDATE_LIMIT,
@@ -184,7 +185,12 @@ const DetectionRuleRetrohuntPanel: FunctionComponent<ComponentProps> = (
           }}
           disabled={isRunning}
           data-testid={RETROHUNT_TEST_IDS.runAgain}
-          className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+            {
+              isBusy: isRunning,
+              hoverClassName: "hover:bg-gray-100 hover:text-gray-900",
+            },
+          )}`}
         >
           <Icon icon={IconProp.Refresh} className="h-4 w-4 text-gray-400" />
           <span>{translator.translateText(RUN_AGAIN)}</span>
