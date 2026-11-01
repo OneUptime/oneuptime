@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 
@@ -67,9 +68,16 @@ interface RecordedApiRequest {
   body?: Record<string, unknown> | null;
 }
 
+interface RecordedUpdate {
+  modelName: string;
+  id: string;
+  data: Record<string, unknown>;
+}
+
 interface FixtureState {
   apiRequests: Array<RecordedApiRequest>;
   unhandled: Array<UnhandledRequest>;
+  updates: Array<RecordedUpdate>;
 }
 
 interface OpenOptions {
@@ -78,6 +86,8 @@ interface OpenOptions {
   theme?: "light" | "dark" | undefined;
   role?: "owner" | "viewer" | undefined;
   response?: "on" | "off" | undefined;
+  // A new project's, or a busy one's.
+  data?: "empty" | "busy" | undefined;
 }
 
 const pageErrors: WeakMap<Page, Array<string>> = new WeakMap();
@@ -147,6 +157,9 @@ async function open(
   }
   if (options.response === "off") {
     params.set("response", "off");
+  }
+  if (options.data) {
+    params.set("data", options.data);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -439,6 +452,7 @@ const WALKED: ReadonlyArray<[string, string]> = [
   ["store", PATHS["store"]!],
   ["inside", PATHS["inside"]!],
   ["access", PATHS["access"]!],
+  ["identities", `${BASE}/access`],
   ["store-timeline", PATHS["storeTimeline"]!],
   ["issues", PATHS["issues"]!],
   ["issue", PATHS["issue"]!],
@@ -532,5 +546,277 @@ test.describe("German and Persian", () => {
     await page.waitForLoadState("networkidle");
     expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
     await screenshot(page, "overview-fa-1280");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Who can reach the data: identities, the riskiest first
+ * ---------------------------------------------------------------------------
+ */
+
+const EXPORTER_IDENTITY: string = "1a000000-0000-4000-8000-000000000002";
+const IDENTITY_PATH: string = `${BASE}/access/${EXPORTER_IDENTITY}`;
+
+// The identities list's rows: its body is the table's id with "-body".
+function identityRows(page: Page): Locator {
+  return page
+    .locator("#data-security-identities-body tr")
+    .filter({ has: page.getByTestId("data-security-identity-name") });
+}
+
+/*
+ * A row's action: on the row when it fits, else under its More actions
+ * menu. The row's button shows a short word ("View") and is named by the
+ * action's whole title ("View Data Security Identity"), which starts with
+ * it.
+ */
+async function rowAction(
+  page: Page,
+  row: Locator,
+  name: string,
+): Promise<void> {
+  const inline: Locator = row.getByRole("button", {
+    name: new RegExp(`^${escapeRegExp(name)}`),
+  });
+
+  if ((await inline.count()) > 0) {
+    await inline.click();
+    return;
+  }
+
+  await row.getByRole("button", { name: /^More actions/ }).click();
+  await page.getByRole("menuitem", { name, exact: true }).click();
+}
+
+test.describe("who can reach the data", () => {
+  test("Access lists every identity, the riskiest first, and says what each is", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${BASE}/access`);
+
+    const rows: Locator = identityRows(page);
+
+    await expect(rows).toHaveCount(5);
+    await expect(rows.getByTestId("data-security-identity-name")).toHaveText([
+      /^Everyone/,
+      /^finance-exporter/,
+      /^210987654321/,
+      /^legacy-etl/,
+      /^checkout/,
+    ]);
+    // What matters most about each, as a chip.
+    await expect(rows.nth(0)).toContainText("Anyone on the internet");
+    await expect(rows.nth(2)).toContainText("Outside your accounts");
+    await expect(rows.nth(3)).toContainText("Not used in 90 days");
+    await expect(rows.nth(4)).toContainText("Seen in traces");
+    // The most it may do, and its risk.
+    await expect(rows.nth(1)).toContainText("Write");
+    await expect(rows.nth(1)).toContainText("Can change sensitive data");
+    await expect(rows.nth(1)).toContainText("67");
+    await screenshot(page, "access-identities-1280");
+
+    // Each opens its own page.
+    await rowAction(page, rows.nth(1), "View");
+    await expect(page).toHaveURL(new RegExp(`${escapeRegExp(IDENTITY_PATH)}$`));
+  });
+
+  test("an identity's page says what it reaches, how, and why it ranks where it does", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, IDENTITY_PATH);
+
+    await expect(
+      page.getByTestId("data-security-identity-about"),
+    ).toContainText("arn:aws:iam::123456789012:role/finance-exporter");
+    await expect(
+      page.getByTestId("data-security-identity-risk-score"),
+    ).toBeVisible();
+
+    // Every store it reaches, and through what.
+    const reach: Locator = page.getByTestId("data-security-identity-reach");
+
+    await expect(reach).toContainText("customer-exports");
+    await expect(reach).toContainText("Bucket policy");
+    await expect(reach).toContainText("orders-db");
+    await expect(reach).toContainText("IAM policy AmazonRDSReadOnlyAccess");
+    await page.waitForLoadState("networkidle");
+    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "identity-1280");
+  });
+
+  test("an account outside reaches the bucket through a role it may assume", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["access"]!);
+
+    const row: Locator = page
+      .locator("tbody tr")
+      .filter({ hasText: "210987654321" });
+
+    await expect(row).toContainText("Outside your accounts");
+    await expect(row).toContainText(
+      "Can assume role vendor-reader, whose IAM policy AmazonS3ReadOnlyAccess",
+    );
+  });
+
+  test("an identity's page reads inside a phone in the dark, and right to left in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, IDENTITY_PATH, { width: 390, theme: "dark" });
+    await expect(
+      page.getByTestId("data-security-identity-about"),
+    ).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "identity-390-dark");
+
+    await open(page, IDENTITY_PATH, { lang: "fa" });
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(
+      page.getByTestId("data-security-identity-about"),
+    ).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "identity-fa-1280");
+  });
+
+  test("a new project's Access says nothing reaches its stores yet", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${BASE}/access`, { data: "empty" });
+
+    // The list's empty state: what is missing, then when it is read.
+    await expect(
+      page.getByText(
+        "No identity can reach your stores yet, or their access has not been read",
+        { exact: false },
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText("It is read with each store's configuration."),
+    ).toBeVisible();
+    await screenshot(page, "access-empty-1280");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI's suggestions, and a person's confirmation
+ * ---------------------------------------------------------------------------
+ */
+
+function findingRow(page: Page, location: string): Locator {
+  return page.locator("tbody tr").filter({ hasText: location });
+}
+
+test.describe("OneUptime AI's suggestions on What's Inside", () => {
+  test("a suggestion says it is OneUptime AI's and why, matched no value, and counts once confirmed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["inside"]!);
+
+    const suggested: Locator = findingRow(page, "geb_datum");
+
+    await expect(suggested).toContainText("Date of birth");
+    await expect(suggested).toContainText("Suggested by OneUptime AI");
+    await expect(suggested).toContainText("Low confidence");
+    await expect(
+      suggested.getByTestId("data-store-finding-ai-reason"),
+    ).toHaveText(
+      "Geb. Datum is German for date of birth, and every value has the shape of a date.",
+    );
+    await expect(suggested).toContainText("No value matched");
+    await expect(suggested).toContainText("500 values read");
+
+    // One a person confirmed already reads as theirs, and is not offered again.
+    const confirmed: Locator = findingRow(page, "steuer_nr");
+
+    await expect(confirmed).toContainText("Suggested by OneUptime AI");
+    await expect(confirmed).toContainText("Confirmed");
+    await expect(confirmed).not.toContainText("Low confidence");
+    await screenshot(page, "inside-suggestions-1280");
+
+    await rowAction(page, suggested, "Confirm");
+
+    const dialog: Locator = page.getByRole("dialog");
+
+    await expect(dialog).toContainText("Confirm This Finding");
+    await expect(dialog).toContainText(
+      "You confirm this field holds this kind of data.",
+    );
+    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+    await expect(dialog).toBeHidden();
+
+    await expect(suggested).toContainText("Confirmed");
+    await expect(suggested).not.toContainText("Low confidence");
+    expect(
+      (await fixture(page)).updates.filter(
+        (update: RecordedUpdate): boolean => {
+          return update.modelName === "DataStoreFinding";
+        },
+      ),
+    ).toEqual([
+      {
+        modelName: "DataStoreFinding",
+        id: "40000000-0000-4000-8000-000000000004",
+        data: { isConfirmed: true },
+      },
+    ]);
+  });
+
+  test("a Security Viewer reads the suggestion but cannot confirm it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["inside"]!, { role: "viewer" });
+
+    const suggested: Locator = findingRow(page, "geb_datum");
+
+    await expect(suggested).toContainText("Suggested by OneUptime AI");
+
+    const inline: Locator = suggested.getByRole("button", {
+      name: "Confirm",
+      exact: true,
+    });
+
+    if ((await inline.count()) > 0) {
+      await expect(inline).toBeDisabled();
+    } else {
+      await suggested.getByRole("button", { name: /^More actions/ }).click();
+      await expect(
+        page.getByRole("menuitem", { name: "Confirm", exact: true }),
+      ).toBeDisabled();
+    }
+
+    expect((await fixture(page)).updates).toEqual([]);
+  });
+
+  test("in German, a suggestion's reason stays in OneUptime AI's words, inside its column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, PATHS["inside"]!, { lang: "de" });
+
+    await expect(
+      findingRow(page, "geb_datum").getByTestId("data-store-finding-ai-reason"),
+    ).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    await screenshot(page, "inside-suggestions-de-1280");
   });
 });

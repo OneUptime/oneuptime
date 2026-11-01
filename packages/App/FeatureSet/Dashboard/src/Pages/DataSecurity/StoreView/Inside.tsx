@@ -13,7 +13,7 @@ import {
 } from "./DataStoreViewContext";
 import DataStoreFinding from "Common/Models/DatabaseModels/DataStoreFinding";
 import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
-import { Gray500, Green500 } from "Common/Types/BrandColors";
+import { Gray500, Green500, Purple500 } from "Common/Types/BrandColors";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
 import { DataSecurityScrubResult } from "Common/Types/DataSecurity/DataSecurityApiTypes";
@@ -27,12 +27,17 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  Translator,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -50,9 +55,16 @@ import React, {
  * others see a dash).
  *
  * A finding that is wrong is marked Not Sensitive, with a reason: it then
- * no longer counts toward the store's sensitivity or its checks. In a
+ * no longer counts toward the store's sensitivity or its checks. A Low
+ * finding that is right is confirmed: it then counts as High. In a
  * service's telemetry, Scrub It adds a scrub rule that masks the data at
  * ingest from then on.
+ *
+ * A field no detector placed can hold OneUptime AI's suggestion, from the
+ * field's name, the names beside it and the shapes of its values - never a
+ * value (Server/Utils/AI/DataSecurity/FieldSuggestion). It reads as
+ * OneUptime AI's, with its reason, matched no value, and counts toward
+ * nothing until a person confirms it.
  */
 
 const CONFIDENCE_OPTIONS: Array<DropdownOption> = [
@@ -63,9 +75,31 @@ const CONFIDENCE_OPTIONS: Array<DropdownOption> = [
 
 const NO_SAMPLES: string = translationKey("No masked samples");
 
+const VALUES_READ: PluralTemplate = {
+  one: "{{count}} value read",
+  other: "{{count}} values read",
+};
+
 const CONFIDENCE_BELOW_HIGH: string = translationKey(
   "{{confidence}} confidence",
 );
+
+export const SUGGESTED_BY_AI: string = translationKey(
+  "Suggested by OneUptime AI",
+);
+export const CONFIRMED: string = translationKey("Confirmed");
+
+// The test ids of a suggestion's parts, for the offline walks.
+export const FINDING_AI_REASON_TEST_ID: string = "data-store-finding-ai-reason";
+
+// Whether a person can confirm a finding: one the scan, or OneUptime AI, was not sure of.
+export function canConfirmFinding(item: DataStoreFinding): boolean {
+  return (
+    !item.isSuppressed &&
+    !item.isConfirmed &&
+    item.confidence === DataConfidence.Low
+  );
+}
 
 const DataStoreInside: FunctionComponent<
   PageComponentProps
@@ -138,7 +172,7 @@ const DataStoreInside: FunctionComponent<
         cardProps={{
           title: "What's Inside",
           description:
-            "The sensitive data found in this store and where, from samples of its content. Low confidence findings do not count toward the store's sensitivity until you judge them.",
+            "The sensitive data found in this store and where, from samples of its content. Low confidence findings, and OneUptime AI's suggestions for fields no detector placed, count toward nothing until you confirm them.",
         }}
         noItemsMessage="Nothing sensitive found in this store yet. Findings appear once its content is scanned."
         searchableFields={["dataTypeName", "location"]}
@@ -150,8 +184,49 @@ const DataStoreInside: FunctionComponent<
           matchPercent: true,
           isScrubbed: true,
           suppressedReason: true,
+          isAiSuggested: true,
+          aiReason: true,
+          isConfirmed: true,
         }}
         actionButtons={[
+          {
+            title: "Confirm",
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.Check,
+            isVisible: (item: DataStoreFinding): boolean => {
+              return canConfirmFinding(item);
+            },
+            getDisabledReason: (): string | undefined => {
+              return editGate.isAllowed ? undefined : editGate.disabledReason;
+            },
+            getConfirmation: (item: DataStoreFinding) => {
+              return {
+                title: "Confirm This Finding",
+                description: item.isAiSuggested
+                  ? "You confirm this field holds this kind of data. It then counts toward this store's sensitivity and its checks as High confidence, as if a detector had found it."
+                  : "You confirm this location holds this kind of data. It then counts toward this store's sensitivity and its checks as High confidence.",
+                submitButtonText: "Confirm",
+              };
+            },
+            onClick: async (
+              item: DataStoreFinding,
+              onCompleteAction: VoidFunction,
+              onError: ErrorFunction,
+            ): Promise<void> => {
+              try {
+                await ModelAPI.updateById<DataStoreFinding>({
+                  modelType: DataStoreFinding,
+                  id: new ObjectID(item._id!.toString()),
+                  data: { isConfirmed: true },
+                });
+                onCompleteAction();
+                refresh();
+              } catch (err) {
+                onCompleteAction();
+                onError(err as Error);
+              }
+            },
+          },
           {
             title: "Not Sensitive",
             buttonStyleType: ButtonStyleType.NORMAL,
@@ -284,6 +359,16 @@ const DataStoreInside: FunctionComponent<
             title: "Not Sensitive",
             type: FieldType.Boolean,
           },
+          {
+            field: { isAiSuggested: true },
+            title: "Suggested by OneUptime AI",
+            type: FieldType.Boolean,
+          },
+          {
+            field: { isConfirmed: true },
+            title: "Confirmed",
+            type: FieldType.Boolean,
+          },
         ]}
         columns={[
           {
@@ -330,6 +415,16 @@ const DataStoreInside: FunctionComponent<
                     ) : (
                       <></>
                     )}
+                    {item.isAiSuggested ? (
+                      <Pill text={SUGGESTED_BY_AI} color={Purple500} />
+                    ) : (
+                      <></>
+                    )}
+                    {item.isConfirmed ? (
+                      <Pill text={CONFIRMED} color={Green500} />
+                    ) : (
+                      <></>
+                    )}
                     {item.dataCategory ? (
                       <span className="text-xs text-gray-500">
                         {translator.translateText(item.dataCategory)}
@@ -338,6 +433,20 @@ const DataStoreInside: FunctionComponent<
                       <></>
                     )}
                   </div>
+                  {/*
+                   * OneUptime AI's own words, in the language it wrote
+                   * them: why it suggests this type.
+                   */}
+                  {item.isAiSuggested && item.aiReason ? (
+                    <p
+                      className="max-w-xs whitespace-normal text-xs text-gray-500 [overflow-wrap:anywhere]"
+                      data-testid={FINDING_AI_REASON_TEST_ID}
+                    >
+                      <IsolatedText text={item.aiReason} />
+                    </p>
+                  ) : (
+                    <></>
+                  )}
                 </div>
               );
             },
@@ -380,6 +489,21 @@ const DataStoreInside: FunctionComponent<
             title: "Matches",
             type: FieldType.Element,
             getElement: (item: DataStoreFinding): ReactElement => {
+              // A suggestion matched no value: it says what was read instead.
+              if (item.isAiSuggested && !item.matchCount) {
+                return (
+                  <div className="text-sm text-gray-700">
+                    <div>{translator.translateText("No value matched")}</div>
+                    <div className="text-xs text-gray-500">
+                      {translator.translatePlural(
+                        VALUES_READ,
+                        item.valueCount || 0,
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div className="text-sm text-gray-700">
                   <div>
@@ -464,6 +588,10 @@ const DataStoreInside: FunctionComponent<
                     tooltip="A scrub rule masks this data at ingest."
                   />
                 );
+              }
+
+              if (item.isConfirmed) {
+                return <Pill text={CONFIRMED} color={Green500} />;
               }
 
               return <TableEmptyValue />;

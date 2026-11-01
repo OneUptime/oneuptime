@@ -536,6 +536,8 @@ export default class DataSecurityEvaluator {
             confidence: true,
             isScrubbed: true,
             matchCount: true,
+            isConfirmed: true,
+            isAiSuggested: true,
           },
           skip,
           limit,
@@ -550,7 +552,17 @@ export default class DataSecurityEvaluator {
         finding.dataStoreId?.toString() || "",
       );
 
-      if (!storeFacts || !finding.dataTypeId || !finding.matchCount) {
+      /*
+       * A finding counts once a value matched it - or a person confirmed
+       * it, as they do OneUptime AI's suggestions, which match no value.
+       * A suggestion nobody confirmed counts toward nothing.
+       */
+      if (
+        !storeFacts ||
+        !finding.dataTypeId ||
+        (!finding.matchCount && !finding.isConfirmed) ||
+        (finding.isAiSuggested && !finding.isConfirmed)
+      ) {
         continue;
       }
 

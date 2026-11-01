@@ -16,7 +16,11 @@ import {
   LocationFindings,
   MAX_READ_LOG_ENTRIES,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
-import { DATA_SECURITY_EVALUATE_PROJECT_JOB } from "../../../../Server/Utils/DataSecurity/DataSecurityJobs";
+import {
+  DATA_SECURITY_EVALUATE_PROJECT_JOB,
+  DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB,
+} from "../../../../Server/Utils/DataSecurity/DataSecurityJobs";
+import AIService from "../../../../Server/Services/AIService";
 import Queue, { QueueName } from "../../../../Server/Infrastructure/Queue";
 import DataSecurityScanService from "../../../../Server/Services/DataSecurityScanService";
 import DataStoreFindingService from "../../../../Server/Services/DataStoreFindingService";
@@ -38,6 +42,7 @@ import {
   classifyField,
   FieldClassification,
 } from "../../../../Utils/DataSecurity/FieldClassifier";
+import { UnplacedField } from "../../../../Utils/DataSecurity/UnplacedFields";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
@@ -458,6 +463,9 @@ describe("recordContentScan: findings", () => {
       isFoundByName: false,
       locationKind: DataStoreLocationKind.Column,
       lastSeenAt: clock,
+      // A detector found it: it is not, or no longer, OneUptime AI's suggestion.
+      isAiSuggested: false,
+      aiReason: null,
     });
 
     const after: DataStoreFinding = findingAt(
@@ -1098,5 +1106,367 @@ describe("recordFailedScan", () => {
       "DataSecurity: could not record a failed scan:",
     );
     expect(storeUpdateSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * OneUptime AI's suggestions, and a person's confirmation
+ * ---------------------------------------------------------------------------
+ */
+
+function unplaced(where: string, shape: string = "AA-999999"): UnplacedField {
+  return {
+    location: where,
+    locationKind: DataStoreLocationKind.Column,
+    neighbours: ["email"],
+    shapes: [{ shape, share: 1 }],
+    valueCount: 20,
+    averageLength: 9,
+  };
+}
+
+function suggestionAt(
+  where: string,
+  dataTypeId: string,
+  reason?: string | undefined,
+): LocationFindings {
+  return location(where, [
+    classification(dataTypeId, {
+      matchCount: 0,
+      testValueCount: 0,
+      confidence: DataConfidence.Low,
+      maskedSamples: [],
+      distinctValues: 0,
+      matchRatio: 0,
+      valuesWithMatch: 0,
+      nameHinted: false,
+      isAiSuggested: true,
+      aiReason: reason,
+    }),
+  ]);
+}
+
+function existingFinding(
+  dataTypeId: string,
+  where: string,
+  overrides: Partial<DataStoreFinding> = {},
+): DataStoreFinding {
+  const finding: DataStoreFinding = new DataStoreFinding(ObjectID.generate());
+  finding.dataStoreId = STORE_ID;
+  finding.projectId = PROJECT_ID;
+  finding.findingKey = getFindingKey(dataTypeId, where);
+  finding.dataTypeId = dataTypeId;
+  finding.location = where;
+  finding.confidence = DataConfidence.Low;
+  finding.matchCount = 0;
+  finding.isAiSuggested = false;
+  finding.isConfirmed = false;
+  finding.firstSeenAt = NOW;
+  finding.lastSeenAt = NOW;
+
+  for (const [column, value] of Object.entries(overrides)) {
+    finding.setColumnValue(column, value as never);
+  }
+
+  table.push(finding);
+  return finding;
+}
+
+function suggestionsQueued(): Array<Array<unknown>> {
+  return queueSpy.mock.calls.filter((call: Array<unknown>) => {
+    return call[2] === DATA_SECURITY_SUGGEST_FIELD_TYPES_JOB;
+  });
+}
+
+describe("recordContentScan: the fields no detector placed", () => {
+  test("with Enable AI on, they are kept on the store and OneUptime AI is asked about them, after the evaluation", async () => {
+    const aiSpy: jest.SpyInstance = jest
+      .spyOn(AIService, "isProjectAIEnabled")
+      .mockResolvedValue(true);
+    const fields: Array<UnplacedField> = [
+      unplaced("public.customers.kundennr"),
+      unplaced("public.customers.steuer_ref", "99/999/99999"),
+    ];
+
+    await record({ result: resultOf({ unplacedFields: fields }) });
+
+    expect(aiSpy).toHaveBeenCalledWith(PROJECT_ID);
+    expect(storeWrite()["fieldSuggestionState"]).toEqual({
+      pending: fields,
+      scannedAt: NOW.toISOString(),
+      answers: {},
+    });
+
+    const queued: Array<Array<unknown>> = suggestionsQueued();
+
+    expect(queued).toHaveLength(1);
+    expect(queued[0]![3]).toEqual({
+      projectId: PROJECT_ID.toString(),
+      dataStoreId: STORE_ID.toString(),
+    });
+    // Deduplicated by the store: a second scan before it runs asks once.
+    expect(queued[0]![4]).toMatchObject({
+      deduplication: { id: `data-security-suggest-${STORE_ID.toString()}` },
+    });
+    expect(queueSpy.mock.calls[0]![2]).toBe(DATA_SECURITY_EVALUATE_PROJECT_JOB);
+  });
+
+  test("the answers of earlier scans stay with the new fields; those a month old go", async () => {
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(true);
+    const recent: string = new Date(
+      NOW.getTime() - 3 * DAY_IN_MS,
+    ).toISOString();
+    const old: string = new Date(NOW.getTime() - 31 * DAY_IN_MS).toISOString();
+    store!.fieldSuggestionState = {
+      pending: [unplaced("public.customers.gone")] as unknown as JSONObject[],
+      answers: {
+        recent: { at: recent, dataTypeId: "customer-id", reason: "Kunde." },
+        old: { at: old },
+      },
+    };
+
+    await record({
+      result: resultOf({
+        unplacedFields: [unplaced("public.customers.kundennr")],
+      }),
+    });
+
+    expect(storeWrite()["fieldSuggestionState"]).toEqual({
+      pending: [unplaced("public.customers.kundennr")],
+      scannedAt: NOW.toISOString(),
+      answers: {
+        recent: { at: recent, dataTypeId: "customer-id", reason: "Kunde." },
+      },
+    });
+  });
+
+  test("with Enable AI off, nothing is kept and nothing is asked", async () => {
+    jest.spyOn(AIService, "isProjectAIEnabled").mockResolvedValue(false);
+
+    await record({
+      result: resultOf({
+        unplacedFields: [unplaced("public.customers.kundennr")],
+      }),
+    });
+
+    expect(storeWrite()["fieldSuggestionState"]).toBeUndefined();
+    expect(suggestionsQueued()).toEqual([]);
+  });
+
+  test("a scan that placed every field asks nothing, and does not read the switch", async () => {
+    const aiSpy: jest.SpyInstance = jest.spyOn(AIService, "isProjectAIEnabled");
+
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.users.email", [classification("email-address")]),
+        ],
+      }),
+    });
+    await record({ result: { ...resultOf(), unplacedFields: undefined } });
+
+    expect(aiSpy).not.toHaveBeenCalled();
+    expect(suggestionsQueued()).toEqual([]);
+    for (const call of storeUpdateSpy.mock.calls) {
+      expect(
+        (call[0] as { data: JSONObject }).data["fieldSuggestionState"],
+      ).toBeUndefined();
+    }
+  });
+});
+
+describe("recordFieldSuggestions", () => {
+  function suggest(
+    locations: Array<LocationFindings>,
+    customDataTypes?: ReadonlyMap<string, CustomDataTypeSummary> | undefined,
+  ): Promise<number> {
+    return DataSecurityFindingWriter.recordFieldSuggestions({
+      projectId: PROJECT_ID,
+      dataStoreId: STORE_ID,
+      locations,
+      customDataTypes,
+      now: NOW,
+    });
+  }
+
+  test("a suggestion is a Low finding that matched no value, OneUptime AI's, with its reason and no sample", async () => {
+    const written: number = await suggest([
+      suggestionAt(
+        "public.customers.steuer_ref",
+        "de-tax-id",
+        "Steuer means tax in German and the values look like tax numbers.",
+      ),
+    ]);
+
+    expect(written).toBe(1);
+
+    const finding: DataStoreFinding = findingAt(
+      "de-tax-id",
+      "public.customers.steuer_ref",
+    );
+
+    expect(finding.isAiSuggested).toBe(true);
+    expect(finding.aiReason).toBe(
+      "Steuer means tax in German and the values look like tax numbers.",
+    );
+    expect(finding.confidence).toBe(DataConfidence.Low);
+    expect(finding.matchCount).toBe(0);
+    expect(finding.matchPercent).toBe(0);
+    expect(finding.maskedSamples).toEqual([]);
+    expect(finding.projectId?.toString()).toBe(PROJECT_ID.toString());
+    // Not the scan's: the evaluation of a scan is not queued for it here.
+    expect(queueSpy).not.toHaveBeenCalled();
+  });
+
+  test("a custom data type is named as the project named it", async () => {
+    await suggest(
+      [suggestionAt("public.customers.kundennr", "custom:abc")],
+      new Map([
+        [
+          "custom:abc",
+          {
+            name: "Kundennummer",
+            category: DataCategory.ContactAndIdentity,
+            sensitivity: DataSensitivity.Confidential,
+          },
+        ],
+      ]),
+    );
+
+    expect(
+      findingAt("custom:abc", "public.customers.kundennr").dataTypeName,
+    ).toBe("Kundennummer");
+  });
+
+  test("never takes the place of a detector's finding", async () => {
+    const detector: DataStoreFinding = existingFinding(
+      "email-address",
+      "public.customers.contact",
+      { matchCount: 40, confidence: DataConfidence.High },
+    );
+
+    const written: number = await suggest([
+      suggestionAt("public.customers.contact", "email-address", "Contact."),
+    ]);
+
+    expect(written).toBe(0);
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(detector.isAiSuggested).toBe(false);
+    expect(detector.matchCount).toBe(40);
+    expect(detector.confidence).toBe(DataConfidence.High);
+  });
+
+  test("written again, it is seen again and keeps its reason when none is given", async () => {
+    const earlier: DataStoreFinding = existingFinding(
+      "de-tax-id",
+      "public.customers.steuer_ref",
+      {
+        isAiSuggested: true,
+        aiReason: "Steuer means tax.",
+        lastSeenAt: new Date(NOW.getTime() - 10 * DAY_IN_MS),
+      },
+    );
+
+    await suggest([suggestionAt("public.customers.steuer_ref", "de-tax-id")]);
+
+    expect(earlier.aiReason).toBe("Steuer means tax.");
+    expect(earlier.lastSeenAt).toEqual(NOW);
+    expect(
+      (updateSpy.mock.calls[0]![0] as { data: JSONObject }).data,
+    ).not.toHaveProperty("aiReason");
+  });
+
+  test("a suggestion a person confirmed keeps its High confidence", async () => {
+    const confirmed: DataStoreFinding = existingFinding(
+      "de-tax-id",
+      "public.customers.steuer_ref",
+      {
+        isAiSuggested: true,
+        isConfirmed: true,
+        confidence: DataConfidence.High,
+      },
+    );
+
+    await suggest([suggestionAt("public.customers.steuer_ref", "de-tax-id")]);
+
+    expect(confirmed.confidence).toBe(DataConfidence.High);
+    expect(confirmed.isConfirmed).toBe(true);
+    expect(confirmed.lastSeenAt).toEqual(NOW);
+  });
+});
+
+describe("recordContentScan: a person's confirmation, and a detector after a suggestion", () => {
+  test("a finding a person confirmed stays High when a scan finds it Low again", async () => {
+    const confirmed: DataStoreFinding = existingFinding(
+      "iban",
+      "public.payouts.account",
+      { isConfirmed: true, confidence: DataConfidence.High, matchCount: 2 },
+    );
+
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.payouts.account", [
+            classification("iban", {
+              confidence: DataConfidence.Low,
+              matchCount: 3,
+            }),
+          ]),
+        ],
+      }),
+    });
+
+    const update: JSONObject = (
+      updateSpy.mock.calls[0]![0] as { data: JSONObject }
+    ).data;
+
+    expect(update).not.toHaveProperty("confidence");
+    expect(update["matchCount"]).toBe(3);
+    expect(confirmed.confidence).toBe(DataConfidence.High);
+    expect(confirmed.matchCount).toBe(3);
+  });
+
+  test("a finding nobody confirmed takes the confidence the scan gives it", async () => {
+    const finding: DataStoreFinding = existingFinding(
+      "iban",
+      "public.payouts.account",
+      { confidence: DataConfidence.High, matchCount: 2 },
+    );
+
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.payouts.account", [
+            classification("iban", { confidence: DataConfidence.Low }),
+          ]),
+        ],
+      }),
+    });
+
+    expect(finding.confidence).toBe(DataConfidence.Low);
+  });
+
+  test("a detector that finds what OneUptime AI suggested makes the finding its own", async () => {
+    const suggested: DataStoreFinding = existingFinding(
+      "de-tax-id",
+      "public.customers.steuer_ref",
+      { isAiSuggested: true, aiReason: "Steuer means tax." },
+    );
+
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.customers.steuer_ref", [
+            classification("de-tax-id", { matchCount: 18 }),
+          ]),
+        ],
+      }),
+    });
+
+    expect(suggested.isAiSuggested).toBe(false);
+    expect(suggested.aiReason).toBeNull();
+    expect(suggested.matchCount).toBe(18);
+    expect(suggested.confidence).toBe(DataConfidence.High);
   });
 });

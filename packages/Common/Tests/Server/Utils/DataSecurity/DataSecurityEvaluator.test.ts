@@ -359,6 +359,8 @@ function findingOf(
     matchCount?: number | undefined;
     isScrubbed?: boolean | undefined;
     isSuppressed?: boolean | undefined;
+    isConfirmed?: boolean | undefined;
+    isAiSuggested?: boolean | undefined;
     seenDaysAgo?: number | undefined;
   } = {},
 ): DataStoreFinding {
@@ -375,6 +377,8 @@ function findingOf(
     options.matchCount === undefined ? 12 : options.matchCount;
   finding.isScrubbed = Boolean(options.isScrubbed);
   finding.isSuppressed = Boolean(options.isSuppressed);
+  finding.isConfirmed = Boolean(options.isConfirmed);
+  finding.isAiSuggested = Boolean(options.isAiSuggested);
   finding.lastSeenAt = new Date(
     NOW.getTime() - (options.seenDaysAgo || 1) * DAY_IN_MS,
   );
@@ -1255,6 +1259,64 @@ describe("DataSecurityEvaluator.evaluateProject: what it reads", () => {
     expect(checkRunOf("checkout · Logs").input.unscrubbedDataTypeIds).toEqual([
       "email-address",
     ]);
+  });
+
+  /*
+   * OneUptime AI's suggestion matched no value and is Low: it decides
+   * nothing until a person confirms it - and then it counts as High, the
+   * confidence a person's confirmation gives (DataStoreFindingService).
+   */
+  test("a suggestion nobody confirmed decides nothing; a confirmed one counts, with no value matched", async () => {
+    const logs: DataStore = storeOf({
+      name: "checkout · Logs",
+      kind: DataStoreKind.TelemetryLogs,
+      storeKey: "telemetry:service-1:Logs",
+    });
+    fixture.stores = [logs];
+    fixture.findings = [
+      findingOf(logs, "credit-card-number", {
+        confidence: DataConfidence.Low,
+        matchCount: 0,
+        isAiSuggested: true,
+      }),
+      findingOf(logs, "us-ssn", {
+        confidence: DataConfidence.High,
+        matchCount: 0,
+        isAiSuggested: true,
+      }),
+      findingOf(logs, "email-address", {
+        confidence: DataConfidence.High,
+        matchCount: 0,
+        isAiSuggested: true,
+        isConfirmed: true,
+      }),
+    ];
+
+    await evaluate();
+
+    expect(summaryOf(logs)).toMatchObject({
+      sensitivity: DataSensitivity.Confidential,
+      dataTypeIds: ["email-address"],
+      findingCount: 1,
+    });
+    expect(checkRunOf("checkout · Logs").input.unscrubbedDataTypeIds).toEqual([
+      "email-address",
+    ]);
+  });
+
+  test("a Low finding a person confirmed decides the store's sensitivity", async () => {
+    const store: DataStore = storeOf({ name: "customer-exports" });
+    fixture.stores = [store];
+    fixture.findings = [
+      findingOf(store, "credit-card-number", {
+        confidence: DataConfidence.High,
+        isConfirmed: true,
+      }),
+    ];
+
+    await evaluate();
+
+    expect(summaryOf(store)["sensitivity"]).toBe(DataSensitivity.Restricted);
   });
 
   test("scrubbed findings still decide sensitivity, but are not unscrubbed", async () => {

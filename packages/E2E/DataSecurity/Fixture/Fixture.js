@@ -627,6 +627,71 @@ table(DataStoreFinding).push(
     firstSeenAt: ago(2 * DAY),
     lastSeenAt: ago(40 * MINUTE),
   },
+  /*
+   * OneUptime AI's suggestions for two columns of the exports no detector
+   * placed, from their names and the shapes of their values: one nobody
+   * judged yet, and one a person confirmed - High since.
+   */
+  {
+    _id: ID.finding(4),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(1)),
+    findingKey: "date-of-birth:exports/orders-2026-10-26.csv:geb_datum",
+    dataTypeId: "date-of-birth",
+    dataTypeName: "Date of birth",
+    dataCategory: DataCategory.ContactAndIdentity,
+    sensitivity: DataSensitivity.Confidential,
+    location: "exports/orders-2026-10-26.csv · geb_datum",
+    locationKind: "Column",
+    confidence: "Low",
+    matchCount: 0,
+    valueCount: 500,
+    matchPercent: 0,
+    distinctValues: 0,
+    testValueCount: 0,
+    maskedSamples: [],
+    isFreeText: false,
+    isNameHinted: false,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    isAiSuggested: true,
+    aiReason:
+      "Geb. Datum is German for date of birth, and every value has the shape of a date.",
+    isConfirmed: false,
+    firstSeenAt: ago(1 * DAY),
+    lastSeenAt: ago(5 * HOUR),
+  },
+  {
+    _id: ID.finding(5),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(1)),
+    findingKey: "de-tax-id:exports/orders-2026-10-26.csv:steuer_nr",
+    dataTypeId: "de-tax-id",
+    dataTypeName: "Germany tax ID",
+    dataCategory: DataCategory.GovernmentId,
+    sensitivity: DataSensitivity.Restricted,
+    location: "exports/orders-2026-10-26.csv · steuer_nr",
+    locationKind: "Column",
+    confidence: "High",
+    matchCount: 0,
+    valueCount: 500,
+    matchPercent: 0,
+    distinctValues: 0,
+    testValueCount: 0,
+    maskedSamples: [],
+    isFreeText: false,
+    isNameHinted: false,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    isAiSuggested: true,
+    aiReason:
+      "Steuer-Nr is German for tax number, and the values are eleven digits.",
+    isConfirmed: true,
+    firstSeenAt: ago(6 * DAY),
+    lastSeenAt: ago(5 * HOUR),
+  },
 );
 
 table(DataStoreAccess).push(
@@ -1722,6 +1787,10 @@ ModelAPI.updateById = async (options) => {
   });
   if (record) {
     Object.assign(record, options.data);
+    // A confirmed finding counts as High, as DataStoreFindingService sets it.
+    if (modelName === "DataStoreFinding" && options.data.isConfirmed === true) {
+      record.confidence = "High";
+    }
   }
   return new HTTPResponse(200, {}, {});
 };

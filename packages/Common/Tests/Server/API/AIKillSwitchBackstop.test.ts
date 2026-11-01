@@ -537,6 +537,16 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
     delivery: "skip",
   },
   /*
+   * Data Security's field suggestions run in a queue job a store's scan
+   * starts: the job reads the switch first (isProjectAIEnabled) and does
+   * nothing when AI is off, and a refusal while it asks is a line in the
+   * log - the fields are asked about after the next scan.
+   */
+  {
+    file: "Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts",
+    delivery: "skip",
+  },
+  /*
    * Reading an incident call's transcript runs in the background: start()
    * checks the switch first and stores "Skipped" with the sentence that
    * says where to turn it on, and a refusal while it reads is stored on the

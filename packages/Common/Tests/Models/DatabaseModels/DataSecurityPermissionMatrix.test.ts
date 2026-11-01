@@ -414,9 +414,14 @@ describe("Data Security's permission matrix", () => {
     );
   });
 
-  test("on a finding, a person decides only whether it is suppressed, and why", () => {
+  /*
+   * Whether it is sensitive at all, and why not - or that it holds what the
+   * scan, or OneUptime AI, was not sure of. Never its confidence, its
+   * counts or whether OneUptime AI suggested it: those are OneUptime's.
+   */
+  test("on a finding, a person decides only whether it is suppressed and why, and whether it is confirmed", () => {
     expect(editableColumns(new DataStoreFinding())).toEqual(
-      ["isSuppressed", "suppressedReason"].sort(),
+      ["isConfirmed", "isSuppressed", "suppressedReason"].sort(),
     );
   });
 
@@ -452,7 +457,15 @@ describe("Data Security's permission matrix", () => {
     );
     expect(getTableColumns(store)["connectionString"]!.encrypted).toBe(true);
 
-    for (const column of ["fingerprints", "contentScanState"]) {
+    /*
+     * The fields a scan could not place are named in fieldSuggestionState,
+     * with OneUptime AI's answers: working state too, read by nobody.
+     */
+    for (const column of [
+      "fingerprints",
+      "contentScanState",
+      "fieldSuggestionState",
+    ]) {
       expect([column, columns[column]!.read]).toEqual([column, []]);
       expect([column, columns[column]!.create]).toEqual([column, []]);
       expect([column, columns[column]!.update]).toEqual([column, []]);
@@ -468,7 +481,12 @@ describe("Data Security's permission matrix", () => {
           return column;
         })
         .sort(),
-    ).toEqual(["connectionString", "contentScanState", "fingerprints"]);
+    ).toEqual([
+      "connectionString",
+      "contentScanState",
+      "fieldSuggestionState",
+      "fingerprints",
+    ]);
   });
 
   test("what a scan works out about a store is OneUptime's: its key, kind of exposure, sensitivity, posture, counts and risk", () => {
