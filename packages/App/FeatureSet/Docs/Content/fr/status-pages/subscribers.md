@@ -327,6 +327,14 @@ Via l'API, envoyez le choix à côté des champs que vous modifiez, dans `miscDa
 
 comme corps de `PUT /api/status-page-announcement/<announcement-id>` (ou `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Omettez `miscDataProps` et la modification reste silencieuse, comme avant.
 
+## La langue des messages aux abonnés
+
+Chaque abonné reçoit ses messages dans sa propre langue : l'e-mail ou le SMS qui confirme l'abonnement, le message de bienvenue et le lien pour le gérer, et chaque notification sur un incident, un épisode d'incident, un événement de maintenance planifiée ou une annonce, par e-mail, SMS, Slack et Microsoft Teams.
+
+Un visiteur qui passe la page de statut dans une autre langue depuis son pied de page, puis s'abonne ou met à jour son abonnement, reçoit ses messages dans cette langue. Tous les autres les reçoivent dans la langue par défaut de la page, réglée sous [Plus de paramètres](/docs/status-pages/branding-and-domains#plus-de-paramètres) sur sa page Image de marque : un visiteur qui a lu la page dans cette langue, un abonné que votre équipe ajoute depuis le tableau de bord, par l'API ou par un workflow, et quiconque s'est abonné avant que OneUptime ne conserve la langue d'un abonné. Changez la langue par défaut, et ils reçoivent la nouvelle dès le message suivant. Par l'API, le champ `language` d'un abonné est un code de langue comme `de` ou `zh-TW`, ou vide pour la langue par défaut de la page ; toute autre valeur est refusée.
+
+Les mots de OneUptime lui-même sont dans cette langue : objets, titres, libellés et boutons, la ligne de désabonnement, les dates, et les noms des états d'incident, des niveaux de gravité et des états de maintenance planifiée avec lesquels chaque nouveau projet commence, comme Resolved, Major Incident ou Ongoing. Ce que votre équipe écrit reste tel qu'il a été écrit : titres, descriptions, notes et post-mortems, vos propres noms d'états, de niveaux de gravité et de ressources, le nom de la page de statut, les champs personnalisés et les modèles personnalisés, dont les valeurs apparaissent telles qu'elles sont enregistrées. Un e-mail en persan se lit de droite à gauche. La charge utile d'un webhook est une donnée et reste telle quelle, et le rapport par e-mail est rédigé en anglais.
+
 ## Vérifier ce qui a été envoyé
 
 Chaque notification aux abonnés a son propre statut, à côté de ce qu'elle concerne. Pour un incident, il s'agit de sa notification « créé » sur la **Vue d'ensemble** de l'incident, de chaque ligne de sa **Chronologie d'état**, de chaque note publique et de son **Post-mortem**. Les événements de maintenance planifiée et les annonces affichent les leurs de la même façon, et les épisodes d'incident sur leurs notes publiques. Cliquez sur le statut pour lire son message, qui dit ce qui s'est passé. Les notes publiques affichent le statut sous forme de badge avec leur propre formulation :

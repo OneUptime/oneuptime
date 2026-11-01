@@ -327,6 +327,14 @@ Tramite l'API, inviate la scelta accanto ai campi che cambiate, in `miscDataProp
 
 come corpo di `PUT /api/status-page-announcement/<announcement-id>` (o di `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Omettete `miscDataProps` e la modifica resta silenziosa, come prima.
 
+## La lingua dei messaggi agli iscritti
+
+Ogni iscritto riceve i messaggi nella propria lingua: l'email o l'SMS che conferma l'iscrizione, il benvenuto e il link per gestirla, e ogni notifica su un incidente, un episodio di incidente, un evento di manutenzione programmata o un annuncio, via email, SMS, Slack e Microsoft Teams.
+
+Un visitatore che passa la pagina di stato a un'altra lingua dal suo piè di pagina, e poi si iscrive o aggiorna la propria iscrizione, riceve i messaggi in quella lingua. Tutti gli altri li ricevono nella lingua predefinita della pagina, impostata in [Altre impostazioni](/docs/status-pages/branding-and-domains#altre-impostazioni) nella sua pagina Branding: un visitatore che ha letto la pagina in quella lingua, un iscritto che il vostro team aggiunge nella dashboard, con l'API o tramite un workflow, e chiunque si sia iscritto prima che OneUptime conservasse la lingua di un iscritto. Cambiate la lingua predefinita e riceveranno la nuova dal messaggio successivo. Con l'API, il campo `language` di un iscritto è un codice di lingua come `de` o `zh-TW`, oppure vuoto per la lingua predefinita della pagina; qualsiasi altro valore viene rifiutato.
+
+Le parole di OneUptime sono in quella lingua: oggetti, intestazioni, etichette e pulsanti, la riga per annullare l'iscrizione, le date e i nomi degli stati degli incidenti, delle gravità e degli stati di manutenzione programmata con cui inizia ogni nuovo progetto, come Resolved, Major Incident o Ongoing. Ciò che scrive il vostro team resta come è stato scritto: titoli, descrizioni, note e post-mortem, i vostri nomi per stati, gravità e risorse, il nome della pagina di stato, i campi personalizzati e i modelli personalizzati, i cui valori si leggono come sono salvati. Un'email in persiano si legge da destra a sinistra. Il payload di un webhook è un dato e resta com'è, e il report via email è scritto in inglese.
+
 ## Verificare che cosa è stato inviato
 
 Ogni notifica agli iscritti ha un proprio stato, accanto a ciò di cui parla. Per un incidente, è la sua notifica di «creato» nella **Panoramica** dell'incidente, ogni riga della sua **Cronologia stato**, ogni nota pubblica e il suo **Post-mortem**. Gli eventi di manutenzione programmata e gli annunci mostrano i loro allo stesso modo, e gli episodi di incidente sulle loro note pubbliche. Fate clic sullo stato per leggerne il messaggio, che dice che cosa è successo. Le note pubbliche mostrano lo stato come un badge con una formulazione propria:

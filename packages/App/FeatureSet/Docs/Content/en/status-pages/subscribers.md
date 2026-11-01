@@ -327,6 +327,14 @@ Through the API, send the choice next to the fields you change, in `miscDataProp
 
 as the body of `PUT /api/status-page-announcement/<announcement-id>` (or `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Leave `miscDataProps` out and the edit is silent, as before.
 
+## The language subscribers are written in
+
+Each subscriber is written to in their own language: the email or text message that confirms the subscription, the welcome and the link to manage it, and every notification about an incident, an incident episode, a scheduled maintenance event or an announcement, by email, SMS, Slack and Microsoft Teams.
+
+A visitor who switches the status page to another language in its footer, then subscribes or updates their subscription, is written to in that language. Everyone else is written to in the page's default language, set under [More settings](/docs/status-pages/branding-and-domains#more-settings) on its Branding page: a visitor who read the page in that language, a subscriber your team adds on the dashboard, through the API or by a workflow, and anyone who subscribed before OneUptime kept a subscriber's language. Change the default language and they are written to in the new one from the next message on. Through the API, a subscriber's `language` is a language code such as `de` or `zh-TW`, or empty for the page's default; any other value is refused.
+
+OneUptime's own words are in that language: subjects, headings, labels and buttons, the unsubscribe line, dates, and the names of the incident states, severities and scheduled maintenance states every new project starts with, such as Resolved, Major Incident or Ongoing. What your team writes reads as written: titles, descriptions, notes and postmortems, your own names for states, severities and resources, the status page's name, custom fields, and custom templates, whose values read as they are stored. An email in Persian reads right to left. A webhook's payload is data and stays as it is, and the email report is written in English.
+
 ## Checking what was sent
 
 Every subscriber notification has a status of its own, next to what it is about. For an incident, that is its 'created' notification on the incident's **Overview**, each row of its **State Timeline**, each public note and its **Postmortem**. Scheduled maintenance events and announcements show theirs the same way, and incident episodes on their public notes. Click the status to read its message, which says what happened. Public notes show the status as a badge with wording of their own:

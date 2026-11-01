@@ -327,6 +327,14 @@ Pela API, envie a escolha junto com os campos que você muda, em `miscDataProps`
 
 como corpo de `PUT /api/status-page-announcement/<announcement-id>` (ou de `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Omita `miscDataProps` e a edição fica silenciosa, como antes.
 
+## O idioma das mensagens aos assinantes
+
+Cada assinante recebe as mensagens no próprio idioma: o e-mail ou SMS que confirma a inscrição, as boas-vindas e o link para gerenciá-la, e cada notificação sobre um incidente, um episódio de incidente, um evento de manutenção programada ou um anúncio, por e-mail, SMS, Slack e Microsoft Teams.
+
+Um visitante que muda a página de status para outro idioma no rodapé e depois se inscreve ou atualiza a inscrição recebe as mensagens nesse idioma. Todos os outros as recebem no idioma padrão da página, definido em [Mais configurações](/docs/status-pages/branding-and-domains#mais-configurações) na página Marca: um visitante que leu a página nesse idioma, um assinante que sua equipe adiciona pelo painel, pela API ou por um workflow, e quem se inscreveu antes de o OneUptime guardar o idioma de um assinante. Mude o idioma padrão e eles passam a receber o novo a partir da próxima mensagem. Pela API, o `language` de um assinante é um código de idioma como `de` ou `zh-TW`, ou vazio para o idioma padrão da página; qualquer outro valor é recusado.
+
+As palavras do próprio OneUptime ficam nesse idioma: assuntos, títulos, rótulos e botões, a linha para cancelar a inscrição, as datas e os nomes dos estados de incidente, das severidades e dos estados de manutenção programada com que todo projeto novo começa, como Resolved, Major Incident ou Ongoing. O que sua equipe escreve fica como foi escrito: títulos, descrições, notas e post-mortems, seus próprios nomes de estados, severidades e recursos, o nome da página de status, os campos personalizados e os modelos personalizados, cujos valores aparecem como estão armazenados. Um e-mail em persa é lido da direita para a esquerda. O payload de um webhook é um dado e continua como está, e o relatório por e-mail é escrito em inglês.
+
 ## Verificar o que foi enviado
 
 Toda notificação a assinantes tem um status próprio, ao lado daquilo de que ela trata. Para um incidente, é a notificação de "criado" dele na **Visão geral** do incidente, cada linha da **Linha do tempo de estado** dele, cada nota pública e o **Post-mortem** dele. Eventos de manutenção programada e anúncios mostram os deles da mesma forma, e os episódios de incidente nas notas públicas deles. Clique no status para ler a mensagem dele, que diz o que aconteceu. As notas públicas mostram o status como um badge com texto próprio:

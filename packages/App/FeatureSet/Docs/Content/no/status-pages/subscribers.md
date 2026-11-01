@@ -327,6 +327,14 @@ Via API-et sender du valget ved siden av feltene du endrer, i `miscDataProps`:
 
 som innhold i `PUT /api/status-page-announcement/<announcement-id>` (eller `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Utelat `miscDataProps`, så er redigeringen stille, som før.
 
+## Språket i meldinger til abonnenter
+
+Hver abonnent får meldingene sine på sitt eget språk: e-posten eller SMS-en som bekrefter abonnementet, velkomsten og lenken for å administrere det, og hvert varsel om en hendelse, en hendelsesepisode, en planlagt vedlikeholdshendelse eller en kunngjøring, via e-post, SMS, Slack og Microsoft Teams.
+
+En besøkende som bytter statussiden til et annet språk i bunnteksten og deretter abonnerer eller oppdaterer abonnementet sitt, får meldingene sine på det språket. Alle andre får dem på sidens standardspråk, som stilles inn under [Flere innstillinger](/docs/status-pages/branding-and-domains#flere-innstillinger) på siden Merkevare: en besøkende som leste siden på det språket, en abonnent teamet ditt legger til i dashbordet, med API-et eller med en arbeidsflyt, og alle som abonnerte før OneUptime tok vare på en abonnents språk. Endre standardspråket, så får de det nye fra neste melding. Via API-et er en abonnents `language` en språkkode som `de` eller `zh-TW`, eller tom for sidens standardspråk; alle andre verdier avvises.
+
+OneUptimes egne ord står på det språket: emnelinjer, overskrifter, etiketter og knapper, linjen for å melde seg av, datoer og navnene på hendelsestilstandene, alvorlighetsgradene og vedlikeholdstilstandene hvert nytt prosjekt starter med, for eksempel Resolved, Major Incident eller Ongoing. Det teamet ditt skriver, står slik det ble skrevet: titler, beskrivelser, notater og etteranalyser, deres egne navn på tilstander, alvorlighetsgrader og ressurser, statussidens navn, egendefinerte felt og egne maler, der verdiene står slik de er lagret. En e-post på persisk leses fra høyre mot venstre. Nyttelasten i en webhook er data og forblir som den er, og e-postrapporten er skrevet på engelsk.
+
 ## Sjekk hva som ble sendt
 
 Hvert abonnentvarsel har sin egen status ved siden av det det handler om. For en hendelse er det varselet om "opprettet" på hendelsens **Oversikt**, hver rad i **Tilstandstidslinje**, hvert offentlig notat og **Etteranalyse**. Planlagte vedlikeholdshendelser og kunngjøringer viser sine på samme måte, og hendelsesepisoder på de offentlige notatene sine. Klikk på statusen for å lese meldingen, som sier hva som skjedde. Offentlige notater viser statusen som et merke med sin egen ordlyd:

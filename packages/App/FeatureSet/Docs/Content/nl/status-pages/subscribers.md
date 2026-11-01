@@ -327,6 +327,14 @@ Stuur via de API de keuze mee naast de velden die u wijzigt, in `miscDataProps`:
 
 als body van `PUT /api/status-page-announcement/<announcement-id>` (of `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Laat `miscDataProps` weg en de bewerking blijft stil, zoals voorheen.
 
+## De taal van berichten aan abonnees
+
+Elke abonnee krijgt zijn berichten in zijn eigen taal: de e-mail of sms die het abonnement bevestigt, het welkomstbericht en de link om het te beheren, en elke melding over een incident, een incidentepisode, een geplande onderhoudsgebeurtenis of een aankondiging, per e-mail, sms, Slack en Microsoft Teams.
+
+Een bezoeker die de statuspagina in de voettekst naar een andere taal overschakelt en zich daarna abonneert of zijn abonnement bijwerkt, krijgt zijn berichten in die taal. Alle anderen krijgen ze in de standaardtaal van de pagina, ingesteld onder [Meer instellingen](/docs/status-pages/branding-and-domains#meer-instellingen) op de pagina Huisstijl: een bezoeker die de pagina in die taal las, een abonnee die uw team toevoegt in het dashboard, met de API of via een workflow, en iedereen die zich abonneerde voordat OneUptime de taal van een abonnee bewaarde. Wijzig de standaardtaal en ze krijgen vanaf het volgende bericht de nieuwe. Via de API is `language` van een abonnee een taalcode zoals `de` of `zh-TW`, of leeg voor de standaardtaal van de pagina; elke andere waarde wordt geweigerd.
+
+De eigen woorden van OneUptime staan in die taal: onderwerpregels, koppen, labels en knoppen, de regel om het abonnement op te zeggen, datums, en de namen van de incidentstatussen, ernstniveaus en onderhoudsstatussen waarmee elk nieuw project begint, zoals Resolved, Major Incident of Ongoing. Wat uw team schrijft, blijft zoals het geschreven is: titels, beschrijvingen, notities en postmortems, uw eigen namen voor statussen, ernstniveaus en resources, de naam van de statuspagina, aangepaste velden en eigen sjablonen, waarvan de waarden verschijnen zoals ze zijn opgeslagen. Een e-mail in het Perzisch leest van rechts naar links. De payload van een webhook is data en blijft zoals hij is, en het e-mailrapport is in het Engels geschreven.
+
 ## Controleren wat er is verzonden
 
 Elke abonneemelding heeft een eigen status, naast datgene waarover ze gaat. Voor een incident is dat de melding 'aangemaakt' op het **Overzicht** van het incident, elke rij van de **Statustijdlijn**, elke openbare notitie en de **Postmortem**. Geplande onderhoudsgebeurtenissen en aankondigingen tonen die van hen op dezelfde manier, en incidentepisoden bij hun openbare notities. Klik op de status om het bericht te lezen, dat zegt wat er is gebeurd. Openbare notities tonen de status als een badge met een eigen formulering:

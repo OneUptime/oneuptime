@@ -327,6 +327,14 @@ Via API'et sender du valget ved siden af de felter, du ændrer, i `miscDataProps
 
 som brødtekst til `PUT /api/status-page-announcement/<announcement-id>` (eller `incident-public-note`, `scheduled-maintenance-public-note`, `incident-episode-public-note`). Udelad `miscDataProps`, og redigeringen er stille, som før.
 
+## Sproget i beskeder til abonnenter
+
+Hver abonnent får sine beskeder på sit eget sprog: den e-mail eller sms, der bekræfter abonnementet, velkomsten og linket til at administrere det, og hver notifikation om en hændelse, en hændelsesepisode, en planlagt vedligeholdelsesbegivenhed eller en meddelelse, via e-mail, sms, Slack og Microsoft Teams.
+
+En besøgende, der skifter statussiden til et andet sprog i dens sidefod og derefter abonnerer eller opdaterer sit abonnement, får sine beskeder på det sprog. Alle andre får dem på sidens standardsprog, der indstilles under [Yderligere indstillinger](/docs/status-pages/branding-and-domains#yderligere-indstillinger) på dens side Branding: en besøgende, der læste siden på det sprog, en abonnent, som dit team tilføjer på dashboardet, med API'et eller via et workflow, og alle, der abonnerede, før OneUptime gemte en abonnents sprog. Skift standardsproget, og de får det nye fra næste besked. Via API'et er en abonnents `language` en sprogkode som `de` eller `zh-TW`, eller tom for sidens standardsprog; enhver anden værdi afvises.
+
+OneUptimes egne ord står på det sprog: emnelinjer, overskrifter, etiketter og knapper, linjen til at afmelde, datoer og navnene på de hændelsestilstande, alvorsgrader og vedligeholdelsestilstande, som hvert nyt projekt starter med, såsom Resolved, Major Incident eller Ongoing. Det, dit team skriver, står, som det blev skrevet: titler, beskrivelser, noter og postmortems, jeres egne navne på tilstande, alvorsgrader og ressourcer, statussidens navn, brugerdefinerede felter og egne skabeloner, hvis værdier står, som de er gemt. En e-mail på persisk læses fra højre mod venstre. En webhooks payload er data og forbliver, som den er, og e-mailrapporten er skrevet på engelsk.
+
 ## Tjek, hvad der blev sendt
 
 Hver abonnentnotifikation har sin egen status ved siden af det, den handler om. For en hændelse er det dens notifikation om "oprettet" på hændelsens **Oversigt**, hver række i dens **Tilstandstidslinje**, hver offentlig note og dens **Postmortem**. Planlagte vedligeholdelsesbegivenheder og meddelelser viser deres på samme måde, og hændelsesepisoder på deres offentlige noter. Klik på status for at læse dens besked, som siger, hvad der skete. Offentlige noter viser status som et mærke med deres egen ordlyd:

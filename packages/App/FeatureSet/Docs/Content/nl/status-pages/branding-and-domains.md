@@ -107,7 +107,7 @@ Hoeveel dagen de grafiek beslaat, stelt u hier niet in. Dat is **Uptimegeschiede
 
 | Veld | Wat het doet |
 | ----- | ------------ |
-| **Standaardtaal** | De taal die bezoekers bij hun eerste bezoek zien, gekozen uit een lijst die elke taal in de eigen taal en in het Engels noemt (`Deutsch (German)`). Standaard is dat Engels, en bezoekers kunnen altijd wisselen via de footer. |
+| **Standaardtaal** | De taal die bezoekers bij hun eerste bezoek zien, gekozen uit een lijst die elke taal in de eigen taal en in het Engels noemt (`Deutsch (German)`). Standaard is dat Engels, en bezoekers kunnen altijd wisselen via de footer. Abonnees krijgen hun berichten ook in deze taal, tenzij ze de pagina in een andere taal lazen toen ze zich abonneerden. |
 | **Ingeschakelde talen** | Een meervoudige selectie, plaatshouder `All languages`. Laat die leeg en elke ondersteunde taal wordt aangeboden; kies er een paar en de footer toont alleen die. |
 
 OneUptime wordt geleverd met zeventien talen: Engels, Duits, Frans, Spaans, Italiaans, Portugees, Nederlands, Deens, Noors, Zweeds, Russisch, Japans, Koreaans, Chinees (vereenvoudigd), Chinees (traditioneel), Hindi en Perzisch. Perzisch lees je van rechts naar links, dus een pagina in het Perzisch is vanaf rechts opgebouwd, vanaf het eerste moment als Perzisch de standaardtaal is. De uptimebalken beginnen nog steeds links met de oudste dag.
