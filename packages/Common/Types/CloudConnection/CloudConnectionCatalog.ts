@@ -201,12 +201,14 @@ function dataSecurityField(): CloudConnectionField {
 }
 
 /*
- * The setting that records whether the connection may also close a data
- * store's exposure, as its setup command granted it: a person on the
- * store's issue, or a Security Operations playbook, blocks a store's public
- * access and revokes its sharing (DataSecurityResponse) - the only writes
- * a connection is ever given, granted on their own and off until someone
- * picks "block".
+ * The setting that records whether the connection may also fix a data
+ * store, as its setup command granted it: a person on the store's issue,
+ * or a Security Operations playbook, blocks a store's public access and
+ * revokes its sharing, and a person on the issue turns on a setting that
+ * protects it - versioning, soft delete, secure transfer...
+ * (DataSecurityResponse). The only writes a connection is ever given,
+ * granted on their own and off until someone picks "block", the value it
+ * has kept since it did the first two alone.
  */
 export const DATA_SECURITY_RESPONSE_FIELD_KEY: string = "dataSecurityResponse";
 
@@ -227,12 +229,12 @@ function dataSecurityResponseField(): CloudConnectionField {
     key: DATA_SECURITY_RESPONSE_FIELD_KEY,
     title: "Data security response",
     description:
-      "Lets Data Security block public access to a data store and revoke its sharing: from its issue, when a person asks, or in a playbook, each run approved by a person unless the playbook says otherwise. The command changes with it.",
+      "Lets Data Security fix a data store through this connection: block its public access and revoke its sharing, from its issue or in a playbook, and turn on a setting that protects it, such as versioning or secure transfer, from its issue. Each change is approved by a person unless a playbook says otherwise. The command changes with it.",
     type: "dropdown",
     required: false,
     options: [
       { label: "Off", value: "off" },
-      { label: "Block public access and sharing", value: "block" },
+      { label: "Close exposures and fix settings", value: "block" },
     ],
     defaultValue: "off",
     isAdvanced: true,

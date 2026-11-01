@@ -405,6 +405,7 @@ import SecurityPlaybookRunService from "./SecurityPlaybookRunService";
 import DataStoreService from "./DataStoreService";
 import DataStoreFindingService from "./DataStoreFindingService";
 import DataStoreAccessService from "./DataStoreAccessService";
+import DataSecurityIdentityService from "./DataSecurityIdentityService";
 import DataStoreFeedService from "./DataStoreFeedService";
 import DataStoreOwnerUserService from "./DataStoreOwnerUserService";
 import DataStoreOwnerTeamService from "./DataStoreOwnerTeamService";
@@ -944,6 +945,7 @@ const services: Array<BaseService> = [
   DataStoreService,
   DataStoreFindingService,
   DataStoreAccessService,
+  DataSecurityIdentityService,
   DataStoreFeedService,
   DataStoreOwnerUserService,
   DataStoreOwnerTeamService,

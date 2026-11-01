@@ -2,6 +2,11 @@ import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+  RIGHT_TO_LEFT,
+} from "Common/Types/ReadingDirection";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
@@ -3876,13 +3881,23 @@ test.describe("the Runner field on the Global Runner, in German and Persian", ()
         }
       }
 
-      // The line, with Runbooks › Runners in the reader's words as its link.
+      /*
+       * The line, with Runbooks › Runners in the reader's words as its link.
+       * A sentence read right to left sets the element in its slot apart
+       * (TranslatedSentence): Persian keeps "Runbooks › Runners" in Latin
+       * letters, and in an isolate of its own those words never carry the
+       * words after them along.
+       */
       const line: Locator = dialog.getByTestId(RUNNER_HELP_TEST_ID);
       const addTemplate: string = word(
         "OneUptime AI runs no Bash commands on the Global Runner, which every project shares. Add a Runner under {{location}} to run them.",
       );
+      const location: string =
+        direction === RIGHT_TO_LEFT
+          ? `${FIRST_STRONG_ISOLATE}${word("Runbooks › Runners")}${POP_DIRECTIONAL_ISOLATE}`
+          : word("Runbooks › Runners");
       await expect(line).toHaveText(
-        addTemplate.replace("{{location}}", word("Runbooks › Runners")),
+        addTemplate.replace("{{location}}", location),
       );
       await expect(
         line.getByRole("link", { name: word("Runbooks › Runners") }),

@@ -7,7 +7,7 @@ A Segurança de dados lê só o que você permite. Cada conexão de nuvem é lid
 - [O que cada nível concede](#o-que-cada-nível-concede): As ações da AWS, e as funções do Azure e do Google Cloud.
 - [Varrer um banco de dados que você executa](#varrer-um-banco-de-dados-que-você-executa): Uma string de conexão somente leitura, ou uma sonda na sua rede.
 - [O que o OneUptime guarda](#o-que-o-oneuptime-guarda): Contagens, locais e amostras mascaradas, nunca um valor.
-- [Deixe a Segurança de dados fechar uma exposição](#deixe-a-segurança-de-dados-fechar-uma-exposição): A única gravação que uma conexão pode receber, desativada até você ativá-la.
+- [Deixe a Segurança de dados fechar uma exposição](#deixe-a-segurança-de-dados-fechar-uma-exposição): As únicas gravações que uma conexão pode receber, desativadas até você ativá-las.
 :::
 
 ## Escolha um nível para cada conexão
@@ -48,6 +48,9 @@ O nível de configuração coloca uma segunda política inline, `OneUptimeDataSe
 | Ler como os bancos de dados são acessados, criptografados e copiados em backup, e com quem os snapshots manuais deles são compartilhados | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | Ler como os domínios de pesquisa, os caches e os sistemas de arquivos estão configurados | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | Distinguir as chaves da própria AWS (alias/aws/...) das chaves que você gerencia | `kms:ListAliases` |
+| Ler quais usuários e funções alcançam cada bucket e cada tabela pelas próprias políticas do IAM, quem pode assumir cada função e quando cada um foi usado pela última vez | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+As ações do IAM permitem que **Acesso** nomeie cada função e cada usuário que alcança um repositório pelas próprias políticas, e quando cada um foi usado pela última vez. O relatório de credenciais que o IAM gera para eles contém datas e indicadores, nunca uma senha ou uma chave. Uma conexão configurada antes de a Segurança de dados ler o IAM lê só as próprias políticas de cada repositório até o comando dela ser executado de novo.
 
 O nível de conteúdo adiciona três ações à mesma política, cada uma nos seus próprios recursos:
 
@@ -95,7 +98,10 @@ Com uma **Chave de acesso** em vez de uma função, a política vai para um grup
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@ O nível de configuração não adiciona nada: a função **Cloud Asset Viewer**
 
 ## Deixe a Segurança de dados fechar uma exposição
 
-Ler é tudo o que uma conexão faz até você decidir o contrário. **Resposta de segurança de dados**, em **Mais campos** ao lado de **Segurança de dados**, também permite que a Segurança de dados bloqueie o acesso público de um repositório e pare de compartilhar os snapshots dele: a partir do problema do repositório, com **Corrigir daqui** (veja [Verificações e problemas da Segurança de dados](/docs/data-security/checks-and-issues#corrigir-daqui)), e a partir de playbooks do Security Operations. Ela fica em **Desativado** até você escolher **Bloquear acesso público e compartilhamento**, e o comando que o formulário mostra então concede uma única gravação restrita, separada das outras:
+Ler é tudo o que uma conexão faz até você decidir o contrário. **Resposta de segurança de dados**, em **Mais campos** ao lado de **Segurança de dados**, também permite que a Segurança de dados mude as configurações de um repositório pela conexão: bloquear o acesso público dele e parar de compartilhar os snapshots dele, a partir do problema do repositório com **Corrigir daqui** (veja [Verificações e problemas da Segurança de dados](/docs/data-security/checks-and-issues#corrigir-daqui)) e a partir de playbooks do Security Operations, e ativar uma configuração que o protege, como o versionamento ou a transferência segura, a partir do problema dele. Ela fica em **Desativado** até você escolher **Fechar exposições e corrigir configurações**, e o comando que o formulário mostra então concede essas gravações restritas, separadas das outras:
 
 | Nuvem | O que o comando adiciona | O que ele pode fazer |
 | --- | --- | --- |
-| AWS | Uma terceira política inline, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` e `rds:ModifyDBClusterSnapshotAttribute`: o Block Public Access de um bucket, e com quem um snapshot manual é compartilhado |
-| Azure | Uma função personalizada, `OneUptime Data Security Response`, no escopo da conexão | `Microsoft.Storage/storageAccounts/read` e `Microsoft.Storage/storageAccounts/write`: as configurações de uma conta de armazenamento, como o acesso anônimo a blobs, nunca as chaves dela |
-| Google Cloud | Uma função personalizada, `oneuptimeDataSecurityResponse` | `storage.buckets.get` e `storage.buckets.update`: as configurações de um bucket, como a prevenção de acesso público |
+| AWS | Uma terceira política inline, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` e `dynamodb:UpdateContinuousBackups`: o Block Public Access, o versionamento e a propriedade de objetos de um bucket, com quem um snapshot manual é compartilhado, e a recuperação pontual de uma tabela |
+| Azure | Uma função personalizada, `OneUptime Data Security Response`, no escopo da conexão | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` e `Microsoft.Storage/storageAccounts/blobServices/write`: as configurações de uma conta de armazenamento, como o acesso anônimo a blobs e a transferência segura, e a exclusão reversível dos blobs dela, nunca as chaves dela |
+| Google Cloud | Uma função personalizada, `oneuptimeDataSecurityResponse` | `storage.buckets.get` e `storage.buckets.update`: as configurações de um bucket, como a prevenção de acesso público, o acesso uniforme e o versionamento |
 
 Nada do que ela concede lê dados, exclui qualquer coisa ou muda quem pode entrar. Volte para **Desativado** e a Segurança de dados para de usá-la na hora. Para retirar também o acesso na AWS, exclua a política com `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse`.
+
+Uma conexão que a ativou antes precisa executar o comando de novo para essas configurações: até lá a nuvem recusa a mudança, e o painel diz qual permissão está faltando.
 
 ## Por que as amostras de conteúdo são opcionais
 

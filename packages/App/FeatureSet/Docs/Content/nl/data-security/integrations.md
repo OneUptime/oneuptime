@@ -8,7 +8,7 @@ Gegevensbeveiliging heeft geen eigen oproepsysteem of beveiligingswachtrij. Het 
 - [Incidenten](#incidenten): Een incident melden voor een inbreuk die je incidentproces moet afhandelen.
 - [Eigenaren](#eigenaren): Wie eigenaar is van elke opslag, met de hand of door regels ingesteld, en de e-mail die ze krijgen.
 - [OneUptime AI](#oneuptime-ai): Een probleem laten uitleggen, een pull request openen die het oplost, of AI vragen gebruiken om vragen over je gegevens te stellen.
-- [Een blootstelling sluiten](#een-blootstelling-sluiten): Openbare toegang blokkeren of het delen stoppen, vanuit een probleem of een playbook.
+- [Een blootstelling sluiten](#een-blootstelling-sluiten): Openbare toegang blokkeren of het delen stoppen, vanuit een probleem of een playbook, en een ontbrekende bescherming aanzetten vanuit een probleem.
 :::
 
 ## Hoe het werkt
@@ -43,6 +43,8 @@ Elke opslag is een eigen entiteit in Security Operations, van het type **Gegeven
 - ze wordt gegroepeerd op de opslag: een tweede kritiek probleem op dezelfde opslag wordt toegevoegd aan de open zaak erover in plaats van een nieuwe te openen.
 
 Vanaf daar wordt de zaak afgehandeld zoals elke andere: toegewezen, van notities voorzien, gesloten, en beantwoord door de playbooks van het project. De detecties van de opslag tellen mee voor zijn risico onder [Entiteitrisico](/docs/telemetry/security-entity-risk), net als die van elke entiteit. Zie [Beveiligingszaken en playbooks](/docs/telemetry/security-cases).
+
+Elke beveiligingszaak, wat haar ook opende, toont de gegevens in gevaar onder **Impact**: de opslagen met gevoelige gegevens waar de zaak over gaat, en elke opslag waar haar gebruikers en rollen bij kunnen, de gevoeligste eerst, met wat elke opslag bevat, ongeveer hoeveel records, hoe blootgesteld hij is en hoeveel identiteiten erbij kunnen. Een sessie van een aangenomen rol die de zaak noemt, telt als die rol, en een e-mailadres als de cloudgebruikers waar het bij hoort. Er wordt gelezen met de eigen machtigingen van de lezer, dus een rol die Gegevensbeveiliging niet mag lezen, ziet dat dit deel ontbreekt.
 
 ## Waarschuwingen en on-call
 
@@ -106,12 +108,15 @@ Ze lezen gegevenstypen, locaties en tellingen, nooit de voorbeelden van een bevi
 
 ## Een blootstelling sluiten
 
-Twee wijzigingen sluiten de blootstelling van een cloudopslag, elk via de cloudkoppeling van de opslag met **Gegevensbeveiligingsrespons** aangezet (zie [Gegevensbeveiliging instellen](/docs/data-security/setup#gegevensbeveiliging-een-blootstelling-laten-sluiten)):
+Twee wijzigingen sluiten de blootstelling van een cloudopslag, elk via de cloudkoppeling van de opslag met **Gegevensbeveiligingsrespons** aangezet (zie [Gegevensbeveiliging instellen](/docs/data-security/setup#gegevensbeveiliging-een-blootstelling-laten-sluiten)), en zes andere zetten een instelling aan die een opslag beschermt, alleen vanuit zijn probleem:
 
 - **Openbare toegang blokkeren**, op een S3-bucket, een Azure-opslagaccount of een Cloud Storage-bucket.
 - **Delen intrekken**, op een RDS-snapshot, of op de gedeelde handmatige snapshots van een RDS-database, een Aurora-cluster of een DocumentDB-cluster.
+- **Versiebeheer inschakelen**, **Voorlopig verwijderen inschakelen**, **Object-ACL's uitschakelen**, **Uniforme toegang inschakelen**, **Veilige overdracht vereisen** en **Herstel naar een tijdstip inschakelen**, op de opslagen die [Hier oplossen](/docs/data-security/checks-and-issues#hier-oplossen) noemt.
 
 Een persoon voert er een uit vanuit een openstaand probleem dat ermee wordt opgelost, met **Hier oplossen** (zie [Controles en problemen van Gegevensbeveiliging](/docs/data-security/checks-and-issues#hier-oplossen)). Een playbook van Security Operations voert ze uit als stappen van de categorie **Indammen**, **Openbare toegang tot gegevensopslagen blokkeren** en **Delen van gegevensopslag intrekken**: op elke gegevensopslag waar de zaak over gaat, hoogstens 10, elk een stap die begint met **Goedkeuring nodig** aan. Een opslag die als **Bewust openbaar** is gemarkeerd, wordt nooit geblokkeerd. Hoe dan ook zegt de feed van de opslag wat er is gedaan, en wordt de opslag meteen opnieuw gecontroleerd, zodat het probleem oplost zodra de wijziging is doorgevoerd.
+
+Het playbooksjabloon **Een gegevenslek dichten** beantwoordt de zaken die Gegevensbeveiliging opent: het mailt de eigenaren van de opslag, blokkeert openbare toegang en trekt het delen in zodra een mens elke stap goedkeurt, en voegt de checklist van de respons als taken aan de zaak toe - wie de gegevens las terwijl ze blootgesteld waren, of het een datalek is dat je moet melden, welke geheimen je moet vervangen en wat je opschrijft als de zaak sluit. Voeg het toe met **Maken op basis van sjabloon** bij de playbooks van het project.
 
 ## API, Terraform en MCP
 
@@ -119,7 +124,7 @@ Alles wat Gegevensbeveiliging bewaart, is een record van de OneUptime-API, gelez
 
 | Records | API-pad |
 | --- | --- |
-| Gegevensopslagen, hun tijdlijnen, hun bevindingen en wie erbij kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access` |
+| Gegevensopslagen, hun tijdlijnen, hun bevindingen, wie erbij kan en elke identiteit die dat kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
 | Problemen, hun tijdlijnen en gegevensstromen | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
 | Aangepaste gegevenstypen, controle-instellingen en residentieregels | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-residency-rule` |
@@ -139,11 +144,11 @@ Een paar antwoorden worden op verzoek berekend in plaats van opgeslagen. Elk erv
 | `/data-security-issue/<id>/explain` | **Uitleggen met AI** op een probleem |
 | `/data-security-issue/<id>/fix-with-ai` | **Oplossen met AI** op een probleem |
 | `/data-store/<id>/response-actions` | Welke responsacties de opslag nu kan uitvoeren, en waarom niet |
-| `/data-store/<id>/respond` | **Openbare toegang blokkeren** of **Delen intrekken** op de opslag, met het probleem van waaruit het werd uitgevoerd |
+| `/data-store/<id>/respond` | Eén responsactie op de opslag, zoals **Openbare toegang blokkeren** of **Versiebeheer inschakelen**, met het probleem van waaruit ze werd uitgevoerd |
 
 De [Terraform-provider](/docs/terraform/index) heeft een resource voor elk soort record dat je aanmaakt - gegevensopslagen die je zelf toevoegt, aangepaste gegevenstypen, controle-instellingen, residentieregels, eigenaars- en labelregels - genoemd naar het record, zoals `oneuptime_residency_rule`.
 
-De [MCP-server](/docs/ai/mcp-server) heeft tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor deze records: Data Store, Data Store Finding, Data Store Access Entry, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule en Data Security Setting. Een AI-assistent kan dan met jouw machtigingen vragen welke opslagen kaartnummers bevatten, of wat er openstaat op een bucket.
+De [MCP-server](/docs/ai/mcp-server) heeft tools om aan te maken, op te halen, op te sommen, bij te werken, te verwijderen en te tellen voor deze records: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Residency Rule en Data Security Setting. Een AI-assistent kan dan met jouw machtigingen vragen welke opslagen kaartnummers bevatten, of wat er openstaat op een bucket.
 
 ## Volgende stappen
 

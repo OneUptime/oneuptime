@@ -7,7 +7,7 @@ Datensicherheit liest nur, was Sie ihr erlauben. Jede Cloud-Verbindung wird auf 
 - [Was jede Stufe gewährt](#was-jede-stufe-gewährt): Die AWS-Aktionen und die Rollen in Azure und Google Cloud.
 - [Eine Datenbank scannen, die Sie betreiben](#eine-datenbank-scannen-die-sie-betreiben): Eine schreibgeschützte Verbindungszeichenfolge oder eine Sonde in Ihrem Netzwerk.
 - [Was OneUptime behält](#was-oneuptime-behält): Zählungen, Orte und maskierte Stichproben, nie einen Wert.
-- [Datensicherheit eine Exponierung schließen lassen](#datensicherheit-eine-exponierung-schließen-lassen): Der eine Schreibzugriff, den eine Verbindung erhalten kann, aus, bis Sie ihn einschalten.
+- [Datensicherheit eine Exponierung schließen lassen](#datensicherheit-eine-exponierung-schließen-lassen): Die einzigen Schreibzugriffe, die eine Verbindung erhalten kann, aus, bis Sie sie einschalten.
 :::
 
 ## Eine Stufe für jede Verbindung wählen
@@ -48,6 +48,9 @@ Die Konfigurationsstufe legt eine zweite Inline-Richtlinie, `OneUptimeDataSecuri
 | Lesen, wie die Datenbanken erreicht, verschlüsselt und gesichert werden und mit wem ihre manuellen Snapshots geteilt sind | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | Lesen, wie die Suchdomains, Caches und Dateisysteme eingerichtet sind | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | Die eigenen Schlüssel von AWS (alias/aws/...) von den Schlüsseln unterscheiden, die Sie verwalten | `kms:ListAliases` |
+| Lesen, welche Benutzer und Rollen jeden Bucket und jede Tabelle über ihre eigenen IAM-Richtlinien erreichen, wer jede Rolle übernehmen darf und wann jede zuletzt verwendet wurde | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+Mit den IAM-Aktionen kann **Zugriff** jede Rolle und jeden Benutzer nennen, die einen Datenspeicher über ihre eigenen Richtlinien erreichen, und sagen, wann sie zuletzt verwendet wurden. Der Anmeldeinformationsbericht, den IAM dafür erstellt, enthält Datumsangaben und Kennzeichen, nie ein Passwort oder einen Schlüssel. Eine Verbindung, die eingerichtet wurde, bevor Datensicherheit IAM las, liest nur die eigenen Richtlinien jedes Datenspeichers, bis ihr Befehl erneut ausgeführt wird.
 
 Die Inhaltsstufe fügt derselben Richtlinie drei Aktionen hinzu, jede auf ihren eigenen Ressourcen:
 
@@ -95,7 +98,10 @@ Mit einem **Zugriffsschlüssel** statt einer Rolle kommt die Richtlinie auf eine
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@ Die Konfigurationsstufe fügt nichts hinzu: Die Rolle **Cloud Asset Viewer** der
 
 ## Datensicherheit eine Exponierung schließen lassen
 
-Lesen ist alles, was eine Verbindung tut, bis Sie etwas anderes wählen. **Datensicherheitsreaktion**, unter **Weitere Felder** neben **Datensicherheit**, lässt Datensicherheit zusätzlich den öffentlichen Zugriff auf einen Datenspeicher sperren und die Freigabe seiner Snapshots beenden: aus dem Problem des Datenspeichers, mit **Hier beheben** (siehe [Prüfungen und Probleme der Datensicherheit](/docs/data-security/checks-and-issues#hier-beheben)), und aus Playbooks von Security Operations. Sie steht auf **Aus**, bis Sie **Öffentlichen Zugriff und Freigabe sperren** wählen, und der Befehl, den das Formular dann zeigt, gewährt einen einzigen, engen Schreibzugriff, für sich allein:
+Lesen ist alles, was eine Verbindung tut, bis Sie etwas anderes wählen. **Datensicherheitsreaktion**, unter **Weitere Felder** neben **Datensicherheit**, lässt Datensicherheit zusätzlich die Einstellungen eines Datenspeichers über die Verbindung ändern: seinen öffentlichen Zugriff sperren und die Freigabe seiner Snapshots beenden, aus dem Problem des Datenspeichers mit **Hier beheben** (siehe [Prüfungen und Probleme der Datensicherheit](/docs/data-security/checks-and-issues#hier-beheben)) und aus Playbooks von Security Operations, und eine Einstellung einschalten, die ihn schützt, etwa die Versionierung oder die sichere Übertragung, aus seinem Problem. Sie steht auf **Aus**, bis Sie **Exponierungen schließen und Einstellungen korrigieren** wählen, und der Befehl, den das Formular dann zeigt, gewährt diese engen Schreibzugriffe, für sich allein:
 
 | Cloud | Was der Befehl hinzufügt | Was er tun darf |
 | --- | --- | --- |
-| AWS | Eine dritte Inline-Richtlinie, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` und `rds:ModifyDBClusterSnapshotAttribute`: die Einstellung Block Public Access eines Buckets und mit wem ein manueller Snapshot geteilt ist |
-| Azure | Eine benutzerdefinierte Rolle, `OneUptime Data Security Response`, im Bereich der Verbindung | `Microsoft.Storage/storageAccounts/read` und `Microsoft.Storage/storageAccounts/write`: die Einstellungen eines Speicherkontos, etwa den anonymen Blobzugriff, nie seine Schlüssel |
-| Google Cloud | Eine benutzerdefinierte Rolle, `oneuptimeDataSecurityResponse` | `storage.buckets.get` und `storage.buckets.update`: die Einstellungen eines Buckets, etwa die Verhinderung des öffentlichen Zugriffs |
+| AWS | Eine dritte Inline-Richtlinie, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` und `dynamodb:UpdateContinuousBackups`: die Einstellung Block Public Access, die Versionierung und den Objektbesitz eines Buckets, mit wem ein manueller Snapshot geteilt ist, und die Point-in-Time-Wiederherstellung einer Tabelle |
+| Azure | Eine benutzerdefinierte Rolle, `OneUptime Data Security Response`, im Bereich der Verbindung | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` und `Microsoft.Storage/storageAccounts/blobServices/write`: die Einstellungen eines Speicherkontos, etwa den anonymen Blobzugriff und die sichere Übertragung, und das vorläufige Löschen seiner Blobs, nie seine Schlüssel |
+| Google Cloud | Eine benutzerdefinierte Rolle, `oneuptimeDataSecurityResponse` | `storage.buckets.get` und `storage.buckets.update`: die Einstellungen eines Buckets, etwa die Verhinderung des öffentlichen Zugriffs, den einheitlichen Zugriff und die Versionierung |
 
 Nichts, was sie gewährt, liest Daten, löscht etwas oder ändert, wer sich anmelden darf. Stellen Sie sie zurück auf **Aus**, und Datensicherheit nutzt sie sofort nicht mehr. Um in AWS auch den Zugriff zu entziehen, löschen Sie die Richtlinie mit `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse`.
+
+Eine Verbindung, die sie früher eingeschaltet hat, muss ihren Befehl für diese Einstellungen erneut ausführen: Bis dahin lehnt die Cloud die Änderung ab, und das Panel sagt, welche Berechtigung fehlt.
 
 ## Warum Inhaltsstichproben optional sind
 

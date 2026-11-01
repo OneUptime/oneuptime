@@ -32,6 +32,8 @@ const config = createConfig({
       repository,
       "packages/Common/node_modules/react-dom",
     ),
+    // The canvas the workflow builder, the service map and the topology draw on.
+    reactflow: path.join(repository, "packages/Common/node_modules/reactflow"),
   },
 });
 config.target = "es2022";

@@ -19,6 +19,7 @@
  */
 
 import CodeEditor from "../CodeEditor/CodeEditor";
+import FieldError from "../Forms/Fields/FieldError";
 import ComponentLoader from "../ComponentLoader/ComponentLoader";
 import {
   DictionaryEntryValue,
@@ -762,7 +763,7 @@ const ModelColumnEditor: FunctionComponent<ComponentProps> = (
       )}
 
       {props.error && effectiveMode === "builder" && (
-        <p className="mt-1 text-sm text-red-400">{props.error}</p>
+        <FieldError message={props.error} announce="none" />
       )}
     </div>
   );

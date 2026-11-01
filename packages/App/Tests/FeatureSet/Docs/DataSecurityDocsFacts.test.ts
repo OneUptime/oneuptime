@@ -76,8 +76,10 @@ import {
 } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import { DATA_SECURITY_API_ROUTES } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
+  ALL_DATA_SECURITY_RESPONSE_ACTIONS,
   BLOCKABLE_DATA_STORE_KINDS,
   DATA_SECURITY_RESPONSE_ACTION_CHECKS,
+  DATA_SECURITY_RESPONSE_ACTION_KINDS,
   DataSecurityResponseAction,
   SHAREABLE_DATA_STORE_KINDS,
 } from "Common/Types/DataSecurity/DataSecurityResponseAction";
@@ -97,6 +99,20 @@ import DataSensitivity, {
   ALL_DATA_SENSITIVITIES,
   DATA_SENSITIVITY_DESCRIPTION,
 } from "Common/Types/DataSecurity/DataSensitivity";
+import {
+  IDENTITY_BREADTH_POINTS,
+  IDENTITY_CHANGE_POINTS,
+  IDENTITY_EXTERNAL_POINTS,
+  IDENTITY_PUBLIC_POINTS,
+  IDENTITY_SENSITIVITY_POINTS,
+  IDENTITY_UNUSED_POINTS,
+  getIdentityRiskScore,
+} from "Common/Types/DataSecurity/DataSecurityIdentity";
+import {
+  MAX_UNPLACED_FIELDS_PER_SCAN,
+  MIN_UNPLACED_VALUES,
+  valueShape,
+} from "Common/Utils/DataSecurity/UnplacedFields";
 import {
   DataStoreAccessLevel,
   DataStorePrincipalType,
@@ -964,6 +980,47 @@ describe("Sensitive Data Types", () => {
     );
   });
 
+  it("says what OneUptime AI is told of a field no detector placed, and what a person does with its answer, as the product does", () => {
+    const unplaced: string = section(
+      page,
+      "### Fields no detector could place",
+    );
+    const inside: string = source(
+      "App/FeatureSet/Dashboard/src/Pages/DataSecurity/StoreView/Inside.tsx",
+    );
+
+    expect(unplaced).toContain(
+      `at most ${MAX_UNPLACED_FIELDS_PER_SCAN} a scan`,
+    );
+    expect(unplaced).toContain(
+      `at most ${constant(
+        "Common/Server/Utils/AI/DataSecurity/FieldSuggestionPrompt.ts",
+        "MAX_FIELDS_PER_SUGGESTION_REQUEST",
+      )} fields of a store at a time`,
+    );
+    expect(unplaced).toContain(
+      `fields with fewer than ${MIN_UNPLACED_VALUES} values`,
+    );
+    expect(unplaced).toContain(
+      `is not asked about again for ${constant(
+        `${SERVER}/FieldSuggestionState.ts`,
+        "FIELD_ANSWER_LIFETIME_IN_DAYS",
+      )} days`,
+    );
+    // The shape the page shows is the one the scanner makes.
+    expect(valueShape("AB-1234")).toBe("AA-9999");
+    expect(unplaced).toContain("so `AB-1234` is `AA-9999`");
+
+    // The labels it names are the store's What's Inside page's.
+    expect(inside).toContain('"Suggested by OneUptime AI"');
+    expect(unplaced).toContain("**Suggested by OneUptime AI**");
+    expect(inside).toContain('title: "Confirm"');
+    expect(unplaced).toContain("**Confirm**");
+    expect(section(page, "## How a value is found")).toContain(
+      "**Confirm** on one that is right makes it High",
+    );
+  });
+
   it("gives the scanner's own windows, context and field thresholds", () => {
     const found: string = section(page, "## How a value is found");
     const classifier: string = source(
@@ -1461,6 +1518,81 @@ describe("Data Flows, Access and Residency", () => {
     );
   });
 
+  it("gives an identity's risk score part by part with the points the score gives them, and Access's filters as it names them", () => {
+    const identities: string = section(
+      page,
+      "### Every identity, and what it can reach",
+    );
+
+    expect(rows(tables(identities)[0])).toEqual([
+      [
+        "The most sensitive data it reaches",
+        `${IDENTITY_SENSITIVITY_POINTS[DataSensitivity.Restricted]} for Restricted, ${IDENTITY_SENSITIVITY_POINTS[DataSensitivity.Confidential]} for Confidential, ${IDENTITY_SENSITIVITY_POINTS[DataSensitivity.Internal]} for Internal`,
+      ],
+      [
+        "It can write to or administer a Confidential or Restricted store",
+        `${IDENTITY_CHANGE_POINTS}`,
+      ],
+      [
+        "It is anyone on the internet, or outside your accounts",
+        `${IDENTITY_PUBLIC_POINTS} for anyone, ${IDENTITY_EXTERNAL_POINTS} for outside`,
+      ],
+      [
+        "It has not been used in 90 days, and reaches Internal, Confidential or Restricted data",
+        `${IDENTITY_UNUSED_POINTS}`,
+      ],
+      [
+        "How many sensitive stores it reaches",
+        `1 for each, up to ${IDENTITY_BREADTH_POINTS}`,
+      ],
+    ]);
+    expect(IDENTITY_SENSITIVITY_POINTS[DataSensitivity.Public]).toBe(0);
+
+    // The example, scored by the product.
+    expect(
+      getIdentityRiskScore({
+        highestSensitivity: DataSensitivity.Restricted,
+        canChangeSensitiveData: true,
+        isPublic: false,
+        isExternal: true,
+        isUnused: false,
+        sensitiveStoreCount: 1,
+      }),
+    ).toBe(81);
+    expect(identities).toContain("scores 50 + 15 + 15 + 1 = 81.");
+
+    const table: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/IdentitiesTable.tsx",
+    );
+
+    for (const title of [
+      "Outside Your Accounts",
+      "Not Used in 90 Days",
+      "Can Change Sensitive Data",
+    ]) {
+      expect(table).toContain(`title: "${title}"`);
+      expect(identities).toContain(`**${title}**`);
+    }
+
+    expect(
+      source("App/FeatureSet/Dashboard/src/Utils/DataSecurityNavigation.ts"),
+    ).toContain('title: "Access"');
+    expect(identities).toContain("**Data Security → Access**");
+
+    // The store's own list marks unused access as the identities do, as its check's fix says.
+    expect(
+      source(
+        "App/FeatureSet/Dashboard/src/Components/DataSecurity/IdentityCells.tsx",
+      ),
+    ).toContain('"Not used in 90 days"');
+    expect(
+      source(
+        "App/FeatureSet/Dashboard/src/Pages/DataSecurity/StoreView/Access.tsx",
+      ),
+    ).toContain("<Pill text={NOT_USED_IN_90_DAYS}");
+    expect(english(CHECKS)).toContain("marked **Not used in 90 days**");
+  });
+
   it("matches regions as the examples say", () => {
     const examples: Array<Array<string>> = rows(
       tables(section(page, "### Regions and wildcards"))[0],
@@ -1643,49 +1775,120 @@ describe("Closing an exposure", () => {
     const table: Array<Array<string>> = rows(
       tables(section(checks, "## Fix it from here"))[0],
     );
-
-    expect(table).toHaveLength(2);
-    expect(codeSpans(table[0]![0] as string)).toEqual([
-      ...DATA_SECURITY_RESPONSE_ACTION_CHECKS[
-        DataSecurityResponseAction.BlockPublicAccess
-      ],
-    ]);
-    expect(codeSpans(table[1]![0] as string)).toEqual([
-      ...DATA_SECURITY_RESPONSE_ACTION_CHECKS[
-        DataSecurityResponseAction.RevokeSharing
-      ],
-    ]);
-    expect(table[0]![2]).toBe("**Block Public Access**");
-    expect(table[1]![2]).toBe("**Revoke Sharing**");
     // However the formatter breaks a call, its text is the same.
     const panelCalls: string = panel
       .replace(/\(\s+"/g, '("')
       .replace(/",?\s+\)/g, '")');
 
-    expect(panelCalls).toContain('translationKey("Block Public Access")');
-    expect(panelCalls).toContain('translationKey("Revoke Sharing")');
+    // A row for each action, in the actions' order: its button, and the stores it takes.
+    const expected: Array<{
+      action: DataSecurityResponseAction;
+      button: string;
+      stores: string;
+      kinds: Array<DataStoreKind>;
+    }> = [
+      {
+        action: DataSecurityResponseAction.BlockPublicAccess,
+        button: "Block Public Access",
+        stores:
+          "An S3 bucket, an Azure storage account or a Cloud Storage bucket",
+        kinds: [
+          DataStoreKind.AwsS3Bucket,
+          DataStoreKind.AzureStorageAccount,
+          DataStoreKind.GcpStorageBucket,
+        ],
+      },
+      {
+        action: DataSecurityResponseAction.RevokeSharing,
+        button: "Revoke Sharing",
+        stores:
+          "An RDS snapshot, an RDS database, or an Aurora or DocumentDB cluster",
+        kinds: [
+          DataStoreKind.AwsRdsSnapshot,
+          DataStoreKind.AwsRdsInstance,
+          DataStoreKind.AwsRdsCluster,
+          DataStoreKind.AwsDocumentDbCluster,
+        ],
+      },
+      {
+        action: DataSecurityResponseAction.TurnOnVersioning,
+        button: "Turn On Versioning",
+        stores: "An S3 bucket or a Cloud Storage bucket",
+        kinds: [DataStoreKind.AwsS3Bucket, DataStoreKind.GcpStorageBucket],
+      },
+      {
+        action: DataSecurityResponseAction.TurnOnSoftDelete,
+        button: "Turn On Soft Delete",
+        stores: "An Azure storage account",
+        kinds: [DataStoreKind.AzureStorageAccount],
+      },
+      {
+        action: DataSecurityResponseAction.TurnOffObjectAcls,
+        button: "Turn Off Object ACLs",
+        stores: "An S3 bucket",
+        kinds: [DataStoreKind.AwsS3Bucket],
+      },
+      {
+        action: DataSecurityResponseAction.TurnOnUniformAccess,
+        button: "Turn On Uniform Access",
+        stores: "A Cloud Storage bucket",
+        kinds: [DataStoreKind.GcpStorageBucket],
+      },
+      {
+        action: DataSecurityResponseAction.RequireSecureTransfer,
+        button: "Require Secure Transfer",
+        stores: "An Azure storage account",
+        kinds: [DataStoreKind.AzureStorageAccount],
+      },
+      {
+        action: DataSecurityResponseAction.TurnOnPointInTimeRecovery,
+        button: "Turn On Point-in-Time Recovery",
+        stores: "A DynamoDB table",
+        kinds: [DataStoreKind.AwsDynamoDbTable],
+      },
+    ];
+
+    expect(
+      expected.map((row: { action: DataSecurityResponseAction }) => {
+        return row.action;
+      }),
+    ).toEqual([...ALL_DATA_SECURITY_RESPONSE_ACTIONS]);
+    expect(table).toHaveLength(expected.length);
+    expect([...BLOCKABLE_DATA_STORE_KINDS]).toEqual(expected[0]!.kinds);
+    expect([...SHAREABLE_DATA_STORE_KINDS]).toEqual(expected[1]!.kinds);
+
+    expected.forEach(
+      (
+        row: {
+          action: DataSecurityResponseAction;
+          button: string;
+          stores: string;
+          kinds: Array<DataStoreKind>;
+        },
+        index: number,
+      ): void => {
+        const cells: Array<string> = table[index] as Array<string>;
+
+        expect({
+          action: row.action,
+          checks: codeSpans(cells[0] as string),
+          stores: cells[1],
+          button: cells[2],
+          kinds: [...DATA_SECURITY_RESPONSE_ACTION_KINDS[row.action]],
+        }).toEqual({
+          action: row.action,
+          checks: [...DATA_SECURITY_RESPONSE_ACTION_CHECKS[row.action]],
+          stores: row.stores,
+          button: `**${row.button}**`,
+          kinds: row.kinds,
+        });
+        expect(panelCalls).toContain(`translationKey("${row.button}")`);
+      },
+    );
+
     expect(panelCalls).toContain('translationKey("Fix it from here")');
     expect(section(checks, "## Fix it from here")).toContain(
       "**Fix it from here**",
-    );
-
-    // The stores each row names are the kinds each action takes.
-    expect([...BLOCKABLE_DATA_STORE_KINDS]).toEqual([
-      DataStoreKind.AwsS3Bucket,
-      DataStoreKind.AzureStorageAccount,
-      DataStoreKind.GcpStorageBucket,
-    ]);
-    expect(table[0]![1]).toBe(
-      "An S3 bucket, an Azure storage account or a Cloud Storage bucket",
-    );
-    expect([...SHAREABLE_DATA_STORE_KINDS]).toEqual([
-      DataStoreKind.AwsRdsSnapshot,
-      DataStoreKind.AwsRdsInstance,
-      DataStoreKind.AwsRdsCluster,
-      DataStoreKind.AwsDocumentDbCluster,
-    ]);
-    expect(table[1]![1]).toBe(
-      "An RDS snapshot, an RDS database, or an Aurora or DocumentDB cluster",
     );
   });
 
@@ -1709,8 +1912,8 @@ describe("Closing an exposure", () => {
       field?.options?.find((option: { value: string }): boolean => {
         return option.value === "block";
       })?.label,
-    ).toBe("Block public access and sharing");
-    expect(response).toContain("**Block public access and sharing**");
+    ).toBe("Close exposures and fix settings");
+    expect(response).toContain("**Close exposures and fix settings**");
 
     const aws: Array<string> = table[0] as Array<string>;
     const azure: Array<string> = table[1] as Array<string>;

@@ -4,19 +4,21 @@ An offline harness for Data Security's pages, mounted from the product's real ro
 (`Routes/DataSecurityRoutes`) under its real RouteMap pattern (`DATA_SECURITY_ROOT`,
 `/dashboard/:projectId/data-security/*`):
 
-| Page                | Route                                | What the spec does there                                                                           |
-| ------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| Overview            | `/data-security`                     | The riskiest open issues first, each opening its issue                                             |
-| Data Stores         | `/data-security/stores`              | On a phone                                                                                         |
-| A store's Overview  | `/data-security/stores/:id`          | Its half-width cards' headers; its menu's Timeline                                                 |
-| What's Inside       | `/data-security/stores/:id/inside`   | On a phone                                                                                         |
-| Who Can Reach It    | `/data-security/stores/:id/access`   | On a phone                                                                                         |
-| A store's Timeline  | `/data-security/stores/:id/timeline` | Who changed what, its details; German; dark                                                        |
-| Issues              | `/data-security/issues`              | On a phone                                                                                         |
-| An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status; its case, alert and incident links |
-| An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                                                                  |
-| Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                                                         |
-| Scan Settings       | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                               |
+| Page                | Route                                | What the spec does there                                                                                       |
+| ------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Overview            | `/data-security`                     | The riskiest open issues first, each opening its issue                                                         |
+| Data Stores         | `/data-security/stores`              | On a phone                                                                                                     |
+| A store's Overview  | `/data-security/stores/:id`          | Its half-width cards' headers; its menu's Timeline                                                             |
+| What's Inside       | `/data-security/stores/:id/inside`   | On a phone; OneUptime AI's suggestions on a line of their own, with their reason; Confirm                      |
+| Who Can Reach It    | `/data-security/stores/:id/access`   | On a phone; access unused for 90 days marked; ARNs in monospace; each row opens its identity                   |
+| A store's Timeline  | `/data-security/stores/:id/timeline` | Who changed what, its details; German; dark                                                                    |
+| Access              | `/data-security/access`              | Every identity, the riskiest first, each opening its page; a new project's                                     |
+| An identity         | `/data-security/access/:id`          | What it reaches and through what; Last Used and what it means; a traced service's page; Persian; a phone, dark |
+| Issues              | `/data-security/issues`              | On a phone                                                                                                     |
+| An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status; its case, alert and incident links             |
+| An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                                                                              |
+| Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                                                                     |
+| Scan Settings       | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                                           |
 
 `Fixture/server.js` bundles `Fixture/Fixture.js` with esbuild, serves it with the same Tailwind
 build, `tailwind.config`, `Theme.css` and Inter font production uses, and listens on
@@ -50,14 +52,14 @@ count, worst severity and risk are worked out from its open issues, as the evalu
 
 ## Scenarios
 
-| Parameter    | Values                                                                                         |
-| ------------ | ---------------------------------------------------------------------------------------------- |
-| `?lang=`     | `en` (default), `de` or `fa`: the Dashboard's own locale files                                 |
-| `?theme=`    | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                          |
-| `?role=`     | `owner` (default) or `viewer`: Security Viewer only, who reads everything and changes nothing  |
-| `?response=` | `on` (default) or `off`: the bucket's cloud connection has "Data security response" on, or off |
+| Parameter    | Values                                                                                                                                          |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?lang=`     | `en` (default), `de` or `fa`: the Dashboard's own locale files                                                                                  |
+| `?theme=`    | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                           |
+| `?role=`     | `owner` (default) or `viewer`: Security Viewer only, who reads everything and changes nothing                                                   |
+| `?response=` | `on` (default) or `off`: the bucket's cloud connection has "Data security response" on, or off                                                  |
 | `?data=`     | `default`, `empty` (a new project: no cloud connection, nothing found) or `busy` (26 more stores with long names, an open issue or two on each) |
-| `?fail=`     | `reads`: every read fails, as when the API is down, so each page shows how it says so          |
+| `?fail=`     | `reads`: every read fails, as when the API is down, so each page shows how it says so                                                           |
 
 The spec pins the browser clock to `2026-10-27T12:00:00Z`.
 

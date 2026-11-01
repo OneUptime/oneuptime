@@ -10,6 +10,7 @@ import Permission, {
 } from "../../Types/Permission";
 import { ColumnAccessControl } from "../../Types/BaseDatabase/AccessControl";
 import PermissionUtil from "./Permission";
+import { getListSeparator } from "./ListSeparator";
 import PrivateRecordHeld from "../../Types/PrivateRecord/PrivateRecordHeld";
 import {
   getGlobalTranslator,
@@ -1041,17 +1042,19 @@ export default class PermissionGate {
   /*
    * Titles as a sentence lists them: each looked up (a built-in role's
    * name has a translation of its own; most permissions' titles do not and
-   * read as given), joined with commas.
+   * read as given), joined with the commas of the script they are written
+   * in (ListSeparator) - "مالک پروژه، مدیر پروژه" in Persian, where a Latin
+   * comma stood between them.
    */
   private static translateTitles(
     titles: ReadonlyArray<string>,
     translator: Translator,
   ): string {
-    return titles
-      .map((title: string): string => {
-        return translator.translateText(title) || title;
-      })
-      .join(", ");
+    const translated: Array<string> = titles.map((title: string): string => {
+      return translator.translateText(title) || title;
+    });
+
+    return translated.join(getListSeparator(translated));
   }
 
   public static getModelPermissions(

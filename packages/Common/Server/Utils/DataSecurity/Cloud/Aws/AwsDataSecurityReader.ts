@@ -5,6 +5,7 @@ import {
   DataStoreAccessLevel,
   DataStorePrincipalType,
   getDataStoreAccessKey,
+  isAccessUnused,
 } from "../../../../../Types/DataSecurity/DataStoreAccess";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
 import { tlsVersionNumber } from "../../../../../Types/DataSecurity/DataStorePosture";
@@ -28,6 +29,7 @@ import {
 import AwsCloudConnector, {
   AWS_MAX_ORGANIZATION_ACCOUNTS,
 } from "../../../CloudConnection/Aws/AwsCloudConnector";
+import { getIamEndpoint } from "../../../CloudConnection/Aws/AwsInventory";
 import {
   AwsOrganizationAccount,
   listAwsOrganizationAccounts,
@@ -46,6 +48,7 @@ import {
   mapWithConcurrency,
 } from "../../../CloudConnection/CloudConcurrency";
 import {
+  CLOUD_DEFAULT_SLEEP,
   CloudConnectionSettings,
   CloudConnectorCallOptions,
   CloudConnectorTransport,
@@ -62,12 +65,38 @@ import {
   readText,
 } from "../../../LlmObservability/LlmProviderHttp";
 import {
+  CredentialReportUse,
+  IAM_PAGE_SIZE,
+  IAM_READ_STORE_KINDS,
+  IamAuthorization,
+  IamIdentity,
+  IamIdentityKind,
+  IamStoreAccess,
+  IamStoreTarget,
+  MAX_IAM_ENTRIES_PER_STORE,
+  MAX_IAM_PAGES,
+  buildIamAccessEntries,
+  readAuthorizationDetails,
+  readCredentialReport,
+} from "./AwsIamAccess";
+import {
+  coversAny,
+  describePrincipal,
+  hasRestrictingCondition,
+  isAccountId,
+  policyValues,
+  readPrincipals,
+} from "./AwsPolicyGrammar";
+import {
   CloudDataSecurityReadResult,
   CloudDataStoreRead,
   ObjectStoreListPage,
   ObjectStoreObject,
   ObjectStoreReader,
 } from "../DataSecurityCloudTypes";
+
+// Read by the response's writes, which name the account a bucket must belong to.
+export { isAccountId };
 
 /*
  * AMAZON WEB SERVICES, READ FOR DATA SECURITY: every data store of the
@@ -709,21 +738,6 @@ function arnRegion(arn: string): string {
   return parts[0] === "arn" && parts.length > 4 ? parts[3] || "" : "";
 }
 
-// Twelve digits: an AWS account id.
-export function isAccountId(text: string): boolean {
-  if (text.length !== 12) {
-    return false;
-  }
-
-  for (const character of text) {
-    if (character < "0" || character > "9") {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 // The Regions of these ARNs that are not the store's own, sorted.
 function otherRegions(region: string, arns: Array<string>): Array<string> {
   const regions: Set<string> = new Set<string>();
@@ -910,35 +924,6 @@ const OPENSEARCH_POLICY_ACTIONS: PolicyActions = {
   admin: ["es:UpdateDomainConfig", "es:DeleteDomain"],
 };
 
-/*
- * Condition keys that hold a grant to "*" to known callers - an
- * organization, an account, a network, an endpoint - so AWS does not count
- * it public (the rules of S3's own public policy check).
- */
-const RESTRICTING_CONDITION_KEYS: Array<string> = [
-  "aws:sourceip",
-  "aws:sourcevpc",
-  "aws:sourcevpce",
-  "aws:sourcevpcarn",
-  "aws:sourcearn",
-  "aws:sourceaccount",
-  "aws:sourceowner",
-  "aws:sourceorgid",
-  "aws:sourceorgpaths",
-  "aws:principalarn",
-  "aws:principalaccount",
-  "aws:principalorgid",
-  "aws:principalorgpaths",
-  "aws:principalservicename",
-  "aws:userid",
-  "aws:username",
-  "aws:vpceaccount",
-  "aws:vpceorgid",
-  "aws:vpceorgpaths",
-  "s3:dataaccesspointarn",
-  "s3:dataaccesspointaccount",
-];
-
 interface PolicyGrant {
   principal: string;
   principalName?: string | undefined;
@@ -970,289 +955,6 @@ const NO_POLICY: PolicyAnalysis = {
   secureTransportDenied: false,
   minimumTlsVersion: "",
 };
-
-// A policy value as strings: "x", ["x", "y"], numbers and booleans written out.
-function policyValues(value: unknown): Array<string> {
-  const values: Array<unknown> = Array.isArray(value) ? value : [value];
-
-  return values
-    .map((item: unknown): string => {
-      if (typeof item === "string") {
-        return item.trim();
-      }
-
-      if (typeof item === "number" || typeof item === "boolean") {
-        return String(item);
-      }
-
-      return "";
-    })
-    .filter((item: string): boolean => {
-      return item.length > 0;
-    });
-}
-
-/*
- * IAM's wildcards: "*" any run of characters, "?" one, case ignored. A
- * scan with backtracking to the last "*", no regular expression: patterns
- * come from the customer's policy.
- */
-function wildcardMatches(pattern: string, value: string): boolean {
-  const p: string = pattern.toLowerCase();
-  const v: string = value.toLowerCase();
-  let pi: number = 0;
-  let vi: number = 0;
-  let star: number = -1;
-  let mark: number = 0;
-
-  while (vi < v.length) {
-    if (
-      pi < p.length &&
-      (p.charAt(pi) === "?" || p.charAt(pi) === v.charAt(vi))
-    ) {
-      pi++;
-      vi++;
-    } else if (pi < p.length && p.charAt(pi) === "*") {
-      star = pi;
-      mark = vi;
-      pi++;
-    } else if (star >= 0) {
-      pi = star + 1;
-      mark++;
-      vi = mark;
-    } else {
-      return false;
-    }
-  }
-
-  while (pi < p.length && p.charAt(pi) === "*") {
-    pi++;
-  }
-
-  return pi === p.length;
-}
-
-// Whether a statement's Action (or NotAction) covers any of the samples.
-function coversAny(
-  actions: Array<string>,
-  notActions: Array<string>,
-  samples: Array<string>,
-): boolean {
-  if (actions.length > 0) {
-    return samples.some((sample: string): boolean => {
-      return actions.some((action: string): boolean => {
-        return wildcardMatches(action, sample);
-      });
-    });
-  }
-
-  if (notActions.length > 0) {
-    return samples.some((sample: string): boolean => {
-      return !notActions.some((action: string): boolean => {
-        return wildcardMatches(action, sample);
-      });
-    });
-  }
-
-  return false;
-}
-
-// A value with a wildcard or a policy variable is not a fixed restriction.
-function isFixedValue(value: string): boolean {
-  return !value.includes("*") && !value.includes("?") && !value.includes("${");
-}
-
-// A CIDR wider than /8 (IPv4) or /32 (IPv6) lets most of the internet in.
-function isBroadCidr(value: string): boolean {
-  const slash: number = value.indexOf("/");
-
-  if (slash < 0) {
-    return false;
-  }
-
-  const prefix: number = Number(value.slice(slash + 1));
-
-  if (!Number.isFinite(prefix)) {
-    return true;
-  }
-
-  return value.includes(":") ? prefix < 32 : prefix < 8;
-}
-
-/*
- * Whether a statement's conditions hold it to known callers. A negated
- * test, a Null test, an ...IfExists test (which a request without the key
- * passes) and a ForAllValues test (which an empty set passes) restrict
- * nothing.
- */
-function hasRestrictingCondition(conditions: JSONObject): boolean {
-  for (const operator of Object.keys(conditions)) {
-    const op: string = operator.toLowerCase();
-
-    if (
-      op.includes("not") ||
-      op === "null" ||
-      op.endsWith("ifexists") ||
-      op.startsWith("forallvalues:")
-    ) {
-      continue;
-    }
-
-    const block: JSONObject = readObject(conditions[operator]);
-
-    for (const key of Object.keys(block)) {
-      const name: string = key.toLowerCase();
-
-      if (!RESTRICTING_CONDITION_KEYS.includes(name)) {
-        continue;
-      }
-
-      const values: Array<string> = policyValues(block[key]);
-
-      if (values.length === 0 || !values.every(isFixedValue)) {
-        continue;
-      }
-
-      if (name === "aws:sourceip" && values.some(isBroadCidr)) {
-        continue;
-      }
-
-      return true;
-    }
-  }
-
-  return false;
-}
-
-interface PolicyPrincipal {
-  kind: "public" | "AWS" | "Service" | "CanonicalUser" | "Federated";
-  value: string;
-}
-
-function readPrincipals(statement: JSONObject): Array<PolicyPrincipal> {
-  // Allowed to everyone but the principals named.
-  if (statement["NotPrincipal"] !== undefined) {
-    return [{ kind: "public", value: "*" }];
-  }
-
-  const principal: unknown = statement["Principal"];
-
-  if (principal === "*") {
-    return [{ kind: "public", value: "*" }];
-  }
-
-  const named: JSONObject = readObject(principal);
-  const principals: Array<PolicyPrincipal> = [];
-
-  for (const kind of ["AWS", "Service", "CanonicalUser", "Federated"] as Array<
-    PolicyPrincipal["kind"]
-  >) {
-    for (const value of policyValues(named[kind])) {
-      principals.push(
-        value === "*" ? { kind: "public", value } : { kind, value },
-      );
-    }
-  }
-
-  return principals;
-}
-
-/*
- * A named principal as an access entry's principal: an account id or its
- * root, a role (or a session of one), a user, a service, a canonical user.
- */
-function describePrincipal(principal: PolicyPrincipal): {
-  principal: string;
-  principalName?: string | undefined;
-  principalType: DataStorePrincipalType;
-  accountId: string;
-} {
-  const value: string = principal.value;
-
-  if (principal.kind === "Service") {
-    return {
-      principal: value,
-      principalType: DataStorePrincipalType.Service,
-      accountId: "",
-    };
-  }
-
-  if (principal.kind === "CanonicalUser") {
-    return {
-      principal: value,
-      principalType: DataStorePrincipalType.Account,
-      accountId: "",
-    };
-  }
-
-  if (isAccountId(value)) {
-    return {
-      principal: value,
-      principalType: DataStorePrincipalType.Account,
-      accountId: value,
-    };
-  }
-
-  if (!value.startsWith("arn:")) {
-    // A role or user since deleted, which IAM shows by its unique id.
-    return {
-      principal: value,
-      principalType: value.startsWith("AIDA")
-        ? DataStorePrincipalType.User
-        : DataStorePrincipalType.Role,
-      accountId: "",
-    };
-  }
-
-  const parts: Array<string> = value.split(":");
-  const account: string = parts[4] || "";
-  const resource: string = parts.slice(5).join(":");
-  const lastName: string = resource.split("/").pop() || resource;
-
-  // An AWS-owned principal (arn:aws:iam::cloudfront:user/...): a service.
-  if (!isAccountId(account)) {
-    return {
-      principal: value,
-      principalName: lastName,
-      principalType: DataStorePrincipalType.Service,
-      accountId: "",
-    };
-  }
-
-  if (resource.startsWith("role/")) {
-    return {
-      principal: value,
-      principalName: lastName,
-      principalType: DataStorePrincipalType.Role,
-      accountId: account,
-    };
-  }
-
-  if (resource.startsWith("assumed-role/")) {
-    return {
-      principal: value,
-      principalName: resource.split("/")[1] || lastName,
-      principalType: DataStorePrincipalType.Role,
-      accountId: account,
-    };
-  }
-
-  if (resource.startsWith("user/") || resource.startsWith("federated-user/")) {
-    return {
-      principal: value,
-      principalName: lastName,
-      principalType: DataStorePrincipalType.User,
-      accountId: account,
-    };
-  }
-
-  return {
-    principal: value,
-    principalName: account,
-    principalType: DataStorePrincipalType.Account,
-    accountId: account,
-  };
-}
 
 /*
  * A policy's grants and what it enforces. Null when it is not a policy at
@@ -3470,6 +3172,353 @@ async function readRegion(
   return stores;
 }
 
+/*
+ * ---------------------------------------------------------------------
+ * IAM: who reaches the account's buckets and tables through their own
+ * policies (AwsIamAccess), and when each was last used.
+ * ---------------------------------------------------------------------
+ */
+
+const IAM_VERSION: string = "2010-05-08";
+const IAM_LISTING_FILTERS: Array<string> = [
+  "User",
+  "Role",
+  "Group",
+  "LocalManagedPolicy",
+  "AWSManagedPolicy",
+];
+// How often the credential report is asked to be ready, and how long apart.
+export const CREDENTIAL_REPORT_ATTEMPTS: number = 3;
+const CREDENTIAL_REPORT_WAIT_MS: number = 2000;
+
+async function iamCall(
+  ctx: AccountContext,
+  data: { body: Dictionary<string>; step: string },
+): Promise<string> {
+  const endpoint: { host: string; region: string } = getIamEndpoint(
+    ctx.partition,
+  );
+  const answer: { text: string } = await sendAwsRequest({
+    transport: ctx.transport,
+    credentials: ctx.credentials,
+    service: "iam",
+    region: endpoint.region,
+    host: endpoint.host,
+    body: { ...data.body, Version: IAM_VERSION },
+    step: data.step,
+    providerTitle: PROVIDER_TITLE,
+    now: ctx.now,
+    timeoutInMs: ctx.timeoutInMs,
+    sleep: ctx.sleep,
+    budget: ctx.budget,
+  });
+
+  return answer.text;
+}
+
+// Every identity of the account and the policies that apply to it, or null when it could not be listed.
+async function readIamAuthorization(
+  ctx: AccountContext,
+  now: Date,
+): Promise<IamAuthorization | null> {
+  const listed: Answer<{ pages: Array<string>; complete: boolean }> =
+    await attempt(
+      ctx,
+      "iam:GetAccountAuthorizationDetails",
+      async (): Promise<{ pages: Array<string>; complete: boolean }> => {
+        const pages: Array<string> = [];
+        let marker: string = "";
+
+        for (let page: number = 0; page < MAX_IAM_PAGES; page++) {
+          const body: Dictionary<string> = {
+            Action: "GetAccountAuthorizationDetails",
+            MaxItems: String(IAM_PAGE_SIZE),
+          };
+
+          IAM_LISTING_FILTERS.forEach((filter: string, index: number) => {
+            body[`Filter.member.${index + 1}`] = filter;
+          });
+
+          if (marker) {
+            body["Marker"] = marker;
+          }
+
+          const text: string = await iamCall(ctx, {
+            body,
+            step: "identity and policy list request",
+          });
+
+          pages.push(text);
+
+          const next: string = readXmlTag(text, "Marker");
+
+          if (
+            readXmlTag(text, "IsTruncated").toLowerCase() !== "true" ||
+            !next ||
+            next === marker
+          ) {
+            return { pages, complete: true };
+          }
+
+          marker = next;
+        }
+
+        return { pages, complete: false };
+      },
+    );
+
+  if (!listed.ok) {
+    return null;
+  }
+
+  const authorization: IamAuthorization = readAuthorizationDetails(
+    listed.value.pages,
+    { now, complete: listed.value.complete },
+  );
+
+  if (!authorization.complete) {
+    ctx.notes.note(
+      "The account has more identities and policies than one read lists: the access of the ones listed first was read.",
+    );
+  }
+
+  if (authorization.unreadPolicyArns.length > 0) {
+    ctx.notes.note(
+      `IAM did not return the documents of ${authorization.unreadPolicyArns.length} attached managed ${
+        authorization.unreadPolicyArns.length === 1 ? "policy" : "policies"
+      } (${authorization.unreadPolicyArns
+        .slice(0, 3)
+        .join(", ")}): what they grant is not counted.`,
+    );
+  }
+
+  return authorization;
+}
+
+/*
+ * Each user's last use, from the account's credential report: asked to be
+ * made, waited on a few seconds when it is not ready, then read. Undefined
+ * when it could not be had this time - the next read asks again.
+ */
+async function readUserUses(
+  ctx: AccountContext,
+  now: Date,
+): Promise<Map<string, CredentialReportUse> | undefined> {
+  const sleep: (milliseconds: number) => Promise<void> =
+    ctx.sleep || CLOUD_DEFAULT_SLEEP;
+  const ready: Answer<boolean> = await attempt(
+    ctx,
+    "iam:GenerateCredentialReport",
+    async (): Promise<boolean> => {
+      for (let tries: number = 0; tries < CREDENTIAL_REPORT_ATTEMPTS; tries++) {
+        const text: string = await iamCall(ctx, {
+          body: { Action: "GenerateCredentialReport" },
+          step: "credential report request",
+        });
+
+        if (readXmlTag(text, "State").toUpperCase() === "COMPLETE") {
+          return true;
+        }
+
+        if (tries < CREDENTIAL_REPORT_ATTEMPTS - 1) {
+          await sleep(CREDENTIAL_REPORT_WAIT_MS);
+        }
+      }
+
+      return false;
+    },
+  );
+
+  if (!ready.ok || !ready.value) {
+    return undefined;
+  }
+
+  const report: Answer<string> = await attempt(
+    ctx,
+    "iam:GetCredentialReport",
+    async (): Promise<string> => {
+      const text: string = await iamCall(ctx, {
+        body: { Action: "GetCredentialReport" },
+        step: "credential report download",
+      });
+
+      return Buffer.from(readXmlTag(text, "Content"), "base64").toString(
+        "utf8",
+      );
+    },
+  );
+
+  return report.ok ? readCredentialReport(report.value, now) : undefined;
+}
+
+// A sentence without its full stop, to join another to it.
+function withoutFullStop(text: string): string {
+  return text.endsWith(".") ? text.slice(0, -1) : text;
+}
+
+// The 12-digit account an ARN or an account id names, "" when none.
+function accountOfPrincipal(principal: string): string {
+  if (isAccountId(principal)) {
+    return principal;
+  }
+
+  const account: string = principal.split(":")[4] || "";
+
+  return isAccountId(account) ? account : "";
+}
+
+/*
+ * What IAM adds to the account's buckets and tables: who reaches each one
+ * through their own policies; the accounts outside the connected ones
+ * that reach it by assuming a role, which share the store as a bucket
+ * policy naming them would; a role any AWS account may assume, which
+ * makes what it reads public; and, for the identities a bucket policy
+ * names, when each was last used.
+ */
+async function readIamAccess(
+  ctx: AccountContext,
+  stores: Array<CloudDataStoreRead>,
+): Promise<void> {
+  const reachable: Array<CloudDataStoreRead> = stores.filter(
+    (store: CloudDataStoreRead): boolean => {
+      return IAM_READ_STORE_KINDS.includes(store.identity.kind);
+    },
+  );
+
+  if (reachable.length === 0 || ctx.budget.isSpent()) {
+    return;
+  }
+
+  const now: Date = ctx.now ? ctx.now() : new Date();
+  const authorization: IamAuthorization | null = await readIamAuthorization(
+    ctx,
+    now,
+  );
+
+  if (!authorization) {
+    return;
+  }
+
+  const userUses: Map<string, CredentialReportUse> | undefined =
+    authorization.identities.some((identity: IamIdentity): boolean => {
+      return identity.kind === IamIdentityKind.User;
+    })
+      ? await readUserUses(ctx, now)
+      : undefined;
+  const targets: Array<IamStoreTarget> = reachable.map(
+    (store: CloudDataStoreRead): IamStoreTarget => {
+      return {
+        kind: store.identity.kind,
+        arn: store.identity.providerResourceId,
+      };
+    },
+  );
+  const access: Map<string, IamStoreAccess> = buildIamAccessEntries({
+    authorization,
+    targets,
+    isInternalAccount: (accountId: string): boolean => {
+      return ctx.internal.has(accountId);
+    },
+    userUses,
+    now,
+  });
+  const identities: Map<string, IamIdentity> = new Map(
+    authorization.identities.map((identity: IamIdentity) => {
+      return [identity.arn, identity];
+    }),
+  );
+
+  for (const store of stores) {
+    // When the identities a bucket's own policy names were last used.
+    for (const entry of store.access) {
+      const identity: IamIdentity | undefined = identities.get(entry.principal);
+
+      if (!identity || entry.lastUsedAt) {
+        continue;
+      }
+
+      const use: CredentialReportUse | undefined =
+        identity.kind === IamIdentityKind.User
+          ? userUses?.get(identity.arn)
+          : undefined;
+      const lastUsedAt: Date | undefined =
+        identity.kind === IamIdentityKind.User
+          ? use?.lastUsedAt
+          : identity.lastUsedAt;
+
+      entry.lastUsedAt = lastUsedAt;
+      entry.isUnused = isAccessUnused({
+        lastUsedAt,
+        hasNoRecordedUse:
+          identity.kind === IamIdentityKind.User
+            ? Boolean(use?.hasNoRecordedUse)
+            : identity.hasNoRecordedUse,
+        now,
+      });
+    }
+
+    const found: IamStoreAccess | undefined = access.get(
+      store.identity.providerResourceId,
+    );
+
+    if (!found) {
+      continue;
+    }
+
+    for (const entry of found.entries) {
+      addAccess(store, entry);
+    }
+
+    if (found.leftOut > 0) {
+      addStoreWarning(
+        store,
+        `${found.leftOut} more ${
+          found.leftOut === 1 ? "identity reaches" : "identities reach"
+        } it through IAM: the ${MAX_IAM_ENTRIES_PER_STORE} with the most access are listed.`,
+      );
+    }
+
+    const outside: Array<string> = found.entries
+      .filter((entry: DataStoreAccessEntry): boolean => {
+        return entry.isExternal && !entry.isPublic;
+      })
+      .map((entry: DataStoreAccessEntry): string => {
+        return accountOfPrincipal(entry.principal) || entry.principal;
+      });
+
+    if (outside.length > 0) {
+      store.posture.sharedWithExternal = uniqueSorted([
+        ...(store.posture.sharedWithExternal || []),
+        ...outside,
+      ]);
+    }
+
+    const open: Array<DataStoreAccessEntry> = found.entries.filter(
+      (entry: DataStoreAccessEntry): boolean => {
+        return entry.isPublic;
+      },
+    );
+
+    if (open.length > 0) {
+      store.posture.publicRead = true;
+
+      if (
+        open.some((entry: DataStoreAccessEntry): boolean => {
+          return entry.accessLevel !== DataStoreAccessLevel.Read;
+        })
+      ) {
+        store.posture.publicWrite = true;
+      }
+
+      const reason: string = `Any AWS account can assume a role whose IAM policy reaches it (${open[0]!.grantedVia})`;
+
+      store.posture.publicReason = store.posture.publicReason
+        ? `${withoutFullStop(store.posture.publicReason)}; ${reason}.`
+        : `${reason}.`;
+    }
+  }
+}
+
 async function readAccount(
   ctx: AccountContext,
 ): Promise<Array<CloudDataStoreRead>> {
@@ -3526,6 +3575,8 @@ async function readAccount(
       `Could not read ${notEnabled.join(", ")}: the Region is not enabled for the account.`,
     );
   }
+
+  await readIamAccess(ctx, stores);
 
   return stores;
 }

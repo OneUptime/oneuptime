@@ -7,7 +7,7 @@
 - [हर स्तर क्या देता है](#हर-स्तर-क्या-देता-है): AWS क्रियाएं, और Azure और Google Cloud भूमिकाएं।
 - [अपना चलाया डेटाबेस स्कैन करें](#अपना-चलाया-डेटाबेस-स्कैन-करें): केवल पढ़ने वाली कनेक्शन स्ट्रिंग, या आपके नेटवर्क में एक प्रोब।
 - [OneUptime क्या रखता है](#oneuptime-क्या-रखता-है): गिनतियां, स्थान और मास्क किए गए नमूने, कोई मान कभी नहीं।
-- [डेटा सुरक्षा को एक्सपोज़र बंद करने दें](#डेटा-सुरक्षा-को-एक्सपोज़र-बंद-करने-दें): लिखने की वह एकमात्र अनुमति जो किसी कनेक्शन को दी जा सकती है, जो आपके चालू करने तक बंद रहती है।
+- [डेटा सुरक्षा को एक्सपोज़र बंद करने दें](#डेटा-सुरक्षा-को-एक्सपोज़र-बंद-करने-दें): लिखने की वे इकलौती अनुमतियां जो किसी कनेक्शन को दी जा सकती हैं, जो आपके चालू करने तक बंद रहती हैं।
 :::
 
 ## हर कनेक्शन के लिए स्तर चुनें
@@ -48,6 +48,9 @@
 | पढ़ना कि डेटाबेस तक कैसे पहुंचा जाता है, उनका एन्क्रिप्शन और बैकअप कैसा है, और उनके मैन्युअल स्नैपशॉट किसके साथ शेयर किए गए हैं | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | पढ़ना कि सर्च डोमेन, कैश और फ़ाइल सिस्टम कैसे सेट हैं | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | AWS की अपनी कुंजियों (alias/aws/...) को आपकी प्रबंधित कुंजियों से अलग पहचानना | `kms:ListAliases` |
+| यह पढ़ना कि कौन-से उपयोगकर्ता और भूमिकाएं अपनी IAM नीतियों से हर बकेट और हर टेबल तक पहुंचते हैं, हर भूमिका कौन ग्रहण कर सकता है, और हर एक का आख़िरी उपयोग कब हुआ | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+IAM कार्रवाइयों से **एक्सेस** हर उस भूमिका और उपयोगकर्ता का नाम बता पाता है जो अपनी नीतियों से किसी स्टोर तक पहुंचता है, और यह भी कि हर एक का आख़िरी उपयोग कब हुआ। इसके लिए IAM जो क्रेडेंशियल रिपोर्ट बनाता है, उसमें तारीखें और फ़्लैग होते हैं, कभी कोई पासवर्ड या कुंजी नहीं। डेटा सुरक्षा के IAM पढ़ने से पहले सेट किया गया कनेक्शन तब तक सिर्फ़ हर स्टोर की अपनी नीतियां पढ़ता है, जब तक उसका कमांड फिर से न चलाया जाए।
 
 सामग्री स्तर उसी नीति में तीन क्रियाएं जोड़ता है, हर एक अपने संसाधनों पर:
 
@@ -95,7 +98,10 @@
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@
 
 ## डेटा सुरक्षा को एक्सपोज़र बंद करने दें
 
-जब तक आप कुछ और न चुनें, कनेक्शन सिर्फ़ पढ़ता है। **डेटा सुरक्षा प्रतिक्रिया**, जो **और फ़ील्ड** में **डेटा सुरक्षा** के बगल में है, डेटा सुरक्षा को किसी स्टोर का सार्वजनिक एक्सेस ब्लॉक करने और उसके स्नैपशॉट की शेयरिंग रोकने भी देती है: स्टोर की समस्या से, **यहीं से ठीक करें** के साथ (देखें [डेटा सुरक्षा जांच और समस्याएं](/docs/data-security/checks-and-issues#यहीं-से-ठीक-करें)), और सुरक्षा संचालन की प्लेबुक से। यह तब तक **बंद** रहती है जब तक आप **सार्वजनिक एक्सेस और शेयरिंग ब्लॉक करें** न चुनें, और तब फ़ॉर्म जो कमांड दिखाता है, वह अलग से लिखने की एक सीमित अनुमति देती है:
+जब तक आप कुछ और न चुनें, कनेक्शन सिर्फ़ पढ़ता है। **डेटा सुरक्षा प्रतिक्रिया**, जो **और फ़ील्ड** में **डेटा सुरक्षा** के बगल में है, डेटा सुरक्षा को कनेक्शन के ज़रिए किसी स्टोर की सेटिंग्स बदलने भी देती है: उसका सार्वजनिक एक्सेस ब्लॉक करना और उसके स्नैपशॉट की शेयरिंग रोकना, स्टोर की समस्या से **यहीं से ठीक करें** के साथ (देखें [डेटा सुरक्षा जांच और समस्याएं](/docs/data-security/checks-and-issues#यहीं-से-ठीक-करें)) और सुरक्षा संचालन की प्लेबुक से, और उसकी रक्षा करने वाली कोई सेटिंग चालू करना, जैसे वर्शनिंग या सुरक्षित ट्रांसफ़र, उसकी समस्या से। यह तब तक **बंद** रहती है जब तक आप **एक्सपोज़र बंद करें और सेटिंग्स ठीक करें** न चुनें, और तब फ़ॉर्म जो कमांड दिखाता है, वह अलग से लिखने की ये सीमित अनुमतियां देती है:
 
 | क्लाउड | कमांड क्या जोड़ती है | यह क्या कर सकती है |
 | --- | --- | --- |
-| AWS | तीसरी इनलाइन नीति, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute` और `rds:ModifyDBClusterSnapshotAttribute`: किसी बकेट का Block Public Access, और कोई मैन्युअल स्नैपशॉट किसके साथ शेयर है |
-| Azure | एक कस्टम भूमिका, `OneUptime Data Security Response`, कनेक्शन के दायरे पर | `Microsoft.Storage/storageAccounts/read` और `Microsoft.Storage/storageAccounts/write`: किसी स्टोरेज खाते की सेटिंग्स, जैसे अनाम blob एक्सेस, उसकी कुंजियां कभी नहीं |
-| Google Cloud | एक कस्टम भूमिका, `oneuptimeDataSecurityResponse` | `storage.buckets.get` और `storage.buckets.update`: किसी बकेट की सेटिंग्स, जैसे सार्वजनिक एक्सेस की रोकथाम |
+| AWS | तीसरी इनलाइन नीति, `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups` और `dynamodb:UpdateContinuousBackups`: किसी बकेट का Block Public Access, वर्शनिंग और ऑब्जेक्ट स्वामित्व, कोई मैन्युअल स्नैपशॉट किसके साथ शेयर है, और किसी टेबल की पॉइंट-इन-टाइम रिकवरी |
+| Azure | एक कस्टम भूमिका, `OneUptime Data Security Response`, कनेक्शन के दायरे पर | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` और `Microsoft.Storage/storageAccounts/blobServices/write`: किसी स्टोरेज खाते की सेटिंग्स, जैसे अनाम blob एक्सेस और सुरक्षित ट्रांसफ़र, और उसके blob का सॉफ़्ट डिलीट, उसकी कुंजियां कभी नहीं |
+| Google Cloud | एक कस्टम भूमिका, `oneuptimeDataSecurityResponse` | `storage.buckets.get` और `storage.buckets.update`: किसी बकेट की सेटिंग्स, जैसे सार्वजनिक एक्सेस की रोकथाम, एकसमान एक्सेस और वर्शनिंग |
 
 इससे मिली कोई भी अनुमति डेटा नहीं पढ़ती, कुछ नहीं हटाती और यह नहीं बदलती कि कौन साइन इन कर सकता है। इसे वापस **बंद** पर सेट करें, और डेटा सुरक्षा इसका उपयोग तुरंत बंद कर देता है। AWS पर एक्सेस भी हटाने के लिए, नीति को `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse` से हटाएं।
+
+जिस कनेक्शन ने इसे पहले चालू किया था, उसे इन सेटिंग्स के लिए अपना कमांड फिर से चलाना होगा: तब तक क्लाउड बदलाव को ठुकरा देता है, और पैनल बताता है कि कौन-सी अनुमति नहीं है।
 
 ## सामग्री के नमूने वैकल्पिक क्यों हैं
 

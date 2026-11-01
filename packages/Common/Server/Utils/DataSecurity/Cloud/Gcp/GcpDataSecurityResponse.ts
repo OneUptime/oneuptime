@@ -24,8 +24,8 @@ import { assertGcsBucketName } from "./GcpDataSecurityReader";
 import { DataSecurityResponseOutcome } from "../DataSecurityCloudTypes";
 
 /*
- * DATA SECURITY'S RESPONSE ACTIONS ON GOOGLE CLOUD: what a playbook may
- * change to close an exposure Data Security found.
+ * DATA SECURITY'S RESPONSE ACTIONS ON GOOGLE CLOUD: what a person - or, for
+ * the first, a playbook - may change on a bucket Data Security found.
  *
  *   blockGcsBucketPublicAccess - a bucket's public access prevention
  *   enforced, after which nothing in it is public: an allUsers or
@@ -36,10 +36,20 @@ import { DataSecurityResponseOutcome } from "../DataSecurityCloudTypes";
  *           ?fields=name,iamConfiguration          -> its setting
  *     PATCH (the same) { iamConfiguration: { publicAccessPrevention: "enforced" } }
  *
- * It reads first and writes only what is not already so: run twice, it
+ *   turnOnGcsUniformAccess - uniform bucket-level access on: object ACLs
+ *   grant nothing, its IAM policy alone decides.
+ *
+ *     PATCH (the same) { iamConfiguration: { uniformBucketLevelAccess: { enabled: true } } }
+ *
+ *   turnOnGcsBucketVersioning - Object Versioning on.
+ *
+ *     GET   ...?fields=name,versioning
+ *     PATCH (the same) { versioning: { enabled: true } }
+ *
+ * Each reads first and writes only what is not already so: run twice, it
  * changes nothing the second time, and says so. A PATCH changes the one
- * setting it names; only the bucket's name and IAM configuration are read
- * and written back, never its ACLs or labels.
+ * setting it names; only the bucket's name and the setting are read and
+ * written back, never its ACLs or labels.
  *
  * The token is of devstorage.full_control, the narrowest scope that
  * allows buckets.patch. The service account may make the change only once
@@ -56,6 +66,8 @@ export const GCS_BUCKET_ADMIN_SCOPE: string =
   "https://www.googleapis.com/auth/devstorage.full_control";
 // What is read of a bucket and written back: never its ACLs or labels.
 const BUCKET_FIELDS: string = "name,iamConfiguration";
+// What is read of a bucket's versioning, and written back.
+const VERSIONING_FIELDS: string = "name,versioning";
 const READ_PERMISSION: string = "storage.buckets.get";
 const WRITE_PERMISSION: string = "storage.buckets.update";
 
@@ -145,20 +157,29 @@ function explainFailure(
   return error;
 }
 
-/*
- * Enforces a bucket's public access prevention, unless it is enforced
- * already. Throws when the bucket cannot be read or changed, with what to
- * do.
- */
-export async function blockGcsBucketPublicAccess(
+interface BucketOptions {
+  connectionId: string;
+  bucket: string;
+  transport?: CloudConnectorTransport | undefined;
+  budget?: CloudReadBudget | undefined;
+}
+
+interface OpenBucket {
+  bucket: string;
+  // Reads or writes the fields named of the bucket.
+  request: (data: {
+    method: "GET" | "PATCH";
+    fields: string;
+    body?: JSONObject | undefined;
+    step: string;
+  }) => Promise<JSONObject>;
+}
+
+// The bucket a response action changes, and a token of the narrowest scope that may.
+function openBucket(
   settings: CloudConnectionSettings,
-  options: {
-    connectionId: string;
-    bucket: string;
-    transport?: CloudConnectorTransport | undefined;
-    budget?: CloudReadBudget | undefined;
-  },
-): Promise<DataSecurityResponseResult> {
+  options: BucketOptions,
+): OpenBucket {
   new GcpCloudConnector().validateSettings(settings);
 
   const bucket: string = assertGcsBucketName(options.bucket);
@@ -173,24 +194,52 @@ export async function blockGcsBucketPublicAccess(
     transport,
     providerTitle: PROVIDER_TITLE,
   });
-  const url: string = `${STORAGE_BASE_URL}/b/${encodeURIComponent(
+
+  return {
     bucket,
-  )}?${buildQueryString([["fields", BUCKET_FIELDS]])}`;
+    request: async (data: {
+      method: "GET" | "PATCH";
+      fields: string;
+      body?: JSONObject | undefined;
+      step: string;
+    }): Promise<JSONObject> => {
+      try {
+        return await bucketRequest({
+          token,
+          transport,
+          budget: options.budget,
+          method: data.method,
+          url: `${STORAGE_BASE_URL}/b/${encodeURIComponent(
+            bucket,
+          )}?${buildQueryString([["fields", data.fields]])}`,
+          body: data.body,
+          step: data.step,
+        });
+      } catch (error) {
+        throw explainFailure(error, {
+          bucket,
+          writing: data.method === "PATCH",
+        });
+      }
+    },
+  };
+}
 
-  let current: JSONObject;
-
-  try {
-    current = await bucketRequest({
-      token,
-      transport,
-      budget: options.budget,
-      method: "GET",
-      url,
-      step: "bucket request",
-    });
-  } catch (error) {
-    throw explainFailure(error, { bucket, writing: false });
-  }
+/*
+ * Enforces a bucket's public access prevention, unless it is enforced
+ * already. Throws when the bucket cannot be read or changed, with what to
+ * do.
+ */
+export async function blockGcsBucketPublicAccess(
+  settings: CloudConnectionSettings,
+  options: BucketOptions,
+): Promise<DataSecurityResponseResult> {
+  const open: OpenBucket = openBucket(settings, options);
+  const current: JSONObject = await open.request({
+    method: "GET",
+    fields: BUCKET_FIELDS,
+    step: "bucket request",
+  });
 
   if (
     readText(
@@ -199,26 +248,95 @@ export async function blockGcsBucketPublicAccess(
   ) {
     return {
       changed: false,
-      summary: `Public access prevention is already on for bucket ${bucket}; nothing changed.`,
+      summary: `Public access prevention is already on for bucket ${open.bucket}; nothing changed.`,
     };
   }
 
-  try {
-    await bucketRequest({
-      token,
-      transport,
-      budget: options.budget,
-      method: "PATCH",
-      url,
-      body: { iamConfiguration: { publicAccessPrevention: "enforced" } },
-      step: "bucket update",
-    });
-  } catch (error) {
-    throw explainFailure(error, { bucket, writing: true });
-  }
+  await open.request({
+    method: "PATCH",
+    fields: BUCKET_FIELDS,
+    body: { iamConfiguration: { publicAccessPrevention: "enforced" } },
+    step: "bucket update",
+  });
 
   return {
     changed: true,
-    summary: `Turned on public access prevention for bucket ${bucket}: nothing in it can be read publicly now, whatever its IAM policy or ACLs say.`,
+    summary: `Turned on public access prevention for bucket ${open.bucket}: nothing in it can be read publicly now, whatever its IAM policy or ACLs say.`,
+  };
+}
+
+/*
+ * Turns a bucket's Object Versioning on, unless it is on already: an
+ * object overwritten or deleted from then on keeps its earlier version.
+ */
+export async function turnOnGcsBucketVersioning(
+  settings: CloudConnectionSettings,
+  options: BucketOptions,
+): Promise<DataSecurityResponseResult> {
+  const open: OpenBucket = openBucket(settings, options);
+  const current: JSONObject = await open.request({
+    method: "GET",
+    fields: VERSIONING_FIELDS,
+    step: "bucket request",
+  });
+
+  if (readObject(current["versioning"])["enabled"] === true) {
+    return {
+      changed: false,
+      summary: `Object Versioning is already on for bucket ${open.bucket}; nothing changed.`,
+    };
+  }
+
+  await open.request({
+    method: "PATCH",
+    fields: VERSIONING_FIELDS,
+    body: { versioning: { enabled: true } },
+    step: "bucket update",
+  });
+
+  return {
+    changed: true,
+    summary: `Turned on Object Versioning for bucket ${open.bucket}: an object overwritten or deleted from now on can be restored from its earlier version.`,
+  };
+}
+
+/*
+ * Turns on a bucket's uniform bucket-level access, unless it is on
+ * already: object ACLs grant nothing from then on, and the bucket's IAM
+ * policy alone decides who reads it. Google Cloud lets it be turned off
+ * again for 90 days only.
+ */
+export async function turnOnGcsUniformAccess(
+  settings: CloudConnectionSettings,
+  options: BucketOptions,
+): Promise<DataSecurityResponseResult> {
+  const open: OpenBucket = openBucket(settings, options);
+  const current: JSONObject = await open.request({
+    method: "GET",
+    fields: BUCKET_FIELDS,
+    step: "bucket request",
+  });
+
+  if (
+    readObject(
+      readObject(current["iamConfiguration"])["uniformBucketLevelAccess"],
+    )["enabled"] === true
+  ) {
+    return {
+      changed: false,
+      summary: `Uniform bucket-level access is already on for bucket ${open.bucket}; nothing changed.`,
+    };
+  }
+
+  await open.request({
+    method: "PATCH",
+    fields: BUCKET_FIELDS,
+    body: { iamConfiguration: { uniformBucketLevelAccess: { enabled: true } } },
+    step: "bucket update",
+  });
+
+  return {
+    changed: true,
+    summary: `Turned on uniform bucket-level access for bucket ${open.bucket}: object ACLs grant nothing now, and its IAM policy alone decides who reads it. It can be turned off again for 90 days.`,
   };
 }

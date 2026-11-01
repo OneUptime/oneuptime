@@ -1,3 +1,4 @@
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import { JSONObject } from "Common/Types/JSON";
 import RestrictionTimes, {
   RestrictionType,
@@ -262,9 +263,11 @@ const WorkingHoursPicker: FunctionComponent<ComponentProps> = (
   // The error goes under what it is about: the days, or the two times.
   const isDaysProblem: boolean = draft.days.length === 0;
   const errorLine: ReactElement = (
-    <p data-testid="error-message" className="mt-1.5 text-sm text-red-400">
-      {props.error}
-    </p>
+    <FieldError
+      message={props.error || ""}
+      className="mt-1.5 text-sm text-red-400"
+      announce="none"
+    />
   );
 
   const from: number | null = WorkingHours.parseClock(draft.from);

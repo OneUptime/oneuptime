@@ -9,10 +9,21 @@ import DataStoreService from "../../Services/DataStoreService";
 import { CloudConnectionSettings } from "../CloudConnection/CloudConnectorTypes";
 import {
   blockS3BucketPublicAccess,
+  enforceS3BucketOwnership,
   revokeRdsSnapshotSharing,
+  turnOnDynamoDbPointInTimeRecovery,
+  turnOnS3BucketVersioning,
 } from "./Cloud/Aws/AwsDataSecurityResponse";
-import { blockAzureStoragePublicAccess } from "./Cloud/Azure/AzureDataSecurityResponse";
-import { blockGcsBucketPublicAccess } from "./Cloud/Gcp/GcpDataSecurityResponse";
+import {
+  blockAzureStoragePublicAccess,
+  requireAzureSecureTransfer,
+  turnOnAzureBlobSoftDelete,
+} from "./Cloud/Azure/AzureDataSecurityResponse";
+import {
+  blockGcsBucketPublicAccess,
+  turnOnGcsBucketVersioning,
+  turnOnGcsUniformAccess,
+} from "./Cloud/Gcp/GcpDataSecurityResponse";
 import { DataSecurityResponseOutcome } from "./Cloud/DataSecurityCloudTypes";
 import { queueDataSecurityConnectionRead } from "./DataSecurityJobs";
 import DataSecurityRunner from "./DataSecurityRunner";
@@ -41,10 +52,10 @@ import { DataStorePostureFacts } from "../../../Types/DataSecurity/DataStorePost
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 
 /*
- * CLOSING A STORE'S EXPOSURE: DATA SECURITY'S RESPONSE ACTIONS.
+ * FIXING A STORE FROM ITS ISSUE: DATA SECURITY'S RESPONSE ACTIONS.
  *
- * What a Security Operations playbook - or a person, from an issue - can
- * do to a cloud store that is exposed:
+ * What a person, from an issue - or a Security Operations playbook, for the
+ * first two - can do to a cloud store:
  *
  *  - Block public access: an S3 bucket's four Block Public Access
  *    settings on, an Azure storage account's anonymous blob access off, a
@@ -52,6 +63,10 @@ import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
  *  - Revoke sharing: an RDS snapshot - or every manual snapshot of an RDS
  *    database or cluster that is shared - no longer restorable by everyone,
  *    or by accounts outside the ones the project has connected.
+ *  - Turn on versioning (S3, Cloud Storage), Turn on soft delete (Azure
+ *    storage), Turn off object ACLs (S3), Turn on uniform access (Cloud
+ *    Storage), Require secure transfer (Azure storage), Turn on
+ *    point-in-time recovery (DynamoDB): one setting that hardens the store.
  *
  * Each changes the store's configuration only, never its data; reads first
  * and changes only what is not already so, so a second run changes
@@ -101,10 +116,11 @@ export default class DataSecurityResponse {
       data.dataStoreId,
       data.action,
     );
-    const outcome: DataSecurityResponseOutcome =
-      data.action === DataSecurityResponseAction.BlockPublicAccess
-        ? await this.blockPublicAccess(target)
-        : await this.revokeSharing(data.projectId, target);
+    const outcome: DataSecurityResponseOutcome = await this.perform(
+      data.projectId,
+      data.action,
+      target,
+    );
 
     // Green when the store's configuration changed, grey when it was already so.
     const displayColor: Color = outcome.changed ? Green500 : Gray500;
@@ -303,6 +319,60 @@ export default class DataSecurityResponse {
       connection,
       settings: await CloudConnectionService.getConnectorSettings(connection),
     };
+  }
+
+  // The action itself, as the store's cloud takes it.
+  private static async perform(
+    projectId: ObjectID,
+    action: DataSecurityResponseAction,
+    target: ResponseTarget,
+  ): Promise<DataSecurityResponseOutcome> {
+    const { store, connection, settings } = target;
+    const bucket: {
+      connectionId: ObjectID;
+      bucket: string;
+      region: string;
+      accountNumber: string;
+    } = {
+      connectionId: connection.id!,
+      bucket: store.name || "",
+      region: store.region || "us-east-1",
+      accountNumber: store.cloudAccountNumber || "",
+    };
+    const azure: { connectionId: string; resourceId: string } = {
+      connectionId: connection.id!.toString(),
+      resourceId: store.providerResourceId || "",
+    };
+    const gcs: { connectionId: string; bucket: string } = {
+      connectionId: connection.id!.toString(),
+      bucket: store.name || "",
+    };
+
+    switch (action) {
+      case DataSecurityResponseAction.BlockPublicAccess:
+        return await this.blockPublicAccess(target);
+      case DataSecurityResponseAction.RevokeSharing:
+        return await this.revokeSharing(projectId, target);
+      case DataSecurityResponseAction.TurnOnVersioning:
+        return store.kind === DataStoreKind.GcpStorageBucket
+          ? await turnOnGcsBucketVersioning(settings, gcs)
+          : await turnOnS3BucketVersioning(settings, bucket);
+      case DataSecurityResponseAction.TurnOnSoftDelete:
+        return await turnOnAzureBlobSoftDelete(settings, azure);
+      case DataSecurityResponseAction.TurnOffObjectAcls:
+        return await enforceS3BucketOwnership(settings, bucket);
+      case DataSecurityResponseAction.TurnOnUniformAccess:
+        return await turnOnGcsUniformAccess(settings, gcs);
+      case DataSecurityResponseAction.RequireSecureTransfer:
+        return await requireAzureSecureTransfer(settings, azure);
+      case DataSecurityResponseAction.TurnOnPointInTimeRecovery:
+        return await turnOnDynamoDbPointInTimeRecovery(settings, {
+          connectionId: connection.id!,
+          table: store.name || "",
+          region: store.region || "us-east-1",
+          accountNumber: store.cloudAccountNumber || undefined,
+        });
+    }
   }
 
   private static async blockPublicAccess(

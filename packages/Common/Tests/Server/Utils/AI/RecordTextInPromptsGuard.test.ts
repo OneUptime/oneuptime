@@ -188,6 +188,8 @@ const PROMPT_BUILDERS: Record<string, string> = {
     "The coding agent's own messages: source files, sent as they are (keepEmbeddedData).",
   "packages/Common/Server/Utils/AI/CallSummary/IncidentCallSummary.ts":
     "An incident call's transcript: CallSummaryPrompt, each line redacted through redactAndOmitEmbeddedData, the incident's title and description as fields.",
+  "packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts":
+    "Data Security's field suggestions: FieldSuggestionPrompt sends the names of fields no detector placed and of the fields beside them, and the shapes of their values (UnplacedFields: letters as a or A, digits as 9 - never a value), each held to a length, as one JSON value of data under a system message that holds every instruction.",
   "packages/Common/Server/Utils/AI/Security/DetectionRuleDraft.ts":
     "A detection rule from a person's description: the description as a field of DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH, the Rule Library's own examples, and the model's own YAML back with the parser's error.",
 };

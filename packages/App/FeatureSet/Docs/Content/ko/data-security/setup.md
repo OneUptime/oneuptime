@@ -7,7 +7,7 @@
 - [각 수준이 부여하는 권한](#각-수준이-부여하는-권한): AWS 작업, 그리고 Azure와 Google Cloud 역할.
 - [직접 운영하는 데이터베이스 스캔하기](#직접-운영하는-데이터베이스-스캔하기): 읽기 전용 연결 문자열, 또는 네트워크 안의 프로브.
 - [OneUptime이 보관하는 것](#oneuptime이-보관하는-것): 개수, 위치, 마스킹된 샘플. 값 자체는 절대 보관하지 않습니다.
-- [데이터 보안이 노출을 차단하도록 허용하기](#데이터-보안이-노출을-차단하도록-허용하기): 연결에 줄 수 있는 유일한 쓰기 권한으로, 직접 켜기 전까지는 꺼져 있습니다.
+- [데이터 보안이 노출을 차단하도록 허용하기](#데이터-보안이-노출을-차단하도록-허용하기): 연결에 줄 수 있는 유일한 쓰기 권한들로, 직접 켜기 전까지는 꺼져 있습니다.
 :::
 
 ## 연결마다 수준 선택하기
@@ -48,6 +48,9 @@
 | 데이터베이스에 어떻게 접근하고 어떻게 암호화하고 백업하는지, 그리고 수동 스냅샷이 누구와 공유되는지 읽음 | `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `rds:DescribeDBSnapshots`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshots`, `rds:DescribeDBClusterSnapshotAttributes`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `dynamodb:DescribeContinuousBackups`, `redshift:DescribeClusters`, `redshift:DescribeLoggingStatus` |
 | 검색 도메인, 캐시, 파일 시스템이 어떻게 설정되어 있는지 읽음 | `es:ListDomainNames`, `es:DescribeDomains`, `elasticache:DescribeReplicationGroups`, `elasticfilesystem:DescribeFileSystems` |
 | AWS 자체 키(alias/aws/...)와 직접 관리하는 키를 구분함 | `kms:ListAliases` |
+| 각 버킷과 각 테이블에 자체 IAM 정책으로 도달하는 사용자와 역할, 각 역할을 맡을 수 있는 대상, 각각 마지막으로 사용된 시점 읽기 | `iam:GetAccountAuthorizationDetails`, `iam:GenerateCredentialReport`, `iam:GetCredentialReport` |
+
+IAM 작업 덕분에 **접근** 은 자체 정책으로 저장소에 도달하는 모든 역할과 사용자, 그리고 각각 마지막으로 사용된 시점을 보여 줄 수 있습니다. 이를 위해 IAM이 만드는 자격 증명 보고서에는 날짜와 플래그만 있으며, 암호나 키는 절대 없습니다. 데이터 보안이 IAM을 읽기 전에 설정된 연결은 명령을 다시 실행할 때까지 각 저장소 자체의 정책만 읽습니다.
 
 콘텐츠 수준은 같은 정책에 작업 세 개를 추가하며, 각 작업은 자신의 리소스에만 허용됩니다.
 
@@ -95,7 +98,10 @@
         "es:DescribeDomains",
         "elasticache:DescribeReplicationGroups",
         "elasticfilesystem:DescribeFileSystems",
-        "kms:ListAliases"
+        "kms:ListAliases",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:GenerateCredentialReport",
+        "iam:GetCredentialReport"
       ],
       "Resource": "*"
     },
@@ -140,15 +146,17 @@
 
 ## 데이터 보안이 노출을 차단하도록 허용하기
 
-달리 선택하지 않는 한 연결은 읽기만 합니다. **데이터 보안 대응** 은 **추가 필드** 에서 **데이터 보안** 옆에 있으며, 데이터 보안이 저장소의 공개 액세스를 차단하고 스냅샷 공유를 중단할 수 있게 합니다. 저장소의 이슈에서 **여기서 수정** 으로 하거나([데이터 보안 검사 및 이슈](/docs/data-security/checks-and-issues#여기서-수정) 참고), 보안 운영 플레이북에서 합니다. 기본값은 **꺼짐** 이며, **공개 액세스 및 공유 차단** 을 고르면 양식에 표시되는 명령이 범위가 좁은 쓰기 권한 하나만 따로 부여합니다.
+달리 선택하지 않는 한 연결은 읽기만 합니다. **데이터 보안 대응** 은 **추가 필드** 에서 **데이터 보안** 옆에 있으며, 데이터 보안이 연결을 통해 저장소의 설정을 바꿀 수 있게 합니다. 공개 액세스 차단과 스냅샷 공유 중단은 저장소의 이슈에서 **여기서 수정** 으로 하거나([데이터 보안 검사 및 이슈](/docs/data-security/checks-and-issues#여기서-수정) 참고) 보안 운영 플레이북에서 하고, 버전 관리나 보안 전송처럼 저장소를 보호하는 설정 켜기는 그 이슈에서 합니다. 기본값은 **꺼짐** 이며, **노출 차단 및 설정 수정** 을 고르면 양식에 표시되는 명령이 범위가 좁은 이 쓰기 권한들을 따로 부여합니다.
 
 | 클라우드 | 명령이 추가하는 것 | 할 수 있는 일 |
 | --- | --- | --- |
-| AWS | 세 번째 인라인 정책인 `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`: 버킷의 공개 액세스 차단 설정, 그리고 수동 스냅샷을 누구와 공유하는지 |
-| Azure | 연결의 범위에 부여되는 사용자 지정 역할인 `OneUptime Data Security Response` | `Microsoft.Storage/storageAccounts/read` 와 `Microsoft.Storage/storageAccounts/write`: 익명 Blob 액세스 같은 스토리지 계정의 설정. 키는 절대 다루지 않음 |
-| Google Cloud | 사용자 지정 역할인 `oneuptimeDataSecurityResponse` | `storage.buckets.get` 과 `storage.buckets.update`: 공개 액세스 방지 같은 버킷의 설정 |
+| AWS | 세 번째 인라인 정책인 `OneUptimeDataSecurityResponse` | `s3:GetBucketPublicAccessBlock`, `s3:PutBucketPublicAccessBlock`, `s3:GetBucketVersioning`, `s3:PutBucketVersioning`, `s3:GetBucketOwnershipControls`, `s3:PutBucketOwnershipControls`, `rds:DescribeDBSnapshotAttributes`, `rds:DescribeDBClusterSnapshotAttributes`, `rds:ModifyDBSnapshotAttribute`, `rds:ModifyDBClusterSnapshotAttribute`, `dynamodb:DescribeContinuousBackups`, `dynamodb:UpdateContinuousBackups`: 버킷의 공개 액세스 차단 설정, 버전 관리와 객체 소유권, 수동 스냅샷을 누구와 공유하는지, 테이블의 특정 시점 복구 |
+| Azure | 연결의 범위에 부여되는 사용자 지정 역할인 `OneUptime Data Security Response` | `Microsoft.Storage/storageAccounts/read`, `Microsoft.Storage/storageAccounts/write`, `Microsoft.Storage/storageAccounts/blobServices/read` 와 `Microsoft.Storage/storageAccounts/blobServices/write`: 익명 Blob 액세스와 보안 전송 같은 스토리지 계정의 설정, 그리고 Blob의 일시 삭제. 키는 절대 다루지 않음 |
+| Google Cloud | 사용자 지정 역할인 `oneuptimeDataSecurityResponse` | `storage.buckets.get` 과 `storage.buckets.update`: 공개 액세스 방지, 균일한 접근, 버전 관리 같은 버킷의 설정 |
 
 이 설정이 부여하는 권한으로는 데이터를 읽거나, 무엇인가를 삭제하거나, 누가 로그인할 수 있는지 바꿀 수 없습니다. 다시 **꺼짐** 으로 설정하면 데이터 보안은 즉시 이 권한을 사용하지 않습니다. AWS에서 접근 권한까지 회수하려면 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurityResponse` 로 정책을 삭제하세요.
+
+이전에 이 설정을 켠 연결은 이 설정들을 위해 명령을 다시 실행해야 합니다. 그 전까지는 클라우드가 변경을 거부하고, 패널에 어떤 권한이 빠졌는지 표시됩니다.
 
 ## 콘텐츠 샘플이 선택 사항인 이유
 

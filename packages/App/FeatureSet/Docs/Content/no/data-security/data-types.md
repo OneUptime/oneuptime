@@ -35,7 +35,7 @@ Hver skanning – en logglinje, en CSV-celle, en databaserad, de første bytene 
 | **Middels** | Verdien besto valideringen uten noe rundt den som bekrefter den, eller feltets navn sier hva det inneholder og noen verdier stemmer overens. |
 | **Lav** | Formen stemmer, men ingenting bekrefter den. |
 
-Bare funn med Høy og Middels konfidens teller: de gjør et datalager sensitivt og kan åpne et problem. Funn med Lav konfidens vises på datalageret, sammenslått, slik at et menneske kan vurdere dem.
+Bare funn med Høy og Middels konfidens teller: de gjør et datalager sensitivt og kan åpne et problem. Funn med Lav konfidens vises på datalageret, sammenslått, slik at et menneske kan vurdere dem: **Bekreft** på et funn som stemmer, gjør det til Høy, og det forblir Høy i senere skanninger.
 
 Når to datatyper gjør krav på de samme tegnene, vinner det sikreste funnet: høyest konfidens, deretter detektoren med egne regler som beviser mest, deretter det lengste treffet.
 
@@ -58,6 +58,12 @@ Navnet på et felt deles opp i ord – `customerEmail`, `customer_email` og `cus
 Noen datatyper kan ikke gjenkjennes på verdiene: ingen mønstre skiller en persons navn fra en gate, eller en religion fra et hvilket som helst annet ord. Disse blir bare funnet ut fra feltets navn, når feltet har verdier: Personnavn, Brukernavn, Kjønn, Nasjonalitet, Helseopplysninger, Rasemessig eller etnisk opprinnelse, Religiøs overbevisning, Seksuell orientering, Politisk oppfatning, Fagforeningsmedlemskap, Biometriske data, Genetiske data og Strafferegister. Et navn, et brukernavn, et kjønn eller en nasjonalitet er da Høy når 60 % eller mer av verdiene ser ut som det, og ellers Middels.
 
 Et felt med et navn som sier at det inneholder et passord – `password`, `passwordHash`, `pwd`, ikke `password_changed_at` – bør inneholde en hash: bcrypt, argon2, scrypt, PBKDF2 eller et annet skjema et datalager sannsynligvis bruker. Tomme verdier, plassholdere som `********` og krypterte verdier holdes utenfor. Når flere av resten ikke er hasher enn er det, inneholder feltet selve passordene, som ingen mønstre kan se, og datalageret feiler [Passord lagres i klartekst](/docs/data-security/checks-and-issues#datahygiene).
+
+### Felt som ingen detektor kunne plassere
+
+En kolonne eller et felt der navnet ikke peker på noen datatype og verdiene ikke treffer noen detektor, er ikke kjent som trygt: det kan være ditt eget kundenummer, eller en kolonne med navn på et annet språk. Med **Aktiver AI** slått på i prosjektet beholder en innholdsskanning slike felt, høyst 200 per skanning, og OneUptime AI blir spurt om hvilken av prosjektets datatyper hvert felt inneholder, høyst 40 felt fra et datalager om gangen. Den får feltets navn, navnene på feltene ved siden av og formene på verdiene - hver bokstav skrevet som `a` eller `A` og hvert siffer som `9`, så `AB-1234` blir `AA-9999` - aldri en verdi. Det spørres ikke om fritekst, felt med færre enn 5 verdier, små heltall og felt som er navngitt som en ID, et tidspunkt eller en status.
+
+Hver type OneUptime AI nevner, er et funn med Lav konfidens, merket **Foreslått av OneUptime AI** med begrunnelsen. Som ethvert funn med Lav konfidens teller det ikke før et menneske velger **Bekreft** på datalagerets side **Innhold**; **Merk som ikke sensitivt** avviser det. Det spørres ikke på nytt om et felt som har fått svar, på 30 dager, og aldri igjen om et felt et menneske har vurdert.
 
 ## Sensitivitet
 

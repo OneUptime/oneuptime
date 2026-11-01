@@ -124,7 +124,7 @@ Avviksdeteksjon mot en grunnlinje trenger ingen terskel. Velg en av disse beting
 | **Anomalously Low** | Faller under det forventede området |
 | **Anomalous** | Forlater det forventede området i en av retningene |
 
-Hver måling sammenlignes med en grunnlinje for samme time i uken, bygget fra **Grunnlinjevindu** (14 dager som standard; 28, 60 eller 90 dager). **Følsomhet** angir hvor bredt det forventede området er: **Lav (4σ — kun grove avvik)**, **Middels (3σ — anbefalt)**, som er standard, eller **Høy (2σ — mer støy, svært stabile tjenester)**. Avviksbetingelser blir værende i en «Learning»-tilstand og gir ingen varsler før det finnes minst det valgte grunnlinjevinduet med metrikkhistorikk.
+Hver måling sammenlignes med en grunnlinje for samme time i uken, bygget fra **Grunnlinjevindu** (14 dager som standard; 28, 60 eller 90 dager). **Følsomhet** angir hvor bredt det forventede området er: **Lav (4σ — kun grove avvik)**, **Middels (3σ — anbefalt)**, som er standard, eller **Høy (2σ — mer støy, svært stabile tjenester)**. Avviksbetingelser blir værende i en «Learning»-tilstand og gir ingen varsler før den timen i uken har to ukers historikk.
 
 **Hvis ingen data**, under **Flere felt**, avgjør hva som skjer når spørringen ikke returnerer noe i vinduet: **Ignore** (standard) samsvarer ikke, **Utløser** behandler stillheten som problemet, og **Treat As Zero** sammenligner en null. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 

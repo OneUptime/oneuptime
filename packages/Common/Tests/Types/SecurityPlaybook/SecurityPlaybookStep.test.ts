@@ -34,10 +34,13 @@ import {
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookStep";
 import { SecurityPlaybookStepOutcome } from "../../../Types/SecurityPlaybook/SecurityPlaybookStepCondition";
 import {
+  DATA_EXPOSURE_TEMPLATE_KEY,
   SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS,
   SecurityPlaybookTemplateDefinition,
   getSecurityPlaybookTemplateDefinition,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookTemplates";
+import SecurityPlaybookTrigger from "../../../Types/SecurityPlaybook/SecurityPlaybookTrigger";
+import SecurityDetectionSource from "../../../Types/SecurityCase/SecurityDetectionSource";
 import { describe, expect, test } from "@jest/globals";
 
 const USER_ID: string = ObjectID.generate().toString();
@@ -1243,5 +1246,60 @@ describe("the playbook templates", () => {
 
     expect(again[0]!.id).not.toBe(built[0]!.id);
     expect(again[1]!.runIf?.stepId).toBe(again[0]!.id);
+  });
+
+  test("Close a Data Exposure answers Data Security's cases: owners told, the exposure closed once a person approves, a checklist left", () => {
+    const template: SecurityPlaybookTemplateDefinition | undefined =
+      getSecurityPlaybookTemplateDefinition(DATA_EXPOSURE_TEMPLATE_KEY);
+
+    expect(template?.title).toBe("Close a Data Exposure");
+    expect(template?.trigger).toBe(SecurityPlaybookTrigger.CaseOpened);
+    expect(template?.detectionSource).toBe(
+      SecurityDetectionSource.DataSecurity,
+    );
+
+    // Saved as it is, through the same reading a person's playbook gets.
+    const built: Array<SecurityPlaybookStep> = parseSecurityPlaybookSteps(
+      template!.getSteps({
+        priorityId: (): string => {
+          return OTHER_ID;
+        },
+        statusId: (): string => {
+          return OTHER_ID;
+        },
+      }),
+    );
+
+    expect(
+      built.map((item: SecurityPlaybookStep) => {
+        return [item.action, item.requiresApproval, item.continueOnFailure];
+      }),
+    ).toEqual([
+      [SecurityPlaybookActionType.NotifyDataStoreOwners, false, true],
+      [SecurityPlaybookActionType.BlockDataStorePublicAccess, true, true],
+      [SecurityPlaybookActionType.RevokeDataStoreSharing, true, true],
+      [SecurityPlaybookActionType.AddCaseTasks, false, false],
+    ]);
+
+    // The two that change a cloud's settings wait for a person; nothing else does.
+    expect(
+      built.map((item: SecurityPlaybookStep): boolean => {
+        return doesStepNeedApproval(item);
+      }),
+    ).toEqual([false, true, true, false]);
+
+    // The response's checklist, as the case's own tasks.
+    const tasks: Array<string> = (built[3]!.config as { tasks: Array<string> })
+      .tasks;
+
+    expect(tasks).toHaveLength(4);
+    expect(tasks[0]).toContain("Who Can Reach It");
+    expect(tasks[1]).toContain("breach you must report");
+
+    for (const task of tasks) {
+      expect(task.length).toBeLessThanOrEqual(
+        SECURITY_PLAYBOOK_TASK_MAX_LENGTH,
+      );
+    }
   });
 });
