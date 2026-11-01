@@ -1939,11 +1939,21 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
                       >
                         {command.rationale}
                       </div>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {translator.translateTemplate(
-                          "Expected effect: {{effect}}",
-                          { effect: command.expectedEffect },
-                        )}
+                      {/*
+                        What OneUptime AI expects, in its own words, set
+                        apart from the label (TranslatedSentence): on a
+                        Persian page an English effect kept its full stop
+                        at the start of its last line.
+                      */}
+                      <div
+                        data-testid="remediation-command-expected-effect"
+                        className="mt-1 text-xs text-gray-500"
+                      >
+                        <TranslatedSentence
+                          template="Expected effect: {{effect}}"
+                          slots={{}}
+                          values={{ effect: command.expectedEffect }}
+                        />
                       </div>
 
                       {/*

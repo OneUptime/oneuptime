@@ -407,6 +407,10 @@ describe("a cloud change on the Remediation step", () => {
     expect(trackRecord).toHaveTextContent(
       "Worked all 3 times it ran here before",
     );
+    // The expected effect is a sentence with the effect set into it.
+    expect(
+      within(row).getByTestId("remediation-command-expected-effect"),
+    ).toHaveTextContent("Expected effect: Latency drops.");
   });
 
   test("once it ran, its outcome speaks, and the record is gone", async () => {
