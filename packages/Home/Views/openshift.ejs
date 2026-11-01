@@ -76,7 +76,7 @@
     },
     {
       title: 'Labelled OpenShift',
-      text: 'A cluster is labelled OpenShift in the product, so you can tell it from the rest at a glance.',
+      text: 'A cluster is labelled OpenShift in the product.',
       icon: 'M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z',
     },
     {
@@ -200,7 +200,7 @@
             <ol class="mt-8 space-y-4">
               <% installSteps.forEach(function (step, index) { -%>
               <li class="flex gap-3 text-gray-600">
-                <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-cyan-600 text-xs font-semibold text-white"><%= index + 1 %></span>
+                <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-cyan-600 text-xs font-semibold text-white" aria-hidden="true"><%= index + 1 %></span>
                 <span><%- step %></span>
               </li>
               <% }); -%>
