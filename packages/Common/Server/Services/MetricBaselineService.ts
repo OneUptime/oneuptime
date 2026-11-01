@@ -513,8 +513,8 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
 
     /*
      * Every hour of a band shorter than a week is judged by the days before
-     * it starts, and each still reads the same weeks: one of a cell's hours
-     * falls in any seven days.
+     * the band starts. Those hold the same weeks each hour would read from
+     * its own day: an hour of the week falls once in any seven days.
      */
     const judgedDay: string = MetricHourBaseline.toDayText(input.startTime);
 

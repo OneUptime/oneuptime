@@ -1464,9 +1464,9 @@ export default class MetricMonitorCriteria {
      * window almost always covers a single hour, but windows that straddle
      * the hour boundary need both baselines, and a window of weeks holds an
      * hour of the week once a week. Each is held to the days before its own,
-     * which is yesterday for an hour that ended at midnight, and a data
-     * point too old for the rollup to reach behind has no baseline and is
-     * left alone, which the newest ones of its hour are not.
+     * which is yesterday for an hour that ended at midnight. A data point too
+     * old for the rollup to reach behind it has no baseline and is skipped,
+     * and the newest of its hour are still judged.
      */
     const hoursInWindow: Map<string, HourJudged> = new Map();
     for (const sample of samples) {
