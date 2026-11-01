@@ -320,10 +320,11 @@ describe("the Kubernetes agent chart's README", () => {
     "## Kubernetes AI agent",
   );
 
-  it("installs with AI investigations on in the quick start and both presets", () => {
+  it("installs with AI investigations on in the quick start and every preset", () => {
     const commands: Array<string> = helmInstallCommands(quickStartAndPresets);
 
-    expect(commands).toHaveLength(3);
+    // The quick start, then GKE Autopilot, EKS Fargate and OpenShift.
+    expect(commands).toHaveLength(4);
     for (const command of commands) {
       const lines: Array<string> = linesOf(command);
       const clusterName: number = lines.findIndex((line: string): boolean => {

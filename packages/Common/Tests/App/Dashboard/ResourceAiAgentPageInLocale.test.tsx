@@ -324,7 +324,7 @@ describe("the Host AI agent's installer in the reader's language", () => {
       await setLanguage(code);
       jest
         .spyOn(ModelAPI, "getItem")
-        .mockImplementation(async (): Promise<unknown> => {
+        .mockImplementation(async (): Promise<Host> => {
           return Object.assign(new Host(), {
             _id: RESOURCE_ID,
             hostIdentifier: "web-prod-01",

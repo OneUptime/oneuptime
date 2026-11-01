@@ -21,6 +21,14 @@ const ingestionKeyEnvLineRegex: RegExp =
   /ONEUPTIME_TELEMETRY_INGESTION_KEY=([0-9a-fA-F-]{36})/;
 
 /*
+ * The install command's last value and the script it runs. With the URL and
+ * the key on it, the command puts each value on a line of its own, every
+ * line but the last ending in a backslash.
+ */
+const collectorConfigRunLineRegex: RegExp =
+  /STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config\.yaml \\\n\s*bash install\.sh/;
+
+/*
  * Storage Arrays product onboarding path (mirrors CephProduct.spec.ts and
  * VMwareProduct.spec.ts).
  *
@@ -119,9 +127,7 @@ test.describe.skip("Storage Arrays Product Onboarding", () => {
       .toMatch(ingestionKeyEnvLineRegex);
 
     let bodyText: string = await page.locator("body").innerText();
-    expect(bodyText).toContain(
-      "STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.yaml bash install.sh",
-    );
+    expect(bodyText).toMatch(collectorConfigRunLineRegex);
     expect(bodyText).toContain("Check the array serves its own metrics");
 
     await page.getByRole("tab", { name: "Docker Compose" }).click();

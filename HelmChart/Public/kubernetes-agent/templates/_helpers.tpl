@@ -108,6 +108,190 @@ Service account name
 {{- end }}
 
 {{/*
+Whether the chart is installed with the openshift preset.
+
+OpenShift admits a pod only under a security context constraint (SCC) that
+its service account may use, and a service account may use restricted-v2
+and nothing more until an admin grants it: no hostPath volumes, no privileged
+containers, no host PID namespace, and user and group IDs from the
+namespace's own range only. So on this preset the chart creates an SCC for
+each of the two kinds of node pods that need more
+(templates/openshift-scc.yaml), runs them as service accounts of their own,
+which alone may use it, and leaves every other pod's user and group IDs for
+OpenShift to assign (kubernetes-agent.nonRootPodSecurityContext).
+Usage: {{- if eq (include "kubernetes-agent.openshift" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.openshift" -}}
+{{- if eq (default "" .Values.preset) "openshift" -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the node pods run as service accounts of their own: on the openshift
+preset, so that each SCC can be granted to exactly the pods that need it, and
+only when the chart creates service accounts at all. With
+serviceAccount.create=false every pod runs as the service account you made,
+and both SCCs are granted to it.
+*/}}
+{{- define "kubernetes-agent.nodeServiceAccounts" -}}
+{{- if and (eq (include "kubernetes-agent.openshift" .) "true") .Values.serviceAccount.create -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+The node collector DaemonSet's service account (templates/daemonset.yaml).
+*/}}
+{{- define "kubernetes-agent.nodeCollectorServiceAccountName" -}}
+{{- if eq (include "kubernetes-agent.nodeServiceAccounts" .) "true" -}}
+{{- printf "%s-node-collector" (include "kubernetes-agent.fullname" .) -}}
+{{- else -}}
+{{- include "kubernetes-agent.serviceAccountName" . -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+The service account of the eBPF instrumentation and the profiler
+(templates/daemonset-ebpf.yaml, templates/daemonset-profiling.yaml).
+*/}}
+{{- define "kubernetes-agent.ebpfServiceAccountName" -}}
+{{- if eq (include "kubernetes-agent.nodeServiceAccounts" .) "true" -}}
+{{- printf "%s-ebpf" (include "kubernetes-agent.fullname" .) -}}
+{{- else -}}
+{{- include "kubernetes-agent.serviceAccountName" . -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+A node pod's own service account (templates/rbac.yaml), with the labels and
+the annotations (serviceAccount.annotations) the main one has.
+Usage: {{ include "kubernetes-agent.nodeServiceAccount" (dict "root" . "name" "<name>") }}
+*/}}
+{{- define "kubernetes-agent.nodeServiceAccount" -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .name }}
+  namespace: {{ .root.Release.Namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" .root | nindent 4 }}
+  {{- with .root.Values.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+The SELinux label the node collector runs with on the openshift preset, and
+the one its SCC requires: the type spc_t, which RHCOS's enforcing SELinux
+lets read the node's files, as the default container type (container_t)
+cannot.
+*/}}
+{{- define "kubernetes-agent.spcSeLinuxOptions" -}}
+user: system_u
+role: system_r
+type: spc_t
+level: s0
+{{- end -}}
+
+{{/*
+The pod securityContext of a workload that runs as a fixed non-root user:
+non-root, the RuntimeDefault seccomp profile, and the user and group IDs its
+image is built for. OpenShift refuses IDs outside the namespace's range and
+assigns its own, so on the openshift preset the IDs are left out and the pod
+runs under restricted-v2. Every such workload mounts a writable emptyDir
+wherever it writes (its root filesystem is read-only), and an emptyDir is
+writable by whatever fsGroup OpenShift gives the pod.
+Usage:
+  securityContext:
+    {{- include "kubernetes-agent.nonRootPodSecurityContext" (dict "root" . "runAsUser" 1000 "runAsGroup" 1000 "fsGroup" 1000) | nindent 8 }}
+*/}}
+{{- define "kubernetes-agent.nonRootPodSecurityContext" -}}
+runAsNonRoot: true
+{{- if ne (include "kubernetes-agent.openshift" .root) "true" }}
+{{- with .runAsUser }}
+runAsUser: {{ . }}
+{{- end }}
+{{- with .runAsGroup }}
+runAsGroup: {{ . }}
+{{- end }}
+{{- with .fsGroup }}
+fsGroup: {{ . }}
+{{- end }}
+{{- end }}
+seccompProfile:
+  type: RuntimeDefault
+{{- end -}}
+
+{{/*
+The resource attribute that names the cluster's Kubernetes distribution, for
+the collectors' resource processors on the openshift preset, next to
+oneuptime.agent.version: oneuptime.kubernetes.distribution=openshift. It
+tells OneUptime an OpenShift cluster from any other on every platform,
+on-premises included; the openshift detector below names only the cloud.
+Usage: {{- include "kubernetes-agent.distributionAttribute" (dict "action" "insert") | nindent 10 }}
+*/}}
+{{- define "kubernetes-agent.distributionAttribute" -}}
+- key: oneuptime.kubernetes.distribution
+  value: openshift
+  action: {{ .action }}
+{{- end -}}
+
+{{/*
+The collector's openshift resource detector, for the openshift preset. It
+reads the cloud the cluster runs on from the cluster's Infrastructure object
+(config.openshift.io, which templates/rbac.yaml lets the agent read) and sets
+cloud.provider and cloud.platform (aws_openshift, azure_openshift,
+gcp_openshift, ibm_cloud_openshift); an on-premises cluster gets neither.
+Two of its attributes stay off:
+  - k8s.cluster.name, which it would set to the infrastructure name, while
+    clusterName names the cluster in OneUptime (the resource processor);
+  - cloud.region, which before collector 0.165 it sets to Azure's and
+    OpenStack's cloud name, not a region.
+override: false leaves an attribute a record already carries as it is. Each
+pipeline runs it right after the resource processor.
+Usage: {{- include "kubernetes-agent.openshiftDetector" . | nindent 6 }}
+*/}}
+{{/*
+Whether the cluster collector pulls OpenShift's own objects - Routes,
+DeploymentConfigs, ClusterOperators and the ClusterVersion - on the openshift
+preset, with the other resource specs (resourceSpecs.enabled), for the
+Kubernetes pages and the OpenShift alert templates.
+
+They come from a k8sobjects receiver of their own with error_mode: ignore,
+which collector 0.125.0 added. A cluster that does not serve one of them
+(DeploymentConfigs are an optional capability since OpenShift 4.14) then
+skips it, where a missing object would otherwise stop the receiver that sends
+the events and every other spec. An older collector (a release upgraded with
+--reuse-values keeps its image) leaves them out until it is upgraded.
+Usage: {{- if eq (include "kubernetes-agent.openshiftObjectsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.openshiftObjectsEnabled" -}}
+{{- if and (eq (include "kubernetes-agent.openshift" .) "true") .Values.resourceSpecs.enabled (eq (include "kubernetes-agent.collectorAtLeast" (dict "root" . "version" "0.125.0")) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{- define "kubernetes-agent.openshiftDetector" -}}
+resourcedetection/openshift:
+  detectors: [openshift]
+  override: false
+  openshift:
+    resource_attributes:
+      k8s.cluster.name:
+        enabled: false
+      cloud.region:
+        enabled: false
+{{- end -}}
+
+{{/*
 Pod nodeSelector with the Linux-only pin merged in.
 
 Every image this chart deploys — the OTel collectors, OBI, the profiler,
@@ -980,6 +1164,19 @@ Usage: {{- if eq (include "kubernetes-agent.profilingEnabled" .) "true" }}
 */}}
 {{- define "kubernetes-agent.profilingEnabled" -}}
 {{- if and ((.Values.profiling | default dict).enabled) (eq (include "kubernetes-agent.privilegedPodsAllowed" .) "true") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether either privileged node pod runs: the eBPF instrumentation or the
+profiler. They share a service account and, on OpenShift, an SCC.
+Usage: {{- if eq (include "kubernetes-agent.ebpfPodsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.ebpfPodsEnabled" -}}
+{{- if or (eq (include "kubernetes-agent.ebpfEnabled" .) "true") (eq (include "kubernetes-agent.profilingEnabled" .) "true") -}}
 true
 {{- else -}}
 false

@@ -4,7 +4,7 @@ OneUptime Kubernetes エージェントは Helm チャートで、クラスタ�
 
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): Helm を使った四つのステップ。
-- [プリセットを選ぶ](#プリセットを選ぶ): 標準のクラスター、GKE Autopilot、EKS Fargate。
+- [プリセットを選ぶ](#プリセットを選ぶ): 標準のクラスター、GKE Autopilot、EKS Fargate、OpenShift。
 - [よく使うオプション](#よく使うオプション): ほとんどのクラスターで変更する設定。
 - [トラブルシューティング](#トラブルシューティング): 診断スクリプトと、よくある問題。
 :::
@@ -92,10 +92,13 @@ Kubernetes プラットフォームによっては、ワークロードが `host
 | `standard` (デフォルト) | セルフマネージド、**EKS on EC2**、**GKE Standard**、**AKS**、minikube、kind、k3s | ノードコレクターが `/var/log/pods` を読み取る | kubelet、cAdvisor、OS のメトリクス |
 | `gke-autopilot` | **GKE Autopilot** | ログテイラーが Kubernetes API 経由で読み取る | kubelet と cAdvisor のメトリクス (`hostPath` なし) |
 | `eks-fargate` | **EKS Fargate** | ログテイラーが Kubernetes API 経由で読み取る | なし: Fargate は DaemonSet を実行しません |
+| `openshift` | **OpenShift**: OpenShift Container Platform、ROSA、ARO、OKD | ノードコレクターが `/var/log/pods` を読み取る | kubelet、cAdvisor、OS のメトリクス |
 
 よくわからない場合は、`preset` を未設定のままにすると `standard` になります。インストールが `hostPath` を挙げた Pod Security エラーで失敗した場合は、`gke-autopilot` で、EKS Fargate では `eks-fargate` でインストールし直してください。
 
 GKE Autopilot と EKS Fargate は、eBPF インストルメンテーションとプロファイリングに必要な特権 Pod も拒否するため、それぞれのプリセットはどちらも含めません。
+
+OpenShift では、デフォルトのセキュリティコンテキスト制約 (SCC) である `restricted-v2` が、ノードコレクターと eBPF の Pod を拒否します。`openshift` プリセットは、それぞれに専用の SCC を作成して各自のサービスアカウントだけが使えるようにし、それ以外のすべての Pod のユーザー ID は OpenShift に選ばせます。
 
 :::tabs
 @tab Standard
@@ -123,6 +126,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
 ```
 :::
 
@@ -355,7 +367,7 @@ eBPF インストルメンテーションもオンにしていると (デフォ�
 | `oneuptime.url` | (必須) | あなたの OneUptime URL。 |
 | `oneuptime.apiKey` | (必須) | **プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成した取り込みキー。`x-oneuptime-token` ヘッダーとして送信されます。プロジェクトの API キーは使えません。 |
 | `clusterName` | (必須) | クラスターの名前。プロジェクト内で一意です。すべてのレコードが `k8s.cluster.name` としてこれを持ちます。 |
-| `preset` | (空: `standard`) | `standard`、`gke-autopilot`、`eks-fargate` のいずれか。[プリセットを選ぶ](#プリセットを選ぶ) を参照してください。 |
+| `preset` | (空: `standard`) | `standard`、`gke-autopilot`、`eks-fargate`、`openshift` のいずれか。[プリセットを選ぶ](#プリセットを選ぶ) を参照してください。 |
 | `oneuptime.labels` | `{}` | このエージェントからのすべてのレコードに付けるラベル。[クラスターにラベルを付ける](#クラスターにラベルを付ける) を参照してください。 |
 | `namespaceFilters.rules` | `kube-system` を `podLogs` と `ebpfDiscovery` から除外 | `podLogs`、`ebpfDiscovery`、`metrics`、`traces` で名前空間を含めたり除外したりするルール。パターンには `*` を使え、除外が常に優先されます。 |
 | `filters.logs.minSeverity` | `""` | このレベルより下の Pod ログ行を破棄します: `TRACE`、`DEBUG`、`INFO`、`WARN`、`ERROR`、`FATAL`。 |

@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import yaml from "js-yaml";
 import path from "path";
+import { joinContinuedLines } from "./InstallCommandLines";
 import {
   DATABASE_AGENT_COLLECTOR_IMAGE,
   DATABASE_AGENT_CONFIGS,
@@ -876,7 +877,7 @@ describe("a database's own guide", () => {
       `| \`DATABASE_SERVER_ID\` | \`${DATABASE_ID}\` |`,
     );
     expect(markdown).toContain(`DATABASE_SERVER_ID=${DATABASE_ID}\n`);
-    expect(markdown).toContain(
+    expect(joinContinuedLines(markdown)).toContain(
       `DATABASE_SYSTEM=postgresql DATABASE_SERVER_ADDRESS=db.prod.internal DATABASE_SERVER_PORT=5432 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
     );
     expect(markdown).not.toContain("replace `db.example.com`");
@@ -895,7 +896,8 @@ describe("a database's own guide", () => {
       engine: "postgresql",
       database: { id: DATABASE_ID, dbSystem: "postgresql" },
     });
-    const command: string | undefined = markdown
+    // The command as a shell reads it: one line, whatever its layout.
+    const command: string | undefined = joinContinuedLines(markdown)
       .split("\n")
       .find((line: string): boolean => {
         return line.endsWith(" bash install.sh");
@@ -917,7 +919,7 @@ describe("a database's own guide", () => {
       serverAddress: "cache.prod.internal",
     });
 
-    expect(markdown).toContain(
+    expect(joinContinuedLines(markdown)).toContain(
       `DATABASE_SYSTEM=valkey DATABASE_SERVER_ADDRESS=cache.prod.internal DATABASE_SERVER_PORT=6379 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
     );
     expect(markdown).toContain("| `DATABASE_SYSTEM` | `valkey` |");
@@ -1347,8 +1349,9 @@ function envBlockOf(markdown: string): Map<string, string> {
   return values;
 }
 
+// The line that runs install.sh, as a shell reads it: its values joined.
 function installCommandOf(markdown: string): string {
-  const command: string | undefined = markdown
+  const command: string | undefined = joinContinuedLines(markdown)
     .split("\n")
     .find((line: string): boolean => {
       return line.endsWith(" bash install.sh");

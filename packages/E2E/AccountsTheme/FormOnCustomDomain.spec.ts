@@ -20,16 +20,16 @@ import { BrowserContext, expect, Page, test, TestInfo } from "@playwright/test";
  * Screenshots are saved for review under output/playwright/accounts-theme-ui.
  */
 
+/*
+ * What the fixture recorded (MockApi.js), read through unknown: the suite's
+ * other spec declares window.__accountsThemeFixture with a record of its
+ * own, and two declarations of one global with different types fail the
+ * E2E type check (TS2717) that the image build runs.
+ */
 interface FixtureRecord {
   requests: Array<string>;
   addresses: Array<string>;
   unexpected: Array<string>;
-}
-
-declare global {
-  interface Window {
-    __accountsThemeFixture: FixtureRecord;
-  }
 }
 
 const THEME_KEY: string = "oneuptime-dashboard-theme";
@@ -110,7 +110,12 @@ const fixture: (page: Page) => Promise<FixtureRecord> = async (
   page: Page,
 ): Promise<FixtureRecord> => {
   return page.evaluate((): FixtureRecord => {
-    return JSON.parse(JSON.stringify(window.__accountsThemeFixture));
+    return JSON.parse(
+      JSON.stringify(
+        (window as unknown as { __accountsThemeFixture: FixtureRecord })
+          .__accountsThemeFixture,
+      ),
+    );
   });
 };
 

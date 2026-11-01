@@ -214,6 +214,11 @@ export const FormsCopy: {
   copyLink: string;
   resetLink: string;
   resetLinkConfirmation: string;
+  /*
+   * The same, for a form on custom domains of its own: they name no key,
+   * so Reset Link leaves them as they are.
+   */
+  resetLinkConfirmationWithCustomDomains: string;
   newLinkTitle: string;
   newLinkDescription: string;
   formTurnedOff: string;
@@ -513,11 +518,17 @@ export const FormsCopy: {
   resetLink: "Reset Link",
   resetLinkConfirmation:
     "The form gets a new link, and the current one stops working at once. Everybody you shared it with sees a 'not available' message until you send them the new one.",
+  resetLinkConfirmationWithCustomDomains:
+    "The form gets a new link, and the current one stops working at once. Everybody you shared it with sees a 'not available' message until you send them the new one. Its custom domains are not affected.",
   newLinkTitle: "New Link",
   newLinkDescription:
     "The form has a new link, shown on the Share Link card. The old link no longer works.",
+  /*
+   * Under every address the form answers at - its link and its custom
+   * domains alike, which show the same message while it is off.
+   */
   formTurnedOff:
-    "This form is turned off, so its link shows a 'not available' message.",
+    "This form is turned off, so people who open it see a 'not available' message.",
   shareLinkNotFound:
     "This form's link could not be loaded. The form may have been deleted.",
   formNotFound: "This form could not be loaded. It may have been deleted.",
@@ -563,8 +574,13 @@ export const FormsCopy: {
   deleteSubmissionDescription:
     "Its answers and the submitter's name and email are removed. What it created, and its private note, are kept.",
 
+  /*
+   * A custom domain shows one form, so the copy gets none of this form's:
+   * "everything this form has" promised them. At most 150 characters, as
+   * every dialog description (ShortDescriptionsGuard).
+   */
   duplicateFormNote:
-    "The copy has everything this form has, with a link of its own. It starts turned off: turn it on from its Share page when ready.",
+    "The copy has everything but this form's custom domains, and a link of its own. It starts turned off: turn it on from its Share page when ready.",
 
   // The picture of a file question on its card.
   inputFile: "Drop a file here or choose one",

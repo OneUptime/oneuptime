@@ -4,7 +4,7 @@ Der OneUptime-Kubernetes-Agent ist ein Helm-Chart, das die Metriken, Ereignisse 
 
 :::cards
 - [Den Agenten installieren](#den-agenten-installieren): Vier Schritte mit Helm.
-- [Ein Preset wählen](#ein-preset-wählen): Standard-Cluster, GKE Autopilot oder EKS Fargate.
+- [Ein Preset wählen](#ein-preset-wählen): Standard-Cluster, GKE Autopilot, EKS Fargate oder OpenShift.
 - [Häufige Optionen](#häufige-optionen): Die Einstellungen, die die meisten Cluster ändern.
 - [Fehlerbehebung](#fehlerbehebung): Ein Diagnoseskript und die üblichen Probleme.
 :::
@@ -92,10 +92,13 @@ Manche Kubernetes-Plattformen erlauben einem Workload nicht, ein `hostPath`-Volu
 | `standard` (Standard) | Selbst verwaltet, **EKS on EC2**, **GKE Standard**, **AKS**, minikube, kind, k3s | Der Knoten-Collector liest `/var/log/pods` | Kubelet-, cAdvisor- und Betriebssystem-Metriken |
 | `gke-autopilot` | **GKE Autopilot** | Der Log-Tailer liest sie über die Kubernetes-API | Kubelet- und cAdvisor-Metriken, ohne `hostPath` |
 | `eks-fargate` | **EKS Fargate** | Der Log-Tailer liest sie über die Kubernetes-API | Nichts: Fargate führt keine DaemonSets aus |
+| `openshift` | **OpenShift**: OpenShift Container Platform, ROSA, ARO, OKD | Der Knoten-Collector liest `/var/log/pods` | Kubelet-, cAdvisor- und Betriebssystem-Metriken |
 
 Wenn Sie unsicher sind, lassen Sie `preset` leer, um `standard` zu erhalten. Schlägt die Installation mit einem Pod-Security-Fehler fehl, der `hostPath` nennt, installieren Sie erneut mit `gke-autopilot`, oder mit `eks-fargate` auf EKS Fargate.
 
-GKE Autopilot und EKS Fargate verweigern außerdem privilegierte Pods, die die eBPF-Instrumentierung und das Profiling brauchen, deshalb lassen deren Presets beides weg:
+GKE Autopilot und EKS Fargate verweigern außerdem privilegierte Pods, die die eBPF-Instrumentierung und das Profiling brauchen, deshalb lassen deren Presets beides weg.
+
+Auf OpenShift lehnt die standardmäßige Security Context Constraint (SCC), `restricted-v2`, den Knoten-Collector und die eBPF-Pods ab. Das Preset `openshift` legt für beide je eine SCC an, die nur von ihrem eigenen Dienstkonto verwendet wird, und lässt OpenShift die Benutzer-ID aller anderen Pods wählen:
 
 :::tabs
 @tab Standard
@@ -123,6 +126,15 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
   --set oneuptime.apiKey=<YOUR_API_KEY> \
   --set clusterName=prod-eks-fargate \
   --set preset=eks-fargate
+```
+@tab OpenShift
+```bash
+helm install kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --create-namespace \
+  --set oneuptime.url=https://oneuptime.com \
+  --set oneuptime.apiKey=<YOUR_API_KEY> \
+  --set clusterName=prod-openshift \
+  --set preset=openshift
 ```
 :::
 
@@ -355,7 +367,7 @@ Profiling braucht **Linux 5.10** oder neuer und einen privilegierten Pod mit den
 | `oneuptime.url` | (erforderlich) | Ihre OneUptime-URL. |
 | `oneuptime.apiKey` | (erforderlich) | Der Ingestion-Schlüssel, aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. Wird als Header `x-oneuptime-token` gesendet; ein Projekt-API-Schlüssel funktioniert nicht. |
 | `clusterName` | (erforderlich) | Der Name des Clusters, eindeutig im Projekt. Jeder Datensatz trägt ihn als `k8s.cluster.name`. |
-| `preset` | (leer: `standard`) | `standard`, `gke-autopilot` oder `eks-fargate`. Siehe [Ein Preset wählen](#ein-preset-wählen). |
+| `preset` | (leer: `standard`) | `standard`, `gke-autopilot`, `eks-fargate` oder `openshift`. Siehe [Ein Preset wählen](#ein-preset-wählen). |
 | `oneuptime.labels` | `{}` | Labels für jeden Datensatz dieses Agenten. Siehe [Den Cluster mit Labels versehen](#den-cluster-mit-labels-versehen). |
 | `namespaceFilters.rules` | Lässt `kube-system` aus `podLogs` und `ebpfDiscovery` heraus | Regeln, die Namespaces ein- oder ausschließen, für `podLogs`, `ebpfDiscovery`, `metrics` und `traces`. Muster können `*` verwenden, und Ausschließen gewinnt immer. |
 | `filters.logs.minSeverity` | `""` | Verwirft Pod-Logzeilen unter dieser Stufe: `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` oder `FATAL`. |

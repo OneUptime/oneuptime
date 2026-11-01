@@ -12,8 +12,9 @@ import {
 } from "../../../Components/SetupGuide/SetupGuide";
 import {
   INSTALL_SCRIPT_READ_FIRST_NOTE,
-  getAgentFileDownloadToCommand,
+  getAgentFileDownloadCommand,
   getInstallScriptDownloadCommand,
+  getInstallScriptRunCommand,
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import {
@@ -191,11 +192,13 @@ export function getDockerSwarmAgentInstallScriptCommand(
    * the OneUptime the script and the agent's files come from. Its own
    * answer is OneUptime Cloud, so only another OneUptime is named.
    */
-  const run: string =
+  const run: string = getInstallScriptRunCommand(
     oneuptimeUrl === SETUP_GUIDE_URL_PLACEHOLDER ||
-    oneuptimeUrl === DOCKER_SWARM_AGENT_DEFAULT_URL
-      ? "sh install.sh"
-      : `ONEUPTIME_URL=${shellQuote(oneuptimeUrl)} sh install.sh`;
+      oneuptimeUrl === DOCKER_SWARM_AGENT_DEFAULT_URL
+      ? []
+      : [`ONEUPTIME_URL=${shellQuote(oneuptimeUrl)}`],
+    "sh install.sh",
+  );
 
   return `${getInstallScriptDownloadCommand(oneuptimeUrl, DOCKER_SWARM_AGENT_INSTALL_NAME)}
 ${run}`;
@@ -207,10 +210,9 @@ export function getDockerSwarmAgentDownloadCommand(
 ): string {
   return [
     ...DOCKER_SWARM_AGENT_FILES.map((fileName: string): string => {
-      return getAgentFileDownloadToCommand(
+      return getAgentFileDownloadCommand(
         oneuptimeUrl,
         DOCKER_SWARM_AGENT_INSTALL_NAME,
-        fileName,
         fileName,
       );
     }),
@@ -332,9 +334,10 @@ The script puts the agent in \`${DOCKER_SWARM_AGENT_INSTALL_DIR}\` and starts it
       title: "Download the agent's files",
       description:
         "Run this in an empty folder on a manager node; it downloads the files the install script would.",
-      markdown: `${codeBlock("bash", getDockerSwarmAgentDownloadCommand(data.oneuptimeUrl))}
-
-They are the files the install script downloads, from this OneUptime.`,
+      markdown: codeBlock(
+        "bash",
+        getDockerSwarmAgentDownloadCommand(data.oneuptimeUrl),
+      ),
     },
     {
       title: "Configure and start the agent",

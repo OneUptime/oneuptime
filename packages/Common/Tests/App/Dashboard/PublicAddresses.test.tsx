@@ -127,6 +127,7 @@ jest.mock("../../../UI/Utils/Clipboard", () => {
 import PublicAddresses from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddresses";
 import PublicAddressCopy, {
   PUBLIC_ADDRESS_TEST_IDS,
+  PUBLIC_ADDRESS_TEXT_DIRECTION,
   PublicAddressKind,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/PublicAddressCopy";
 import {
@@ -1244,6 +1245,141 @@ describe("a long address", () => {
     expect(
       within(oneUptime).getByText(`/status-page/${PARENT_ID}`),
     ).toHaveClass("text-gray-500");
+  });
+});
+
+/*
+ * On a page written right to left (Persian: PageLanguage sets dir="rtl" on
+ * <html>), an address took the page's direction and was cut at its start:
+ * a phone showed the last characters of a form's key and no host. It reads
+ * left to right in every language, so a long one is cut at its end.
+ */
+describe("an address on a page written right to left", () => {
+  afterEach(() => {
+    document.documentElement.removeAttribute("dir");
+  });
+
+  test("reads left to right, live or not, so a long one is cut at its end", async () => {
+    document.documentElement.setAttribute("dir", "rtl");
+
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+      { id: domainId(2), fullDomain: "status-eu.acme.com", state: "dns" },
+    ];
+
+    await renderList();
+
+    const texts: Array<HTMLElement> = screen.getAllByTestId(
+      PUBLIC_ADDRESS_TEST_IDS.text,
+    );
+
+    // One per address: the two custom domains and the OneUptime address.
+    expect(texts).toHaveLength(3);
+
+    for (const text of texts) {
+      expect(text).toHaveAttribute("dir", PUBLIC_ADDRESS_TEXT_DIRECTION);
+      expect(text).toHaveClass("truncate");
+    }
+
+    expect(PUBLIC_ADDRESS_TEXT_DIRECTION).toBe("ltr");
+
+    // The live address's text is its link's, the one not live yet its name.
+    expect(
+      within(rowFor("status.acme.com")).getByTestId(
+        PUBLIC_ADDRESS_TEST_IDS.text,
+      ).parentElement,
+    ).toBe(
+      within(rowFor("status.acme.com")).getByTestId(
+        PUBLIC_ADDRESS_TEST_IDS.link,
+      ),
+    );
+    expect(
+      within(rowFor("status-eu.acme.com")).getByTestId(
+        PUBLIC_ADDRESS_TEST_IDS.text,
+      ),
+    ).toHaveTextContent("status-eu.acme.com");
+  });
+});
+
+/*
+ * The page is told what the list read, so it can say what an action does to
+ * the custom domains only when it knows there are some (a form's Reset
+ * Link leaves them as they are).
+ */
+describe("telling the page what was read", () => {
+  async function renderTold(): Promise<MockFunction> {
+    const told: MockFunction = getJestMockFunction();
+
+    currentKind = STATUS_PAGE;
+
+    await act(async (): Promise<void> => {
+      render(
+        <PublicAddresses
+          kind={STATUS_PAGE.kind}
+          parentId={new ObjectID(PARENT_ID)}
+          oneUptimeUrl={URL.fromString(STATUS_PAGE.oneUptimeUrl)}
+          customDomainsRoute={new Route(STATUS_PAGE.customDomainsRoute)}
+          exampleDomain={STATUS_PAGE.example}
+          onDomainsRead={(read: ReadonlyArray<CustomDomainModel>) => {
+            told(
+              read.map((domain: CustomDomainModel): string => {
+                return domain.fullDomain || "";
+              }),
+            );
+          }}
+        />,
+      );
+    });
+
+    await flush();
+
+    return told;
+  }
+
+  test("the custom domains read, live or not", async () => {
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+      { id: domainId(2), fullDomain: "status-eu.acme.com", state: "dns" },
+    ];
+
+    const told: MockFunction = await renderTold();
+
+    expect(told).toHaveBeenCalledTimes(1);
+    expect(told.mock.calls[0]![0]).toEqual([
+      "status.acme.com",
+      "status-eu.acme.com",
+    ]);
+  });
+
+  test("none, when the page has none", async () => {
+    domains = [];
+
+    const told: MockFunction = await renderTold();
+
+    expect(told.mock.calls).toEqual([[[]]]);
+  });
+
+  test("none, when the read fails: nobody knows whether there are some", async () => {
+    domains = new Error("The server is down");
+
+    const told: MockFunction = await renderTold();
+
+    expect(told.mock.calls).toEqual([[[]]]);
+  });
+
+  test("none, for someone who may not read them: they are never asked for", async () => {
+    gates[ModelAction.Read] = {
+      isAllowed: false,
+      disabledReason: "You need Read Status Page Domain.",
+    };
+    domains = [
+      { id: domainId(1), fullDomain: "status.acme.com", state: "live" },
+    ];
+
+    const told: MockFunction = await renderTold();
+
+    expect(getListMock).not.toHaveBeenCalled();
+    expect(told.mock.calls).toEqual([[[]]]);
   });
 });
 

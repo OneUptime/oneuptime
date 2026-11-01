@@ -282,6 +282,39 @@ async function colorOf(locator: Locator): Promise<string> {
   });
 }
 
+/*
+ * Whether an address is drawn from its start: its first character inside
+ * its own box. A long address is cut short at its end, so its host stays
+ * in sight - on a page written right to left too, where an address that
+ * took the page's direction was cut at its start instead.
+ */
+async function isDrawnFromItsStart(locator: Locator): Promise<boolean> {
+  return await locator.evaluate((element: Element): boolean => {
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+    const first: Node | null = walker.nextNode();
+
+    if (!first || !first.textContent) {
+      return false;
+    }
+
+    const range: Range = document.createRange();
+    range.setStart(first, 0);
+    range.setEnd(first, 1);
+
+    const character: DOMRect = range.getBoundingClientRect();
+    const frame: DOMRect = element.getBoundingClientRect();
+
+    return (
+      character.width > 0 &&
+      character.left >= frame.left - 0.5 &&
+      character.right <= frame.right + 0.5
+    );
+  });
+}
+
 async function grantClipboard(context: BrowserContext): Promise<void> {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
 }
@@ -1025,6 +1058,25 @@ test.describe("a form's Share page: the Share Link card", () => {
         "Serve this form on your own domain, at its root.",
       );
 
+      /*
+       * The row whose certificate could not be issued offers DNS Setup -
+       * whose Check now tries again and says why - as its one button, with
+       * Reissue SSL in its menu: Reissue SSL used to win the button, for a
+       * certificate the domain never had.
+       */
+      if (width === 1280) {
+        const failing: Locator = page.locator("tr", {
+          hasText: "report-apac.acme.com",
+        });
+
+        await expect(
+          failing.getByRole("button", { name: "DNS Setup" }),
+        ).toBeVisible();
+        await expect(
+          failing.getByRole("button", { name: "Reissue SSL" }),
+        ).toHaveCount(0);
+      }
+
       await expectNothingRunsOff(page, `the Custom Domains page at ${width}`);
       await screenshot(page, `form-custom-domains-${width}`);
     }
@@ -1102,6 +1154,31 @@ test.describe("a form's Share page: the Share Link card", () => {
 
       await expectRowsInside(page, `the Share page in ${language.code}`, card);
       await expectNothingRunsOff(page, `the Share page in ${language.code}`);
+
+      /*
+       * Every address is drawn from its start, its host in sight, the long
+       * link to the form cut at its end - in Persian too, which reads right
+       * to left: there the link, taking the page's direction, was cut at
+       * its start, and a phone showed the end of the form's key alone.
+       */
+      expect(
+        await page.evaluate((): string => {
+          return document.documentElement.dir;
+        }),
+      ).toBe(language.code === "fa" ? "rtl" : "ltr");
+
+      for (const address of [formLinkAddress, "report.acme.com"]) {
+        const text: Locator = row(page, address).getByTestId(
+          "public-address-text",
+        );
+
+        await expect(text).toHaveAttribute("dir", "ltr");
+        expect(
+          await isDrawnFromItsStart(text),
+          `${address} in ${language.code}`,
+        ).toBe(true);
+      }
+
       await screenshot(page, `form-share-${language.code}-390`);
     }
   });

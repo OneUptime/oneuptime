@@ -166,6 +166,7 @@ const NAMES: Record<string, Array<string>> = {
     "AKS",
     "GKE Autopilot",
     "EKS Fargate",
+    "OpenShift",
     "Linux 5.8",
     "Linux 5.10",
     "Python",

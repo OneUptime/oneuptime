@@ -31,12 +31,7 @@ spec:
       # compatible. The poller only talks HTTP to the cost engine's Service
       # and to OneUptime.
       securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-        seccompProfile:
-          type: RuntimeDefault
+        {{- include "kubernetes-agent.nonRootPodSecurityContext" (dict "root" $ "runAsUser" 1000 "runAsGroup" 1000 "fsGroup" 1000) | nindent 8 }}
       containers:
         - name: cost-agent
           image: "{{ .Values.cost.agent.image.repository }}:{{ .Values.cost.agent.image.tag | default "release" }}"

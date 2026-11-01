@@ -63,9 +63,9 @@ sh install.sh
 사용 중인 OneUptime에서 `docker-compose.yml`, `otel-collector-config.yaml`, `inventory-snapshot.sh`를 매니저 노드의 새 폴더로 내려받으세요:
 
 ```bash
-curl -fsSL https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml -o docker-compose.yml
-curl -fsSL https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml -o otel-collector-config.yaml
-curl -fsSL https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh -o inventory-snapshot.sh
+curl -fsSLO https://oneuptime.com/install/docker-swarm-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/docker-swarm-agent/otel-collector-config.yaml
+curl -fsSLO https://oneuptime.com/install/docker-swarm-agent/inventory-snapshot.sh
 chmod +x inventory-snapshot.sh
 ```
 

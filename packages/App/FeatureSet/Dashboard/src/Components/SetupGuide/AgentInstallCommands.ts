@@ -21,6 +21,38 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * path prefix, plain HTTP.
  */
 
+/*
+ * How far the run line's continued lines are indented: under the first
+ * value, so the lines read as one command.
+ */
+export const INSTALL_SCRIPT_RUN_CONTINUATION_INDENT: string = "  ";
+
+/*
+ * The line that runs a downloaded install script with the values the guide
+ * already knows in its environment. With two values or more, each goes on
+ * a line of its own, every line but the last ending in a backslash:
+ *
+ *   ONEUPTIME_URL=https://oneuptime.com \
+ *     ONEUPTIME_TELEMETRY_INGESTION_KEY=94245962-5a3e-46a1-ac4c-7d9c1e43e7dc \
+ *     bash install.sh
+ *
+ * On one line the command ran past a laptop's code block (about 100
+ * characters beside the side menu at 1280 pixels, far fewer on a
+ * self-hosted address), hiding the key and the script it runs behind a
+ * sideways scroll. A shell joins the lines into the very same command, and
+ * the copy button copies it as shown. One value or none stays on one line.
+ */
+export function getInstallScriptRunCommand(
+  environment: ReadonlyArray<string>,
+  run: string,
+): string {
+  const words: Array<string> = [...environment, run];
+
+  return environment.length < 2
+    ? words.join(" ")
+    : words.join(` \\\n${INSTALL_SCRIPT_RUN_CONTINUATION_INDENT}`);
+}
+
 // Downloads the agent's install.sh into the current folder.
 export function getInstallScriptDownloadCommand(
   oneuptimeUrl: string,

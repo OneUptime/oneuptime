@@ -30,6 +30,13 @@ import {
   parseVPAObject,
   extractObjectFromLogBody,
 } from "./KubernetesObjectParser";
+import {
+  AnyOpenShiftObject,
+  OPENSHIFT_KIND_BY_RESOURCE_TYPE,
+  OpenShiftResourceType,
+  getOpenShiftInventoryState,
+  parseOpenShiftObject,
+} from "./OpenShiftObjectParser";
 
 /*
  * ------------------------------------------------------------------
@@ -61,7 +68,8 @@ type AnyKubernetesObject =
   | KubernetesPVCObject
   | KubernetesPVObject
   | KubernetesHPAObject
-  | KubernetesVPAObject;
+  | KubernetesVPAObject
+  | AnyOpenShiftObject;
 
 /**
  * Row-shaped payload for KubernetesContainer upserts. One row per
@@ -130,8 +138,14 @@ export function kindFromResourceType(resourceType: string): string | null {
     persistentvolumes: "PersistentVolume",
     horizontalpodautoscalers: "HorizontalPodAutoscaler",
     verticalpodautoscalers: "VerticalPodAutoscaler",
+    // OpenShift's own, from the chart's openshift preset (OpenShiftObjectParser).
+    ...OPENSHIFT_KIND_BY_RESOURCE_TYPE,
   };
-  return map[resourceType.toLowerCase()] || null;
+  const key: string = resourceType.toLowerCase();
+  // Own keys only: the resource type comes off the wire.
+  return Object.prototype.hasOwnProperty.call(map, key)
+    ? map[key] || null
+    : null;
 }
 
 export const INVENTORIED_RESOURCE_TYPES: ReadonlyArray<string> = [
@@ -147,6 +161,10 @@ export const INVENTORIED_RESOURCE_TYPES: ReadonlyArray<string> = [
   "persistentvolumes",
   "horizontalpodautoscalers",
   "verticalpodautoscalers",
+  OpenShiftResourceType.Routes,
+  OpenShiftResourceType.DeploymentConfigs,
+  OpenShiftResourceType.ClusterOperators,
+  OpenShiftResourceType.ClusterVersions,
 ];
 
 /*
@@ -374,7 +392,7 @@ function parseByResourceType(
     case "verticalpodautoscalers":
       return parseVPAObject(kvList);
     default:
-      return null;
+      return parseOpenShiftObject(resourceType, kvList);
   }
 }
 
@@ -451,6 +469,14 @@ export function extractInventoryResource(data: {
       parsed as KubernetesNodeObject
     ).status;
     nodeFlags = deriveNodeConditionFlags(nodeStatus?.conditions);
+  }
+
+  // OpenShift's objects: their state as the phase, and whether it is healthy.
+  const openShiftState: { phase: string; isReady: boolean } | null =
+    getOpenShiftInventoryState(kind, parsed as AnyOpenShiftObject);
+  if (openShiftState) {
+    phase = openShiftState.phase;
+    nodeFlags = { ...nodeFlags, isReady: openShiftState.isReady };
   }
 
   /*

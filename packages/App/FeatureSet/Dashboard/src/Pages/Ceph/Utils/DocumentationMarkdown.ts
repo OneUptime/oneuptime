@@ -13,6 +13,7 @@ import {
   INSTALL_SCRIPT_READ_FIRST_NOTE,
   getAgentFileDownloadCommand,
   getInstallScriptDownloadCommand,
+  getInstallScriptRunCommand,
   getTroubleshootScriptDownloadCommand,
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
@@ -232,7 +233,7 @@ export function getCephInstallScriptCommand(data: {
 
   return [
     getInstallScriptDownloadCommand(data.oneuptimeUrl, CEPH_AGENT_INSTALL_NAME),
-    [...environment, "bash install.sh"].join(" "),
+    getInstallScriptRunCommand(environment, "bash install.sh"),
   ].join("\n");
 }
 
