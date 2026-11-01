@@ -37,6 +37,12 @@ import KubernetesClusterViewPVDetail from "../Pages/Kubernetes/View/PVDetail";
 import KubernetesClusterViewHPAs from "../Pages/Kubernetes/View/HPAs";
 import KubernetesClusterViewHPADetail from "../Pages/Kubernetes/View/HPADetail";
 import KubernetesClusterViewVPAs from "../Pages/Kubernetes/View/VPAs";
+import KubernetesClusterViewDeploymentConfigs from "../Pages/Kubernetes/View/DeploymentConfigs";
+import KubernetesClusterViewDeploymentConfigDetail from "../Pages/Kubernetes/View/DeploymentConfigDetail";
+import KubernetesClusterViewOpenShiftRoutes from "../Pages/Kubernetes/View/OpenShiftRoutes";
+import KubernetesClusterViewOpenShiftRouteDetail from "../Pages/Kubernetes/View/OpenShiftRouteDetail";
+import KubernetesClusterViewServices from "../Pages/Kubernetes/View/Services";
+import KubernetesClusterViewServiceDetail from "../Pages/Kubernetes/View/ServiceDetail";
 import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
@@ -572,6 +578,100 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        {/* OpenShift: DeploymentConfigs, Routes, and the Services they point at */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS,
+          )}
+          element={
+            <KubernetesClusterViewDeploymentConfigs
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewDeploymentConfigDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES,
+          )}
+          element={
+            <KubernetesClusterViewOpenShiftRoutes
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewOpenShiftRouteDetail
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES,
+          )}
+          element={
+            <KubernetesClusterViewServices
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
+            2,
+          )}
+          element={
+            <KubernetesClusterViewServiceDetail
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL
+                ] as Route
               }
             />
           }

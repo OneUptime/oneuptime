@@ -36,6 +36,8 @@ export enum AIResourceSubresourceKind {
   PersistentVolume = "PersistentVolume",
   HorizontalPodAutoscaler = "HorizontalPodAutoscaler",
   VerticalPodAutoscaler = "VerticalPodAutoscaler",
+  DeploymentConfig = "DeploymentConfig",
+  Route = "Route",
   Service = "Service",
   Task = "Task",
   Stack = "Stack",
@@ -164,6 +166,9 @@ export const AI_RESOURCE_SUBRESOURCE_KINDS: Readonly<
     AIResourceSubresourceKind.PersistentVolume,
     AIResourceSubresourceKind.HorizontalPodAutoscaler,
     AIResourceSubresourceKind.VerticalPodAutoscaler,
+    AIResourceSubresourceKind.DeploymentConfig,
+    AIResourceSubresourceKind.Route,
+    AIResourceSubresourceKind.Service,
   ],
   [AIResourceType.DockerSwarmCluster]: [
     AIResourceSubresourceKind.Node,

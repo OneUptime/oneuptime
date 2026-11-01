@@ -259,6 +259,42 @@ export function getKubernetesBreadcrumbs(
       PageMap.KUBERNETES_CLUSTER_VIEW_HPA_DETAIL,
       ["Project", "Kubernetes", "View Cluster", "HPAs", "HPA Detail"],
     ),
+    // OpenShift: DeploymentConfigs, Routes, and the Services they point at
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIGS,
+      ["Project", "Kubernetes", "View Cluster", "DeploymentConfigs"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_DEPLOYMENTCONFIG_DETAIL,
+      [
+        "Project",
+        "Kubernetes",
+        "View Cluster",
+        "DeploymentConfigs",
+        "DeploymentConfig Detail",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_ROUTES, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Routes",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_ROUTE_DETAIL,
+      ["Project", "Kubernetes", "View Cluster", "Routes", "Route Detail"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_SERVICES, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "Services",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL,
+      ["Project", "Kubernetes", "View Cluster", "Services", "Service Detail"],
+    ),
+
     ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_VPAS, [
       "Project",
       "Kubernetes",

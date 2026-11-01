@@ -484,13 +484,6 @@ function getExpectedPods(preset: KubernetesAgentPreset): {
     row(`${release}-logs-xxxxx`),
   ].join("\n");
 
-  if (preset === "openshift") {
-    return {
-      listing: listing,
-      explanation: `The collector and the Kubernetes AI agent, plus one \`-logs\` and one \`-ebpf\` pod on every node, which run under the SCCs the chart created for them: \`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\` lists both.`,
-    };
-  }
-
   return {
     listing: listing,
     explanation:
@@ -499,9 +492,19 @@ function getExpectedPods(preset: KubernetesAgentPreset): {
 }
 
 function getVerifyStep(platform: KubernetesPlatform): SetupGuideStep {
-  const expected: { listing: string; explanation: string } = getExpectedPods(
-    getKubernetesAgentPreset(platform),
-  );
+  const preset: KubernetesAgentPreset = getKubernetesAgentPreset(platform);
+  const expected: { listing: string; explanation: string } =
+    getExpectedPods(preset);
+
+  /*
+   * On OpenShift the node pods run under the SCCs the chart creates for them.
+   * Said in the step's markdown, not in its explanation: a sentence with the
+   * SCCs' names in it is not one phrase a locale can translate.
+   */
+  const sccCheck: string =
+    preset === "openshift"
+      ? ` The \`-logs\` and \`-ebpf\` pods run under the SCCs the chart created for them: \`kubectl get scc ${KUBERNETES_AGENT_OPENSHIFT_SCCS.join(" ")}\` lists both.`
+      : "";
 
   return {
     title: "Verify the installation",
@@ -512,7 +515,7 @@ You should see:
 
 ${codeBlock("output", expected.listing)}
 
-${expected.explanation} Once they are \`Running\`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.
+${expected.explanation}${sccCheck} Once they are \`Running\`, the cluster appears automatically in the **Kubernetes** section — usually within a minute or two.
 
 **Kubernetes AI agent (on by default, read-only).** The \`${KUBERNETES_AGENT_HELM_RELEASE}-ai-agent\` pod lets OneUptime AI investigate incidents and alerts on this cluster with read-only kubectl — \`get\`, \`describe\`, \`logs\`, \`events\`, \`top\` — using the same API key, and it can change nothing unless you give it write access later. Open the cluster and go to **AI → Agent** to see it. Don't want it? Install with \`${KUBERNETES_AI_INVESTIGATION_OPT_OUT_FLAG}\` instead of \`${KUBERNETES_AI_INVESTIGATION_INSTALL_FLAG}\`.`,
   };

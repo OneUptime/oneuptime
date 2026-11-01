@@ -82,6 +82,9 @@ const KubernetesClusterViewLayout: FunctionComponent<
           pvs: readNum("pvCount"),
           hpas: readNum("hpaCount"),
           vpas: readNum("vpaCount"),
+          deploymentConfigs: readNum("deploymentConfigCount"),
+          routes: readNum("routeCount"),
+          services: readNum("serviceCount"),
         });
 
         // Update cached counts on the cluster model for the clusters list table
