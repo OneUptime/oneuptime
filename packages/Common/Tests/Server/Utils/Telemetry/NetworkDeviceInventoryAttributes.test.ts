@@ -177,9 +177,35 @@ describe("describeNetworkDevice (issues #4107, #4569)", () => {
       "host.ip": "10.241.124.1",
       "device.manufacturer": "Cisco Meraki",
       "device.model.name": "MX85",
+      "os.name": "Meraki MX firmware",
       "os.description": "Meraki MX85",
       "device.type": "Firewall",
     });
+  });
+
+  /*
+   * Issue #5384: what the card shows is what a CMDB sync reads. The mirror
+   * selects the discovered details, so a port the poll recorded reaches the
+   * item as the same key a host's MAC is under.
+   */
+  test("the same MX once its poll has read its ports: its MAC reaches the item", () => {
+    const bag: Dictionary<string> = describeNetworkDevice(
+      merakiMx({
+        discoveredDetails: {
+          ownMacAddress: {
+            value: "aa:bb:cc:06:25:ed",
+            method: "snmp",
+            readBy: {
+              type: "probe",
+              id: "30000000-0000-4000-8000-000000000001",
+            },
+            readAt: "2026-10-28T10:00:00.000Z",
+          },
+        },
+      }),
+    );
+
+    expect(bag[key(InventoryAssetField.MacAddress)]).toBe("AA-BB-CC-06-25-ED");
   });
 
   test("the IP address is never written as the hostname", () => {

@@ -1083,7 +1083,7 @@ test.describe("Refresh, every way it can go", () => {
   }: {
     page: Page;
   }) => {
-    await openItem(page, "?scenario=meraki");
+    await openItem(page, "?scenario=meraki&firmware=none");
     await expect(
       page.getByTestId("inventory-asset-details-unknown"),
     ).toContainText(
@@ -1146,5 +1146,64 @@ test.describe("Refresh, every way it can go", () => {
     expect(await staysInside(status, card)).toBe(true);
     expect(await overflow(page)).toBeLessThanOrEqual(0);
     await shoot(page, "item-meraki-refreshing-1280-fa");
+  });
+});
+
+test.describe("why a detail is unknown (issue #5384)", () => {
+  test("the Meraki MX of issue #5384: what its poll can read, and why the rest is unknown", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=mx");
+
+    await expect(value(page, "hostname")).toContainText("UN0362WANRTR01");
+    await expect(value(page, "manufacturer")).toContainText("Cisco Meraki");
+    await expect(value(page, "model")).toContainText("MX85");
+    await expect(value(page, "macAddress")).toContainText("AA-BB-CC-06-25-ED");
+    await expect(value(page, "operatingSystem")).toContainText(
+      "Meraki MX firmware",
+    );
+
+    // Its own poll, said once: not under its MAC or its operating system.
+    await expect(saidOnce(page)).toContainText("Read over SNMP by its probe");
+    await expect(source(page, "macAddress")).toHaveCount(0);
+    await expect(source(page, "operatingSystem")).toHaveCount(0);
+
+    // What only its dashboard has is unknown, and the card says so.
+    const unknown: Locator = page.getByTestId(
+      "inventory-asset-details-unknown",
+    );
+    await expect(unknown).toContainText(
+      "3 details are unknown: a Cisco Meraki device reports them only to the Meraki dashboard, not over SNMP.",
+    );
+
+    const connect: Locator = unknown.getByRole("link", {
+      name: "Connect the Meraki dashboard",
+    });
+    await expect(connect).toHaveAttribute(
+      "href",
+      "/docs/monitor/network-traffic#cisco-meraki-without-netflow",
+    );
+
+    expect(await overflow(page)).toBe(0);
+  });
+
+  test("a device that answered its poll says it reports no more, in the reader's language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openItem(page, "?scenario=quiet");
+    await expect(
+      page.getByTestId("inventory-asset-details-unknown"),
+    ).toContainText(
+      "this device does not report them over SNMP, and no discovery scan has found them.",
+    );
+
+    await openItem(page, "?scenario=quiet&lang=de");
+    await expect(
+      page.getByTestId("inventory-asset-details-unknown"),
+    ).toContainText("Dieses Gerät meldet sie nicht über SNMP");
   });
 });

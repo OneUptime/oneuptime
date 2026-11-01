@@ -114,7 +114,9 @@ function discovered(
       ? NetworkDeviceDiscoveryReaderType.NetworkDevice
       : method === NetworkDeviceDiscoveryMethod.Dns
         ? NetworkDeviceDiscoveryReaderType.Probe
-        : NetworkDeviceDiscoveryReaderType.DiscoveryScan;
+        : method === NetworkDeviceDiscoveryMethod.ControllerClientList
+          ? NetworkDeviceDiscoveryReaderType.NetworkController
+          : NetworkDeviceDiscoveryReaderType.DiscoveryScan;
 
   return {
     kind: AssetFactSourceKind.Discovered,
@@ -159,6 +161,12 @@ describe("where a detail came from", () => {
       "Frankfurt DC2 probe",
       "DNS lookup by its probe (Frankfurt DC2 probe)",
     ],
+    // A MAC from Meraki is never shown as an ARP table's (#5379).
+    [
+      NetworkDeviceDiscoveryMethod.ControllerClientList,
+      "Stores",
+      "Client list of Stores",
+    ],
   ])(
     "read by %s, with its reader named",
     (method: NetworkDeviceDiscoveryMethod, name: string, expected: string) => {
@@ -174,6 +182,10 @@ describe("where a detail came from", () => {
     [NetworkDeviceDiscoveryMethod.Netbios, "A discovery scan (NetBIOS)"],
     [NetworkDeviceDiscoveryMethod.ArpTable, "A router's ARP table"],
     [NetworkDeviceDiscoveryMethod.Dns, "DNS lookup by its probe"],
+    [
+      NetworkDeviceDiscoveryMethod.ControllerClientList,
+      "A network controller's client list",
+    ],
   ])(
     "read by %s, its reader's name never recorded",
     (method: NetworkDeviceDiscoveryMethod, expected: string) => {

@@ -12,10 +12,11 @@ metadata:
   {{- end }}
 {{- end }}
 {{- /*
-On the openshift preset the node pods run as service accounts of their own,
-the only ones that may use the SCCs templates/openshift-scc.yaml creates
-(kubernetes-agent.nodeServiceAccounts). They read the cluster as the main one
-does: the ClusterRoleBinding below binds them to the same ClusterRole.
+Where the chart creates SCCs (the openshift preset), the node pods run as
+service accounts of their own, the only ones that may use the SCCs
+templates/openshift-scc.yaml creates (kubernetes-agent.nodeServiceAccounts).
+They read the cluster as the main one does: the ClusterRoleBinding below binds
+them to the same ClusterRole.
 */}}
 {{- if eq (include "kubernetes-agent.nodeServiceAccounts" .) "true" }}
 {{- if eq (include "kubernetes-agent.daemonSetEnabled" .) "true" }}
@@ -164,6 +165,15 @@ rules:
   - apiGroups: ["apps.openshift.io"]
     resources:
       - deploymentconfigs
+    verbs: ["get", "list", "watch"]
+{{- end }}
+{{- if eq (include "kubernetes-agent.controlPlaneDiscovery" .) "true" }}
+  # For the control-plane scrapes on OpenShift (configmap-deployment.yaml):
+  # service discovery finds each replica in its Service's EndpointSlices. It
+  # reads the Services and pods beside them through the rules above.
+  - apiGroups: ["discovery.k8s.io"]
+    resources:
+      - endpointslices
     verbs: ["get", "list", "watch"]
 {{- end }}
 ---

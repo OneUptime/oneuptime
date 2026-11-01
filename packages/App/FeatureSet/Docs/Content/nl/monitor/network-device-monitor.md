@@ -506,7 +506,7 @@ Een onderzoek door OneUptime AI van een incident of waarschuwing van een netwerk
 
 ### Apparaatidentiteit
 
-Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het apparaat dat ondersteunt, ENTITY-MIB, en vult het apparaatrecord in: systeemnaam, beschrijving, locatie, contact, uptime, leverancier, model, serienummer en firmwareversie. De enterprise-OID van de leverancier (`sysObjectID`) is de vingerafdruk van het apparaat: ze noemt de leverancier en kiest het bijbehorende leverancierssjabloon. Dezelfde gegevens verschijnen in de [inventaris](/docs/inventory/cmdb-sync#assetattributen-van-netwerkapparaten) naast al je andere assets.
+Na de eerste geslaagde walk leest OneUptime de SNMPv2-systeemgroep en, waar het apparaat dat ondersteunt, ENTITY-MIB, en vult het apparaatrecord in: systeemnaam, beschrijving, locatie, contact, uptime, leverancier, model, serienummer en firmwareversie. Op FortiGate-, Juniper-, MikroTik- en Sophos-apparaten leest één extra verzoek wat ENTITY-MIB leeg laat uit de eigen MIB van de leverancier. De enterprise-OID van de leverancier (`sysObjectID`) is de vingerafdruk van het apparaat: ze noemt de leverancier en kiest het bijbehorende leverancierssjabloon. Dezelfde gegevens verschijnen in de [inventaris](/docs/inventory/cmdb-sync#assetattributen-van-netwerkapparaten) naast al je andere assets.
 
 Een apparaat met alleen ping houdt de naam en het adres die jij, of een discovery-scan, het gaf. Wat zijn eigen poll niet heeft gelezen, haalt het uit discovery:
 
@@ -516,7 +516,7 @@ Een apparaat met alleen ping houdt de naam en het adres die jij, of een discover
 
 Deze worden naast de eigen velden van het apparaat bewaard, nooit erin geschreven, en elke scan, router-walk of poll die er een opnieuw leest, werkt die bij. Het overzicht van het apparaat en zijn item in de inventaris tonen welke scan, router of probe elke waarde las, en wanneer. Een waarde die je op het apparaat hebt opgeslagen, wordt nooit vervangen. Als een scan een andere machine op het adres van het apparaat vindt, zoals een DHCP-lease die is verschoven, meldt het overzicht dat, en wordt niets gebruikt van wat die scan daar las.
 
-Een Meraki-switch, -access point of -appliance levert over SNMP geen serienummer, model of firmware: Meraki implementeert geen ENTITY-MIB. Wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest, neemt het apparaat die, en alles wat zijn poll verder leeg laat, over uit het Meraki-dashboard, en zijn kaart **Inventaris** noemt de koppeling in een rij **Meraki**.
+Een Meraki-switch, -access point of -appliance levert over SNMP geen serienummer of firmware: rechtstreeks gepold antwoordt het apparaat op de systeemgroep en de interfacetabellen, die zijn model en zijn MAC-adres geven, en verder niets. Wanneer een [Meraki-koppeling](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) zijn organisatie leest, neemt het apparaat die, en alles wat zijn poll verder leeg laat, over uit het Meraki-dashboard, en zijn kaart **Inventaris** noemt de koppeling in een rij **Meraki**.
 
 Om een apparaat nu opnieuw te lezen, klik je op **Vernieuwen** op zijn kaart **Inventaris**. Zijn probe pollt het binnen een minuut, en zijn Meraki-koppeling leest de organisatie opnieuw. De kaart zegt wanneer de nieuwe leesbeurt binnen is, of dat de probe het apparaat niet kon bereiken. **Vernieuwen** is er voor wie netwerkapparaten mag bewerken, bij een apparaat dat een probe pollt of dat een Meraki-koppeling beschrijft.
 
@@ -957,6 +957,7 @@ Om de kaart te laten vollopen:
 - Geef de apparaten SNMP-inloggegevens. Burentabellen komen uit de walk, dus een apparaat met alleen ping verschijnt op de kaart maar meldt geen eigen buren.
 - Houd **Walk Interfaces** aan in de pollinstellingen van de apparaten: de burentabellen worden samen met de interfaces gewalkt.
 - Zet LLDP aan, of CDP op Cisco-apparaten, op de apparaten zelf.
+- Verbind op een Meraki-netwerk het dashboard. Een [Meraki-verbinding](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) tekent de kabels die Meraki kent, ook die van een MX die alleen op ping antwoordt.
 
 Klik op een onbeheerde peer en **Add to Monitoring** registreert hem als door een sonde gepold apparaat. Hij neemt de sonde waarover zijn buren het eens zijn, dus hij wordt vanaf zijn eerste poll gepingd, en je kunt later inloggegevens toevoegen als hij SNMP blijkt te hebben.
 
@@ -995,6 +996,8 @@ Daarvoor moet de kaart weten welk geleerd MAC-adres dat van het apparaat is. Er 
 - Door het te typen: stel **MAC-adres** in op het apparaat, op zijn pagina **Instellingen** of op de overzichtskaart, als zijn hostnaam een DNS-naam is of er op de locatie geen router wordt gewalkt. Elke gangbare schrijfwijze wordt geaccepteerd.
 
 De switch waaraan het apparaat hangt, heeft ook **Collect Connected Endpoints** aan nodig: daar komt de poort vandaan. Adressen worden binnen de locatie van het apparaat gekoppeld, aangezien elk filiaal een `10.0.0.5` heeft; een MAC-adres past ongeacht de locatie.
+
+Een [Meraki-verbinding](/docs/monitor/network-traffic#cisco-meraki-zonder-netflow) doet dit allemaal zonder dat er iets aan hoeft. De clientlijst van Meraki vertelt op welke switch en poort elke client zit, dus een apparaat wordt geplaatst zodra die switch hier een netwerkapparaat is, op dezelfde locatie. De lijst geeft het apparaat ook zijn MAC-adres, en wat Meraki een client noemt, verschijnt in de kolom **Hostnaam** onder **Endpoints**. Ze wordt elke twee uur gelezen, dus een nieuw apparaat kan er zo lang over doen om te verschijnen. Zolang Meraki een client meldt, gaat zijn poort voor op een doorlopen forwarding-tabel, omdat Meraki een toegangspoort van een uplink kan onderscheiden. Een wifi-client wordt alleen op zijn access point geplaatst als hij hier een apparaat is: de telefoons op een gastennetwerk blijven van de kaart.
 
 Het overzicht van het apparaat heeft een kaart **Verbonden met** die de switch, de poort en de VLAN noemt. Een switch, router of firewall die zijn buren via LLDP of CDP meldt, toont die daar in plaats daarvan: zijn eigen poort, de buur (een link als het hier een apparaat is) en de poort aan de andere kant, met **Open de kaart** ernaast. Op de kaart toont het zijpaneel van het apparaat hetzelfde onder **Verbonden met**, en het paneel van de verbinding zegt dat ze is geleerd uit de forwardingtabel van de switch. De Parent-Child-weergave tekent het apparaat onder zijn switch. Een verbinding die je met de hand onder **Device Links** voor hetzelfde paar hebt getekend, gaat op in de geleerde in plaats van haar te verdubbelen: de geleerde poort vervangt een verkeerd getypte, en een ouder die je op de handgetekende verbinding hebt ingesteld, blijft behouden.
 
@@ -1053,6 +1056,8 @@ De kaart tekent de kabel van een apparaat met alleen ping uit de forwardingtabel
 - De switch verzamelt endpoints: **Collect Connected Endpoints** aan in zijn pollinstellingen, met inloggegevens waarmee de walk slaagt. Het overzicht van het apparaat toont een kaart **Verbonden met** zodra een switch het heeft geleerd.
 - Het MAC-adres van het apparaat is bekend: zijn **MAC-adres** is ingesteld, of een router op de locatie verzamelt endpoints en de hostnaam van het apparaat is het adres dat de ARP-tabel van die router koppelt. Een apparaat dat op DNS-naam is geregistreerd zonder MAC-adres, kan niet worden gekoppeld, dus typ het MAC-adres in.
 - Dezelfde locatie: een adres wordt alleen gekoppeld aan een apparaat in dezelfde locatie als de switch die het leerde. Een apparaat zonder locatie wordt alleen op adres gekoppeld als die switch ook geen locatie heeft; als de switch in een locatie zit, zet het apparaat dan in dezelfde. Een MAC-adres past ongeacht de locatie.
+
+De zijbalk van het apparaat op de kaart vertelt welke hiervan ontbreekt. Op een Meraki-netwerk neemt de clientlijst van Meraki de eerste twee over: controleer of de switch hier een netwerkapparaat is, op dezelfde locatie, en reken op twee uur voordat een nieuw apparaat verschijnt.
 
 Als het apparaat achter een onbeheerde switch of een hub zit, leert de beheerde switch elk MAC-adres daarachter op één poort, en dat is de poort die de kaart tekent: de fysieke werkelijkheid zoals de beheerde switch haar ziet.
 :::

@@ -23,6 +23,10 @@ Test" workflow provides both:
   fails, because a parity check must not pass by skipping. The workflow
   installs the release binary at the `GOMPLATE_VERSION` that
   `Scripts/Install/configure.sh` pins.
+- **helm.** `KubernetesAgentOpenShiftAdmission.test.js` renders the
+  `kubernetes-agent` chart. Without helm on PATH its renders are skipped with
+  the reason logged, except when `CI` is set: then they fail. GitHub's runners
+  have helm.
 - **docker.** `RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS=1` turns on the real-Docker
   check of what `COPY ./ee` ships through `.dockerignore` (it builds one tiny
   image from `public.ecr.aws/docker/library/node:26-alpine3.24`). With the
@@ -329,7 +333,8 @@ commented-out syslog receivers and `logs` pipeline uncommented — and it checks
 that an empty `STORAGE_ARRAY_NAME` stops the collector), over the Database
 Agent's per-receiver configs (as shipped, and again with every optional metric
 their comments list switched on), and over both collector ConfigMaps rendered
-out of the `kubernetes-agent` chart. It validates those two once more on
+out of the `kubernetes-agent` chart, on its default values and on its OpenShift
+presets. It validates the default two once more on
 `0.96.0`, the collector the chart pinned before, rendered for that tag:
 `helm upgrade --reuse-values` keeps a release's old `image.tag`, so the chart's
 configs have to start there too (0.96.0's `k8sobjects` receiver asks an API
@@ -1003,6 +1008,25 @@ suite reads the images and Dockerfiles from release.yml's
 template, finds the ones with an `enterprise` stage (using the same line test
 as `build_docker_images.sh`, cross-checked against the stage parser) and
 asserts that set equals `ENTERPRISE_IMAGES`, which bash reads from the script.
+
+### `KubernetesAgentOpenShiftAdmission.test.js`
+
+KinD has no SCCs, and `helm install` on OpenShift succeeds whatever the chart
+renders: OpenShift refuses a pod later, one at a time, and the pod never
+appears. So this stands in for the SCC admission plugin. It renders the
+`kubernetes-agent` chart with `helm template` with every option on, takes every
+pod template out of the render, and holds it to what OpenShift's SCCs say:
+
+- on `openshift-restricted`, every pod is admitted by `restricted-v2` as written,
+  states everything `restricted-v2` would otherwise fill in, and pins no user or
+  group ID, and the chart creates no SCC;
+- on `openshift`, every pod is admitted by `restricted-v2` or by an SCC its
+  service account may use, and only the node pods need one;
+- on `standard`, it finds the pods OpenShift refuses there (#5477), so the check
+  is not passing because it checks nothing.
+
+It needs `helm`: without it the renders are skipped with the reason logged,
+except when `CI` is set, when they fail. GitHub's runners have it.
 
 ### `KubernetesAiAgentRelease.test.js`
 

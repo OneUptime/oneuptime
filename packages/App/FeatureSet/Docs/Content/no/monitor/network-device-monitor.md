@@ -506,7 +506,7 @@ En undersøkelse fra OneUptime AI av en hendelse eller et varsel fra en nettverk
 
 ### Enhetsidentitet
 
-Etter det første vellykkede walket leser OneUptime SNMPv2-systemgruppen og, der enheten støtter det, ENTITY-MIB, og fyller ut enhetens oppføring: systemnavn, beskrivelse, plassering, kontakt, oppetid, produsent, modell, serienummer og fastvareversjon. Produsentens enterprise-OID (`sysObjectID`) er enhetens fingeravtrykk: den navngir produsenten og velger den tilsvarende produsentmalen. De samme opplysningene vises i [inventaret](/docs/inventory/cmdb-sync#eiendelsattributter-for-nettverksenheter) sammen med alle de andre ressursene dine.
+Etter det første vellykkede walket leser OneUptime SNMPv2-systemgruppen og, der enheten støtter det, ENTITY-MIB, og fyller ut enhetens oppføring: systemnavn, beskrivelse, plassering, kontakt, oppetid, produsent, modell, serienummer og fastvareversjon. På FortiGate-, Juniper-, MikroTik- og Sophos-enheter leser én forespørsel til det ENTITY-MIB lar stå tomt, fra produsentens egen MIB. Produsentens enterprise-OID (`sysObjectID`) er enhetens fingeravtrykk: den navngir produsenten og velger den tilsvarende produsentmalen. De samme opplysningene vises i [inventaret](/docs/inventory/cmdb-sync#eiendelsattributter-for-nettverksenheter) sammen med alle de andre ressursene dine.
 
 En enhet med bare ping beholder navnet og adressen du, eller en discovery-skanning, ga den. Det dens egen polling ikke har lest, henter den fra discovery:
 
@@ -516,7 +516,7 @@ En enhet med bare ping beholder navnet og adressen du, eller en discovery-skanni
 
 Disse lagres ved siden av enhetens egne felter, skrives aldri inn i dem, og hver skanning, ruter-walk eller polling som leser en av dem på nytt, oppdaterer den. Enhetens oversikt og elementet i inventaret viser hvilken skanning, ruter eller sonde som leste hver verdi, og når. En verdi du har lagret på enheten, erstattes aldri. Når en skanning finner en annen maskin på enhetens adresse, for eksempel en DHCP-leie som har flyttet seg, sier oversikten det, og ingenting av det den skanningen leste der, brukes.
 
-En Meraki-svitsj, et Meraki-tilgangspunkt eller en Meraki-appliance gir verken serienummer, modell eller fastvare over SNMP: Meraki implementerer ingen ENTITY-MIB. Når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens, henter enheten disse, og alt annet pollingen lar stå tomt, fra Meraki-dashbordet, og kortet **Inventar** nevner tilkoblingen i en rad **Meraki**.
+En Meraki-svitsj, et Meraki-tilgangspunkt eller en Meraki-appliance gir verken serienummer eller fastvare over SNMP: når enheten polles direkte, svarer den på systemgruppen og grensesnittabellene, som gir modellen og MAC-adressen, og ikke noe mer. Når en [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) leser organisasjonen dens, henter enheten disse, og alt annet pollingen lar stå tomt, fra Meraki-dashbordet, og kortet **Inventar** nevner tilkoblingen i en rad **Meraki**.
 
 For å lese en enhet på nytt nå trykker du på **Oppdater** på kortet **Inventar**. Sonden poller den innen et minutt, og Meraki-tilkoblingen leser organisasjonen på nytt. Kortet sier når den nye avlesningen er kommet inn, eller at sonden ikke nådde enheten. **Oppdater** finnes for dem som kan redigere nettverksenheter, på en enhet som en sonde poller eller som en Meraki-tilkobling beskriver.
 
@@ -957,6 +957,7 @@ For at kartet skal fylles ut:
 - Gi enhetene SNMP-påloggingsinformasjon. Nabotabeller kommer fra walket, så en enhet med bare ping vises på kartet, men rapporterer ingen egne naboer.
 - Hold **Walk Interfaces** slått på i enhetenes pollinginnstillinger: nabotabellene walkes sammen med grensesnittene.
 - Slå på LLDP, eller CDP på Cisco-enheter, på selve enhetene.
+- På et Meraki-nettverk kobler du til dashbordet. En [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) tegner kablene Meraki kjenner, også dem til en MX som bare svarer på ping.
 
 Klikk på en ikke-administrert peer, så registrerer **Add to Monitoring** den som en sondepollet enhet. Den tar sonden naboene er enige om, så den pinges fra første polling, og du kan legge til påloggingsinformasjon senere hvis den viser seg å ha SNMP.
 
@@ -995,6 +996,8 @@ For det må kartet vite hvilken lært MAC som er enhetens. Det finnes to måter,
 - Ved å skrive den inn: angi **MAC-adresse** på enheten, på siden **Innstillinger** eller kortet på oversikten, når vertsnavnet er et DNS-navn eller ingen ruter på lokasjonen walkes. Alle de vanlige skrivemåtene godtas.
 
 Svitsjen enheten henger på, trenger også **Collect Connected Endpoints** slått på: det er derfra porten kommer. Adresser matches innenfor enhetens lokasjon, siden hver filial har en `10.0.0.5`; en MAC treffer uansett lokasjon.
+
+En [Meraki-tilkobling](/docs/monitor/network-traffic#cisco-meraki-uten-netflow) gjør alt dette uten at noe må slås på. Klientlisten til Meraki viser hvilken svitsj og port hver klient er på, så en enhet plasseres så snart den svitsjen er en nettverksenhet her, på samme lokasjon. Listen gir også enheten MAC-adressen, og det Meraki kaller en klient, vises i kolonnen **Vertsnavn** under **Endepunkter**. Den leses hver andre time, så en ny enhet kan bruke så lang tid på å dukke opp. Så lenge Meraki rapporterer en klient, går porten dens foran en gjennomgått videresendingstabell, fordi Meraki kan skille en tilgangsport fra en opplink. En Wi-Fi-klient plasseres bare på tilgangspunktet sitt når den er en enhet her: Telefonene på et gjestenettverk holdes utenfor kartet.
 
 Enhetens oversikt har et kort **Koblet til** som navngir svitsjen, porten og VLAN-et. En svitsj, ruter eller brannmur som rapporterer naboene sine over LLDP eller CDP, viser dem der i stedet: sin egen port, naboen (en lenke når den er en enhet her) og porten i den andre enden, med **Åpne kartet** ved siden av. På kartet viser enhetens skuff det samme under **Koblet til**, og lenkens skuff sier at den ble lært fra svitsjens videresendingstabell. Parent-Child-visningen tegner enheten under svitsjen. En lenke du har tegnet for hånd under **Device Links** for det samme paret, slås sammen med den lærte i stedet for å doble den: den lærte porten erstatter en feilskrevet, og en forelder du har satt på den håndtegnede lenken, beholdes.
 
@@ -1053,6 +1056,8 @@ Kartet tegner kabelen for en enhet med bare ping fra svitsjens videresendingstab
 - Svitsjen samler inn endepunkter: **Collect Connected Endpoints** slått på i pollinginnstillingene, med påloggingsinformasjon som lar walket lykkes. Enhetens oversikt viser et kort **Koblet til** så snart en svitsj har lært den.
 - Enhetens MAC er kjent: **MAC-adresse** er angitt, eller en ruter på lokasjonen samler inn endepunkter og enhetens vertsnavn er adressen som ruterens ARP-tabell binder. En enhet som er registrert etter DNS-navn uten MAC, kan ikke matches, så skriv inn MAC-en.
 - Samme lokasjon: en adresse matches bare mot en enhet på den samme lokasjonen som svitsjen som lærte den. En enhet uten lokasjon matches bare på adresse når den svitsjen heller ikke har noen lokasjon; hvis svitsjen er på en lokasjon, legg enheten på den samme. En MAC treffer uansett lokasjon.
+
+Panelet til enheten på kartet viser hva av dette som mangler. På et Meraki-nettverk erstatter klientlisten til Meraki de to første: Sjekk at svitsjen er en nettverksenhet her, på samme lokasjon, og regn med to timer før en ny enhet dukker opp.
 
 Hvis enheten står bak en ikke-administrert svitsj eller en hub, lærer den administrerte svitsjen hver MAC bak den på én port, og det er den porten kartet tegner: den fysiske sannheten slik den administrerte svitsjen ser den.
 :::

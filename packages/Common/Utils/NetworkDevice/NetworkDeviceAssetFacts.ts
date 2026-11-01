@@ -1,4 +1,8 @@
 import { NetworkTopologyDeviceRole } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
+import {
+  SnmpVendorIdentity,
+  getSnmpVendorIdentity,
+} from "../../Types/Monitor/SnmpMonitor/SnmpVendorIdentity";
 import SnmpVendorTemplateUtil from "../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import { getNetworkControllerProviderTitle } from "../../Types/NetworkController/NetworkControllerProvider";
 import { DeviceNameSource } from "../../Types/NetworkDevice/DeviceNameSource";
@@ -36,6 +40,8 @@ import { normalizeReverseDnsName } from "../NetworkDiscovery/ReverseDnsNameUtil"
 import { DeviceNameChoice, chooseDeviceName } from "./DeviceNameRule";
 import {
   SystemDescriptionFacts,
+  getMerakiFirmwareRelease,
+  getMerakiOperatingSystem,
   parseSystemDescription,
 } from "./SystemDescriptionUtil";
 
@@ -58,15 +64,22 @@ import {
  *   IP address        the address the probe polls, when that is an address;
  *                     else the address its probe resolved its DNS name to.
  *   DNS name          its reverse-DNS name, or the DNS name it is polled at.
- *   MAC address       typed on the device or learned from an ARP table, in
- *                     the IEEE form hosts report (AC-DE-48-23-45-67).
+ *   MAC address       typed on the device or learned from an ARP table, else
+ *                     what its controller lists, else one of its own ports
+ *                     (DeviceOwnMacUtil), in the IEEE form hosts report
+ *                     (AC-DE-48-23-45-67).
  *   manufacturer      ENTITY-MIB's maker; else the sysDescr's; else the
  *                     sysObjectID enterprise's - but never an SNMP AGENT's
  *                     ("Net-SNMP" names the software answering, not the box).
- *   model, serial,    ENTITY-MIB; the model and versions read off the
- *   firmware, OS      sysDescr when the device implements no ENTITY-MIB
- *   version           (SystemDescriptionUtil). ENTITY-MIB always wins.
- *   operating system  the system the sysDescr names ("Cisco IOS").
+ *   model, serial,    ENTITY-MIB, or the vendor's own MIB where the device
+ *   firmware, OS      keeps them there (SnmpVendorIdentity); the model and
+ *   version           versions read off the sysDescr when neither has them
+ *                     (SystemDescriptionUtil). What the device's poll read
+ *                     always wins.
+ *   operating system  what the platform runs, when it says nothing useful
+ *                     itself (a FortiGate's sysDescr is often blank, a
+ *                     Sophos firewall's says Linux), else the system the
+ *                     sysDescr names ("Cisco IOS").
  *   device type       the role: the one an operator assigned, else the one
  *                     the topology map draws it as, by the project's name for
  *                     that role. Undefined when nothing says.
@@ -103,9 +116,17 @@ import {
  * number, firmware and maker where neither a saved value nor the device's
  * own poll has one (a saved value it disagrees with is shown beside it);
  * its MAC, management address, name and street address where nothing else
- * gives them; and its product type when nothing it reports says what it is.
- * Its name never outranks what the device says it is called, and its
- * address never becomes the hostname.
+ * gives them; its product type when nothing it reports says what it is; and
+ * the release in its firmware, and the firmware its model runs, as the OS
+ * version and the operating system nothing else names (issue #5384). Its
+ * name never outranks what the device says it is called, and its address
+ * never becomes the hostname.
+ *
+ * ITS MAC IS THE ONE EXCEPTION. A Meraki box's MAC is the dashboard's,
+ * printed on its label, and its ports are numbered up from it; the device's
+ * own poll sees only those ports. So a MAC someone typed or an ARP table
+ * read comes first, then the dashboard's, and only then the port the poll
+ * picked: a device's own port is a true answer, but only one of many.
  *
  * Every fact is either a real value or undefined - never a placeholder - so
  * "unknown" is decided once, by whoever shows it.
@@ -342,6 +363,7 @@ export interface NetworkDeviceEffectiveInputs {
   controllerMacAddress: NetworkDeviceEffectiveInput;
   controllerAddress: NetworkDeviceEffectiveInput;
   controllerProductType: NetworkDeviceEffectiveInput;
+  controllerFirmwareVersion: NetworkDeviceEffectiveInput;
   details: NetworkDeviceDiscoveredDetails;
 }
 
@@ -605,6 +627,23 @@ export function getNetworkDeviceEffectiveInputs(
     }
   }
 
+  /*
+   * One of its own ports, when nothing else names a MAC: the device's own
+   * poll, said the way the rest of what the poll read is.
+   */
+  const ownMac: NetworkDeviceDiscoveredValue | undefined =
+    details.values[NetworkDeviceDiscoveredField.OwnMacAddress];
+
+  if (!macAddress.value && ownMac) {
+    macAddress = {
+      value: ownMac.value,
+      source: {
+        kind: AssetFactSourceKind.SnmpPoll,
+        readAt: lastPolledAtIso || ownMac.readAt,
+      },
+    };
+  }
+
   const controllerMaker: NetworkDeviceEffectiveInput = controller
     ? {
         value: getNetworkControllerProviderTitle(controller.provider),
@@ -671,6 +710,10 @@ export function getNetworkDeviceEffectiveInputs(
     controllerProductType: controllerInput(
       controller,
       NetworkDeviceControllerField.ProductType,
+    ),
+    controllerFirmwareVersion: controllerInput(
+      controller,
+      NetworkDeviceControllerField.FirmwareVersion,
     ),
     details: details,
   };
@@ -833,6 +876,60 @@ function getIpAddressFact(
 
   // Else the management address its controller lists for it.
   return fact(inputs.controllerIpAddress.value, inputs.controllerIpAddress);
+}
+
+/*
+ * The operating system the device runs: what its platform always runs, when
+ * its sysObjectID says what that is; else what its sysDescr names; else, for
+ * a device only its controller describes, the firmware its model runs. The
+ * platform comes first because a firewall built on Linux says "Linux" in its
+ * sysDescr, which is true and tells a CMDB nothing.
+ */
+function getOperatingSystemFact(
+  inputs: NetworkDeviceEffectiveInputs,
+  described: SystemDescriptionFacts,
+): NetworkDeviceFactDetail {
+  const identity: SnmpVendorIdentity | undefined = getSnmpVendorIdentity(
+    inputs.sysObjectId.value,
+  );
+
+  if (identity?.operatingSystem) {
+    return fact(identity.operatingSystem, inputs.sysObjectId.source);
+  }
+
+  if (described.operatingSystem) {
+    return fact(described.operatingSystem, inputs.sysDescr.source);
+  }
+
+  return inputs.deviceModel.source?.kind === AssetFactSourceKind.Controller
+    ? fact(
+        getMerakiOperatingSystem(inputs.deviceModel.value),
+        inputs.deviceModel.source,
+      )
+    : {};
+}
+
+/*
+ * The release the device runs: what its poll read, else what its sysDescr
+ * names, else the release in the firmware its controller lists - which is
+ * the only place a Meraki device's is written.
+ */
+function getOsVersionFact(
+  inputs: NetworkDeviceEffectiveInputs,
+  described: SystemDescriptionFacts,
+): NetworkDeviceFactDetail {
+  if (inputs.softwareVersion.value) {
+    return fact(inputs.softwareVersion.value, inputs.softwareVersion);
+  }
+
+  if (described.osVersion) {
+    return fact(described.osVersion, inputs.sysDescr.source);
+  }
+
+  return fact(
+    getMerakiFirmwareRelease(inputs.controllerFirmwareVersion.value),
+    inputs.controllerFirmwareVersion,
+  );
 }
 
 function isSnmpAgentVendor(vendor: string): boolean {
@@ -1064,8 +1161,8 @@ export function getNetworkDeviceFactDetails(
         inputs.firmwareVersion,
         described.firmwareVersion,
       ),
-      operatingSystem: fact(described.operatingSystem, sysDescrSource),
-      osVersion: pickFirst(inputs.softwareVersion, described.osVersion),
+      operatingSystem: getOperatingSystemFact(inputs, described),
+      osVersion: getOsVersionFact(inputs, described),
       deviceType: getDeviceTypeFact(device, inputs, options),
       site: fact(site, { kind: AssetFactSourceKind.Site }),
       // Where the device says it is; the Site above is where it is filed.

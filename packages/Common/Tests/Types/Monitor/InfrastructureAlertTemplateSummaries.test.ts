@@ -8,6 +8,7 @@ import { getAllHostAlertTemplates } from "../../../Types/Monitor/HostAlertTempla
 import { getAllIoTAlertTemplates } from "../../../Types/Monitor/IotAlertTemplates";
 import { getAllKubernetesAlertTemplates } from "../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllKubernetesEventAlertTemplates } from "../../../Types/Monitor/KubernetesEventAlertTemplates";
+import { getAllOpenShiftAlertTemplates } from "../../../Types/Monitor/OpenShiftAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllStorageArrayAlertTemplates } from "../../../Types/Monitor/StorageArrayAlertTemplates";
@@ -68,10 +69,11 @@ const CATALOGS: Array<Catalog> = [
   {
     name: "Kubernetes",
     resourceType: MonitorRecommendationResourceType.Kubernetes,
-    // Its metric templates, and its warning events' Logs monitor.
+    // Its metric templates, its warning events' and OpenShift's Logs monitors.
     templates: [
       ...getAllKubernetesAlertTemplates(),
       ...getAllKubernetesEventAlertTemplates(),
+      ...getAllOpenShiftAlertTemplates(),
     ],
   },
   {

@@ -506,7 +506,7 @@ Eine Untersuchung durch OneUptime AI zu einem Vorfall oder einer Warnung eines N
 
 ### Geräteidentität
 
-Nach dem ersten erfolgreichen Walk liest OneUptime die SNMPv2-Systemgruppe und, wo das Gerät es unterstützt, ENTITY-MIB und füllt den Gerätedatensatz: Systemname, Beschreibung, Standort, Kontakt, Betriebszeit, Hersteller, Modell, Seriennummer und Firmware-Version. Die Enterprise-OID des Herstellers (`sysObjectID`) ist der Fingerabdruck des Geräts: Sie benennt den Hersteller und wählt die passende Hersteller-Vorlage. Dieselben Angaben erscheinen im [Inventar](/docs/inventory/cmdb-sync#asset-attribute-von-netzwerkgeräten) neben jedem anderen Asset.
+Nach dem ersten erfolgreichen Walk liest OneUptime die SNMPv2-Systemgruppe und, wo das Gerät es unterstützt, ENTITY-MIB und füllt den Gerätedatensatz: Systemname, Beschreibung, Standort, Kontakt, Betriebszeit, Hersteller, Modell, Seriennummer und Firmware-Version. Auf FortiGate-, Juniper-, MikroTik- und Sophos-Geräten liest eine weitere Anfrage, was ENTITY-MIB leer lässt, aus der eigenen MIB des Herstellers. Die Enterprise-OID des Herstellers (`sysObjectID`) ist der Fingerabdruck des Geräts: Sie benennt den Hersteller und wählt die passende Hersteller-Vorlage. Dieselben Angaben erscheinen im [Inventar](/docs/inventory/cmdb-sync#asset-attribute-von-netzwerkgeräten) neben jedem anderen Asset.
 
 Ein nur angepingtes Gerät behält den Namen und die Adresse, die Sie oder ein Erkennungsscan ihm gegeben haben. Was seine eigene Abfrage nicht gelesen hat, übernimmt es aus der Erkennung:
 
@@ -516,7 +516,7 @@ Ein nur angepingtes Gerät behält den Namen und die Adresse, die Sie oder ein E
 
 Diese Angaben werden neben den eigenen Feldern des Geräts gespeichert, nie in sie geschrieben, und jeder Scan, Router-Walk oder jede Abfrage, die eine davon erneut liest, bringt sie auf den neuesten Stand. Die Übersicht des Geräts und sein Element im Inventar zeigen, welcher Scan, welcher Router oder welche Sonde jeden Wert gelesen hat und wann. Einen Wert, den Sie am Gerät gespeichert haben, ersetzt nichts. Findet ein Scan unter der Adresse des Geräts eine andere Maschine, etwa wegen eines umgezogenen DHCP-Leases, sagt die Übersicht das, und nichts, was dieser Scan dort gelesen hat, wird verwendet.
 
-Ein Meraki-Switch, ein Meraki-Access-Point oder eine Meraki-Appliance liefert über SNMP weder Seriennummer noch Modell noch Firmware: Meraki implementiert keine ENTITY-MIB. Wenn eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) die Organisation des Geräts liest, übernimmt das Gerät diese Werte und alles andere, was seine Abfrage leer lässt, aus dem Meraki-Dashboard, und seine Karte **Inventar** nennt die Verbindung in einer Zeile **Meraki**.
+Ein Meraki-Switch, ein Meraki-Access-Point oder eine Meraki-Appliance liefert über SNMP weder Seriennummer noch Firmware: Direkt abgefragt beantwortet das Gerät die Systemgruppe und die Schnittstellentabellen, die sein Modell und seine MAC-Adresse liefern, und sonst nichts. Wenn eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) die Organisation des Geräts liest, übernimmt das Gerät diese Werte und alles andere, was seine Abfrage leer lässt, aus dem Meraki-Dashboard, und seine Karte **Inventar** nennt die Verbindung in einer Zeile **Meraki**.
 
 Um ein Gerät sofort erneut zu lesen, klicken Sie auf **Aktualisieren** auf seiner Karte **Inventar**. Seine Sonde fragt es innerhalb einer Minute ab, und seine Meraki-Verbindung liest die Organisation erneut. Die Karte sagt, wann der neue Lesevorgang eingetroffen ist oder dass die Sonde das Gerät nicht erreichen konnte. **Aktualisieren** gibt es für alle, die Netzwerkgeräte bearbeiten dürfen, bei einem Gerät, das eine Sonde abfragt oder das eine Meraki-Verbindung beschreibt.
 
@@ -957,6 +957,7 @@ Damit sich die Karte füllt:
 - Geben Sie den Geräten SNMP-Anmeldedaten. Nachbartabellen kommen aus dem Walk, ein nur angepingtes Gerät erscheint also auf der Karte, meldet aber keine eigenen Nachbarn.
 - Lassen Sie **Schnittstellen abfragen** in den Abfrageeinstellungen der Geräte an: Die Nachbartabellen werden mit den Schnittstellen abgefragt.
 - Schalten Sie LLDP, oder CDP auf Cisco-Geräten, auf den Geräten selbst ein.
+- Verbinden Sie in einem Meraki-Netzwerk das Dashboard. Eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) zeichnet die Kabel, die Meraki kennt, auch die einer MX, die nur auf Ping antwortet.
 
 Klicken Sie auf einen nicht verwalteten Partner, und **Zur Überwachung hinzufügen** registriert ihn als sondenabgefragtes Gerät. Es übernimmt die Sonde, auf die sich seine Nachbarn einigen, wird also ab seiner ersten Abfrage angepingt, und Sie können später Anmeldedaten hinzufügen, wenn sich herausstellt, dass es SNMP hat.
 
@@ -995,6 +996,8 @@ Dafür muss die Karte wissen, welche gelernte MAC die des Geräts ist. Es gibt z
 - Durch Eingeben: Setzen Sie die **MAC-Adresse** am Gerät, auf seiner **Einstellungen**-Seite oder in der Karte der Übersicht, wenn sein Hostname ein DNS-Name ist oder am Standort kein Router abgefragt wird. Jede der üblichen Schreibweisen wird akzeptiert.
 
 Der Switch, an dem das Gerät hängt, braucht **Verbundene Endpunkte erfassen** ebenfalls an: Von dort kommt der Port. Adressen werden innerhalb des Standorts des Geräts zugeordnet, da jede Filiale eine `10.0.0.5` hat; eine MAC passt unabhängig vom Standort.
+
+Eine [Meraki-Verbindung](/docs/monitor/network-traffic#cisco-meraki-ohne-netflow) erledigt all das, ohne dass etwas einzuschalten ist. Die Client-Liste von Meraki sagt, an welchem Switch und Port jeder Client hängt, daher wird ein Gerät platziert, sobald dieser Switch hier ein Netzwerkgerät am selben Standort ist. Die Liste gibt dem Gerät auch seine MAC-Adresse, und wie Meraki einen Client nennt, erscheint in der Spalte **Hostname** unter **Endpunkte**. Sie wird alle zwei Stunden gelesen, ein neues Gerät kann also so lange brauchen, bis es erscheint. Solange Meraki einen Client meldet, hat sein Port Vorrang vor einer abgefragten Forwarding-Tabelle, weil Meraki einen Access-Port von einem Uplink unterscheiden kann. Ein WLAN-Client wird nur dann an seinem Access Point platziert, wenn er hier ein Gerät ist: Die Telefone in einem Gastnetz bleiben von der Karte fern.
 
 Die Übersicht des Geräts hat eine Karte **Verbunden mit**, die Switch, Port und VLAN nennt. Meldet ein Switch, Router oder eine Firewall seine Nachbarn per LLDP oder CDP, stehen dort stattdessen diese: der eigene Port, der Nachbar (ein Link, wenn er hier ein Gerät ist) und der Port am anderen Ende, daneben **Karte öffnen**. Auf der Karte zeigt die Seitenleiste des Geräts dasselbe unter **Verbunden mit**, und die Seitenleiste der Verbindung sagt, dass sie aus der Forwarding-Tabelle des Switches gelernt wurde. Die Eltern-Kind-Ansicht zeichnet das Gerät unter seinem Switch. Eine Verbindung, die Sie für dasselbe Paar unter **Geräteverbindungen** von Hand gezeichnet haben, verschmilzt mit der gelernten, statt sie zu verdoppeln: Der gelernte Port ersetzt einen vertippten, und ein Elternteil, das Sie an der von Hand gezeichneten Verbindung festgelegt haben, bleibt erhalten.
 
@@ -1053,6 +1056,8 @@ Die Karte zeichnet das Kabel eines nur angepingten Geräts aus der Forwarding-Ta
 - Der Switch erfasst Endpunkte: **Verbundene Endpunkte erfassen** an in seinen Abfrageeinstellungen, mit Anmeldedaten, mit denen der Walk gelingt. Die Übersicht des Geräts zeigt eine Karte **Verbunden mit**, sobald ein Switch es gelernt hat.
 - Die MAC des Geräts ist bekannt: Seine **MAC-Adresse** ist gesetzt, oder ein Router am Standort erfasst Endpunkte, und der Hostname des Geräts ist die Adresse, die die ARP-Tabelle dieses Routers zuordnet. Ein über einen DNS-Namen registriertes Gerät ohne MAC kann nicht zugeordnet werden; geben Sie die MAC also ein.
 - Derselbe Standort: Eine Adresse wird nur einem Gerät am selben Standort wie der Switch zugeordnet, der sie gelernt hat. Ein Gerät ohne Standort wird über die Adresse nur zugeordnet, wenn auch dieser Switch keinen Standort hat; ist der Switch an einem Standort, setzen Sie das Gerät an denselben. Eine MAC passt unabhängig vom Standort.
+
+Der Drawer des Geräts auf der Karte sagt, was davon fehlt. In einem Meraki-Netzwerk ersetzt die Client-Liste von Meraki die ersten beiden Punkte: Prüfen Sie, ob der Switch hier ein Netzwerkgerät am selben Standort ist, und rechnen Sie mit zwei Stunden, bis ein neues Gerät erscheint.
 
 Hängt das Gerät hinter einem nicht verwalteten Switch oder einem Hub, lernt der verwaltete Switch jede MAC dahinter an einem Port, und das ist der Port, den die Karte zeichnet: die physische Wahrheit aus Sicht des verwalteten Switches.
 :::

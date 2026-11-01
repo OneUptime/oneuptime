@@ -70,6 +70,8 @@ export interface FdbEdgeEnds {
   learnerPort: string | undefined;
   learnedInterface: NetworkTopologyEdgeEndpoint | undefined;
   learnedPort: string | undefined;
+  // The controller that reported it, when no walked table did.
+  reportedBy: string | undefined;
 }
 
 export function fdbEdgeEnds(edge: NetworkTopologyEdge): FdbEdgeEnds {
@@ -84,6 +86,7 @@ export function fdbEdgeEnds(edge: NetworkTopologyEdge): FdbEdgeEnds {
       learnerPort: edge.toPort,
       learnedInterface: edge.fromInterface,
       learnedPort: edge.fromPort,
+      reportedBy: edge.reportedBy,
     };
   }
   return {
@@ -93,6 +96,7 @@ export function fdbEdgeEnds(edge: NetworkTopologyEdge): FdbEdgeEnds {
     learnerPort: edge.fromPort,
     learnedInterface: edge.toInterface,
     learnedPort: edge.toPort,
+    reportedBy: edge.reportedBy,
   };
 }
 
@@ -110,6 +114,8 @@ export interface LearnedAttachment {
   vlanId: number | undefined;
   // True when the switch's interface row reports that port operationally down.
   isSwitchPortDown: boolean;
+  // The controller that reported it, when no walked table did.
+  reportedBy: string | undefined;
 }
 
 /**
@@ -170,6 +176,7 @@ export function learnedAttachmentForNode(
     port: portLabelForEdgeEnd(chosen.learnerInterface, chosen.learnerPort),
     vlanId: node.vlanId,
     isSwitchPortDown: chosen.learnerInterface?.isOperationallyUp === false,
+    reportedBy: chosen.reportedBy,
   };
 }
 
@@ -181,6 +188,7 @@ export function learnedAttachmentForNode(
  */
 export function endpointTooltipForNode(node: NetworkTopologyNode): string {
   const identity: string = [
+    node.hostname !== node.name ? node.hostname : undefined,
     node.macAddress,
     node.ipAddress,
     node.vendor,

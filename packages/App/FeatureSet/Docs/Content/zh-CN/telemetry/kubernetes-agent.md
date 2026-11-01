@@ -28,7 +28,7 @@ flowchart TB
 | 节点 Collector | DaemonSet | 来自 `/var/log/pods` 的 Pod 日志、kubelet 和 cAdvisor 指标，以及节点的操作系统指标。 | 除 EKS Fargate 外的所有环境 |
 | eBPF 插桩（OBI） | DaemonSet | 来自每个 Pod 的 HTTP、gRPC、SQL 和 Redis 追踪与请求指标，以及服务地图。 | 默认运行，GKE Autopilot 和 EKS Fargate 除外 |
 | Kubernetes AI 代理 | Deployment | OneUptime AI 调查事件或警报时使用的只读 `kubectl`。 | 默认运行 |
-| 日志尾随器 | Deployment | 在节点 Collector 无法读取时，通过 Kubernetes API 获取 Pod 日志。 | 使用 `gke-autopilot` 和 `eks-fargate` 预设时 |
+| 日志尾随器 | Deployment | 在节点 Collector 无法读取时，通过 Kubernetes API 获取 Pod 日志。 | 使用 `gke-autopilot`、`eks-fargate` 和 `openshift-restricted` 预设时 |
 | 成本引擎和轮询器 | Deployments | 按命名空间、工作负载和 Pod 统计的支出。 | 设置 `cost.enabled=true` 时 |
 
 所有代理镜像都只支持 Linux，因此所有工作负载都被固定在 Linux 节点上。
@@ -215,8 +215,9 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `gke-autopilot` | **GKE Autopilot** | 日志尾随器通过 Kubernetes API 读取（无 `hostPath`，无主机访问） | Kubelet 和 cAdvisor，不使用 `hostPath` |
 | `eks-fargate` | **EKS Fargate** | 日志尾随器通过 Kubernetes API 读取（无 `hostPath`，无主机访问） | 无：Fargate 不运行 DaemonSet |
 | `openshift` | **OpenShift**：OpenShift Container Platform、ROSA、ARO、OKD | 节点 Collector 在 chart 为其创建的安全上下文约束下，通过 `hostPath` 读取 `/var/log/pods` | Kubelet、cAdvisor 和节点的操作系统指标 |
+| `openshift-restricted` | **OpenShift**（管理员不愿添加 SCC 时） | 日志尾随器通过 Kubernetes API 读取（无 `hostPath`，无主机访问） | Kubelet 和 cAdvisor，不使用 `hostPath` |
 
-如果不确定，请从 `standard` 开始。如果安装因提及 `hostPath` 的 Pod Security 错误而失败，请使用 `preset=gke-autopilot`（在 Fargate 上为 `eks-fargate`）重新安装。GKE Autopilot 和 EKS Fargate 也会拒绝 eBPF 和性能剖析器所需的特权 Pod，因此这两个预设会把它们都排除在外。在 OpenShift 上，请使用 `openshift`，详见 [OpenShift](#openshift)。
+如果不确定，请从 `standard` 开始。如果安装因提及 `hostPath` 的 Pod Security 错误而失败，请使用 `preset=gke-autopilot`（在 Fargate 上为 `eks-fargate`）重新安装。GKE Autopilot 和 EKS Fargate 也会拒绝 eBPF 和性能剖析器所需的特权 Pod，因此这两个预设会把它们都排除在外。在 OpenShift 上，请使用 `openshift`；如果管理员不愿添加 SCC，请使用 `openshift-restricted`，详见 [OpenShift](#openshift)。
 
 ## OpenShift
 
@@ -229,6 +230,15 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 - 在代理的遥测数据上标记 `oneuptime.kubernetes.distribution=openshift`，使集群的 **平台** 显示为 **OpenShift**，并在集群运行于云上时添加所在的云（`cloud.provider`、`cloud.platform`）。
 
 创建这些 SCC 需要 cluster-admin 权限。不使用该预设时，发布仍可安装，但 OpenShift 永远不会启动代理的节点 Collector 和 eBPF Pod，Helm 在安装后打印的说明也会指出这一点。
+
+**如果管理员不愿添加 SCC**，请改用 `--set preset=openshift-restricted` 安装。此时 chart 不创建任何 SCC，每个 Pod 都在 `restricted-v2` 下运行，就像 `gke-autopilot` 一样。集群仍显示为 OpenShift。相应地，你会失去：
+
+- 来自节点的 Pod 日志：日志尾随器通过 Kubernetes API 读取，每个容器占用一条长连接。
+- 节点的操作系统指标。节点、Pod 和容器指标仍然保留：节点 Collector 通过网络读取 kubelet 和 cAdvisor。
+- eBPF 追踪和性能剖析器，无论 `ebpf.enabled` 和 `profiling.enabled` 如何设置。要追踪你的服务，请用 OpenTelemetry SDK 从服务发送追踪。
+- 审计日志，它们需要从节点读取。
+
+要恢复这些内容，请以 cluster-admin 身份在升级时用 `--set preset=openshift` 切换到 `openshift`。
 
 **OpenShift 自带的警报。** OpenShift 自带 Prometheus 和 Alertmanager，并为其 Operator、etcd 和节点提供警报。要为每条警报在 OneUptime 中创建一个事件，请在 Web 控制台的 **Administration → Cluster Settings → Configuration → Alertmanager** 下为 OneUptime 添加一个 Webhook 接收器，具体请参阅 [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)。
 
@@ -517,6 +527,26 @@ kubectl -n oneuptime-agent create secret generic etcd-client-cert \
   --from-file=tls.key=/etc/kubernetes/pki/etcd/healthcheck-client.key
 ```
 
+**在 OpenShift 上**，无论使用哪个 OpenShift 预设，调度器和控制器管理器只需 `--set controlPlane.enabled=true`。OpenShift 在一个 Service 后面运行它们各自的多个副本，因此代理会在该 Service 的 EndpointSlice 中找到每个副本，并用其服务账号的令牌逐个抓取。如果你设置了 `controlPlane.scheduler.endpoints` 和 `controlPlane.controllerManager.endpoints`，它们仍然优先。etcd 要求客户端证书，因此在 `controlPlane.etcd.clientCertSecret` 指向保存该证书的 Secret 之前，不会抓取 etcd。OpenShift 的监控已有一份证书：请以 cluster-admin 身份把它复制到一个包含 chart 读取的三个键的 Secret 中：
+
+```bash
+oc extract secret/etcd-metric-client --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc extract configmap/etcd-metric-serving-ca --namespace openshift-etcd-operator --to=etcd-cert --confirm
+oc create secret generic etcd-client-cert \
+  --namespace oneuptime-agent \
+  --from-file=ca.crt=etcd-cert/ca-bundle.crt \
+  --from-file=tls.crt=etcd-cert/tls.crt \
+  --from-file=tls.key=etcd-cert/tls.key
+rm -r etcd-cert
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent \
+  --reset-then-reuse-values \
+  --set controlPlane.enabled=true \
+  --set controlPlane.etcd.clientCertSecret=etcd-client-cert
+```
+
+这份副本不会跟随 OpenShift 对该证书的轮换，因此当 etcd 的指标停止时，请重新运行这些命令。托管控制平面（ROSA with HCP、HyperShift）在集群之外运行这些组件：代理找不到它们，这些选项卡在那里保持为空。
+
 托管 Kubernetes 服务（EKS、GKE、AKS）不暴露 etcd、调度器或控制器管理器，因此这些选项卡在那里保持为空。在某个选项卡的指标到达之前，**控制平面** 页面会显示需要设置的内容来代替图表，并附上可复制的命令。
 
 ### 启用 CoreDNS 指标
@@ -629,7 +659,7 @@ eBPF 看到的是网络调用，而不是你的代码，因此一条追踪由服
 
 在以下情况下关闭 eBPF：
 
-- 你在 **GKE Autopilot** 或 **EKS Fargate** 上安装：这些平台拒绝特权 Pod，因此 `preset=gke-autopilot` 和 `preset=eks-fargate` 已经为你排除了 eBPF，连同性能剖析器。
+- 你在 **GKE Autopilot** 或 **EKS Fargate** 上安装：这些平台拒绝特权 Pod，因此 `preset=gke-autopilot` 和 `preset=eks-fargate` 已经为你排除了 eBPF，连同性能剖析器。`preset=openshift-restricted` 在 OpenShift 上也是如此。
 - 节点运行的内核早于 5.8，且没有 BTF 向后移植。
 - 你已经在每个应用中通过 OpenTelemetry SDK 发送追踪，也不需要 eBPF 指标。（如果只是追踪，则无需关闭：如上所述，OBI 会对它发现自行导出追踪的应用停止发送 eBPF 追踪。）
 

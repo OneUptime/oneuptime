@@ -25,11 +25,10 @@ import {
 } from "./AssetFactSourceText";
 import {
   INVENTORY_ASSET_FIELD_LABELS,
-  INVENTORY_ASSET_HELP,
   INVENTORY_ASSET_UNKNOWN,
-  NETWORK_DEVICE_CONTROLLER_UNKNOWN,
+  InventoryAssetUnknownHelp,
+  getInventoryAssetUnknownHelp,
 } from "./InventoryAssetLabels";
-import { readNetworkDeviceDiscoveredDetails } from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import useNetworkDeviceAssetDetails, {
   LinkedNetworkDeviceSource,
   NetworkDeviceAssetDetailsReader,
@@ -55,7 +54,9 @@ import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
  * card lists the same facts, in the same order, for both, and says
  * "Unknown" where a fact is missing, so a gap is something a reader sees
  * rather than something they have to notice is absent. One line under the
- * facts says why they are unknown and where to read how each one is filled.
+ * facts says why they are unknown (issue #5384: a device that answered its
+ * poll and reports no more is not waiting for anything, and a Meraki device's
+ * are on its dashboard) and where to read how each one is filled.
  *
  * And where each came from. Most of a machine's details come from one
  * reading - a host's collector; a network device's (read from the device
@@ -114,19 +115,16 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const help: (typeof INVENTORY_ASSET_HELP)[keyof typeof INVENTORY_ASSET_HELP] =
-    INVENTORY_ASSET_HELP[details.kind];
   const unknownCount: number = details.unknownFields.length;
   /*
-   * A device the Meraki dashboard describes was asked too: the unknown line
-   * names it beside the poll and the scans.
+   * Why they are unknown decides what the line says and where it leads: a
+   * device that reports no more, one that is waiting for a poll, or a Meraki
+   * device whose dashboard holds them.
    */
-  const unknownLine: { one: string; other: string } =
-    deviceRead.details &&
-    readNetworkDeviceDiscoveredDetails(deviceRead.device?.discoveredDetails)
-      .controller
-      ? NETWORK_DEVICE_CONTROLLER_UNKNOWN
-      : help.unknown;
+  const help: InventoryAssetUnknownHelp = getInventoryAssetUnknownHelp(
+    details.kind,
+    details.unknownReason,
+  );
 
   // The reading most details came from, said once below them.
   const sharedSource: AssetFactSource | undefined = getSharedAssetFactSource(
@@ -249,7 +247,7 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
 
             {unknownCount > 0 ? (
               <p data-testid="inventory-asset-details-unknown">
-                {translator.translatePlural(unknownLine, unknownCount)}{" "}
+                {translator.translatePlural(help.unknown, unknownCount)}{" "}
                 <a
                   className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
                   href={help.docsUrl}

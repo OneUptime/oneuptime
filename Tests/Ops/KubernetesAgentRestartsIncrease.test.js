@@ -571,7 +571,7 @@ describe("agent-restarts-increase-behaviour.sh: what it feeds the collector and 
     ]);
     // The template's list, but the processors only some values turn on:
     // filter/telemetry (filters.metrics or a namespace filter) and
-    // resourcedetection/openshift (the openshift preset). The script's
+    // resourcedetection/openshift (the OpenShift presets). The script's
     // render has the eBPF filter (eBPF is on by default).
     expect(
       pipeline.processors.filter((name) => {
