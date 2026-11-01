@@ -767,6 +767,63 @@ class EksAddonBuildTest(unittest.TestCase):
         self.assertIn(build.EKS_ADDON, build.EDITIONS)
         self.assertNotIn(build.EKS_ADDON, build.MARKETPLACES)
 
+    def test_reads_no_api_version_off_the_cluster(self) -> None:
+        _, chart = self.built()
+
+        for template in sorted((chart / "templates").rglob("*")):
+            if template.is_file():
+                self.assertNotIn(
+                    ".Capabilities.APIVersions",
+                    template.read_text(encoding="utf-8"),
+                    template.name,
+                )
+
+    def test_its_notes_go_without_the_openshift_preset_check_and_keep_everything_else(
+        self,
+    ) -> None:
+        _, chart = self.built()
+        notes: str = (chart / "templates" / "NOTES.txt").read_text(encoding="utf-8")
+        chart_notes: str = (build.AGENT_CHART / "templates" / "NOTES.txt").read_text(
+            encoding="utf-8"
+        )
+
+        # The chart's own notes keep it, for every install but the add-on.
+        self.assertIn('.Capabilities.APIVersions.Has "security.openshift.io/v1"', chart_notes)
+        self.assertNotIn("This cluster is OpenShift", notes)
+        self.assertNotIn("OpenShift admits pods later", notes)
+        self.assertIn("OneUptime Kubernetes Agent has been installed.", notes)
+        self.assertIn("The agent is now collecting:", notes)
+        # Only that block went: every other line is the chart's.
+        removed: List[str] = [
+            line for line in chart_notes.split("\n") if line not in notes.split("\n")
+        ]
+        self.assertTrue(removed)
+        self.assertTrue(
+            all(
+                line in build.OPENSHIFT_NOTES_BLOCK.search(chart_notes).group(0)
+                for line in removed
+            )
+        )
+
+    def test_refuses_notes_whose_openshift_check_it_cannot_find(self) -> None:
+        chart: Path = self.out / "chart"
+        (chart / "templates").mkdir(parents=True)
+        (chart / "templates" / "NOTES.txt").write_text("Installed.\n", encoding="utf-8")
+
+        with self.assertRaises(ValueError):
+            build.remove_openshift_notes(chart)
+
+    def test_refuses_a_template_that_reads_an_api_version(self) -> None:
+        chart: Path = self.out / "chart"
+        (chart / "templates").mkdir(parents=True)
+        (chart / "templates" / "service.yaml").write_text(
+            '{{- if .Capabilities.APIVersions.Has "v1" }}kind: Service{{- end }}\n',
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(ValueError):
+            build.refuse_api_version_reads(chart)
+
     def test_ships_every_image_from_the_add_on_products_repositories(self) -> None:
         plan, _ = self.built()
         targets = {entry["key"]: entry["target"] for entry in plan}

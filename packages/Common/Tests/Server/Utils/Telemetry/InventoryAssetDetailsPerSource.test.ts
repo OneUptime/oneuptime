@@ -127,7 +127,8 @@ describe("a network device that answers only its system group (a Meraki MX)", ()
       manufacturer: "Cisco Meraki",
       model: "MX85",
       firmwareVersion: undefined,
-      operatingSystem: undefined,
+      // What its sysDescr names it: "Meraki MX85" runs Meraki MX firmware (#5502).
+      operatingSystem: "Meraki MX firmware",
       osVersion: undefined,
       deviceType: "Firewall",
       location: undefined,
@@ -137,7 +138,6 @@ describe("a network device that answers only its system group (a Meraki MX)", ()
       InventoryAssetField.MacAddress,
       InventoryAssetField.SerialNumber,
       InventoryAssetField.FirmwareVersion,
-      InventoryAssetField.OperatingSystem,
       InventoryAssetField.OsVersion,
       InventoryAssetField.Location,
     ]);
