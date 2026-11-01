@@ -1769,8 +1769,16 @@ const RemediationStep: FunctionComponent<ComponentProps> = (
             <span className="break-words text-sm font-medium text-gray-900">
               {title}
             </span>
-            <span className="break-words text-xs text-gray-500">
-              {sourceLabel}
+            {/*
+              The rule or round that proposed it, as the server named it:
+              set apart (bdi) so an English name keeps its quotes in place
+              on a right-to-left page, where it still sits under the title.
+            */}
+            <span
+              data-testid="remediation-fix-source"
+              className="break-words text-xs text-gray-500"
+            >
+              <bdi>{sourceLabel}</bdi>
             </span>
           </div>
           <div

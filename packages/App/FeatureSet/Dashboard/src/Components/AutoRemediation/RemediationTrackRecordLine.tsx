@@ -49,6 +49,20 @@ export const TRACK_RECORD_RUN_TITLES: Readonly<
     translationKey("Didn't work here"),
 };
 
+/*
+ * A run's link, by how it went: the product's link colour for a run that
+ * worked, red for one that did not - so a record that worked some of the
+ * times shows which ones failed without a hover.
+ */
+export const TRACK_RECORD_RUN_LINK_CLASS_NAMES: Readonly<
+  Record<RemediationTrackRecordOutcome, string>
+> = {
+  [RemediationTrackRecordOutcome.Worked]:
+    "text-indigo-600 hover:text-indigo-800",
+  [RemediationTrackRecordOutcome.DidNotWork]:
+    "text-rose-700 hover:text-rose-900",
+};
+
 export interface ComponentProps {
   record: RemediationTrackRecord;
 }
@@ -102,24 +116,34 @@ const RemediationTrackRecordLine: FunctionComponent<ComponentProps> = (
           {describeRemediationTrackRecord(props.record, translator)}
         </span>
       </span>
-      {namedRuns.map((run: RemediationTrackRecordRun): ReactElement => {
-        return (
-          <Link
-            key={`${run.subjectKind}-${run.subjectId}-${run.ranAt}`}
-            to={getTrackRecordRunRoute(run)}
-            dataTestId="remediation-track-record-run"
-            className="rounded text-xs font-medium text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          >
-            <span
-              title={translator.translateText(
-                TRACK_RECORD_RUN_TITLES[run.outcome],
-              )}
-            >
-              {run.subjectNumber}
-            </span>
-          </Link>
-        );
-      })}
+      {/*
+        The runs stay together: on a narrow card they move under the
+        sentence as one group, never one left behind on its line.
+      */}
+      {namedRuns.length > 0 ? (
+        <span
+          data-testid="remediation-track-record-runs"
+          className="inline-flex flex-wrap items-center gap-x-2 gap-y-1"
+        >
+          {namedRuns.map((run: RemediationTrackRecordRun): ReactElement => {
+            return (
+              <Link
+                key={`${run.subjectKind}-${run.subjectId}-${run.ranAt}`}
+                to={getTrackRecordRunRoute(run)}
+                dataTestId="remediation-track-record-run"
+                title={TRACK_RECORD_RUN_TITLES[run.outcome]}
+                className={`rounded text-xs font-medium ${
+                  TRACK_RECORD_RUN_LINK_CLASS_NAMES[run.outcome]
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`}
+              >
+                <span data-outcome={run.outcome}>{run.subjectNumber}</span>
+              </Link>
+            );
+          })}
+        </span>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

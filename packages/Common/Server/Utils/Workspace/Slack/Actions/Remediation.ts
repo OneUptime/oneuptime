@@ -159,12 +159,13 @@ export default class SlackRemediationActions {
       const approved: WorkspaceAnswer | null =
         await SlackActionAuthorization.runForRequester({
           requester: slackRequest,
-          action: "approve the fix",
+          action: WorkspaceRemediationActions.APPROVE_ACTION,
           run: async (): Promise<WorkspaceAnswer> => {
             return await WorkspaceRemediationActions.approve({
               props,
               value,
               from: WorkspaceType.Slack,
+              suggestion,
             });
           },
         });
@@ -185,12 +186,13 @@ export default class SlackRemediationActions {
     const dismissed: WorkspaceAnswer | null =
       await SlackActionAuthorization.runForRequester({
         requester: slackRequest,
-        action: "dismiss the fix",
+        action: WorkspaceRemediationActions.DISMISS_ACTION,
         run: async (): Promise<WorkspaceAnswer> => {
           return await WorkspaceRemediationActions.dismiss({
             props,
             value,
             from: WorkspaceType.Slack,
+            suggestion,
           });
         },
       });

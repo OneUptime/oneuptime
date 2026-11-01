@@ -19554,7 +19554,20 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
     );
     await expect(runs).toHaveText(["#1036", "#1029", "#1017"]);
     await expect(runs.first()).toHaveAttribute("href", incidentPath(1036));
-    await expect(runs.first().getByTitle("Worked here")).toHaveCount(1);
+    // The link says how its run went.
+    await expect(runs.first()).toHaveAttribute("title", "Worked here");
+
+    /*
+     * The runs move as one group: on a narrow card they sit together under
+     * the sentence, never one left behind at the end of its line.
+     */
+    const runBoxes: Array<Box> = await documentBoxes(page, [
+      runs.nth(0),
+      runs.nth(1),
+      runs.nth(2),
+    ]);
+    expect(runBoxes[1]!.y).toBe(runBoxes[0]!.y);
+    expect(runBoxes[2]!.y).toBe(runBoxes[0]!.y);
 
     await expectNoHorizontalOverflow(page);
     expect(await isOverflowing(words)).toBe(false);
@@ -19596,25 +19609,23 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
     );
   });
 
-  test("never worked here: red; worked some times: an amber dot; no record: no line, the words still", async ({
+  test("never worked here: red; worked some times: an amber dot and the failed run in red; no record: no line, the words still", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openChange(page, "cloudfix=would-run&trackrecord=failed");
     await expect(trackRecord(page)).toHaveAttribute("data-tone", "DidNotWork");
+    // Two runs: "either", never "the 2 times".
     await expect(trackRecordText(page)).toHaveText(
-      "Didn't work the 2 times it ran here before",
+      "Didn't work either time it ran here before",
     );
     await expect(trackRecordText(page).locator("..")).toHaveClass(
       /text-rose-700/,
     );
     await expect(
-      trackRecord(page)
-        .getByTestId("remediation-track-record-run")
-        .first()
-        .getByTitle("Didn't work here"),
-    ).toHaveCount(1);
+      trackRecord(page).getByTestId("remediation-track-record-run").first(),
+    ).toHaveAttribute("title", "Didn't work here");
     await screenshotElement(changeRow(page), "remediation-track-record-failed");
 
     await openChange(page, "cloudfix=would-run&trackrecord=mixed");
@@ -19623,6 +19634,14 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
       "Worked 2 of the 3 times it ran here before",
     );
     await expect(trackRecord(page).locator(".bg-amber-500")).toHaveCount(1);
+    // The one run that did not work is the red link, and says so.
+    const mixedRuns: Locator = trackRecord(page).getByTestId(
+      "remediation-track-record-run",
+    );
+    await expect(mixedRuns.nth(1)).toHaveText("#1029");
+    await expect(mixedRuns.nth(1)).toHaveClass(/text-rose-700/);
+    await expect(mixedRuns.nth(1)).toHaveAttribute("title", "Didn't work here");
+    await expect(mixedRuns.nth(0)).toHaveClass(/text-indigo-600/);
 
     await openChange(page, "cloudfix=would-run");
     await expect(
@@ -19642,7 +19661,7 @@ test.describe("a fix's changes in plain words, and how each went before", () => 
       changeRow(page).getByTestId("remediation-command-words"),
     ).toHaveText("ECS-Dienst checkout-api: auf 8 Tasks hochskalieren");
     await expect(trackRecordText(page)).toHaveText(
-      "Hat alle 3 Male geholfen, die es hier zuvor lief",
+      "Hat bei allen 3 früheren Ausführungen hier geholfen",
     );
     await screenshotElement(
       changeRow(page),
@@ -19723,7 +19742,8 @@ test.describe("what the investigation ruled out", () => {
     const firstReason: Locator = causes
       .first()
       .getByTestId("investigation-ruled-out-cause-reason");
-    await expect(firstReason).toContainText("its CPU stayed under 30%");
+    // On a line of its own, why starts with a capital.
+    await expect(firstReason).toContainText("Its CPU stayed under 30%");
     await expect(
       firstReason.getByRole("button", { name: /^Citation C6:/ }),
     ).toBeVisible();
@@ -19755,6 +19775,32 @@ test.describe("what the investigation ruled out", () => {
     );
     await expectNoHorizontalOverflow(page);
     await screenshotElement(list, "investigation-ruled-out-390-dark");
+  });
+
+  test("on a Persian page, an English cause keeps its cross at its left, beside its first word (?lang=fa&dir=auto)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const list: Locator = await openRuledOut(
+      page,
+      "ruledout=on&lang=fa&dir=auto",
+    );
+
+    const cause: Locator = list
+      .getByTestId("investigation-ruled-out-cause")
+      .first();
+    await expect(cause).toHaveAttribute("dir", "ltr");
+
+    const [crossBox, nameBox]: Array<Box> = await documentBoxes(page, [
+      cause.locator("svg"),
+      cause.getByTestId("investigation-ruled-out-cause-name"),
+    ]);
+    expect(crossBox!.x).toBeLessThan(nameBox!.x);
+
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(list, "investigation-ruled-out-390-fa");
   });
 });
 

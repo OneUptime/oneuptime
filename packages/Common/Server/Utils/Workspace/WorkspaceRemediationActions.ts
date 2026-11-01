@@ -59,10 +59,33 @@ export interface RemediationApprovalDialog {
   title: string;
   // Chat Markdown: the record, everything the fix runs, what approving does.
   markdown: string;
+  /*
+   * The same, a part a text block, each line a paragraph: Microsoft Teams'
+   * card, where a single newline is a space (getChatLineBreak).
+   */
+  teamsParts: Array<string>;
   submitTitle: string;
   cancelTitle: string;
   // The value Approve and run carries: the fix and its fingerprint now.
   value: string;
+}
+
+/*
+ * What a fix is for, as an answer names it: "the incident", "the alert" -
+ * or both, for a fix that names neither.
+ */
+export function getFixSubjectWords(
+  suggestion: Pick<AutoRemediationSuggestion, "incidentId" | "alertId">,
+): string {
+  if (suggestion.incidentId) {
+    return "the incident";
+  }
+
+  if (suggestion.alertId) {
+    return "the alert";
+  }
+
+  return "its incident or alert";
 }
 
 export default class WorkspaceRemediationActions {
@@ -191,12 +214,16 @@ export default class WorkspaceRemediationActions {
             mdText`✅ ${ProductBrandingText.getProductName()} AI already made this fix on its own.`.toString(),
           text: `${ProductBrandingText.getProductName()} AI already made this fix on its own`,
         };
-      default:
+      default: {
+        const subject: string = getFixSubjectWords(suggestion);
+        const sentenceStart: string = `${subject.charAt(0).toUpperCase()}${subject.slice(1)}`;
+
         return {
           markdown:
-            mdText`This fix no longer waits for approval, so nothing was done. Its incident or alert in ${ProductBrandingText.getProductName()} says what came of it.`.toString(),
+            mdText`This fix no longer waits for approval, so nothing was done. ${sentenceStart} in ${ProductBrandingText.getProductName()} says what came of it.`.toString(),
           text: "This fix no longer waits for approval",
         };
+      }
     }
   }
 
@@ -254,6 +281,14 @@ export default class WorkspaceRemediationActions {
         subjectName: subject.name,
         subjectTitle: subject.title,
       }).toString(),
+      teamsParts: RemediationChatMessage.describeApprovalParts({
+        fix,
+        subjectName: subject.name,
+        subjectTitle: subject.title,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }).map((part: MarkdownText): string => {
+        return part.toString();
+      }),
       submitTitle: REMEDIATION_CHAT_WORDS.approveAndRun,
       cancelTitle: REMEDIATION_CHAT_WORDS.cancel,
       value: RemediationChatMessage.encodeActionValue({
@@ -273,6 +308,8 @@ export default class WorkspaceRemediationActions {
     props: DatabaseCommonInteractionProps;
     value: RemediationActionValue;
     from: WorkspaceType;
+    // The fix as the press read it: what the answer names it for.
+    suggestion?: AutoRemediationSuggestion | undefined;
   }): Promise<WorkspaceAnswer> {
     await RemediationApproval.approve({
       props: data.props,
@@ -281,20 +318,24 @@ export default class WorkspaceRemediationActions {
       from: data.from,
     });
 
-    return WorkspaceRemediationActions.getApprovedAnswer();
+    return WorkspaceRemediationActions.getApprovedAnswer(data.suggestion);
   }
 
   /*
    * What the person who approved a fix is told where they pressed: it is
-   * being made, and where to follow it. The record's feed says the rest -
-   * who approved it, from which chat - in its channels.
+   * being made, and where to follow it - the incident or the alert it is
+   * for. The record's feed says the rest - who approved it, from which
+   * chat - in its channels.
    */
-  public static getApprovedAnswer(): WorkspaceAnswer {
+  public static getApprovedAnswer(
+    suggestion?: Pick<AutoRemediationSuggestion, "incidentId" | "alertId">,
+  ): WorkspaceAnswer {
     const product: string = ProductBrandingText.getProductName();
+    const subject: string = getFixSubjectWords(suggestion || {});
 
     return {
       markdown:
-        mdText`✅ You approved this fix: ${product} AI is making it now. Its incident or alert in ${product} shows how it goes.`.toString(),
+        mdText`✅ You approved this fix. ${product} AI is making it now, and ${subject} in ${product} shows how it goes.`.toString(),
       text: "You approved this fix",
     };
   }
@@ -308,6 +349,8 @@ export default class WorkspaceRemediationActions {
     props: DatabaseCommonInteractionProps;
     value: RemediationActionValue;
     from: WorkspaceType;
+    // The fix as the press read it: what the answer names it for.
+    suggestion?: AutoRemediationSuggestion | undefined;
   }): Promise<WorkspaceAnswer> {
     await RemediationApproval.dismiss({
       props: data.props,
@@ -317,10 +360,11 @@ export default class WorkspaceRemediationActions {
     });
 
     const product: string = ProductBrandingText.getProductName();
+    const subject: string = getFixSubjectWords(data.suggestion || {});
 
     return {
       markdown:
-        mdText`You dismissed this fix: ${product} AI will not run it. Its incident or alert in ${product} keeps what it proposed.`.toString(),
+        mdText`You dismissed this fix. ${product} AI will not run it, and ${subject} in ${product} keeps what it proposed.`.toString(),
       text: "You dismissed this fix",
     };
   }

@@ -13,6 +13,7 @@ import { getRemediationPlanFingerprint } from "../../../../Server/Utils/AutoReme
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import WorkspaceRemediationActions, {
+  getFixSubjectWords,
   RemediationApprovalDialog,
 } from "../../../../Server/Utils/Workspace/WorkspaceRemediationActions";
 import {
@@ -320,6 +321,41 @@ describe("a press that came too late", () => {
       ).toBe("This fix no longer waits for approval");
     }
   });
+
+  test("a fix that no longer waits names what it is for: the incident or the alert", async () => {
+    expect(
+      (
+        await WorkspaceRemediationActions.getLatePressAnswer(
+          fix({ status: AutoRemediationSuggestionStatus.Planning }),
+        )
+      )?.markdown,
+    ).toBe(
+      "This fix no longer waits for approval, so nothing was done. The incident in OneUptime says what came of it.",
+    );
+    expect(
+      (
+        await WorkspaceRemediationActions.getLatePressAnswer(
+          fix({
+            status: AutoRemediationSuggestionStatus.Planning,
+            incidentId: undefined,
+            alertId: ALERT_ID,
+          }),
+        )
+      )?.markdown,
+    ).toBe(
+      "This fix no longer waits for approval, so nothing was done. The alert in OneUptime says what came of it.",
+    );
+  });
+});
+
+describe("what an answer names a fix for", () => {
+  test("the incident, the alert, or both when it names neither", () => {
+    expect(getFixSubjectWords({ incidentId: SUGGESTION_ID })).toBe(
+      "the incident",
+    );
+    expect(getFixSubjectWords({ alertId: ALERT_ID })).toBe("the alert");
+    expect(getFixSubjectWords({})).toBe("its incident or alert");
+  });
 });
 
 describe("the approval dialog", () => {
@@ -347,6 +383,23 @@ describe("the approval dialog", () => {
     expect(dialog?.markdown).toContain("Approving runs exactly what is shown");
     expect(dialog?.value).toBe(
       `${SUGGESTION_ID.toString()}:${getRemediationPlanFingerprint(row)}`,
+    );
+
+    /*
+     * Microsoft Teams' card: the same in parts - what it is for, each
+     * change, what approving does - each line a paragraph of its own.
+     */
+    expect(dialog?.teamsParts).toHaveLength(3);
+    expect(dialog?.teamsParts[0]).toBe(
+      "**Incident INC-42:** Checkout API p95 latency above 2s",
+    );
+    expect(dialog?.teamsParts[1]!.split("\n\n")[0]).toContain(
+      "Scale the ECS service checkout-api out to 8 tasks",
+    );
+    expect(dialog?.teamsParts[1]).toContain("\n\nWhy: tasks at 100% CPU");
+    expect(dialog?.teamsParts[1]!.split("\n\n").join("")).not.toContain("\n");
+    expect(dialog?.teamsParts[2]).toContain(
+      "Approving runs exactly what is shown",
     );
   });
 
@@ -380,6 +433,7 @@ describe("approving and dismissing", () => {
       props: memberProps,
       value: { suggestionId: SUGGESTION_ID, fingerprint: "0123456789abcdef" },
       from: WorkspaceType.MicrosoftTeams,
+      suggestion: fix(),
     });
 
     expect(approve).toHaveBeenCalledWith({
@@ -391,9 +445,18 @@ describe("approving and dismissing", () => {
     // What the presser is told: it is being made, and where to follow it.
     expect(answer).toEqual({
       markdown:
-        "✅ You approved this fix: OneUptime AI is making it now. Its incident or alert in OneUptime shows how it goes.",
+        "✅ You approved this fix. OneUptime AI is making it now, and the incident in OneUptime shows how it goes.",
       text: "You approved this fix",
     });
+
+    // An alert's fix is followed on the alert.
+    expect(
+      WorkspaceRemediationActions.getApprovedAnswer(
+        fix({ incidentId: undefined, alertId: ALERT_ID }),
+      ).markdown,
+    ).toBe(
+      "✅ You approved this fix. OneUptime AI is making it now, and the alert in OneUptime shows how it goes.",
+    );
   });
 
   test("a refused approval is thrown for the chat to tell", async () => {
@@ -419,6 +482,7 @@ describe("approving and dismissing", () => {
       props: memberProps,
       value: { suggestionId: SUGGESTION_ID, fingerprint: "0123456789abcdef" },
       from: WorkspaceType.Slack,
+      suggestion: fix({ incidentId: undefined, alertId: ALERT_ID }),
     });
 
     expect(dismiss).toHaveBeenCalledWith({
@@ -428,7 +492,7 @@ describe("approving and dismissing", () => {
       from: WorkspaceType.Slack,
     });
     expect(answer.markdown).toBe(
-      "You dismissed this fix: OneUptime AI will not run it. Its incident or alert in OneUptime keeps what it proposed.",
+      "You dismissed this fix. OneUptime AI will not run it, and the alert in OneUptime keeps what it proposed.",
     );
   });
 });

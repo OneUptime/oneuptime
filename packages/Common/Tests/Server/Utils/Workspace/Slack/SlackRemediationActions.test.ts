@@ -156,6 +156,7 @@ beforeEach(() => {
     .mockResolvedValue({
       title: "Approve this fix?",
       markdown: "**Incident INC-42:** Checkout slow\n\n**1. Scale out**",
+      teamsParts: ["**Incident INC-42:** Checkout slow", "**1. Scale out**"],
       submitTitle: "Approve and run",
       cancelTitle: "Cancel",
       value: `${SUGGESTION_ID.toString()}:fedcba9876543210`,
@@ -320,6 +321,10 @@ describe("Approve and run", () => {
       ((args["value"] as JSONObject)["suggestionId"] as ObjectID).toString(),
     ).toBe(SUGGESTION_ID.toString());
     expect(args["from"]).toBe(WorkspaceType.Slack);
+    // The fix as the press read it: the answer names what it is for.
+    expect(
+      (args["suggestion"] as AutoRemediationSuggestion).incidentId?.toString(),
+    ).toBe(INCIDENT_ID.toString());
 
     // Told only them, where they pressed; the record's feed says the rest.
     expect(answers()).toEqual(["✅ You approved this fix."]);
@@ -348,7 +353,7 @@ describe("Approve and run", () => {
     );
 
     expect(answers()).toEqual([
-      "Could not approve the fix: This fix changed after the message you pressed was posted, so nothing was done.",
+      "Could not approve this fix: This fix changed after the message you pressed was posted, so nothing was done.",
     ]);
     expect(logPress).not.toHaveBeenCalled();
   });
@@ -369,6 +374,13 @@ describe("Dismiss", () => {
         from: WorkspaceType.Slack,
       }),
     );
+    expect(
+      (
+        (dismiss.mock.calls[0]![0] as JSONObject)[
+          "suggestion"
+        ] as AutoRemediationSuggestion
+      ).incidentId?.toString(),
+    ).toBe(INCIDENT_ID.toString());
     expect(answers()).toEqual(["You dismissed this fix."]);
     expect(logPress).toHaveBeenCalledWith(
       expect.objectContaining({ buttonAction: "dismiss_remediation" }),
@@ -389,7 +401,7 @@ describe("Dismiss", () => {
     );
 
     expect(answers()).toEqual([
-      "Could not dismiss the fix: Only suggested or planning remediations can be dismissed — this one is Approved.",
+      "Could not dismiss this fix: Only suggested or planning remediations can be dismissed — this one is Approved.",
     ]);
     expect(logPress).not.toHaveBeenCalled();
   });

@@ -9,8 +9,10 @@ import {
 import {
   describeRemediationTrackRecord,
   TRACK_RECORD_DID_NOT_WORK,
+  TRACK_RECORD_DID_NOT_WORK_EITHER,
   TRACK_RECORD_MIXED,
   TRACK_RECORD_WORKED,
+  TRACK_RECORD_WORKED_BOTH,
 } from "../../../Types/AutoRemediation/RemediationTrackRecordWords";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
@@ -85,6 +87,8 @@ const WORDS: Array<[string, string]> = [
   ...Object.values(CLOUD_KIND_WORDS),
   ...Object.values(CLOUD_CHANGE_SENTENCES),
   ...Object.values(TRACK_RECORD_RUN_TITLES),
+  TRACK_RECORD_WORKED_BOTH,
+  TRACK_RECORD_DID_NOT_WORK_EITHER,
 ]
   .map((word: string): [string, string] => {
     return [word, word];
@@ -185,10 +189,42 @@ describe("the sentences come out whole in the reader's language", () => {
     ).toBe("ECS-Dienst web: auf 1.000 Tasks hochskalieren");
     expect(
       describeRemediationTrackRecord(trackRecord(3, 0), translatorFor("de")),
-    ).toBe("Hat alle 3 Male geholfen, die es hier zuvor lief");
+    ).toBe("Hat bei allen 3 früheren Ausführungen hier geholfen");
     expect(
       describeRemediationTrackRecord(trackRecord(2, 1), translatorFor("de")),
-    ).toBe("Hat 2 der 3 Male geholfen, die es hier zuvor lief");
+    ).toBe("Hat bei 2 von 3 früheren Ausführungen hier geholfen");
+    expect(
+      describeRemediationTrackRecord(trackRecord(0, 3), translatorFor("de")),
+    ).toBe("Hat bei keiner der 3 früheren Ausführungen hier geholfen");
+  });
+
+  test("exactly two runs are 'both' and 'either' in every language, never a count of two", () => {
+    for (const language of LANGUAGES) {
+      const both: string = describeRemediationTrackRecord(
+        trackRecord(2, 0),
+        translatorFor(language),
+      );
+      const either: string = describeRemediationTrackRecord(
+        trackRecord(0, 2),
+        translatorFor(language),
+      );
+
+      expect({ language, both }).toEqual({
+        language,
+        both: readLocale(language)[TRACK_RECORD_WORKED_BOTH],
+      });
+      expect({ language, either }).toEqual({
+        language,
+        either: readLocale(language)[TRACK_RECORD_DID_NOT_WORK_EITHER],
+      });
+    }
+
+    expect(
+      describeRemediationTrackRecord(trackRecord(2, 0), translatorFor("de")),
+    ).toBe("Hat bei beiden früheren Ausführungen hier geholfen");
+    expect(
+      describeRemediationTrackRecord(trackRecord(0, 2), translatorFor("fr")),
+    ).toBe("N'a fonctionné aucune des deux fois où il a été exécuté ici");
   });
 
   test("Russian: 21 is in its one form, 22 in the general one, each reading right", () => {

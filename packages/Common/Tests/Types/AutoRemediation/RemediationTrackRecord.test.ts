@@ -13,8 +13,10 @@ import {
   describeRemediationTrackRecordLine,
   describeTrackRecordRunSubject,
   TRACK_RECORD_DID_NOT_WORK,
+  TRACK_RECORD_DID_NOT_WORK_EITHER,
   TRACK_RECORD_MIXED,
   TRACK_RECORD_WORKED,
+  TRACK_RECORD_WORKED_BOTH,
 } from "../../../Types/AutoRemediation/RemediationTrackRecordWords";
 import {
   AiRemediationCommandPlan,
@@ -282,14 +284,43 @@ describe("what a record says", () => {
   test("it never worked, said with the count", () => {
     expect(
       describeRemediationTrackRecord(
-        record({ workedCount: 0, didNotWorkCount: 2, runs: [] }),
+        record({ workedCount: 0, didNotWorkCount: 3, runs: [] }),
       ),
-    ).toBe("Didn't work the 2 times it ran here before");
+    ).toBe("Didn't work any of the 3 times it ran here before");
     expect(
       describeRemediationTrackRecord(
         record({ workedCount: 0, didNotWorkCount: 1, runs: [] }),
       ),
     ).toBe("Didn't work the one time it ran here before");
+  });
+
+  /*
+   * Two runs are "both" and "either", as a person says it: "Worked all 2
+   * times" and "Didn't work the 2 times" read as a machine counting.
+   */
+  test("exactly two runs: both, or either", () => {
+    expect(
+      describeRemediationTrackRecord(
+        record({ workedCount: 2, didNotWorkCount: 0, runs: [] }),
+      ),
+    ).toBe("Worked both times it ran here before");
+    expect(
+      describeRemediationTrackRecord(
+        record({ workedCount: 0, didNotWorkCount: 2, runs: [] }),
+      ),
+    ).toBe("Didn't work either time it ran here before");
+    // One of two is a count like any other.
+    expect(
+      describeRemediationTrackRecord(
+        record({ workedCount: 1, didNotWorkCount: 1, runs: [] }),
+      ),
+    ).toBe("Worked 1 of the 2 times it ran here before");
+    expect(TRACK_RECORD_WORKED_BOTH).toBe(
+      "Worked both times it ran here before",
+    );
+    expect(TRACK_RECORD_DID_NOT_WORK_EITHER).toBe(
+      "Didn't work either time it ran here before",
+    );
   });
 
   test("some worked: how many, of how many", () => {
@@ -305,9 +336,11 @@ describe("what a record says", () => {
       (text: string): string | undefined => {
         const dictionary: Record<string, string> = {
           "Worked all {{count}} times it ran here before":
-            "Hat alle {{count}} Male geholfen, die es hier lief",
+            "Hat bei allen {{count}} früheren Ausführungen hier geholfen",
           "Worked {{worked}} of the {{count}} times it ran here before":
-            "Hat {{worked}} von {{count}} Malen geholfen",
+            "Hat bei {{worked}} von {{count}} früheren Ausführungen hier geholfen",
+          "Worked both times it ran here before":
+            "Hat bei beiden früheren Ausführungen hier geholfen",
         };
 
         return dictionary[text];
@@ -320,13 +353,19 @@ describe("what a record says", () => {
         record({ workedCount: 3, didNotWorkCount: 0, runs: [] }),
         german,
       ),
-    ).toBe("Hat alle 3 Male geholfen, die es hier lief");
+    ).toBe("Hat bei allen 3 früheren Ausführungen hier geholfen");
     expect(
       describeRemediationTrackRecord(
         record({ workedCount: 1234, didNotWorkCount: 1, runs: [] }),
         german,
       ),
-    ).toBe("Hat 1.234 von 1.235 Malen geholfen");
+    ).toBe("Hat bei 1.234 von 1.235 früheren Ausführungen hier geholfen");
+    expect(
+      describeRemediationTrackRecord(
+        record({ workedCount: 2, didNotWorkCount: 0, runs: [] }),
+        german,
+      ),
+    ).toBe("Hat bei beiden früheren Ausführungen hier geholfen");
   });
 
   test("its sentences are about the past, never a promise", () => {
@@ -336,17 +375,23 @@ describe("what a record says", () => {
       TRACK_RECORD_MIXED,
     ];
 
-    for (const template of templates) {
-      for (const sentence of [template.one, template.other]) {
-        expect(sentence).toContain("before");
-        expect(sentence.toLowerCase()).not.toContain("will");
-      }
+    const sentences: Array<string> = [
+      ...templates.flatMap((template: PluralTemplate): Array<string> => {
+        return [template.one, template.other];
+      }),
+      TRACK_RECORD_WORKED_BOTH,
+      TRACK_RECORD_DID_NOT_WORK_EITHER,
+    ];
+
+    for (const sentence of sentences) {
+      expect(sentence).toContain("before");
+      expect(sentence.toLowerCase()).not.toContain("will");
     }
   });
 
   test("its line names the incidents and alerts it ran for", () => {
     expect(describeRemediationTrackRecordLine(record())).toBe(
-      "Worked all 2 times it ran here before (INC-41, INC-57).",
+      "Worked both times it ran here before (INC-41, INC-57).",
     );
     expect(
       describeRemediationTrackRecordLine(

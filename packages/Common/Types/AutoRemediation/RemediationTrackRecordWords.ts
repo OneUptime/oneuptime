@@ -2,6 +2,7 @@ import {
   createTranslator,
   DEFAULT_LANGUAGE,
   PluralTemplate,
+  translationKey,
   Translator,
 } from "../../UI/Utils/TranslateTemplate";
 import {
@@ -29,10 +30,23 @@ export const TRACK_RECORD_WORKED: PluralTemplate = {
   other: "Worked all {{count}} times it ran here before",
 };
 
+/*
+ * Exactly two runs are "both" and "either", as a person says it - never
+ * "all 2 times". A language's plural forms cannot say it (English has only
+ * "one" and "other"), so it is a sentence of its own.
+ */
+export const TRACK_RECORD_WORKED_BOTH: string = translationKey(
+  "Worked both times it ran here before",
+);
+
 export const TRACK_RECORD_DID_NOT_WORK: PluralTemplate = {
   one: "Didn't work the one time it ran here before",
-  other: "Didn't work the {{count}} times it ran here before",
+  other: "Didn't work any of the {{count}} times it ran here before",
 };
+
+export const TRACK_RECORD_DID_NOT_WORK_EITHER: string = translationKey(
+  "Didn't work either time it ran here before",
+);
 
 export const TRACK_RECORD_MIXED: PluralTemplate = {
   one: "Worked {{worked}} of the {{count}} times it ran here before",
@@ -51,9 +65,15 @@ export function describeRemediationTrackRecord(
 
   switch (getRemediationTrackRecordTone(record)) {
     case RemediationTrackRecordTone.Worked:
-      return translator.translatePlural(TRACK_RECORD_WORKED, total);
+      return total === 2
+        ? translator.translateText(TRACK_RECORD_WORKED_BOTH) ||
+            TRACK_RECORD_WORKED_BOTH
+        : translator.translatePlural(TRACK_RECORD_WORKED, total);
     case RemediationTrackRecordTone.DidNotWork:
-      return translator.translatePlural(TRACK_RECORD_DID_NOT_WORK, total);
+      return total === 2
+        ? translator.translateText(TRACK_RECORD_DID_NOT_WORK_EITHER) ||
+            TRACK_RECORD_DID_NOT_WORK_EITHER
+        : translator.translatePlural(TRACK_RECORD_DID_NOT_WORK, total);
     default:
       return translator.translatePlural(TRACK_RECORD_MIXED, total, {
         worked: translator.formatNumber(record.workedCount),
@@ -63,7 +83,7 @@ export function describeRemediationTrackRecord(
 
 /*
  * A record in one English line, with the incidents and alerts it names:
- * "Worked all 2 times it ran here before (INC-41, INC-57)." - for a chat
+ * "Worked both times it ran here before (INC-41, INC-57)." - for a chat
  * message.
  */
 export function describeRemediationTrackRecordLine(

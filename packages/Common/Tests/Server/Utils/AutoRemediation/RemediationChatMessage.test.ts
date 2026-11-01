@@ -1,6 +1,7 @@
 import RemediationChatMessage, {
   describeChangeTarget,
   describeChangeTier,
+  getChatLineBreak,
   RemediationActionValue,
   RemediationChatFix,
 } from "../../../../Server/Utils/AutoRemediation/RemediationChatMessage";
@@ -37,6 +38,7 @@ import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceCommandTier } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import {
+  WorkspaceMessageBlock,
   WorkspaceMessagePayloadButton,
   WorkspacePayloadButtons,
   WorkspacePayloadContext,
@@ -57,7 +59,13 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *  - it carries Review and approve (the one primary button), Dismiss and
  *    View in OneUptime, the same in both chats, each fix button carrying
  *    the fix and the fingerprint of what it runs, the same fingerprint
- *    approving reads;
+ *    approving reads, and a quiet line saying nothing runs until it is
+ *    approved;
+ *  - each line of a change is a line of its own in both chats: a line
+ *    break in Slack, a paragraph in Microsoft Teams (where a single newline
+ *    is a space), and in Teams each change a text block of its own;
+ *  - a runbook's message does not name the runbook twice: the line above
+ *    the buttons names it, its dialog does again;
  *  - the dialog says what the fix is for, everything it runs - each
  *    change's reason, undo and dry run - and that approving runs exactly
  *    that, under your name, watched for its window and, for commands,
@@ -180,15 +188,15 @@ describe("what the message lists", () => {
     expect(text).not.toContain("Undo:");
   });
 
-  test("a kubectl change: its number, tier and cluster, then its command", () => {
+  test("a kubectl change: its number, then how risky and where as its heading, then its command", () => {
     const text: string = RemediationChatMessage.describeChanges(
       commandFix([kubectlChange()]),
       { withDetails: false },
     ).toString();
 
-    expect(text).toContain(
-      '**2.** · riskier change on cluster "prod-eu-west-1"',
-    );
+    // No stray separator after the number: the facts are the heading.
+    expect(text).toContain('**2.** Riskier change on cluster "prod-eu-west-1"');
+    expect(text).not.toContain("**2.** ·");
     expect(text).toContain(
       "`kubectl rollout restart deployment/checkout-api -n checkout`",
     );
@@ -217,7 +225,7 @@ describe("what the message lists", () => {
     ).toString();
 
     expect(worked).toContain(
-      "✅ Worked all 2 times it ran here before (INC-41).",
+      "✅ Worked both times it ran here before (INC-41).",
     );
 
     const failed: string = RemediationChatMessage.describeChanges(
@@ -301,6 +309,134 @@ describe("what the message lists", () => {
     expect(text).toContain("`` kubectl annotate pod web `x` --overwrite ``");
   });
 
+  test("a change's heading: its words first when it has them, else its facts", () => {
+    expect(
+      RemediationChatMessage.describeCommandHeading(cloudChange()).toString(),
+    ).toBe(
+      '**1. Scale the ECS service checkout-api out to 8 tasks** · safe change on AWS account "prod"',
+    );
+    // A target and no tier: "On ...", still a heading.
+    expect(
+      RemediationChatMessage.describeCommandHeading(
+        kubectlChange({ kubectlTier: undefined }),
+      ).toString(),
+    ).toBe('**2.** On cluster "prod-eu-west-1"');
+    // Nothing to say but its number.
+    expect(
+      RemediationChatMessage.describeCommandHeading({
+        ...kubectlChange({ kubectlTier: undefined }),
+        stepType: RunbookStepType.Bash,
+      }).toString(),
+    ).toBe("**2.**");
+  });
+
+  test("in Microsoft Teams each line of a change is a paragraph, each change a part of its own", () => {
+    const fix: RemediationChatFix = commandFix([
+      cloudChange(),
+      kubectlChange(),
+    ]);
+    const teams: Array<string> = RemediationChatMessage.describeChangeParts(
+      fix,
+      { withDetails: false, workspaceType: WorkspaceType.MicrosoftTeams },
+    ).map((part: { toString: () => string }): string => {
+      return part.toString();
+    });
+
+    expect(teams).toHaveLength(2);
+    expect(teams[0]).toBe(
+      [
+        '**1. Scale the ECS service checkout-api out to 8 tasks** · safe change on AWS account "prod"',
+        `\`cloud scale-out ${ECS} --count 8\``,
+      ].join("\n\n"),
+    );
+    expect(teams[1]!.split("\n\n")).toEqual([
+      '**2.** Riskier change on cluster "prod-eu-west-1"',
+      "`kubectl rollout restart deployment/checkout-api -n checkout`",
+    ]);
+    // A single newline is a space in Teams: none is left in a part.
+    for (const part of teams) {
+      expect(part.split("\n\n").join("")).not.toContain("\n");
+    }
+
+    // Slack breaks lines at a newline, and changes with a blank line.
+    expect(
+      RemediationChatMessage.describeChanges(fix, {
+        withDetails: false,
+      }).toString(),
+    ).toBe(
+      RemediationChatMessage.describeChangeParts(fix, { withDetails: false })
+        .map((part: { toString: () => string }): string => {
+          return part.toString();
+        })
+        .join("\n\n"),
+    );
+    expect(getChatLineBreak(WorkspaceType.Slack)).toBe("\n");
+    expect(getChatLineBreak(WorkspaceType.MicrosoftTeams)).toBe("\n\n");
+  });
+
+  test("an MCP fix is one part, a line a call, broken as each chat breaks lines", () => {
+    const mcp: ExternalMcpToolCallPlan = {
+      calls: [
+        {
+          sequence: 1,
+          serverId: "90000000-0000-4000-8000-000000000009",
+          serverNameSnapshot: "Feature flags",
+          toolName: "set_flag",
+          arguments: {},
+          status: ExternalMcpToolCallStatus.Proposed,
+        },
+        {
+          sequence: 2,
+          serverId: "90000000-0000-4000-8000-000000000009",
+          serverNameSnapshot: "Pager",
+          toolName: "add_note",
+          arguments: {},
+          status: ExternalMcpToolCallStatus.Proposed,
+        },
+      ],
+    };
+    const fix: RemediationChatFix = commandFix([], {
+      suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+      commandPlan: null,
+      mcpToolCallPlan: mcp,
+    });
+
+    expect(
+      RemediationChatMessage.describeChangeParts(fix, {
+        withDetails: false,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      }).map((part: { toString: () => string }): string => {
+        return part.toString();
+      }),
+    ).toEqual([
+      "**1.** Feature flags · `set_flag`\n\n**2.** Pager · `add_note`",
+    ]);
+    expect(
+      RemediationChatMessage.describeChanges(fix, {
+        withDetails: false,
+      }).toString(),
+    ).toBe("**1.** Feature flags · `set_flag`\n**2.** Pager · `add_note`");
+
+    // Nothing left to propose: no part at all.
+    expect(
+      RemediationChatMessage.describeChangeParts(
+        commandFix([], {
+          suggestionType: AutoRemediationSuggestionType.McpToolCalls,
+          commandPlan: null,
+          mcpToolCallPlan: {
+            calls: [
+              {
+                ...mcp.calls[0]!,
+                status: ExternalMcpToolCallStatus.Succeeded,
+              },
+            ],
+          },
+        }),
+        { withDetails: false },
+      ),
+    ).toEqual([]);
+  });
+
   test("a change's tier and target, in the card's words", () => {
     expect(describeChangeTier(cloudChange())).toBe("safe change");
     expect(describeChangeTier(kubectlChange())).toBe("riskier change");
@@ -331,7 +467,7 @@ describe("what the message lists", () => {
 });
 
 describe("the message's blocks", () => {
-  test("the same in Slack and in Microsoft Teams: the changes, three buttons and a quiet line", async () => {
+  test("in Slack and in Microsoft Teams: the changes, three buttons and a quiet line", async () => {
     const fix: RemediationChatFix = commandFix([cloudChange()]);
     const blocks: Array<MessageBlocksByWorkspaceType> =
       await RemediationChatMessage.getApprovalBlocks(fix);
@@ -341,7 +477,6 @@ describe("the message's blocks", () => {
         return each.workspaceType;
       }),
     ).toEqual([WorkspaceType.Slack, WorkspaceType.MicrosoftTeams]);
-    expect(blocks[0]!.messageBlocks).toEqual(blocks[1]!.messageBlocks);
 
     const [changes, buttons, note] = blocks[0]!.messageBlocks as [
       WorkspacePayloadMarkdown,
@@ -349,10 +484,24 @@ describe("the message's blocks", () => {
       WorkspacePayloadContext,
     ];
 
+    expect(blocks[0]!.messageBlocks).toHaveLength(3);
     expect(changes._type).toBe("WorkspacePayloadMarkdown");
     expect(changes.text).toContain("Scale the ECS service");
+    // Slack breaks the change's lines at newlines.
+    expect(changes.text).toContain(
+      'out to 8 tasks** · safe change on AWS account "prod"\n`cloud scale-out',
+    );
     expect(note._type).toBe("WorkspacePayloadContext");
     expect(note.text).toBe(getApprovalMessageNote());
+
+    // Teams: the same buttons and line, its change's lines as paragraphs.
+    const teams: Array<WorkspaceMessageBlock> = blocks[1]!.messageBlocks;
+    expect(teams).toHaveLength(3);
+    expect(teams[1]).toEqual(buttons);
+    expect(teams[2]).toEqual(note);
+    expect((teams[0] as WorkspacePayloadMarkdown).text).toContain(
+      'out to 8 tasks** · safe change on AWS account "prod"\n\n`cloud scale-out',
+    );
 
     const expectedValue: string = `${SUGGESTION_ID.toString()}:${getRemediationPlanFingerprint(
       {
@@ -436,6 +585,42 @@ describe("the message's blocks", () => {
     ]);
   });
 
+  test("in Microsoft Teams, a text block a change", async () => {
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await RemediationChatMessage.getApprovalBlocks(
+        commandFix([cloudChange(), kubectlChange()]),
+      );
+
+    const slack: Array<WorkspaceMessageBlock> = blocks[0]!.messageBlocks;
+    const teams: Array<WorkspaceMessageBlock> = blocks[1]!.messageBlocks;
+
+    expect(
+      slack.map((block: WorkspaceMessageBlock): string => {
+        return block._type;
+      }),
+    ).toEqual([
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadButtons",
+      "WorkspacePayloadContext",
+    ]);
+    expect(
+      teams.map((block: WorkspaceMessageBlock): string => {
+        return block._type;
+      }),
+    ).toEqual([
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadMarkdown",
+      "WorkspacePayloadButtons",
+      "WorkspacePayloadContext",
+    ]);
+    expect((teams[0] as WorkspacePayloadMarkdown).text).toContain(
+      "Scale the ECS service",
+    );
+    expect((teams[1] as WorkspacePayloadMarkdown).text).toContain(
+      "Riskier change on cluster",
+    );
+  });
+
   test("a proposal's blocks read the kind of fix from what it now holds", async () => {
     const suggestion: AutoRemediationSuggestion =
       new AutoRemediationSuggestion();
@@ -462,15 +647,29 @@ describe("the message's blocks", () => {
     expect(
       (fromPlan[0]!.messageBlocks[0] as WorkspacePayloadMarkdown).text,
     ).toContain("Scale the ECS service");
-    expect(
-      (fromRunbook[0]!.messageBlocks[0] as WorkspacePayloadMarkdown).text,
-    ).toBe("Runbook **Restart pods**");
+
+    /*
+     * A runbook's message names it in the line above its buttons already:
+     * its blocks are the buttons and the quiet line, in both chats.
+     */
+    for (const each of fromRunbook) {
+      expect(
+        each.messageBlocks.map((block: WorkspaceMessageBlock): string => {
+          return block._type;
+        }),
+      ).toEqual(["WorkspacePayloadButtons", "WorkspacePayloadContext"]);
+    }
 
     const valueOf: (blocks: Array<MessageBlocksByWorkspaceType>) => string = (
       blocks: Array<MessageBlocksByWorkspaceType>,
     ): string => {
-      return (blocks[0]!.messageBlocks[1] as WorkspacePayloadButtons)
-        .buttons[0]!.value;
+      const buttons: WorkspacePayloadButtons = blocks[0]!.messageBlocks.find(
+        (block: WorkspaceMessageBlock): boolean => {
+          return block._type === "WorkspacePayloadButtons";
+        },
+      ) as WorkspacePayloadButtons;
+
+      return buttons.buttons[0]!.value;
     };
 
     expect(valueOf(fromPlan)).not.toBe(valueOf(fromRunbook));
@@ -660,6 +859,14 @@ describe("the buttons' words", () => {
 
   test("the product is named as the installation names it", () => {
     expect(getViewInProductTitle()).toBe("View in OneUptime");
-    expect(getApprovalMessageNote()).toContain("your own OneUptime account");
+  });
+
+  test("the quiet line says Review and approve runs nothing yet", () => {
+    expect(getApprovalMessageNote()).toBe(
+      "Review and approve shows the whole fix first. Nothing runs until you approve it.",
+    );
+    expect(getApprovalMessageNote()).toContain(
+      REMEDIATION_CHAT_WORDS.reviewAndApprove,
+    );
   });
 });

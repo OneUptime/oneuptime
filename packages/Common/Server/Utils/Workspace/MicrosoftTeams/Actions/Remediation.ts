@@ -129,6 +129,7 @@ export default class MicrosoftTeamsRemediationActions {
           props,
           value,
           from: WorkspaceType.MicrosoftTeams,
+          suggestion,
         });
 
       /*
@@ -151,6 +152,7 @@ export default class MicrosoftTeamsRemediationActions {
       props,
       value,
       from: WorkspaceType.MicrosoftTeams,
+      suggestion,
     });
 
     await MicrosoftTeamsActionAnswer.reply({
@@ -160,13 +162,20 @@ export default class MicrosoftTeamsRemediationActions {
   }
 
   /*
-   * The approval card: the dialog's title and everything the fix runs, and
-   * Approve and run, which carries the fix and its fingerprint.
+   * The approval card: the dialog's title, then what the fix is for, each
+   * change it runs and what approving does - a text block each, each line
+   * a paragraph, since a single newline in a card's text is a space in
+   * Teams - and Approve and run, which carries the fix and its
+   * fingerprint. A card over what Teams takes has its longest text cut
+   * (fitAdaptiveCard).
    */
   public static buildApprovalCard(
     dialog: RemediationApprovalDialog,
   ): JSONObject {
-    return {
+    const parts: Array<string> =
+      dialog.teamsParts.length > 0 ? dialog.teamsParts : [dialog.markdown];
+
+    return MicrosoftTeamsMessageSize.fitAdaptiveCard({
       type: "AdaptiveCard",
       $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
       version: "1.5",
@@ -178,11 +187,14 @@ export default class MicrosoftTeamsRemediationActions {
           weight: "Bolder",
           wrap: true,
         },
-        {
-          type: "TextBlock",
-          text: MicrosoftTeamsMessageSize.fitMarkdownText(dialog.markdown),
-          wrap: true,
-        },
+        ...parts.map((part: string): JSONObject => {
+          return {
+            type: "TextBlock",
+            text: MicrosoftTeamsMessageSize.fitMarkdownText(part),
+            wrap: true,
+            spacing: "Medium",
+          };
+        }),
       ],
       actions: [
         {
@@ -196,6 +208,6 @@ export default class MicrosoftTeamsRemediationActions {
           },
         },
       ],
-    };
+    });
   }
 }

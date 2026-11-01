@@ -11,8 +11,11 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * The report's Ruled out section is drawn as the list it is: one line per
  * cause, a cross before it, the cause first and why after it - each part
  * through the safe markdown viewer, citations and all - between the
- * evidence and the next steps. A Ruled out section that is not such a list
- * is drawn as written, like every other section.
+ * evidence and the next steps. Why it is ruled out starts with a capital
+ * once it sits on a line of its own; each cause reads the way it is
+ * written (an English cause on a Persian page keeps its cross at its
+ * left). A Ruled out section that is not such a list is drawn as written,
+ * like every other section.
  *
  * react-markdown is mocked in Common jest, so the viewer mock below stands
  * in for the real pipeline: it records what it was asked to draw and turns
@@ -60,6 +63,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import InvestigationReportView, {
   ComponentProps as ReportViewProps,
+  getRuledOutReasonForDisplay,
   REPORT_SECTION_BODY_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationReportView";
 import { AIChatCitationTargetType } from "../../../Types/AI/AIChatTypes";
@@ -160,9 +164,10 @@ describe("the causes an investigation ruled out", () => {
     expect(
       within(causes[0]!).getByTestId("investigation-ruled-out-cause-name"),
     ).toHaveTextContent("The orders database itself");
+    // Its own line, so it starts with a capital.
     expect(
       within(causes[0]!).getByTestId("investigation-ruled-out-cause-reason"),
-    ).toHaveTextContent("its CPU stayed under 30%");
+    ).toHaveTextContent("Its CPU stayed under 30%");
     expect(
       within(causes[1]!).getByTestId("investigation-ruled-out-cause-name"),
     ).toHaveTextContent("Traffic");
@@ -191,7 +196,7 @@ describe("the causes an investigation ruled out", () => {
     });
 
     expect(texts).toContain("The orders database itself");
-    expect(texts).toContain("its CPU stayed under 30% [C2].");
+    expect(texts).toContain("Its CPU stayed under 30% [C2].");
 
     for (const call of markdownViewerMock.mock.calls as Array<
       Array<MarkdownViewerProps>
@@ -230,6 +235,44 @@ describe("the causes an investigation ruled out", () => {
     const body: HTMLElement = heading.nextElementSibling as HTMLElement;
     expect(body).toHaveClass(REPORT_SECTION_BODY_CLASS_NAME);
     expect(body).toHaveTextContent("nothing else fits the timing.");
+  });
+
+  test("each cause reads the way it is written: English left to right, Persian right to left", () => {
+    renderReport(
+      REPORT.replace(
+        "- AWS Health lists no event in us-east-1.",
+        "- **\u067e\u0627\u06cc\u06af\u0627\u0647 \u062f\u0627\u062f\u0647:** \u0645\u0634\u06a9\u0644\u06cc \u0646\u062f\u0627\u0634\u062a.",
+      ),
+    );
+
+    const causes: Array<HTMLElement> = screen.getAllByTestId(
+      "investigation-ruled-out-cause",
+    );
+
+    expect(causes[0]).toHaveAttribute("dir", "ltr");
+    expect(causes[1]).toHaveAttribute("dir", "ltr");
+    expect(causes[2]).toHaveAttribute("dir", "rtl");
+  });
+
+  test("a reason starts with a capital only when its first word is plain lowercase", () => {
+    expect(getRuledOutReasonForDisplay("its CPU stayed under 30% [C2].")).toBe(
+      "Its CPU stayed under 30% [C2].",
+    );
+    expect(getRuledOutReasonForDisplay("flat, against last week")).toBe(
+      "Flat, against last week",
+    );
+    expect(getRuledOutReasonForDisplay("checked")).toBe("Checked");
+    // Already a capital, a name written its own way, code, a number: as written.
+    for (const reason of [
+      "AWS Health lists no event.",
+      "eBPF shows no drops.",
+      "iOS clients were fine.",
+      "`pg.pool.connect` waited 2 ms.",
+      "42 queries ran, none slow.",
+      "",
+    ]) {
+      expect(getRuledOutReasonForDisplay(reason)).toBe(reason);
+    }
   });
 
   test("a report without the section draws none", () => {

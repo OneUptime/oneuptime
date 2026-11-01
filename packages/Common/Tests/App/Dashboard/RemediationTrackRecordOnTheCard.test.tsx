@@ -21,6 +21,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import RemediationStep from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStep";
 import RemediationTrackRecordLine, {
+  TRACK_RECORD_RUN_LINK_CLASS_NAMES,
   TRACK_RECORD_RUN_TITLES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationTrackRecordLine";
 import {
@@ -57,8 +58,9 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  *  - a change that waits for approval says how the same change went the
  *    last times it ran here (RemediationTrackRecordLine): its words, a dot
  *    coloured by how it went - red words when it never worked - and the
- *    incidents and alerts it ran for, each a link to its page, saying on
- *    hover how that run went;
+ *    incidents and alerts it ran for, kept together, each a link to its
+ *    page that says how that run went (its title) and is red when that
+ *    run did not work;
  *  - once the change has run, its outcome is what it says, and the record
  *    is gone; a record that cannot be read is no line.
  */
@@ -232,7 +234,20 @@ describe("RemediationTrackRecordLine", () => {
     expect(runs[1]!.getAttribute("href")).toBe(
       `/dashboard/${PROJECT_ID}/alerts/${EARLIER_ALERT_ID}`,
     );
-    expect(within(runs[0]!).getByTitle("Worked here")).toBeInTheDocument();
+    // The link says how its run went: a screen reader reads it with it.
+    expect(runs[0]).toHaveAttribute("title", "Worked here");
+    expect(runs[0]).toHaveClass("text-indigo-600");
+    expect(runs[0]).not.toHaveClass("text-rose-700");
+
+    // The runs stay together, apart from the sentence.
+    const group: HTMLElement = screen.getByTestId(
+      "remediation-track-record-runs",
+    );
+    expect(
+      within(group).getAllByTestId("remediation-track-record-run"),
+    ).toEqual(runs);
+    expect(group).toHaveClass("inline-flex", "flex-wrap");
+    expect(line).toContainElement(group);
   });
 
   test("a change that never worked here is said in red, after a red dot", () => {
@@ -262,7 +277,7 @@ describe("RemediationTrackRecordLine", () => {
       "remediation-command-track-record-text",
     );
     expect(text).toHaveTextContent(
-      "Didn't work the 2 times it ran here before",
+      "Didn't work either time it ran here before",
     );
     expect(text.parentElement!).toHaveClass(
       REMEDIATION_FIX_FACT_ALARMING_TEXT_CLASS_NAME,
@@ -270,11 +285,60 @@ describe("RemediationTrackRecordLine", () => {
     expect(
       text.parentElement!.querySelector("[aria-hidden='true']"),
     ).toHaveClass("bg-rose-500");
-    expect(
-      within(screen.getByTestId("remediation-track-record-run")).getByTitle(
-        TRACK_RECORD_RUN_TITLES[RemediationTrackRecordOutcome.DidNotWork],
-      ),
-    ).toBeInTheDocument();
+    const run: HTMLElement = screen.getByTestId("remediation-track-record-run");
+    expect(run).toHaveAttribute(
+      "title",
+      TRACK_RECORD_RUN_TITLES[RemediationTrackRecordOutcome.DidNotWork],
+    );
+    expect(run).toHaveClass("text-rose-700");
+  });
+
+  test("worked some times: the runs that did not work are the red links", () => {
+    render(
+      <RemediationTrackRecordLine
+        record={record({
+          workedCount: 2,
+          didNotWorkCount: 1,
+          runs: [
+            {
+              subjectKind: "incident",
+              subjectId: EARLIER_INCIDENT_ID,
+              subjectNumber: "INC-41",
+              ranAt: "2026-10-28T10:00:00.000Z",
+              outcome: RemediationTrackRecordOutcome.DidNotWork,
+            },
+            {
+              subjectKind: "alert",
+              subjectId: EARLIER_ALERT_ID,
+              subjectNumber: "#305",
+              ranAt: "2026-10-20T10:00:00.000Z",
+              outcome: RemediationTrackRecordOutcome.Worked,
+            },
+          ],
+        })}
+      />,
+    );
+
+    const [failed, worked] = screen.getAllByTestId(
+      "remediation-track-record-run",
+    ) as [HTMLElement, HTMLElement];
+
+    expect(failed).toHaveTextContent("INC-41");
+    expect(failed).toHaveAttribute("title", "Didn't work here");
+    for (const name of TRACK_RECORD_RUN_LINK_CLASS_NAMES[
+      RemediationTrackRecordOutcome.DidNotWork
+    ].split(" ")) {
+      expect(failed).toHaveClass(name);
+    }
+
+    expect(worked).toHaveTextContent("#305");
+    expect(worked).toHaveAttribute("title", "Worked here");
+    for (const name of TRACK_RECORD_RUN_LINK_CLASS_NAMES[
+      RemediationTrackRecordOutcome.Worked
+    ].split(" ")) {
+      expect(worked).toHaveClass(name);
+    }
+    expect(worked).not.toHaveClass("text-rose-700");
   });
 
   test("worked some times and not others: amber, and a run without a number is counted, not linked", () => {
@@ -307,6 +371,10 @@ describe("RemediationTrackRecordLine", () => {
     expect(
       screen.queryAllByTestId("remediation-track-record-run"),
     ).toHaveLength(0);
+    // Nothing to keep together: no empty group.
+    expect(
+      screen.queryByTestId("remediation-track-record-runs"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -362,6 +430,16 @@ describe("a cloud change on the Remediation step", () => {
     expect(
       within(row).queryByTestId("remediation-command-track-record"),
     ).not.toBeInTheDocument();
+  });
+
+  test("the fix's source is set apart, so an English name keeps its quotes on a right-to-left page", async () => {
+    await renderCommandRow(fix([cloudCommand()]), CLOUD_COMMAND);
+
+    const source: HTMLElement = screen.getByTestId("remediation-fix-source");
+    const isolated: Element | null = source.firstElementChild;
+
+    expect(isolated?.tagName).toBe("BDI");
+    expect(isolated).toHaveTextContent('AI remediation for AWS account "prod"');
   });
 
   test("a record that cannot be read is no line", async () => {

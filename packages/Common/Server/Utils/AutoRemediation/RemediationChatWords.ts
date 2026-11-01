@@ -28,9 +28,17 @@ export function getViewInProductTitle(): string {
   return `View in ${ProductBrandingText.getProductName()}`;
 }
 
-// The quiet line under a fix's buttons.
+/*
+ * The quiet line under a fix's buttons: what pressing Review and approve
+ * does, so nobody holds back from it for fear it runs the fix. The dialog
+ * it opens says the rest: that approving runs it under the person's name,
+ * watched.
+ */
+export const APPROVAL_MESSAGE_NOTE: string =
+  "Review and approve shows the whole fix first. Nothing runs until you approve it.";
+
 export function getApprovalMessageNote(): string {
-  return `Review and approve shows everything the fix runs before anything runs. You approve as your own ${ProductBrandingText.getProductName()} account.`;
+  return APPROVAL_MESSAGE_NOTE;
 }
 
 /*

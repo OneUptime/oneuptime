@@ -20,6 +20,7 @@ import {
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import { getShownMarkdownReadingDirection } from "Common/UI/Components/Markdown.tsx/MarkdownReadingDirection";
 import type {
   MarkdownEventReference,
   MarkdownInlineReferenceRenderers,
@@ -57,6 +58,26 @@ export const REPORT_SECTION_BODY_CLASS_NAME: string =
 export const REPORT_CAVEAT_TEXT: string = translationKey(
   "AI-generated first pass — verify before acting.",
 );
+
+/*
+ * A word of lowercase letters at the start of a text, before a space, a
+ * mark or the end: "its" in "its CPU stayed ...", never "eBPF" or "iOS".
+ */
+const LOWERCASE_FIRST_WORD: RegExp = /^[a-z]+(?=[\s,.;:!?)]|$)/;
+
+/*
+ * Why a ruled-out cause is ruled out, as its own line: the model writes it
+ * after the cause and a colon - "**A traffic spike:** checkout requests
+ * were flat ..." - so it starts in lowercase, which reads wrong once it
+ * sits on a line under the cause. A first word of plain lowercase letters
+ * takes a capital; anything else (code, a number, "eBPF") is left as
+ * written.
+ */
+export function getRuledOutReasonForDisplay(reasonMarkdown: string): string {
+  return LOWERCASE_FIRST_WORD.test(reasonMarkdown)
+    ? `${reasonMarkdown.charAt(0).toUpperCase()}${reasonMarkdown.slice(1)}`
+    : reasonMarkdown;
+}
 
 /*
  * A completed AI investigation, laid out for a responder as one plain
@@ -336,9 +357,19 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
                             cause: RuledOutCause,
                             causeIndex: number,
                           ): ReactElement => {
+                            /*
+                             * Each cause reads the way it is written, as
+                             * the report's other lists do (the markdown
+                             * viewer's MarkdownReadingDirection): an
+                             * English cause on a Persian page keeps its
+                             * cross beside its first word, at the left.
+                             */
                             return (
                               <li
                                 key={`${headingId}-cause-${causeIndex}`}
+                                dir={getShownMarkdownReadingDirection(
+                                  `${cause.causeMarkdown}\n${cause.reasonMarkdown}`,
+                                )}
                                 data-testid="investigation-ruled-out-cause"
                                 className="flex items-start gap-3"
                               >
@@ -365,7 +396,11 @@ const InvestigationReportView: FunctionComponent<ComponentProps> = (
                                   )}
                                   {cause.reasonMarkdown ? (
                                     <div data-testid="investigation-ruled-out-cause-reason">
-                                      {renderMarkdown(cause.reasonMarkdown)}
+                                      {renderMarkdown(
+                                        getRuledOutReasonForDisplay(
+                                          cause.reasonMarkdown,
+                                        ),
+                                      )}
                                     </div>
                                   ) : (
                                     <></>

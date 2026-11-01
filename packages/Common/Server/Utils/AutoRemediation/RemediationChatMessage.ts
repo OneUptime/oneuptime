@@ -125,6 +125,18 @@ function capped(text: string, maxChars: number): string {
 }
 
 /*
+ * How a chat breaks the lines of one change - its heading, its command,
+ * how it went before. Slack breaks a line at a newline. Microsoft Teams
+ * reads a single newline in a card's text as a space, and a change's
+ * heading, command and record would run into one line there: in Teams each
+ * line is a paragraph of its own, and each change a text block of its own
+ * (getApprovalBlocks, describeApprovalParts).
+ */
+export function getChatLineBreak(workspaceType: WorkspaceType): string {
+  return workspaceType === WorkspaceType.MicrosoftTeams ? "\n\n" : "\n";
+}
+
+/*
  * How risky a change is, in the card's own words: what the policy tiered it
  * when the fix was proposed (the agent checks it again when it runs).
  */
@@ -254,29 +266,36 @@ export default class RemediationChatMessage {
   }
 
   /*
-   * What the fix runs, as chat Markdown: one entry per change, numbered,
-   * each with a cloud change's words, its exact command, how risky it is
-   * and its track record. With details (the dialog): each change's reason,
-   * its undo and its dry run too.
+   * What the fix runs, as chat Markdown, a part a change: its heading
+   * (describeCommandHeading), its exact command and its track record, and
+   * with details (the dialog) its reason, its undo and its dry run too -
+   * each on a line of its own, broken as the chat breaks lines
+   * (getChatLineBreak). An MCP fix is one part, a line a call; a runbook
+   * one line.
    */
-  public static describeChanges(
+  public static describeChangeParts(
     fix: RemediationChatFix,
-    options: { withDetails: boolean },
-  ): MarkdownText {
+    options: {
+      withDetails: boolean;
+      // Slack's when not given.
+      workspaceType?: WorkspaceType | undefined;
+    },
+  ): Array<MarkdownText> {
+    const workspaceType: WorkspaceType =
+      options.workspaceType || WorkspaceType.Slack;
+
     if (
       fix.suggestionType === AutoRemediationSuggestionType.CommandPlan &&
       fix.commandPlan
     ) {
-      return FeedMarkdown.join(
-        fix.commandPlan.commands.map(
-          (command: AiRemediationCommand): MarkdownText => {
-            return RemediationChatMessage.describeCommand(
-              command,
-              options.withDetails,
-            );
-          },
-        ),
-        "\n\n",
+      return fix.commandPlan.commands.map(
+        (command: AiRemediationCommand): MarkdownText => {
+          return RemediationChatMessage.describeCommand({
+            command,
+            withDetails: options.withDetails,
+            workspaceType,
+          });
+        },
       );
     }
 
@@ -287,20 +306,46 @@ export default class RemediationChatMessage {
       const calls: Array<ExternalMcpToolCall> =
         ExternalMcpToolCallPlanUtil.getProposedCalls(fix.mcpToolCallPlan);
 
-      return FeedMarkdown.join(
-        calls.map((call: ExternalMcpToolCall): MarkdownText => {
-          return mdText`**${String(call.sequence)}.** ${capped(call.serverNameSnapshot, 120)} · \`${capped(call.toolName, 120)}\``;
-        }),
-        "\n",
-      );
+      if (calls.length === 0) {
+        return [];
+      }
+
+      return [
+        FeedMarkdown.join(
+          calls.map((call: ExternalMcpToolCall): MarkdownText => {
+            return mdText`**${String(call.sequence)}.** ${capped(call.serverNameSnapshot, 120)} · \`${capped(call.toolName, 120)}\``;
+          }),
+          getChatLineBreak(workspaceType),
+        ),
+      ];
     }
 
-    return mdText`Runbook **${capped(fix.runbookName || "Runbook", 200)}**`;
+    return [mdText`Runbook **${capped(fix.runbookName || "Runbook", 200)}**`];
   }
 
-  private static describeCommand(
+  // The changes as one Slack Markdown text: a change a paragraph.
+  public static describeChanges(
+    fix: RemediationChatFix,
+    options: { withDetails: boolean },
+  ): MarkdownText {
+    return FeedMarkdown.join(
+      RemediationChatMessage.describeChangeParts(fix, {
+        withDetails: options.withDetails,
+        workspaceType: WorkspaceType.Slack,
+      }),
+      "\n\n",
+    );
+  }
+
+  /*
+   * A change's first line: its number and, for a cloud change, what it does
+   * in plain words, in bold - then how risky it is and what it runs on:
+   * '**1. Scale the ECS service checkout-api out to 8 tasks** · safe change
+   * on AWS account "prod"'. A change with no plain words is headed by those
+   * facts: '**2.** Riskier change on cluster "prod-eu-west-1"'.
+   */
+  public static describeCommandHeading(
     command: AiRemediationCommand,
-    withDetails: boolean,
   ): MarkdownText {
     const words: CloudChangeWords | null =
       command.stepType === RunbookStepType.ResourceCommand
@@ -311,23 +356,49 @@ export default class RemediationChatMessage {
         : null;
     const tier: string | null = describeChangeTier(command);
     const target: string | null = describeChangeTarget(command);
-    const facts: Array<string> = [tier, target ? `on ${target}` : null].filter(
-      (fact: string | null): fact is string => {
+    const facts: string = [tier, target ? `on ${target}` : null]
+      .filter((fact: string | null): fact is string => {
         return Boolean(fact);
-      },
-    );
-    const factsText: string = facts.length > 0 ? ` · ${facts.join(" ")}` : "";
+      })
+      .join(" ");
+    const sequence: string = String(command.sequence);
+
+    if (words) {
+      return facts
+        ? mdText`**${sequence}. ${words.sentence}** · ${facts}`
+        : mdText`**${sequence}. ${words.sentence}**`;
+    }
+
+    if (!facts) {
+      return mdText`**${sequence}.**`;
+    }
+
+    const heading: string = `${facts.charAt(0).toUpperCase()}${facts.slice(1)}`;
+
+    return mdText`**${sequence}.** ${heading}`;
+  }
+
+  private static describeCommand(data: {
+    command: AiRemediationCommand;
+    withDetails: boolean;
+    workspaceType: WorkspaceType;
+  }): MarkdownText {
+    const { command, withDetails } = data;
 
     const lines: Array<MarkdownText> = [
-      words
-        ? mdText`**${String(command.sequence)}. ${words.sentence}**${factsText}`
-        : mdText`**${String(command.sequence)}.**${factsText}`,
+      RemediationChatMessage.describeCommandHeading(command),
       mdText`\`${command.command}\``,
     ];
 
     if (withDetails && command.rationale) {
+      const rationale: string = capped(command.rationale, MAX_RATIONALE_CHARS);
+
       lines.push(
-        mdText`Why: ${FeedMarkdown.aiWritten(capped(command.rationale, MAX_RATIONALE_CHARS))}`,
+        mdText`Why: ${
+          data.workspaceType === WorkspaceType.MicrosoftTeams
+            ? FeedMarkdown.aiWrittenForTeams(rationale)
+            : FeedMarkdown.aiWritten(rationale)
+        }`,
       );
     }
 
@@ -347,7 +418,7 @@ export default class RemediationChatMessage {
       );
     }
 
-    return FeedMarkdown.join(lines, "\n");
+    return FeedMarkdown.join(lines, getChatLineBreak(data.workspaceType));
   }
 
   private static describeDryRun(command: AiRemediationCommand): MarkdownText {
@@ -376,15 +447,19 @@ export default class RemediationChatMessage {
   }
 
   /*
-   * The approval dialog: what the fix is for, everything it runs, and what
-   * approving does - in the person's own name, watched and undone.
+   * The approval dialog in parts: what the fix is for, each change it runs,
+   * and what approving does - in the person's own name, watched and undone.
+   * Slack's modal joins them (describeApproval); Microsoft Teams' card draws
+   * each as a text block of its own.
    */
-  public static describeApproval(data: {
+  public static describeApprovalParts(data: {
     fix: RemediationChatFix;
     // "Incident INC-42", "Alert #305".
     subjectName: string;
     subjectTitle?: string | undefined;
-  }): MarkdownText {
+    // Slack's when not given.
+    workspaceType?: WorkspaceType | undefined;
+  }): Array<MarkdownText> {
     const window: number = data.fix.verificationWindowMinutes || 15;
     const product: string = ProductBrandingText.getProductName();
     const watched: MarkdownText =
@@ -396,23 +471,72 @@ export default class RemediationChatMessage {
       ? mdText`**${data.subjectName}:** ${capped(data.subjectTitle, 200)}`
       : mdText`**${data.subjectName}**`;
 
+    return [
+      subject,
+      ...RemediationChatMessage.describeChangeParts(data.fix, {
+        withDetails: true,
+        workspaceType: data.workspaceType,
+      }),
+      mdText`Approving runs exactly what is shown, under your name. ${watched}`,
+    ];
+  }
+
+  // The approval dialog as one Slack Markdown text: a part a paragraph.
+  public static describeApproval(data: {
+    fix: RemediationChatFix;
+    // "Incident INC-42", "Alert #305".
+    subjectName: string;
+    subjectTitle?: string | undefined;
+  }): MarkdownText {
     return FeedMarkdown.join(
-      [
-        subject,
-        RemediationChatMessage.describeChanges(data.fix, {
-          withDetails: true,
-        }),
-        mdText`Approving runs exactly what is shown, under your name. ${watched}`,
-      ],
+      RemediationChatMessage.describeApprovalParts({
+        ...data,
+        workspaceType: WorkspaceType.Slack,
+      }),
       "\n\n",
     );
   }
 
   /*
+   * What a fix's message lists before its buttons, in a chat's blocks:
+   * Slack's one text of every change; a text block a change in Microsoft
+   * Teams (getChatLineBreak). Nothing for a runbook: the message above the
+   * buttons names it already, and its dialog names it again.
+   */
+  private static getChangeBlocks(
+    fix: RemediationChatFix,
+    workspaceType: WorkspaceType,
+  ): Array<WorkspacePayloadMarkdown> {
+    if (fix.suggestionType === AutoRemediationSuggestionType.Runbook) {
+      return [];
+    }
+
+    const parts: Array<MarkdownText> =
+      workspaceType === WorkspaceType.MicrosoftTeams
+        ? RemediationChatMessage.describeChangeParts(fix, {
+            withDetails: false,
+            workspaceType,
+          })
+        : [RemediationChatMessage.describeChanges(fix, { withDetails: false })];
+
+    return parts
+      .map((part: MarkdownText): string => {
+        return part.toString();
+      })
+      .filter((text: string): boolean => {
+        return Boolean(text.trim());
+      })
+      .map((text: string): WorkspacePayloadMarkdown => {
+        return { _type: "WorkspacePayloadMarkdown", text };
+      });
+  }
+
+  /*
    * The blocks a "needs your approval" message carries in the record's
    * Slack and Microsoft Teams channels: the changes, then Review and
-   * approve, Dismiss and View in OneUptime. Empty when the fix cannot be
-   * described - the message then says what it always said.
+   * approve, Dismiss and View in OneUptime, and a quiet line on what
+   * pressing does. Empty when the fix cannot be described - the message
+   * then says what it always said.
    */
   public static async getApprovalBlocks(
     fix: RemediationChatFix,
@@ -425,13 +549,6 @@ export default class RemediationChatMessage {
 
       const viewUrl: URL | null =
         await RemediationChatMessage.getSubjectUrl(fix);
-
-      const changes: WorkspacePayloadMarkdown = {
-        _type: "WorkspacePayloadMarkdown",
-        text: RemediationChatMessage.describeChanges(fix, {
-          withDetails: false,
-        }).toString(),
-      };
 
       const buttons: Array<WorkspaceMessagePayloadButton> = [
         {
@@ -469,14 +586,14 @@ export default class RemediationChatMessage {
         text: getApprovalMessageNote(),
       };
 
-      const blocks: Array<WorkspaceMessageBlock> = [
-        changes,
-        buttonsBlock,
-        note,
-      ];
-
       return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams].map(
         (workspaceType: WorkspaceType): MessageBlocksByWorkspaceType => {
+          const blocks: Array<WorkspaceMessageBlock> = [
+            ...RemediationChatMessage.getChangeBlocks(fix, workspaceType),
+            buttonsBlock,
+            note,
+          ];
+
           return { workspaceType, messageBlocks: blocks };
         },
       );

@@ -1310,7 +1310,7 @@ const SUBMITTED_FORMS: ReadonlyArray<SubmittedForm> = [
     }),
     fields: {},
     confirmation: menuConfirmation(
-      "✅ You approved this fix: OneUptime AI is making it now. Its incident or alert in OneUptime shows how it goes.",
+      "✅ You approved this fix. OneUptime AI is making it now, and the incident in OneUptime shows how it goes.",
       "You approved this fix",
     ),
     failureReply: ACTION_FAILED,

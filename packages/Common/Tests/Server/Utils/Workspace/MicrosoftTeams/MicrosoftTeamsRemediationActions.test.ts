@@ -27,6 +27,20 @@ import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorized
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
+import IncidentService from "../../../../../Server/Services/IncidentService";
+import RemediationChatMessage from "../../../../../Server/Utils/AutoRemediation/RemediationChatMessage";
+import { MessageBlocksByWorkspaceType } from "../../../../../Server/Services/WorkspaceNotificationRuleService";
+import MicrosoftTeamsUtil from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import URL from "../../../../../Types/API/URL";
+import AutoRemediationSuggestionType from "../../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import {
+  AiRemediationCommand,
+  AiRemediationCommandPolicyVerdict,
+} from "../../../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import AiResourceType from "../../../../../Types/ResourceAiAgent/AiResourceType";
+import { ResourceCommandTier } from "../../../../../Types/ResourceAiAgent/ResourceAiAccess";
+import { KubectlCommandTier } from "../../../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import RunbookStepType from "../../../../../Types/Runbook/RunbookStepType";
 
 /*
  * Contract under test - a fix OneUptime AI proposes, approved or dismissed
@@ -44,7 +58,11 @@ import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
  *    own catch, which answers every press's refusal; a fix that is gone or
  *    a press that came too late is answered here;
  *  - an account that is not connected is asked to connect it, and to press
- *    the button again.
+ *    the button again;
+ *  - the fix's message, as Teams draws it: a text block a change, each of
+ *    its lines a paragraph - a single newline in a card's text is a space
+ *    in Teams, and the change's words, command and record would run into
+ *    one line.
  */
 
 type AnySpy = SpyInstance<(...args: Array<any>) => any>;
@@ -131,7 +149,8 @@ beforeEach(() => {
     .spyOn(WorkspaceRemediationActions, "getApprovalDialog")
     .mockResolvedValue({
       title: "Approve this fix?",
-      markdown: "**Incident INC-42:** Checkout slow",
+      markdown: "**Incident INC-42:** Checkout slow\n\n**1. Scale out**",
+      teamsParts: ["**Incident INC-42:** Checkout slow", "**1. Scale out**"],
       submitTitle: "Approve and run",
       cancelTitle: "Cancel",
       value: `${SUGGESTION_ID.toString()}:fedcba9876543210`,
@@ -383,24 +402,178 @@ describe("an account that is not connected", () => {
 });
 
 describe("the approval card", () => {
-  test("is the dialog's title, its Markdown, and one positive Approve and run", () => {
+  test("is the dialog's title, then a text block a part, and one positive Approve and run", () => {
     const built: JSONObject =
       MicrosoftTeamsRemediationActions.buildApprovalCard({
         title: "Approve this fix?",
-        markdown: "Everything it runs",
+        markdown: "**Incident INC-42:** Checkout slow\n\n**1. Scale out**",
+        teamsParts: [
+          "**Incident INC-42:** Checkout slow",
+          "**1. Scale out**\n\n`cloud scale-out web --count 8`",
+          "Approving runs exactly what is shown, under your name.",
+        ],
         submitTitle: "Approve and run",
         cancelTitle: "Cancel",
         value: VALUE,
       });
 
     expect(built["version"]).toBe("1.5");
+    /*
+     * A single newline in a card's text is a space in Teams: what the fix
+     * is for, each change and what approving does are blocks of their own,
+     * a little apart, never one run-on paragraph.
+     */
     expect(
       (built["body"] as Array<JSONObject>).map((element: JSONObject) => {
-        return [element["text"], element["wrap"]];
+        return [element["text"], element["wrap"], element["spacing"]];
       }),
     ).toEqual([
-      ["Approve this fix?", true],
-      ["Everything it runs", true],
+      ["Approve this fix?", true, undefined],
+      ["**Incident INC-42:** Checkout slow", true, "Medium"],
+      ["**1. Scale out**\n\n`cloud scale-out web --count 8`", true, "Medium"],
+      [
+        "Approving runs exactly what is shown, under your name.",
+        true,
+        "Medium",
+      ],
     ]);
+    expect((built["actions"] as Array<JSONObject>)[0]!["style"]).toBe(
+      "positive",
+    );
+  });
+
+  test("a dialog without parts still shows its Markdown", () => {
+    const built: JSONObject =
+      MicrosoftTeamsRemediationActions.buildApprovalCard({
+        title: "Approve this fix?",
+        markdown: "Everything it runs",
+        teamsParts: [],
+        submitTitle: "Approve and run",
+        cancelTitle: "Cancel",
+        value: VALUE,
+      });
+
+    expect(
+      (built["body"] as Array<JSONObject>).map((element: JSONObject) => {
+        return element["text"];
+      }),
+    ).toEqual(["Approve this fix?", "Everything it runs"]);
+  });
+
+  test("a card over what Teams takes has its longest text cut to fit", () => {
+    const long: string = "x".repeat(120000);
+    const built: JSONObject =
+      MicrosoftTeamsRemediationActions.buildApprovalCard({
+        title: "Approve this fix?",
+        markdown: long,
+        teamsParts: ["**Incident INC-42:** Checkout slow", long, long],
+        submitTitle: "Approve and run",
+        cancelTitle: "Cancel",
+        value: VALUE,
+      });
+
+    expect(JSON.stringify(built).length * 2).toBeLessThan(100 * 1024);
+    expect(built["actions"] as Array<JSONObject>).toHaveLength(1);
+  });
+});
+
+describe("the fix's message, as Teams draws it", () => {
+  const ECS: string =
+    "arn:aws:ecs:us-east-1:123456789012:service/prod/checkout-api";
+
+  function cloudChange(): AiRemediationCommand {
+    return {
+      sequence: 1,
+      stepType: RunbookStepType.ResourceCommand,
+      runnerId: "60000000-0000-4000-8000-000000000006",
+      runnerNameSnapshot: "Cloud AI agent",
+      resourceType: AiResourceType.AwsAccount,
+      resourceId: "50000000-0000-4000-8000-000000000005",
+      resourceNameSnapshot: "prod",
+      resourceCommandTier: ResourceCommandTier.SafeWrite,
+      command: `cloud scale-out ${ECS} --count 8`,
+      timeoutInMs: 60000,
+      rationale: "Tasks are saturated.",
+      expectedEffect: "Latency drops.",
+      policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+      trackRecord: { workedCount: 3, didNotWorkCount: 0, runs: [] },
+    };
+  }
+
+  function kubectlChange(): AiRemediationCommand {
+    return {
+      sequence: 2,
+      stepType: RunbookStepType.Kubectl,
+      runnerId: "60000000-0000-4000-8000-000000000007",
+      runnerNameSnapshot: "Kubernetes AI agent",
+      kubernetesClusterId: "70000000-0000-4000-8000-000000000007",
+      kubernetesClusterNameSnapshot: "prod-eu-west-1",
+      kubectlTier: KubectlCommandTier.RiskyWrite,
+      command: "kubectl rollout restart deployment/web -n shop",
+      timeoutInMs: 60000,
+      rationale: "Pods hold a stale config.",
+      expectedEffect: "Fresh pods pick it up.",
+      policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+    };
+  }
+
+  test("a text block a change, each line a paragraph of its own, then the buttons", async () => {
+    jest
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockResolvedValue(
+        URL.fromString(
+          "https://oneuptime.example.com/dashboard/10000000-0000-4000-8000-000000000001/incidents/40000000-0000-4000-8000-000000000004",
+        ),
+      );
+
+    const blocks: Array<MessageBlocksByWorkspaceType> =
+      await RemediationChatMessage.getApprovalBlocks({
+        suggestionId: SUGGESTION_ID,
+        projectId: PROJECT_ID,
+        incidentId: new ObjectID("40000000-0000-4000-8000-000000000004"),
+        suggestionType: AutoRemediationSuggestionType.CommandPlan,
+        commandPlan: { commands: [cloudChange(), kubectlChange()] },
+        verificationWindowMinutes: 15,
+      });
+
+    const teams: MessageBlocksByWorkspaceType = blocks.find(
+      (each: MessageBlocksByWorkspaceType): boolean => {
+        return each.workspaceType === WorkspaceType.MicrosoftTeams;
+      },
+    )!;
+
+    const drawn: JSONObject =
+      MicrosoftTeamsUtil.buildAdaptiveCardFromMessageBlocks({
+        messageBlocks: teams.messageBlocks,
+      });
+    const texts: Array<string> = (drawn["body"] as Array<JSONObject>).map(
+      (element: JSONObject): string => {
+        return String(element["text"] || "");
+      },
+    );
+
+    // Two changes, two blocks, then the quiet line.
+    expect(texts).toHaveLength(3);
+    expect(texts[0]!.split("\n\n")).toEqual([
+      '**1. Scale the ECS service checkout-api out to 8 tasks** · safe change on AWS account "prod"',
+      `\`cloud scale-out ${ECS} --count 8\``,
+      "✅ Worked all 3 times it ran here before.",
+    ]);
+    expect(texts[1]!.split("\n\n")).toEqual([
+      '**2.** Riskier change on cluster "prod-eu-west-1"',
+      "`kubectl rollout restart deployment/web -n shop`",
+    ]);
+    // No line of a change is left to run into the next.
+    for (const text of texts) {
+      expect(text.split("\n\n").join("")).not.toContain("\n");
+    }
+
+    expect(
+      (drawn["actions"] as Array<JSONObject>).map(
+        (action: JSONObject): unknown => {
+          return action["title"];
+        },
+      ),
+    ).toEqual(["Review and approve", "Dismiss", "View in OneUptime"]);
   });
 });
