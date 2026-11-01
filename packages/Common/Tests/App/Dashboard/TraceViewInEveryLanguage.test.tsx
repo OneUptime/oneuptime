@@ -1706,6 +1706,10 @@ describe.each(LANGUAGES)("the trace view in %s", (language: string) => {
     expect(
       within(header).getByText(word(language, "Trace"), { selector: "span" }),
     ).toBeInTheDocument();
+    // The root span's kind, as the Traces list and its sidebar word it.
+    expect(
+      within(header).getByText(word(language, "Server")),
+    ).toBeInTheDocument();
     expect(
       within(header).getByRole("button", {
         name: word(language, "Copy trace ID"),

@@ -629,7 +629,7 @@ describe.each(LANGUAGES)("the shared words in %s", (language: string) => {
         {
           filters: formatList(
             [
-              translator().translateTerm("severity", { inSentence: true }),
+              translator().translateTerm("Severity", { inSentence: true }),
               translator().translateTemplate("attribute {{name}}", {
                 name: "http.route",
               }),
