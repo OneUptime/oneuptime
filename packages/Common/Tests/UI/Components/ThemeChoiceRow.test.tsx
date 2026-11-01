@@ -303,7 +303,7 @@ describe("what is in use", () => {
   ])(
     "is still %s when the person signs in again (issue #5404)",
     (kept: ThemePreference, name: string, prefersDark: boolean) => {
-      const post: SpyInstance = jest
+      jest
         .spyOn(API, "post")
         .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
 
@@ -315,7 +315,7 @@ describe("what is in use", () => {
       render(<ThemeChoiceRow />);
 
       expect(pressed()).toEqual([name]);
-      post.mockRestore();
+      jest.restoreAllMocks();
     },
   );
 });
