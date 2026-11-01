@@ -161,10 +161,11 @@ describe("a DeploymentConfig's pods", () => {
     );
   });
 
-  test("a pod's page shows the DeploymentConfig that owns it", () => {
-    expect(source("Pages/Kubernetes/View/PodDetail.tsx")).toContain(
-      "getPodOwnerReferences(podObject.metadata)",
-    );
+  test("a pod's page shows the DeploymentConfig that owns it, in its namespace", () => {
+    const pod: string = source("Pages/Kubernetes/View/PodDetail.tsx");
+
+    expect(pod).toContain("getPodOwnerReferences(podObject.metadata)");
+    expect(pod).toContain("namespace={podObject?.metadata.namespace}");
   });
 });
 
@@ -228,6 +229,17 @@ describe("an Event's object leads to its page", () => {
     expect(table).toContain(
       "Service: PageMap.KUBERNETES_CLUSTER_VIEW_SERVICE_DETAIL",
     );
+  });
+
+  test("names repeat, so the kinds that do ask for the namespace", () => {
+    expect(table).toContain(
+      "data.namespace && PAGES_THAT_READ_THE_NAMESPACE.includes(kind)",
+    );
+    expect(table).toContain("namespace={row.namespace}");
+    expect(table).toContain("namespace: row.namespace");
+    expect(
+      source("Components/Kubernetes/KubernetesRecentWarningsCard.tsx"),
+    ).toContain("namespace={warning.namespace}");
   });
 
   test("a rollout's ReplicationController opens its DeploymentConfig", () => {
