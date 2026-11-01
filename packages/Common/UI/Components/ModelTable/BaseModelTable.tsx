@@ -745,8 +745,9 @@ export interface BaseTableProps<
  * the rows are drawn with: left out of a list nobody may read
  * (isNoAccessShown).
  */
-const LIST_READ_BUTTONS: WeakSet<CardButtonSchema | ReactElement> =
-  new WeakSet<CardButtonSchema | ReactElement>();
+const LIST_READ_BUTTONS: WeakSet<CardButtonSchema | ReactElement> = new WeakSet<
+  CardButtonSchema | ReactElement
+>();
 
 const ofListRead: (button: CardButtonSchema) => CardButtonSchema = (
   button: CardButtonSchema,
@@ -3274,24 +3275,26 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     }
 
     if (showFilterButton) {
-      headerbuttons.push(ofListRead({
-        title: "",
-        buttonStyle: ButtonStyleType.ICON,
-        buttonSize: ButtonSize.Small,
-        className: "",
-        onClick: () => {
-          /*
-           * Just open the popup. This used to `setQuery({})` first, which
-           * dropped the active filters (and refetched everything) the moment
-           * the user opened the filter UI — while the chips and the URL still
-           * advertised them. Filters now change only when the form applies
-           * them.
-           */
-          setShowFilterModal(true);
-        },
-        disabled: isFilterFetchLoading,
-        icon: IconProp.Filter,
-      }));
+      headerbuttons.push(
+        ofListRead({
+          title: "",
+          buttonStyle: ButtonStyleType.ICON,
+          buttonSize: ButtonSize.Small,
+          className: "",
+          onClick: () => {
+            /*
+             * Just open the popup. This used to `setQuery({})` first, which
+             * dropped the active filters (and refetched everything) the moment
+             * the user opened the filter UI — while the chips and the URL still
+             * advertised them. Filters now change only when the form applies
+             * them.
+             */
+            setShowFilterModal(true);
+          },
+          disabled: isFilterFetchLoading,
+          icon: IconProp.Filter,
+        }),
+      );
     }
 
     /*
@@ -3299,16 +3302,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
      * table has nothing to hide and nothing to reorder.
      */
     if (isColumnCustomizationEnabled && allColumns.length > 1) {
-      headerbuttons.push(ofListRead({
-        title: "",
-        buttonStyle: ButtonStyleType.ICON,
-        buttonSize: ButtonSize.Small,
-        className: "",
-        onClick: () => {
-          setShowColumnCustomizationModal(true);
-        },
-        icon: IconProp.TableCells,
-      }));
+      headerbuttons.push(
+        ofListRead({
+          title: "",
+          buttonStyle: ButtonStyleType.ICON,
+          buttonSize: ButtonSize.Small,
+          className: "",
+          onClick: () => {
+            setShowColumnCustomizationModal(true);
+          },
+          icon: IconProp.TableCells,
+        }),
+      );
     }
 
     setCardButtons(headerbuttons);

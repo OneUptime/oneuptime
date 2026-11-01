@@ -23,6 +23,7 @@ import {
   TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME,
   TABLE_ROW_RULE_CLASS_NAME,
   TABLE_VALUE_GIVE_CLASS_NAME,
+  TABLE_VALUE_WHOLE_CLASS_NAME,
   TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
 } from "../../../UI/Components/Table/TableLayout";
 import { TABLE_NAME_ATTRIBUTE } from "../../../UI/Components/Table/useTableScrollState";
@@ -109,9 +110,9 @@ const LONG_TEXT: string =
  * table's only row is its last, so it draws no rule under itself.
  */
 const FIRST_CELL_CLASS_NAME: string =
-  "whitespace-nowrap pl-6 pr-3 py-3 align-top text-sm leading-6 font-medium text-gray-900";
+  "whitespace-nowrap pl-6 pr-3 py-3 [[data-density=compact]_&]:py-2 align-top text-sm leading-6 font-medium text-gray-900";
 const LAST_CELL_CLASS_NAME: string =
-  "whitespace-nowrap pl-3 pr-6 py-3 align-top text-sm leading-6 font-normal text-gray-700";
+  "whitespace-nowrap pl-3 pr-6 py-3 [[data-density=compact]_&]:py-2 align-top text-sm leading-6 font-normal text-gray-700";
 
 // A one-line value's wrapper: the cap, always with its clip and its ellipsis.
 const ONE_LINE_CONTENT_CLASS_NAME: string = [
@@ -130,6 +131,7 @@ const ONE_LINE_CONTENT_CLASS_NAME: string = [
 const GIVING_ONE_LINE_CONTENT_CLASS_NAME: string = [
   TABLE_CELL_MAX_WIDTH_CLASS_NAME,
   TABLE_VALUE_GIVE_CLASS_NAME,
+  TABLE_VALUE_WHOLE_CLASS_NAME,
   TABLE_CELL_TRUNCATE_CLASS_NAMES,
   TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
 ].join(" ");

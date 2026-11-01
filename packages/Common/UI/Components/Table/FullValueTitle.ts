@@ -15,6 +15,15 @@ import React from "react";
 export const FULL_VALUE_TITLE_MAX_LENGTH: number = 1000;
 
 /*
+ * The part of a cell that is its own value, where the values of other
+ * columns are folded under it (TableFoldedValues): what the cell's tooltip
+ * names. The folded values are on lines of their own, wrapped rather than
+ * cut, so an incident's title cut short showed, under the pointer, its
+ * labels and its owners after it.
+ */
+export const TABLE_FOLDED_MAIN_ATTRIBUTE: string = "data-table-folded-main";
+
+/*
  * Whether an element shows less than it holds: wider than its box (an
  * ellipsis at its end), or taller (a line hidden by a clamp).
  */
@@ -58,20 +67,25 @@ export const showFullValueWhenCutShort: (
 ) => void = (event: React.MouseEvent<HTMLElement>): void => {
   const element: HTMLElement = event.currentTarget;
 
+  // The cell's own value: all of it, or the line above what is folded under it.
+  const value: HTMLElement =
+    element.querySelector<HTMLElement>(`[${TABLE_FOLDED_MAIN_ATTRIBUTE}]`) ||
+    element;
+
   /*
    * Cut short on its line (an ellipsis at the column's end), after its
    * first line (a row's name, which may wrap where only one line shows), or
    * inside it (a part that ends in an ellipsis of its own).
    */
   const isCutShort: boolean =
-    isElementCutShort(element) || hasPartCutShort(element);
+    isElementCutShort(value) || hasPartCutShort(value);
 
   if (isCutShort) {
     /*
      * innerText keeps a list's lines apart (a row's resources), so the
      * tooltip lists them one per line, as the cell does.
      */
-    const fullValue: string = (element.innerText || element.textContent || "")
+    const fullValue: string = (value.innerText || value.textContent || "")
       .trim()
       .slice(0, FULL_VALUE_TITLE_MAX_LENGTH);
 

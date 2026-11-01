@@ -39,6 +39,8 @@ export interface UseTableFitResult {
 const useTableFit: (data: {
   isPhone: boolean;
   boxWidth: number | null;
+  // The window's width, which stands in for a box that is not read.
+  windowWidth: number;
   hasFoldableColumns: boolean;
   // The columns the measurements are for: other columns are measured afresh.
   columnsKey: string;
@@ -47,6 +49,7 @@ const useTableFit: (data: {
 }) => UseTableFitResult = (data: {
   isPhone: boolean;
   boxWidth: number | null;
+  windowWidth: number;
   hasFoldableColumns: boolean;
   columnsKey: string;
   rememberKey?: string | undefined;
@@ -54,7 +57,7 @@ const useTableFit: (data: {
   const input: TableFitInput = {
     isPhone: data.isPhone,
     boxWidth: data.boxWidth,
-    windowWidth: typeof window === "undefined" ? 0 : window.innerWidth,
+    windowWidth: data.windowWidth,
     hasFoldableColumns: data.hasFoldableColumns,
   };
 
@@ -116,17 +119,30 @@ const useTableFit: (data: {
             columnsKey: string;
             rememberKey: string | undefined;
           } = latestRef.current;
+          /*
+           * The box as the measuring read it, which is the box the table was
+           * just drawn in - the width this hook was last drawn with may not
+           * have been read yet (the first draw).
+           */
+          const measuredInput: TableFitInput = {
+            ...latest.input,
+            boxWidth:
+              cannotFit.boxWidth > 0
+                ? cannotFit.boxWidth
+                : latest.input.boxWidth,
+          };
           const currentBase: TableFitState =
             current.columnsKey === latest.columnsKey
               ? current.fit
               : getFreshFit(latest.input);
+          // The step the measured table was drawn at: what it was drawn with.
           const drawn: TableFitState = getTableFitStateFor(
             currentBase,
             latest.input,
           );
           const next: TableFitState = getTableFitStateAfterCannotFit(
             drawn,
-            latest.input,
+            measuredInput,
             cannotFit.tightWidth,
             cannotFit.boxWidth,
           );

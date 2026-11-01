@@ -483,7 +483,8 @@ export const TABLE_VALUE_GIVE_CLASS_NAME: string = [
  */
 export const TABLE_VALUE_WHOLE_ATTRIBUTE: string = "data-whole";
 
-export const TABLE_VALUE_WHOLE_WIDTH_PROPERTY: string = "--ou-table-whole-width";
+export const TABLE_VALUE_WHOLE_WIDTH_PROPERTY: string =
+  "--ou-table-whole-width";
 
 export const TABLE_VALUE_WHOLE_CLASS_NAME: string =
   "data-[whole=true]:min-w-[var(--ou-table-whole-width)]";
@@ -609,12 +610,14 @@ export const TABLE_CARDS_SORT_BUTTON_CLASS_NAME: string =
  * line of their own above the fields was the card's tallest empty space.
  * They float there, so on a phone's card only the name's line is beside
  * them and the fields under it keep the card's whole width; a wide card's
- * fields, two to a line, line up after them.
+ * fields, two to a line, line up after them. A select box's label, which a
+ * row's has none of (its name is its aria-label), takes no room: its empty
+ * place put the name 24px from the box, twice the room the controls keep.
  */
 export const TABLE_CARD_BODY_WITH_CONTROLS_CLASS_NAME: string = "flow-root";
 
 export const TABLE_CARD_CONTROLS_CLASS_NAME: string =
-  "float-start me-3 flex h-6 items-center gap-2";
+  "float-start me-3 flex h-6 items-center gap-2 [&_div:has(>label:empty)]:hidden";
 
 /*
  * A field that takes a card's whole width when its fields go two to a line:

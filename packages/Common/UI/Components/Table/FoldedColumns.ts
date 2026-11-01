@@ -58,9 +58,7 @@ export const getDrawnTableColumns: <T extends GenericObject>(
   }
 
   const drawn: Columns<T> = columns.filter((column: Column<T>): boolean => {
-    return (
-      !column.hideBelowLargeScreen || Boolean(isCards && column.foldInto)
-    );
+    return !column.hideBelowLargeScreen || Boolean(isCards && column.foldInto);
   });
 
   // The same array when nothing is left out: nothing new to lay out.
@@ -73,7 +71,9 @@ export const getDrawnTableColumns: <T extends GenericObject>(
     areColumnsFolded: true,
     foldedColumns: columns.filter((column: Column<T>): boolean => {
       return Boolean(
-        column.hideBelowLargeScreen && column.foldInto && !drawn.includes(column),
+        column.hideBelowLargeScreen &&
+          column.foldInto &&
+          !drawn.includes(column),
       );
     }),
   };

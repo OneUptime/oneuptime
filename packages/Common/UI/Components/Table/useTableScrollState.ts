@@ -487,6 +487,80 @@ export const keepWholeWhatFits: (data: {
   }
 };
 
+/*
+ * Whether the page has the rules a table's tightest reading is drawn by.
+ * The Dashboard's Tailwind runtime writes a class's rule only once an
+ * element carrying it is on the page - after the commit that drew it - so
+ * a table measured in the commit that drew its first rows reads them as
+ * though nothing could give way: the incidents list read 1420px given way
+ * in its 1214px card at 1280px, and folded for good, where with its rules
+ * it fits, its resources cut short.
+ *
+ * Read off what the reading changed (TABLE_VALUE_GIVE_CLASS_NAME,
+ * TABLE_PRIMARY_FILL_CONTENT_CLASS_NAME): a value given way as a box is
+ * laid out as a grid, a value given way as a line and a name set free are
+ * clamped to their first line - properties no page sets by default, so a
+ * row drawn with none of its rules does not pass for one drawn with them.
+ * True where nothing gave way: nothing was read by a rule. Exported for its
+ * tests.
+ */
+export const areGivenWayRulesDrawn: (table: HTMLElement) => boolean = (
+  table: HTMLElement,
+): boolean => {
+  if (typeof window === "undefined" || !window.getComputedStyle) {
+    return true;
+  }
+
+  const isClamped: (element: HTMLElement) => boolean = (
+    element: HTMLElement,
+  ): boolean => {
+    return (
+      window
+        .getComputedStyle(element)
+        .getPropertyValue("-webkit-line-clamp")
+        .trim() === "1"
+    );
+  };
+
+  const given: HTMLElement | null = table.querySelector<HTMLElement>(
+    `[${TABLE_VALUE_GIVE_ATTRIBUTE}]`,
+  );
+
+  if (given) {
+    if (given.getAttribute(TABLE_VALUE_GIVE_ATTRIBUTE) === "box") {
+      return window.getComputedStyle(given).display === "grid";
+    }
+
+    return isClamped(given);
+  }
+
+  const name: HTMLElement | null = table.querySelector<HTMLElement>(
+    `[${TABLE_FILL_ATTRIBUTE}="true"]`,
+  );
+
+  if (name) {
+    return isClamped(name);
+  }
+
+  return true;
+};
+
+/*
+ * Whether the page's fonts are in. The Dashboard draws its words in Inter,
+ * held invisible while it loads (font-display: block) and laid out meanwhile
+ * in a fallback of other widths: a table that does not fit in the fallback
+ * may fit in Inter, as the incidents list did at 1280px on a first visit.
+ * True where the page says nothing of its fonts (jsdom). Exported for its
+ * tests.
+ */
+export const areTableFontsLoaded: () => boolean = (): boolean => {
+  if (typeof document === "undefined" || !document.fonts) {
+    return true;
+  }
+
+  return document.fonts.status !== "loading";
+};
+
 const useTableScrollState: (data: {
   scrollRef: React.RefObject<HTMLElement>;
   tableRef: React.RefObject<HTMLElement>;
@@ -520,7 +594,52 @@ const useTableScrollState: (data: {
   });
 
   useLayoutEffect(() => {
-    const measure: () => void = (): void => {
+    /*
+     * A ResizeObserver tells of a box's size once it starts to watch it: the
+     * table is measured again on the next frame, after the commit that drew
+     * it - the page's rules for its new classes written (areGivenWayRulesDrawn).
+     */
+    const isMeasuredAgain: boolean = typeof ResizeObserver !== "undefined";
+
+    // The effect's table is gone (a later effect's, or none): nothing to measure.
+    let isGone: boolean = false;
+    let isWaitingForFonts: boolean = false;
+
+    /*
+     * Measured again once the page's fonts are in - whether or not the
+     * table's size changes with them.
+     */
+    const measureOnceFontsAreIn: () => void = (): void => {
+      if (
+        isWaitingForFonts ||
+        typeof document === "undefined" ||
+        !document.fonts?.ready
+      ) {
+        return;
+      }
+
+      isWaitingForFonts = true;
+
+      document.fonts.ready
+        .then(() => {
+          isWaitingForFonts = false;
+
+          if (!isGone && !data.hold?.isHeldRef.current) {
+            measure();
+          }
+        })
+        .catch(() => {
+          isWaitingForFonts = false;
+        });
+    };
+
+    /*
+     * isInDrawingCommit: measured in the commit that drew the table, where
+     * a rule its new classes need may not be on the page yet.
+     */
+    const measure: (isInDrawingCommit?: boolean) => void = (
+      isInDrawingCommit: boolean = false,
+    ): void => {
       const box: HTMLElement | null = data.scrollRef.current;
       const table: HTMLElement | null = data.tableRef.current;
 
@@ -667,6 +786,8 @@ const useTableScrollState: (data: {
       let isOverflowing: boolean = true;
       // The table's width with everything given way, when even that is too wide.
       let tightWidth: number = 0;
+      // Whether that width was read with the rules of giving way on the page.
+      let isTightWidthDrawn: boolean = true;
 
       for (const reading of TABLE_GIVE_WAY_READINGS) {
         setFill(reading.fill);
@@ -706,6 +827,7 @@ const useTableScrollState: (data: {
 
         if (reading.give) {
           tightWidth = table.getBoundingClientRect().width;
+          isTightWidthDrawn = areGivenWayRulesDrawn(table);
         }
       }
 
@@ -753,19 +875,41 @@ const useTableScrollState: (data: {
         return { isOverflowing, canStickHeader };
       });
 
-      // Too wide even with everything given way: the table may fold or turn to cards.
+      /*
+       * Too wide even with everything given way: the table may fold or turn
+       * to cards - for good, while its box is that narrow (TableFit), so
+       * only on a width read as the page draws it: with the page's rules
+       * (one read without them waits for the next frame's measurement,
+       * which has them) and in the page's fonts (one read in a web font's
+       * fallback, wider or narrower than the page's font, waits for them).
+       * Where nothing would measure the table again, the width is the one
+       * there is.
+       */
       if (isOverflowing && tightWidth > 0) {
-        onCannotFitRef.current?.({
-          tightWidth: Math.ceil(tightWidth),
-          boxWidth: Math.floor(box.getBoundingClientRect().width),
-        });
+        const areFontsIn: boolean = areTableFontsLoaded();
+        const isWidthToTrust: boolean =
+          !isMeasuredAgain ||
+          (areFontsIn && (isTightWidthDrawn || !isInDrawingCommit));
+
+        if (isWidthToTrust) {
+          onCannotFitRef.current?.({
+            tightWidth: Math.ceil(tightWidth),
+            boxWidth: Math.floor(box.getBoundingClientRect().width),
+          });
+        } else if (!areFontsIn) {
+          measureOnceFontsAreIn();
+        }
       }
     };
 
-    measure();
+    measure(true);
+
+    const remeasure: () => void = (): void => {
+      measure();
+    };
 
     if (data.hold) {
-      data.hold.remeasureRef.current = measure;
+      data.hold.remeasureRef.current = remeasure;
     }
 
     // Not while a column's edge is dragged (TableScrollStateHold).
@@ -781,13 +925,14 @@ const useTableScrollState: (data: {
      * ResizeObserver is missing in jsdom and in older browsers: there the
      * table is measured again when the window changes size.
      */
-    if (typeof ResizeObserver === "undefined") {
+    if (!isMeasuredAgain) {
       window.addEventListener("resize", measureUnlessHeld);
 
       return () => {
+        isGone = true;
         window.removeEventListener("resize", measureUnlessHeld);
 
-        if (data.hold && data.hold.remeasureRef.current === measure) {
+        if (data.hold && data.hold.remeasureRef.current === remeasure) {
           data.hold.remeasureRef.current = null;
         }
       };
@@ -821,13 +966,15 @@ const useTableScrollState: (data: {
     }
 
     return () => {
+      isGone = true;
+
       if (frame !== null) {
         window.cancelAnimationFrame(frame);
       }
 
       observer.disconnect();
 
-      if (data.hold && data.hold.remeasureRef.current === measure) {
+      if (data.hold && data.hold.remeasureRef.current === remeasure) {
         data.hold.remeasureRef.current = null;
       }
     };

@@ -429,9 +429,11 @@ describe("useTableScrollState sets a row's name free while the table fits", () =
     /*
      * Four readings a measurement (TABLE_GIVE_WAY_READINGS): set free first
      * - alone, with the header's names wrapping, with the long values cut
-     * short too (TableGiveWay.test.tsx) - then back at the cap.
+     * short too (TableGiveWay.test.tsx), its width at that tightest read
+     * for the table to say it cannot fit (TableFit) - then back at the cap.
      */
     const MEASUREMENT: Array<Array<string>> = [
+      ["true", "true"],
       ["true", "true"],
       ["true", "true"],
       ["true", "true"],

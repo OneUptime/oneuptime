@@ -183,7 +183,7 @@ Her vises målene:
 
 - Sagens hoved nævner det næste mål og hvor lang tid der er tilbage, eller hvor længe det er overskredet: gråt, mens der er tid, ravgult i den sidste femtedel, rødt, når det er overskredet.
 - På sagens **Oversigt**, under **Tid til bekræftelse** og **Tid til inddæmning**: hvordan sagen ligger i forhold til hvert mål, eller hvor langt over det sagen gik.
-- I køens lister: linjen under hver sags prioritet og en kolonne **Frist**, som du kan slå til og sortere efter. Listerne viser dem kun, når en af projektets prioriteter har et mål.
+- I køens lister: linjen under hver sags prioritet og en kolonne **Frist**, som du kan slå til og sortere efter. Mens kolonnen er slået til, vises linjen under prioriteten ikke. Listerne viser dem kun, når en af projektets prioriteter har et mål.
 
 ## Notifikationer
 

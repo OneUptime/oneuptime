@@ -53,20 +53,17 @@ const getPreferenceKey: () => string = (): string => {
 const isTableDensity: (value: unknown) => value is TableDensity = (
   value: unknown,
 ): value is TableDensity => {
-  return (
-    value === TableDensity.Comfortable || value === TableDensity.Compact
-  );
+  return value === TableDensity.Comfortable || value === TableDensity.Compact;
 };
 
 // The person's density, as kept; Comfortable when nothing (or junk) is.
 export const readTableDensity: () => TableDensity = (): TableDensity => {
   try {
-    const stored: JSONObject | null = UserPreferences.getUserPreferenceByTypeAsJSON(
-      {
+    const stored: JSONObject | null =
+      UserPreferences.getUserPreferenceByTypeAsJSON({
         key: getPreferenceKey(),
         userPreferenceType: UserPreferenceType.TableDensity,
-      },
-    );
+      });
     const density: unknown = stored ? stored["density"] : undefined;
 
     return isTableDensity(density) ? density : TableDensity.Comfortable;

@@ -404,7 +404,12 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
 
           return (
             <th
-              key={i}
+              /*
+               * Kept by its column, where it has an id: a table that folds
+               * leaves out the columns before it, and its edge - focused,
+               * or being sized - stays this column's.
+               */
+              key={columnId || i}
               scope="col"
               /*
                * Named by its title alone: the edge inside it has a name of

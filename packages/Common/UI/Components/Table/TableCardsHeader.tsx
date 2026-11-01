@@ -214,10 +214,7 @@ const TableCardsHeader: TableCardsHeaderFunction = <T extends GenericObject>(
               isChecked={props.sortOrder === SortOrder.Ascending}
               dataTestId={`${TABLE_CARDS_SORT_TEST_ID}-ascending`}
               onClick={() => {
-                setSort(
-                  sortedColumn?.key || props.sortBy,
-                  SortOrder.Ascending,
-                );
+                setSort(sortedColumn?.key || props.sortBy, SortOrder.Ascending);
               }}
             />,
             <MoreMenuItem

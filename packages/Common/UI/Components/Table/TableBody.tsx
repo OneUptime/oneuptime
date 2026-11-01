@@ -9,6 +9,7 @@ import {
 } from "./TableCellContext";
 import TableRow from "./TableRow";
 import { TABLE_CARDS_CLASS_NAME } from "./TableLayout";
+import Column from "./Types/Column";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
 import { getRecordIdText } from "../ObjectID/RecordIdText";
@@ -79,6 +80,11 @@ export interface ComponentProps<T extends GenericObject> {
    * column's value (Column.foldInto).
    */
   foldedColumns?: Columns<T> | undefined;
+  /*
+   * Each column's id (Table's getTableColumnIds): what keeps a cell its
+   * column's as the table folds (TableRow).
+   */
+  getColumnId?: ((column: Column<T>) => string | undefined) | undefined;
 }
 
 type TableBodyFunction = <T extends GenericObject>(
@@ -256,6 +262,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                   isMobile={true}
                   isPhone={props.isPhone ?? true}
                   foldedColumns={props.foldedColumns}
+                  getColumnId={props.getColumnId}
                 />
               );
             })}
@@ -295,6 +302,7 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
                 isMobile={false}
                 isPhone={false}
                 foldedColumns={props.foldedColumns}
+                getColumnId={props.getColumnId}
               />
             );
           })}

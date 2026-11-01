@@ -37,7 +37,6 @@ import {
   TABLE_DENSITY_MENU_TEXT,
   TABLE_DENSITY_TEST_ID,
   TableDensity,
-  readTableDensity,
   useTableDensity,
   writeTableDensity,
 } from "./TableDensity";
@@ -53,15 +52,16 @@ import {
   getTableFooterClassName,
 } from "./TableLayout";
 import useTableScrollState, {
+  TableCannotFit,
   TableScrollState,
   TableScrollStateHold,
   isTableOverflowing,
 } from "./useTableScrollState";
 import { revealFromStickyEnd } from "./TableStickyEndFocus";
 import { DrawnTableColumns, getDrawnTableColumns } from "./FoldedColumns";
-import { TableFitStep } from "./TableFit";
+import { TABLE_NARROW_BELOW_WIDTH_IN_PX, TableFitStep } from "./TableFit";
 import useTableFit, { UseTableFitResult } from "./useTableFit";
-import useTableBoxWidth from "./useTableBoxWidth";
+import useTableBoxWidth, { TableBoxWidth } from "./useTableBoxWidth";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
 } from "../../Utils/UseIsBelowWidth";
@@ -336,7 +336,8 @@ const Table: TableFunction = <T extends GenericObject>(
   const isPhone: boolean = useIsBelowWidth(PHONE_BELOW_WIDTH_IN_PX);
 
   // The box the rows are drawn in: as wide as the card (TableFit).
-  const boxWidth: number | null = useTableBoxWidth(scrollBoxRef);
+  const { boxWidth, windowWidth }: TableBoxWidth =
+    useTableBoxWidth(scrollBoxRef);
 
   // Each column's id: what its width is kept by, and what a cell asks about.
   const columnIdByColumn: Map<Column<T>, string> = useMemo(() => {
@@ -349,6 +350,13 @@ const Table: TableFunction = <T extends GenericObject>(
 
     return map;
   }, [props.columns]);
+
+  // A drawn column's id: what keeps its cells its own as the table folds.
+  const getDrawnColumnId: (column: Column<T>) => string | undefined = (
+    column: Column<T>,
+  ): string | undefined => {
+    return columnIdByColumn.get(column);
+  };
 
   const columnsKey: string = useMemo(() => {
     return Array.from(columnIdByColumn.values()).join("|");
@@ -363,6 +371,7 @@ const Table: TableFunction = <T extends GenericObject>(
   const fit: UseTableFitResult = useTableFit({
     isPhone: isPhone,
     boxWidth: boxWidth,
+    windowWidth: windowWidth,
     hasFoldableColumns: props.columns.some((column: Column<T>): boolean => {
       return Boolean(column.hideBelowLargeScreen);
     }),
@@ -529,6 +538,16 @@ const Table: TableFunction = <T extends GenericObject>(
       return undefined;
     }
 
+    /*
+     * The other density than the one the item shows: every table in the
+     * card writes the same one. Turned at the click, each table's would
+     * undo the last - two tables in one card stayed as they were.
+     */
+    const picked: TableDensity =
+      density === TableDensity.Compact
+        ? TableDensity.Comfortable
+        : TableDensity.Compact;
+
     setCardMenuItem(densityOwnerId, {
       key: TABLE_DENSITY_MENU_KEY,
       text: TABLE_DENSITY_MENU_TEXT,
@@ -536,11 +555,7 @@ const Table: TableFunction = <T extends GenericObject>(
       dataTestId: TABLE_DENSITY_TEST_ID,
       isChecked: density === TableDensity.Compact,
       onClick: (): void => {
-        writeTableDensity(
-          readTableDensity() === TableDensity.Compact
-            ? TableDensity.Comfortable
-            : TableDensity.Compact,
-        );
+        writeTableDensity(picked);
       },
     });
 
@@ -570,6 +585,42 @@ const Table: TableFunction = <T extends GenericObject>(
    * Actions column sticks at the right edge), and whether the header row
    * can stick under the page's top bar (TableLayout).
    */
+  /*
+   * A person's sizing stands: a table one of whose columns they sized keeps
+   * its columns in a card 48rem or wider, its rows scrolling as they always
+   * did - Affected Resources made wider folded Severity, Duration, Labels
+   * and Owners away under other cells, and the keyboard's focus went with
+   * the edge it was on. In a narrower card the table folds, and is drawn as
+   * cards, as any other. Read as the table is measured: the widths kept
+   * draw no row again (ColumnWidthsStore).
+   */
+  const sizedDrawnColumnIdsRef: React.MutableRefObject<Array<string>> = useRef<
+    Array<string>
+  >([]);
+
+  sizedDrawnColumnIdsRef.current = resizableDrawnColumnIds;
+
+  const onCannotFit: (cannotFit: TableCannotFit) => void = (
+    cannotFit: TableCannotFit,
+  ): void => {
+    const isSizedByPerson: boolean = Boolean(
+      isColumnResizeOn &&
+        hasDrawnColumnWidths(
+          columnWidths.store.getWidths(),
+          sizedDrawnColumnIdsRef.current,
+        ),
+    );
+
+    if (
+      isSizedByPerson &&
+      cannotFit.boxWidth >= TABLE_NARROW_BELOW_WIDTH_IN_PX
+    ) {
+      return;
+    }
+
+    fit.onCannotFit(cannotFit);
+  };
+
   const scrollState: TableScrollState = useTableScrollState({
     scrollRef: scrollBoxRef,
     tableRef: tableElementRef,
@@ -577,7 +628,7 @@ const Table: TableFunction = <T extends GenericObject>(
     watch: [isMobile, props.data, drawnColumns.length],
     hold: scrollStateHold,
     // Too wide even given way: folded, then as cards (TableFit).
-    onCannotFit: fit.onCannotFit,
+    onCannotFit: onCannotFit,
   });
 
   const onColumnResizeStart: (
@@ -897,6 +948,7 @@ const Table: TableFunction = <T extends GenericObject>(
         areColumnsFolded={areColumnsFolded}
         columnsInView={columnsInView}
         foldedColumns={foldedColumns}
+        getColumnId={getDrawnColumnId}
         actionButtons={props.actionButtons}
         enableDragAndDrop={props.enableDragAndDrop}
         dragAndDropScope={`${props.id}-dnd`}

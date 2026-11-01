@@ -201,10 +201,7 @@ export const getTableFitStateFor: (
 
   // A step it may not be drawn at: the nearest roomier one it may.
   while (!isTableFitStepAllowed(step, input)) {
-    const previous: TableFitStep | null = getPreviousTableFitStep(
-      step,
-      input,
-    );
+    const previous: TableFitStep | null = getPreviousTableFitStep(step, input);
 
     if (!previous) {
       step = least;

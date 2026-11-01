@@ -1,4 +1,5 @@
 import TableEmptyValue from "./TableEmptyValue";
+import { TABLE_FOLDED_MAIN_ATTRIBUTE } from "./FullValueTitle";
 import { TABLE_SHRINKABLE_ATTRIBUTE } from "./TableLayout";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -135,7 +136,12 @@ const TableFoldedValues: FunctionComponent<ComponentProps> = (
        */
       {...shrinkable}
     >
-      <div className={TABLE_FOLDED_MAIN_CLASS_NAMES[layout]} {...shrinkable}>
+      <div
+        className={TABLE_FOLDED_MAIN_CLASS_NAMES[layout]}
+        // What the cell's tooltip names (FullValueTitle).
+        {...{ [TABLE_FOLDED_MAIN_ATTRIBUTE]: "true" }}
+        {...shrinkable}
+      >
         {props.main}
       </div>
       {values.map((value: TableFoldedValue, index: number): ReactElement => {
