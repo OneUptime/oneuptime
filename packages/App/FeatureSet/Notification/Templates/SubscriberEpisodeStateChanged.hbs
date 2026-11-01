@@ -4,21 +4,21 @@
 
 {{> EmailTitle title=emailTitle }}
 
-{{> InfoBlock info="The status of an incident affecting services you're subscribed to has been updated."}}
+{{> InfoBlock info=(tHtml "The status of an incident affecting services you're subscribed to has been updated.")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Incident" plainText=episodeTitle }}
-{{> DetailBoxField title="Current State" plainText=episodeState color=episodeStateColor textColor=episodeStateTextColor }}
+{{> DetailBoxField title=(t "Incident") plainText=episodeTitle }}
+{{> DetailBoxField title=(t "Current State") plainText=episodeState color=episodeStateColor textColor=episodeStateTextColor }}
 {{#if episodeSeverity}}
-{{> DetailBoxField title="Severity" plainText=episodeSeverity color=episodeSeverityColor textColor=episodeSeverityTextColor }}
+{{> DetailBoxField title=(t "Severity") plainText=episodeSeverity color=episodeSeverityColor textColor=episodeSeverityTextColor }}
 {{/if}}
-{{> DetailBoxField title="Affected Resources" text=resourcesAffected  }}
+{{> DetailBoxField title=(t "Affected Resources") text=resourcesAffected  }}
 {{> DetailBoxEnd this }}
 
 {{#if detailsUrl}}
-{{> ButtonBlock buttonUrl=detailsUrl buttonText="View Incident Details"}}
+{{> ButtonBlock buttonUrl=detailsUrl buttonText=(t "View Incident Details")}}
 {{else}}
-{{> ButtonBlock buttonUrl=statusPageUrl buttonText="View Status Page"}}
+{{> ButtonBlock buttonUrl=statusPageUrl buttonText=(t "View Status Page")}}
 {{/if}}
 
 {{> VerticalSpace this}}

@@ -109,6 +109,17 @@ import Exception from "../../Types/Exception/Exception";
 import { StatementContext } from "../Utils/Database/StatementOutcome";
 import { EntityManager, FindOptionsWhere, MoreThan, Raw } from "typeorm";
 import { writeDefaultSubscriberSms } from "../../Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "../Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberEmailText,
+  SubscriberSmsText,
+} from "../Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "../Utils/ServerTranslation";
+import {
+  DEFAULT_READER_LANGUAGE,
+  READER_LANGUAGE_CODES,
+} from "../../Types/ReaderLanguage";
+import { createTranslator, Translator } from "../../UI/Utils/TranslateTemplate";
 
 /*
  * For an UPDATE ... RETURNING, the postgres driver hands TypeORM's
@@ -217,23 +228,49 @@ export const SMS_SIGN_UP_UNAVAILABLE_MESSAGE: string =
 export const getConfirmSubscriptionTextMessage: (data: {
   statusPageName: string;
   confirmationUrl: string;
+  // The subscriber's language (SubscriberLanguage); English without one.
+  translator?: Translator | undefined;
 }) => string = (data: {
   statusPageName: string;
   confirmationUrl: string;
+  translator?: Translator | undefined;
 }): string => {
-  return `Confirm your subscription to ${data.statusPageName} by text message within ${StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS} hours. Not you? Ignore this and you will not be subscribed. ${data.confirmationUrl}`;
+  const translator: Translator =
+    data.translator || createTranslator(undefined, DEFAULT_READER_LANGUAGE);
+
+  return translator.translateTemplate(SubscriberSmsText.confirmSubscription, {
+    statusPageName: data.statusPageName,
+    hours: translator.formatNumber(
+      StatusPageSubscriberConfirmationCode.VALID_FOR_HOURS,
+    ),
+    confirmationUrl: data.confirmationUrl,
+  });
 };
 
 // The text that tells a phone subscriber it is subscribed, with its unsubscribe link.
 export const getYouHaveSubscribedTextMessage: (data: {
   statusPageName: string;
   unsubscribeUrl: string;
+  // The subscriber's language (SubscriberLanguage); English without one.
+  translator?: Translator | undefined;
 }) => string = (data: {
   statusPageName: string;
   unsubscribeUrl: string;
+  translator?: Translator | undefined;
 }): string => {
-  return `You have been subscribed to ${data.statusPageName}. To unsubscribe, click on the link: ${data.unsubscribeUrl}`;
+  return (
+    data.translator || createTranslator(undefined, DEFAULT_READER_LANGUAGE)
+  ).translateTemplate(SubscriberSmsText.subscribed, {
+    statusPageName: data.statusPageName,
+    unsubscribeUrl: data.unsubscribeUrl,
+  });
 };
+
+/*
+ * What a subscriber is told whose language is not one OneUptime writes in
+ * (the team's create or change through the API): the codes it takes.
+ */
+export const UNSUPPORTED_SUBSCRIBER_LANGUAGE_MESSAGE: string = `Language must be one of: ${READER_LANGUAGE_CODES.join(", ")}. Leave it empty for the status page's default language.`;
 
 /*
  * Which subscribers a page takes (Utils/StatusPage/SubscriberRestrictionSql),
@@ -721,6 +758,9 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("Project ID is required.");
     }
 
+    // The language it is written to in: one OneUptime writes in, or none.
+    this.normalizeLanguage(data.data as unknown as JSONObject);
+
     /*
      * A visitor signs up one contact at a time: a subscription is confirmed
      * on the contact that signed up (ONE_CONTACT_PER_SIGN_UP_MESSAGE).
@@ -1137,6 +1177,42 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A subscriber's language as it is stored: one of the codes OneUptime
+   * writes in ("de-AT" is "de"), or none - the status page's default
+   * language - for an empty one. A language OneUptime does not write in is
+   * refused, so a subscriber is never written to in English by mistake.
+   * Left alone when the data does not name one: only what the write itself
+   * carries is rewritten, so the caller is held to their own permission to
+   * write it (HookWritesCallersMayMake).
+   */
+  private normalizeLanguage(data: JSONObject | undefined): void {
+    if (!data) {
+      return;
+    }
+
+    if (data["language"] === undefined) {
+      return;
+    }
+
+    const value: unknown = data["language"];
+
+    if (value !== null && value !== undefined && typeof value !== "string") {
+      throw new BadDataException(UNSUPPORTED_SUBSCRIBER_LANGUAGE_MESSAGE);
+    }
+
+    const language: string | null | undefined =
+      SubscriberLanguage.normalizeLanguageToStore(
+        value as string | null | undefined,
+      );
+
+    if (language === undefined) {
+      throw new BadDataException(UNSUPPORTED_SUBSCRIBER_LANGUAGE_MESSAGE);
+    }
+
+    data["language"] = language;
+  }
+
+  /*
    * What a create is told when its page already has a subscription of the
    * same contact: a visitor that they are subscribed, the team which rule
    * the contact runs into.
@@ -1463,6 +1539,9 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    // The language it is written to in: one OneUptime writes in, or none.
+    this.normalizeLanguage(updateBy.data as unknown as JSONObject | undefined);
 
     // The resources it adds are its page's. See checkResourcesOnPages.
     await this.checkResourcesOnPages(updateBy);
@@ -2734,6 +2813,15 @@ export class Service extends ProjectReferencesService<Model> {
     ).toString();
 
     /*
+     * The language its messages are written in: the one its visitor read the
+     * page in, else the page's (SubscriberLanguage).
+     */
+    const language: string = SubscriberLanguage.getLanguage({
+      subscriber: createdItem,
+      statusPage: statusPageOfSubscriber,
+    });
+
+    /*
      * A phone subscriber created unconfirmed - a visitor who signed up by
      * text message (onBeforeCreate writes the column every time) - is
      * texted the link that confirms it, and nothing else until it is
@@ -2808,19 +2896,23 @@ export class Service extends ProjectReferencesService<Model> {
           id: createdItem.statusPageId,
           callSmsConfig: statusPage.callSmsConfig,
         } as Pick<StatusPage, "id" | "callSmsConfig">,
-        message: isPhoneToConfirm
-          ? getConfirmSubscriptionTextMessage({
-              statusPageName: statusPageName,
-              confirmationUrl: this.getConfirmSubscriptionLink({
-                statusPageUrl: statusPageURL,
-                confirmationToken: confirmationCode,
-                statusPageSubscriberId: createdItem.id!,
-              }).toString(),
-            })
-          : getYouHaveSubscribedTextMessage({
-              statusPageName: statusPageName,
-              unsubscribeUrl: unsubscribeLink,
-            }),
+        message: writeInLanguage(language, (translator: Translator): string => {
+          return isPhoneToConfirm
+            ? getConfirmSubscriptionTextMessage({
+                statusPageName: statusPageName,
+                confirmationUrl: this.getConfirmSubscriptionLink({
+                  statusPageUrl: statusPageURL,
+                  confirmationToken: confirmationCode,
+                  statusPageSubscriberId: createdItem.id!,
+                }).toString(),
+                translator: translator,
+              })
+            : getYouHaveSubscribedTextMessage({
+                statusPageName: statusPageName,
+                unsubscribeUrl: unsubscribeLink,
+                translator: translator,
+              });
+        }),
       });
     }
 
@@ -2868,21 +2960,17 @@ export class Service extends ProjectReferencesService<Model> {
       logger.debug("Sending Slack notification for new subscriber.", {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
-      const slackMessage: string =
-        mdText`## 📢 New Subscription to ${statusPageName}
-
-**You have successfully subscribed to receive status updates!**
-
-🔗 **Status Page:** [${statusPageName}](${statusPageURL})
-🔕 **Unsubscribe:** [Stop these notifications](${unsubscribeLink})
-
-You will receive real-time notifications for:
-• Incidents and outages 
-• Scheduled maintenance events  
-• Service announcements
-• Status updates
-
-Stay informed about service availability! 🚀`.toString();
+      // In the language the subscriber reads the page in.
+      const slackMessage: string = writeInLanguage(
+        language,
+        (translator: Translator): string => {
+          return SubscriberMessageText.subscribedChatMessage(translator, {
+            statusPageName: statusPageName,
+            statusPageUrl: statusPageURL,
+            unsubscribeUrl: unsubscribeLink,
+          });
+        },
+      );
 
       logger.debug(`Slack Message: ${slackMessage}`, {
         projectId: createdItem.projectId?.toString(),
@@ -2952,21 +3040,17 @@ Stay informed about service availability! 🚀`.toString();
       logger.debug("Sending Microsoft Teams notification for new subscriber.", {
         projectId: createdItem.projectId?.toString(),
       } as LogAttributes);
-      const teamsMessage: string =
-        mdText`## 📢 New Subscription to ${statusPageName}
-
-**You have successfully subscribed to receive status updates!**
-
-🔗 **Status Page:** [${statusPageName}](${statusPageURL})
-🔕 **Unsubscribe:** [Stop these notifications](${unsubscribeLink})
-
-You will receive real-time notifications for:
-• Incidents and outages 
-• Scheduled maintenance events  
-• Service announcements
-• Status updates
-
-Stay informed about service availability! 🚀`.toString();
+      // In the language the subscriber reads the page in.
+      const teamsMessage: string = writeInLanguage(
+        language,
+        (translator: Translator): string => {
+          return SubscriberMessageText.subscribedChatMessage(translator, {
+            statusPageName: statusPageName,
+            statusPageUrl: statusPageURL,
+            unsubscribeUrl: unsubscribeLink,
+          });
+        },
+      );
 
       logger.debug(`Teams Message: ${teamsMessage}`, {
         projectId: createdItem.projectId?.toString(),
@@ -3233,6 +3317,7 @@ Stay informed about service availability! 🚀`.toString();
         projectId: true,
         sendYouHaveSubscribedMessage: true,
         unsubscribeToken: true,
+        language: true,
       },
       props: {
         isRoot: true,
@@ -3264,17 +3349,29 @@ Stay informed about service availability! 🚀`.toString();
       statusPage.id,
     );
 
+    // In the language the subscriber reads the page in.
     this.sendText({
       subscriber: subscriber,
       statusPage: statusPage,
-      message: getYouHaveSubscribedTextMessage({
-        statusPageName:
-          statusPage.pageTitle || statusPage.name || "Status Page",
-        unsubscribeUrl: this.getUnsubscribeLink(
-          URL.fromString(statusPageURL),
-          subscriber,
-        ).toString(),
-      }),
+      message: writeInLanguage(
+        SubscriberLanguage.getLanguage({
+          subscriber: subscriber,
+          statusPage: statusPage,
+        }),
+        (translator: Translator): string => {
+          return getYouHaveSubscribedTextMessage({
+            statusPageName: SubscriberMessageText.statusPageName(
+              translator,
+              statusPage,
+            ),
+            unsubscribeUrl: this.getUnsubscribeLink(
+              URL.fromString(statusPageURL),
+              subscriber,
+            ).toString(),
+            translator: translator,
+          });
+        },
+      ),
     });
   }
 
@@ -3302,6 +3399,7 @@ Stay informed about service availability! 🚀`.toString();
         subscriptionConfirmationToken: true,
         sendYouHaveSubscribedMessage: true,
         unsubscribeToken: true,
+        language: true,
       },
       props: {
         isRoot: true,
@@ -3370,6 +3468,24 @@ Stay informed about service availability! 🚀`.toString();
       statusPageSubscriberId: subscriber.id!,
     }).toString();
 
+    /*
+     * In the language the visitor reads the page in (SubscriberLanguage):
+     * the email's subject and its own words.
+     */
+    const confirmLanguage: string = SubscriberLanguage.getLanguage({
+      subscriber: subscriber,
+      statusPage: statusPage,
+    });
+    const confirmSubject: string = writeInLanguage(
+      confirmLanguage,
+      (translator: Translator): string => {
+        return translator.translateTemplate(
+          SubscriberEmailText.confirmSubscriptionSubject,
+          { statusPageName: statusPageName },
+        );
+      },
+    );
+
     if (
       subscriber.statusPageId &&
       subscriber.subscriberEmail &&
@@ -3414,7 +3530,7 @@ Stay informed about service availability! 🚀`.toString();
               customTemplate.emailSubject,
               templateVariables,
             )
-          : "Confirm your subscription to " + statusPageName;
+          : confirmSubject;
 
         MailService.sendMail(
           {
@@ -3457,8 +3573,11 @@ Stay informed about service availability! 🚀`.toString();
               confirmationUrl: confirmSubscriptionLink,
               unsubscribeUrl: unsubscribeUrl,
             },
-            subject: "Confirm your subscription to " + statusPageName,
+            subject: confirmSubject,
             isSubjectLiteral: true,
+            ...(confirmLanguage !== DEFAULT_READER_LANGUAGE
+              ? { language: confirmLanguage }
+              : {}),
           },
           {
             projectId: subscriber.projectId,
@@ -3506,6 +3625,7 @@ Stay informed about service availability! 🚀`.toString();
         projectId: true,
         sendYouHaveSubscribedMessage: true,
         unsubscribeToken: true,
+        language: true,
       },
       props: {
         isRoot: true,
@@ -3574,6 +3694,24 @@ Stay informed about service availability! 🚀`.toString();
       subscriber,
     ).toString();
 
+    /*
+     * In the language the subscriber reads the page in (SubscriberLanguage):
+     * the email's subject and its own words.
+     */
+    const subscribedLanguage: string = SubscriberLanguage.getLanguage({
+      subscriber: subscriber,
+      statusPage: statusPage,
+    });
+    const subscribedSubject: string = writeInLanguage(
+      subscribedLanguage,
+      (translator: Translator): string => {
+        return translator.translateTemplate(
+          SubscriberEmailText.subscribedSubject,
+          { statusPageName: statusPageName },
+        );
+      },
+    );
+
     if (
       subscriber.statusPageId &&
       subscriber.subscriberEmail &&
@@ -3611,7 +3749,7 @@ Stay informed about service availability! 🚀`.toString();
               customTemplate.emailSubject,
               templateVariables,
             )
-          : "You have been subscribed to " + statusPageName;
+          : subscribedSubject;
 
         MailService.sendMail(
           {
@@ -3653,8 +3791,11 @@ Stay informed about service availability! 🚀`.toString();
                 : "false",
               unsubscribeUrl: unsubscribeLink,
             },
-            subject: "You have been subscribed to " + statusPageName,
+            subject: subscribedSubject,
             isSubjectLiteral: true,
+            ...(subscribedLanguage !== DEFAULT_READER_LANGUAGE
+              ? { language: subscribedLanguage }
+              : {}),
           },
           {
             projectId: subscriber.projectId,
@@ -3781,6 +3922,12 @@ Stay informed about service availability! 🚀`.toString();
          */
         isAddedByTeam: true,
         createdByUserId: true,
+        /*
+         * The language the subscriber reads the page in, when it is not the
+         * page's default: every message to it is written in it
+         * (SubscriberLanguage).
+         */
+        language: true,
       },
       // A stable order, which the afterId cursor reads on from.
       sort: {
@@ -4418,6 +4565,12 @@ Stay informed about service availability! 🚀`.toString();
         // Who may be a subscriber (Types/StatusPage/SubscriberRestrictions).
         limitSubscribersToPrivateUsers: true,
         allowedSubscriberEmailDomains: true,
+        /*
+         * The language every subscriber without one of their own is written
+         * to in (SubscriberLanguage). A page read without it writes them in
+         * English, as every message was before.
+         */
+        defaultLanguage: true,
       },
     });
 

@@ -50,7 +50,13 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
-import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import SubscriberLanguage from "Common/Server/Utils/StatusPage/SubscriberLanguage";
+import SubscriberMessageText, {
+  SubscriberChatText,
+} from "Common/Server/Utils/StatusPage/SubscriberMessageText";
+import { writeInLanguage } from "Common/Server/Utils/ServerTranslation";
+import { DEFAULT_READER_LANGUAGE } from "Common/Types/ReaderLanguage";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new
@@ -62,8 +68,11 @@ import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 interface AnnouncementNotificationCopy {
   templateEventType: StatusPageSubscriberNotificationEventType;
   emailTemplateType: EmailTemplateType;
-  emailSubjectPrefix: string;
-  smsPrefix: string;
+  // The email's subject, {{title}} the announcement's title.
+  emailSubject: string;
+  // How the text message starts.
+  smsHeadline: string;
+  // The heading of the Slack and Teams messages, after their emoji.
   chatHeading: string;
   webhookEventType: string;
   successMessage: string;
@@ -77,9 +86,11 @@ const NOTIFICATION_COPY: Record<
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberAnnouncementCreated,
     emailTemplateType: EmailTemplateType.SubscriberAnnouncementCreated,
-    emailSubjectPrefix: "[Announcement] ",
-    smsPrefix: "Announcement",
-    chatHeading: "📢 Announcement",
+    emailSubject: translationKey("[Announcement] {{title}}"),
+    smsHeadline: translationKey(
+      "Announcement {{title}} on {{statusPageName}}.",
+    ),
+    chatHeading: translationKey("Announcement - {{title}}"),
     webhookEventType: "AnnouncementCreated",
     successMessage: "Notifications sent successfully to all subscribers",
   },
@@ -87,9 +98,11 @@ const NOTIFICATION_COPY: Record<
     templateEventType:
       StatusPageSubscriberNotificationEventType.SubscriberAnnouncementUpdated,
     emailTemplateType: EmailTemplateType.SubscriberAnnouncementUpdated,
-    emailSubjectPrefix: "[Announcement Updated] ",
-    smsPrefix: "Announcement updated:",
-    chatHeading: "📢 Announcement Updated",
+    emailSubject: translationKey("[Announcement Updated] {{title}}"),
+    smsHeadline: translationKey(
+      "Announcement updated: {{title}} on {{statusPageName}}.",
+    ),
+    chatHeading: translationKey("Announcement Updated - {{title}}"),
     webhookEventType: "AnnouncementUpdated",
     successMessage: SubscriberUpdateNotification.sentMessage,
   },
@@ -462,6 +475,29 @@ const notifySubscribersOfAnnouncement: (data: {
                 subscriber,
               ).toString();
 
+            /*
+             * The language this subscriber's messages are written in: their
+             * own, else the page's (SubscriberLanguage).
+             */
+            const language: string = SubscriberLanguage.getLanguage({
+              subscriber: subscriber,
+              statusPage: statuspage,
+            });
+
+            // The default Slack and Teams message, in the subscriber's language.
+            const getChatMessage: () => string = (): string => {
+              return writeInLanguage(
+                language,
+                (translator: Translator): string => {
+                  return mdText`## 📢 ${translator.translateTemplate(copy.chatHeading, { title: announcement.title || "" })}
+
+${SubscriberMessageText.chatLine(translator, SubscriberChatText.description, FeedMarkdown.asMarkdown(announcement.description || ""))}
+
+${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, unsubscribeUrl: unsubscribeUrl })}`.toString();
+                },
+              );
+            };
+
             logger.debug(
               `Prepared unsubscribe link for subscriber ${subscriber._id} for announcement ${announcement.id}.`,
             );
@@ -497,8 +533,21 @@ const notifySubscribersOfAnnouncement: (data: {
                     subscriberPlainTextTemplateVariables,
                   );
               } else {
-                smsMessage = writeDefaultSubscriberSms(
-                  `${copy.smsPrefix} ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                // OneUptime's own words, in the subscriber's language.
+                smsMessage = writeInLanguage(
+                  language,
+                  (translator: Translator): string => {
+                    return SubscriberMessageText.smsWithLinks(translator, {
+                      sentences: [
+                        translator.translateTemplate(copy.smsHeadline, {
+                          title: announcement.title || "",
+                          statusPageName: statusPageName,
+                        }),
+                      ],
+                      detailsUrl: announcementDetailsUrl,
+                      unsubscribeUrl: unsubscribeUrl,
+                    });
+                  },
                 );
               }
 
@@ -543,13 +592,8 @@ const notifySubscribersOfAnnouncement: (data: {
                     subscriberMarkdownTemplateVariables,
                   );
               } else {
-                // Default markdown message
-                slackMessage =
-                  mdText`## ${copy.chatHeading} - ${announcement.title || ""}
-
-**Description:** ${FeedMarkdown.asMarkdown(announcement.description || "")}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                // OneUptime's own words, in the subscriber's language.
+                slackMessage = getChatMessage();
               }
 
               // send Slack notification here.
@@ -576,13 +620,8 @@ const notifySubscribersOfAnnouncement: (data: {
                     subscriberMarkdownTemplateVariables,
                   );
               } else {
-                // Default markdown message
-                teamsMessage =
-                  mdText`## ${copy.chatHeading} - ${announcement.title || ""}
-
-**Description:** ${FeedMarkdown.asMarkdown(announcement.description || "")}
-
-[View Status Page](${statusPageURL}) | [Unsubscribe](${unsubscribeUrl})`.toString();
+                // OneUptime's own words, in the subscriber's language.
+                teamsMessage = getChatMessage();
               }
 
               // send Teams notification here.
@@ -630,8 +669,14 @@ const notifySubscribersOfAnnouncement: (data: {
                * announcementDescriptionHtml is memoized at the per-announcement
                * scope above; reusing it here.
                */
-              let emailSubject: string =
-                copy.emailSubjectPrefix + announcement.title;
+              let emailSubject: string = writeInLanguage(
+                language,
+                (translator: Translator): string => {
+                  return translator.translateTemplate(copy.emailSubject, {
+                    title: announcement.title || "",
+                  });
+                },
+              );
 
               if (emailTemplate?.templateBody && statuspage.smtpConfig) {
                 // Use custom template with BlankTemplate only when custom SMTP is configured
@@ -699,6 +744,10 @@ const notifySubscribersOfAnnouncement: (data: {
                     },
                     subject: emailSubject,
                     isSubjectLiteral: true,
+                    // The template's own words, in the subscriber's language.
+                    ...(language !== DEFAULT_READER_LANGUAGE
+                      ? { language: language }
+                      : {}),
                   },
                   {
                     mailServer: ProjectSMTPConfigService.toEmailServer(

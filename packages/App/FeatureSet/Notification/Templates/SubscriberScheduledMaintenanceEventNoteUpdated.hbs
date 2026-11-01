@@ -1,17 +1,17 @@
 {{> Start this}}
 
 {{> CustomLogo this}}
-{{> EmailTitle title=(concat "Scheduled Maintenance Event: " eventTitle) }}
+{{> EmailTitle title=(tt "Scheduled Maintenance Event: {{title}}" title=eventTitle) }}
 
-{{> InfoBlock info="A note on this scheduled event has been updated. Here is the latest version:"}}
+{{> InfoBlock info=(tHtml "A note on this scheduled event has been updated. Here is the latest version:")}}
 
 {{> DetailBoxStart this }}
-{{> DetailBoxField title="Event Title: " plainText=eventTitle }}
-{{> DetailBoxField title="Event Description: " text=eventDescription }}
+{{> DetailBoxField title=(t "Event Title") plainText=eventTitle }}
+{{> DetailBoxField title=(t "Event Description") text=eventDescription }}
 {{#if resourcesAffected}}
-{{> DetailBoxField title="Resources Affected: " text=resourcesAffected  }}
+{{> DetailBoxField title=(t "Resources Affected") text=resourcesAffected  }}
 {{/if}}
-{{> DetailBoxField title="Updated Note: " text=note  }}
+{{> DetailBoxField title=(t "Updated Note") text=note  }}
 {{> DetailBoxEnd this }}
 
 
@@ -19,9 +19,9 @@
 
 
 {{#if detailsUrl}}
-{{> LinkBlock linkUrl=detailsUrl linkLabel="Find further information here:"}}
+{{> LinkBlock linkUrl=detailsUrl linkLabel=(t "Find further information here:")}}
 {{else}}
-{{> LinkBlock linkUrl=statusPageUrl linkLabel="Find further information here:"}}
+{{> LinkBlock linkUrl=statusPageUrl linkLabel=(t "Find further information here:")}}
 {{/if}}
 
 {{> UnsubscribeBlock this}}
