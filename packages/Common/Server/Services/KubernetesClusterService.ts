@@ -1282,6 +1282,8 @@ export class Service extends ProjectReferencesService<Model> {
     clusterId: ObjectID,
     extra?: {
       agentVersion?: string | undefined;
+      // The platform, from getKubernetesClusterProvider. Absent: not known.
+      provider?: string | undefined;
     },
   ): Promise<ResourceHeartbeatResult> {
     const extrasFingerprint: string = crypto
@@ -1289,6 +1291,7 @@ export class Service extends ProjectReferencesService<Model> {
       .update(
         JSON.stringify({
           agentVersion: extra?.agentVersion ?? null,
+          provider: extra?.provider ?? null,
         }),
       )
       .digest("hex");
@@ -1304,6 +1307,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (extra?.agentVersion) {
       metadata.agentVersion = extra.agentVersion;
+    }
+
+    // Never blanked: a batch that names no platform leaves the one shown.
+    if (extra?.provider) {
+      metadata.provider = extra.provider;
     }
 
     /*
