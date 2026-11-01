@@ -39216,5 +39216,6 @@
   "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them._one": "{{count}} 台有有線用戶端的 Meraki 裝置不是這裡的網路裝置，因此其用戶端不在地圖上。新增這些裝置即可放置其用戶端。",
   "{{count}} updates available": "{{count}} 個可用更新",
   "{{count}} updates available_one": "{{count}} 個可用更新",
-  "{{healthy}} of {{total}} healthy": "健康 {{healthy}} / {{total}}"
+  "{{healthy}} of {{total}} healthy": "健康 {{healthy}} / {{total}}",
+  "Cluster update": "叢集更新"
 }

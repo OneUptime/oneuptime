@@ -39216,5 +39216,6 @@
   "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them._one": "वायर्ड क्लाइंट वाला {{count}} Meraki डिवाइस यहाँ नेटवर्क डिवाइस नहीं है, इसलिए उसके क्लाइंट मैप पर नहीं हैं। क्लाइंट को रखने के लिए इसे जोड़ें।",
   "{{count}} updates available": "{{count}} अपडेट उपलब्ध",
   "{{count}} updates available_one": "{{count}} अपडेट उपलब्ध",
-  "{{healthy}} of {{total}} healthy": "{{total}} में से {{healthy}} स्वस्थ"
+  "{{healthy}} of {{total}} healthy": "{{total}} में से {{healthy}} स्वस्थ",
+  "Cluster update": "क्लस्टर अपडेट"
 }

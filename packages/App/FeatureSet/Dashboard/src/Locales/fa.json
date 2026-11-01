@@ -39216,5 +39216,6 @@
   "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them._one": "{{count}} دستگاه Meraki با کلاینت‌های سیمی اینجا دستگاه شبکه نیست، بنابراین کلاینت‌هایش روی نقشه نیستند. برای جای دادن کلاینت‌ها، این دستگاه را اضافه کنید.",
   "{{count}} updates available": "{{count}} به‌روزرسانی در دسترس",
   "{{count}} updates available_one": "{{count}} به‌روزرسانی در دسترس",
-  "{{healthy}} of {{total}} healthy": "{{healthy}} از {{total}} سالم"
+  "{{healthy}} of {{total}} healthy": "{{healthy}} از {{total}} سالم",
+  "Cluster update": "به‌روزرسانی خوشه"
 }

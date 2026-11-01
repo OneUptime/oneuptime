@@ -39216,5 +39216,6 @@
   "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them._one": "有線クライアントがある {{count}} 台の Meraki デバイスがここのネットワークデバイスではないため、そのクライアントはマップに表示されません。クライアントを配置するには追加してください。",
   "{{count}} updates available": "利用可能な更新: {{count}} 件",
   "{{count}} updates available_one": "利用可能な更新: {{count}} 件",
-  "{{healthy}} of {{total}} healthy": "{{total}} 個中 {{healthy}} 個が正常"
+  "{{healthy}} of {{total}} healthy": "{{total}} 個中 {{healthy}} 個が正常",
+  "Cluster update": "クラスターの更新"
 }

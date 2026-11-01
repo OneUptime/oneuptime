@@ -39216,5 +39216,6 @@
   "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them._one": "{{count}} dispositivo Meraki con client cablati non è un dispositivo di rete qui, quindi i suoi client non sono sulla mappa. Aggiungilo per collocare i client.",
   "{{count}} updates available": "{{count}} aggiornamenti disponibili",
   "{{count}} updates available_one": "{{count}} aggiornamento disponibile",
-  "{{healthy}} of {{total}} healthy": "{{healthy}} di {{total}} integri"
+  "{{healthy}} of {{total}} healthy": "{{healthy}} di {{total}} integri",
+  "Cluster update": "Aggiornamento del cluster"
 }

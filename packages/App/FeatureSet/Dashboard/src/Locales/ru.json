@@ -39216,5 +39216,6 @@
   "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them._one": "Устройства Meraki с проводными клиентами, которых нет здесь среди сетевых устройств: {{count}}. Их клиентов нет на карте. Добавьте их, чтобы разместить клиентов.",
   "{{count}} updates available": "Доступно обновлений: {{count}}",
   "{{count}} updates available_one": "Доступно {{count}} обновление",
-  "{{healthy}} of {{total}} healthy": "Исправно {{healthy}} из {{total}}"
+  "{{healthy}} of {{total}} healthy": "Исправно {{healthy}} из {{total}}",
+  "Cluster update": "Обновление кластера"
 }

@@ -39216,5 +39216,6 @@
   "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them._one": "{{count}} Meraki-Gerät mit kabelgebundenen Clients ist hier kein Netzwerkgerät, daher sind seine Clients nicht auf der Karte. Fügen Sie es hinzu, um die Clients zuzuordnen.",
   "{{count}} updates available": "{{count}} Updates verfügbar",
   "{{count}} updates available_one": "{{count}} Update verfügbar",
-  "{{healthy}} of {{total}} healthy": "{{healthy}} von {{total}} fehlerfrei"
+  "{{healthy}} of {{total}} healthy": "{{healthy}} von {{total}} fehlerfrei",
+  "Cluster update": "Cluster-Update"
 }

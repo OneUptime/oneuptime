@@ -39216,5 +39216,6 @@
   "{{count}} Meraki devices with wired clients are not network devices here, so their clients are not on the map. Add them to place them._one": "{{count}} Meraki-enhet med kablede klienter er ikke en nettverksenhet her, så klientene dens er ikke på kartet. Legg den til for å plassere klientene.",
   "{{count}} updates available": "{{count}} oppdateringer tilgjengelig",
   "{{count}} updates available_one": "{{count}} oppdatering tilgjengelig",
-  "{{healthy}} of {{total}} healthy": "{{healthy}} av {{total}} feilfrie"
+  "{{healthy}} of {{total}} healthy": "{{healthy}} av {{total}} feilfrie",
+  "Cluster update": "Klyngeoppdatering"
 }
