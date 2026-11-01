@@ -234,10 +234,15 @@ export const isOnlyLinks: IsOnlyLinksFunction = (
 export interface MessageCardFact {
   name: string;
   value: string;
+  // Set when the label ended in a full-width colon ("**状态：**"), as Chinese writes it.
+  isFullWidthColon?: boolean;
 }
 
 // The full-width colon Chinese writes after a label ("严重程度：").
 export const FULL_WIDTH_COLON: string = "\u{FF1A}";
+
+// How a label that ends in one ends: the colon, then the bold's end.
+const FULL_WIDTH_LABEL_END: string = "\u{FF1A}**";
 
 /*
  * A label as a card compares it with another: in lower case, without the
@@ -281,7 +286,7 @@ const findLabelEnd: (segment: string, from: number) => number = (
   from: number,
 ): number => {
   const colon: number = segment.indexOf(":**", from);
-  const fullWidthColon: number = segment.indexOf(`${FULL_WIDTH_COLON}**`, from);
+  const fullWidthColon: number = segment.indexOf(FULL_WIDTH_LABEL_END, from);
 
   if (colon === -1) {
     return fullWidthColon;
@@ -341,6 +346,9 @@ export const findFact: FindFactFunction = (
       return {
         name: segment.slice(open + 2, close),
         value: line.slice(valueStart, valueEnd),
+        ...(segment.charAt(close) === FULL_WIDTH_COLON
+          ? { isFullWidthColon: true }
+          : {}),
       };
     }
 

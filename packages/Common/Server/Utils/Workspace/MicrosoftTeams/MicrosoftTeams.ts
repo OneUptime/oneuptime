@@ -1039,9 +1039,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
          */
         if (TEXT_LABEL_KEYS.has(toLabelKey(name)) || !value) {
           // The colon the label was written with: Chinese writes "：".
-          const colon: string = lineWithoutLinks.includes(
-            `${factMatch.name}${FULL_WIDTH_COLON}**`,
-          )
+          const colon: string = factMatch.isFullWidthColon
             ? FULL_WIDTH_COLON
             : ":";
 

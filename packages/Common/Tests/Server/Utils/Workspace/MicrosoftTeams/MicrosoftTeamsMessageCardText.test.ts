@@ -234,11 +234,13 @@ describe("findFact", () => {
     ).toEqual({
       name: "\u{4E25}\u{91CD}\u{7A0B}\u{5EA6}",
       value: "\u{9AD8}",
+      isFullWidthColon: true,
     });
     // Whichever colon comes first ends the label.
     expect(findFact("**A\u{FF1A}** b **C:** d")).toEqual({
       name: "A",
       value: "b **C:** d",
+      isFullWidthColon: true,
     });
     expect(findFact("**A:** b **C\u{FF1A}** d")).toEqual({
       name: "A",
